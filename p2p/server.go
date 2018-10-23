@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 // Package p2p implements the Matrix p2p network protocols.
 package p2p
@@ -107,6 +107,7 @@ type Config struct {
 
 	// If ListenAddr is set to a non-nil address, the server
 	// will listen for incoming connections.
+	//
 	// If the port is zero, the operating system will pick a port. The
 	// ListenAddr field will be updated with the actual address when
 	// the server is started.

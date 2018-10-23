@@ -49,6 +49,7 @@ func BenchmarkMetrics(b *testing.B) {
 				}
 			}
 		}()
+	//*/
 
 	wgR := &sync.WaitGroup{}
 	//*
@@ -66,6 +67,7 @@ func BenchmarkMetrics(b *testing.B) {
 			}
 		}
 	}()
+	//*/
 
 	wgW := &sync.WaitGroup{}
 	/*
@@ -83,6 +85,7 @@ func BenchmarkMetrics(b *testing.B) {
 				}
 			}
 		}()
+	//*/
 
 	wg := &sync.WaitGroup{}
 	wg.Add(FANOUT)

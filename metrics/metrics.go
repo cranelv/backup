@@ -2,7 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Go port of Coda Hale's Metrics library
+//
 // <https://github.com/rcrowley/go-metrics>
+//
 // Coda Hale's original work: <https://github.com/codahale/metrics>
 package metrics
 
@@ -17,6 +19,7 @@ import (
 
 // Enabled is checked by the constructor functions for all of the
 // standard metrics.  If it is true, the metric returned is a stub.
+//
 // This global kill-switch helps quantify the observer effect and makes
 // for less cluttered pprof profiles.
 var Enabled bool = false

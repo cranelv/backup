@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package abi
 
 import (
@@ -27,8 +28,11 @@ type Method struct {
 }
 
 // Sig returns the methods string signature according to the ABI spec.
+//
 // Example
+//
 //     function foo(uint32 a, int b)    =    "foo(uint32,int256)"
+//
 // Please note that "int" is substitute for its canonical representation "int256"
 func (method Method) Sig() string {
 	types := make([]string, len(method.Inputs))

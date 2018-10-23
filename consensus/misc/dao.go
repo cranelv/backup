@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package misc
 
@@ -27,6 +27,7 @@ var (
 
 // VerifyDAOHeaderExtraData validates the extra-data field of a block header to
 // ensure it conforms to DAO hard-fork rules.
+//
 // DAO hard-fork extension to the header validity:
 //   a) if the node is no-fork, do not accept blocks in the [fork, fork+10) range
 //      with the fork specific extra-data set

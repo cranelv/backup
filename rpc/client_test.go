@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package rpc
 
@@ -104,9 +104,11 @@ func testClientCancel(transport string, t *testing.T) {
 	//  - cancel during dial
 	//  - cancel while performing a HTTP request
 	//  - cancel while waiting for a response
+	//
 	// To trigger those, the times are chosen such that connections
 	// are killed within the deadline for every other call (maxKillTimeout
 	// is 2x maxCancelTimeout).
+	//
 	// Once a connection is dead, there is a fair chance it won't connect
 	// successfully because the accept is delayed by 1s.
 	maxContextCancelTimeout := 300 * time.Millisecond

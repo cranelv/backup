@@ -5,6 +5,8 @@
 // Use of this source code in any form is governed by RESEARCH license.
 // license can be found in the LICENSE file.
 // GPG: 0F39 E425 8C65 3947 702A  8234 08B2 0360 A03A 9DE8
+//
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -26,6 +28,7 @@ const HashSize = int(32)
 // BlockSize holds the size of a block in bytes.
 const BlockSize = uintptr(64)
 
+////////////////
 
 type digest struct {
 	ptr uintptr
@@ -41,6 +44,7 @@ func NewJhash256() hash.Digest {
 	return ref
 }
 
+////////////////
 
 // Reset resets the digest to its initial state.
 func (ref *digest) Reset() {
@@ -215,6 +219,7 @@ func (*digest) BlockSize() int {
 	return int(BlockSize)
 }
 
+////////////////
 
 func decUInt64le(src []byte) uint64 {
 	return (uint64(src[0]) |
@@ -433,6 +438,8 @@ func slMutateExtend(r, ro uint64, hi, lo []uint64) {
 	lo[7] = ((lo[7] >> (kWrapOffset[ro])) & (kWrapValue[ro])) | tmp
 }
 
+////////////////
+/* these constants are for 512 bit hash */
 /*var kInit = []uint64{
 	uint64(0x17aa003e964bd16f), uint64(0x43d5157a052e6a63),
 	uint64(0x0bef970c8d5e228a), uint64(0x61c3b3f2591234e9),
@@ -442,6 +449,7 @@ func slMutateExtend(r, ro uint64, hi, lo []uint64) {
 	uint64(0x243c84c1d0a74710), uint64(0x99c15a2db1716e3b),
 	uint64(0x56f8b19decf657cf), uint64(0x56b116577c8806a7),
 	uint64(0xfb1785e6dffcc2e3), uint64(0x4bdd8ccc78465a54),
+}*/
 
 // these constants are for 256 bit hash
 var kInit = []uint64{

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package usbwallet implements support for USB hardware wallets.
 package usbwallet
 
@@ -84,12 +85,14 @@ type wallet struct {
 	// but exclusive communication must be upheld during. Locking the entire wallet
 	// in the mean time however would stall any parts of the system that don't want
 	// to communicate, just read some state (e.g. list the accounts).
+	//
 	// As such, a hardware wallet needs two locks to function correctly. A state
 	// lock can be used to protect the wallet's software-side internal state, which
 	// must not be held exclusively during hardware communication. A communication
 	// lock can be used to achieve exclusive access to the device itself, this one
 	// however should allow "skipping" waiting for operations that might want to
 	// use the device, but can live without too (e.g. account self-derivation).
+	//
 	// Since we have two locks, it's important to know how to properly use them:
 	//   - Communication requires the `device` to not change, so obtaining the
 	//     commsLock should be done after having a stateLock.
@@ -247,6 +250,7 @@ func (w *wallet) Close() error {
 
 // close is the internal wallet closer that terminates the USB connection and
 // resets all the fields to their defaults.
+//
 // Note, close assumes the state lock is held!
 func (w *wallet) close() error {
 	// Allow duplicate closes, especially for health-check failures
@@ -489,6 +493,7 @@ func (w *wallet) SignHash(account accounts.Account, hash []byte) ([]byte, error)
 // SignTx implements accounts.Wallet. It sends the transaction over to the Ledger
 // wallet to request a confirmation from the user. It returns either the signed
 // transaction or a failure if the user denied the transaction.
+//
 // Note, if the version of the Matrix application running on the Ledger wallet is
 // too old to sign EIP-155 transactions, but such is requested nonetheless, an error
 // will be returned opposed to silently signing in Homestead mode.

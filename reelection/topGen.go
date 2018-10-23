@@ -79,6 +79,7 @@ func (self *ReElection) getMinHash(height uint64) common.Hash {
 
 func (self *ReElection) ToGenMinerTop(height uint64) error {
 
+	minerDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleMiner) //
 	if err != nil {
 		log.ERROR(Module, "獲取礦工抵押交易失敗 err", err)
 		return err

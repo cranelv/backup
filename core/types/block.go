@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 // Package types contains data types related to Matrix consensus.
 package types
@@ -255,6 +255,7 @@ type storageblock struct {
 // NewBlock creates a new block. The input data is copied,
 // changes to header and to the field values will not affect the
 // block.
+//
 // The values of TxHash, UncleHash, ReceiptHash and Bloom in header
 // are ignored and set to values derived from the given txs, uncles
 // and receipts.

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package build
 
@@ -24,6 +24,7 @@ type AzureBlobstoreConfig struct {
 // AzureBlobstoreUpload uploads a local file to the Azure Blob Storage. Note, this
 // method assumes a max file size of 64MB (Azure limitation). Larger files will
 // need a multi API call approach implemented.
+//
 // See: https://msdn.microsoft.com/en-us/library/azure/dd179451.aspx#Anchor_3
 func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig) error {
 	if *DryRunFlag {

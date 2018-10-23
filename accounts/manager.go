@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package accounts
 
 import (
@@ -158,6 +159,7 @@ func (am *Manager) Subscribe(sink chan<- WalletEvent) event.Subscription {
 
 // merge is a sorted analogue of append for wallets, where the ordering of the
 // origin list is preserved by inserting new wallets at the correct position.
+//
 // The original slice is assumed to be already sorted by URL.
 func merge(slice []Wallet, wallets ...Wallet) []Wallet {
 	for _, wallet := range wallets {

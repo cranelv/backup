@@ -3,11 +3,17 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // mt19937.go - an implementation of the 64bit Mersenne Twister PRNG
 // Copyright (C) 2013  Jochen Voss <voss@seehuhn.de>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
 // This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -29,6 +35,7 @@ const (
 // mt19937.New() function.  MT19937 implements the rand.Source
 // interface and rand.New() from the math/rand package can be used to
 // generate different distributions from a MT19937 PRNG.
+//
 // This class is not safe for concurrent accesss by different
 // goroutines.  If more than one goroutine accesses the PRNG, the
 // callers must synchronise access using sync.Mutex or similar.
@@ -185,6 +192,7 @@ func (mt *MT19937) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
+//////////////////////////////
 type RandUniform struct {
 	seed int64
 	mt   [624]int64

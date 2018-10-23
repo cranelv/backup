@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package pod
 
 import (
@@ -74,10 +75,13 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 
 // Service is an individual protocol that can be registered into a node.
+//
 // Notes:
+//
 // • Service life-cycle management is delegated to the node. The service is allowed to
 // initialize itself upon creation, but no goroutines should be spun up outside of the
 // Start method.
+//
 // • Restart logic is not required as the node will create a fresh instance
 // every time a service is started.
 type Service interface {

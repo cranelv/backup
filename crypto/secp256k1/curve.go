@@ -3,9 +3,11 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2010 The Go Authors. All rights reserved.
 // Copyright 2011 ThePiachu. All rights reserved.
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
+//
 // * Redistributions of source code must retain the above copyright
 //   notice, this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above
@@ -17,6 +19,7 @@
 //   this software without specific prior written permission.
 // * The name of ThePiachu may not be used to endorse or promote products
 //   derived from this software without specific prior written permission.
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -42,10 +45,12 @@ import (
 /*
 #include "libsecp256k1/include/secp256k1.h"
 extern int secp256k1_ext_scalar_mul(const secp256k1_context* ctx, const unsigned char *point, const unsigned char *scalar);
+*/
 import "C"
 
 // This code is from https://github.com/ThePiachu/GoBit and implements
 // several Koblitz elliptic curves over prime fields.
+//
 // The curve methods, internally, on Jacobian coordinates. For a given
 // (x, y) position on the curve, the Jacobian coordinates are (x1, y1,
 // z1) where x = x1/z1² and y = y1/z1³. The greatest speedups come

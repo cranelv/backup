@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package rpc
 
 import (
@@ -40,6 +41,7 @@ var websocketJSONCodec = websocket.Codec{
 }
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
+//
 // allowedOrigins should be a comma-separated list of allowed origin URLs.
 // To allow connections with any origin, pass "*".
 func (srv *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
@@ -61,6 +63,7 @@ func (srv *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 }
 
 // NewWSServer creates a new websocket RPC server around an API provider.
+//
 // Deprecated: use Server.WebsocketHandler
 func NewWSServer(allowedOrigins []string, srv *Server) *http.Server {
 	return &http.Server{Handler: srv.WebsocketHandler(allowedOrigins)}
@@ -106,6 +109,7 @@ func wsHandshakeValidator(allowedOrigins []string) func(*websocket.Config, *http
 
 // DialWebsocket creates a new RPC client that communicates with a JSON-RPC server
 // that is listening on the given endpoint.
+//
 // The context is used for the initial connection establishment. It does not
 // affect subsequent interactions with the client.
 func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error) {

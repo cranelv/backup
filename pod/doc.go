@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 /*
 Package node sets up multi-protocol Matrix nodes.
@@ -61,10 +61,13 @@ In this example, two node instances named A and B are started with the same data
 directory. Mode instance A opens the database "db", node instance B opens the databases
 "db" and "db-2". The following files will be created in the data directory:
 
+   data-directory/
+        A/
             nodekey            -- devp2p node key of instance A
             nodes/             -- devp2p discovery knowledge database of instance A
             db/                -- LevelDB content for "db"
         A.ipc                  -- JSON-RPC UNIX domain socket endpoint of instance A
+        B/
             nodekey            -- devp2p node key of node B
             nodes/             -- devp2p discovery knowledge database of instance B
             static-nodes.json  -- devp2p static node list of instance B
@@ -72,4 +75,5 @@ directory. Mode instance A opens the database "db", node instance B opens the da
             db-2/              -- LevelDB content for "db-2"
         B.ipc                  -- JSON-RPC UNIX domain socket endpoint of instance B
         keystore/              -- account key store, used by both instances
+*/
 package pod

@@ -357,6 +357,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 			log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
 			return
 		}
+	}*/
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)

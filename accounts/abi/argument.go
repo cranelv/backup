@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package abi
 
 import (
@@ -195,8 +196,10 @@ func (arguments Arguments) UnpackValues(data []byte) ([]interface{}, error) {
 			// just like uint256,uint256,uint256.
 			// This means that we need to add two 'virtual' arguments when
 			// we count the index from now on.
+			//
 			// Array values nested multiple levels deep are also encoded inline:
 			// [2][3]uint256: uint256,uint256,uint256,uint256,uint256,uint256
+			//
 			// Calculate the full array size to get the correct offset for the next argument.
 			// Decrement it by 1, as the normal index increment is still applied.
 			virtualArgs += getArraySize(&arg.Type) - 1

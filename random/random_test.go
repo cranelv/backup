@@ -233,6 +233,7 @@ func TestSeed(t *testing.T) {
 
 		ans:=big.NewInt(100)
 		ans_1:=commjjkjjk
+	*/
 	fmt.Println(crypto.Keccak256Hash([]byte("sdfsfsd")).String())
 
 }

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package accounts
 
 import (
@@ -35,6 +36,7 @@ var ErrWalletClosed = errors.New("wallet closed")
 
 // AuthNeededError is returned by backends for signing requests where the user
 // is required to provide further authentication before signing can succeed.
+//
 // This usually means either that a password needs to be supplied, or perhaps a
 // one time PIN code displayed by some hardware device.
 type AuthNeededError struct {

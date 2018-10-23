@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package rpc
 
 import (
@@ -30,6 +31,7 @@ func (srv *Server) ServeListener(l net.Listener) error {
 // DialIPC create a new IPC client that connects to the given endpoint. On Unix it assumes
 // the endpoint is the full path to a unix socket, and Windows the endpoint is an
 // identifier for a named pipe.
+//
 // The context is used for the initial connection establishment. It does not
 // affect subsequent interactions with the client.
 func DialIPC(ctx context.Context, endpoint string) (*Client, error) {

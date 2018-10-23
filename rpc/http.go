@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package rpc
 
 import (
@@ -147,6 +148,7 @@ func (t *httpReadWriteNopCloser) Close() error {
 }
 
 // NewHTTPServer creates a new HTTP RPC server around an API provider.
+//
 // Deprecated: Server implements http.Handler
 func NewHTTPServer(cors []string, vhosts []string, srv *Server) *http.Server {
 	// Wrap the CORS-handler within a host-handler

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package jsre provides execution environment for JavaScript.
 package jsre
 
@@ -31,6 +32,7 @@ It provides some helper functions to
 - run code snippets
 - require libraries
 - bind native go objects
+*/
 type JSRE struct {
 	assetPath     string
 	output        io.Writer

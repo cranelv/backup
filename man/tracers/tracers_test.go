@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package tracers
 
 import (
@@ -72,6 +73,7 @@ var makeTest = function(tx, rewind) {
     result: result,
   }, null, 2));
 }
+*/
 
 // callTrace is the result of a callTracer run.
 type callTrace struct {

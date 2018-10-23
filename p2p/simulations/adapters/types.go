@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package adapters
 
 import (
@@ -22,9 +23,11 @@ import (
 
 // Node represents a node in a simulation network which is created by a
 // NodeAdapter, for example:
+//
 // * SimNode    - An in-memory node
 // * ExecNode   - A child process node
 // * DockerNode - A Docker container node
+//
 type Node interface {
 	// Addr returns the node's address (e.g. an Enode URL)
 	Addr() []byte
@@ -187,6 +190,7 @@ var serviceFuncs = make(Services)
 
 // RegisterServices registers the given Services which can then be used to
 // start devp2p nodes using either the Exec or Docker adapters.
+//
 // It should be called in an init function so that it has the opportunity to
 // execute the services before main() is called.
 func RegisterServices(services Services) {

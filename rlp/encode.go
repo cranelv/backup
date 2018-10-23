@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package rlp
 
@@ -26,6 +26,7 @@ type Encoder interface {
 	// EncodeRLP should write the RLP encoding of its receiver to w.
 	// If the implementation is a pointer method, it may also be
 	// called for nil pointers.
+	//
 	// Implementations should generate valid RLP. The data written is
 	// not verified at the moment, but a future version might. It is
 	// recommended to write only a single value but writing multiple
@@ -36,24 +37,33 @@ type Encoder interface {
 // Encode writes the RLP encoding of val to w. Note that Encode may
 // perform many small writes in some cases. Consider making w
 // buffered.
+//
 // Encode uses the following type-dependent encoding rules:
+//
 // If the type implements the Encoder interface, Encode calls
 // EncodeRLP. This is true even for nil pointers, please see the
 // documentation for Encoder.
+//
 // To encode a pointer, the value being pointed to is encoded. For nil
 // pointers, Encode will encode the zero value of the type. A nil
 // pointer to a struct type always encodes as an empty RLP list.
 // A nil pointer to an array encodes as an empty list (or empty string
 // if the array has element type byte).
+//
 // Struct values are encoded as an RLP list of all their encoded
 // public fields. Recursive struct types are supported.
+//
 // To encode slices and arrays, the elements are encoded as an RLP
 // list of the value's elements. Note that arrays and slices with
 // element type uint8 or byte are always encoded as an RLP string.
+//
 // A Go string is encoded as an RLP string.
+//
 // An unsigned integer value is encoded as an RLP string. Zero always
 // encodes as an empty RLP string. Encode also supports *big.Int.
+//
 // An interface value encodes as the value contained in the interface.
+//
 // Boolean values are not supported, nor are signed integers, floating
 // point numbers, maps, channels and functions.
 func Encode(w io.Writer, val interface{}) error {
@@ -86,6 +96,7 @@ func EncodeToBytes(val interface{}) ([]byte, error) {
 // EncodeToReader returns a reader from which the RLP encoding of val
 // can be read. The returned size is the total size of the encoded
 // data.
+//
 // Please see the documentation of Encode for the encoding rules.
 func EncodeToReader(val interface{}) (size int, r io.Reader, err error) {
 	eb := encbufPool.Get().(*encbuf)
@@ -457,6 +468,7 @@ func writeEncoderNoPtr(val reflect.Value, w *encbuf) error {
 		// We can't get the address. It would be possible to make the
 		// value addressable by creating a shallow copy, but this
 		// creates other problems so we're not doing it (yet).
+		//
 		// package json simply doesn't call MarshalJSON for cases like
 		// this, but encodes the value as if it didn't implement the
 		// interface. We don't want to handle it that way.

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package adapters
 
 import (
@@ -32,6 +33,7 @@ import (
 
 // ExecAdapter is a NodeAdapter which runs simulation nodes by executing the
 // current binary as a child process.
+//
 // An init hook is used so that the child process executes the node services
 // (rather than whataver the main() function would normally do), see the
 // execP2PNode function for more information.

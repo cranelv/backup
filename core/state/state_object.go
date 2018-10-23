@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package state
 
@@ -44,6 +44,7 @@ func (self Storage) Copy() Storage {
 }
 
 // stateObject represents an Matrix account which is being modified.
+//
 // The usage pattern is as follows:
 // First you need to obtain a state object.
 // Account values can be accessed and modified through the object.
@@ -274,7 +275,9 @@ func (self *stateObject) deepCopy(db *StateDB) *stateObject {
 	return stateObject
 }
 
+//
 // Attribute accessors
+//
 
 // Returns the address of the contract/account
 func (c *stateObject) Address() common.Address {

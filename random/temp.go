@@ -49,6 +49,7 @@ func GetKeyTransInfo(Heigh uint64, types string) map[common.Address][]byte {
 			fmt.Println("biggo")
 		} else {
 			fmt.Println("sb")
+		}*/
 	if types == "private" {
 		return mmap_private
 	}

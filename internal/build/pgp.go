@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 // signFile reads the contents of an input file and signs it (in armored format)
 // with the key provided, placing the signature into the output file.
@@ -18,6 +18,7 @@ import (
 
 // PGPSignFile parses a PGP private key from the specified string and creates a
 // signature file into the output parameter of the input file.
+//
 // Note, this method assumes a single key will be container in the pgpkey arg,
 // furthermore that it is in armored format.
 func PGPSignFile(input string, output string, pgpkey string) error {

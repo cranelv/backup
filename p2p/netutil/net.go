@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 // Package netutil contains extensions to the net package.
 package netutil
@@ -19,6 +19,7 @@ var lan4, lan6, special4, special6 Netlist
 
 func init() {
 	// Lists from RFC 5735, RFC 5156,
+	// https://www.iana.org/assignments/iana-ipv4-special-registry/
 	lan4.Add("0.0.0.0/8")              // "This" network
 	lan4.Add("10.0.0.0/8")             // Private Use
 	lan4.Add("172.16.0.0/12")          // Private Use
@@ -39,6 +40,7 @@ func init() {
 	special4.Add("203.0.113.0/24")     // TEST-NET-3
 	special4.Add("255.255.255.255/32") // Limited Broadcast
 
+	// http://www.iana.org/assignments/iana-ipv6-special-registry/
 	special6.Add("100::/64")
 	special6.Add("2001::/32")
 	special6.Add("2001:1::1/128")
@@ -155,6 +157,7 @@ var (
 
 // CheckRelayIP reports whether an IP relayed from the given sender IP
 // is a valid connection target.
+//
 // There are four rules:
 //   - Special network addresses are never valid.
 //   - Loopback addresses are OK if relayed by a loopback host.
@@ -252,6 +255,7 @@ func (s DistinctNetSet) Len() int {
 }
 
 // key encodes the map key for an address into a temporary buffer.
+//
 // The first byte of key is '4' or '6' to distinguish IPv4/IPv6 address types.
 // The remainder of the key is the IP, truncated to the number of bits.
 func (s *DistinctNetSet) key(ip net.IP) net.IP {

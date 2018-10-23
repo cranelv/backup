@@ -34,6 +34,7 @@ func CaptureDebugGCStats(r Registry, d time.Duration) {
 // debug.GCStats.  This is designed to be called in a background goroutine.
 // Giving a registry which has not been given to RegisterDebugGCStats will
 // panic.
+//
 // Be careful (but much less so) with this because debug.ReadGCStats calls
 // the C function runtime·lock(runtime·mheap) which, while not a stop-the-world
 // operation, isn't something you want to be doing all the time.

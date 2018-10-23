@@ -1,11 +1,19 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// Copyright 2015 The go-matrix Authors
 // This file is part of go-matrix.
+//
 // go-matrix is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
 // go-matrix is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
+//
 // You should have received a copy of the GNU General Public License
 // along with go-matrix. If not, see <http://www.gnu.org/licenses/>.
 
@@ -99,6 +107,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 // These are all the command line flags we support.
 // If you add to this list, please remember to include the
 // flag in the appropriate command definition.
+//
 // The flags are defined here so their names and help texts
 // are the same for all commands.
 
@@ -619,6 +628,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 //	//case cfg.BootstrapNodesV5 != nil:
 //	//	return // already set, don't apply defaults.
 //	}
+//
 //	cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
 //	for _, url := range urls {
 //		node, err := discv5.ParseNode(url)
@@ -1233,9 +1243,13 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 // MigrateFlags sets the global flag from a local flag when it's set.
 // This is a temporary function used for migrating old command/flags to the
 // new format.
+//
 // e.g. gman account new --keystore /tmp/mykeystore --lightkdf
+//
 // is equivalent after calling this method with:
+//
 // gman --keystore /tmp/mykeystore --lightkdf account new
+//
 // This allows the use of the existing configuration functionality.
 // When all flags are migrated this function can be removed and the existing
 // configuration functionality must be changed that is uses local flags

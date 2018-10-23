@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package simulations
 
 import (
@@ -29,8 +30,10 @@ type NetworkConfig struct {
 
 // Network models a p2p simulation network which consists of a collection of
 // simulated nodes and the connections which exist between them.
+//
 // The Network has a single NodeAdapter which is responsible for actually
 // starting nodes and connecting them together.
+//
 // The Network emits events when nodes are started and stopped, when they are
 // connected and disconnected, and also when messages are sent between nodes.
 type Network struct {

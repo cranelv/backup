@@ -18,6 +18,7 @@ address for each author. See git-shortlog(1) for an explanation of the
 
 Please review the resulting diff to check whether the correct
 copyright assignments are performed.
+*/
 
 package main
 
@@ -78,10 +79,17 @@ var (
 var licenseT = template.Must(template.New("").Parse(`
 // Copyright {{.Year}} The go-matrix Authors
 // This file is part of {{.Whole false}}.
+//
 // {{.Whole true}} is free software: you can redistribute it and/or modify
 // it under the terms of the GNU {{.License}} as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
 // {{.Whole true}} is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU {{.License}} for more details.
+//
 // You should have received a copy of the GNU {{.License}}
 // along with {{.Whole false}}. If not, see <http://www.gnu.org/licenses/>.
 

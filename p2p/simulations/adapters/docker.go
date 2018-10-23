@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package adapters
 
 import (
@@ -23,6 +24,7 @@ import (
 
 // DockerAdapter is a NodeAdapter which runs simulation nodes inside Docker
 // containers.
+//
 // A Docker image is built which contains the current binary at /bin/p2p-node
 // which when executed runs the underlying service (see the description
 // of the execP2PNode function for more details)
@@ -35,6 +37,7 @@ type DockerAdapter struct {
 func NewDockerAdapter() (*DockerAdapter, error) {
 	// Since Docker containers run on Linux and this adapter runs the
 	// current binary in the container, it must be compiled for Linux.
+	//
 	// It is reasonable to require this because the caller can just
 	// compile the current binary in a Docker container.
 	if runtime.GOOS != "linux" {
@@ -103,6 +106,7 @@ type DockerNode struct {
 
 // dockerCommand returns a command which exec's the binary in a Docker
 // container.
+//
 // It uses a shell so that we can pass the _P2P_NODE_CONFIG environment
 // variable to the container using the --env flag.
 func (n *DockerNode) dockerCommand() *exec.Cmd {
@@ -121,6 +125,7 @@ const dockerImage = "p2p-node"
 
 // buildDockerImage builds the Docker image which is used to run the simulation
 // node in a Docker container.
+//
 // It adds the current binary as "p2p-node" so that it runs execP2PNode
 // when executed.
 func buildDockerImage() error {

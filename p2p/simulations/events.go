@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package simulations
 
 import (
@@ -50,6 +51,7 @@ type Event struct {
 
 // NewEvent creates a new event for the given object which should be either a
 // Node, Conn or Msg.
+//
 // The object is copied so that the event represents the state of the object
 // when NewEvent is called.
 func NewEvent(v interface{}) *Event {

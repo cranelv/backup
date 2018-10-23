@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package math provides integer math utilities.
 package math
 
@@ -166,6 +167,7 @@ func U256(x *big.Int) *big.Int {
 
 // S256 interprets x as a two's complement number.
 // x must not exceed 256 bits (the result is undefined if it does) and is not modified.
+//
 //   S256(0)        = 0
 //   S256(1)        = 1
 //   S256(2**255)   = -2**255
@@ -181,6 +183,7 @@ func S256(x *big.Int) *big.Int {
 // Exp implements exponentiation by squaring.
 // Exp returns a newly-allocated big integer and does not change
 // base or exponent. The result is truncated to 256 bits.
+//
 // Courtesy @karalabe and @chfast
 func Exp(base, exponent *big.Int) *big.Int {
 	result := big.NewInt(1)

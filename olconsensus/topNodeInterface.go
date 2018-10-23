@@ -53,6 +53,7 @@ type MessageCenterInterface interface {
 	PublishEvent(aim mc.EventCode, data interface{}) error
 }
 
+////////////////////////////////////////////////////////////////////
 type TopNodeInstance struct {
 	signHelper *signhelper.SignHelper
 	hd         *msgsend.HD

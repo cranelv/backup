@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2018 The go-matrix Authors
+
 
 package rawdb
 
@@ -313,6 +313,7 @@ func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
 // ReadBlock retrieves an entire block corresponding to the hash, assembling it
 // back from the stored header and body. If either the header or body could not
 // be retrieved nil is returned.
+//
 // Note, due to concurrent download of header and block body the header and thus
 // canonical hash can be stored in the database but the body data not (yet).
 func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block {

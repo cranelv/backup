@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package accounts
 
 import (
@@ -12,12 +13,15 @@ import (
 )
 
 // URL represents the canonical identification URL of a wallet or account.
+//
 // It is a simplified version of url.URL, with the important limitations (which
 // are considered features here) that it contains value-copyable components only,
 // as well as that it doesn't do any URL encoding/decoding of special characters.
+//
 // The former is important to allow an account to be copied without leaving live
 // references to the original version, whereas the latter is important to ensure
 // one single canonical form opposed to many allowed ones by the RFC 3986 spec.
+//
 // As such, these URLs should not be used outside of the scope of an Matrix
 // wallet or account.
 type URL struct {
@@ -76,9 +80,11 @@ func (u *URL) UnmarshalJSON(input []byte) error {
 }
 
 // Cmp compares x and y and returns:
+//
 //   -1 if x <  y
 //    0 if x == y
 //   +1 if x >  y
+//
 func (u URL) Cmp(url URL) int {
 	if u.Scheme == url.Scheme {
 		return strings.Compare(u.Path, url.Path)

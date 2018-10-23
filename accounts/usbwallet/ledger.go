@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // This file contains the implementation for interacting with the Ledger hardware
 // wallets. The wire protocol spec can be found in the Ledger Blue GitHub repo:
 // https://raw.githubusercontent.com/LedgerHQ/blue-app-man/master/doc/manapp.asc
@@ -87,6 +88,7 @@ func (w *ledgerDriver) Status() (string, error) {
 }
 
 // offline returns whether the wallet and the Matrix app is offline or not.
+//
 // The method assumes that the state lock is held!
 func (w *ledgerDriver) offline() bool {
 	return w.version == [3]byte{0, 0, 0}
@@ -138,6 +140,7 @@ func (w *ledgerDriver) Derive(path accounts.DerivationPath) (common.Address, err
 
 // SignTx implements usbwallet.driver, sending the transaction to the Ledger and
 // waiting for the user to confirm or deny the transaction.
+//
 // Note, if the version of the Matrix application running on the Ledger wallet is
 // too old to sign EIP-155 transactions, but such is requested nonetheless, an error
 // will be returned opposed to silently signing in Homestead mode.
@@ -156,11 +159,15 @@ func (w *ledgerDriver) SignTx(path accounts.DerivationPath, tx *types.Transactio
 
 // ledgerVersion retrieves the current version of the Matrix wallet app running
 // on the Ledger wallet.
+//
 // The version retrieval protocol is defined as follows:
+//
 //   CLA | INS | P1 | P2 | Lc | Le
 //   ----+-----+----+----+----+---
 //    E0 | 06  | 00 | 00 | 00 | 04
+//
 // With no input data, and the output data being:
+//
 //   Description                                        | Length
 //   ---------------------------------------------------+--------
 //   Flags 01: arbitrary data signature enabled by user | 1 byte
@@ -184,7 +191,9 @@ func (w *ledgerDriver) ledgerVersion() ([3]byte, error) {
 
 // ledgerDerive retrieves the currently active Matrix address from a Ledger
 // wallet at the specified derivation path.
+//
 // The address derivation protocol is defined as follows:
+//
 //   CLA | INS | P1 | P2 | Lc  | Le
 //   ----+-----+----+----+-----+---
 //    E0 | 02  | 00 return address
@@ -192,14 +201,18 @@ func (w *ledgerDriver) ledgerVersion() ([3]byte, error) {
 //                  | 00: do not return the chain code
 //                  | 01: return the chain code
 //                       | var | 00
+//
 // Where the input data is:
+//
 //   Description                                      | Length
 //   -------------------------------------------------+--------
 //   Number of BIP 32 derivations to perform (max 10) | 1 byte
 //   First derivation index (big endian)              | 4 bytes
 //   ...                                              | 4 bytes
 //   Last derivation index (big endian)               | 4 bytes
+//
 // And the output data is:
+//
 //   Description             | Length
 //   ------------------------+-------------------
 //   Public Key length       | 1 byte
@@ -239,13 +252,17 @@ func (w *ledgerDriver) ledgerDerive(derivationPath []uint32) (common.Address, er
 
 // ledgerSign sends the transaction to the Ledger wallet, and waits for the user
 // to confirm or deny the transaction.
+//
 // The transaction signing protocol is defined as follows:
+//
 //   CLA | INS | P1 | P2 | Lc  | Le
 //   ----+-----+----+----+-----+---
 //    E0 | 04  | 00: first transaction data block
 //               80: subsequent transaction data block
 //                  | 00 | variable | variable
+//
 // Where the input for the first transaction block (first 255 bytes) is:
+//
 //   Description                                      | Length
 //   -------------------------------------------------+----------
 //   Number of BIP 32 derivations to perform (max 10) | 1 byte
@@ -253,11 +270,15 @@ func (w *ledgerDriver) ledgerDerive(derivationPath []uint32) (common.Address, er
 //   ...                                              | 4 bytes
 //   Last derivation index (big endian)               | 4 bytes
 //   RLP transaction chunk                            | arbitrary
+//
 // And the input for subsequent transaction blocks (first 255 bytes) are:
+//
 //   Description           | Length
 //   ----------------------+----------
 //   RLP transaction chunk | arbitrary
+//
 // And the output data is:
+//
 //   Description | Length
 //   ------------+---------
 //   signature V | 1 byte
@@ -333,21 +354,28 @@ func (w *ledgerDriver) ledgerSign(derivationPath []uint32, tx *types.Transaction
 
 // ledgerExchange performs a data exchange with the Ledger wallet, sending it a
 // message and retrieving the response.
+//
 // The common transport header is defined as follows:
+//
 //  Description                           | Length
 //  --------------------------------------+----------
 //  Communication channel ID (big endian) | 2 bytes
 //  Command tag                           | 1 byte
 //  Packet sequence index (big endian)    | 2 bytes
 //  Payload                               | arbitrary
+//
 // The Communication channel ID allows commands multiplexing over the same
 // physical link. It is not used for the time being, and should be set to 0101
 // to avoid compatibility issues with implementations ignoring a leading 00 byte.
+//
 // The Command tag describes the message content. Use TAG_APDU (0x05) for standard
 // APDU payloads, or TAG_PING (0x02) for a simple link test.
+//
 // The Packet sequence index describes the current sequence for fragmented payloads.
 // The first fragment index is 0x00.
+//
 // APDU Command payloads are encoded as follows:
+//
 //  Description              | Length
 //  -----------------------------------
 //  APDU length (big endian) | 2 bytes

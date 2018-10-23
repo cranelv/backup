@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package bind
 
 import (
@@ -77,6 +78,7 @@ type ContractTransactor interface {
 type ContractFilterer interface {
 	// FilterLogs executes a log filter operation, blocking during execution and
 	// returning all the results in one batch.
+	//
 	// TODO(karalabe): Deprecate when the subscription one can return past data too.
 	FilterLogs(ctx context.Context, query matrix.FilterQuery) ([]types.Log, error)
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package debug
 
@@ -127,6 +127,7 @@ func Setup(ctx *cli.Context, logdir string) error {
 			rfh, err := log.RotatingFileHandler(
 				logPath,      //logdir,
 				1024*1024*50, //262144,
+				/*log.JSONFormatOrderedEx(false, true),*/
 				log.TerminalFormat(false),
 			)
 			if err != nil {

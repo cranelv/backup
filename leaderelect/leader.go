@@ -36,6 +36,7 @@ var (
 	return electionInfo[0], nil
 
 }
+*/
 
 /*func nextLeader(validator []*ca.TopologyNodeInfo, preLeader ca.TopologyNodeInfo) (ca.TopologyNodeInfo, error) {
 	if len(validator) == 0 {
@@ -49,6 +50,7 @@ var (
 		}
 	}
 	return ca.TopologyNodeInfo{}, ValidatorNotFound
+}*/
 
 func nextLeaderByNum(validator []mc.TopologyNodeInfo, preLeader common.Address, skipNum uint8) (common.Address, error) {
 	if validator == nil {

@@ -84,6 +84,7 @@ func (pm *ProcessManage) GetProcess(number uint64) (*Process, error) {
 		return nil, errors.Errorf("process.role(%s) != params.role(%s)", pRole.String(), role.String())
 	}
 	return process, nil
+}*/
 
 func (pm *ProcessManage) fixProcessMap() {
 	if len(pm.processMap) == 0 {

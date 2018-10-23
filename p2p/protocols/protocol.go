@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 /*
 Package protocols is an extension to p2p. It offers a user friendly simple way to define
 devp2p subprotocols by abstracting away code standardly shared by protocols.
@@ -13,6 +14,7 @@ devp2p subprotocols by abstracting away code standardly shared by protocols.
 * standardised	handshake negotiation
 * TODO: automatic generation of wire protocol specification for peers
 
+*/
 package protocols
 
 import (
@@ -62,6 +64,7 @@ where description is given by code in errorToString
 and details is fmt.Sprintf(format, params...)
 
 exported field Code can be checked
+*/
 type Error struct {
 	Code    int
 	message string

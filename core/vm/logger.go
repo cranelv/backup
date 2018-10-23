@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package vm
 
 import (
@@ -88,6 +89,7 @@ type Tracer interface {
 }
 
 // StructLogger is an EVM state logger and implements Tracer.
+//
 // StructLogger can capture state based on the given Log configuration and also keeps
 // a track record of modified storage which is used in reporting snapshots of the
 // contract their storage.
@@ -116,6 +118,7 @@ func (l *StructLogger) CaptureStart(from common.Address, to common.Address, crea
 }
 
 // CaptureState logs a new structured log message and pushes it out to the environment
+//
 // CaptureState also tracks SSTORE ops to track dirty values.
 func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs

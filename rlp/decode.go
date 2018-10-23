@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package rlp
 
@@ -41,6 +41,7 @@ var (
 
 // Decoder is implemented by types that require custom RLP
 // decoding rules or need to decode into private fields.
+//
 // The DecodeRLP method should read one value from the given
 // Stream. It is not forbidden to read less or more, but it might
 // be confusing.
@@ -51,50 +52,67 @@ type Decoder interface {
 // Decode parses RLP-encoded data from r and stores the result in the
 // value pointed to by val. Val must be a non-nil pointer. If r does
 // not implement ByteReader, Decode will do its own buffering.
+//
 // Decode uses the following type-dependent decoding rules:
+//
 // If the type implements the Decoder interface, decode calls
 // DecodeRLP.
+//
 // To decode into a pointer, Decode will decode into the value pointed
 // to. If the pointer is nil, a new value of the pointer's element
 // type is allocated. If the pointer is non-nil, the existing value
 // will be reused.
+//
 // To decode into a struct, Decode expects the input to be an RLP
 // list. The decoded elements of the list are assigned to each public
 // field in the order given by the struct's definition. The input list
 // must contain an element for each decoded field. Decode returns an
 // error if there are too few or too many elements.
+//
 // The decoding of struct fields honours certain struct tags, "tail",
 // "nil" and "-".
+//
 // The "-" tag ignores fields.
+//
 // For an explanation of "tail", see the example.
+//
 // The "nil" tag applies to pointer-typed fields and changes the decoding
 // rules for the field such that input values of size zero decode as a nil
 // pointer. This tag can be useful when decoding recursive types.
+//
 //     type StructWithEmptyOK struct {
 //         Foo *[20]byte `rlp:"nil"`
 //     }
+//
 // To decode into a slice, the input must be a list and the resulting
 // slice will contain the input elements in order. For byte slices,
 // the input must be an RLP string. Array types decode similarly, with
 // the additional restriction that the number of input elements (or
 // bytes) must match the array's length.
+//
 // To decode into a Go string, the input must be an RLP string. The
 // input bytes are taken as-is and will not necessarily be valid UTF-8.
+//
 // To decode into an unsigned integer type, the input must also be an RLP
 // string. The bytes are interpreted as a big endian representation of
 // the integer. If the RLP string is larger than the bit size of the
 // type, Decode will return an error. Decode also supports *big.Int.
 // There is no size limit for big integers.
+//
 // To decode into an interface value, Decode stores one of these
 // in the value:
+//
 //	  []interface{}, for RLP lists
 //	  []byte, for RLP strings
+//
 // Non-empty interface types are not supported, nor are booleans,
 // signed integers, floating point numbers, maps, channels and
 // functions.
+//
 // Note that Decode does not set an input limit for all readers
 // and may be vulnerable to panics cause by huge value sizes. If
 // you need an input limit, use
+//
 //     NewStream(r, limit).Decode(val)
 func Decode(r io.Reader, val interface{}) error {
 	// TODO: this could use a Stream from a pool.
@@ -446,6 +464,7 @@ func makePtrDecoder(typ reflect.Type) (decoder, error) {
 // makeOptionalPtrDecoder creates a decoder that decodes empty values
 // as nil. Non-empty values are decoded into a value of the element type,
 // just like makePtrDecoder does.
+//
 // This decoder is used for pointer-typed struct fields with struct tag "nil".
 func makeOptionalPtrDecoder(typ reflect.Type) (decoder, error) {
 	etype := typ.Elem()
@@ -553,10 +572,12 @@ type ByteReader interface {
 // type depend on the input structure. Stream does not keep an
 // internal buffer. After decoding a value, the input reader will be
 // positioned just before the type information for the next value.
+//
 // When decoding a list and the input position reaches the declared
 // length of the list, all operations will return error EOL.
 // The end of the list must be acknowledged using ListEnd to continue
 // reading the enclosing list.
+//
 // Stream is not safe for concurrent use.
 type Stream struct {
 	r ByteReader
@@ -578,15 +599,19 @@ type Stream struct {
 type listpos struct{ pos, size uint64 }
 
 // NewStream creates a new decoding stream reading from r.
+//
 // If r implements the ByteReader interface, Stream will
 // not introduce any buffering.
+//
 // For non-toplevel values, Stream returns ErrElemTooLarge
 // for values that do not fit into the enclosing list.
+//
 // Stream supports an optional input limit. If a limit is set, the
 // size of any toplevel value will be checked against the remaining
 // input length. Stream operations that encounter a value exceeding
 // the remaining input length will return ErrValueTooLarge. The limit
 // can be set by passing a non-zero value for inputLimit.
+//
 // If r is a bytes.Reader or strings.Reader, the input limit is set to
 // the length of r's underlying data unless an explicit limit is
 // provided.
@@ -782,6 +807,7 @@ func (s *Stream) Decode(val interface{}) error {
 // Reset discards any information about the current decoding context
 // and starts reading from r. This method is meant to facilitate reuse
 // of a preallocated Stream across many decoding operations.
+//
 // If r does not also implement ByteReader, Stream will do its own
 // buffering.
 func (s *Stream) Reset(r io.Reader, inputLimit uint64) {
@@ -820,9 +846,11 @@ func (s *Stream) Reset(r io.Reader, inputLimit uint64) {
 
 // Kind returns the kind and size of the next value in the
 // input stream.
+//
 // The returned size is the number of bytes that make up the value.
 // For kind == Byte, the size is zero because the value is
 // contained in the type tag.
+//
 // The first call to Kind will read size information from the input
 // reader and leave it positioned at the start of the actual bytes of
 // the value. Subsequent calls to Kind (until the value is decoded)

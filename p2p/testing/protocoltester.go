@@ -2,11 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 /*
 the p2p/testing package provides a unit test scheme to check simple
 protocol message exchanges with one pivot node and a number of dummy peers
 The pivot test node runs a node.Service, the dummy peers run a mock node
 that can be used to send and receive messages
+*/
 
 package testing
 

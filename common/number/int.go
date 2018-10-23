@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package number
 
 import (
@@ -118,6 +119,7 @@ func (i *Number) SetBytes(x []byte) *Number {
 }
 
 // Cmp compares x and y and returns:
+//
 //     -1 if x <  y
 //     0 if x == y
 //     +1 if x >  y

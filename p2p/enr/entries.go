@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package enr
 
 import (
@@ -15,6 +16,7 @@ import (
 )
 
 // Entry is implemented by known node record entry types.
+//
 // To define a new entry that is to be included in a node record,
 // create a Go type that satisfies this interface. The type should
 // also implement rlp.Decoder if additional checks are needed on the value.

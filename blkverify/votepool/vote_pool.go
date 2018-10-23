@@ -64,6 +64,7 @@ func (vp *VotePool) AddVote(signHash common.Hash, sign common.Signature, fromAcc
 
 	if fromInfo.Type != vp.legalRole {
 		return fmt.Errorf("vote from node  role (%s) illegal! Legal role is (%s)", fromInfo.Type.String(), vp.legalRole.String())
+	}*/
 
 	vp.mu.Lock()
 	defer vp.mu.Unlock()

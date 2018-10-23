@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package trie
 
@@ -515,6 +515,7 @@ func (it *unionIterator) Path() []byte {
 }
 
 // Next returns the next node in the union of tries being iterated over.
+//
 // It does this by maintaining a heap of iterators, sorted by the iteration
 // order of their next elements, with one entry for each source trie. Each
 // time Next() is called, it takes the least element from the heap to return,
@@ -523,6 +524,7 @@ func (it *unionIterator) Path() []byte {
 // these nodes will also be duplicates, found in the currently selected iterator.
 // Whenever an iterator is advanced, it is pushed back into the heap if it still
 // has elements remaining.
+//
 // In the case that descend=false - eg, we're asked to ignore all subnodes of the
 // current node - we also advance any iterators in the heap that have the current
 // path as a prefix.

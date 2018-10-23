@@ -5,6 +5,8 @@
 // Use of this source code in any form is governed by RESEARCH license.
 // license can be found in the LICENSE file.
 // GPG: 0F39 E425 8C65 3947 702A  8234 08B2 0360 A03A 9DE8
+//
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -189,6 +191,7 @@ func keccakf(S *[25]uint64) {
 	/* for i :=0; i< 25;i++{
 	    fmt.Printf("%2d %X\n", i, S[i])
 	   }
+	*/
 
 	S0, S1, S2, S3, S4 = S[0], S[1], S[2], S[3], S[4]
 	S5, S6, S7, S8, S9 = S[5], S[6], S[7], S[8], S[9]

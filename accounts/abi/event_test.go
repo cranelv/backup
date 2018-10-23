@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package abi
 
@@ -313,6 +313,7 @@ func unpackTestEventData(dest interface{}, hexData string, jsonEvent []byte, ass
 /*
 Taken from
 https://github.com/matrix/go-matrix/pull/15568
+*/
 
 type testResult struct {
 	Values [2]*big.Int

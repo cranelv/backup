@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package cmdtest
 
 import (
@@ -64,6 +65,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 
 // InputLine writes the given text to the childs stdin.
 // This method can also be called from an expect template, e.g.:
+//
 //     gman.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
@@ -79,6 +81,7 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 
 // Expect runs its argument as a template, then expects the
 // child process to output the result of the template within 5s.
+//
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
@@ -124,6 +127,7 @@ func (tt *TestCmd) matchExactOutput(want []byte) error {
 
 // ExpectRegexp expects the child process to output text matching the
 // given regular expression within 5s.
+//
 // Note that an arbitrary amount of output may be consumed by the
 // regular expression. This usually means that expect cannot be used
 // after ExpectRegexp.

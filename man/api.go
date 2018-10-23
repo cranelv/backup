@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package man
 
 import (
@@ -164,6 +165,7 @@ func (api *PrivateMinerAPI) Stop() bool {
 	api.e.StopMining()
 	return true
 }
+*/
 
 func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader string) {
 	/*
@@ -202,6 +204,7 @@ func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader 
 		log.INFO("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", common.HexToAddress(ca.Validatoraccountlist[1]))
 		time.Sleep(time.Second)
 		mc.PublishEvent(mc.Leader_LeaderChangeNotify, &mc.LeaderChangeNotify{true, common.HexToAddress(ca.Validatoraccountlist[1]), 1, 0})
+	*/
 
 	ans := mc.HD_MiningReqMsg{
 		Header: &types.Header{
@@ -536,6 +539,7 @@ func storageRangeAt(st state.Trie, start []byte, maxResult int) (StorageRangeRes
 // GetModifiedAccountsByumber returns all accounts that have changed between the
 // two blocks specified. A change is defined as a difference in nonce, balance,
 // code hash, or storage hash.
+//
 // With one parameter, returns the list of accounts modified in the specified block.
 func (api *PrivateDebugAPI) GetModifiedAccountsByNumber(startNum uint64, endNum *uint64) ([]common.Address, error) {
 	var startBlock, endBlock *types.Block
@@ -563,6 +567,7 @@ func (api *PrivateDebugAPI) GetModifiedAccountsByNumber(startNum uint64, endNum 
 // GetModifiedAccountsByHash returns all accounts that have changed between the
 // two blocks specified. A change is defined as a difference in nonce, balance,
 // code hash, or storage hash.
+//
 // With one parameter, returns the list of accounts modified in the specified block.
 func (api *PrivateDebugAPI) GetModifiedAccountsByHash(startHash common.Hash, endHash *common.Hash) ([]common.Address, error) {
 	var startBlock, endBlock *types.Block

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package rpc
 
@@ -41,10 +41,12 @@ const (
 
 const (
 	// Subscriptions are removed when the subscriber cannot keep up.
+	//
 	// This can be worked around by supplying a channel with sufficiently sized buffer,
 	// but this can be inconvenient and hard to explain in the docs. Another issue with
 	// buffered channels is that the buffer is static even though it might not be needed
 	// most of the time.
+	//
 	// The approach taken here is to maintain a per-subscription linked list buffer
 	// shrinks on demand. If the buffer reaches the size below, the subscription is
 	// dropped.
@@ -132,17 +134,21 @@ func (op *requestOp) wait(ctx context.Context) (*jsonrpcMessage, error) {
 }
 
 // Dial creates a new client for the given URL.
+//
 // The currently supported URL schemes are "http", "https", "ws" and "wss". If rawurl is a
 // file name with no URL scheme, a local socket connection is established using UNIX
 // domain sockets on supported platforms and named pipes on Windows. If you want to
 // configure transport options, use DialHTTP, DialWebsocket or DialIPC instead.
+//
 // For websocket connections, the origin is set to the local host name.
+//
 // The client reconnects automatically if the connection is lost.
 func Dial(rawurl string) (*Client, error) {
 	return DialContext(context.Background(), rawurl)
 }
 
 // DialContext creates a new RPC client, just like Dial.
+//
 // The context is used to cancel or time out the initial connection establishment. It does
 // not affect subsequent interactions with the client.
 func DialContext(ctx context.Context, rawurl string) (*Client, error) {
@@ -258,6 +264,7 @@ func (c *Client) Close() {
 
 // Call performs a JSON-RPC call with the given arguments and unmarshals into
 // result if no error occurred.
+//
 // The result must be a pointer so that package json can unmarshal into it. You
 // can also pass nil, in which case the result is ignored.
 func (c *Client) Call(result interface{}, method string, args ...interface{}) error {
@@ -267,6 +274,7 @@ func (c *Client) Call(result interface{}, method string, args ...interface{}) er
 
 // CallContext performs a JSON-RPC call with the given arguments. If the context is
 // canceled before the call has successfully returned, CallContext returns immediately.
+//
 // The result must be a pointer so that package json can unmarshal into it. You
 // can also pass nil, in which case the result is ignored.
 func (c *Client) CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error {
@@ -300,8 +308,10 @@ func (c *Client) CallContext(ctx context.Context, result interface{}, method str
 
 // BatchCall sends all given requests as a single batch and waits for the server
 // to return a response for all of them.
+//
 // In contrast to Call, BatchCall only returns I/O errors. Any error specific to
 // a request is reported through the Error field of the corresponding BatchElem.
+//
 // Note that batch calls may not be executed atomically on the server side.
 func (c *Client) BatchCall(b []BatchElem) error {
 	ctx := context.Background()
@@ -311,9 +321,11 @@ func (c *Client) BatchCall(b []BatchElem) error {
 // BatchCall sends all given requests as a single batch and waits for the server
 // to return a response for all of them. The wait duration is bounded by the
 // context's deadline.
+//
 // In contrast to CallContext, BatchCallContext only returns errors that have occurred
 // while sending the request. Any error specific to a request is reported through the
 // Error field of the corresponding BatchElem.
+//
 // Note that batch calls may not be executed atomically on the server side.
 func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 	msgs := make([]*jsonrpcMessage, len(b))
@@ -381,8 +393,10 @@ func (c *Client) ShhSubscribe(ctx context.Context, channel interface{}, args ...
 // registering a subscription. Server notifications for the subscription are
 // sent to the given channel. The element type of the channel must match the
 // expected type of content returned by the subscription.
+//
 // The context argument cancels the RPC request that sets up the subscription but has no
 // effect on the subscription after Subscribe has returned.
+//
 // Slow subscribers will be dropped eventually. Client buffers up to 8000 notifications
 // before considering the subscriber dead. The subscription Err channel will receive
 // ErrSubscriptionQueueOverflow. Use a sufficiently large buffer on the channel or ensure
@@ -708,9 +722,11 @@ func newClientSubscription(c *Client, namespace string, channel reflect.Value) *
 
 // Err returns the subscription error channel. The intended use of Err is to schedule
 // resubscription when the client connection is closed unexpectedly.
+//
 // The error channel receives a value when the subscription has ended due
 // to an error. The received error is nil if Close has been called
 // on the underlying client and no other error has occurred.
+//
 // The error channel is closed when Unsubscribe is called on the subscription.
 func (sub *ClientSubscription) Err() <-chan error {
 	return sub.err

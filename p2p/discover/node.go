@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package discover
 
 import (
@@ -106,21 +107,27 @@ func (n *Node) String() string {
 var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
 
 // ParseNode parses a node designator.
+//
 // There are two basic forms of node designators
 //   - incomplete nodes, which only have the public key (node ID)
 //   - complete nodes, which contain the public key and IP/Port information
+//
 // For incomplete nodes, the designator must look like one of these
+//
 //    enode://<hex node id>
 //    <hex node id>
+//
 // For complete nodes, the node ID is encoded in the username portion
 // of the URL, separated from the host by an @ sign. The hostname can
 // only be given as an IP address, DNS domain names are not allowed.
 // The port in the host name section is the TCP listening port. If the
 // TCP and UDP (discovery) ports differ, the UDP port is specified as
 // query parameter "discport".
+//
 // In the following example, the node URL describes
 // a node with IP address 10.3.58.6, TCP listening port 30303
 // and UDP discovery port 30301.
+//
 //    enode://<hex node id>@10.3.58.6:30303?discport=30301
 func ParseNode(rawurl string) (*Node, error) {
 	if m := incompleteNodeURL.FindStringSubmatch(rawurl); m != nil {

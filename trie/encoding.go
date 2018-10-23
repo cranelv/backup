@@ -1,17 +1,20 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package trie
 
 // Trie keys are dealt with in three distinct encodings:
+//
 // KEYBYTES encoding contains the actual key and nothing else. This encoding is the
 // input to most API functions.
+//
 // HEX encoding contains one byte for each nibble of the key and an optional trailing
 // 'terminator' byte of value 0x10 which indicates whether or not the node at the key
 // contains a value. Hex key encoding is used for nodes loaded in memory because it's
 // convenient to access.
+//
 // COMPACT encoding is defined by the Matrix Yellow Paper (it's called "hex prefix
 // encoding" there) and contains the bytes of the key and a flag. The high nibble of the
 // first byte contains the flag; the lowest bit encoding the oddness of the length and

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package nat provides access to common network port mapping protocols.
 package nat
 
@@ -22,6 +23,7 @@ import (
 type Interface interface {
 	// These methods manage a mapping between a port on the local
 	// machine to a port that can be connected to from the internet.
+	//
 	// protocol is "UDP" or "TCP". Some implementations allow setting
 	// a display name for the mapping. The mapping may be removed by
 	// the gateway when its lifetime ends.
@@ -39,6 +41,7 @@ type Interface interface {
 // Parse parses a NAT interface description.
 // The following formats are currently accepted.
 // Note that mechanism names are not case-sensitive.
+//
 //     "" or "none"         return nil
 //     "extip:77.12.33.4"   will assume the local machine is reachable on the given IP
 //     "any"                uses the first auto-detected mechanism
@@ -169,6 +172,7 @@ func PMP(gateway net.IP) Interface {
 // auto-discovered. Calls to the Interface methods on this type will
 // wait until the discovery is done and then call the method on the
 // discovered mechanism.
+//
 // This type is useful because discovery can take a while but we
 // want return an Interface value from UPnP, PMP and Auto immediately.
 type autodisc struct {

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package event_test
 
@@ -14,6 +14,7 @@ import (
 
 // This example demonstrates how SubscriptionScope can be used to control the lifetime of
 // subscriptions.
+//
 // Our example program consists of two servers, each of which performs a calculation when
 // requested. The servers also allow subscribing to results of all computations.
 type divServer struct{ results event.Feed }

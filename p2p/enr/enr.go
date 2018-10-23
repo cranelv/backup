@@ -2,13 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package enr implements Matrix Node Records as defined in EIP-778. A node record holds
 // arbitrary information about a node on the peer-to-peer network.
+//
 // Records contain named keys. To store and retrieve key/values in a record, use the Entry
 // interface.
+//
 // Records must be signed before transmitting them to another node. Decoding a record verifies
 // its signature. When creating a record, set the entries you want, then call Sign to add the
 // signature. Modifying a record invalidates the signature.
+//
 // Package enr supports the "secp256k1-keccak" identity scheme.
 package enr
 
@@ -70,6 +74,7 @@ func (r *Record) SetSeq(s uint64) {
 
 // Load retrieves the value of a key/value pair. The given Entry must be a pointer and will
 // be set to the value of the entry in the record.
+//
 // Errors returned by Load are wrapped in KeyError. You can distinguish decoding errors
 // from missing keys using the IsNotFound function.
 func (r *Record) Load(e Entry) error {

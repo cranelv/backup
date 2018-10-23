@@ -9,6 +9,7 @@ package sha3
 
 // Tests include all the ShortMsgKATs provided by the Keccak team at
 // https://github.com/gvanas/KeccakCodePackage
+//
 // They only include the zero-bit case of the bitwise testvectors
 // published by NIST in the draft of FIPS-202.
 

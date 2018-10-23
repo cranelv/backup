@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package downloader contains the manual full chain synchronisation.
 package downloader
 
@@ -224,6 +225,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 // Progress retrieves the synchronisation boundaries, specifically the origin
 // block where synchronisation started at (may have failed/suspended); the block
 // or header sync is currently at; and the latest known block which the sync targets.
+//
 // In addition, during the state download phase of fast synchronisation the number
 // of processed and the total number of known states are also returned. Otherwise
 // these are zero.
@@ -873,9 +875,11 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 
 // fillHeaderSkeleton concurrently retrieves headers from all our available peers
 // and maps them to the provided skeleton header chain.
+//
 // Any partial results from the beginning of the skeleton is (if possible) forwarded
 // immediately to the header processor to keep the rest of the pipeline full even
 // in the case of header stalls.
+//
 // The method returns the entire filled skeleton and also the number of headers
 // already forwarded for processing.
 func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) ([]*types.Header, int, error) {
@@ -957,9 +961,11 @@ func (d *Downloader) fetchReceipts(from uint64) error {
 // fetchParts iteratively downloads scheduled block parts, taking any available
 // peers, reserving a chunk of fetch requests for each, waiting for delivery and
 // also periodically checking for timeouts.
+//
 // As the scheduling/timeout logic mostly is the same for all downloaded data
 // types, this method is used by each for data gathering and is instrumented with
 // various callbacks to handle the slight differences between processing them.
+//
 // The instrumentation parameters:
 //  - errCancel:   error type to return if the fetch operation is cancelled (mostly makes logging nicer)
 //  - deliveryCh:  channel from which to retrieve downloaded data packets (merged from all concurrent peers)
@@ -1055,6 +1061,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 					// If a lot of retrieval elements expired, we might have overestimated the remote peer or perhaps
 					// ourselves. Only reset to minimal throughput but don't drop just yet. If even the minimal times
 					// out that sync wise we need to get rid of the peer.
+					//
 					// The reason the minimum threshold is 2 is because the downloader tries to estimate the bandwidth
 					// and latency of a peer separately, which requires pushing the measures capacity a bit and seeing
 					// how response times reacts, to it always requests one more than the minimum (i.e. min 2).
@@ -1188,6 +1195,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 				// If no headers were retrieved at all, the peer violated its TD promise that it had a
 				// better chain compared to ours. The only exception is if its promised blocks were
 				// already imported by other means (e.g. fecher):
+				//
 				// R <remote peer>, L <local node>: Both at block 10
 				// R: Mine block 11, and propagate it to L
 				// L: Queue block 11 for import
@@ -1205,6 +1213,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int) er
 				// If fast or light syncing, ensure promised headers are indeed delivered. This is
 				// needed to detect scenarios where an attacker feeds a bad pivot and then bails out
 				// of delivering the post-pivot blocks that would flag the invalid content.
+				//
 				// This check cannot be executed "as is" for full imports, since blocks may still be
 				// queued for processing when the header download completes. However, as long as the
 				// peer gave us something useful, we're already happy/progressed (above check).
@@ -1599,6 +1608,7 @@ func (d *Downloader) qosReduceConfidence() {
 
 // requestRTT returns the current target round trip time for a download request
 // to complete in.
+//
 // Note, the returned RTT is .9 of the actually estimated RTT. The reason is that
 // the downloader tries to adapt queries to the RTT, so multiple RTT values can
 // be adapted to, but smaller ones are preferred (stabler download stream).

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2018 The go-matrix Authors
+
 
 package bind
 
@@ -93,6 +93,7 @@ var (
 )
 
 // parseTopics converts the indexed topic fields into actual log field values.
+//
 // Note, dynamic types cannot be reconstructed since they get mapped to Keccak256
 // hashes as the topic value!
 func parseTopics(out interface{}, fields abi.Arguments, topics []common.Hash) error {

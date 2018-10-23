@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 // +build none
 
@@ -26,6 +26,7 @@ Available commands are:
 
 For all commands, -n prevents execution of external programs (dry run mode).
 
+*/
 package main
 
 import (
@@ -270,6 +271,7 @@ func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd
 }
 
 // Running The Tests
+//
 // "tests" also includes static analysis tools such as vet.
 
 func doTest(cmdline []string) {
@@ -586,6 +588,7 @@ func (meta debMetadata) ExeConflicts(exe debExecutable) string {
 	if isUnstableBuild(meta.Env) {
 		// Set up the conflicts list so that the *-unstable packages
 		// cannot be installed alongside the regular version.
+		//
 		// https://www.debian.org/doc/debian-policy/ch-relationships.html
 		// is very explicit about Conflicts: and says that Breaks: should
 		// be preferred and the conflicting files should be handled via

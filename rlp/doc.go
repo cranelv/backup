@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 /*
 Package rlp implements the RLP serialization format.
@@ -18,4 +18,5 @@ array).
 RLP values are distinguished by a type tag. The type tag precedes the
 value in the input stream and defines the size and kind of the bytes
 that follow.
+*/
 package rlp

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package tests
 
 import (
@@ -20,6 +21,7 @@ type RLPTest struct {
 	// If the value of In is "INVALID" or "VALID", the test
 	// checks whether Out can be decoded into a value of
 	// type interface{}.
+	//
 	// For other JSON values, In is treated as a driver for
 	// calls to rlp.Stream. The test also verifies that encoding
 	// In produces the bytes in Out.

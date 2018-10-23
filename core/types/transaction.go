@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package types
 
@@ -503,7 +503,9 @@ func (tx *Transaction) Size() common.StorageSize {
 }
 
 // AsMessage returns the transaction as a core.Message.
+//
 // AsMessage requires a signer to derive the sender.
+//
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	msg := Message{
@@ -624,6 +626,7 @@ type TransactionsByPriceAndNonce struct {
 
 // NewTransactionsByPriceAndNonce creates a transaction set that can retrieve
 // price sorted transactions in a nonce-honouring way.
+//
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
 func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions) *TransactionsByPriceAndNonce {
@@ -675,6 +678,7 @@ func (t *TransactionsByPriceAndNonce) Pop() {
 }
 
 // Message is a fully derived transaction and implements core.Message
+//
 // NOTE: In a future PR this will be removed.
 type Message struct {
 	to         *common.Address

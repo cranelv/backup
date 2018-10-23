@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package downloader
 
 import (
@@ -641,6 +642,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 				t.Fatalf("state reconstruction failed: %v", err)
 			}
 		}
+	}*/
 }
 
 // Tests that simple synchronization against a canonical chain works correctly.

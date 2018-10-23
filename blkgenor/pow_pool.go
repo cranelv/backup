@@ -75,6 +75,7 @@ func (bpc *blockPowCache) getPow(diff *big.Int) ([]*mc.HD_MiningRspMsg, error) {
 	return list, nil
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 协程安全投挖矿结果池
 type PowPool struct {
 	// 缓存结构为：map <blockHash, *cache>

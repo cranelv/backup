@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package tests implements execution of Matrix JSON tests.
 package tests
 
@@ -149,6 +150,7 @@ func (t *BlockTest) genesis(config *params.ChainConfig) *core.Genesis {
    If a block is invalid it does not necessarily fail the test, if it's invalidness is
    expected we are expected to ignore it and continue processing and then validate the
    post state.
+*/
 func (t *BlockTest) insertBlocks(blockchain *core.BlockChain) ([]btBlock, error) {
 	validBlocks := make([]btBlock, 0)
 	// insert the test blocks, which will execute all transactions

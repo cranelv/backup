@@ -21,6 +21,7 @@ func (err DuplicateMetric) Error() string {
 
 // A Registry holds references to a set of metrics by name and can iterate
 // over them, calling callback functions provided by the user.
+//
 // This is an interface so as to encourage other structs to implement
 // the Registry API as appropriate.
 type Registry interface {

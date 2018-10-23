@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package vm
 
 import (
@@ -16,6 +17,7 @@ type ContractRef interface {
 }
 
 // AccountRef implements ContractRef.
+//
 // Account references are used during EVM initialisation and
 // it's primary use is to fetch addresses. Removing this object
 // proves difficult because of the cached jump destinations which
@@ -99,6 +101,7 @@ func (c *Contract) GetByte(n uint64) byte {
 }
 
 // Caller returns the caller of the contract.
+//
 // Caller will recursively call caller when the contract is a delegate
 // call, including that of caller's caller.
 func (c *Contract) Caller() common.Address {

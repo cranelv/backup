@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package mandb
 
@@ -167,6 +167,7 @@ func (db *LDBDatabase) Meter(prefix string) {
 
 // meter periodically retrieves internal leveldb counters and reports them to
 // the metrics subsystem.
+//
 // This is how a stats table look like (currently):
 //   Compactions
 //    Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
@@ -175,8 +176,10 @@ func (db *LDBDatabase) Meter(prefix string) {
 //      1   |         85 |     109.27913 |      28.09293 |     213.92493 |     214.26294
 //      2   |        523 |    1000.37159 |       7.26059 |      66.86342 |      66.77884
 //      3   |        570 |    1113.18458 |       0.00000 |       0.00000 |       0.00000
+//
 // This is how the write delay look like (currently):
 // DelayN:5 Delay:406.604657ms
+//
 // This is how the iostats look like (currently):
 // Read(MB):3895.04860 Write(MB):3654.64712
 func (db *LDBDatabase) meter(refresh time.Duration) {

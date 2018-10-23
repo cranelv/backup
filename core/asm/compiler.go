@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package asm
 
 import (
@@ -37,6 +38,7 @@ func NewCompiler(debug bool) *Compiler {
 
 // Feed feeds tokens in to ch and are interpreted by
 // the compiler.
+//
 // feed is the first pass in the compile stage as it
 // collect the used labels in the program and keeps a
 // program counter which is used to determine the locations
@@ -73,6 +75,7 @@ func (c *Compiler) Feed(ch <-chan token) {
 // Compile compiles the current tokens and returns a
 // binary string that can be interpreted by the EVM
 // and an error if it failed.
+//
 // compile is the second stage in the compile phase
 // which compiles the tokens to EVM instructions.
 func (c *Compiler) Compile() (string, []error) {

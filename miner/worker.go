@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package miner
 
 import (
@@ -343,6 +344,7 @@ func (self *worker) foundHandle(data *Result) {
 		if err != nil {
 			log.INFO(ModuleWork, "foundHandle PostEvent err ", err)
 		}
+	*/
 	log.INFO(ModuleWork, "foundHandle", mc.HD_MiningRspMsg{
 		Blockhash:  data.Header.Hash(),
 		Difficulty: data.Difficulty,
@@ -388,6 +390,7 @@ func (self *worker) sendHeaderToValidator(msg *mc.HD_BroadcastMiningRspMsg) {
 		if err != nil {
 			log.Error("miner", "Send BD_MiningRspMsg failed", err)
 		}
+	*/
 }
 
 func (self *worker) wait() {
@@ -413,6 +416,7 @@ func (self *worker) CalDifflist(difficulty uint64) []*big.Int {
 	difflist := make([]*big.Int, 0)
 	//if difficulty == 1 {
 	//	difflist = []*big.Int{big.NewInt(int64(1))}
+	//
 	//}
 	for i := 0; i < len(params.Difficultlist); i++ {
 		temp := difficulty / params.Difficultlist[i]

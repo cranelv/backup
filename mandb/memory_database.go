@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package mandb
 
@@ -14,6 +14,7 @@ import (
 
 /*
  * This is a test memory database. Do not use for any production it does not get persisted
+ */
 type MemDatabase struct {
 	db   map[string][]byte
 	lock sync.RWMutex

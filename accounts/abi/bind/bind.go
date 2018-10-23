@@ -1,9 +1,10 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 // Package bind generates Matrix contract Go bindings.
+//
 // Detailed usage document and tutorial available on the go-matrix Wiki page:
 // https://github.com/matrix/go-matrix/wiki/Native-DApps:-Go-bindings-to-Matrix-contracts
 package bind
@@ -157,6 +158,7 @@ var bindType = map[Lang]func(kind abi.Type) string{
 //  (since the inner type is a prefix of the total type declaration),
 //  looks for valid arrays (possibly a dynamic one) wrapping the inner type,
 //  and returns the sizes of these arrays.
+//
 // Returned array sizes are in the same order as solidity signatures; inner array size first.
 // Array sizes may also be "", indicating a dynamic array.
 func wrapArray(stringKind string, innerLen int, innerMapping string) (string, []string) {

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package abi
 
@@ -57,6 +57,7 @@ func mustArrayToByteSlice(value reflect.Value) reflect.Value {
 }
 
 // set attempts to assign src to dst by either setting, copying or otherwise.
+//
 // set is a bit more lenient when it comes to assignment and doesn't force an as
 // strict ruleset as bare `reflect` does.
 func set(dst, src reflect.Value, output Argument) error {

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package tests
 
 import (
@@ -164,6 +165,7 @@ func (tm *testMatcher) checkFailure(t *testing.T, name string, err error) error 
 }
 
 // walk invokes its runTest argument for all subtests in the given directory.
+//
 // runTest should be a function of type func(t *testing.T, name string, x <TestType>),
 // where TestType is the type of the test contained in test files.
 func (tm *testMatcher) walk(t *testing.T, dir string, runTest interface{}) {

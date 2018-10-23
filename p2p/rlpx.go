@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package p2p
 
 import (
@@ -43,6 +44,7 @@ const (
 	authMsgLen  = sigLen + shaLen + pubLen + shaLen + 1
 	authRespLen = pubLen + shaLen + 1
 
+	eciesOverhead = 65 /* pubkey */ + 16 /* IV */ + 32 /* MAC */
 
 	encAuthMsgLen  = authMsgLen + eciesOverhead  // size of encrypted pre-EIP-8 initiator handshake
 	encAuthRespLen = authRespLen + eciesOverhead // size of encrypted pre-EIP-8 handshake reply
@@ -265,6 +267,7 @@ func (h *encHandshake) staticSharedSecret(prv *ecdsa.PrivateKey) ([]byte, error)
 
 // initiatorEncHandshake negotiates a session token on conn.
 // it should be called on the dialing side of the connection.
+//
 // prv is the local client's private key.
 func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remoteID discover.NodeID, token []byte) (s secrets, err error) {
 	h := &encHandshake{initiator: true, remoteID: remoteID}
@@ -336,6 +339,7 @@ func (h *encHandshake) handleAuthResp(msg *authRespV4) (err error) {
 
 // receiverEncHandshake negotiates a session token on conn.
 // it should be called on the listening side of the connection.
+//
 // prv is the local client's private key.
 // token is the token from a previous session with this node.
 func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, token []byte) (s secrets, err error) {
@@ -546,6 +550,7 @@ var (
 // rlpxFrameRW implements a simplified version of RLPx framing.
 // chunked messages are not supported and all headers are equal to
 // zeroHeader.
+//
 // rlpxFrameRW is not safe for concurrent use from multiple goroutines.
 type rlpxFrameRW struct {
 	conn io.ReadWriter

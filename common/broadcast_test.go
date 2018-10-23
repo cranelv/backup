@@ -31,6 +31,7 @@ type Testcal struct {
 			want_GetBroadcastInterval:    100,
 			want_GetReElectionInterval:   300,
 		}
+*/
 func NewTestca1(bro uint64, reel uint64, want_IsBro bool, want_IsReE bool, want_GetLastBro uint64, want_GetLastReE uint64, want_GetNextBro uint64, want_GetNextReE uint64, want_GetBro uint64, want_GetEle uint64) Testcal {
 	test1 := Testcal{
 		have_broadcast:               bro,

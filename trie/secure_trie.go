@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package trie
 
 import (
@@ -15,9 +16,11 @@ import (
 // access operations hash the key using keccak256. This prevents
 // calling code from creating long chains of nodes that
 // increase the access time.
+//
 // Contrary to a regular trie, a SecureTrie can only be created with
 // New and must have an attached database. The database also stores
 // the preimage of each key.
+//
 // SecureTrie is not safe for concurrent use.
 type SecureTrie struct {
 	trie             Trie
@@ -28,9 +31,11 @@ type SecureTrie struct {
 
 // NewSecure creates a trie with an existing root node from a backing database
 // and optional intermediate in-memory node pool.
+//
 // If root is the zero hash or the sha3 hash of an empty string, the
 // trie is initially empty. Otherwise, New will panic if db is nil
 // and returns MissingNodeError if the root node cannot be found.
+//
 // Accessing the trie loads nodes from the database or node pool on demand.
 // Loaded nodes are kept around until their 'cache generation' expires.
 // A new cache generation is created by each call to Commit.
@@ -67,6 +72,7 @@ func (t *SecureTrie) TryGet(key []byte) ([]byte, error) {
 // Update associates key with value in the trie. Subsequent calls to
 // Get will return value. If value has length zero, any existing value
 // is deleted from the trie and calls to Get will return nil.
+//
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
 func (t *SecureTrie) Update(key, value []byte) {
@@ -78,8 +84,10 @@ func (t *SecureTrie) Update(key, value []byte) {
 // TryUpdate associates key with value in the trie. Subsequent calls to
 // Get will return value. If value has length zero, any existing value
 // is deleted from the trie and calls to Get will return nil.
+//
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
+//
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *SecureTrie) TryUpdate(key, value []byte) error {
 	hk := t.hashKey(key)
@@ -118,6 +126,7 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 
 // Commit writes all nodes and the secure hash pre-images to the trie's database.
 // Nodes are stored with their sha3 hash as the key.
+//
 // Committing flushes nodes from memory. Subsequent Get calls will load nodes
 // from the database.
 func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {

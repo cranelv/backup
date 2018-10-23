@@ -35,6 +35,7 @@ type Sample interface {
 // ExpDecaySample is an exponentially-decaying sample using a forward-decaying
 // priority reservoir.  See Cormode et al's "Forward Decay: A Practical Time
 // Decay Model for Streaming Systems".
+//
 // <http://dimacs.rutgers.edu/~graham/pubs/papers/fwddecay.pdf>
 type ExpDecaySample struct {
 	alpha         float64
@@ -397,6 +398,7 @@ func SampleVariance(values []int64) float64 {
 }
 
 // A uniform sample using Vitter's Algorithm R.
+//
 // <http://www.cs.umd.edu/~samir/498/vitter.pdf>
 type UniformSample struct {
 	count         int64

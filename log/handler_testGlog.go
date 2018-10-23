@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package log
 
 import (
@@ -55,13 +56,18 @@ func (h *TestHandler) Verbosity(level Lvl) {
 }
 
 // Vmodule sets the glog verbosity pattern.
+//
 // The syntax of the argument is a comma-separated list of pattern=N, where the
 // pattern is a literal file name or "glob" pattern matching and N is a V level.
+//
 // For instance:
+//
 //  pattern="gopher.go=3"
 //   sets the V level to 3 in all Go files named "gopher.go"
+//
 //  pattern="foo=3"
 //   sets V to 3 in all files of any packages whose import path ends in "foo"
+//
 //  pattern="foo/*=3"
 //   sets V to 3 in all files of any packages whose import path contains "foo"
 func (h *TestHandler) Vmodule(ruleset string) error {
@@ -120,6 +126,7 @@ func (h *TestHandler) Vmodule(ruleset string) error {
 // BacktraceAt sets the glog backtrace location. When set to a file and line
 // number holding a logging statement, a stack trace will be written to the Info
 // log whenever execution hits that statement.
+//
 // Unlike with Vmodule, the ".go" must be present.
 func (h *TestHandler) BacktraceAt(location string) error {
 	// Ensure the backtrace location contains two non-empty elements

@@ -18,6 +18,7 @@ const (
 	RoleValidator                = 0x080
 	RoleBackupBroadcast          = 0x100
 	RoleBroadcast                = 0x200
+)*/
 
 type ElectRoleType uint8
 

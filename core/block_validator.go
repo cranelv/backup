@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package core
 
 import (
@@ -15,6 +16,7 @@ import (
 
 // BlockValidator is responsible for validating block headers, uncles and
 // processed state.
+//
 // BlockValidator implements Validator.
 type BlockValidator struct {
 	config *params.ChainConfig // Chain configuration options
@@ -103,6 +105,7 @@ func CalcGasLimit(parent *types.Block) uint64 {
 		increase it, otherwise lower it (or leave it unchanged if it's right
 		at that usage) the amount increased/decreased depends on how far away
 		from parentGasLimit * (2/3) parentGasUsed is.
+	*/
 	limit := parent.GasLimit() - decay + contrib
 	if limit < params.MinGasLimit {
 		limit = params.MinGasLimit

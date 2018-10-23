@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package simulations
 
 import (
@@ -379,8 +380,10 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// write writes the given event and data to the stream like:
+	//
 	// event: <event>
 	// data: <data>
+	//
 	write := func(event, data string) {
 		fmt.Fprintf(w, "event: %s\n", event)
 		fmt.Fprintf(w, "data: %s\n\n", data)
@@ -460,9 +463,11 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 
 // NewMsgFilters constructs a collection of message filters from a URL query
 // parameter.
+//
 // The parameter is expected to be a dash-separated list of individual filters,
 // each having the format '<proto>:<codes>', where <proto> is the name of a
 // protocol and <codes> is a comma-separated list of message codes.
+//
 // A message code of '*' or '-1' is considered a wildcard and matches any code.
 func NewMsgFilters(filterParam string) (MsgFilters, error) {
 	filters := make(MsgFilters)

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package rpc_test
 
@@ -16,8 +16,10 @@ import (
 
 // In this example, our client whishes to track the latest 'block number'
 // known to the server. The server supports two methods:
+//
 // man_getBlockByNumber("latest", {})
 //    returns the latest block object.
+//
 // man_subscribe("newBlocks")
 //    creates a subscription which fires block objects when new blocks arrive.
 

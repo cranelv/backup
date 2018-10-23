@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // +build !nacl,!js,!nocgo
 
 package crypto
@@ -35,10 +36,12 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 }
 
 // Sign calculates an ECDSA signature.
+//
 // This function is susceptible to chosen plaintext attacks that can leak
 // information about the private key that is used for signing. Callers must
 // be aware that the given hash cannot be chosen by an adversery. Common
 // solution is to hash any input before calculating the signature.
+//
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func Sign(hash []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
 	if len(hash) != 32 {

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package man
 
 import (
@@ -229,6 +230,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 			p2p.SendToGroup(mcmss.Role, uint64(mcmss.SubCode), mcmss.NodeInfo)
 		}
 	}
+}*/
 
 func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.maxPeers = maxPeers

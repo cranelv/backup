@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package discover
 
 import (
@@ -161,9 +162,11 @@ type udp struct {
 }
 
 // pending represents a pending reply.
+//
 // some implementations of the protocol wish to send more than one
 // reply packet to findnode. in general, any neighbors packet cannot
 // be matched up with a specific findnode packet.
+//
 // our implementation handles this by storing a callback function for
 // each pending reply. incoming packets from a node are dispatched
 // to all the callback functions for that node.

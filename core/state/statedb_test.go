@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package state
 
@@ -170,7 +170,9 @@ func TestSnapshotRandom(t *testing.T) {
 // A snapshotTest checks that reverting StateDB snapshots properly undoes all changes
 // captured by the snapshot. Instances of this test with pseudorandom content are created
 // by Generate.
+//
 // The test works as follows:
+//
 // A new state is created and all actions are applied to it. Several snapshots are taken
 // in between actions. The test then reverts each snapshot. For each snapshot the actions
 // leading up to it are replayed on a fresh, empty state. The behaviour of all public

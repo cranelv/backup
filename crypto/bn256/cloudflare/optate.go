@@ -166,6 +166,7 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	// In order to calculate Q1 we have to convert q from the sextic twist
 	// to the full GF(p^12) group, apply the Frobenius there, and convert
 	// back.
+	//
 	// The twist isomorphism is (x', y') -> (xω², yω³). If we consider just
 	// x for a moment, then after applying the Frobenius, we have x̄ω^(2p)
 	// where x̄ is the conjugate of x. If we are going to apply the inverse
@@ -174,6 +175,7 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	// p, 2p-2 is a multiple of six. Therefore we can rewrite as
 	// x̄ξ^((p-1)/3)ω² and applying the inverse isomorphism eliminates the
 	// ω².
+	//
 	// A similar argument can be made for the y value.
 
 	q1 := &twistPoint{}

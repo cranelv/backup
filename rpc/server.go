@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package rpc
 
 import (
@@ -109,6 +110,7 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 
 // serveRequest will reads requests from the codec, calls the RPC callback and
 // writes the response to the given codec.
+//
 // If singleShot is true it will process a single request, otherwise it will handle
 // requests until the codec returns an error when reading a request (in most cases
 // an EOF). It executes requests in parallel when singleShot is false.

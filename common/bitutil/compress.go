@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package bitutil
 
 import "errors"
@@ -27,7 +28,9 @@ var (
 // The compression algorithm implemented by CompressBytes and DecompressBytes is
 // optimized for sparse input data which contains a lot of zero bytes. Decompression
 // requires knowledge of the decompressed data length.
+//
 // Compression works as follows:
+//
 //   if data only contains zeroes,
 //       CompressBytes(data) == nil
 //   otherwise if len(data) <= 1,

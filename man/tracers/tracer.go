@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package tracers
 
 import (
@@ -26,6 +27,7 @@ const bigIntegerJS = `var bigInt=function(undefined){"use strict";var BASE=1e7,L
 
 // makeSlice convert an unsafe memory pointer with the given type into a Go byte
 // slice.
+//
 // Note, the returned slice uses the same memory area as the input arguments.
 // If those are duktape stack items, popping them off **will** make the slice
 // contents change.

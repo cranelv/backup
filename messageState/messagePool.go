@@ -39,6 +39,7 @@ type SubScribeInfo struct {
 	3.  SetMessageChecker check all the event messages
 	4.  RunLoop
 	5.  You can selece the stateChan and it will send MessageSend struct every Round if Round state is full
+*/
 
 type MessgeStateInterface interface {
 	SubscribeEvent(aim mc.EventCode, ch interface{}) error
@@ -248,4 +249,5 @@ func (ms *MessageStatePool) deleteRound() {
 			delete(ms.message, key)
 		}
 		log.Info("deleteRound", "keys", keys)
+	}*/
 }

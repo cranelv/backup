@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package build
 
@@ -140,7 +140,9 @@ func CopyFile(dst, src string, mode os.FileMode) {
 // GoTool returns the command that runs a go tool. This uses go from GOROOT instead of PATH
 // so that go commands executed by build use the same version of Go as the 'host' that runs
 // build code. e.g.
+//
 //     /usr/lib/go-1.8/bin/go run build/ci.go ...
+//
 // runs using go 1.8 and invokes go 1.8 tools from the same GOROOT. This is also important
 // because runtime.Version checks on the host should match the tools that are run.
 func GoTool(tool string, args ...string) *exec.Cmd {

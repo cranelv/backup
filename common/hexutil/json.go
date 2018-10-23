@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package hexutil
 
@@ -115,6 +115,7 @@ func UnmarshalFixedUnprefixedText(typname string, input, out []byte) error {
 
 // Big marshals/unmarshals as a JSON string with 0x prefix.
 // The zero value marshals as "0x0".
+//
 // Negative integers are not supported at this time. Attempting to marshal them will
 // return an error. Values larger than 256bits are rejected by Unmarshal but will be
 // marshaled without error.

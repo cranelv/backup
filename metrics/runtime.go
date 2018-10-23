@@ -67,6 +67,7 @@ func CaptureRuntimeMemStats(r Registry, d time.Duration) {
 // runtime.MemStats.  This is designed to be called in a background
 // goroutine.  Giving a registry which has not been given to
 // RegisterRuntimeMemStats will panic.
+//
 // Be very careful with this because runtime.ReadMemStats calls the C
 // functions runtime·semacquire(&runtime·worldsema) and runtime·stoptheworld()
 // and that last one does what it says on the tin.

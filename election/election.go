@@ -28,6 +28,7 @@ const (
 	maxBackUpValidatorNum    = params.MaxBackUpValidatorNum    //最大备份验证者数
 	maxCandidateValidatorNum = params.MaxCandidateValidatorNum //最大候补验证者数
 )
+*/
 
 type ElectEventType string
 
@@ -83,6 +84,7 @@ func NewEle() *Elector {
 	return &ele
 }
 
+/////////////////////////////
 
 type Self struct {
 	nodeid   string

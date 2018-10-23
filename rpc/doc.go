@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 /*
 Package rpc provides access to the exported methods of an object across a network
 or other I/O connection. After creating a server instance objects can be registered,
@@ -82,4 +83,5 @@ Subscriptions are deleted when:
  - the connection which was used to create the subscription is closed. This can be initiated
    by the client and server. The server will close the connection on a write error or when
    the queue of buffered notifications gets too big.
+*/
 package rpc

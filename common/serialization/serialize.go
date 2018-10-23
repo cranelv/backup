@@ -17,6 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package serialization
 
@@ -71,6 +72,7 @@ type SerializableData interface {
  * 10.WriteUint8,16,32,64 Write uint with fixed length
  * 11.ToArray SerializableData to ToArray() func.
  ******************************************************************************
+ */
 
 func WriteVarUint(writer io.Writer, value uint64) error {
 	var buf [9]byte

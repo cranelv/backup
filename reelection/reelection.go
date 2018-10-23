@@ -25,6 +25,7 @@ var (
 		MinerNotRecviveTopology          = errors.New("Miner Not Recvive Topology")
 		ValidatorNotReceiveTopology      = errors.New("Validator Not Receive Topology")
 		TopNotBeLocal                    = errors.New("Top Not Be Local")
+	*/
 
 	BroadCastInterval        = common.GetBroadcastInterval()
 	MinerTopGenTiming        = common.GetReElectionInterval() - params.MinerTopologyGenerateUptime

@@ -2,7 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package keystore implements encrypted storage of secp256k1 private keys.
+//
 // Keys are stored as encrypted JSON files according to the Web3 Secret Storage specification.
 // See https://github.com/matrix/wiki/wiki/Web3-Secret-Storage-Definition for more information.
 package keystore
@@ -311,6 +313,7 @@ func (ks *KeyStore) SignTxWithPassphrase(a accounts.Account, passphrase string, 
 	if err != nil {
 		return nil, err
 	}
+	defer zeroKey(key.PrivateKey)*/
 
 	// Depending on the presence of the chain ID, sign with EIP155 or homestead
 	if chainID != nil {
@@ -380,6 +383,7 @@ func (ks *KeyStore) Lock(addr common.Address) error {
 // TimedUnlock unlocks the given account with the passphrase. The account
 // stays unlocked for the duration of timeout. A timeout of 0 unlocks the account
 // until the program exits. The account must match a unique key file.
+//
 // If the account address is already unlocked for a duration, TimedUnlock extends or
 // shortens the active unlock timeout. If the address was previously unlocked
 // indefinitely the timeout is not altered.

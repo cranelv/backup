@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package pod_test
 
 import (
@@ -15,6 +16,7 @@ import (
 
 // SampleService is a trivial network service that can be attached to a node for
 // life cycle management.
+//
 // The following methods are needed to implement a node.Service:
 //  - Protocols() []p2p.Protocol - devp2p protocols the service can communicate on
 //  - APIs() []rpc.API           - api methods the service wants to expose on rpc channels

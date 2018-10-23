@@ -330,5 +330,7 @@ golang's stdlib, notably io and net/http
 
 The Name
 
+https://xkcd.com/927/
 
+*/
 package log

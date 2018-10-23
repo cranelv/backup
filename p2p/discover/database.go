@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Contains the node database, storing previously seen nodes and any collected
 // metadata about them for QoS purposes.
 
@@ -201,6 +202,7 @@ func (db *nodeDB) deleteNode(id NodeID) error {
 // ensureExpirer is a small helper method ensuring that the data expiration
 // mechanism is running. If the expiration goroutine is already running, this
 // method simply returns.
+//
 // The goal is to start the data evacuation only after the network successfully
 // bootstrapped itself (to prevent dumping potentially useful seed nodes). Since
 // it would require significant overhead to exactly trace the first successful

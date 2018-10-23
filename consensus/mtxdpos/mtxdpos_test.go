@@ -161,6 +161,7 @@ func TestDPOS_05(t *testing.T) {
 	if err == nil {
 		t.Fatalf("dpos err: 2 validator but pass dpos!")
 	}
+}*/
 
 func TestDPOS_06(t *testing.T) {
 	validators, keys := generateTestValidators(11)
@@ -310,6 +311,7 @@ func TestDPOS_09(t *testing.T) {
 	if err == nil {
 		t.Fatalf("dpos err: 2 validator but pass dpos!")
 	}
+}*/
 
 func generateTestValidators(count int) ([]mc.TopologyNodeInfo, map[common.Address]*ecdsa.PrivateKey) {
 	validators := make([]mc.TopologyNodeInfo, 0)

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package core
 
 import (
@@ -743,6 +744,7 @@ func TestTransactionQueueAccountLimiting(t *testing.T) {
 
 // Tests that if the transaction count belonging to multiple accounts go above
 // some threshold, the higher transactions are dropped to prevent DOS attacks.
+//
 // This logic should not hold for local transactions, unless the local tracking
 // mechanism is disabled.
 func TestTransactionQueueGlobalLimiting(t *testing.T) {
@@ -832,6 +834,7 @@ func testTransactionQueueGlobalLimiting(t *testing.T, nolocals bool) {
 // Tests that if an account remains idle for a prolonged amount of time, any
 // non-executable transactions queued up are dropped to prevent wasting resources
 // on shuffling them around.
+//
 // This logic should not hold for local transactions, unless the local tracking
 // mechanism is disabled.
 func TestTransactionQueueTimeLimiting(t *testing.T)         { testTransactionQueueTimeLimiting(t, false) }
@@ -1119,6 +1122,7 @@ func TestTransactionPendingMinimumAllowance(t *testing.T) {
 // Tests that setting the transaction pool gas price to a higher value correctly
 // discards everything cheaper than that and moves any gapped transactions back
 // from the pending pool to the queue.
+//
 // Note, local transactions are never allowed to be dropped.
 func TestTransactionPoolRepricing(t *testing.T) {
 	t.Parallel()
@@ -1301,6 +1305,7 @@ func TestTransactionPoolRepricingKeepsLocals(t *testing.T) {
 // Tests that when the pool reaches its global transaction limit, underpriced
 // transactions are gradually shifted out for more expensive ones and any gapped
 // pending transactions are moved into the queue.
+//
 // Note, local transactions are never allowed to be dropped.
 func TestTransactionPoolUnderpricing(t *testing.T) {
 	t.Parallel()

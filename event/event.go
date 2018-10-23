@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 // Package event deals with subscriptions to real-time events.
 package event
@@ -23,7 +23,9 @@ type TypeMuxEvent struct {
 // A TypeMux dispatches events to registered receivers. Receivers can be
 // registered to handle events of certain type. Any operation
 // called after mux is stopped will return ErrMuxClosed.
+//
 // The zero value is ready to use.
+//
 // Deprecated: use Feed
 type TypeMux struct {
 	mutex   sync.RWMutex

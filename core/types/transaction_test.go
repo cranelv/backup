@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package types
 
@@ -211,10 +211,12 @@ func TestTransactionJSON(t *testing.T) {
 		//var txs Transactions
 		//var txs3 Transactions
 		//txs = append(txs,tx)
+		//
 		////for _,tmptx:= range tx3{
 		////	fmt.Println(tmptx.Nonce())
 		////	tt := tmptx
 		////	tt.SetNonce(11)
+		////
 		////	fmt.Println(tt.Nonce())
 		////	fmt.Println(tmptx.Nonce())
 		////}

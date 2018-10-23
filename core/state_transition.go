@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package core
 
@@ -37,6 +37,7 @@ The state transitioning model does all all the necessary work to work out a vali
 == end ==
 5) Run Script section
 6) Derive new state root
+*/
 type StateTransition struct {
 	gp         *GasPool
 	msg        Message
@@ -113,6 +114,7 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 
 // ApplyMessage computes the new state by applying the given message
 // against the old state within the environment.
+//
 // ApplyMessage returns the bytes returned by any EVM execution (if it took place),
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular

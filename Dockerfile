@@ -1,15 +1,16 @@
-# Build Gman in a stock Go builder container #shang and yang
-FROM golang:1.9-alpine 
+# Build Geth in a stock Go builder container
+FROM golang:1.10-alpine as builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers
 
-ADD . /go-matrix
-RUN cd /go-matrix && make gman
+ADD . /go-ethereum
+RUN cd /go-ethereum && make geth
 
-# Pull Gman into a second stage deploy alpine container
+# Pull Geth into a second stage deploy alpine container
+FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
-RUN  ln -s  /go-matrix/build/bin/gman /usr/local/bin/gman
+COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
 
-#EXPOSE 8545 8546 30303 30303/udp 30304/udp
+EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["gman"]

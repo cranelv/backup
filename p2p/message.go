@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package p2p
 
@@ -23,6 +23,7 @@ import (
 )
 
 // Msg defines the structure of a p2p message.
+//
 // Note that a Msg can only be sent once since the Payload reader is
 // consumed during sending. It is not possible to create a Msg and
 // send it any number of times. If you want to reuse an encoded
@@ -37,6 +38,7 @@ type Msg struct {
 
 // Decode parses the RLP content of a message into
 // the given value, which must be a pointer.
+//
 // For the decoding rules, please see package rlp.
 func (msg Msg) Decode(val interface{}) error {
 	s := rlp.NewStream(msg.Payload, uint64(msg.Size))
@@ -63,6 +65,7 @@ type MsgReader interface {
 type MsgWriter interface {
 	// WriteMsg sends a message. It will block until the message's
 	// Payload has been consumed by the other end.
+	//
 	// Note that messages can be sent only once because their
 	// payload reader is drained.
 	WriteMsg(Msg) error
@@ -163,9 +166,13 @@ func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
 
 // SendItems writes an RLP with the given code and data elements.
 // For a call such as:
+//
 //    SendItems(w, code, e1, e2, e3)
+//
 // the message payload will be an RLP list containing the items:
+//
 //    [e1, e2, e3]
+//
 func SendItems(w MsgWriter, msgcode uint64, elems ...interface{}) error {
 	return Send(w, msgcode, elems)
 }

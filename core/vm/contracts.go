@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
+
 
 package vm
 
@@ -87,6 +87,7 @@ func (c *ecrecover) Run(input []byte, contract *Contract, evm *EVM) ([]byte, err
 type sha256hash struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
+//
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
 func (c *sha256hash) RequiredGas(input []byte) uint64 {
@@ -101,6 +102,7 @@ func (c *sha256hash) Run(input []byte, contract *Contract, evm *EVM) ([]byte, er
 type ripemd160hash struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
+//
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
 func (c *ripemd160hash) RequiredGas(input []byte) uint64 {
@@ -116,6 +118,7 @@ func (c *ripemd160hash) Run(input []byte, contract *Contract, evm *EVM) ([]byte,
 type dataCopy struct{}
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
+//
 // This method does not require any overflow checking as the input size gas costs
 // required for anything significant is so high it's impossible to pay for.
 func (c *dataCopy) RequiredGas(input []byte) uint64 {

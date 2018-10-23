@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 package core
 
 import (
@@ -48,6 +49,7 @@ type ChainIndexerChain interface {
 // canonical chain (like BlooomBits and CHT structures). A ChainIndexer is
 // connected to the blockchain through the event system by starting a
 // ChainEventLoop in a goroutine.
+//
 // Further child ChainIndexers can be added which use the output of the parent
 // section indexer. These child indexers receive new head notifications only
 // after an entire section has been finished or in case of rollbacks that might

@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 // Contains the NTP time drift detection via the SNTP protocol:
 //   https://tools.ietf.org/html/rfc4330
@@ -48,6 +48,7 @@ func checkClockDrift() {
 // sntpDrift does a naive time resolution against an NTP server and returns the
 // measured drift. This method uses the simple version of NTP. It's not precise
 // but should be fine for these purposes.
+//
 // Note, it executes two extra measurements compared to the number of requested
 // ones to be able to discard the two extremes as outliers.
 func sntpDrift(measurements int) (time.Duration, error) {

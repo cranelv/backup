@@ -2,11 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
 // Package secp256k1 wraps the bitcoin secp256k1 C library.
 package secp256k1
 
 /*
 #cgo CFLAGS: -I./libsecp256k1
+#cgo CFLAGS: -I./libsecp256k1/src/
 #define USE_NUM_NONE
 #define USE_FIELD_10X26
 #define USE_FIELD_INV_BUILTIN
@@ -20,6 +22,7 @@ package secp256k1
 typedef void (*callbackFunc) (const char* msg, void* data);
 extern void secp256k1GoPanicIllegal(const char* msg, void* data);
 extern void secp256k1GoPanicError(const char* msg, void* data);
+*/
 import "C"
 
 import (
@@ -49,6 +52,7 @@ var (
 
 // Sign creates a recoverable ECDSA signature.
 // The produced signature is in the 65-byte [R || S || V] format where V is 0 or 1.
+//
 // The caller is responsible for ensuring that msg cannot be chosen
 // directly by an attacker. It is usually preferable to use a cryptographic
 // hash function on any input before handing it to this function.

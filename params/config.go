@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
+
 
 package params
 
@@ -71,12 +71,14 @@ var (
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Matrix core developers into the Ethash consensus.
+	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Matrix core developers into the Clique consensus.
+	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
@@ -86,6 +88,7 @@ var (
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
+//
 // ChainConfig is stored in the database on a per block basis. This means
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
@@ -187,6 +190,7 @@ func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
+//
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
 	if num == nil {
@@ -308,6 +312,7 @@ func (err *ConfigCompatError) Error() string {
 
 // Rules wraps ChainConfig and is merely syntatic sugar or can be used for functions
 // that do not have or require information about the block.
+//
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {

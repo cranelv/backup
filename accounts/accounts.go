@@ -2,6 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
+
+// Package accounts implements high level Matrix account management.
 package accounts
 
 import (
@@ -36,10 +38,12 @@ type Wallet interface {
 	// Open initializes access to a wallet instance. It is not meant to unlock or
 	// decrypt account keys, rather simply to establish a connection to hardware
 	// wallets and/or to access derivation seeds.
+	//
 	// The passphrase parameter may or may not be used by the implementation of a
 	// particular wallet instance. The reason there is no passwordless open method
 	// is to strive towards a uniform wallet handling, oblivious to the different
 	// backend providers.
+	//
 	// Please note, if you open a wallet, you must close it to release any allocated
 	// resources (especially important when working with hardware wallets).
 	Open(passphrase string) error
@@ -63,16 +67,20 @@ type Wallet interface {
 	// SelfDerive sets a base account derivation path from which the wallet attempts
 	// to discover non zero accounts and automatically add them to list of tracked
 	// accounts.
+	//
 	// Note, self derivaton will increment the last component of the specified path
 	// opposed to decending into a child path to allow discovering accounts starting
 	// from non zero components.
+	//
 	// You can disable automatic account discovery by calling SelfDerive with a nil
 	// chain state reader.
 	SelfDerive(base DerivationPath, chain matrix.ChainStateReader)
 
 	// SignHash requests the wallet to sign the given hash.
+	//
 	// It looks up the account specified either solely via its address contained within,
 	// or optionally with the aid of any location metadata from the embedded URL field.
+	//
 	// If the wallet requires additional authentication to sign the request (e.g.
 	// a password to decrypt the account, or a PIN code o verify the transaction),
 	// an AuthNeededError instance will be returned, containing infos for the user
@@ -82,8 +90,10 @@ type Wallet interface {
 	SignHash(account Account, hash []byte) ([]byte, error)
 
 	// SignTx requests the wallet to sign the given transaction.
+	//
 	// It looks up the account specified either solely via its address contained within,
 	// or optionally with the aid of any location metadata from the embedded URL field.
+	//
 	// If the wallet requires additional authentication to sign the request (e.g.
 	// a password to decrypt the account, or a PIN code o verify the transaction),
 	// an AuthNeededError instance will be returned, containing infos for the user
@@ -94,12 +104,14 @@ type Wallet interface {
 
 	// SignHashWithPassphrase requests the wallet to sign the given hash with the
 	// given passphrase as extra authentication information.
+	//
 	// It looks up the account specified either solely via its address contained within,
 	// or optionally with the aid of any location metadata from the embedded URL field.
 	SignHashWithPassphrase(account Account, passphrase string, hash []byte) ([]byte, error)
 
 	// SignTxWithPassphrase requests the wallet to sign the given transaction, with the
 	// given passphrase as extra authentication information.
+	//
 	// It looks up the account specified either solely via its address contained within,
 	// or optionally with the aid of any location metadata from the embedded URL field.
 	SignTxWithPassphrase(account Account, passphrase string, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error)
@@ -113,9 +125,11 @@ type Wallet interface {
 // sign transactions with and upon request, do so.
 type Backend interface {
 	// Wallets retrieves the list of wallets the backend is currently aware of.
+	//
 	// The returned wallets are not opened by default. For software HD wallets this
 	// means that no base seeds are decrypted, and for hardware wallets that no actual
 	// connection is established.
+	//
 	// The resulting wallet list will be sorted alphabetically based on its internal
 	// URL assigned by the backend. Since wallets (especially hardware) may come and
 	// go, the same wallet might appear at a different positions in the list during

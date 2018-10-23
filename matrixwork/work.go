@@ -91,6 +91,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsB
 		}
 		// Error may be ignored here. The error has already been checked
 		// during transaction acceptance is the transaction pool.
+		//
 		// We use the eip155 signer regardless of the current hf.
 		from, _ := types.Sender(env.signer, tx)
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
@@ -224,6 +225,7 @@ func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPool, bc *c
 	return self.commitTransactions(mux, txs, bc, common.Address{})
 }
 
+/*//==============================================================================//
 //Leader
 func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPool, bc *core.BlockChain) ([]uint32, []*types.Transaction) {
 	pending, err := tp.Pending()
@@ -236,6 +238,7 @@ func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPool, bc *c
 	log.INFO("===========", "ProcessTransactions:txs:", txs)
 	return self.commitTransactions(mux, txs, bc, common.Address{})
 
+}*/
 
 //Broadcast
 func (self *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []*types.Transaction, bc *core.BlockChain) {

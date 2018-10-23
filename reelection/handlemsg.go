@@ -44,6 +44,7 @@ func (self *ReElection) HandleNative(height uint64) error {
 		return self.GetNativeFromDB(height)
 	}
 
+	allNative, err := self.readNativeData(height - 1) //
 	if err != nil {
 		log.Error(Module, "readNativeData failed height", height-1)
 	}
