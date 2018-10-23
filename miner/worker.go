@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package miner
 
@@ -358,7 +343,6 @@ func (self *worker) foundHandle(data *Result) {
 		if err != nil {
 			log.INFO(ModuleWork, "foundHandle PostEvent err ", err)
 		}
-	*/
 	log.INFO(ModuleWork, "foundHandle", mc.HD_MiningRspMsg{
 		Blockhash:  data.Header.Hash(),
 		Difficulty: data.Difficulty,
@@ -404,7 +388,6 @@ func (self *worker) sendHeaderToValidator(msg *mc.HD_BroadcastMiningRspMsg) {
 		if err != nil {
 			log.Error("miner", "Send BD_MiningRspMsg failed", err)
 		}
-	*/
 }
 
 func (self *worker) wait() {
@@ -430,7 +413,6 @@ func (self *worker) CalDifflist(difficulty uint64) []*big.Int {
 	difflist := make([]*big.Int, 0)
 	//if difficulty == 1 {
 	//	difflist = []*big.Int{big.NewInt(int64(1))}
-	//
 	//}
 	for i := 0; i < len(params.Difficultlist); i++ {
 		temp := difficulty / params.Difficultlist[i]

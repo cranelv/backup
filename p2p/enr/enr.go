@@ -1,32 +1,15 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package enr implements Matrix Node Records as defined in EIP-778. A node record holds
 // arbitrary information about a node on the peer-to-peer network.
-//
 // Records contain named keys. To store and retrieve key/values in a record, use the Entry
 // interface.
-//
 // Records must be signed before transmitting them to another node. Decoding a record verifies
 // its signature. When creating a record, set the entries you want, then call Sign to add the
 // signature. Modifying a record invalidates the signature.
-//
 // Package enr supports the "secp256k1-keccak" identity scheme.
 package enr
 
@@ -88,7 +71,6 @@ func (r *Record) SetSeq(s uint64) {
 
 // Load retrieves the value of a key/value pair. The given Entry must be a pointer and will
 // be set to the value of the entry in the record.
-//
 // Errors returned by Load are wrapped in KeyError. You can distinguish decoding errors
 // from missing keys using the IsNotFound function.
 func (r *Record) Load(e Entry) error {

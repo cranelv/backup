@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package reelection
@@ -25,7 +25,6 @@ var (
 		MinerNotRecviveTopology          = errors.New("Miner Not Recvive Topology")
 		ValidatorNotReceiveTopology      = errors.New("Validator Not Receive Topology")
 		TopNotBeLocal                    = errors.New("Top Not Be Local")
-	*/
 
 	BroadCastInterval        = common.GetBroadcastInterval()
 	MinerTopGenTiming        = common.GetReElectionInterval() - params.MinerTopologyGenerateUptime

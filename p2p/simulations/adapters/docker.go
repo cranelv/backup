@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package adapters
 
@@ -38,7 +24,6 @@ import (
 
 // DockerAdapter is a NodeAdapter which runs simulation nodes inside Docker
 // containers.
-//
 // A Docker image is built which contains the current binary at /bin/p2p-node
 // which when executed runs the underlying service (see the description
 // of the execP2PNode function for more details)
@@ -51,7 +36,6 @@ type DockerAdapter struct {
 func NewDockerAdapter() (*DockerAdapter, error) {
 	// Since Docker containers run on Linux and this adapter runs the
 	// current binary in the container, it must be compiled for Linux.
-	//
 	// It is reasonable to require this because the caller can just
 	// compile the current binary in a Docker container.
 	if runtime.GOOS != "linux" {
@@ -120,7 +104,6 @@ type DockerNode struct {
 
 // dockerCommand returns a command which exec's the binary in a Docker
 // container.
-//
 // It uses a shell so that we can pass the _P2P_NODE_CONFIG environment
 // variable to the container using the --env flag.
 func (n *DockerNode) dockerCommand() *exec.Cmd {
@@ -139,7 +122,6 @@ const dockerImage = "p2p-node"
 
 // buildDockerImage builds the Docker image which is used to run the simulation
 // node in a Docker container.
-//
 // It adds the current binary as "p2p-node" so that it runs execP2PNode
 // when executed.
 func buildDockerImage() error {

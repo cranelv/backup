@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package asm
 
@@ -52,7 +38,6 @@ func NewCompiler(debug bool) *Compiler {
 
 // Feed feeds tokens in to ch and are interpreted by
 // the compiler.
-//
 // feed is the first pass in the compile stage as it
 // collect the used labels in the program and keeps a
 // program counter which is used to determine the locations
@@ -89,7 +74,6 @@ func (c *Compiler) Feed(ch <-chan token) {
 // Compile compiles the current tokens and returns a
 // binary string that can be interpreted by the EVM
 // and an error if it failed.
-//
 // compile is the second stage in the compile phase
 // which compiles the tokens to EVM instructions.
 func (c *Compiler) Compile() (string, []error) {

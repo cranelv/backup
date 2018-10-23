@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package msgsend
@@ -34,7 +34,6 @@ type MsgCodec interface {
 	DecodeFn(data []byte, from common.Address) (interface{}, error)
 }
 
-////////////////////////////////////////////////////////////////////////
 // 区块共识请求消息
 // msg code = mc.HD_BlkConsensusReq
 type blkConsensusReqCodec struct {
@@ -58,7 +57,6 @@ func (*blkConsensusReqCodec) DecodeFn(data []byte, from common.Address) (interfa
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 区块共识投票消息
 // msg code = mc.HD_BlkConsensusVote
 type blkConsensusVoteCodec struct {
@@ -82,7 +80,6 @@ func (*blkConsensusVoteCodec) DecodeFn(data []byte, from common.Address) (interf
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 挖矿请求消息
 // msg code = mc.HD_MiningReq
 type miningReqCodec struct {
@@ -106,7 +103,6 @@ func (*miningReqCodec) DecodeFn(data []byte, from common.Address) (interface{}, 
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 挖矿结果消息
 // msg code = mc.HD_MiningRsp
 type miningRspCodec struct {
@@ -130,7 +126,6 @@ func (*miningRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, 
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 广播挖矿结果消息
 // msg code = mc.HD_BroadcastMiningRsp
 type broadcastMiningRspCodec struct {
@@ -182,7 +177,6 @@ func (*broadcastMiningRspCodec) DecodeFn(data []byte, from common.Address) (inte
 	return sendMsg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 新区块插入消息
 // msg code = mc.HD_NewBlockInsert
 type newBlockInsertCodec struct {
@@ -206,7 +200,6 @@ func (*newBlockInsertCodec) DecodeFn(data []byte, from common.Address) (interfac
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // leader重选请求消息
 // msg code = mc.HD_LeaderReelectVoteRep
 type leaderReelectVoteReqCodec struct {
@@ -229,7 +222,6 @@ func (*leaderReelectVoteReqCodec) DecodeFn(data []byte, from common.Address) (in
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // leader重选投票消息
 // msg code = mc.HD_LeaderReelectVoteRsp
 type leaderReelectVoteRspCodec struct {
@@ -253,7 +245,6 @@ func (*leaderReelectVoteRspCodec) DecodeFn(data []byte, from common.Address) (in
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // leader重选共识结果消息
 // msg code = mc.HD_LeaderReelectConsensusBroadcast
 type leaderConsensusBCCodec struct {
@@ -276,7 +267,6 @@ func (*leaderConsensusBCCodec) DecodeFn(data []byte, from common.Address) (inter
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 顶层节点在线共识请求消息
 // msg code = mc.HD_TopNodeConsensusReq
 type onlineConsensusReqCodec struct {
@@ -300,7 +290,6 @@ func (*onlineConsensusReqCodec) DecodeFn(data []byte, from common.Address) (inte
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 顶层节点在线共识投票消息
 // msg code = mc.HD_TopNodeConsensusVote
 type onlineConsensusVoteCodec struct {
@@ -328,7 +317,6 @@ func (*onlineConsensusVoteCodec) DecodeFn(data []byte, from common.Address) (int
 	return msg, nil
 }
 
-////////////////////////////////////////////////////////////////////////
 // 顶层节点在线共识结果消息
 // msg code = mc.HD_TopNodeConsensusVoteResult
 type onlineConsensusResultCodec struct {

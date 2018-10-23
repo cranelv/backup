@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package leaderelect
@@ -36,7 +36,6 @@ var (
 	return electionInfo[0], nil
 
 }
-*/
 
 /*func nextLeader(validator []*ca.TopologyNodeInfo, preLeader ca.TopologyNodeInfo) (ca.TopologyNodeInfo, error) {
 	if len(validator) == 0 {
@@ -50,7 +49,6 @@ var (
 		}
 	}
 	return ca.TopologyNodeInfo{}, ValidatorNotFound
-}*/
 
 func nextLeaderByNum(validator []mc.TopologyNodeInfo, preLeader common.Address, skipNum uint8) (common.Address, error) {
 	if validator == nil {

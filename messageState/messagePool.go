@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package messageState
@@ -39,7 +39,6 @@ type SubScribeInfo struct {
 	3.  SetMessageChecker check all the event messages
 	4.  RunLoop
 	5.  You can selece the stateChan and it will send MessageSend struct every Round if Round state is full
-*/
 
 type MessgeStateInterface interface {
 	SubscribeEvent(aim mc.EventCode, ch interface{}) error
@@ -249,5 +248,4 @@ func (ms *MessageStatePool) deleteRound() {
 			delete(ms.message, key)
 		}
 		log.Info("deleteRound", "keys", keys)
-	}*/
 }

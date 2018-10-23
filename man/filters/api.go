@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package filters
 
@@ -100,10 +85,8 @@ func (api *PublicFilterAPI) timeoutLoop() {
 
 // NewPendingTransactionFilter creates a filter that fetches pending transaction hashes
 // as transactions enter the pending state.
-//
 // It is part of the filter package because this filter can be used through the
 // `man_getFilterChanges` polling method that is also used for log filters.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_newpendingtransactionfilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	var (
@@ -173,7 +156,6 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 
 // NewBlockFilter creates a filter that fetches blocks that are imported into the chain.
 // It is part of the filter package since polling goes with man_getFilterChanges.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	var (
@@ -281,15 +263,12 @@ type FilterCriteria matrix.FilterQuery
 // NewFilter creates a new filter and returns the filter id. It can be
 // used to retrieve logs when the state changes. This method cannot be
 // used to fetch logs that are already stored in the state.
-//
 // Default criteria for the from and to block are "latest".
 // Using "latest" as block number will return logs for mined blocks.
 // Using "pending" as block number returns logs for not yet mined (pending) blocks.
 // In case logs are removed (chain reorg) previously returned logs are returned
 // again but with the removed property set to true.
-//
 // In case "fromBlock" > "toBlock" an error is returned.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_newfilter
 func (api *PublicFilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 	logs := make(chan []*types.Log)
@@ -324,7 +303,6 @@ func (api *PublicFilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 }
 
 // GetLogs returns logs matching the given argument that are stored within the state.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_getlogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit FilterCriteria) ([]*types.Log, error) {
 	// Convert the RPC block numbers into internal representations
@@ -345,7 +323,6 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit FilterCriteria) ([
 }
 
 // UninstallFilter removes the filter with the given filter id.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_uninstallfilter
 func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 	api.filtersMu.Lock()
@@ -363,7 +340,6 @@ func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
 
 // GetFilterLogs returns the logs for the filter with the given id.
 // If the filter could not be found an empty array of logs is returned.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_getfilterlogs
 func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*types.Log, error) {
 	api.filtersMu.Lock()
@@ -394,10 +370,8 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*ty
 
 // GetFilterChanges returns the logs for the filter with the given id since
 // last time it was called. This can be used for polling.
-//
 // For pending transaction and block filters the result is []common.Hash.
 // (pending)Log filters return []Log.
-//
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_getfilterchanges
 func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	api.filtersMu.Lock()

@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package state provides a caching layer atop the Matrix state trie.
 package state
@@ -274,7 +260,6 @@ func (self *StateDB) HasSuicided(addr common.Address) bool {
 
 /*
  * SETTERS
- */
 
 // AddBalance adds amount to the account associated with addr.
 func (self *StateDB) AddBalance(addr common.Address, amount *big.Int) {
@@ -322,7 +307,6 @@ func (self *StateDB) SetState(addr common.Address, key, value common.Hash) {
 
 // Suicide marks the given account as suicided.
 // This clears the account balance.
-//
 // The account's state object is still available until the state is committed,
 // getStateObject will return a non-nil account after Suicide.
 func (self *StateDB) Suicide(addr common.Address) bool {
@@ -341,9 +325,7 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 	return true
 }
 
-//
 // Setting, updating & deleting state object methods.
-//
 
 // updateStateObject writes the given object to the trie.
 func (self *StateDB) updateStateObject(stateObject *stateObject) {
@@ -419,13 +401,10 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 
 // CreateAccount explicitly creates a state object. If a state object with the address
 // already exists the balance is carried over to the new account.
-//
 // CreateAccount is called during the EVM CREATE operation. The situation might arise that
 // a contract does the following:
-//
 //   1. sends funds to sha(account ++ (nonce + 1))
 //   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
-//
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)

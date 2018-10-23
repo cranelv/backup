@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package olconsensus
@@ -158,7 +158,6 @@ func (serv *TopNodeService) update() {
 				case data := <-serv.consensusResultCh:
 					log.Info(serv.extraInfo, "收到共识结果消息", "")
 					go serv.OnlineConsensusVoteResultMsgHandler(data)
-			*/
 		case <-serv.quitCh:
 			log.Info(serv.extraInfo, "收到退出消息", "")
 			return
@@ -320,7 +319,6 @@ func (serv *TopNodeService) GetConsensusOnlineState() (map[common.Address]Online
 	   return getValidatorOnlineState()
 	} else {
 	   return nil
-	}*/
 	// 返回两个map，
 	// 第一个map = currentRole是验证者和矿工的在线共识状态
 	// 第二个map = originalRole是验证者和矿工，但currentRole不是验证者或矿工的在线共识状态

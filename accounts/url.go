@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package accounts
 
@@ -27,15 +13,12 @@ import (
 )
 
 // URL represents the canonical identification URL of a wallet or account.
-//
 // It is a simplified version of url.URL, with the important limitations (which
 // are considered features here) that it contains value-copyable components only,
 // as well as that it doesn't do any URL encoding/decoding of special characters.
-//
 // The former is important to allow an account to be copied without leaving live
 // references to the original version, whereas the latter is important to ensure
 // one single canonical form opposed to many allowed ones by the RFC 3986 spec.
-//
 // As such, these URLs should not be used outside of the scope of an Matrix
 // wallet or account.
 type URL struct {
@@ -94,11 +77,9 @@ func (u *URL) UnmarshalJSON(input []byte) error {
 }
 
 // Cmp compares x and y and returns:
-//
 //   -1 if x <  y
 //    0 if x == y
 //   +1 if x >  y
-//
 func (u URL) Cmp(url URL) int {
 	if u.Scheme == url.Scheme {
 		return strings.Compare(u.Path, url.Path)

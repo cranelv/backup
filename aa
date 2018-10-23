@@ -1,0 +1,19 @@
+for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "s/\/\/ Copyright (c) 2008 The MATRIX Authors/\/\/ Copyright (c) 2018 The MATRIX Authors/g" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ Copyright 2015 The go-matrix Author/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ You should have received a copy of the GNU Lesser General Public License/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ This file is part of the go-matrix library./d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "\/\/$/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ The go-matrix library is free software: you can redistribute it and\/or modify/d" $i;done
+#
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ it under the terms of the GNU Lesser General Public License as published by/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ the Free Software Foundation, either version 3 of the License, or/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ (at your option) any later version./d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ The go-matrix library is distributed in the hope that it will be useful,/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ but WITHOUT ANY WARRANTY; without even the implied warranty of/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ GNU Lesser General Public License for more details./d" $i;done
+#
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ Package trie implements Merkle Patricia Tries./d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ along with the go-matrix library. If not, see <http:\/\/www.gnu.org\/licenses\/>./d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ You should have received a copy of the GNU Lesser General Public License/d" $i;done
+

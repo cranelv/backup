@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package log
@@ -79,13 +79,9 @@ type TerminalStringer interface {
 // TerminalFormat formats log records optimized for human readability on
 // a terminal with color-coded level output and terser human friendly timestamp.
 // This format should only be used for interactive programs or while developing.
-//
 //     [LEVEL] [TIME] MESAGE key=value key=value ...
-//
 // Example:
-//
 //     [DBUG] [May 16 20:58:45] remove route ns=haproxy addr=127.0.0.1:50002
-//
 func TerminalFormat(usecolor bool) Format {
 	return FormatFunc(func(r *Record) []byte {
 		var color = 0
@@ -148,9 +144,7 @@ func TerminalFormat(usecolor bool) Format {
 
 // LogfmtFormat prints records in logfmt format, an easy machine-parseable but human-readable
 // format for key/value pairs.
-//
 // For more details see: http://godoc.org/github.com/kr/logfmt
-//
 func LogfmtFormat() Format {
 	return FormatFunc(func(r *Record) []byte {
 		common := []interface{}{r.KeyNames.Time, r.Time, r.KeyNames.Lvl, r.Lvl, r.KeyNames.Msg, r.Msg}

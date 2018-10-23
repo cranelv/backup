@@ -1,24 +1,8 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package discover implements the Node Discovery Protocol.
-//
 // The Node Discovery protocol provides a way to find RLPx nodes that
 // can be connected to. It uses a Kademlia-like protocol to maintain a
 // distributed database of the IDs and endpoints of all listening
@@ -577,17 +561,14 @@ func (tab *Table) bondall(nodes []*Node) (result []*Node) {
 // bond ensures the local node has a bond with the given remote node.
 // It also attempts to insert the node into the table if bonding succeeds.
 // The caller must not hold tab.mutex.
-//
 // A bond is must be established before sending findnode requests.
 // Both sides must have completed a ping/pong exchange for a bond to
 // exist. The total number of active bonding processes is limited in
 // order to restrain network use.
-//
 // bond is meant to operate idempotently in that bonding with a remote
 // node which still remembers a previously established bond will work.
 // The remote node will simply not send a ping back, causing waitping
 // to time out.
-//
 // If pinged is true, the remote node has just pinged us and one half
 // of the process can be skipped.
 func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16) (*Node, error) {
@@ -683,7 +664,6 @@ func (tab *Table) bucket(sha common.Hash) *bucket {
 // bucket has space available, adding the node succeeds immediately.
 // Otherwise, the node is added if the least recently active node in
 // the bucket does not respond to a ping packet.
-//
 // The caller must not hold tab.mutex.
 func (tab *Table) add(new *Node) {
 	tab.mutex.Lock()

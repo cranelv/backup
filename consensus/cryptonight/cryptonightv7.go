@@ -1,12 +1,10 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017-2018 DERO Project. All rights reserved.
 // Use of this source code in any form is governed by RESEARCH license.
 // license can be found in the LICENSE file.
 // GPG: 0F39 E425 8C65 3947 702A  8234 08B2 0360 A03A 9DE8
-//
-//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -68,14 +66,12 @@ func cryptonightv7(input []byte, variant int) []byte {
 	/*for i := 0 ; i <8;i++{
 	    key1[i] = binary.LittleEndian.Uint32(dummy[i<<2:])
 	    key2[i] = binary.LittleEndian.Uint32(dummy[32+(i<<2):])
-	}*/
 
 	expandKeyGo(dummy[0:32], key1[:], nil)
 	expandKeyGo(dummy[32:64], key2[:], nil)
 
 	/* for i :=0; i< 60;i++{
 	         fmt.Printf("%2d %X\n", i, key2[i])
-	}*/
 
 	// var text [128]byte
 	var text_uint32 [32]uint32
@@ -89,7 +85,6 @@ func cryptonightv7(input []byte, variant int) []byte {
 
 	/* for i :=0; i< 32;i++{
 	         fmt.Printf("%2d %X  i  %08X %08X\n", i, text_uint32[i] , key1[i],key1[i<<1])
-	}*/
 
 	for i := 0; i < 0x4000; i++ {
 		for j := 0; j < 8; j++ {
@@ -139,7 +134,6 @@ func cryptonightv7(input []byte, variant int) []byte {
 			      }else{
 			          variant1_scratch[11] = ((tmp & 0xcf) | (tmp0<<4))
 			      }
-			*/
 			tmp := variant1_scratch[11]
 			table := uint32(0x75310)
 
@@ -228,7 +222,6 @@ func cryptonightv7(input []byte, variant int) []byte {
 
 	/*for i :=0; i< 32;i++{
 	         fmt.Printf("%2d %X\n", i, text_uint32[i])
-	}*/
 
 	for i := 0; i < 32; i++ {
 		binary.LittleEndian.PutUint32(dummy[64+(i<<2):], text_uint32[i])
@@ -241,7 +234,6 @@ func cryptonightv7(input []byte, variant int) []byte {
 	keccakf(&S) // do the keccak round
 	/* for i :=0; i< 25;i++{
 	         fmt.Printf("S %02d %X\n", i, S[i])
-	}*/
 
 	// lets convert everything back to bytes
 	for i := 0; i < 25; i++ {

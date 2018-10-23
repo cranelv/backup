@@ -1,23 +1,8 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package trie implements Merkle Patricia Tries.
 package trie
 
 import (
@@ -65,7 +50,6 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
 // Use New to create a trie that sits on top of a database.
-//
 // Trie is not safe for concurrent use.
 type Trie struct {
 	db           *Database
@@ -91,7 +75,6 @@ func (t *Trie) newFlag() nodeFlag {
 }
 
 // New creates a trie with an existing root node from db.
-//
 // If root is the zero hash or the sha3 hash of an empty string, the
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
@@ -183,7 +166,6 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 // Update associates key with value in the trie. Subsequent calls to
 // Get will return value. If value has length zero, any existing value
 // is deleted from the trie and calls to Get will return nil.
-//
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
 func (t *Trie) Update(key, value []byte) {
@@ -195,10 +177,8 @@ func (t *Trie) Update(key, value []byte) {
 // TryUpdate associates key with value in the trie. Subsequent calls to
 // Get will return value. If value has length zero, any existing value
 // is deleted from the trie and calls to Get will return nil.
-//
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
-//
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *Trie) TryUpdate(key, value []byte) error {
 	k := keybytesToHex(key)
@@ -354,7 +334,6 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		// left. Since n must've contained at least two children
 		// before deletion (otherwise it would not be a full node) n
 		// can never be reduced to nil.
-		//
 		// When the loop is done, pos contains the index of the single
 		// value that is left in n or -2 if n contains at least two
 		// values.

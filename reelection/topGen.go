@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package reelection
@@ -79,7 +79,6 @@ func (self *ReElection) getMinHash(height uint64) common.Hash {
 
 func (self *ReElection) ToGenMinerTop(height uint64) error {
 
-	minerDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleMiner) //
 	if err != nil {
 		log.ERROR(Module, "獲取礦工抵押交易失敗 err", err)
 		return err

@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -75,7 +75,6 @@ func (bpc *blockPowCache) getPow(diff *big.Int) ([]*mc.HD_MiningRspMsg, error) {
 	return list, nil
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
 // 协程安全投挖矿结果池
 type PowPool struct {
 	// 缓存结构为：map <blockHash, *cache>

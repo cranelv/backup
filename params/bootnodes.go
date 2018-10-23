@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package params
 
@@ -39,7 +24,6 @@ var MainnetBootnodes = []string{
 	"enode://25ea3bca7679192612aed14d5e83a4f2a30824ff2af705d2d7c6795470f9cbbc258d9b102a726c3982cda6c4732ba3715551b6fbf9c0ae4ddca4a6c80bc4bbe9@10.42.100.85:30303",
 	"enode://14f62dfd8826734fe75120849e11614b0763bc584fba4135c2f32b19501525d55d217742893801ecc871023fc42ed7e80196357fb5b1f762d181e827e626637d@10.42.100.122:30303",
 	"enode://df57387d6505d0f71d7000da9642cf16d44feb7fcaa5f3a8a7d9fa58b6cbb6d33d145746d4fb544c049d3ff9b534bf9245a5b8052231c51695fd298032bd4a79@10.42.100.9:30303",
-	"enode://4b2f638f46c7ae5b1564ca7015d716621848a0d9be66f1d1e91d566d2a70eedc2f11e92b743acb8d97dec3fb412c1b2f66afd7fbb9399d4fb2423619eaa514c7@10.42.100.236:30303",*/
 }
 
 type BroadCastNode struct {

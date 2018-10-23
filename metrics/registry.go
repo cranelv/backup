@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package metrics
@@ -21,7 +21,6 @@ func (err DuplicateMetric) Error() string {
 
 // A Registry holds references to a set of metrics by name and can iterate
 // over them, calling callback functions provided by the user.
-//
 // This is an interface so as to encourage other structs to implement
 // the Registry API as appropriate.
 type Registry interface {

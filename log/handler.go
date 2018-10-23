@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package log
@@ -44,7 +44,6 @@ func (h funcHandler) Log(r *Record) error {
 // with the given format. StreamHandler can be used
 // to easily begin writing log records to other
 // outputs.
-//
 // StreamHandler wraps itself with LazyHandler and SyncHandler
 // to evaluate Lazy objects and perform safe concurrent writes.
 func StreamHandler(wr io.Writer, fmtr Format) Handler {
@@ -165,7 +164,6 @@ func RotatingFileHandler(path string, limit uint, formatter Format) (Handler, er
 				//return nil, err
 			}
 		}
-	}*/
 	if counter == nil {
 		counter = new(countingWriter)
 		counter.lock = new(sync.Mutex)
@@ -195,7 +193,6 @@ func RotatingFileHandler(path string, limit uint, formatter Format) (Handler, er
 			if counter.w != nil {
 				counter.w.Close()
 			}
-					counter.w = nil*/
 			}
 			counter.lock.Unlock()
 		}
@@ -281,7 +278,6 @@ func CallerStackHandler(format string, h Handler) Handler {
 // FilterHandler returns a Handler that only writes records to the
 // wrapped Handler if the given function evaluates true. For example,
 // to only log records where the 'err' key is not nil:
-//
 //    logger.SetHandler(FilterHandler(func(r *Record) bool {
 //        for i := 0; i < len(r.Ctx); i += 2 {
 //            if r.Ctx[i] == "err" {
@@ -290,7 +286,6 @@ func CallerStackHandler(format string, h Handler) Handler {
 //        }
 //        return false
 //    }, h))
-//
 func FilterHandler(fn func(r *Record) bool, h Handler) Handler {
 	return FuncHandler(func(r *Record) error {
 		if fn(r) {
@@ -304,9 +299,7 @@ func FilterHandler(fn func(r *Record) bool, h Handler) Handler {
 // to the wrapped Handler if the given key in the logged
 // context matches the value. For example, to only log records
 // from your ui package:
-//
 //    log.MatchFilterHandler("pkg", "app/ui", log.StdoutHandler)
-//
 func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 	return FilterHandler(func(r *Record) (pass bool) {
 		switch key {
@@ -331,9 +324,7 @@ func MatchFilterHandler(key string, value interface{}, h Handler) Handler {
 // records which are less than the given verbosity
 // level to the wrapped Handler. For example, to only
 // log Error/Crit records:
-//
 //     log.LvlFilterHandler(log.LvlError, log.StdoutHandler)
-//
 func LvlFilterHandler(maxLvl Lvl, h Handler) Handler {
 	return FilterHandler(func(r *Record) (pass bool) {
 		return r.Lvl <= maxLvl
@@ -344,11 +335,9 @@ func LvlFilterHandler(maxLvl Lvl, h Handler) Handler {
 // This is useful for writing different types of log information
 // to different locations. For example, to log to a file and
 // standard error:
-//
 //     log.MultiHandler(
 //         log.Must.FileHandler("/var/log/app.log", log.LogfmtFormat()),
 //         log.StderrHandler)
-//
 func MultiHandler(hs ...Handler) Handler {
 	return FuncHandler(func(r *Record) error {
 		for _, h := range hs {
@@ -365,12 +354,10 @@ func MultiHandler(hs ...Handler) Handler {
 // For example you might want to log to a network socket, but failover
 // to writing to a file if the network fails, and then to
 // standard out if the file write fails:
-//
 //     log.FailoverHandler(
 //         log.Must.NetHandler("tcp", ":9090", log.JSONFormat()),
 //         log.Must.FileHandler("/var/log/app.log", log.LogfmtFormat()),
 //         log.StdoutHandler)
-//
 // All writes that do not go to the first handler will add context with keys of
 // the form "failover_err_{idx}" which explain the error encountered while
 // trying to write to the handlers before them in the list.

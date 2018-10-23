@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package cmdtest
 
@@ -79,7 +65,6 @@ func (tt *TestCmd) Run(name string, args ...string) {
 
 // InputLine writes the given text to the childs stdin.
 // This method can also be called from an expect template, e.g.:
-//
 //     gman.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
@@ -95,7 +80,6 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 
 // Expect runs its argument as a template, then expects the
 // child process to output the result of the template within 5s.
-//
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
@@ -141,7 +125,6 @@ func (tt *TestCmd) matchExactOutput(want []byte) error {
 
 // ExpectRegexp expects the child process to output text matching the
 // given regular expression within 5s.
-//
 // Note that an arbitrary amount of output may be consumed by the
 // regular expression. This usually means that expect cannot be used
 // after ExpectRegexp.

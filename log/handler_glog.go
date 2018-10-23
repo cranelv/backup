@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package log
 
@@ -79,18 +65,13 @@ func (h *GlogHandler) Verbosity(level Lvl) {
 }
 
 // Vmodule sets the glog verbosity pattern.
-//
 // The syntax of the argument is a comma-separated list of pattern=N, where the
 // pattern is a literal file name or "glob" pattern matching and N is a V level.
-//
 // For instance:
-//
 //  pattern="gopher.go=3"
 //   sets the V level to 3 in all Go files named "gopher.go"
-//
 //  pattern="foo=3"
 //   sets V to 3 in all files of any packages whose import path ends in "foo"
-//
 //  pattern="foo/*=3"
 //   sets V to 3 in all files of any packages whose import path contains "foo"
 func (h *GlogHandler) Vmodule(ruleset string) error {
@@ -149,7 +130,6 @@ func (h *GlogHandler) Vmodule(ruleset string) error {
 // BacktraceAt sets the glog backtrace location. When set to a file and line
 // number holding a logging statement, a stack trace will be written to the Info
 // log whenever execution hits that statement.
-//
 // Unlike with Vmodule, the ".go" must be present.
 func (h *GlogHandler) BacktraceAt(location string) error {
 	// Ensure the backtrace location contains two non-empty elements

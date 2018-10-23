@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package log
@@ -226,11 +226,9 @@ func normalize(ctx []interface{}) []interface{} {
 
 // Lazy allows you to defer calculation of a logged value that is expensive
 // to compute until it is certain that it must be evaluated with the given filters.
-//
 // Lazy may also be used in conjunction with a Logger's New() function
 // to generate a child logger which always reports the current value of changing
 // state.
-//
 // You may wrap any function which takes no arguments to Lazy. It may return any
 // number of values of any type.
 type Lazy struct {

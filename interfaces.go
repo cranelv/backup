@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2016 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package matrix defines interfaces for interacting with Matrix.
 package matrix
@@ -52,7 +38,6 @@ type Subscription interface {
 // blockchain fork that was previously downloaded and processed by the node. The block
 // number argument can be nil to select the latest canonical block. Reading block headers
 // should be preferred over full blocks whenever possible.
-//
 // The returned error is NotFound if the requested item does not exist.
 type ChainReader interface {
 	BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
@@ -70,11 +55,9 @@ type ChainReader interface {
 // TransactionReader provides access to past transactions and their receipts.
 // Implementations may impose arbitrary restrictions on the transactions and receipts that
 // can be retrieved. Historic transactions may not be available.
-//
 // Avoid relying on this interface if possible. Contract logs (through the LogFilterer
 // interface) are more reliable and usually safer in the presence of chain
 // reorganisations.
-//
 // The returned error is NotFound if the requested item does not exist.
 type TransactionReader interface {
 	// TransactionByHash checks the pool of pending transactions in addition to the
@@ -142,7 +125,6 @@ type FilterQuery struct {
 	// of topics. Topics matches a prefix of that list. An empty element slice matches any
 	// topic. Non-empty elements represent an alternative that matches any of the
 	// contained topics.
-	//
 	// Examples:
 	// {} or nil          matches any topic list
 	// {{A}}              matches topic A in first position
@@ -154,7 +136,6 @@ type FilterQuery struct {
 
 // LogFilterer provides access to contract log events using a one-off query or continuous
 // event subscription.
-//
 // Logs received through a streaming query subscription may have Removed set to true,
 // indicating that the log was reverted due to a chain reorganisation.
 type LogFilterer interface {
@@ -166,7 +147,6 @@ type LogFilterer interface {
 // signed transaction into the pending transaction pool for execution. If the transaction
 // was a contract creation, the TransactionReceipt method can be used to retrieve the
 // contract address after the transaction has been mined.
-//
 // The transaction must be signed and have a valid nonce to be included. Consumers of the
 // API can use package accounts to maintain local private keys and need can retrieve the
 // next available nonce using PendingNonceAt.

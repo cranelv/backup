@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package metrics
@@ -35,7 +35,6 @@ type Sample interface {
 // ExpDecaySample is an exponentially-decaying sample using a forward-decaying
 // priority reservoir.  See Cormode et al's "Forward Decay: A Practical Time
 // Decay Model for Streaming Systems".
-//
 // <http://dimacs.rutgers.edu/~graham/pubs/papers/fwddecay.pdf>
 type ExpDecaySample struct {
 	alpha         float64
@@ -398,7 +397,6 @@ func SampleVariance(values []int64) float64 {
 }
 
 // A uniform sample using Vitter's Algorithm R.
-//
 // <http://www.cs.umd.edu/~samir/498/vitter.pdf>
 type UniformSample struct {
 	count         int64

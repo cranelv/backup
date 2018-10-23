@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package p2p
@@ -129,7 +129,6 @@ type Custsend struct {
 	Code   uint64
 	NodeId string
 }
-*/
 /*
 type Custsendd struct {
 	FromIp string
@@ -144,7 +143,6 @@ type Data_Formatd struct {
 	Type        uint64
 	Seq         uint64
 	Data_struct []byte
-}*/
 
 type Status_Re struct {
 	Ip        string
@@ -157,7 +155,6 @@ type Data_Format struct {
 	Seq         uint64
 	Data_struct []byte
 }
-*/
 type ElectionMsg struct {
 	Ip              string
 	PeerId          string
@@ -209,7 +206,6 @@ type Custconn struct {
 	Ip    string
 	IsTcp bool
 }
-*/
 
 type doconn struct {
 	iplist []string
@@ -338,7 +334,6 @@ func CustdecodePacket(buf []byte, Ip string) (*CustUpdPacket, NodeID, []byte, er
 			req = new(findnode)
 		case neighborsPacket:
 			req = new(neighbors)
-	*/
 	case 4:
 		req = new(CustUpdPacket)
 		s := rlp.NewStream(bytes.NewReader(sigdata[1:]), 0)
@@ -431,7 +426,6 @@ func Receiveudp() error {
 	return nil
 }
 
-///////////////////////////////////////////////////////////////////
 
 //udp send data
 
@@ -697,7 +691,6 @@ func CustStat(qestat []string) []Status_Re {
 /*
 func main() {
 
-	/////////////////////////////
 
 	if len(*emailAddress) == 0 {
 		log.Info("Missing required --email-address parameter")
@@ -711,4 +704,3 @@ func main() {
 
 
 }
-*/

@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package metrics
@@ -67,7 +67,6 @@ func CaptureRuntimeMemStats(r Registry, d time.Duration) {
 // runtime.MemStats.  This is designed to be called in a background
 // goroutine.  Giving a registry which has not been given to
 // RegisterRuntimeMemStats will panic.
-//
 // Be very careful with this because runtime.ReadMemStats calls the C
 // functions runtime·semacquire(&runtime·worldsema) and runtime·stoptheworld()
 // and that last one does what it says on the tin.

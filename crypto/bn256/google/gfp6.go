@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2012 The Go Authors. All rights reserved.
@@ -250,10 +250,8 @@ func (e *gfP6) Invert(a *gfP6, pool *bnPool) *gfP6 {
 	// Then (xτ² + yτ + z)(xj²τ² + yjτ + z)(xjτ² + yj²τ + z)
 	// = (xτ² + yτ + z)(Cτ²+Bτ+A)
 	// = (x³ξ²+y³ξ+z³-3ξxyz) = F is an element of the base field (the norm).
-	//
 	// On the other hand (xj²τ² + yjτ + z)(xjτ² + yj²τ + z)
 	// = τ²(y²-ξxz) + τ(ξx²-yz) + (z²-ξxy)
-	//
 	// So that's why A = (z²-ξxy), B = (ξx²-yz), C = (y²-ξxz)
 	t1 := newGFp2(pool)
 

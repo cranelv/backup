@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package miner implements Matrix block creation and mining.
 package miner
@@ -138,7 +124,6 @@ out:
 			break out
 		}
 	}
-}*/
 
 //Start
 func (self *Miner) Start(coinbase common.Address) {
@@ -181,7 +166,6 @@ func (self *Miner) Unregister(agent Agent) {
 
 	self.worker.Unregister(agent)
 }
-*/
 
 func (self *Miner) Mining() bool {
 	return atomic.LoadInt32(&self.Getworker().mining) > 0
@@ -217,11 +201,9 @@ func (self *Miner) Pending() (*types.Block, *state.StateDB) {
 
 /*
 // PendingBlock returns the currently pending block.
-//
 // Note, to access both the pending block and the pending state
 // simultaneously, please use Pending(), as the pending state can
 // change between multiple method calls
-*/
 func (self *Miner) PendingBlock() *types.Block {
 	return self.worker.pendingBlock()
 }

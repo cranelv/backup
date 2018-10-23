@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -244,7 +230,6 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 // TxPool contains all currently known transactions. Transactions
 // enter the pool when they are received from the network or submitted
 // locally. They exit the pool when they are included in the blockchain.
-//
 // The pool separates processable transactions (which can be applied to the
 // current state) and future transactions. Transactions move between those
 // two states over time as they are received and processed.
@@ -271,13 +256,11 @@ type TxPool struct {
 	queue   map[common.Address]*txList   // Queued but non-processable transactions
 	beats   map[common.Address]time.Time // Last heartbeat from each known account
 	all     *txLookup                    // All transactions to allow lookups
-	//=================by hezi==================//
 	SContainer map[common.Hash]*types.Transaction
 	NContainer map[uint32]*types.Transaction
 	Special    map[common.Hash]*types.Transaction // All special transactions
 	udptxsCh   chan []*types.Transaction_Mx       //udp交易订阅
 	udptxsSub  event.Subscription                 //取消订阅
-	//=================================================//
 	priced *txPricedList // All transactions sorted by price
 
 	wg sync.WaitGroup // for shutdown sync
@@ -319,7 +302,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	// If local transactions and journaling is enabled, load from disk
 	//if !config.NoLocals && config.Journal != "" {
 	//	pool.journal = newTxJournal(config.Journal)
-	//
 	//	if err := pool.journal.load(pool.AddLocals); err != nil {
 	//		log.Warn("Failed to load transaction journal", "err", err)
 	//	}
@@ -572,13 +554,10 @@ func (pool *TxPool) deletsTx(s *big.Int) {
 //by hezi
 func (pool *TxPool) testList() {
 
-	//=============for test hezi=======================//
 	timesendtxs := time.NewTicker(2 * time.Second) //for test hezi
 	defer timesendtxs.Stop()
-	//=============test=======================//
 	for {
 		select {
-		//===================for test hezi==================//
 		case <-timesendtxs.C:
 			if len(sendtxs) > 0 {
 				log.Info("=====hezi===:", "checklist: sendtxs num=", len(sendtxs))
@@ -588,7 +567,6 @@ func (pool *TxPool) testList() {
 
 		case tx := <-sendtxsch:
 			sendtxs = append(sendtxs, tx)
-			//===================for test hezi==================//
 			//default:
 		}
 	}
@@ -1160,7 +1138,6 @@ func (pool *TxPool) msg_RecvErrTx(addr common.Address, listS []*big.Int) {
 			洪泛时还需要检查这笔交易是否存在于错误交易列表中，如果存在则不需要再去请求这笔交易
 		3、签名时需要私钥 该怎么获取git 		1、针对一个交易，如果5个验证者认为是错误的6个认为是对的，那么在挖矿成功后打包区块时，那5个验证者无法打包生成区块。
 		2、如果6个V认为是错误的5个认为是对的，那么对打包生成区块没影响。
-	*/
 	pool.selfmlk.Lock()
 	for _, s := range listS {
 		tmptx := pool.getTxbyS(s)
@@ -1372,12 +1349,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 // later pending promotion and execution. If the transaction is a replacement for
 // an already pending or queued one, it overwrites the previous and returns this
 // so outer code doesn't uselessly call promote.
-//
 // If a newly added transaction is marked as local, its sending account will be
 // whitelisted, preventing any associated transaction from being dropped out of
 // the pool due to pricing constraints.
 func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
-	//======================by hezi============================//
 	if len(tx.GetMatrix_EX()) != 0 {
 		log.Info("GetMatrix_EX has data")
 		if tx.GetMatrix_EX()[0].TxType == 1 {
@@ -1489,11 +1464,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 			// We've directly injected a replacement transaction, notify subsystems
 			//log.Info("======hezi====send NewTxsEvent")
 
-			//========================for test hezi=================================//
 			//if tx != nil {
 			//	sendtxsch <- tx
 			//}
-			//=====================================================================//
 			go pool.txFeed.Send(NewTxsEvent{types.Transactions{tx}})
 		}
 
@@ -1515,7 +1488,6 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 }
 
 // enqueueTx inserts a new transaction into the non-executable transaction queue.
-//
 // Note, this method assumes the pool lock is held!
 func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, error) {
 	// Try to insert the transaction into the future queue
@@ -1556,7 +1528,6 @@ func (pool *TxPool) journalTx(from common.Address, tx *types.Transaction) {
 
 // promoteTx adds a transaction to the pending (processable) list of transactions
 // and returns whether it was inserted or an older was better.
-//
 // Note, this method assumes the pool lock is held!
 func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.Transaction) bool {
 	// Try to insert the transaction into the pending queue
@@ -1822,11 +1793,9 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			}
 		} else if selfRole == common.RoleDefault {
 			//log.Info("======hezi====send NewTxsEvent")
-			//========================for test hezi=================================//
 			//for _, tx := range promoted {
 			//	sendtxsch <- tx
 			//}
-			//=====================================================================//
 			pool.txFeed.Send(NewTxsEvent{promoted})
 		}
 	}
@@ -1990,7 +1959,6 @@ func (pool *TxPool) demoteUnexecutables() {
 				pool.enqueueTx(hash, tx)
 			}
 		}
-		*/
 		// Delete the entire queue entry if it became empty.
 		if list.Empty() {
 			delete(pool.pending, addr)
@@ -2049,7 +2017,6 @@ func (as *accountSet) add(addr common.Address) {
 
 // txLookup is used internally by TxPool to track transactions while allowing lookup without
 // mutex contention.
-//
 // Note, although this type is properly protected against concurrent access, it
 // is **not** a type that should ever be mutated or even exposed outside of the
 // transaction pool, since its internal state is tightly coupled with the pools
@@ -2112,7 +2079,6 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-//
 ////by hezi
 //func GetTxtype(tx *types.Transaction) (txType string) {
 //	tmpdt := make(map[string][]byte)
@@ -2173,7 +2139,6 @@ func GetBroadcastTxs(height *big.Int, txtype string) (reqVal map[common.Address]
 //func (pool *TxPool) getBroadcastTxs(height *big.Int, txtype string) map[common.Address]*types.Transaction {
 //	pool.mu.Lock()
 //	defer pool.mu.Unlock()
-//
 //	var val big.Int
 //	SpecialMem := make(map[common.Hash]map[common.Address]*types.Transaction)
 //	val.Quo(height, big.NewInt(100))
@@ -2186,7 +2151,6 @@ func GetBroadcastTxs(height *big.Int, txtype string) (reqVal map[common.Address]
 //func GetSeedTxKey(tx *types.Transaction) (seedKey interface{}) {
 //	tmpdt := make(map[string][]byte)
 //	json.Unmarshal(tx.Data(), &tmpdt)
-//
 //	for _, val := range tmpdt {
 //		rlp.DecodeBytes(val, &seedKey)
 //	}

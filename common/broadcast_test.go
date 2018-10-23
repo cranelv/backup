@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package common
@@ -31,7 +31,6 @@ type Testcal struct {
 			want_GetBroadcastInterval:    100,
 			want_GetReElectionInterval:   300,
 		}
-*/
 func NewTestca1(bro uint64, reel uint64, want_IsBro bool, want_IsReE bool, want_GetLastBro uint64, want_GetLastReE uint64, want_GetNextBro uint64, want_GetNextReE uint64, want_GetBro uint64, want_GetEle uint64) Testcal {
 	test1 := Testcal{
 		have_broadcast:               bro,

@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
 
 package man
 
@@ -179,7 +164,6 @@ func (api *PrivateMinerAPI) Stop() bool {
 	api.e.StopMining()
 	return true
 }
-*/
 
 func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader string) {
 	/*
@@ -218,7 +202,6 @@ func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader 
 		log.INFO("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", common.HexToAddress(ca.Validatoraccountlist[1]))
 		time.Sleep(time.Second)
 		mc.PublishEvent(mc.Leader_LeaderChangeNotify, &mc.LeaderChangeNotify{true, common.HexToAddress(ca.Validatoraccountlist[1]), 1, 0})
-	*/
 
 	ans := mc.HD_MiningReqMsg{
 		Header: &types.Header{
@@ -553,7 +536,6 @@ func storageRangeAt(st state.Trie, start []byte, maxResult int) (StorageRangeRes
 // GetModifiedAccountsByumber returns all accounts that have changed between the
 // two blocks specified. A change is defined as a difference in nonce, balance,
 // code hash, or storage hash.
-//
 // With one parameter, returns the list of accounts modified in the specified block.
 func (api *PrivateDebugAPI) GetModifiedAccountsByNumber(startNum uint64, endNum *uint64) ([]common.Address, error) {
 	var startBlock, endBlock *types.Block
@@ -581,7 +563,6 @@ func (api *PrivateDebugAPI) GetModifiedAccountsByNumber(startNum uint64, endNum 
 // GetModifiedAccountsByHash returns all accounts that have changed between the
 // two blocks specified. A change is defined as a difference in nonce, balance,
 // code hash, or storage hash.
-//
 // With one parameter, returns the list of accounts modified in the specified block.
 func (api *PrivateDebugAPI) GetModifiedAccountsByHash(startHash common.Hash, endHash *common.Hash) ([]common.Address, error) {
 	var startBlock, endBlock *types.Block

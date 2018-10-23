@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2014 The Go Authors. All rights reserved.
@@ -9,7 +9,6 @@ package sha3
 
 // Tests include all the ShortMsgKATs provided by the Keccak team at
 // https://github.com/gvanas/KeccakCodePackage
-//
 // They only include the zero-bit case of the bitwise testvectors
 // published by NIST in the draft of FIPS-202.
 

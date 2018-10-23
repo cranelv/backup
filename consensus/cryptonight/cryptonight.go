@@ -1,12 +1,10 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // Copyright 2017-2018 DERO Project. All rights reserved.
 // Use of this source code in any form is governed by RESEARCH license.
 // license can be found in the LICENSE file.
 // GPG: 0F39 E425 8C65 3947 702A  8234 08B2 0360 A03A 9DE8
-//
-//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -70,14 +68,12 @@ func cryptonight(input []byte) []byte {
 	/*for i := 0 ; i <8;i++{
 	    key1[i] = binary.LittleEndian.Uint32(dummy[i<<2:])
 	    key2[i] = binary.LittleEndian.Uint32(dummy[32+(i<<2):])
-	}*/
 
 	expandKeyGo(dummy[0:32], key1[:], nil)
 	expandKeyGo(dummy[32:64], key2[:], nil)
 
 	/* for i :=0; i< 60;i++{
 	         fmt.Printf("%2d %X\n", i, key2[i])
-	}*/
 
 	// var text [128]byte
 	var text_uint32 [32]uint32
@@ -89,7 +85,6 @@ func cryptonight(input []byte) []byte {
 
 	/* for i :=0; i< 32;i++{
 	         fmt.Printf("%2d %X  i  %08X %08X\n", i, text_uint32[i] , key1[i],key1[i<<1])
-	}*/
 
 	for i := 0; i < 0x4000; i++ {
 		for j := 0; j < 8; j++ {
@@ -131,7 +126,6 @@ func cryptonight(input []byte) []byte {
 		mul6464128(&x[0])
 		a[1] += x[1]
 		a[0] += x[0]
-		*/
 
 		// time to do 64 bit * 64 bit multiply
 		// this is faster than the assembly
@@ -194,7 +188,6 @@ func cryptonight(input []byte) []byte {
 
 	/*for i :=0; i< 32;i++{
 	         fmt.Printf("%2d %X\n", i, text_uint32[i])
-	}*/
 
 	for i := 0; i < 32; i++ {
 		binary.LittleEndian.PutUint32(dummy[64+(i<<2):], text_uint32[i])
@@ -207,7 +200,6 @@ func cryptonight(input []byte) []byte {
 	keccakf(&S) // do the keccak round
 	/* for i :=0; i< 25;i++{
 	         fmt.Printf("S %02d %X\n", i, S[i])
-	}*/
 
 	// lets convert everything back to bytes
 	for i := 0; i < 25; i++ {
@@ -260,7 +252,6 @@ a73bd37aba3454776b40733854a8349fe6359eb2c91d93bc727c69431c1d1f95hash of blob
 // from our implementation
 
 Get long hash a73bd37aba3454776b40733854a8349fe6359eb2c91d93bc727c69431c1d1f95
-*/
 
 func SlowHash(msg []byte) []byte {
 	return cryptonight(append(msg, byte(0x01)))
@@ -300,7 +291,6 @@ func AESExpandKey256(keybuf []uint32){
                 }
 	}
 }
-*/
 
 func CNAESTransform(X, Key []uint32) {
 
@@ -309,7 +299,6 @@ func CNAESTransform(X, Key []uint32) {
 	/*
 		for i := uint32(0); i < 10; i++ {
 			CNAESRnd(X, Key[(i<<2):])
-		}*/
 	if HardwareAES {
 		/*encryptAESRound(&Key[0<<2],&X[0],&X[0])
 		encryptAESRound(&Key[1<<2],&X[0],&X[0])
@@ -321,7 +310,6 @@ func CNAESTransform(X, Key []uint32) {
 		encryptAESRound(&Key[7<<2],&X[0],&X[0])
 		encryptAESRound(&Key[8<<2],&X[0],&X[0])
 		encryptAESRound(&Key[9<<2],&X[0],&X[0])
-		*/
 		encrypt10AESRound(&Key[0<<2], &X[0], &X[0])
 	} else {
 		for i := uint32(0); i < 10; i++ {
@@ -420,7 +408,6 @@ func expandKeyGo(key []byte, enc, dec []uint32) {
 	   		}
 	   	}
 
-	*/
 }
 
 // copied from https://golang.org/src/crypto/aes/const.go

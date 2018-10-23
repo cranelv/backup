@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 /*
@@ -17,7 +17,6 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 package serialization
 
@@ -72,7 +71,6 @@ type SerializableData interface {
  * 10.WriteUint8,16,32,64 Write uint with fixed length
  * 11.ToArray SerializableData to ToArray() func.
  ******************************************************************************
- */
 
 func WriteVarUint(writer io.Writer, value uint64) error {
 	var buf [9]byte
