@@ -1,7 +1,6 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
 
 // Package enr implements Matrix Node Records as defined in EIP-778. A node record holds
 // arbitrary information about a node on the peer-to-peer network.

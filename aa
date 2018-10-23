@@ -1,5 +1,6 @@
-for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "s/\/\/ Copyright (c) 2008 The MATRIX Authors/\/\/ Copyright (c) 2018 The MATRIX Authors/g" $i;done
-#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ Copyright 2015 The go-matrix Author/d" $i;done
+#for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "s/\/\/ Copyright (c) 2008 The MATRIX Authors/\/\/ Copyright (c) 2018 The MATRIX Authors/g" $i;done
+for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ Copyright 2017 The go-matrix Authors/d" $i;done
+for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ Package accounts implements high level Matrix account management./d" $i;done
 #for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ You should have received a copy of the GNU Lesser General Public License/d" $i;done
 #for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "/\/\/ This file is part of the go-matrix library./d" $i;done
 #for i in `find ./ -path "./vendor" -a -prune -o -name "*.go" -print `;do  sed -i  "\/\/$/d" $i;done

@@ -1,7 +1,6 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
 // This file is part of go-matrix.
 // go-matrix is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

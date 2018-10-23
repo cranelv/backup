@@ -1,7 +1,6 @@
 // Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
 
 // Package keystore implements encrypted storage of secp256k1 private keys.
 // Keys are stored as encrypted JSON files according to the Web3 Secret Storage specification.
