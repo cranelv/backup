@@ -319,14 +319,29 @@ func (s *Matrix) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "man",
 			Version:   "1.0",
 			Service:   NewPublicMatrixAPI(s),
 			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
+			Service:   NewPublicMatrixAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
 			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
 		}, {
 			Namespace: "eth",
@@ -338,6 +353,11 @@ func (s *Matrix) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
@@ -369,7 +389,7 @@ func (s *Matrix) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Matrix) Manerbase() (eb common.Address, err error) {
+func (s *Matrix) Manbase() (eb common.Address, err error) {
 	s.lock.RLock()
 	manbase := s.manbase
 	s.lock.RUnlock()
@@ -385,7 +405,7 @@ func (s *Matrix) Manerbase() (eb common.Address, err error) {
 			s.manbase = manbase
 			s.lock.Unlock()
 
-			log.Info("Manerbase automatically configured", "address", manbase)
+			log.Info("Manbase automatically configured", "address", manbase)
 			return manbase, nil
 		}
 	}
@@ -398,11 +418,11 @@ func (s *Matrix) SetManerbase(manbase common.Address) {
 	s.manbase = manbase
 	s.lock.Unlock()
 
-	s.miner.SetManerbase(manbase)
+	s.miner.SetManbase(manbase)
 }
 
 func (s *Matrix) StartMining(local bool) error {
-	eb, err := s.Manerbase()
+	eb, err := s.Manbase()
 	if err != nil {
 		log.Error("Cannot start mining without manbase", "err", err)
 		return fmt.Errorf("manbase missing: %v", err)
@@ -410,7 +430,7 @@ func (s *Matrix) StartMining(local bool) error {
 	if clique, ok := s.engine.(*clique.Clique); ok {
 		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 		if wallet == nil || err != nil {
-			log.Error("Manerbase account unavailable locally", "err", err)
+			log.Error("Manbase account unavailable locally", "err", err)
 			return fmt.Errorf("signer missing: %v", err)
 		}
 		clique.Authorize(eb, wallet.SignHash)
