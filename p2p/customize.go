@@ -674,7 +674,7 @@ func CustStat(qestat []string) []Status_Re {
 
 	var restat []Status_Re
 	for _, elm := range qestat {
-		dest := elm + ":30303"
+		dest := elm + ":40404"
 		conn, err := net.DialTimeout("tcp", dest, 2*time.Second)
 		var tem Status_Re
 		if err != nil {
