@@ -14,7 +14,7 @@ PullImages:
 #     -date 
 #    when: on_failure
     - make gman
-    - cp ./build/bin/geth /home/public/dailybuild/go-matrix/geth$tag
+    - cp ./build/bin/gman /home/public/dailybuild/go-matrix/gman$tag
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
 #    - cp ./build/bin/geth /home/public/geth_backup/2geth$tag
