@@ -3,6 +3,7 @@ stages:
   - KK
 before_script:
   - tag=` date +%Y%m%d%H%M%S`
+  - echo $tag
 PullImages:
   stage: PullImages
   script:
