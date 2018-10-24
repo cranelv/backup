@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: gman android ios gman-cross swarm evm all test clean
+.PHONY: gman android ios gman-cross test clean
 .PHONY: gman-linux gman-linux-386 gman-linux-amd64 gman-linux-mips64 gman-linux-mips64le
 .PHONY: gman-linux-arm gman-linux-arm-5 gman-linux-arm-6 gman-linux-arm-7 gman-linux-arm64
 .PHONY: gman-darwin gman-darwin-386 gman-darwin-amd64
@@ -15,9 +15,6 @@ gman:
 	build/env.sh go run build/ci.go install ./run/gman
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/gman\" to launch gman."
-
-all:
-	build/env.sh go run build/ci.go install
 
 android:
 	build/env.sh go run build/ci.go aar --local
