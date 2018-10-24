@@ -9,7 +9,7 @@
 # 1. install gman for all users
 # 2. install optional development tools such as abigen
 # 3. create an uninstaller
-# 4. configures the Windows firewall for geth
+# 4. configures the Windows firewall for gman
 # 5. create gman, attach and uninstall start menu entries
 # 6. configures the registry that allows Windows to manage the package through its platform tools
 # 7. adds the environment system wide variable MATRIX_SOCKET
