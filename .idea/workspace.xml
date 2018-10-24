@@ -2,27 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d0bb9a56-ca9c-4d77-902c-2bae343d486e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/nsis.install.nsh" beforeDir="false" afterPath="$PROJECT_DIR$/build/nsis.install.nsh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/nsis.uninstall.nsh" beforeDir="false" afterPath="$PROJECT_DIR$/build/nsis.uninstall.nsh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/tx_message.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/tx_pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/tx_pool.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/types/transaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/types/transaction.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/types/transaction_signing.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/types/transaction_signing.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/jsre/deps/web3.js" beforeDir="false" afterPath="$PROJECT_DIR$/internal/jsre/deps/web3.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrixwork/work.go" beforeDir="false" afterPath="$PROJECT_DIR$/matrixwork/work.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/customize.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/customize.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/discover/database_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/discover/database_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/discover/node_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/discover/node_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/discover/udp_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/discover/udp_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/enr/enr_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/enr/enr_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/simulations/adapters/inproc.go" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/simulations/adapters/inproc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/params/bootnodes.go" beforeDir="false" afterPath="$PROJECT_DIR$/params/bootnodes.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pod/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/pod/defaults.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run/utils/flags.go" beforeDir="false" afterPath="$PROJECT_DIR$/run/utils/flags.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/params/protocol_params.go" beforeDir="false" afterPath="$PROJECT_DIR$/params/protocol_params.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -78,20 +58,20 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="inproc.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="inproc.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/p2p/simulations/adapters/inproc.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="228">
-              <caret line="55" lean-forward="true" selection-start-line="55" selection-end-line="55" />
+            <state relative-caret-position="-95">
+              <caret line="59" column="5" lean-forward="true" selection-start-line="59" selection-start-column="5" selection-end-line="59" selection-end-column="5" />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="web3ext.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/internal/web3ext/web3ext.go">
+      <file leaf-file-name="protocol_params.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/params/protocol_params.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="608">
-              <caret line="32" column="8" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="8" />
+            <state relative-caret-position="304">
+              <caret line="19" column="43" selection-start-line="19" selection-start-column="43" selection-end-line="19" selection-end-column="43" />
             </state>
           </provider>
         </entry>
@@ -148,6 +128,7 @@
         <option value="$PROJECT_DIR$/core/types/transaction_signing.go" />
         <option value="$PROJECT_DIR$/core/tx_pool.go" />
         <option value="$PROJECT_DIR$/p2p/simulations/adapters/inproc.go" />
+        <option value="$PROJECT_DIR$/params/protocol_params.go" />
       </list>
     </option>
   </component>
@@ -162,7 +143,7 @@
       <path value="$PROJECT_DIR$/dashboard/assets/package.json" />
     </packageJsonPaths>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="64" />
     <option name="y" value="-11" />
     <option name="width" value="1603" />
@@ -179,6 +160,11 @@
             <path>
               <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
               <item name="go-matrix" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
+              <item name="go-matrix" type="462c0819:PsiDirectoryNode" />
+              <item name="params" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -246,11 +232,11 @@
       <window_info anchor="bottom" id="Run" order="2" weight="0.043586552" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Terminal" order="7" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15191898" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.15191898" />
       <window_info anchor="right" id="Database" order="3" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.24863686" />
+      <window_info anchor="bottom" id="Debug" order="3" visible="true" weight="0.24863686" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -390,10 +376,24 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/rpc/ipc.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="171">
+          <caret line="15" column="68" lean-forward="true" selection-start-line="15" selection-start-column="68" selection-end-line="15" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/p2p/simulations/adapters/inproc.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="55" lean-forward="true" selection-start-line="55" selection-end-line="55" />
+        <state relative-caret-position="-95">
+          <caret line="59" column="5" lean-forward="true" selection-start-line="59" selection-start-column="5" selection-end-line="59" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/params/protocol_params.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="304">
+          <caret line="19" column="43" selection-start-line="19" selection-start-column="43" selection-end-line="19" selection-end-column="43" />
         </state>
       </provider>
     </entry>
