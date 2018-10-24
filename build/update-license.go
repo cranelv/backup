@@ -1,6 +1,3 @@
-// Copyright (c) 2018 The MATRIX Authors 
-// Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
 // +build none
 
 /*
@@ -51,7 +48,7 @@ var (
 		"vendor/", "tests/testdata/", "build/",
 		// don't relicense vendored sources
 		"cmd/internal/browser",
-		"consensus/manash/xor.go",
+		"consensus/ethash/xor.go",
 		"crypto/bn256/",
 		"crypto/ecies/",
 		"crypto/secp256k1/curve.go",
@@ -71,13 +68,13 @@ var (
 	licenseCommentRE = regexp.MustCompile(`^//\s*(Copyright|This file is part of).*?\n(?://.*?\n)*\n*`)
 
 	// this text appears at the start of AUTHORS
-	authorsFileHeader = "# This is the official list of go-matrix authors for copyright purposes.\n\n"
+	authorsFileHeader = "# This is the official list of go-ethereum authors for copyright purposes.\n\n"
 )
 
 // this template generates the license comment.
 // its input is an info structure.
 var licenseT = template.Must(template.New("").Parse(`
-// Copyright {{.Year}} The go-matrix Authors
+// Copyright {{.Year}} The go-ethereum Authors
 // This file is part of {{.Whole false}}.
 //
 // {{.Whole true}} is free software: you can redistribute it and/or modify
@@ -116,12 +113,12 @@ func (i info) ShortLicense() string {
 
 func (i info) Whole(startOfSentence bool) string {
 	if i.gpl() {
-		return "go-matrix"
+		return "go-ethereum"
 	}
 	if startOfSentence {
-		return "The go-matrix library"
+		return "The go-ethereum library"
 	}
-	return "the go-matrix library"
+	return "the go-ethereum library"
 }
 
 func (i info) gpl() bool {
