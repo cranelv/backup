@@ -63,7 +63,7 @@ func GetdifficultyListAndTargetList(difficultyList []*big.Int) minerDifficultyLi
 
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
-func (manash *Ethash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, foundMsgCh chan *consensus.FoundMsg, difficultyList []*big.Int, isBroadcastNode bool) error {
+func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, foundMsgCh chan *consensus.FoundMsg, difficultyList []*big.Int, isBroadcastNode bool) error {
 
 	curHeader := types.CopyHeader(header)
 	sort.Sort(diffiList(difficultyList))
@@ -136,7 +136,7 @@ func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (in
 
 // mine is the actual proof-of-work miner that searches for a nonce starting from
 // seed that results in correct final block difficulty.
-func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan consensus.FoundMsg, diffiList *minerDifficultyList) {
+func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan consensus.FoundMsg, diffiList *minerDifficultyList) {
 	// Extract some data from the header
 
 	var (
@@ -158,7 +158,7 @@ func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan
 		select {
 		case <-abort:
 			// Mining terminated, update stats and abort
-			logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
+			logger.Trace("Manash nonce search aborted", "attempts", nonce-seed)
 			manash.hashrate.Mark(attempts)
 			return
 
@@ -193,9 +193,9 @@ func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan
 
 				select {
 				case found <- consensus.FoundMsg{Header: FoundHeader, Difficulty: NowDifficulty}:
-					logger.Trace("Ethash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
+					logger.Trace("Manash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
 				case <-abort:
-					logger.Trace("Ethash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
+					logger.Trace("Manash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
 				}
 
 				if NowDifficulty == header.Difficulty {

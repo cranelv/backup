@@ -45,14 +45,14 @@ func NewPublicMatrixAPI(e *Matrix) *PublicMatrixAPI {
 	return &PublicMatrixAPI{e}
 }
 
-// Etherbase is the address that mining rewards will be send to
-func (api *PublicMatrixAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
+// Manerbase is the address that mining rewards will be send to
+func (api *PublicMatrixAPI) Manerbase() (common.Address, error) {
+	return api.e.Manerbase()
 }
 
-// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
+// Coinbase is the address that mining rewards will be send to (alias for Manerbase)
 func (api *PublicMatrixAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
+	return api.Manerbase()
 }
 
 // Hashrate returns the POW hashrate
@@ -319,9 +319,9 @@ func (api *PrivateMinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 	return true
 }
 
-// SetEtherbase sets the manbase of the miner
-func (api *PrivateMinerAPI) SetEtherbase(manbase common.Address) bool {
-	api.e.SetEtherbase(manbase)
+// SetManerbase sets the manbase of the miner
+func (api *PrivateMinerAPI) SetManerbase(manbase common.Address) bool {
+	api.e.SetManerbase(manbase)
 	return true
 }
 

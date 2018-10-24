@@ -86,8 +86,8 @@ func newTester(t *testing.T, confOverride func(*man.Config)) *tester {
 	}
 	manConf := &man.Config{
 		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Etherbase: common.HexToAddress(testAddress),
-		Ethash: manash.Config{
+		Manerbase: common.HexToAddress(testAddress),
+		Manash: manash.Config{
 			PowMode: manash.ModeTest,
 		},
 	}

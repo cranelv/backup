@@ -77,9 +77,9 @@ type manstatsConfig struct {
 }
 
 type gmanConfig struct {
-	Eth       man.Config
+	Man       man.Config
 	Node      pod.Config
-	Ethstats  manstatsConfig
+	Manstats  manstatsConfig
 	Dashboard dashboard.Config
 }
 
@@ -111,7 +111,7 @@ func defaultNodeConfig() pod.Config {
 func makeConfigNode(ctx *cli.Context) (*pod.Node, gmanConfig) {
 	// Load defaults.
 	cfg := gmanConfig{
-		Eth:       man.DefaultConfig,
+		Man:       man.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
 	}
@@ -129,9 +129,9 @@ func makeConfigNode(ctx *cli.Context) (*pod.Node, gmanConfig) {
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	utils.SetManConfig(ctx, stack, &cfg.Man)
+	if ctx.GlobalIsSet(utils.ManStatsURLFlag.Name) {
+		cfg.Manstats.URL = ctx.GlobalString(utils.ManStatsURLFlag.Name)
 	}
 
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
@@ -143,14 +143,14 @@ func makeFullNode(ctx *cli.Context) *pod.Node {
 	Init_Config_PATH(ctx)
 	stack, cfg := makeConfigNode(ctx)
 
-	utils.RegisterEthService(stack, &cfg.Eth)
+	utils.RegisterManService(stack, &cfg.Man)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
 	}
 	// Add the Matrix Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+	if cfg.Manstats.URL != "" {
+		utils.RegisterManStatsService(stack, cfg.Manstats.URL)
 	}
 	return stack
 }
@@ -160,8 +160,8 @@ func dumpConfig(ctx *cli.Context) error {
 	_, cfg := makeConfigNode(ctx)
 	comment := ""
 
-	if cfg.Eth.Genesis != nil {
-		cfg.Eth.Genesis = nil
+	if cfg.Man.Genesis != nil {
+		cfg.Man.Genesis = nil
 		comment += "# Note: this config doesn't contain the genesis block.\n\n"
 	}
 

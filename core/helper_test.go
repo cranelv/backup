@@ -13,7 +13,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 )
 
-// Implement our EthTest Manager
+// Implement our ManTest Manager
 type TestManager struct {
 	// stateManager *StateManager
 	eventMux *event.TypeMux

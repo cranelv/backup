@@ -459,7 +459,7 @@ func (self *worker) CheckLocalMiningReqError(header *types.Header) error {
 }
 
 /////original
-func (self *worker) setEtherbase(addr common.Address) {
+func (self *worker) setManerbase(addr common.Address) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 	self.coinbase = addr

@@ -91,7 +91,7 @@ type Matrix struct {
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
 
-	APIBackend *EthAPIBackend
+	APIBackend *ManAPIBackend
 
 	miner     *miner.Miner
 	gasPrice  *big.Int
@@ -153,11 +153,11 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		hd:             ctx.HD,
 		signHelper:     ctx.SignHelper,
 
-		engine:        CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
+		engine:        CreateConsensusEngine(ctx, &config.Manash, chainConfig, chainDb),
 		shutdownChan:  make(chan bool),
 		networkId:     config.NetworkId,
 		gasPrice:      config.GasPrice,
-		manbase:     config.Etherbase,
+		manbase:     config.Manerbase,
 		bloomRequests: make(chan chan *bloombits.Retrieval),
 		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
 	}
@@ -213,7 +213,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.APIBackend = &EthAPIBackend{man, nil}
+	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.GasPrice
@@ -286,13 +286,13 @@ func CreateConsensusEngine(ctx *pod.ServiceContext, config *manash.Config, chain
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
 	case manash.ModeFake:
-		log.Warn("Ethash used in fake mode")
+		log.Warn("Manash used in fake mode")
 		return manash.NewFaker()
 	case manash.ModeTest:
-		log.Warn("Ethash used in test mode")
+		log.Warn("Manash used in test mode")
 		return manash.NewTester()
 	case manash.ModeShared:
-		log.Warn("Ethash used in shared mode")
+		log.Warn("Manash used in shared mode")
 		return manash.NewShared()
 	default:
 		engine := manash.New(manash.Config{
@@ -369,7 +369,7 @@ func (s *Matrix) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Matrix) Etherbase() (eb common.Address, err error) {
+func (s *Matrix) Manerbase() (eb common.Address, err error) {
 	s.lock.RLock()
 	manbase := s.manbase
 	s.lock.RUnlock()
@@ -385,24 +385,24 @@ func (s *Matrix) Etherbase() (eb common.Address, err error) {
 			s.manbase = manbase
 			s.lock.Unlock()
 
-			log.Info("Etherbase automatically configured", "address", manbase)
+			log.Info("Manerbase automatically configured", "address", manbase)
 			return manbase, nil
 		}
 	}
 	return common.Address{}, fmt.Errorf("manbase must be explicitly specified")
 }
 
-// SetEtherbase sets the mining reward address.
-func (s *Matrix) SetEtherbase(manbase common.Address) {
+// SetManerbase sets the mining reward address.
+func (s *Matrix) SetManerbase(manbase common.Address) {
 	s.lock.Lock()
 	s.manbase = manbase
 	s.lock.Unlock()
 
-	s.miner.SetEtherbase(manbase)
+	s.miner.SetManerbase(manbase)
 }
 
 func (s *Matrix) StartMining(local bool) error {
-	eb, err := s.Etherbase()
+	eb, err := s.Manerbase()
 	if err != nil {
 		log.Error("Cannot start mining without manbase", "err", err)
 		return fmt.Errorf("manbase missing: %v", err)
@@ -410,7 +410,7 @@ func (s *Matrix) StartMining(local bool) error {
 	if clique, ok := s.engine.(*clique.Clique); ok {
 		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 		if wallet == nil || err != nil {
-			log.Error("Etherbase account unavailable locally", "err", err)
+			log.Error("Manerbase account unavailable locally", "err", err)
 			return fmt.Errorf("signer missing: %v", err)
 		}
 		clique.Authorize(eb, wallet.SignHash)
@@ -438,7 +438,7 @@ func (s *Matrix) Engine() consensus.Engine             { return s.engine }
 func (s *Matrix) DPOSEngine() consensus.DPOSEngine     { return s.blockchain.DPOSEngine() }
 func (s *Matrix) ChainDb() mandb.Database              { return s.chainDb }
 func (s *Matrix) IsListening() bool                    { return true } // Always listening
-func (s *Matrix) EthVersion() int                      { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Matrix) ManVersion() int                      { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Matrix) NetVersion() uint64                   { return s.networkId }
 func (s *Matrix) Downloader() *downloader.Downloader   { return s.protocolManager.downloader }
 func (s *Matrix) CA() *ca.Identity                     { return s.ca }
