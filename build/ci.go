@@ -60,8 +60,14 @@ var (
 	// Files that end up in the gman-alltools*.zip archive.
 	allToolsArchiveFiles = []string{
 		"COPYING",
+		executablePath("abigen"),
+		executablePath("bootnode"),
+		executablePath("evm"),
 		executablePath("gman"),
-
+		executablePath("puppeth"),
+		executablePath("rlpdump"),
+		executablePath("swarm"),
+		executablePath("wnode"),
 	}
 
 	// A debian package is created for all executables listed here.

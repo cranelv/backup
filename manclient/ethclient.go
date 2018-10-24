@@ -293,7 +293,7 @@ func (ec *Client) SyncProgress(ctx context.Context) (*matrix.SyncProgress, error
 // SubscribeNewHead subscribes to notifications about the current blockchain head
 // on the given channel.
 func (ec *Client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (matrix.Subscription, error) {
-	return ec.c.ManSubscribe(ctx, ch, "newHeads")
+	return ec.c.EthSubscribe(ctx, ch, "newHeads")
 }
 
 // State Access
@@ -354,7 +354,7 @@ func (ec *Client) FilterLogs(ctx context.Context, q matrix.FilterQuery) ([]types
 
 // SubscribeFilterLogs subscribes to the results of a streaming filter query.
 func (ec *Client) SubscribeFilterLogs(ctx context.Context, q matrix.FilterQuery, ch chan<- types.Log) (matrix.Subscription, error) {
-	return ec.c.ManSubscribe(ctx, ch, "logs", toFilterArg(q))
+	return ec.c.EthSubscribe(ctx, ch, "logs", toFilterArg(q))
 }
 
 func toFilterArg(q matrix.FilterQuery) interface{} {
