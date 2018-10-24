@@ -319,14 +319,29 @@ func (s *Matrix) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "man",
 			Version:   "1.0",
 			Service:   NewPublicMatrixAPI(s),
 			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
+			Service:   NewPublicMatrixAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
 			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
 		}, {
 			Namespace: "eth",
@@ -338,6 +353,11 @@ func (s *Matrix) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
