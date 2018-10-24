@@ -369,7 +369,7 @@ func (s *Matrix) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Matrix) Manbase() (eb common.Address, err error) {
+func (s *Matrix) Manerbase() (eb common.Address, err error) {
 	s.lock.RLock()
 	manbase := s.manbase
 	s.lock.RUnlock()
@@ -385,7 +385,7 @@ func (s *Matrix) Manbase() (eb common.Address, err error) {
 			s.manbase = manbase
 			s.lock.Unlock()
 
-			log.Info("Manbase automatically configured", "address", manbase)
+			log.Info("Manerbase automatically configured", "address", manbase)
 			return manbase, nil
 		}
 	}
@@ -398,11 +398,11 @@ func (s *Matrix) SetManerbase(manbase common.Address) {
 	s.manbase = manbase
 	s.lock.Unlock()
 
-	s.miner.SetManbase(manbase)
+	s.miner.SetManerbase(manbase)
 }
 
 func (s *Matrix) StartMining(local bool) error {
-	eb, err := s.Manbase()
+	eb, err := s.Manerbase()
 	if err != nil {
 		log.Error("Cannot start mining without manbase", "err", err)
 		return fmt.Errorf("manbase missing: %v", err)
@@ -410,7 +410,7 @@ func (s *Matrix) StartMining(local bool) error {
 	if clique, ok := s.engine.(*clique.Clique); ok {
 		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 		if wallet == nil || err != nil {
-			log.Error("Manbase account unavailable locally", "err", err)
+			log.Error("Manerbase account unavailable locally", "err", err)
 			return fmt.Errorf("signer missing: %v", err)
 		}
 		clique.Authorize(eb, wallet.SignHash)
