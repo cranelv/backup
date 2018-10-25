@@ -317,6 +317,7 @@ func (s *Matrix) APIs() []rpc.API {
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
 
 	// Append all the local APIs and return
+
 	return append(apis, []rpc.API{
 		{
 			Namespace: "man",
