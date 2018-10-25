@@ -17,9 +17,9 @@ Section "Uninstall"
   rmDir "$SMPROGRAMS\${APPNAME}"
 
   # Firewall - remove rules if exists
-  SimpleFC::AdvRemoveRule "Gman incoming peers (TCP:40404)"
-  SimpleFC::AdvRemoveRule "Gman outgoing peers (TCP:40404)"
-  SimpleFC::AdvRemoveRule "Gman UDP discovery (UDP:40404)"
+  SimpleFC::AdvRemoveRule "Gman incoming peers (TCP:50505)"
+  SimpleFC::AdvRemoveRule "Gman outgoing peers (TCP:50505)"
+  SimpleFC::AdvRemoveRule "Gman UDP discovery (UDP:50505)"
 
   # Remove IPC endpoint (https://github.com/MATRIX/EIPs/issues/147)
   ${un.EnvVarUpdate} $0 "MATRIX_SOCKET" "R" "HKLM" "\\.\pipe\gman.ipc"

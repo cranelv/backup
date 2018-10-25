@@ -31,7 +31,7 @@ var DefaultConfig = Config{
 	WSPort:           DefaultWSPort,
 	WSModules:        []string{"net", "web3"},
 	P2P: p2p.Config{
-		ListenAddr: ":40404",
+		ListenAddr: ":50505",
 		MaxPeers:   10000,
 		NAT:        nat.Any(),
 	},

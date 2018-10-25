@@ -24,14 +24,14 @@ Section "gman" gman_IDX
   createShortCut "$SMPROGRAMS\${APPNAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "" ""
 
   # Firewall - remove rules (if exists)
-  SimpleFC::AdvRemoveRule "gman incoming peers (TCP:40404)"
-  SimpleFC::AdvRemoveRule "gman outgoing peers (TCP:40404)"
-  SimpleFC::AdvRemoveRule "gman UDP discovery (UDP:40404)"
+  SimpleFC::AdvRemoveRule "gman incoming peers (TCP:50505)"
+  SimpleFC::AdvRemoveRule "gman outgoing peers (TCP:50505)"
+  SimpleFC::AdvRemoveRule "gman UDP discovery (UDP:50505)"
 
   # Firewall - add rules
-  SimpleFC::AdvAddRule "gman incoming peers (TCP:40404)" ""  6 1 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" 40404 "" "" ""
-  SimpleFC::AdvAddRule "gman outgoing peers (TCP:40404)" ""  6 2 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" "" 40404 "" ""
-  SimpleFC::AdvAddRule "gman UDP discovery (UDP:40404)" "" 17 2 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" "" 40404 "" ""
+  SimpleFC::AdvAddRule "gman incoming peers (TCP:50505)" ""  6 1 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" 50505 "" "" ""
+  SimpleFC::AdvAddRule "gman outgoing peers (TCP:50505)" ""  6 2 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" "" 50505 "" ""
+  SimpleFC::AdvAddRule "gman UDP discovery (UDP:50505)" "" 17 2 1 2147483647 1 "$INSTDIR\gman.exe" "" "" "MATRIX" "" 50505 "" ""
 
   # Set default IPC endpoint (https://github.com/MATRIX/EIPs/issues/147)
   ${EnvVarUpdate} $0 "MATRIX_SOCKET" "R" "HKLM" "\\.\pipe\gman.ipc"
