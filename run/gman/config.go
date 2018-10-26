@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
-// This file is part of go-matrix.
-//
-// go-matrix is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// go-matrix is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with go-matrix. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -77,9 +62,9 @@ type manstatsConfig struct {
 }
 
 type gmanConfig struct {
-	Eth       man.Config
+	Man       man.Config
 	Node      pod.Config
-	Ethstats  manstatsConfig
+	Manstats  manstatsConfig
 	Dashboard dashboard.Config
 }
 
@@ -111,7 +96,7 @@ func defaultNodeConfig() pod.Config {
 func makeConfigNode(ctx *cli.Context) (*pod.Node, gmanConfig) {
 	// Load defaults.
 	cfg := gmanConfig{
-		Eth:       man.DefaultConfig,
+		Man:       man.DefaultConfig,
 		Node:      defaultNodeConfig(),
 		Dashboard: dashboard.DefaultConfig,
 	}
@@ -129,9 +114,9 @@ func makeConfigNode(ctx *cli.Context) (*pod.Node, gmanConfig) {
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	utils.SetManConfig(ctx, stack, &cfg.Man)
+	if ctx.GlobalIsSet(utils.ManStatsURLFlag.Name) {
+		cfg.Manstats.URL = ctx.GlobalString(utils.ManStatsURLFlag.Name)
 	}
 
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
@@ -143,14 +128,14 @@ func makeFullNode(ctx *cli.Context) *pod.Node {
 	Init_Config_PATH(ctx)
 	stack, cfg := makeConfigNode(ctx)
 
-	utils.RegisterEthService(stack, &cfg.Eth)
+	utils.RegisterManService(stack, &cfg.Man)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
 		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
 	}
 	// Add the Matrix Stats daemon if requested.
-	if cfg.Ethstats.URL != "" {
-		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
+	if cfg.Manstats.URL != "" {
+		utils.RegisterManStatsService(stack, cfg.Manstats.URL)
 	}
 	return stack
 }
@@ -160,8 +145,8 @@ func dumpConfig(ctx *cli.Context) error {
 	_, cfg := makeConfigNode(ctx)
 	comment := ""
 
-	if cfg.Eth.Genesis != nil {
-		cfg.Eth.Genesis = nil
+	if cfg.Man.Genesis != nil {
+		cfg.Man.Genesis = nil
 		comment += "# Note: this config doesn't contain the genesis block.\n\n"
 	}
 

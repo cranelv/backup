@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package man
 
@@ -39,7 +25,7 @@ import (
 // DefaultConfig contains default settings for use on the Matrix main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
-	Ethash: manash.Config{
+	Manash: manash.Config{
 		CacheDir:       "manash",
 		CachesInMem:    2,
 		CachesOnDisk:   3,
@@ -68,9 +54,9 @@ func init() {
 		}
 	}
 	if runtime.GOOS == "windows" {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
+		DefaultConfig.Manash.DatasetDir = filepath.Join(home, "AppData", "Manash")
 	} else {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".manash")
+		DefaultConfig.Manash.DatasetDir = filepath.Join(home, ".manash")
 	}
 }
 
@@ -98,13 +84,13 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Etherbase    common.Address `toml:",omitempty"`
+	Manerbase    common.Address `toml:",omitempty"`
 	MinerThreads int            `toml:",omitempty"`
 	ExtraData    []byte         `toml:",omitempty"`
 	GasPrice     *big.Int
 
-	// Ethash options
-	Ethash manash.Config
+	// Manash options
+	Manash manash.Config
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig

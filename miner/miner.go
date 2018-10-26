@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 // Package miner implements Matrix block creation and mining.
 package miner
@@ -144,7 +130,7 @@ out:
 func (self *Miner) Start(coinbase common.Address) {
 	atomic.StoreInt32(&self.shouldStart, 1)
 	if self.currentRole != common.RoleBroadcast {
-		self.worker.setEtherbase(coinbase)
+		self.worker.setManerbase(coinbase)
 		self.coinbase = coinbase
 	}
 	if atomic.LoadInt32(&self.canStart) == 0 {
@@ -226,7 +212,7 @@ func (self *Miner) PendingBlock() *types.Block {
 	return self.worker.pendingBlock()
 }
 
-func (self *Miner) SetEtherbase(addr common.Address) {
+func (self *Miner) SetManerbase(addr common.Address) {
 	self.coinbase = addr
-	self.worker.setEtherbase(addr)
+	self.worker.setManerbase(addr)
 }

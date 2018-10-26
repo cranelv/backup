@@ -16,11 +16,6 @@ gman:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/gman\" to launch gman."
 
-swarm:
-	build/env.sh go run build/ci.go install ./run/swarm
-	@echo "Done building."
-	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
-
 all:
 	build/env.sh go run build/ci.go install
 
@@ -33,13 +28,6 @@ ios:
 	build/env.sh go run build/ci.go xcode --local
 	@echo "Done building."
 	@echo "Import \"$(GOBIN)/Geth.framework\" to use the library."
-
-test: all
-	build/env.sh go run build/ci.go test
-
-lint: ## Run linters.
-	build/env.sh go run build/ci.go lint
-
 clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 

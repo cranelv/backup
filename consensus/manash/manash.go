@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 // Package manash implements the manash proof-of-work consensus engine.
 package manash
@@ -49,8 +35,8 @@ var (
 	// maxUint256 is a big integer representing 2^256-1
 	maxUint256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 
-	// sharedEthash is a full instance that can be shared between multiple users.
-	sharedEthash = New(Config{"", 3, 0, "", 1, 0, ModeNormal})
+	// sharedManash is a full instance that can be shared between multiple users.
+	sharedManash = New(Config{"", 3, 0, "", 1, 0, ModeNormal})
 
 	// algorithmRevision is the data structure version used for file naming.
 	algorithmRevision = 23
@@ -394,9 +380,9 @@ type Config struct {
 	PowMode        Mode
 }
 
-// Ethash is a consensus engine based on proot-of-work implementing the manash
+// Manash is a consensus engine based on proot-of-work implementing the manash
 // algorithm.
-type Ethash struct {
+type Manash struct {
 	config Config
 
 	caches   *lru // In memory caches to avoid regenerating too often
@@ -409,7 +395,7 @@ type Ethash struct {
 	hashrate metrics.Meter // Meter tracking the average hashrate
 
 	// The fields below are hooks for testing
-	shared    *Ethash       // Shared PoW verifier to avoid cache regeneration
+	shared    *Manash       // Shared PoW verifier to avoid cache regeneration
 	fakeFail  uint64        // Block number which fails PoW check even in fake mode
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
@@ -417,7 +403,7 @@ type Ethash struct {
 }
 
 // New creates a full sized manash PoW scheme.
-func New(config Config) *Ethash {
+func New(config Config) *Manash {
 	if config.CachesInMem <= 0 {
 		log.Warn("One manash cache must always be in memory", "requested", config.CachesInMem)
 		config.CachesInMem = 1
@@ -428,7 +414,7 @@ func New(config Config) *Ethash {
 	if config.DatasetDir != "" && config.DatasetsOnDisk > 0 {
 		log.Info("Disk storage enabled for manash DAGs", "dir", config.DatasetDir, "count", config.DatasetsOnDisk)
 	}
-	return &Ethash{
+	return &Manash{
 		config:   config,
 		caches:   newlru("cache", config.CachesInMem, newCache),
 		datasets: newlru("dataset", config.DatasetsInMem, newDataset),
@@ -439,15 +425,15 @@ func New(config Config) *Ethash {
 
 // NewTester creates a small sized manash PoW scheme useful only for testing
 // purposes.
-func NewTester() *Ethash {
+func NewTester() *Manash {
 	return New(Config{CachesInMem: 1, PowMode: ModeTest})
 }
 
 // NewFaker creates a manash consensus engine with a fake PoW scheme that accepts
 // all blocks' seal as valid, though they still have to conform to the Matrix
 // consensus rules.
-func NewFaker() *Ethash {
-	return &Ethash{
+func NewFaker() *Manash {
+	return &Manash{
 		config: Config{
 			PowMode: ModeFake,
 		},
@@ -457,8 +443,8 @@ func NewFaker() *Ethash {
 // NewFakeFailer creates a manash consensus engine with a fake PoW scheme that
 // accepts all blocks as valid apart from the single one specified, though they
 // still have to conform to the Matrix consensus rules.
-func NewFakeFailer(fail uint64) *Ethash {
-	return &Ethash{
+func NewFakeFailer(fail uint64) *Manash {
+	return &Manash{
 		config: Config{
 			PowMode: ModeFake,
 		},
@@ -469,8 +455,8 @@ func NewFakeFailer(fail uint64) *Ethash {
 // NewFakeDelayer creates a manash consensus engine with a fake PoW scheme that
 // accepts all blocks as valid, but delays verifications by some time, though
 // they still have to conform to the Matrix consensus rules.
-func NewFakeDelayer(delay time.Duration) *Ethash {
-	return &Ethash{
+func NewFakeDelayer(delay time.Duration) *Manash {
+	return &Manash{
 		config: Config{
 			PowMode: ModeFake,
 		},
@@ -480,8 +466,8 @@ func NewFakeDelayer(delay time.Duration) *Ethash {
 
 // NewFullFaker creates an manash consensus engine with a full fake scheme that
 // accepts all blocks as valid, without checking any consensus rules whatsoever.
-func NewFullFaker() *Ethash {
-	return &Ethash{
+func NewFullFaker() *Manash {
+	return &Manash{
 		config: Config{
 			PowMode: ModeFullFake,
 		},
@@ -490,14 +476,14 @@ func NewFullFaker() *Ethash {
 
 // NewShared creates a full sized manash PoW shared between all requesters running
 // in the same process.
-func NewShared() *Ethash {
-	return &Ethash{shared: sharedEthash}
+func NewShared() *Manash {
+	return &Manash{shared: sharedManash}
 }
 
 // cache tries to retrieve a verification cache for the specified block number
 // by first checking against a list of in-memory caches, then against caches
 // stored on disk, and finally generating one if none can be found.
-func (manash *Ethash) cache(block uint64) *cache {
+func (manash *Manash) cache(block uint64) *cache {
 	epoch := block / epochLength
 	currentI, futureI := manash.caches.get(epoch)
 	current := currentI.(*cache)
@@ -516,7 +502,7 @@ func (manash *Ethash) cache(block uint64) *cache {
 // dataset tries to retrieve a mining dataset for the specified block number
 // by first checking against a list of in-memory datasets, then against DAGs
 // stored on disk, and finally generating one if none can be found.
-func (manash *Ethash) dataset(block uint64) *dataset {
+func (manash *Manash) dataset(block uint64) *dataset {
 	epoch := block / epochLength
 	currentI, futureI := manash.datasets.get(epoch)
 	current := currentI.(*dataset)
@@ -535,7 +521,7 @@ func (manash *Ethash) dataset(block uint64) *dataset {
 
 // Threads returns the number of mining threads currently enabled. This doesn't
 // necessarily mean that mining is running!
-func (manash *Ethash) Threads() int {
+func (manash *Manash) Threads() int {
 	manash.lock.Lock()
 	defer manash.lock.Unlock()
 
@@ -547,7 +533,7 @@ func (manash *Ethash) Threads() int {
 // specified, the miner will use all cores of the machine. Setting a thread
 // count below zero is allowed and will cause the miner to idle, without any
 // work being done.
-func (manash *Ethash) SetThreads(threads int) {
+func (manash *Manash) SetThreads(threads int) {
 	manash.lock.Lock()
 	defer manash.lock.Unlock()
 
@@ -566,13 +552,13 @@ func (manash *Ethash) SetThreads(threads int) {
 
 // Hashrate implements PoW, returning the measured rate of the search invocations
 // per second over the last minute.
-func (manash *Ethash) Hashrate() float64 {
+func (manash *Manash) Hashrate() float64 {
 	return manash.hashrate.Rate1()
 }
 
 // APIs implements consensus.Engine, returning the user facing RPC APIs. Currently
 // that is empty.
-func (manash *Ethash) APIs(chain consensus.ChainReader) []rpc.API {
+func (manash *Manash) APIs(chain consensus.ChainReader) []rpc.API {
 	return nil
 }
 

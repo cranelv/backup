@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package enr
 
@@ -211,7 +197,7 @@ func TestGetSetOverwrite(t *testing.T) {
 // TestSignEncodeAndDecode tests signing, RLP encoding and RLP decoding of a record.
 func TestSignEncodeAndDecode(t *testing.T) {
 	var r Record
-	r.Set(UDP(30303))
+	r.Set(UDP(50505))
 	r.Set(IP{127, 0, 0, 1})
 	require.NoError(t, SignV4(&r, privkey))
 
@@ -252,7 +238,7 @@ func TestPythonInterop(t *testing.T) {
 		wantAddr, _ = hex.DecodeString("a448f24c6d18e575453db13171562b71999873db5b286df957af199ec94617f7")
 		wantSeq     = uint64(1)
 		wantIP      = IP{127, 0, 0, 1}
-		wantUDP     = UDP(30303)
+		wantUDP     = UDP(50505)
 	)
 	if r.Seq() != wantSeq {
 		t.Errorf("wrong seq: got %d, want %d", r.Seq(), wantSeq)

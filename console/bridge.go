@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2016 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package console
 
@@ -51,7 +37,7 @@ func newBridge(client *rpc.Client, prompter UserPrompter, printer io.Writer) *br
 
 // NewAccount is a wrapper around the personal.newAccount RPC method that uses a
 // non-echoing password prompt to acquire the passphrase and executes the original
-// RPC method (saved in jeth.newAccount) with it to actually execute the RPC call.
+// RPC method (saved in jman.newAccount) with it to actually execute the RPC call.
 func (b *bridge) NewAccount(call otto.FunctionCall) (response otto.Value) {
 	var (
 		password string
@@ -80,7 +66,7 @@ func (b *bridge) NewAccount(call otto.FunctionCall) (response otto.Value) {
 		throwJSException("expected 0 or 1 string argument")
 	}
 	// Password acquired, execute the call and return
-	ret, err := call.Otto.Call("jeth.newAccount", nil, password)
+	ret, err := call.Otto.Call("jman.newAccount", nil, password)
 	if err != nil {
 		throwJSException(err.Error())
 	}
@@ -103,7 +89,7 @@ func (b *bridge) OpenWallet(call otto.FunctionCall) (response otto.Value) {
 		passwd = call.Argument(1)
 	}
 	// Open the wallet and return if successful in itself
-	val, err := call.Otto.Call("jeth.openWallet", nil, wallet, passwd)
+	val, err := call.Otto.Call("jman.openWallet", nil, wallet, passwd)
 	if err == nil {
 		return val
 	}
@@ -124,7 +110,7 @@ func (b *bridge) OpenWallet(call otto.FunctionCall) (response otto.Value) {
 	} else {
 		passwd, _ = otto.ToValue(input)
 	}
-	if val, err = call.Otto.Call("jeth.openWallet", nil, wallet, passwd); err != nil {
+	if val, err = call.Otto.Call("jman.openWallet", nil, wallet, passwd); err != nil {
 		throwJSException(err.Error())
 	}
 	return val
@@ -132,7 +118,7 @@ func (b *bridge) OpenWallet(call otto.FunctionCall) (response otto.Value) {
 
 // UnlockAccount is a wrapper around the personal.unlockAccount RPC method that
 // uses a non-echoing password prompt to acquire the passphrase and executes the
-// original RPC method (saved in jeth.unlockAccount) with it to actually execute
+// original RPC method (saved in jman.unlockAccount) with it to actually execute
 // the RPC call.
 func (b *bridge) UnlockAccount(call otto.FunctionCall) (response otto.Value) {
 	// Make sure we have an account specified to unlock
@@ -166,7 +152,7 @@ func (b *bridge) UnlockAccount(call otto.FunctionCall) (response otto.Value) {
 		duration = call.Argument(2)
 	}
 	// Send the request to the backend and return
-	val, err := call.Otto.Call("jeth.unlockAccount", nil, account, passwd, duration)
+	val, err := call.Otto.Call("jman.unlockAccount", nil, account, passwd, duration)
 	if err != nil {
 		throwJSException(err.Error())
 	}
@@ -175,7 +161,7 @@ func (b *bridge) UnlockAccount(call otto.FunctionCall) (response otto.Value) {
 
 // Sign is a wrapper around the personal.sign RPC method that uses a non-echoing password
 // prompt to acquire the passphrase and executes the original RPC method (saved in
-// jeth.sign) with it to actually execute the RPC call.
+// jman.sign) with it to actually execute the RPC call.
 func (b *bridge) Sign(call otto.FunctionCall) (response otto.Value) {
 	var (
 		message = call.Argument(0)
@@ -204,7 +190,7 @@ func (b *bridge) Sign(call otto.FunctionCall) (response otto.Value) {
 	}
 
 	// Send the request to the backend and return
-	val, err := call.Otto.Call("jeth.sign", nil, message, account, passwd)
+	val, err := call.Otto.Call("jman.sign", nil, message, account, passwd)
 	if err != nil {
 		throwJSException(err.Error())
 	}

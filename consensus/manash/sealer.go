@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2017 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package manash
 
@@ -77,7 +63,7 @@ func GetdifficultyListAndTargetList(difficultyList []*big.Int) minerDifficultyLi
 
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
-func (manash *Ethash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, foundMsgCh chan *consensus.FoundMsg, difficultyList []*big.Int, isBroadcastNode bool) error {
+func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, foundMsgCh chan *consensus.FoundMsg, difficultyList []*big.Int, isBroadcastNode bool) error {
 
 	curHeader := types.CopyHeader(header)
 	sort.Sort(diffiList(difficultyList))
@@ -150,7 +136,7 @@ func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (in
 
 // mine is the actual proof-of-work miner that searches for a nonce starting from
 // seed that results in correct final block difficulty.
-func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan consensus.FoundMsg, diffiList *minerDifficultyList) {
+func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan consensus.FoundMsg, diffiList *minerDifficultyList) {
 	// Extract some data from the header
 
 	var (
@@ -172,7 +158,7 @@ func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan
 		select {
 		case <-abort:
 			// Mining terminated, update stats and abort
-			logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
+			logger.Trace("Manash nonce search aborted", "attempts", nonce-seed)
 			manash.hashrate.Mark(attempts)
 			return
 
@@ -207,9 +193,9 @@ func (manash *Ethash) mine(header *types.Header, id int, seed uint64, abort chan
 
 				select {
 				case found <- consensus.FoundMsg{Header: FoundHeader, Difficulty: NowDifficulty}:
-					logger.Trace("Ethash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
+					logger.Trace("Manash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
 				case <-abort:
-					logger.Trace("Ethash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
+					logger.Trace("Manash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
 				}
 
 				if NowDifficulty == header.Difficulty {

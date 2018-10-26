@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2014 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 // Package man implements the Matrix protocol.
 package man
@@ -105,7 +91,7 @@ type Matrix struct {
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer  *core.ChainIndexer             // Bloom indexer operating during block imports
 
-	APIBackend *EthAPIBackend
+	APIBackend *ManAPIBackend
 
 	miner     *miner.Miner
 	gasPrice  *big.Int
@@ -167,11 +153,11 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		hd:             ctx.HD,
 		signHelper:     ctx.SignHelper,
 
-		engine:        CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
+		engine:        CreateConsensusEngine(ctx, &config.Manash, chainConfig, chainDb),
 		shutdownChan:  make(chan bool),
 		networkId:     config.NetworkId,
 		gasPrice:      config.GasPrice,
-		manbase:     config.Etherbase,
+		manbase:     config.Manerbase,
 		bloomRequests: make(chan chan *bloombits.Retrieval),
 		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
 	}
@@ -227,7 +213,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.APIBackend = &EthAPIBackend{man, nil}
+	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.GasPrice
@@ -300,13 +286,13 @@ func CreateConsensusEngine(ctx *pod.ServiceContext, config *manash.Config, chain
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
 	case manash.ModeFake:
-		log.Warn("Ethash used in fake mode")
+		log.Warn("Manash used in fake mode")
 		return manash.NewFaker()
 	case manash.ModeTest:
-		log.Warn("Ethash used in test mode")
+		log.Warn("Manash used in test mode")
 		return manash.NewTester()
 	case manash.ModeShared:
-		log.Warn("Ethash used in shared mode")
+		log.Warn("Manash used in shared mode")
 		return manash.NewShared()
 	default:
 		engine := manash.New(manash.Config{
@@ -331,16 +317,32 @@ func (s *Matrix) APIs() []rpc.API {
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
 
 	// Append all the local APIs and return
+
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "man",
 			Version:   "1.0",
 			Service:   NewPublicMatrixAPI(s),
 			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
+			Service:   NewPublicMatrixAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
 			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
 		}, {
 			Namespace: "eth",
@@ -352,6 +354,11 @@ func (s *Matrix) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
+		}, {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Public:    true,
 		}, {
 			Namespace: "eth",
 			Version:   "1.0",
@@ -383,7 +390,7 @@ func (s *Matrix) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Matrix) Etherbase() (eb common.Address, err error) {
+func (s *Matrix) Manerbase() (eb common.Address, err error) {
 	s.lock.RLock()
 	manbase := s.manbase
 	s.lock.RUnlock()
@@ -399,24 +406,24 @@ func (s *Matrix) Etherbase() (eb common.Address, err error) {
 			s.manbase = manbase
 			s.lock.Unlock()
 
-			log.Info("Etherbase automatically configured", "address", manbase)
+			log.Info("Manerbase automatically configured", "address", manbase)
 			return manbase, nil
 		}
 	}
 	return common.Address{}, fmt.Errorf("manbase must be explicitly specified")
 }
 
-// SetEtherbase sets the mining reward address.
-func (s *Matrix) SetEtherbase(manbase common.Address) {
+// SetManerbase sets the mining reward address.
+func (s *Matrix) SetManerbase(manbase common.Address) {
 	s.lock.Lock()
 	s.manbase = manbase
 	s.lock.Unlock()
 
-	s.miner.SetEtherbase(manbase)
+	s.miner.SetManerbase(manbase)
 }
 
 func (s *Matrix) StartMining(local bool) error {
-	eb, err := s.Etherbase()
+	eb, err := s.Manerbase()
 	if err != nil {
 		log.Error("Cannot start mining without manbase", "err", err)
 		return fmt.Errorf("manbase missing: %v", err)
@@ -424,7 +431,7 @@ func (s *Matrix) StartMining(local bool) error {
 	if clique, ok := s.engine.(*clique.Clique); ok {
 		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 		if wallet == nil || err != nil {
-			log.Error("Etherbase account unavailable locally", "err", err)
+			log.Error("Manerbase account unavailable locally", "err", err)
 			return fmt.Errorf("signer missing: %v", err)
 		}
 		clique.Authorize(eb, wallet.SignHash)
@@ -452,7 +459,7 @@ func (s *Matrix) Engine() consensus.Engine             { return s.engine }
 func (s *Matrix) DPOSEngine() consensus.DPOSEngine     { return s.blockchain.DPOSEngine() }
 func (s *Matrix) ChainDb() mandb.Database              { return s.chainDb }
 func (s *Matrix) IsListening() bool                    { return true } // Always listening
-func (s *Matrix) EthVersion() int                      { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Matrix) ManVersion() int                      { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Matrix) NetVersion() uint64                   { return s.networkId }
 func (s *Matrix) Downloader() *downloader.Downloader   { return s.protocolManager.downloader }
 func (s *Matrix) CA() *ca.Identity                     { return s.ca }

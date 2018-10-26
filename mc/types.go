@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package mc
@@ -46,6 +46,10 @@ type LeaderStateMsg struct {
 	Leader      common.Address
 	Number      big.Int
 	ReelectTurn uint8
+}
+
+type SyncIdEvent struct { //lb
+	Role common.RoleType
 }
 
 // type BlockVerifyReqMsg struct {

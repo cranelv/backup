@@ -1,21 +1,6 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of go-matrix.
-//
-// go-matrix is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// go-matrix is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with go-matrix. If not, see <http://www.gnu.org/licenses/>.
 
 // Package utils contains internal helper functions for go-matrix commands.
 package utils
@@ -209,35 +194,35 @@ var (
 		Usage: "Dashboard metrics collection refresh rate",
 		Value: dashboard.DefaultConfig.Refresh,
 	}
-	// Ethash settings
-	EthashCacheDirFlag = DirectoryFlag{
+	// Manash settings
+	ManashCacheDirFlag = DirectoryFlag{
 		Name:  "manash.cachedir",
 		Usage: "Directory to store the manash verification caches (default = inside the datadir)",
 	}
-	EthashCachesInMemoryFlag = cli.IntFlag{
+	ManashCachesInMemoryFlag = cli.IntFlag{
 		Name:  "manash.cachesinmem",
 		Usage: "Number of recent manash caches to keep in memory (16MB each)",
-		Value: man.DefaultConfig.Ethash.CachesInMem,
+		Value: man.DefaultConfig.Manash.CachesInMem,
 	}
-	EthashCachesOnDiskFlag = cli.IntFlag{
+	ManashCachesOnDiskFlag = cli.IntFlag{
 		Name:  "manash.cachesondisk",
 		Usage: "Number of recent manash caches to keep on disk (16MB each)",
-		Value: man.DefaultConfig.Ethash.CachesOnDisk,
+		Value: man.DefaultConfig.Manash.CachesOnDisk,
 	}
-	EthashDatasetDirFlag = DirectoryFlag{
+	ManashDatasetDirFlag = DirectoryFlag{
 		Name:  "manash.dagdir",
 		Usage: "Directory to store the manash mining DAGs (default = inside home folder)",
-		Value: DirectoryString{man.DefaultConfig.Ethash.DatasetDir},
+		Value: DirectoryString{man.DefaultConfig.Manash.DatasetDir},
 	}
-	EthashDatasetsInMemoryFlag = cli.IntFlag{
+	ManashDatasetsInMemoryFlag = cli.IntFlag{
 		Name:  "manash.dagsinmem",
 		Usage: "Number of recent manash mining DAGs to keep in memory (1+GB each)",
-		Value: man.DefaultConfig.Ethash.DatasetsInMem,
+		Value: man.DefaultConfig.Manash.DatasetsInMem,
 	}
-	EthashDatasetsOnDiskFlag = cli.IntFlag{
+	ManashDatasetsOnDiskFlag = cli.IntFlag{
 		Name:  "manash.dagsondisk",
 		Usage: "Number of recent manash mining DAGs to keep on disk (1+GB each)",
-		Value: man.DefaultConfig.Ethash.DatasetsOnDisk,
+		Value: man.DefaultConfig.Manash.DatasetsOnDisk,
 	}
 	// Transaction pool settings
 	TxPoolNoLocalsFlag = cli.BoolFlag{
@@ -325,7 +310,7 @@ var (
 		Usage: "Target gas limit sets the artificial target gas floor for the blocks to mine",
 		Value: params.GenesisGasLimit,
 	}
-	EtherbaseFlag = cli.StringFlag{
+	ManerbaseFlag = cli.StringFlag{
 		Name:  "manbase",
 		Usage: "Public address for block mining rewards (default = first account created)",
 		Value: "0",
@@ -368,7 +353,7 @@ var (
 		Usage: "Record information useful for VM and contract debugging",
 	}
 	// Logging and debug settings
-	EthStatsURLFlag = cli.StringFlag{
+	ManStatsURLFlag = cli.StringFlag{
 		Name:  "manstats",
 		Usage: "Reporting URL of a manstats service (nodename:secret@host:port)",
 	}
@@ -469,7 +454,7 @@ var (
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
 		Usage: "Network listening port",
-		Value: 30303,
+		Value: 50505,
 	}
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
@@ -769,15 +754,15 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	return accs[index], nil
 }
 
-// setEtherbase retrieves the manbase either from the directly specified
+// setManerbase retrieves the manbase either from the directly specified
 // command line flags or from the keystore if CLI indexed.
-func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *man.Config) {
-	if ctx.GlobalIsSet(EtherbaseFlag.Name) {
-		account, err := MakeAddress(ks, ctx.GlobalString(EtherbaseFlag.Name))
+func setManerbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *man.Config) {
+	if ctx.GlobalIsSet(ManerbaseFlag.Name) {
+		account, err := MakeAddress(ks, ctx.GlobalString(ManerbaseFlag.Name))
 		if err != nil {
-			Fatalf("Option %q: %v", EtherbaseFlag.Name, err)
+			Fatalf("Option %q: %v", ManerbaseFlag.Name, err)
 		}
-		cfg.Etherbase = account.Address
+		cfg.Manerbase = account.Address
 	}
 }
 
@@ -938,24 +923,24 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-func setEthash(ctx *cli.Context, cfg *man.Config) {
-	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
-		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
+func setManash(ctx *cli.Context, cfg *man.Config) {
+	if ctx.GlobalIsSet(ManashCacheDirFlag.Name) {
+		cfg.Manash.CacheDir = ctx.GlobalString(ManashCacheDirFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashDatasetDirFlag.Name) {
-		cfg.Ethash.DatasetDir = ctx.GlobalString(EthashDatasetDirFlag.Name)
+	if ctx.GlobalIsSet(ManashDatasetDirFlag.Name) {
+		cfg.Manash.DatasetDir = ctx.GlobalString(ManashDatasetDirFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashCachesInMemoryFlag.Name) {
-		cfg.Ethash.CachesInMem = ctx.GlobalInt(EthashCachesInMemoryFlag.Name)
+	if ctx.GlobalIsSet(ManashCachesInMemoryFlag.Name) {
+		cfg.Manash.CachesInMem = ctx.GlobalInt(ManashCachesInMemoryFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashCachesOnDiskFlag.Name) {
-		cfg.Ethash.CachesOnDisk = ctx.GlobalInt(EthashCachesOnDiskFlag.Name)
+	if ctx.GlobalIsSet(ManashCachesOnDiskFlag.Name) {
+		cfg.Manash.CachesOnDisk = ctx.GlobalInt(ManashCachesOnDiskFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashDatasetsInMemoryFlag.Name) {
-		cfg.Ethash.DatasetsInMem = ctx.GlobalInt(EthashDatasetsInMemoryFlag.Name)
+	if ctx.GlobalIsSet(ManashDatasetsInMemoryFlag.Name) {
+		cfg.Manash.DatasetsInMem = ctx.GlobalInt(ManashDatasetsInMemoryFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashDatasetsOnDiskFlag.Name) {
-		cfg.Ethash.DatasetsOnDisk = ctx.GlobalInt(EthashDatasetsOnDiskFlag.Name)
+	if ctx.GlobalIsSet(ManashDatasetsOnDiskFlag.Name) {
+		cfg.Manash.DatasetsOnDisk = ctx.GlobalInt(ManashDatasetsOnDiskFlag.Name)
 	}
 }
 
@@ -997,8 +982,8 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
-// SetEthConfig applies man-related command line flags to the config.
-func SetEthConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
+// SetManConfig applies man-related command line flags to the config.
+func SetManConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, FastSyncFlag, LightModeFlag, SyncModeFlag)
@@ -1006,10 +991,10 @@ func SetEthConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	setEtherbase(ctx, ks, cfg)
+	setManerbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
-	setEthash(ctx, cfg)
+	setManash(ctx, cfg)
 
 	switch {
 	case ctx.GlobalIsSet(SyncModeFlag.Name):
@@ -1108,8 +1093,8 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
 }
 
-// RegisterEthService adds an Matrix client to the stack.
-func RegisterEthService(stack *pod.Node, cfg *man.Config) {
+// RegisterManService adds an Matrix client to the stack.
+func RegisterManService(stack *pod.Node, cfg *man.Config) {
 	var err error
 	err = stack.Register(func(ctx *pod.ServiceContext) (pod.Service, error) {
 		fullNode, err := man.New(ctx, cfg)
@@ -1127,9 +1112,9 @@ func RegisterDashboardService(stack *pod.Node, cfg *dashboard.Config, commit str
 	})
 }
 
-// RegisterEthStatsService configures the Matrix Stats daemon and adds it to
+// RegisterManStatsService configures the Matrix Stats daemon and adds it to
 // th egiven node.
-func RegisterEthStatsService(stack *pod.Node, url string) {
+func RegisterManStatsService(stack *pod.Node, url string) {
 	if err := stack.Register(func(ctx *pod.ServiceContext) (pod.Service, error) {
 		// Retrieve both man and les services
 		var manServ *man.Matrix
@@ -1194,12 +1179,12 @@ func MakeChain(ctx *cli.Context, stack *pod.Node) (chain *core.BlockChain, chain
 		engine = manash.NewFaker()
 		if !ctx.GlobalBool(FakePoWFlag.Name) {
 			engine = manash.New(manash.Config{
-				CacheDir:       stack.ResolvePath(man.DefaultConfig.Ethash.CacheDir),
-				CachesInMem:    man.DefaultConfig.Ethash.CachesInMem,
-				CachesOnDisk:   man.DefaultConfig.Ethash.CachesOnDisk,
-				DatasetDir:     stack.ResolvePath(man.DefaultConfig.Ethash.DatasetDir),
-				DatasetsInMem:  man.DefaultConfig.Ethash.DatasetsInMem,
-				DatasetsOnDisk: man.DefaultConfig.Ethash.DatasetsOnDisk,
+				CacheDir:       stack.ResolvePath(man.DefaultConfig.Manash.CacheDir),
+				CachesInMem:    man.DefaultConfig.Manash.CachesInMem,
+				CachesOnDisk:   man.DefaultConfig.Manash.CachesOnDisk,
+				DatasetDir:     stack.ResolvePath(man.DefaultConfig.Manash.DatasetDir),
+				DatasetsInMem:  man.DefaultConfig.Manash.DatasetsInMem,
+				DatasetsOnDisk: man.DefaultConfig.Manash.DatasetsOnDisk,
 			})
 		}
 	}

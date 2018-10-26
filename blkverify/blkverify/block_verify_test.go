@@ -1,4 +1,4 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkverify
@@ -127,7 +127,7 @@ func TestLeaderChangeMsg_02(t *testing.T) {
 }
 
 func TestRightRequestMsg_01(t *testing.T) {
-	man := newEth(t, nil, false)
+	man := newMan(t, nil, false)
 
 	reElection, err := reelection.New(man.BlockChain(), nil)
 	if err != nil {
@@ -178,7 +178,7 @@ func TestVoteMsg_01(t *testing.T) {
 	}
 	defer sub.Unsubscribe()
 
-	man := newEth(t, nil, false)
+	man := newMan(t, nil, false)
 
 	blkVerify, err := NewBlockVerify(man)
 	if err != nil {
@@ -246,7 +246,7 @@ func TestVoteMsg_01(t *testing.T) {
 	}
 }
 
-func newEth(t *testing.T, confOverride func(*man.Config), isBroadcastNode bool) *man.Matrix {
+func newMan(t *testing.T, confOverride func(*man.Config), isBroadcastNode bool) *man.Matrix {
 	// Create a temporary storage for the node keys and initialize it
 	workspace, err := ioutil.TempDir("", "console-tester-")
 	if err != nil {
@@ -261,8 +261,8 @@ func newEth(t *testing.T, confOverride func(*man.Config), isBroadcastNode bool) 
 
 	manConf := &man.Config{
 		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Etherbase: common.HexToAddress(testAddress),
-		Ethash: manash.Config{
+		Manerbase: common.HexToAddress(testAddress),
+		Manash: manash.Config{
 			PowMode: manash.ModeTest,
 		},
 	}

@@ -1,21 +1,7 @@
-// Copyright (c) 2008 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-// Copyright 2015 The go-matrix Authors
-// This file is part of the go-matrix library.
-//
-// The go-matrix library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-matrix library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-matrix library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package man
 
@@ -59,14 +45,14 @@ func NewPublicMatrixAPI(e *Matrix) *PublicMatrixAPI {
 	return &PublicMatrixAPI{e}
 }
 
-// Etherbase is the address that mining rewards will be send to
-func (api *PublicMatrixAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
+// Manerbase is the address that mining rewards will be send to
+func (api *PublicMatrixAPI) Manerbase() (common.Address, error) {
+	return api.e.Manerbase()
 }
 
-// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
+// Coinbase is the address that mining rewards will be send to (alias for Manerbase)
 func (api *PublicMatrixAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
+	return api.Manerbase()
 }
 
 // Hashrate returns the POW hashrate
@@ -333,9 +319,9 @@ func (api *PrivateMinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 	return true
 }
 
-// SetEtherbase sets the manbase of the miner
-func (api *PrivateMinerAPI) SetEtherbase(manbase common.Address) bool {
-	api.e.SetEtherbase(manbase)
+// SetManerbase sets the manbase of the miner
+func (api *PrivateMinerAPI) SetManerbase(manbase common.Address) bool {
+	api.e.SetManerbase(manbase)
 	return true
 }
 
