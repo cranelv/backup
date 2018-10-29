@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package ca
@@ -221,7 +221,7 @@ func Start(id discover.NodeID, path string) {
 			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
 			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, Role: ide.currentRole})
-			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole})//lb
+			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
 		case <-ide.quit:
 			return
 		}
@@ -567,7 +567,7 @@ func GetSelfLevel() int {
 		return TopNode
 	case ide.currentRole == common.RoleBucket:
 		m := big.Int{}
-		return int(m.Mod(ide.addr.Hash().Big(), big.NewInt(4)).Int64())+1
+		return int(m.Mod(ide.addr.Hash().Big(), big.NewInt(4)).Int64()) + 1
 	case ide.currentRole <= common.RoleDefault:
 		return DefaultNode
 	default:
