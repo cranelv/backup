@@ -43,8 +43,8 @@ type Identity struct {
 	quit      chan struct{}
 
 	// lock and once to sync
-	lock *sync.RWMutex
-	once *sync.Once
+	lock sync.RWMutex
+	once sync.Once
 
 	// sub to unsubscribe block channel
 	sub event.Subscription
@@ -86,8 +86,6 @@ func newIde() *Identity {
 		quit:        make(chan struct{}),
 		currentRole: common.RoleNil,
 		duration:    false,
-		lock:        new(sync.RWMutex),
-		once:        new(sync.Once),
 		idList:      make(map[discover.NodeID]uint32),
 		elect:       make(map[common.Address]common.RoleType),
 		topology:    make(map[uint16]common.Address),
@@ -154,9 +152,11 @@ func Start(id discover.NodeID, path string) {
 					ide.tempElect = append(ide.tempElect, header.Elect...)
 
 					// maintain topology and check self next role
+					ide.lock.Lock()
 					for _, e := range header.Elect {
 						ide.elect[e.Account] = e.Type.Transfer2CommonRole()
 					}
+					ide.lock.Unlock()
 				}
 			// miner elected block
 			case common.IsReElectionNumber(height + MinerNetChangeUpTime):
@@ -165,15 +165,19 @@ func Start(id discover.NodeID, path string) {
 					ide.tempElect = append(ide.tempElect, header.Elect...)
 
 					// maintain topology and check self next role
+					ide.lock.Lock()
 					for _, e := range header.Elect {
 						ide.elect[e.Account] = e.Type.Transfer2CommonRole()
 					}
+					ide.lock.Unlock()
 				}
 			// formal elected block
 			case common.IsReElectionNumber(height + 1):
 				{
 					ide.duration = false
+					ide.lock.Lock()
 					ide.elect = make(map[common.Address]common.RoleType)
+					ide.lock.Unlock()
 					ide.originalRole = make([]common.Elect, 0)
 					ide.originalRole = ide.tempElect
 					ide.currentRole = common.RoleNil
@@ -310,6 +314,9 @@ func GetRolesByGroup(roleType common.RoleType) (result []discover.NodeID) {
 
 // GetRolesByGroupWithBackup
 func GetRolesByGroupWithBackup(roleType common.RoleType) (result []discover.NodeID) {
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+
 	result = GetRolesByGroup(roleType)
 	for addr, role := range ide.elect {
 		temp := true
@@ -334,6 +341,9 @@ func GetRolesByGroupWithBackup(roleType common.RoleType) (result []discover.Node
 
 // GetRolesByGroupOnlyBackup
 func GetRolesByGroupOnlyBackup(roleType common.RoleType) (result []discover.NodeID) {
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+
 	for addr, role := range ide.elect {
 		if (role & roleType) != 0 {
 			id, err := ConvertAddressToNodeId(addr)
@@ -440,6 +450,7 @@ func GetTopologyInLinker() (result map[common.RoleType][]discover.NodeID) {
 
 	result = make(map[common.RoleType][]discover.NodeID)
 	ide.lock.RLock()
+	defer ide.lock.RUnlock()
 	for k, v := range ide.addrByGroup {
 		for _, addr := range v {
 			id, err := ConvertAddressToNodeId(addr)
@@ -451,7 +462,6 @@ func GetTopologyInLinker() (result map[common.RoleType][]discover.NodeID) {
 			result[k] = append(result[k], id)
 		}
 	}
-	ide.lock.RUnlock()
 
 	for addr, role := range ide.elect {
 		temp := true
