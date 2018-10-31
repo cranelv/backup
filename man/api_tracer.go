@@ -28,6 +28,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
 	"github.com/matrix/go-matrix/trie"
+	"github.com/matrix/go-matrix/core/txinterface"
 )
 
 const (
@@ -542,7 +543,7 @@ func (api *PrivateDebugAPI) TraceTransaction(ctx context.Context, hash common.Ha
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, vmctx vm.Context, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *PrivateDebugAPI) traceTx(ctx context.Context, message txinterface.Message, vmctx vm.Context, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
 	// Assemble the structured logger or the JavaScript tracer
 	var (
 		tracer vm.Tracer
@@ -601,7 +602,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 }
 
 // computeTxEnv returns the execution environment of a certain transaction.
-func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, reexec uint64) (core.Message, vm.Context, *state.StateDB, error) {
+func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, reexec uint64) (txinterface.Message, vm.Context, *state.StateDB, error) {
 	// Create the parent state database
 	block := api.man.blockchain.GetBlockByHash(blockHash)
 	if block == nil {

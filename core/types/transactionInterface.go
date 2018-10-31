@@ -4,18 +4,12 @@ import (
 	"math/big"
 	"github.com/matrix/go-matrix/common"
 )
-type TxTypeInt int
+type TxTypeInt uint8
 
 const (
 	NormalTxIndex    TxTypeInt = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
 )
-//type TransactionType int
-//
-//const (
-//	TransactionIndex TransactionType = iota
-//	TransactionBroadIndex
-//)
 
 type SelfTransaction interface {
 	TxType() TxTypeInt
@@ -46,4 +40,5 @@ type SelfTransaction interface {
 	GetTxN(index int) uint32
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
 	Protected() bool
+	//CreateTransition(gp uint64) interface{}
 }
