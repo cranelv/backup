@@ -33,4 +33,5 @@ type StateTransitioner interface {
 	PreCheck() error
 	RefundGas()
 	GasUsed() uint64
+	//CreateTransition(evm *vm.EVM, msg Message, gp uint64)StateTransitioner
 }
