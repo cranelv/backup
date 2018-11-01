@@ -15,8 +15,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/core/txinterface"
-	"github.com/matrix/go-matrix/core/types"
-	"sync"
 )
 
 var (
@@ -53,23 +51,6 @@ type StateTransition struct {
 	evm        *vm.EVM
 }
 
-//// Message represents a message sent to a contract.
-//type Message interface {
-//	From() common.Address
-//	//FromFrontier() (common.Address, error)
-//	To() *common.Address
-//
-//	GasPrice() *big.Int
-//	Gas() uint64
-//	Value() *big.Int
-//
-//	Nonce() uint64
-//	CheckNonce() bool
-//	Data() []byte
-//	//Extra() types.Matrix_Extra //YY
-//	GetMatrix_EX() []types.Matrix_Extra //YYY  注释 Extra() 方法 改用此方法
-//}
-
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
@@ -102,19 +83,6 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 	}
 	return gas, nil
 }
-
-//可能这个放在msg->createStateTransition()里面了
-func (st *StateTransition)InitStateTransition(evm *vm.EVM, msg txinterface.Message, gp uint64){
-	var tmpGp GasPool
-	tmpGp = GasPool(gp)
-	st.gp = &tmpGp
-	st.msg = msg
-	st.evm = evm
-	st.gasPrice = msg.GasPrice()
-	st.value = msg.Value()
-	st.data = msg.Data()
-	st.state = evm.StateDB
-}
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
@@ -135,45 +103,16 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-//type CreaterStateTransition interface{
-//	createTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool)txinterface.StateTransitioner
-//}
-var StmObj = stMangager{}
-type stMangager struct{
-	stmMap map[types.TxTypeInt] txinterface.StateTransitioner
-	mu sync.RWMutex
-}
-
-func (stm *stMangager)AddTransitionMangager(typeInt types.TxTypeInt,transitioner txinterface.StateTransitioner)  {
-	stm.mu.Lock()
-	stm.stmMap[typeInt] = transitioner
-	stm.mu.Unlock()
-}
-func (stm* stMangager)GetStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) txinterface.StateTransitioner{
-	stm.mu.Lock()
-	defer stm.mu.Unlock()
-	if creater,exist := stm.stmMap[msg.TxType()]; exist{
-		return creater
-	}
-	return nil
-}
 
 func ApplyMessage(evm *vm.EVM, msg txinterface.Message, gp *GasPool) ([]byte, uint64, bool, error) {
-	stsi:=StmObj.GetStateTransition(evm, msg, gp)
-	if stsi == nil{
-		switch msg.TxType() {
-		default:
-			stsi = NewStateTransition(evm,msg,gp)
-		}
-		StmObj.AddTransitionMangager(msg.TxType(),stsi)
+	var stsi txinterface.StateTransitioner
+	switch msg.TxType() {
+	default:
+		stsi = NewStateTransition(evm,msg,gp)
 	}
 	return stsi.TransitionDb()
 }
-//func (st *StateTransition)CreateTransition(evm *vm.EVM, msg txinterface.Message, gp uint64)txinterface.StateTransitioner{
-//	var tmpGp GasPool
-//	tmpGp = GasPool(gp)
-//	return NewStateTransition(evm,msg,&tmpGp)
-//}
+
 // to returns the recipient of the message.
 func (st *StateTransition) To() common.Address {
 	if st.msg == nil || st.msg.To() == nil /* contract creation */ {

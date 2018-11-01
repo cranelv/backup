@@ -152,15 +152,10 @@ func (b *ManAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscri
 }
 
 //TODO 调用该方法的时候应该返回错误的切片
-func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) (err error) {
-	txs := make(types.SelfTransactions, 0)
-	txs = append(txs, signedTx)
-	errs := b.man.txPool.AddRemotes(txs)
-	if errs != nil {
-		err = errs[0]
-	}
-
-	return err
+func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) (error) {
+	//txs := make(types.SelfTransactions, 0)
+	//txs = append(txs, signedTx)
+	return b.man.txPool.AddRemote(signedTx)
 }
 
 func (b *ManAPIBackend) GetPoolTransactions() (types.SelfTransactions, error) {

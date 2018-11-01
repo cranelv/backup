@@ -1270,8 +1270,12 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		return false, ErrTXNonceSame
 	}
 	//将交易加入pending
+	if nPool.pending[from] == nil{
+		nPool.pending[from] = newTxList(false)
+	}
 	nPool.pending[from].Add(tx, 0)
-
+	nPool.all.Add(tx)
+	nPool.pendingState.SetNonce(from, tx.Nonce()+1)
 	selfRole := ca.GetRole()
 	if selfRole == common.RoleMiner || selfRole == common.RoleValidator {
 		tx_s := tx.GetTxS()
@@ -1291,16 +1295,17 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 // AddLocal enqueues a single transaction into the pool if it is valid, marking
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
-func (nPool *NormalTxPool) AddTxPool(txer types.SelfTransaction) []error {
+func (nPool *NormalTxPool) AddTxPool(txer types.SelfTransaction) error {
 	//TODO 将交易dncode
 	txs := make([]*types.Transaction,0)
 	tx:=txer.(*types.Transaction)
 	txs = append(txs,tx)
-	return nPool.addTxs(txs, false)
+	err := nPool.addTxs(txs, false)
+	return err
 }
 
 // addTxs attempts to queue a batch of transactions if they are valid.
-func (nPool *NormalTxPool) addTxs(txs []*types.Transaction, local bool) []error {
+func (nPool *NormalTxPool) addTxs(txs []*types.Transaction, local bool) error {
 	//nPool.selfmlk.Lock()
 	nPool.getFromByTx(txs) //YY
 	//nPool.selfmlk.Unlock()
@@ -1312,12 +1317,12 @@ func (nPool *NormalTxPool) addTxs(txs []*types.Transaction, local bool) []error 
 
 // addTxsLocked attempts to queue a batch of transactions if they are valid,
 // whilst assuming the transaction pool lock is already held.
-func (nPool *NormalTxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
-	errs := make([]error, len(txs))
-	for i, tx := range txs {
-		_, errs[i] = nPool.add(tx, local)
+func (nPool *NormalTxPool) addTxsLocked(txs []*types.Transaction, local bool) (err error) {
+	//errs := make([]error, len(txs))
+	for _, tx := range txs {
+		_, err = nPool.add(tx, local)
 	}
-	return errs
+	return err
 }
 
 // Status returns the status (unknown/pending/queued) of a batch of transactions

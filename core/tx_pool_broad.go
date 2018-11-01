@@ -159,8 +159,8 @@ func (bPool *BroadCastTxPool) AddBroadTx(tx types.SelfTransaction, bType bool) (
 	if bType {
 		//txs := make([]types.SelfTransaction, 0)
 		//txs = append(txs, tx)
-		if errs := bPool.AddTxPool(tx); len(errs) > 0 {
-			return errs[0]
+		if err := bPool.AddTxPool(tx); err != nil{
+			return err
 		}
 		return nil
 	}
@@ -184,27 +184,27 @@ func (bPool *BroadCastTxPool) AddBroadTx(tx types.SelfTransaction, bType bool) (
 }
 
 // AddTxPool
-func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (errs []error) {
+func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) {
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
 	//TODO 1、将交易dncode,2、过滤交易（白名单）
 	//for _, tx := range txs {
 	if uint64(tx.Size()) > params.TxSize {
 		log.Error("add broadcast tx pool", "tx`s size is too big", tx.Size())
-		return errs
+		return reerr
 	}
 	if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
 		from, addrerr := bPool.checkTxFrom(tx)
 		if addrerr != nil {
-			errs = append(errs, addrerr)
-			return errs
+			reerr = addrerr
+			return reerr
 		}
 		tmpdt := make(map[string][]byte)
 		err := json.Unmarshal(tx.Data(), &tmpdt)
 		if err != nil {
 			log.Error("add broadcast tx pool", "json.Unmarshal failed", err)
-			errs = append(errs, err)
-			return errs
+			reerr =  err
+			return reerr
 		}
 		for keydata, _ := range tmpdt {
 			if !bPool.filter(from, keydata) {
@@ -213,25 +213,25 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (errs []error)
 			hash := types.RlpHash(keydata + from.String())
 			if bPool.special[hash] != nil {
 				log.Trace("Discarding already known broadcast transaction", "hash", hash)
-				errs = append(errs, fmt.Errorf("known broadcast transaction: %x", hash))
+				reerr = fmt.Errorf("known broadcast transaction: %x", hash)
 				continue
 			}
 			bPool.special[hash] = tx
 		}
 	} else {
-		errs = append(errs, errors.New("BroadCastTxPool:AddTxPool  Transaction type is error"))
+		reerr = errors.New("BroadCastTxPool:AddTxPool  Transaction type is error")
 		if len(tx.GetMatrix_EX()) > 0 {
 			log.Error("BroadCastTxPool:AddTxPool()", "transaction type error.Extra_tx type", tx.GetMatrix_EX()[0].TxType)
 		} else {
 			log.Error("BroadCastTxPool:AddTxPool()", "transaction type error.Extra_tx count", len(tx.GetMatrix_EX()))
 		}
-		return errs
+		return reerr
 	}
 	//}
 	//if len(txs) <= 0 {
 	//	log.Trace("transfer txs is nil")
 	//}
-	return nil //bPool.addTxs(txs, false)
+	return reerr //bPool.addTxs(txs, false)
 }
 func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok bool) {
 	/*   TODO 第三个问题不在这实现，上面已经做了判断了

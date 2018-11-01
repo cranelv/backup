@@ -178,7 +178,10 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return nil, nil
 }
-
+func (pm *TxPoolManager) AddRemote(tx types.SelfTransaction) (err error) {
+	err = pm.txPools[tx.TxType()].AddTxPool(tx)
+	return err
+}
 func (pm *TxPoolManager) AddRemotes(txs []types.SelfTransaction) []error {
 	for _, tx := range txs {
 		//TODO 根据交易类型判断调用哪个池的实例
@@ -188,16 +191,13 @@ func (pm *TxPoolManager) AddRemotes(txs []types.SelfTransaction) []error {
 }
 
 func (pm *TxPoolManager) SubscribeNewTxsEvent(ch chan NewTxsEvent) (ev event.Subscription) {
-	t := <-ch
+	//if len(ch) <= 0{
+	//	return nil
+	//}
+	//t := <-ch
 	pm.txPoolsMutex.RLock()
-	bpool, ok := pm.txPools[t.poolType]
-	pm.txPoolsMutex.RUnlock()
-	if !ok {
-		log.Error("TxPoolManager", "unknown type txpool (SubscribeNewTxsEvent)", t.poolType)
-		return nil
-	}
-	ev = bpool.SubscribeNewTxsEvent(ch)
-	return ev
+	defer pm.txPoolsMutex.RUnlock()
+	return pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
 }
 
 // ProcessMsg
@@ -267,7 +267,6 @@ func (pm *TxPoolManager) GetAllSpecialTxs() (reqVal map[common.Address][]types.S
 	return
 }
 
-//TODO 根据交易类型判断调用哪个池的实例
-func (pm *TxPoolManager) Stats() (int, int) {
+func (pm *TxPoolManager)Stats()(int,int)  {
 	return 0, 0
 }
