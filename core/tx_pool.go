@@ -19,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/txpoolCache"
 )
 
 //YY
@@ -308,6 +309,7 @@ func (nPool *NormalTxPool) loop() {
 					}
 				}
 				delete(nPool.mapHighttx,h)
+				txpoolCache.DeleteTxCache(head.Header().HashNoSignsAndNonce(),head.Number().Uint64())
 				nPool.mu.Unlock()
 				nPool.getPendingTx() //YY
 			}
@@ -826,6 +828,28 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 			mapNtx[n] = tx
 		} else {
 			log.Info("=======msg_GetConsensusTxByN====YY==tx is nil")
+		}
+	}
+	if len(mapNtx) != len(listN){
+		tmpMap := txpoolCache.GetTxByN_Cache(listN,nPool.chain.CurrentBlock().Number().Uint64())
+		log.Info("txpool","msg_GetConsensusTxByNlen(tmpMap)",len(tmpMap))
+		if tmpMap != nil{
+			if len(tmpMap) == len(listN){
+				mapNtx = tmpMap
+			}else{
+				log.Info("txpool","11111msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+				for _, n := range listN {
+					tx := nPool.getTxbyN(n,false)
+					if tx != nil {
+						mapNtx[n] = tx
+					} else {
+						if ttx,ok := tmpMap[n];ok{
+							mapNtx[n] = ttx
+						}
+					}
+				}
+				log.Info("txpool","22222msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+			}
 		}
 	}
 	nPool.mu.Unlock()
