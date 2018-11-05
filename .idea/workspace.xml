@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d0bb9a56-ca9c-4d77-902c-2bae343d486e" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/txpoolCache/middle.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blkgenor/process_header.go" beforeDir="false" afterPath="$PROJECT_DIR$/blkgenor/process_header.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/tx_pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/tx_pool.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -36,11 +34,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="process_header.go" pinned="false" current-in-tab="false">
+      <file leaf-file-name="process_header.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/blkgenor/process_header.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="336">
-              <caret line="173" column="26" selection-start-line="173" selection-start-column="26" selection-end-line="173" selection-end-column="26" />
+            <state relative-caret-position="355">
+              <caret line="174" column="30" lean-forward="true" selection-start-line="174" selection-start-column="30" selection-end-line="174" selection-end-column="30" />
               <folding>
                 <element signature="e#201#518#0" expanded="true" />
                 <element signature="e#2573#4413#0" />
@@ -52,8 +50,8 @@
       <file leaf-file-name="middle.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/txpoolCache/middle.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="19" column="5" selection-start-line="19" selection-start-column="5" selection-end-line="19" selection-end-column="5" />
+            <state relative-caret-position="214">
+              <caret line="53" column="5" selection-start-line="53" selection-start-column="5" selection-end-line="53" selection-end-column="5" />
               <folding>
                 <element signature="e#21#166#0" expanded="true" />
               </folding>
@@ -73,11 +71,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="tx_pool.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="tx_pool.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/tx_pool.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="287">
-              <caret line="841" column="48" selection-start-line="841" selection-start-column="48" selection-end-line="841" selection-end-column="48" />
+            <state relative-caret-position="-359">
+              <caret line="828" column="16" lean-forward="true" selection-start-line="828" selection-start-column="16" selection-end-line="828" selection-end-column="16" />
               <folding>
                 <element signature="e#14#516#0" expanded="true" />
                 <element signature="e#16245#17331#0" />
@@ -177,8 +175,8 @@
       <find>Pro</find>
       <find>//YYYY</find>
       <find>core</find>
-      <find>txpoolCache</find>
       <find>get</find>
+      <find>txpoolCache</find>
     </findStrings>
   </component>
   <component name="GOROOT" path="C:\Go" />
@@ -243,9 +241,9 @@
         <option value="$PROJECT_DIR$/core/tx_pool_interface.go" />
         <option value="$PROJECT_DIR$/core/tx_pool_manager.go" />
         <option value="$PROJECT_DIR$/matrixwork/work.go" />
-        <option value="$PROJECT_DIR$/blkgenor/process_header.go" />
         <option value="$PROJECT_DIR$/txpoolCache/middle.go" />
         <option value="$PROJECT_DIR$/core/tx_pool.go" />
+        <option value="$PROJECT_DIR$/blkgenor/process_header.go" />
       </list>
     </option>
   </component>
@@ -277,17 +275,6 @@
             <path>
               <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
               <item name="go-matrix" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="go-matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="core" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="go-matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="core" type="462c0819:PsiDirectoryNode" />
-              <item name="types" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="go-matrix" type="b2602c69:ProjectViewProjectNode" />
@@ -794,6 +781,38 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/core/types/transactionInterface.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="14" column="20" selection-start-line="14" selection-start-column="20" selection-end-line="14" selection-end-column="20" />
+          <folding>
+            <element signature="e#15#75#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/txpoolCache/middle.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="214">
+          <caret line="53" column="5" selection-start-line="53" selection-start-column="5" selection-end-line="53" selection-end-column="5" />
+          <folding>
+            <element signature="e#21#166#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/tx_pool.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-359">
+          <caret line="828" column="16" lean-forward="true" selection-start-line="828" selection-start-column="16" selection-end-line="828" selection-end-column="16" />
+          <folding>
+            <element signature="e#14#516#0" expanded="true" />
+            <element signature="e#16245#17331#0" />
+            <element signature="e#17397#18304#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/matrixwork/work.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="289">
@@ -808,45 +827,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/types/transactionInterface.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="266">
-          <caret line="14" column="20" selection-start-line="14" selection-start-column="20" selection-end-line="14" selection-end-column="20" />
-          <folding>
-            <element signature="e#15#75#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/txpoolCache/middle.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="19" column="5" selection-start-line="19" selection-start-column="5" selection-end-line="19" selection-end-column="5" />
-          <folding>
-            <element signature="e#21#166#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/blkgenor/process_header.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="336">
-          <caret line="173" column="26" selection-start-line="173" selection-start-column="26" selection-end-line="173" selection-end-column="26" />
+        <state relative-caret-position="355">
+          <caret line="174" column="30" lean-forward="true" selection-start-line="174" selection-start-column="30" selection-end-line="174" selection-end-column="30" />
           <folding>
             <element signature="e#201#518#0" expanded="true" />
             <element signature="e#2573#4413#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/core/tx_pool.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="287">
-          <caret line="841" column="48" selection-start-line="841" selection-start-column="48" selection-end-line="841" selection-end-column="48" />
-          <folding>
-            <element signature="e#14#516#0" expanded="true" />
-            <element signature="e#16245#17331#0" />
-            <element signature="e#17397#18304#0" />
           </folding>
         </state>
       </provider>
