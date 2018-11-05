@@ -128,7 +128,7 @@ type LeaderChangeNotify struct {
 type HD_BlkConsensusReqMsg struct {
 	From    common.Address
 	Header  *types.Header
-	TxsCode []uint32
+	TxsCode []*common.RetCallTxN
 }
 
 type LocalBlockVerifyConsensusReq struct {

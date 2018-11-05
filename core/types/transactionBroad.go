@@ -64,7 +64,7 @@ func newBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	d.Extra = append(d.Extra, mx)
 	return &TransactionBroad{data: d}
 }
-func (tx *TransactionBroad) TxType() TxTypeInt		{ return BroadCastTxIndex}
+func (tx *TransactionBroad) TxType() common.TxTypeInt		{ return BroadCastTxIndex}
 func (tx *TransactionBroad) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
 func (tx *TransactionBroad) Gas() uint64        { return tx.data.GasLimit }
 func (tx *TransactionBroad) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }

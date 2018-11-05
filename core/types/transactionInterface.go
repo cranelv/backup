@@ -4,15 +4,15 @@ import (
 	"math/big"
 	"github.com/matrix/go-matrix/common"
 )
-type TxTypeInt uint8
+
 
 const (
-	NormalTxIndex    TxTypeInt = iota // NormalPool save normal transaction
+	NormalTxIndex    common.TxTypeInt = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
 )
 
 type SelfTransaction interface {
-	TxType() TxTypeInt
+	TxType() common.TxTypeInt
 	Data() []byte
 	Gas() uint64
 	GasPrice() *big.Int

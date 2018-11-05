@@ -48,7 +48,7 @@ func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, 
 }
 
 // Type return txpool type.
-func (bPool *BroadCastTxPool) Type() types.TxTypeInt {
+func (bPool *BroadCastTxPool) Type() common.TxTypeInt {
 	return types.BroadCastTxIndex
 }
 
@@ -308,7 +308,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 }
 
 // Pending
-func (bPool *BroadCastTxPool) Pending() (map[common.Address][]*types.Transaction, error) {
+func (bPool *BroadCastTxPool) Pending() (map[common.Address][]types.SelfTransaction, error) {
 	return nil, nil
 }
 
@@ -362,4 +362,7 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 
 func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
 	return nil
+}
+func (bPool *BroadCastTxPool)ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool){
+
 }

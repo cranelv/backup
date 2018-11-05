@@ -280,7 +280,7 @@ func (tx *Transaction) GetTxHashStruct() {
 func (tx *Transaction)Call() error{
 	return nil
 }
-func (tx *Transaction) TxType() TxTypeInt		{ return NormalTxIndex}
+func (tx *Transaction) TxType() common.TxTypeInt		{ return NormalTxIndex}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 
@@ -557,11 +557,23 @@ func TxDifference(a, b SelfTransactions) (keep SelfTransactions) {
 // TxByNonce implements the sort interface to allow sorting a list of transactions
 // by their nonces. This is usually only useful for sorting transactions from a
 // single account, otherwise a nonce comparison doesn't make much sense.
-type TxByNonce SelfTransactions
+type TxByNonce []SelfTransaction
 
 func (s TxByNonce) Len() int           { return len(s) }
 func (s TxByNonce) Less(i, j int) bool { return s[i].Nonce() < s[j].Nonce() }
 func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s *TxByNonce) Push(x interface{}) {
+	//*s = append(*s, x.(*Transaction))
+}
+
+func (s *TxByNonce) Pop() interface{} {
+	old := *s
+	n := len(old)
+	x := old[n-1]
+	*s = old[0 : n-1]
+	return x
+}
+
 
 // TxByPrice implements both the sort and the heap interface, making it useful
 // for all at once sorting as well as individually adding and removing elements.
@@ -588,7 +600,8 @@ func (s *TxByPrice) Pop() interface{} {
 // entire batches of transactions for non-executable accounts.
 type TransactionsByPriceAndNonce struct {
 	txs    map[common.Address]SelfTransactions // Per account nonce-sorted list of transactions
-	heads  TxByPrice                       // Next transaction for each unique account (price heap)
+	//heads  TxByPrice                       // Next transaction for each unique account (price heap)
+	heads TxByNonce
 	signer Signer                          // Signer for the set of transactions
 }
 
@@ -599,7 +612,7 @@ type TransactionsByPriceAndNonce struct {
 // if after providing it to the constructor.
 func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]SelfTransactions) *TransactionsByPriceAndNonce {
 	// Initialize a price based heap with the head transactions
-	heads := make(TxByPrice, 0, len(txs))
+	heads := make(TxByNonce, 0, len(txs))
 	for from, accTxs := range txs {
 		heads = append(heads, accTxs[0])
 		// Ensure the sender address is from the signer
@@ -609,7 +622,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]SelfTr
 			delete(txs, from)
 		}
 	}
-	heap.Init(&heads)
+	//heap.Init(&heads)
 
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{

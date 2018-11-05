@@ -327,8 +327,12 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 
-	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(result.Rxs), "高度", p.number)
-	p.curProcessReq.txs = result.Rxs
+
+	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(result.AllTxs), "高度", p.number)
+	for _,listN := range result.AllTxs{
+		p.curProcessReq.txs = append(p.curProcessReq.txs,listN.Txser...)
+	}
+
 
 	//todo 跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	remoteHeader := p.curProcessReq.req.Header

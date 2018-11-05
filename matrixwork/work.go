@@ -65,85 +65,96 @@ func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasP
 	return Work, nil
 }
 
-func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsByPriceAndNonce, bc *core.BlockChain, coinbase common.Address) (listN []uint32, retTxs []types.SelfTransaction) {
+//func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsByPriceAndNonce, bc *core.BlockChain, coinbase common.Address) (listN []uint32, retTxs []types.SelfTransaction) {
+func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransactions, bc *core.BlockChain, coinbase common.Address) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
 	var coalescedLogs []*types.Log
-
-	for {
+	tmpRetmap := make(map[common.TxTypeInt][]uint32)
+	for _,txer := range txser{
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
 			break
 		}
 		// Retrieve the next transaction and abort if all done
-		tx := txs.Peek()
-		if tx == nil {
-			break
-		}
+		//tx := txs.Peek()
+		//if tx == nil {
+		//	break
+		//}
 
-		if tx.GetTxNLen() == 0{
+		if txer.GetTxNLen() == 0{
 			log.Info("===========tx.N is nil")
-			txs.Pop()
+			//txs.Pop()
 			continue
 		}
 		// Error may be ignored here. The error has already been checked
 		// during transaction acceptance is the transaction pool.
 		//
 		// We use the eip155 signer regardless of the current hf.
-		from, _ := tx.GetTxFrom()
+		from, _ := txer.GetTxFrom()
 
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
 		//YYY TODO 是否需要当前这个if
-		if tx.Protected() && !env.config.IsEIP155(env.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", env.config.EIP155Block)
+		if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
+			log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
 
-			txs.Pop()
+			//txs.Pop()
 			continue
 		}
 		// Start executing the transaction
-		env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
-		err, logs := env.commitTransaction(tx, bc, coinbase, env.gasPool)
+		env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
+		err, logs := env.commitTransaction(txer, bc, coinbase, env.gasPool)
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Trace("Gas limit exceeded for current block", "sender", from)
-			txs.Pop()
+			//txs.Pop()
 
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
-			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
-			txs.Shift()
+			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", txer.Nonce())
+			//txs.Shift()
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
-			txs.Pop()
+			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", txer.Nonce())
+			//txs.Pop()
 
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			//==========hezi===================
-			if tx.GetTxNLen() != 0 {
-				listN = append(listN, tx.GetTxN(0))
-				retTxs = append(retTxs, tx)
-				//log.INFO("=======", "commitTransactions:len(listN)", len(listN))
+			if txer.GetTxNLen() != 0 {
+				n := txer.GetTxN(0)
+				if listN,ok:=tmpRetmap[txer.TxType()];ok{
+					listN = append(listN,n)
+					tmpRetmap[txer.TxType()] = listN
+				}else{
+					listN:=make([]uint32,0)
+					listN = append(listN,n)
+					tmpRetmap[txer.TxType()] = listN
+				}
+				retTxs = append(retTxs, txer)
 			}
 			//==================================
 			coalescedLogs = append(coalescedLogs, logs...)
 			env.tcount++
-			txs.Shift()
+			//txs.Shift()
 
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
-			log.Debug("Transaction failed, account skipped", "hash", tx.Hash(), "err", err)
-			txs.Shift()
+			log.Debug("Transaction failed, account skipped", "hash", txer.Hash(), "err", err)
+			//txs.Shift()
 		}
 	}
-
+	for t,n := range tmpRetmap{
+		ts := common.RetCallTxN{t,n}
+		listret = append(listret,&ts)
+	}
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
@@ -162,7 +173,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsB
 			}
 		}(cpy, env.tcount)
 	}
-	return listN, retTxs
+	return listret, retTxs
 }
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
@@ -188,7 +199,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) ([]uint32, []types.SelfTransaction) {
+func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 
 	//ret := make(chan *retStruct, 1)
 	//tm := time.NewTimer(time.Second * 5)
@@ -221,10 +232,14 @@ func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil,nil
 	}
-	log.INFO("===========", "ProcessTransactions:pending:", len(pending))
-	txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
+	//log.INFO("===========", "ProcessTransactions:pending:", len(pending))
+	listTx := make(types.SelfTransactions,0)
+	for _,txser:=range pending{
+		listTx = append(listTx,txser...)
+	}
+	//txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
 	//log.INFO("===========", "ProcessTransactions:txs:", txs)
-	return self.commitTransactions(mux, txs, bc, common.Address{})
+	return self.commitTransactions(mux, listTx, bc, common.Address{})
 }
 
 /*//==============================================================================//

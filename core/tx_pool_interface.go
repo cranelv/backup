@@ -24,20 +24,26 @@ const (
 
 // TxPool interface
 type TxPool interface {
-	Type() types.TxTypeInt
+	Type() common.TxTypeInt
 	Stop()
 	AddTxPool(tx types.SelfTransaction) error
-	Pending() (map[common.Address][]*types.Transaction, error)
+	Pending() (map[common.Address][]types.SelfTransaction, error)
 	SubscribeNewTxsEvent(chan<- NewTxsEvent) event.Subscription
+	ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool)
 }
 
-//Expansion interface
 type TxpoolEx interface {
 	DemoteUnexecutables()
 	ListenUdp()
-	ReturnAllTxsByN(listN []uint32, resqe int, addr common.Address, retch chan *RetChan)
 }
+//Expansion interface
 
+
+type RetCallTx struct {
+	TXt common.TxTypeInt
+	//ListN []uint32
+	Txser []types.SelfTransaction
+}
 // hezi
 type NetworkMsgData struct {
 	NodeId discover.NodeID
@@ -49,7 +55,7 @@ type MsgStruct struct {
 	Msgtype    uint32
 	NodeId     discover.NodeID
 	MsgData    []byte
-	TxpoolType types.TxTypeInt
+	TxpoolType common.TxTypeInt
 }
 
 //消息中心的接口（如果需要消息中心就要实现这两个方法）

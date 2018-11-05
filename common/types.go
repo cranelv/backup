@@ -362,3 +362,10 @@ type NetTopology struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData
 }
+
+
+type TxTypeInt uint8
+type RetCallTxN struct {
+	TXt TxTypeInt
+	ListN []uint32
+}

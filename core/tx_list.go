@@ -40,6 +40,7 @@ type txSortedMap struct {
 	items map[uint64]*types.Transaction // Hash map storing the transaction data
 	index *nonceHeap                    // Heap of nonces of all the stored transactions (non-strict mode)
 	cache []*types.Transaction            // Cache of the transactions already sorted
+	//cache []types.SelfTransaction
 }
 
 // newTxSortedMap creates a new nonce-sorted transaction map.
@@ -205,10 +206,20 @@ func (m *txSortedMap) Flatten() []*types.Transaction {
 	// If the sorting was not cached yet, create and cache it
 	if m.cache == nil {
 		m.cache = make([]*types.Transaction, 0, len(m.items))
+		tmptxser:=make([]types.SelfTransaction,0)
 		for _, tx := range m.items {
-			m.cache = append(m.cache, tx)
+			//m.cache = append(m.cache, tx)
+			tmptxser = append(tmptxser,tx)
 		}
-		//sort.Sort(types.TxByNonce(m.cache))//因为排不排序已经不重要了
+		sort.Sort(types.TxByNonce(tmptxser))
+		for _,txer := range tmptxser{
+			tx,ok:=txer.(*types.Transaction)
+			if ok{
+				m.cache = append(m.cache, tx)
+			}
+		}
+
+
 	}
 	// Copy the cache to prevent accidental modifications
 	txs := make([]*types.Transaction, len(m.cache))
