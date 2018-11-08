@@ -56,10 +56,10 @@ func TestDecodeInterface1(t *testing.T) {
 	t.Log(b)
 	testRlp1 := testStruct{}
 //	testSlice1 := []testInterface{}
-	interfaceConstructorMap[testRlp.Test1.GetConstructorType()] = func()interface{}{
+	InterfaceConstructorMap[testRlp.Test1.GetConstructorType()] = func()interface{}{
 		return &testStruct1{}
 	}
-	interfaceConstructorMap[testRlp.Test2.GetConstructorType()] = func()interface{}{
+	InterfaceConstructorMap[testRlp.Test2.GetConstructorType()] = func()interface{}{
 		return &testStruct2{}
 	}
 	DecodeBytes(b,&testRlp1)
@@ -70,10 +70,10 @@ func TestDecodeInterface(t *testing.T) {
 	test1 := testStruct1{100,100,100}
 	testSlice = append(testSlice,&testStruct1{100,100,100},&testStruct1{200,200,200})
 	testSlice = append(testSlice,&testStruct2{100,100,100,100},&testStruct2{100,100,100,100})
-	interfaceConstructorMap[test1.GetConstructorType()] = func()interface{}{
+	InterfaceConstructorMap[test1.GetConstructorType()] = func()interface{}{
 		return &testStruct1{}
 	}
-	interfaceConstructorMap[testSlice[2].GetConstructorType()] = func()interface{}{
+	InterfaceConstructorMap[testSlice[2].GetConstructorType()] = func()interface{}{
 		return &testStruct2{}
 	}
 	b1,_ := EncodeToBytes(test1)

@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
+	"github.com/matrix/go-matrix/log"
 )
 
 var (
@@ -520,6 +521,7 @@ func decodeInterfaceRLP(s *Stream, val reflect.Value) error {
 	if creater,exist := InterfaceConstructorMap[valRLP.TypeKind];exist{
 		valRLP.Value = creater()
 	}else{
+		log.Info("interface constructor Error:" ,"typeKind",valRLP.TypeKind)
 		return &decodeError{msg: "interface constructor cannot find", typ: typ}
 	}
 	info, err := cachedTypeInfo1(reflect.ValueOf(valRLP.Value).Elem().Type(),tags{} )
