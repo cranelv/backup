@@ -25,6 +25,14 @@ var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
 )
 
+func init()  {
+	rlp.InterfaceConstructorMap[10] = func() interface{} {
+		return &Transaction{}
+	}
+	rlp.InterfaceConstructorMap[20] = func() interface{} {
+		return &TransactionBroad{}
+	}
+}
 // deriveSigner makes a *best* guess about which signer to use.
 //func deriveSigner(V *big.Int) Signer {
 //	if V.Sign() != 0 && isProtectedV(V) {
@@ -266,7 +274,9 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	*tx = Transaction{data: dec}
 	return nil
 }
-
+func (tx *Transaction)GetConstructorType()uint16{
+	return uint16(NormalTxIndex)
+}
 func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
 func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
 func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }

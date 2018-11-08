@@ -3,10 +3,10 @@ package types
 import (
 	"math/big"
 	"github.com/matrix/go-matrix/common"
-	"io"
 	"github.com/matrix/go-matrix/rlp"
 	"sync/atomic"
 	"errors"
+	"io"
 )
 type TransactionBroad struct {
 	data txdata
@@ -31,7 +31,6 @@ func (tx *TransactionBroad) DecodeRLP(s *rlp.Stream) error {
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
-
 	return err
 }
 func (tx *TransactionBroad) GetTxN(index int) uint32{
@@ -205,4 +204,7 @@ func (tx *TransactionBroad) RawSignatureValues() (*big.Int, *big.Int, *big.Int) 
 }
 func (tx *TransactionBroad) Protected() bool {
 	return isProtectedV(tx.data.V)
+}
+func (tx *TransactionBroad)GetConstructorType()uint16{
+	return uint16(BroadCastTxIndex)
 }

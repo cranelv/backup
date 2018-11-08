@@ -138,9 +138,6 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 	normalTxPool := NewTxPool(config, chainconfig, chain)
 	pm.Subscribe(normalTxPool)
 
-	broadTxPool := NewBroadTxPool(chainconfig, chain, path)
-	pm.Subscribe(broadTxPool)
-
 	for {
 		select {
 		case role = <-pm.roleChan:
@@ -263,6 +260,10 @@ func (pm *TxPoolManager) GetTxPoolByType(tp common.TxTypeInt) (txPool TxPool, er
 func (pm *TxPoolManager) ReturnAllTxsByN(listretctx []*common.RetCallTxN, resqe int, addr common.Address, retch chan *RetChan) {
 	pm.txPoolsMutex.RLock()
 	defer pm.txPoolsMutex.RUnlock()
+	if len(listretctx) <= 0{
+		retch <- &RetChan{nil, nil, resqe}
+		return
+	}
 	txAcquireCh := make(chan *RetChan_txpool, len(listretctx))
 	for _,retctx := range listretctx{
 		go pm.txPools[retctx.TXt].ReturnAllTxsByN(retctx.ListN, retctx.TXt, addr, txAcquireCh)

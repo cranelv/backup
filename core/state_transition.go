@@ -52,14 +52,16 @@ type StateTransition struct {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+//func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if contractCreation && homestead {
-		gas = params.TxGasContractCreation
-	} else {
-		gas = params.TxGas
-	}
+	//if contractCreation && homestead {
+	//	gas = params.TxGasContractCreation
+	//} else {
+	//	gas = params.TxGas
+	//}
+	gas = params.TxGas
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
 		// Zero and non-zero bytes are priced differently
@@ -104,11 +106,18 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
 
-func ApplyMessage(evm *vm.EVM, msg txinterface.Message, gp *GasPool) ([]byte, uint64, bool, error) {
+func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uint64, bool, error) {
 	var stsi txinterface.StateTransitioner
-	switch msg.TxType() {
+	switch tx.TxType() {
 	default:
-		stsi = NewStateTransition(evm,msg,gp)
+		//extx := tx.GetMatrix_EX()
+		//if (extx != nil) && len(extx) > 0 && extx[0].TxType == 2{
+		//	stsi = NewStateTransition(evm,tx,gp)
+		//}else if false{
+		//
+		//}else{
+		stsi = NewStateTransition(evm,tx,gp)
+		//}
 	}
 	return stsi.TransitionDb()
 }
@@ -165,25 +174,49 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	if err = st.PreCheck(); err != nil {
 		return
 	}
-	msg := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
-	sender := vm.AccountRef(msg.From())
-	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
-	contractCreation := msg.To() == nil
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	extx := tx.GetMatrix_EX()
+	if (extx != nil) && len(extx) > 0 && extx[0].TxType != 0{
+		//toaddr := tx.To()
+		//sender := vm.AccountRef(tx.From())
+		//var (
+		//	evm = st.evm
+		//	vmerr error
+		//)
+		switch extx[0].TxType{
+		case common.ExtraRevertTxType:
 
+		case common.ExtraUnGasTxType:
+
+		default:
+			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
+		}
+		return st.CallNormalTx()
+	}else{
+		return st.CallNormalTx()
+	}
+}
+func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
+	sender := vm.AccountRef(tx.From())
+	var (
+		evm = st.evm
+		vmerr error
+	)
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+	gas, err := IntrinsicGas(st.data)
 	if err != nil {
 		return nil, 0, false, err
 	}
 	//YY
-	tmpExtra := msg.GetMatrix_EX() //Extra()
+	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
 			return nil, 0, false, ErrTXCountOverflow
 		}
 		for _, ex := range tmpExtra[0].ExtraTo {
-			contractCreation = ex.Recipient == nil
-			tmpgas, tmperr := IntrinsicGas(ex.Payload, contractCreation, homestead)
+			tmpgas, tmperr := IntrinsicGas(ex.Payload)
 			if tmperr != nil {
 				return nil, 0, false, err
 			}
@@ -194,27 +227,17 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-
-	var (
-		evm = st.evm
-		// vm errors do not effect consensus and are therefor
-		// not assigned to err, except for insufficient balance
-		// error.
-		vmerr error
-	)
-	contractCreation = msg.To() == nil //YY
-	if contractCreation {
+	if toaddr == nil {//YY
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	//YY=========begin===============
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			contractCreation = ex.Recipient == nil
-			if contractCreation {
+			if toaddr == nil {
 				//ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 				ret, _, st.gas, vmerr = evm.Create(sender, ex.Payload, st.gas, ex.Amount)
 			} else {
@@ -236,15 +259,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
-
 	st.RefundGas()
-
 	//hezi;2018.9.6;此处不给矿工奖励
 	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
-
 	return ret, st.GasUsed(), vmerr != nil, err
 }
-
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.GasUsed() / 2

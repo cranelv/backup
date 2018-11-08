@@ -15,13 +15,16 @@ import (
 var (
 	typeCacheMutex sync.RWMutex
 	typeCache      = make(map[typekey]*typeinfo)
+	typerInterface = reflect.TypeOf(new(InterfaceTyper)).Elem()
 )
 
 type typeinfo struct {
 	decoder
 	writer
 }
-
+type InterfaceTyper interface {
+	GetConstructorType()uint16
+}
 // represents struct tags
 type tags struct {
 	// rlp:"nil" controls whether empty input results in a nil pointer.
@@ -103,7 +106,10 @@ func structFields(typ reflect.Type) (fields []field, err error) {
 	}
 	return fields, nil
 }
-
+type InterfaceRLP struct{
+	TypeKind uint16
+	Value interface{}
+}
 func parseStructTag(typ reflect.Type, fi int) (tags, error) {
 	f := typ.Field(fi)
 	var ts tags

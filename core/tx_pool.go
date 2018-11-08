@@ -1242,7 +1242,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 			return ErrInsufficientFunds
 		}
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, nPool.homestead)
+	intrGas, err := IntrinsicGas(tx.Data())
 	if err != nil {
 		return err
 	}
@@ -1250,7 +1250,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	if len(txEx) > 0 && len(txEx[0].ExtraTo) > 0 {
 		for _, tx_list := range txEx {
 			for _, txs := range tx_list.ExtraTo {
-				tmpintrGas, tmperr := IntrinsicGas(txs.Payload, txs.Recipient == nil, nPool.homestead)
+				tmpintrGas, tmperr := IntrinsicGas(txs.Payload)
 				if tmperr != nil {
 					return tmperr
 				}
