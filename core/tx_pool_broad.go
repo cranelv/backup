@@ -77,7 +77,12 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 	)
 	log.Info("Block insert message", "height", head.Number().Uint64(), "head.Hash=", head.Hash())
 
-	txs := head.Transactions()  //TODO 需要断言，因为Transactions()方法将来会返回接口
+	tempMap[mc.Publickey] = make(map[common.Address][]byte)
+	tempMap[mc.Heartbeat] = make(map[common.Address][]byte)
+	tempMap[mc.Privatekey] = make(map[common.Address][]byte)
+	tempMap[mc.CallTheRoll] = make(map[common.Address][]byte)
+
+	txs := head.Transactions() //TODO 需要断言，因为Transactions()方法将来会返回接口
 	for _, tx := range txs {
 		if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
 			temp := make(map[string][]byte)
@@ -159,16 +164,16 @@ func (bPool *BroadCastTxPool) AddBroadTx(tx types.SelfTransaction, bType bool) (
 	if bType {
 		//txs := make([]types.SelfTransaction, 0)
 		//txs = append(txs, tx)
-		if err := bPool.AddTxPool(tx); err != nil{
+		if err := bPool.AddTxPool(tx); err != nil {
 			return err
 		}
 		return nil
 	}
 
 	txMx := types.GetTransactionMx(tx)
-	if txMx == nil{
+	if txMx == nil {
 		// If it is nil, it may be because the assertion failed.
-		log.Error("Broad txpool","AddBroadTx() txMx is nil",tx)
+		log.Error("Broad txpool", "AddBroadTx() txMx is nil", tx)
 
 		return errors.New("tx is nil or txMx assertion failed")
 	}
@@ -203,7 +208,7 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 		err := json.Unmarshal(tx.Data(), &tmpdt)
 		if err != nil {
 			log.Error("add broadcast tx pool", "json.Unmarshal failed", err)
-			reerr =  err
+			reerr = err
 			return reerr
 		}
 		for keydata, _ := range tmpdt {
@@ -363,6 +368,6 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
 	return nil
 }
-func (bPool *BroadCastTxPool)ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool){
+func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool) {
 
 }
