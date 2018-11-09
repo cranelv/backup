@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d0bb9a56-ca9c-4d77-902c-2bae343d486e" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/broadcastTx/broadcast.go" beforeDir="false" afterPath="$PROJECT_DIR$/broadcastTx/broadcast.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/tx_pool_broad.go" beforeDir="false" afterPath="$PROJECT_DIR$/core/tx_pool_broad.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rlp/decode.go" beforeDir="false" afterPath="$PROJECT_DIR$/rlp/decode.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -20,11 +19,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="broadcast.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="broadcast.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/broadcastTx/broadcast.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="319">
-              <caret line="94" column="20" lean-forward="true" selection-start-line="94" selection-start-column="20" selection-end-line="94" selection-end-column="20" />
+            <state relative-caret-position="433">
+              <caret line="100" column="22" lean-forward="true" selection-start-line="100" selection-start-column="22" selection-end-line="100" selection-end-column="22" />
             </state>
           </provider>
         </entry>
@@ -57,15 +56,6 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="190">
               <caret line="10" column="5" selection-start-line="10" selection-start-column="5" selection-end-line="10" selection-end-column="5" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="blockgenor.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/blkgenor/blockgenor.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="625">
-              <caret line="243" column="19" lean-forward="true" selection-start-line="243" selection-start-column="19" selection-end-line="243" selection-end-column="19" />
             </state>
           </provider>
         </entry>
@@ -112,8 +102,17 @@
       <file leaf-file-name="typecache.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/rlp/typecache.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="912">
-              <caret line="53" column="19" lean-forward="true" selection-start-line="53" selection-start-column="19" selection-end-line="53" selection-end-column="19" />
+            <state relative-caret-position="217">
+              <caret line="50" column="5" selection-start-line="50" selection-start-column="5" selection-end-line="50" selection-end-column="5" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="decode.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/rlp/decode.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="369">
+              <caret line="519" column="5" lean-forward="true" selection-start-line="519" selection-start-column="5" selection-end-line="519" selection-end-column="5" />
             </state>
           </provider>
         </entry>
@@ -129,7 +128,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>EncodeRLP</find>
       <find>make</find>
       <find>decodeDecoderNoPtr</find>
       <find>interfaceMap</find>
@@ -155,10 +153,11 @@
       <find>ProcessTransactions</find>
       <find>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</find>
       <find>typeCache</find>
-      <find>cachedTypeInfo</find>
       <find>sendBroadCastTransaction:ttttttttt</find>
       <find>GetAllSpecialTxs</find>
       <find>bPool.special</find>
+      <find>decodeInterfacer</find>
+      <find>cachedTypeInfo</find>
     </findStrings>
     <replaceStrings>
       <replace>rPool</replace>
@@ -220,7 +219,6 @@
         <option value="$PROJECT_DIR$/core/types/transactionInterface.go" />
         <option value="$PROJECT_DIR$/core/tx_pool.go" />
         <option value="$PROJECT_DIR$/rlp/interfaceDecode_test.go" />
-        <option value="$PROJECT_DIR$/rlp/decode.go" />
         <option value="$PROJECT_DIR$/core/rawdb/accessors_chain_test.go" />
         <option value="$PROJECT_DIR$/core/types/transaction.go" />
         <option value="$PROJECT_DIR$/core/types/transactionBroad.go" />
@@ -230,6 +228,7 @@
         <option value="$PROJECT_DIR$/core/tx_pool_broad.go" />
         <option value="$PROJECT_DIR$/rlp/typecache.go" />
         <option value="$PROJECT_DIR$/broadcastTx/broadcast.go" />
+        <option value="$PROJECT_DIR$/rlp/decode.go" />
       </list>
     </option>
   </component>
@@ -437,7 +436,7 @@
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15351813" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.15351813" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.5005208" side_tool="true" weight="0.20627062" />
       <window_info anchor="right" id="Database" order="3" />
@@ -447,7 +446,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.32978722" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.49947917" visible="true" weight="0.20392585" />
+      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49947917" visible="true" weight="0.20392585" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -580,13 +579,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="179">
           <caret line="212" selection-start-line="212" selection-end-line="212" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/rlp/decode.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="179">
-          <caret line="523" column="76" lean-forward="true" selection-start-line="523" selection-start-column="76" selection-end-line="523" selection-end-column="76" />
         </state>
       </provider>
     </entry>
@@ -910,13 +902,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/rlp/typecache.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="912">
-          <caret line="53" column="19" lean-forward="true" selection-start-line="53" selection-start-column="19" selection-end-line="53" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/common/broadcast.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="190">
@@ -945,8 +930,22 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/broadcastTx/broadcast.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="319">
-          <caret line="94" column="20" lean-forward="true" selection-start-line="94" selection-start-column="20" selection-end-line="94" selection-end-column="20" />
+        <state relative-caret-position="433">
+          <caret line="100" column="22" lean-forward="true" selection-start-line="100" selection-start-column="22" selection-end-line="100" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rlp/typecache.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="217">
+          <caret line="50" column="5" selection-start-line="50" selection-start-column="5" selection-end-line="50" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rlp/decode.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="369">
+          <caret line="519" column="5" lean-forward="true" selection-start-line="519" selection-start-column="5" selection-end-line="519" selection-end-column="5" />
         </state>
       </provider>
     </entry>
