@@ -66,5 +66,6 @@ const (
 	BlockToBuckets
 	BlockToLinkers
 	SendUdpTx
+	TxPoolManager
 	LastEventCode
 )

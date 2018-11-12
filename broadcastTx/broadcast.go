@@ -16,6 +16,7 @@ import (
 	"github.com/matrix/go-matrix/internal/manapi"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"time"
 )
 
 const (
@@ -86,17 +87,21 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 	msData, _ := json.Marshal(tmpData)
 	var txtype byte
 	txtype = byte(1)
-	tx := types.NewHeartTransaction(txtype, msData)
+	tx := types.NewBroadCastTransaction(txtype, msData)
 	var chainID *big.Int
 	if config := bc.manBackend.ChainConfig(); config.IsEIP155(currBlockHeight) {
 		chainID = config.ChainId
 	}
+	t1 := time.Now()
 	signed, err := bc.manBackend.SignTx(tx, chainID)
 	if err != nil {
 		log.Info("=========YY=========", "sendBroadCastTransaction:SignTx=", err)
 		return err
 	}
+	t2:=time.Since(t1)
 	err1 := bc.manBackend.SendBroadTx(context.Background(), signed, bType)
+	t3:=time.Since(t1)
+	log.Info("File BroadCast","func sendBroadCastTransaction:t2",t2,"t3",t3)
 	log.Info("=========YY=========", "sendBroadCastTransaction:Return=", err1)
 	return nil
 }

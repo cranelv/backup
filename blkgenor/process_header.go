@@ -15,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/txpoolCache"
 )
 
 func (p *Process) processHeaderGen() error {
@@ -72,7 +73,7 @@ func (p *Process) processHeaderGen() error {
 		}
 		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
 
-		Txs := make([]*types.Transaction, 0)
+		Txs := make([]types.SelfTransaction, 0)
 		for _, txs := range mapTxs {
 			for _, tx := range txs {
 				log.INFO(p.logExtraInfo(), "交易数据 t", tx)
@@ -157,7 +158,9 @@ func (p *Process) processHeaderGen() error {
 		p2pBlock := &mc.HD_BlkConsensusReqMsg{Header: header, TxsCode: txsCode, ConsensusTurn: p.consensusTurn, From: ca.GetAddress()}
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
-		txpoolCache.MakeStruck(Txs,header.HashNoSignsAndNonce(),p.number)
+		if len(Txs) > 0{
+			txpoolCache.MakeStruck(Txs,header.HashNoSignsAndNonce(),p.number)
+		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
 		p.startConsensusReqSender(p2pBlock)

@@ -341,7 +341,7 @@ func makeWriter(typ reflect.Type, ts tags) (writer, error) {
 	case kind != reflect.Ptr && reflect.PtrTo(typ).Implements(encoderInterface):
 		return writeEncoderNoPtr, nil
 	case kind == reflect.Interface:
-		return writeInterface, nil
+		return writeTypeInterface,nil
 	case typ.AssignableTo(reflect.PtrTo(bigInt)):
 		return writeBigIntPtr, nil
 	case typ.AssignableTo(bigInt):
@@ -477,6 +477,15 @@ func writeEncoderNoPtr(val reflect.Value, w *encbuf) error {
 	return val.Addr().Interface().(Encoder).EncodeRLP(w)
 }
 
+func writeTypeInterface(val reflect.Value, w *encbuf)error{
+	if val.Type().Implements(typerInterface) {
+		valRLP := InterfaceRLP{val.Interface().(InterfaceTyper).GetConstructorType(),val.Interface()}
+		writer,_ := makeStructWriter(reflect.TypeOf(valRLP))
+		return writer(reflect.ValueOf(valRLP),w)
+	}else {
+		return writeInterface(val,w)
+	}
+}
 func writeInterface(val reflect.Value, w *encbuf) error {
 	if val.IsNil() {
 		// Write empty list. This is consistent with the previous RLP
