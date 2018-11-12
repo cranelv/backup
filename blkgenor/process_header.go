@@ -16,6 +16,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/txpoolCache"
+	"github.com/matrix/go-matrix/params"
 )
 
 func (p *Process) processHeaderGen() error {
@@ -188,7 +189,7 @@ func (p *Process) getParentBlock() (*types.Block, error) {
 
 func (p *Process) startConsensusReqSender(req *mc.HD_BlkConsensusReqMsg) {
 	p.closeConsensusReqSender()
-	sender, err := common.NewResendMsgCtrl(req, p.sendConsensusReqFunc, man.BlkPosReqSendInterval, man.BlkPosReqSendTimes)
+	sender, err := common.NewResendMsgCtrl(req, p.sendConsensusReqFunc, params.BlkPosReqSendInterval, params.BlkPosReqSendTimes)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "创建POS完成的req发送器", "失败", "err", err)
 		return

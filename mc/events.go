@@ -66,6 +66,7 @@ const (
 	BlockToBuckets
 	BlockToLinkers
 	SendUdpTx
+	SendSyncRole      //lb
 	TxPoolManager
 	LastEventCode
 )

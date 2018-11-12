@@ -192,14 +192,14 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	//}
-	man.txPool = core.NewTxPool(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
+	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
 
 	if man.protocolManager, err = NewProtocolManager(man.chainConfig, config.SyncMode, config.NetworkId, man.eventMux, man.txPool, man.engine, man.blockchain, chainDb, ctx.MsgCenter); err != nil {
 		return nil, err
 	}
 	//man.protocolManager.Msgcenter = ctx.MsgCenter
 	MsgCenter = ctx.MsgCenter
-	man.miner, err = miner.New(man.blockchain, man.chainConfig, man.EventMux(), man.engine, man.blockchain.DPOSEngine(), man.hd, man.CA())
+	man.miner, err = miner.New(man.blockchain, man.chainConfig, man.EventMux(), man.engine, man.blockchain.DPOSEngine(), man.hd)
 	if err != nil {
 		return nil, err
 	}
@@ -416,15 +416,6 @@ func (s *Matrix) Manerbase() (eb common.Address, err error) {
 	return common.Address{}, fmt.Errorf("manbase must be explicitly specified")
 }
 
-// SetManerbase sets the mining reward address.
-func (s *Matrix) SetManerbase(manbase common.Address) {
-	s.lock.Lock()
-	s.manbase = manbase
-	s.lock.Unlock()
-
-	s.miner.SetManerbase(manbase)
-}
-
 func (s *Matrix) StartMining(local bool) error {
 	eb, err := s.Manerbase()
 	if err != nil {
@@ -446,7 +437,7 @@ func (s *Matrix) StartMining(local bool) error {
 		// will ensure that private networks work in single miner mode too.
 		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
 	}
-	go s.miner.Start(eb)
+	go s.miner.Start()
 	return nil
 }
 

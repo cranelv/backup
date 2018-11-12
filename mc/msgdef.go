@@ -146,7 +146,7 @@ type BlockPOSFinishedNotify struct {
 	Number        uint64
 	Header        *types.Header // 包含签名列表的header
 	ConsensusTurn uint32
-	TxsCode       []uint32
+	TxsCode       []*common.RetCallTxN
 }
 
 type BlockLocalVerifyOK struct {
@@ -302,6 +302,6 @@ type HD_FullBlockReqMsg struct {
 
 type HD_FullBlockRspMsg struct {
 	Header *types.Header
-	Txs    types.Transactions
+	Txs    types.SelfTransactions
 	From   common.Address
 }
