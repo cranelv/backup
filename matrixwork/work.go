@@ -306,7 +306,7 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 
 	upTimeAccounts := make([]common.Address, 0)
 
-	minerNum := num - (num % common.GetBroadcastInterval()) - params.MinerTopologyGenerateUptime
+	minerNum := num - (num % common.GetBroadcastInterval()) - params.MinerTopologyGenerateUpTime
 	log.INFO(packagename, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {

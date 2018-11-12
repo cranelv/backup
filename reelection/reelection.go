@@ -28,7 +28,7 @@ var (
 	*/
 
 	BroadCastInterval        = common.GetBroadcastInterval()
-	MinerTopGenTiming        = common.GetReElectionInterval() - params.MinerTopologyGenerateUptime
+	MinerTopGenTiming        = common.GetReElectionInterval() - params.MinerTopologyGenerateUpTime
 	MinerNetchangeTiming     = common.GetReElectionInterval() - params.MinerNetChangeUpTime
 	ValidatorTopGenTiming    = common.GetReElectionInterval() - params.VerifyTopologyGenerateUpTime
 	ValidatorNetChangeTiming = common.GetReElectionInterval() - params.VerifyNetChangeUpTime

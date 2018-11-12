@@ -4,8 +4,8 @@
 package common
 
 var (
-	broadcastInterval  = uint64(10000)
-	reelectionInterval = uint64(30000)
+	broadcastInterval  = uint64(100)
+	reelectionInterval = uint64(300)
 )
 
 func IsBroadcastNumber(number uint64) bool {

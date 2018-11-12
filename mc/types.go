@@ -48,10 +48,6 @@ type LeaderStateMsg struct {
 	ReelectTurn uint8
 }
 
-type SyncIdEvent struct { //lb
-	Role common.RoleType
-}
-
 // type BlockVerifyReqMsg struct {
 // 	Header  types.Header
 // 	TxsCode []uint32
