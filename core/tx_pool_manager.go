@@ -12,6 +12,8 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/ca"
 	"time"
+	"encoding/json"
+	"github.com/matrix/go-matrix/p2p"
 )
 
 var (
@@ -245,7 +247,40 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 		}
 	}
 }
+// SendMsg
+func (pm *TxPoolManager) SendMsg(data MsgStruct) {
+	if data.Msgtype == BroadCast {
+		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+	}
+}
+// AddBroadTx add broadcast transaction.
+func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err error) {
+	pool, ok := pm.txPools[types.BroadCastTxIndex]
+	if !ok {
+		txMx := types.GetTransactionMx(tx)
+		if txMx == nil {
+			// If it is nil, it may be because the assertion failed.
+			log.Error("Broad txpool", "AddBroadTx() txMx is nil", tx)
 
+			return errors.New("tx is nil or txMx assertion failed")
+		}
+		msData, err := json.Marshal(txMx)
+		if err != nil {
+			return err
+		}
+		bids := ca.GetRolesByGroup(common.RoleBroadcast)
+		for _, bid := range bids {
+			pm.SendMsg(MsgStruct{Msgtype: BroadCast, NodeId: bid, MsgData: msData,TxpoolType:types.BroadCastTxIndex})
+		}
+		return nil
+	}
+	if bType {
+		if err := pool.AddTxPool(tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 // GetTxPoolByType get txpool by given type from manager.
 func (pm *TxPoolManager) GetTxPoolByType(tp common.TxTypeInt) (txPool TxPool, err error) {
 	pm.txPoolsMutex.RLock()

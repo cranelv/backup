@@ -99,7 +99,7 @@ func (l *Linker) Start() {
 				switch {
 				case common.IsBroadcastNumber(height):
 					l.ToLink()
-				case common.IsBroadcastNumber(height + 2):
+				case common.IsBroadcastNumber(height + 3):
 					if len(l.linkMap) <= 0 {
 						break
 					}
@@ -108,7 +108,7 @@ func (l *Linker) Start() {
 						log.Error("encode error", "error", err)
 						break
 					}
-					mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.CallTheRoll, Height: big.NewInt(r.Height.Int64() + 2), Data: bytes})
+					mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.CallTheRoll, Height: big.NewInt(r.Height.Int64() + 3), Data: bytes})
 				case common.IsBroadcastNumber(height + 1):
 					break
 				default:

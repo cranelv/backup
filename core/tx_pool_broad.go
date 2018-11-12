@@ -160,34 +160,7 @@ func (bPool *BroadCastTxPool) Stop() {
 	log.Info("Broad Transaction pool stopped")
 }
 
-// AddBroadTx add broadcast transaction.
-func (bPool *BroadCastTxPool) AddBroadTx(tx types.SelfTransaction, bType bool) (err error) {
-	if bType {
-		//txs := make([]types.SelfTransaction, 0)
-		//txs = append(txs, tx)
-		if err := bPool.AddTxPool(tx); err != nil {
-			return err
-		}
-		return nil
-	}
 
-	txMx := types.GetTransactionMx(tx)
-	if txMx == nil {
-		// If it is nil, it may be because the assertion failed.
-		log.Error("Broad txpool", "AddBroadTx() txMx is nil", tx)
-
-		return errors.New("tx is nil or txMx assertion failed")
-	}
-	msData, err := json.Marshal(txMx)
-	if err != nil {
-		return err
-	}
-	bids := ca.GetRolesByGroup(common.RoleBroadcast)
-	for _, bid := range bids {
-		bPool.SendMsg(MsgStruct{Msgtype: BroadCast, NodeId: bid, MsgData: msData})
-	}
-	return
-}
 
 // AddTxPool
 func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) {
