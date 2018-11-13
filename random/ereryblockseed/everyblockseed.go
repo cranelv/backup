@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 )
 
@@ -16,7 +17,7 @@ var (
 )
 
 type EveryBlockSeedPlugs interface {
-	CalcSeed(req uint64, support baseinterface.RandomChainSupport) (*big.Int, error)
+	CalcSeed(req common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error)
 	Prepare(uint64) error
 }
 
@@ -47,6 +48,6 @@ func (self *EveryBlockSeed) Prepare(height uint64) error {
 	return err
 }
 
-func (self *EveryBlockSeed) CalcData(calcData uint64) (*big.Int, error) {
+func (self *EveryBlockSeed) CalcData(calcData common.Hash) (*big.Int, error) {
 	return mapEveryBlockSeedPlugs[self.plug].CalcSeed(calcData, self.support)
 }

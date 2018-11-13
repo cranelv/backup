@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"fmt"
-	"time"
 
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
@@ -53,17 +52,15 @@ func (self *ElectSeedPlug1) Prepare(height uint64) error {
 	return nil
 }
 
-func (self *ElectSeedPlug1) CalcSeed(data uint64, support baseinterface.RandomChainSupport) (*big.Int, error) {
-	ans, err := commonsupport.GetCurrentKeys(data)
+func (self *ElectSeedPlug1) CalcSeed(hash common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error) {
+	ans, err := commonsupport.GetCurrentKeys(hash, support)
 	if err != nil {
 		log.ERROR(ModuleElectSeed, "计算阶段", "", "获取有效私钥出错 err", err)
 		return nil, err
 	}
-	fmt.Println(time.Now(), "start", data)
-	minHash := commonsupport.GetMinHash(data, support.BlockChain())
-	fmt.Println(time.Now(), "end", data)
+	minHash := commonsupport.GetMinHash(hash, support)
 	ans.Add(ans, minHash.Big())
-	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果未", ans, "高度", data)
+	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果未", ans, "高度hash", hash.String())
 	return ans, nil
 }
 

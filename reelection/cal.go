@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package reelection
@@ -6,44 +6,11 @@ package reelection
 import (
 	"errors"
 
-	"github.com/matrix/go-matrix/params"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
 )
 
 //todo
-func (self *ReElection) GetNetTopologyAll(height uint64) (*ElectReturnInfo, error) {
-	if common.IsReElectionNumber(height + 1) {
-		heightMiner := height + 1 - params.MinerNetChangeUpTime
-		ans, _, err := self.readElectData(common.RoleMiner, heightMiner)
-		if err != nil {
-			return nil, err
-		}
-
-		heightValidator := height + 1 - params.VerifyNetChangeUpTime
-		_, ans1, err := self.readElectData(common.RoleValidator, heightValidator)
-		if err != nil {
-			return nil, err
-		}
-		result := &ElectReturnInfo{
-			MasterMiner:     ans.MasterMiner,
-			BackUpMiner:     ans.BackUpMiner,
-			MasterValidator: ans1.MasterValidator,
-			BackUpValidator: ans1.BackUpValidator,
-		}
-		return result, nil
-
-	}
-
-	result := &ElectReturnInfo{
-		MasterMiner:     make([]mc.TopologyNodeInfo, 0),
-		BackUpMiner:     make([]mc.TopologyNodeInfo, 0),
-		MasterValidator: make([]mc.TopologyNodeInfo, 0),
-		BackUpValidator: make([]mc.TopologyNodeInfo, 0),
-	}
-	return result, nil
-}
 
 func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prevTopology *mc.TopologyGraph) []common.Address {
 	if topologyChg.Type != common.NetTopoTypeChange {

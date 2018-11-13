@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -40,7 +41,7 @@ type RandomChainSupport interface {
 }
 type RandomSubService interface {
 	Prepare(uint64) error
-	CalcData(data uint64) (*big.Int, error)
+	CalcData(data common.Hash) (*big.Int, error)
 }
 
 func NewRandom(support RandomChainSupport) (*Random, error) {
@@ -106,9 +107,9 @@ func (self *Random) NewSubServer(name string, plugConfig string, support RandomC
 	return nil
 }
 
-func (self *Random) GetRandom(height uint64, Type string) (*big.Int, error) {
+func (self *Random) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 
-	return self.mapSubService[Type].CalcData(height)
+	return self.mapSubService[Type].CalcData(hash)
 
 }
 

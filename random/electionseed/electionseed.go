@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 )
 
@@ -18,7 +19,7 @@ var (
 )
 
 type ElectSeedPlugs interface {
-	CalcSeed(uint64, baseinterface.RandomChainSupport) (*big.Int, error)
+	CalcSeed(common.Hash, baseinterface.RandomChainSupport) (*big.Int, error)
 	Prepare(uint64) error
 }
 
@@ -43,7 +44,7 @@ func RegisterElectSeedPlugs(name string, plug ElectSeedPlugs) {
 	mapElectSeedPlugs[name] = plug
 }
 
-func (self *ElectionSeed) CalcData(calcData uint64) (*big.Int, error) {
+func (self *ElectionSeed) CalcData(calcData common.Hash) (*big.Int, error) {
 	log.INFO(ModuleElectSeed, "计算阶段", "", "收到的数据", calcData)
 	return mapElectSeedPlugs[self.plug].CalcSeed(calcData, self.support)
 
