@@ -71,7 +71,6 @@ var (
 		utils.ManashDatasetsInMemoryFlag,
 		utils.ManashDatasetsOnDiskFlag,
 		utils.TxPoolNoLocalsFlag,
-		utils.SrvWorkIdFlag,
 		//utils.TxPoolJournalFlag, //YYY
 		//utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,
