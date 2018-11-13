@@ -119,6 +119,11 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: man.DefaultConfig.NetworkId,
 	}
+	SrvWorkIdFlag = cli.Uint64Flag{
+		Name:  "networkid",
+		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
+		Value: pod.DefaultConfig.P2P.NetWorkId,
+	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
@@ -868,6 +873,9 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 
 	if ctx.GlobalIsSet(MaxPendingPeersFlag.Name) {
 		cfg.MaxPendingPeers = ctx.GlobalInt(MaxPendingPeersFlag.Name)
+	}
+	if ctx.GlobalIsSet(SrvWorkIdFlag.Name) {
+		cfg.NetWorkId = ctx.GlobalUint64(SrvWorkIdFlag.Name)
 	}
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
 		cfg.NoDiscovery = true

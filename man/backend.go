@@ -474,6 +474,7 @@ func (s *Matrix) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Matrix protocol implementation.
 func (s *Matrix) Start(srvr *p2p.Server) error {
+	srvr.NetWorkId = s.config.NetworkId
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers()
 
