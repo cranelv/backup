@@ -41,4 +41,6 @@ type SelfTransaction interface {
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
 	Protected() bool
 	GetConstructorType()uint16
+	GasFrom() common.Address
+	AmontFrom() common.Address
 }
