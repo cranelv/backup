@@ -1,23 +1,20 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package matrixwork
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
 
 	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/mc"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
@@ -73,7 +70,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 	var coalescedLogs []*types.Log
 	tmpRetmap := make(map[common.TxTypeInt][]uint32)
-	for _,txer := range txser{
+	for _, txer := range txser {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
@@ -85,7 +82,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		//	break
 		//}
 
-		if txer.GetTxNLen() == 0{
+		if txer.GetTxNLen() == 0 {
 			log.Info("===========tx.N is nil")
 			//txs.Pop()
 			continue
@@ -129,12 +126,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			//==========hezi===================
 			if txer.GetTxNLen() != 0 {
 				n := txer.GetTxN(0)
-				if listN,ok:=tmpRetmap[txer.TxType()];ok{
-					listN = append(listN,n)
+				if listN, ok := tmpRetmap[txer.TxType()]; ok {
+					listN = append(listN, n)
 					tmpRetmap[txer.TxType()] = listN
-				}else{
-					listN:=make([]uint32,0)
-					listN = append(listN,n)
+				} else {
+					listN := make([]uint32, 0)
+					listN = append(listN, n)
 					tmpRetmap[txer.TxType()] = listN
 				}
 				retTxs = append(retTxs, txer)
@@ -151,9 +148,9 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			//txs.Shift()
 		}
 	}
-	for t,n := range tmpRetmap{
-		ts := common.RetCallTxN{t,n}
-		listret = append(listret,&ts)
+	for t, n := range tmpRetmap {
+		ts := common.RetCallTxN{t, n}
+		listret = append(listret, &ts)
 	}
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
@@ -181,7 +178,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		log.Info("*************","ApplyTransaction:err",err)
+		log.Info("*************", "ApplyTransaction:err", err)
 		env.State.RevertToSnapshot(snap)
 		return err, nil
 	}
@@ -227,15 +224,15 @@ func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager
 	//	return nil, nil
 	//}
 
-	pending, err :=  tp.Pending()
+	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil,nil
+		return nil, nil
 	}
 	//log.INFO("===========", "ProcessTransactions:pending:", len(pending))
-	listTx := make(types.SelfTransactions,0)
-	for _,txser:=range pending{
-		listTx = append(listTx,txser...)
+	listTx := make(types.SelfTransactions, 0)
+	for _, txser := range pending {
+		listTx = append(listTx, txser...)
 	}
 	//txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
 	//log.INFO("===========", "ProcessTransactions:txs:", txs)
@@ -346,31 +343,6 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	}
 	log.INFO(packagename, "获取所有uptime账户为", upTimeAccounts)
 	return upTimeAccounts, nil
-}
-
-func (env *Work) GetUpTimeData(num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO(packagename, "获取所有心跳交易", "")
-	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
-	if nil != error {
-		log.ERROR(packagename, "获取主动心跳交易错误", error)
-		return nil, nil, error
-	}
-
-	calltherollUnmarshall, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
-	if nil != error {
-		log.ERROR(packagename, "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		error := json.Unmarshal(v, &calltherollMap)
-		if nil != error {
-			log.ERROR(packagename, "序列化主动心跳交易错误", error)
-			return nil, nil, error
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
 
 func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain) error {

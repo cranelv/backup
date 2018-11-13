@@ -1,13 +1,11 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package core implements the Matrix consensus protocol.
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -31,9 +29,9 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
@@ -1104,31 +1102,6 @@ func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	return upTimeAccounts, nil
 }
 
-func (bc *BlockChain) GetUpTimeData(num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO("blockchain", "获取所有心跳交易", "")
-	heatBeatUnmarshallMMap, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
-	if nil != error {
-		log.ERROR("blockchain", "获取主动心跳交易错误", error)
-		return nil, nil, error
-	}
-
-	calltherollUnmarshall, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
-	if nil != error {
-		log.ERROR("blockchain", "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		error := json.Unmarshal(v, &calltherollMap)
-		if nil != error {
-			log.ERROR("blockchain", "序列化主动心跳交易错误", error)
-			return nil, nil, error
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
-}
-
 func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64) error {
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
@@ -1601,8 +1574,8 @@ func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 }
 
 //YY 发送心跳交易
-var viSendHeartTx bool = false //是否验证过发送心跳交易，每100块内只验证一次 //YY
-var saveBroacCastblockHash common.Hash      //YY 广播区块的hash  默认值应该为创世区块的hash
+var viSendHeartTx bool = false         //是否验证过发送心跳交易，每100块内只验证一次 //YY
+var saveBroacCastblockHash common.Hash //YY 广播区块的hash  默认值应该为创世区块的hash
 func (bc *BlockChain) sendBroadTx() {
 	block := bc.CurrentBlock()
 	blockNum := block.Number()
@@ -1622,7 +1595,7 @@ func (bc *BlockChain) sendBroadTx() {
 			}
 		}
 		log.Info("===========YYY============2", "blockChian:sendBroadTx()", subVal)
-		currentAcc := ca.GetAddress().Big()//block.Coinbase().Big() //YY TODO 这里应该是广播账户。后期需要修改
+		currentAcc := ca.GetAddress().Big() //block.Coinbase().Big() //YY TODO 这里应该是广播账户。后期需要修改
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))
