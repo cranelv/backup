@@ -141,7 +141,7 @@ func getKeyTransInfo(hash common.Hash, Height uint64, types string, support base
 		return make(map[common.Address][]byte)
 	}
 
-	ans, err := core.GetBroadcastTxs(support.BlockChain(), aimHash, types)
+	ans, err := core.GetBroadcastTxs(aimHash, types)
 	if err != nil {
 		log.Error("electionseed", "获取特殊交易失败 Height", Height, "types", types)
 	}

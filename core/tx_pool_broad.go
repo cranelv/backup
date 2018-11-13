@@ -43,7 +43,7 @@ func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, 
 		signer:  types.NewEIP155Signer(chainconfig.ChainId),
 		special: make(map[common.Hash]types.SelfTransaction, 0),
 	}
-	ldb, _ = leveldb.OpenFile(path+"./broadcastdb", nil)
+	//ldb, _ = leveldb.OpenFile(path+"./broadcastdb", nil)
 	return bPool
 }
 
@@ -110,9 +110,10 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 		}
 	}
 
+	hash := head.Hash()
 	for typeStr, content := range tempMap {
-		re := head.Number().Uint64() / common.GetBroadcastInterval()
-		hashKey = types.RlpHash(typeStr + fmt.Sprintf("%v", re))
+		//re := head.Number().Uint64() / common.GetBroadcastInterval()
+		hashKey = types.RlpHash(typeStr + hash.String())
 		if err := insertDB(hashKey.Bytes(), content); err != nil {
 			log.Error("SetBroadcastTxs insertDB", "height", head.Number().Uint64())
 		}
@@ -344,9 +345,23 @@ func insertDB(keyData []byte, val map[common.Address][]byte) error {
 }
 
 // GetBroadcastTxs get broadcast transactions' data from stateDB.
-func GetBroadcastTxs(bc *BlockChain, hash common.Hash, types string) (reqVal map[common.Address][]byte, err error) {
-	ans := make(map[common.Address][]byte, 0)
-	return ans, nil
+func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+
+	hv := types.RlpHash(txtype + hash.String())
+	if ldb == nil {
+		log.Error("File tx_pool_broad", "func GetBroadcastTxs", "ldb is nil")
+		return
+	}
+	dataVal, err := ldb.Get(hv.Bytes(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(dataVal, &reqVal)
+	if err != nil {
+		log.Error("GetBroadcastTxs", "Unmarshal failed", err)
+	}
+	return reqVal, err
 }
 
 // GetAllSpecialTxs get BroadCast transaction. (use apply SelfTransaction)

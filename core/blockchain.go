@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package core implements the Matrix consensus protocol.
 package core
@@ -31,9 +30,9 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
@@ -1104,15 +1103,15 @@ func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	return upTimeAccounts, nil
 }
 
-func (bc *BlockChain) GetUpTimeData(num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
+func (bc *BlockChain) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
 
 	log.INFO("blockchain", "获取所有心跳交易", "")
-	heatBeatUnmarshallMMap, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
+	heatBeatUnmarshallMMap, error := GetBroadcastTxs(hash, mc.Heartbeat)
 	if nil != error {
 		log.WARN("blockchain", "获取主动心跳交易错误", error)
 	}
 
-	calltherollUnmarshall, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
+	calltherollUnmarshall, error := GetBroadcastTxs(hash, mc.CallTheRoll)
 	if nil != error {
 		log.ERROR("blockchain", "获取点名心跳交易错误", error)
 		return nil, nil, error
@@ -1225,7 +1224,7 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
 		}
-		calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.Number.Uint64())
+		calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
 		if err != nil {
 			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 		}
@@ -1239,7 +1238,6 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 
 	return nil
 }
-
 
 // insertChain will execute the actual chain insertion and event aggregation. The
 // only reason this method exists as a separate one is to make locking cleaner
@@ -1630,8 +1628,8 @@ func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 }
 
 //YY 发送心跳交易
-var viSendHeartTx bool = false //是否验证过发送心跳交易，每100块内只验证一次 //YY
-var saveBroacCastblockHash common.Hash      //YY 广播区块的hash  默认值应该为创世区块的hash
+var viSendHeartTx bool = false         //是否验证过发送心跳交易，每100块内只验证一次 //YY
+var saveBroacCastblockHash common.Hash //YY 广播区块的hash  默认值应该为创世区块的hash
 func (bc *BlockChain) sendBroadTx() {
 	block := bc.CurrentBlock()
 	blockNum := block.Number()
@@ -1651,7 +1649,7 @@ func (bc *BlockChain) sendBroadTx() {
 			}
 		}
 		log.Info("===========YYY============2", "blockChian:sendBroadTx()", subVal)
-		currentAcc := ca.GetAddress().Big()//block.Coinbase().Big() //YY TODO 这里应该是广播账户。后期需要修改
+		currentAcc := ca.GetAddress().Big() //block.Coinbase().Big() //YY TODO 这里应该是广播账户。后期需要修改
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))

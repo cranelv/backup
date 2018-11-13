@@ -53,7 +53,7 @@ func (self *ReElection) getKeyTransInfo(hash common.Hash, Height uint64, types s
 		return make(map[common.Address][]byte)
 	}
 
-	ans, err := core.GetBroadcastTxs(self.bc, aimHash, types)
+	ans, err := core.GetBroadcastTxs(aimHash, types)
 	if err != nil {
 		log.Error(Module, "获取特殊交易失败 Height", Height, "types", types)
 	}
