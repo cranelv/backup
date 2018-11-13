@@ -329,10 +329,9 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 		return nil, err
 	}
 
-	log.INFO("getUpTimeAccounts", "ans", ans)
 	for _, v := range ans {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
 	}
 	validatorNum := num - (num % common.GetBroadcastInterval()) - params.VerifyTopologyGenerateUpTime
 	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
@@ -342,21 +341,20 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	}
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		log.INFO("packagename", "验证者节点账户", v.Address.Hex())
 	}
-	log.INFO(packagename, "获取所有uptime账户为", upTimeAccounts)
 	return upTimeAccounts, nil
 }
 
 func (env *Work) GetUpTimeData(num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
 
 	log.INFO(packagename, "获取所有心跳交易", "")
+	//%99
 	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
 	if nil != error {
-		log.ERROR(packagename, "获取主动心跳交易错误", error)
-		return nil, nil, error
+		log.WARN(packagename, "获取主动心跳交易错误", error)
 	}
-
+	//每个广播周期发一次
 	calltherollUnmarshall, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
 	if nil != error {
 		log.ERROR(packagename, "获取点名心跳交易错误", error)
@@ -364,10 +362,15 @@ func (env *Work) GetUpTimeData(num uint64) (map[common.Address]uint32, map[commo
 	}
 	calltherollMap := make(map[common.Address]uint32, 0)
 	for _, v := range calltherollUnmarshall {
-		error := json.Unmarshal(v, &calltherollMap)
+		temp := make(map[string]uint32, 0)
+		error := json.Unmarshal(v, &temp)
 		if nil != error {
-			log.ERROR(packagename, "序列化主动心跳交易错误", error)
+			log.ERROR(packagename, "序列化点名心跳交易错误", error)
 			return nil, nil, error
+		}
+		log.INFO(packagename, "++++++++点名心跳交易++++++++", temp)
+		for k, v := range temp {
+			calltherollMap[common.HexToAddress(k)] = v
 		}
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
@@ -409,6 +412,16 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	var upTime uint64
+	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
 	for _, account := range accounts {
 		onlineBlockNum, ok := calltherollRspAccounts[account]
 		if ok { //被点名,使用点名的uptime
@@ -418,22 +431,28 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 2
+					upTime = common.GetBroadcastInterval() - 3
 					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 2
+				upTime = common.GetBroadcastInterval() - 3
 				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
 		}
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		if read, err := depoistInfo.GetOnlineTime(state, account); nil == err {
-			log.INFO(packagename, "读取状态树", account, "uptime", read)
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		if nil == err {
+			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
 		}
 
 	}

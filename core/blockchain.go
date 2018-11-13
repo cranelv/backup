@@ -1109,8 +1109,7 @@ func (bc *BlockChain) GetUpTimeData(num uint64) (map[common.Address]uint32, map[
 	log.INFO("blockchain", "获取所有心跳交易", "")
 	heatBeatUnmarshallMMap, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
 	if nil != error {
-		log.ERROR("blockchain", "获取主动心跳交易错误", error)
-		return nil, nil, error
+		log.WARN("blockchain", "获取主动心跳交易错误", error)
 	}
 
 	calltherollUnmarshall, error := GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
@@ -1120,10 +1119,15 @@ func (bc *BlockChain) GetUpTimeData(num uint64) (map[common.Address]uint32, map[
 	}
 	calltherollMap := make(map[common.Address]uint32, 0)
 	for _, v := range calltherollUnmarshall {
-		error := json.Unmarshal(v, &calltherollMap)
+		temp := make(map[string]uint32, 0)
+		error := json.Unmarshal(v, &temp)
 		if nil != error {
-			log.ERROR("blockchain", "序列化主动心跳交易错误", error)
+			log.ERROR("blockchain", "序列化点名心跳交易错误", error)
 			return nil, nil, error
+		}
+		log.INFO("blockchain", "++++++++点名心跳交易++++++++", temp)
+		for k, v := range temp {
+			calltherollMap[common.HexToAddress(k)] = v
 		}
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
@@ -1165,6 +1169,16 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	}
 
 	var upTime uint64
+	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	log.Info("blockchain", "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
 	for _, account := range accounts {
 		onlineBlockNum, ok := calltherollRspAccounts[account]
 		if ok { //被点名,使用点名的uptime
@@ -1188,14 +1202,44 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 		}
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		if read, err := depoistInfo.GetOnlineTime(state, account); nil == err {
-			log.INFO("blockchain", "读取状态树", account, "uptime", read)
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		if nil == err {
+			log.INFO("blockchain", "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO("blockchain", "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
 		}
-
 	}
 
 	return nil
 }
+
+func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
+	header := block.Header()
+	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64())
+		if err != nil {
+			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
+			return err
+		}
+		calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.Number.Uint64())
+		if err != nil {
+			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+		}
+
+		err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64())
+		if nil != err {
+			log.ERROR("core", "处理uptime错误", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 
 // insertChain will execute the actual chain insertion and event aggregation. The
 // only reason this method exists as a separate one is to make locking cleaner
@@ -1343,26 +1387,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		// Process block using the parent state as reference point.
 		//todo: add handleuptime
-		//header := block.Header()
-
-		/*		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-				if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
-					upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64())
-					if err != nil {
-						log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-						return i, events, coalescedLogs, err
-					}
-					calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.Number.Uint64())
-					if err != nil {
-						log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-					}
-
-					err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64())
-					if nil != err {
-						log.ERROR("core", "处理uptime错误", err)
-						return i, events, coalescedLogs, err
-					}
-				}*/
+		err = bc.ProcessUpTime(state, block)
+		if err != nil {
+			bc.reportBlock(block, nil, err)
+			return i, events, coalescedLogs, err
+		}
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
