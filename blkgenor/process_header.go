@@ -130,9 +130,10 @@ func (p *Process) processHeaderGen() error {
 			}
 			Txs = append(Txs, txs...)
 		}
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
-
+		// todo: add rewward and run
+		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		for _, tx := range Txs {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
@@ -180,9 +181,10 @@ func (p *Process) processHeaderGen() error {
 		// todo： update uptime
 		p.processUpTime(work, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc,blkRward,txsReward)
+		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		//log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
+		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc,blkRward,txsReward)
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)

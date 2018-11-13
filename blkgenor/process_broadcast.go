@@ -58,8 +58,10 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value()) //hezi
 		}
 		//执行交易
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
+		// todo: add rewward and run
+		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
+		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
 		_, err = p.blockChain().Engine().Finalize(p.blockChain(), result.Header, work.State, result.Txs, nil, work.Receipts)
 
 		if err != nil {
