@@ -43,7 +43,7 @@ func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, 
 		signer:  types.NewEIP155Signer(chainconfig.ChainId),
 		special: make(map[common.Hash]types.SelfTransaction, 0),
 	}
-	ldb, _ = leveldb.OpenFile(path+"./broadcastdb", nil)
+	//ldb, _ = leveldb.OpenFile(path+"./broadcastdb", nil)
 	return bPool
 }
 
@@ -110,9 +110,10 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 		}
 	}
 
+	hash := head.Hash()
 	for typeStr, content := range tempMap {
-		re := head.Number().Uint64() / common.GetBroadcastInterval()
-		hashKey = types.RlpHash(typeStr + fmt.Sprintf("%v", re))
+		//re := head.Number().Uint64() / common.GetBroadcastInterval()
+		hashKey = types.RlpHash(typeStr + hash.String())
 		if err := insertDB(hashKey.Bytes(), content); err != nil {
 			log.Error("SetBroadcastTxs insertDB", "height", head.Number().Uint64())
 		}
@@ -154,7 +155,7 @@ func (bPool *BroadCastTxPool) Stop() {
 	// Unsubscribe subscriptions registered from blockchain
 	//bPool.chainHeadSub.Unsubscribe()
 	//bPool.wg.Wait()
-	if ldb != nil{
+	if ldb != nil {
 		ldb.Close()
 	}
 	log.Info("Broad Transaction pool stopped")
@@ -196,7 +197,7 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 				continue
 			}
 			bPool.special[hash] = tx
-			log.Info("file tx_pool_broad","func AddTxPool","broadCast transaction add txpool success")
+			log.Info("file tx_pool_broad", "func AddTxPool", "broadCast transaction add txpool success")
 		}
 	} else {
 		reerr = errors.New("BroadCastTxPool:AddTxPool  Transaction type is error")
@@ -221,7 +222,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			4、广播交易的类型必须是已知的如果是未知的则丢弃。（心跳、点名、公钥、私钥）
 	*/
 	height := bPool.chain.CurrentBlock().Number()
-	blockHash:=bPool.chain.CurrentBlock().Hash()
+	blockHash := bPool.chain.CurrentBlock().Hash()
 	curBlockNum := height.Uint64()
 	tval := curBlockNum / common.GetBroadcastInterval()
 	strVal := fmt.Sprintf("%v", tval+1)
@@ -248,12 +249,12 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
-			addr,err := ca.ConvertNodeIdToAddress(bid)
-			if err != nil{
+			addr, err := ca.ConvertNodeIdToAddress(bid)
+			if err != nil {
 				log.Error("ConvertNodeIdToAddress error (func filter()  BroadCastTxPool)", "error", err)
 				return false
 			}
-			if addr == from{
+			if addr == from {
 				return true
 			}
 		}
@@ -309,36 +310,31 @@ func insertDB(keyData []byte, val map[common.Address][]byte) error {
 		log.Error("insertDB", "json.Marshal(val) err", err)
 		return err
 	}
-	if ldb == nil{
-		log.Error("File tx_pool_broad","func insertDB","ldb is nil")
+	if ldb == nil {
+		log.Error("File tx_pool_broad", "func insertDB", "ldb is nil")
 		return nil
 	}
 	return ldb.Put(keyData, dataVal, nil)
 }
 
 // GetBroadcastTxs get broadcast transactions' data from stateDB.
-func GetBroadcastTxs(height *big.Int, txType string) (reqVal map[common.Address][]byte, err error) {
-	if height.Uint64() < common.GetBroadcastInterval() {
-		return nil, errors.New("Invalid height ")
-	}
+func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
 
-	val := height.Uint64() / common.GetBroadcastInterval()
-	hv := types.RlpHash(txType + fmt.Sprintf("%v", val))
-	if ldb == nil{
-		log.Error("File tx_pool_broad","func GetBroadcastTxs","ldb is nil")
+	hv := types.RlpHash(txtype + hash.String())
+	if ldb == nil {
+		log.Error("File tx_pool_broad", "func GetBroadcastTxs", "ldb is nil")
 		return
 	}
 	dataVal, err := ldb.Get(hv.Bytes(), nil)
 	if err != nil {
-		log.Error("GetBroadcastTxs", "Get broadcast failed", err)
-		return
+		return nil, err
 	}
 
 	err = json.Unmarshal(dataVal, &reqVal)
 	if err != nil {
 		log.Error("GetBroadcastTxs", "Unmarshal failed", err)
 	}
-	return
+	return reqVal, err
 }
 
 // GetAllSpecialTxs get BroadCast transaction. (use apply SelfTransaction)
@@ -346,7 +342,7 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
 	reqVal := make(map[common.Address][]types.SelfTransaction, 0)
-	log.Info("File tx_pool_broad","func GetAllSpecialTxs:len(bPool.special)",len(bPool.special))
+	log.Info("File tx_pool_broad", "func GetAllSpecialTxs:len(bPool.special)", len(bPool.special))
 	for _, tx := range bPool.special {
 		from, err := bPool.checkTxFrom(tx)
 		if err != nil {
@@ -356,7 +352,7 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 		reqVal[from] = append(reqVal[from], tx)
 	}
 	bPool.special = make(map[common.Hash]types.SelfTransaction, 0)
-	log.Info("File tx_pool_broad","func GetAllSpecialTxs::len(reqVal)",len(reqVal))
+	log.Info("File tx_pool_broad", "func GetAllSpecialTxs::len(reqVal)", len(reqVal))
 	return reqVal
 }
 

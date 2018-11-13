@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkverify
@@ -386,12 +386,10 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 
-
 	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(result.AllTxs), "高度", p.number)
-	for _,listN := range result.AllTxs{
-		p.curProcessReq.txs = append(p.curProcessReq.txs,listN.Txser...)
+	for _, listN := range result.AllTxs {
+		p.curProcessReq.txs = append(p.curProcessReq.txs, listN.Txser...)
 	}
-
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	remoteHeader := p.curProcessReq.req.Header
@@ -405,22 +403,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	//todo add handleuptime
-	/*	if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
-		upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", p.number)
-			return
-		}
-		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(p.number)
-		if err != nil {
-			log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", p.number)
-		}
-		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.pm.bc)
-		if nil != err {
-			log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
-			return
-		}
-	}*/
+	p.processUpTime(work, localHeader.ParentHash)
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
@@ -506,6 +489,29 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 	p.processDPOSOnce()
 }
 
+func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
+
+	if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+		upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
+		if err != nil {
+			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", p.number)
+			return err
+		}
+		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
+		if err != nil {
+			log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
+		}
+
+		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+		if nil != err {
+			log.ERROR("core", "处理uptime错误", err)
+			return err
+		}
+	}
+
+	return nil
+}
 func (p *Process) processDPOSOnce() {
 	if p.checkState(StateDPOSVerify) == false {
 		return
@@ -517,7 +523,7 @@ func (p *Process) processDPOSOnce() {
 
 	signs := p.votePool().GetVotes(p.curProcessReq.hash)
 	log.INFO(p.logExtraInfo(), "执行DPOS, 投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
-	rightSigns, err := p.blockChain().DPOSEngine().VerifyHashWithVerifiedSignsAndNumber(p.blockChain(), signs, p.number)
+	rightSigns, err := p.blockChain().DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "共识引擎验证失败", err, "高度", p.number)
 		return

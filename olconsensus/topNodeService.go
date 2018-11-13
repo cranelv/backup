@@ -273,7 +273,7 @@ func (serv *TopNodeService) consensusVotes(proposal interface{}, votes []voteInf
 	for _, value := range votes {
 		signList = append(signList, value.data.Sign)
 	}
-	tempSigns, err := serv.cd.VerifyHashWithNumber(serv.validatorReader, votes[0].data.SignHash, signList, 10)
+	tempSigns, err := serv.cd.VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
 	if err != nil {
 		log.Info(serv.extraInfo, "DPOS共识失败", err)
 		return

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package matrixwork
@@ -74,7 +74,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 	var coalescedLogs []*types.Log
 	tmpRetmap := make(map[common.TxTypeInt][]uint32)
-	for _,txer := range txser{
+	for _, txer := range txser {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
@@ -86,7 +86,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		//	break
 		//}
 
-		if txer.GetTxNLen() == 0{
+		if txer.GetTxNLen() == 0 {
 			log.Info("===========tx.N is nil")
 			//txs.Pop()
 			continue
@@ -130,12 +130,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			//==========hezi===================
 			if txer.GetTxNLen() != 0 {
 				n := txer.GetTxN(0)
-				if listN,ok:=tmpRetmap[txer.TxType()];ok{
-					listN = append(listN,n)
+				if listN, ok := tmpRetmap[txer.TxType()]; ok {
+					listN = append(listN, n)
 					tmpRetmap[txer.TxType()] = listN
-				}else{
-					listN:=make([]uint32,0)
-					listN = append(listN,n)
+				} else {
+					listN := make([]uint32, 0)
+					listN = append(listN, n)
 					tmpRetmap[txer.TxType()] = listN
 				}
 				retTxs = append(retTxs, txer)
@@ -152,9 +152,9 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			//txs.Shift()
 		}
 	}
-	for t,n := range tmpRetmap{
-		ts := common.RetCallTxN{t,n}
-		listret = append(listret,&ts)
+	for t, n := range tmpRetmap {
+		ts := common.RetCallTxN{t, n}
+		listret = append(listret, &ts)
 	}
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
@@ -179,9 +179,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
+
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		log.Info("*************","ApplyTransaction:err",err)
+		log.Info("*************", "ApplyTransaction:err", err)
 		env.State.RevertToSnapshot(snap)
 		return err, nil
 	}
@@ -220,14 +221,15 @@ type retStruct struct {
 }
 
 func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
-	pending, err :=  tp.Pending()
+	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil,nil
+		return nil, nil
 	}
-	listTx := make(types.SelfTransactions,0)
-	for _,txser:=range pending{
-		listTx = append(listTx,txser...)
+	//log.INFO("===========", "ProcessTransactions:pending:", len(pending))
+	listTx := make(types.SelfTransactions, 0)
+	for _, txser := range pending {
+		listTx = append(listTx, txser...)
 	}
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	mapA := make(map[common.Address]uint64)
@@ -336,10 +338,9 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 		return nil, err
 	}
 
-	log.INFO("getUpTimeAccounts", "ans", ans)
 	for _, v := range ans {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
 	}
 	validatorNum := num - (num % common.GetBroadcastInterval()) - params.VerifyTopologyGenerateUpTime
 	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
@@ -349,32 +350,36 @@ func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	}
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		log.INFO("packagename", "验证者节点账户", v.Address.Hex())
 	}
-	log.INFO(packagename, "获取所有uptime账户为", upTimeAccounts)
 	return upTimeAccounts, nil
 }
 
-func (env *Work) GetUpTimeData(num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
+func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
 
 	log.INFO(packagename, "获取所有心跳交易", "")
-	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.Heartbeat)
+	//%99
+	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(hash, mc.Heartbeat)
 	if nil != error {
-		log.ERROR(packagename, "获取主动心跳交易错误", error)
-		return nil, nil, error
+		log.WARN(packagename, "获取主动心跳交易错误", error)
 	}
-
-	calltherollUnmarshall, error := core.GetBroadcastTxs(new(big.Int).SetUint64(num), mc.CallTheRoll)
+	//每个广播周期发一次
+	calltherollUnmarshall, error := core.GetBroadcastTxs(hash, mc.CallTheRoll)
 	if nil != error {
 		log.ERROR(packagename, "获取点名心跳交易错误", error)
 		return nil, nil, error
 	}
 	calltherollMap := make(map[common.Address]uint32, 0)
 	for _, v := range calltherollUnmarshall {
-		error := json.Unmarshal(v, &calltherollMap)
+		temp := make(map[string]uint32, 0)
+		error := json.Unmarshal(v, &temp)
 		if nil != error {
-			log.ERROR(packagename, "序列化主动心跳交易错误", error)
+			log.ERROR(packagename, "序列化点名心跳交易错误", error)
 			return nil, nil, error
+		}
+		log.INFO(packagename, "++++++++点名心跳交易++++++++", temp)
+		for k, v := range temp {
+			calltherollMap[common.HexToAddress(k)] = v
 		}
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
@@ -416,6 +421,16 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	var upTime uint64
+	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
 	for _, account := range accounts {
 		onlineBlockNum, ok := calltherollRspAccounts[account]
 		if ok { //被点名,使用点名的uptime
@@ -425,22 +440,28 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 2
+					upTime = common.GetBroadcastInterval() - 3
 					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 2
+				upTime = common.GetBroadcastInterval() - 3
 				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
 		}
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		if read, err := depoistInfo.GetOnlineTime(state, account); nil == err {
-			log.INFO(packagename, "读取状态树", account, "uptime", read)
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		if nil == err {
+			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
 		}
 
 	}

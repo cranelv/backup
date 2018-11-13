@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"strconv"
 	"sync"
+	"github.com/matrix/go-matrix/common"
 )
 
 type controller struct {
@@ -60,6 +61,10 @@ func (self *controller) State() state {
 
 func (self *controller) ConsensusTurn() uint32 {
 	return self.dc.curConsensusTurn
+}
+
+func (self *controller) ParentHash() common.Hash {
+	return self.dc.leaderCal.preHash
 }
 
 func (self *controller) run() {

@@ -15,6 +15,7 @@ import (
 
 type leaderCalculator struct {
 	preLeader  common.Address
+	preHash    common.Hash
 	leaderList map[uint32]common.Address
 	validators []mc.TopologyNodeInfo
 	chain      *core.BlockChain
@@ -24,6 +25,7 @@ type leaderCalculator struct {
 func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
 	return &leaderCalculator{
 		preLeader:  common.Address{},
+		preHash:    common.Hash{},
 		leaderList: make(map[uint32]common.Address),
 		validators: nil,
 		chain:      chain,
@@ -31,7 +33,7 @@ func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
 	}
 }
 
-func (self *leaderCalculator) SetValidators(preLeader common.Address, validators []mc.TopologyNodeInfo) error {
+func (self *leaderCalculator) SetValidators(preHash common.Hash, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
 	if validators == nil {
 		return ErrValidatorsIsNil
 	}
@@ -51,7 +53,8 @@ func (self *leaderCalculator) SetValidators(preLeader common.Address, validators
 		return err
 	}
 	self.leaderList = leaderList
-	self.preLeader = preLeader
+	self.preLeader.Set(preLeader)
+	self.preHash.Set(preHash)
 	self.validators = validators
 
 	return nil

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -14,10 +14,34 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/txpoolCache"
+	"github.com/pkg/errors"
 )
+
+func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
+
+	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64())
+		if err != nil {
+			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
+			return err
+		}
+		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
+		if err != nil {
+			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+		}
+
+		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+		if nil != err {
+			log.ERROR("core", "处理uptime错误", err)
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
@@ -28,15 +52,16 @@ func (p *Process) processHeaderGen() error {
 	if err != nil {
 		return err
 	}
+	parentHash := parent.Hash()
 
 	tstamp := tstart.Unix()
-	NetTopology := p.getNetTopology(parent.Header().NetTopology, p.number)
+	NetTopology := p.getNetTopology(parent.Header().NetTopology, p.number, parentHash)
 	if nil == NetTopology {
 		log.Error(p.logExtraInfo(), "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
 	}
 
-	Elect := p.genElection(p.number)
+	Elect := p.genElection(parentHash)
 
 	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
 	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
@@ -50,7 +75,7 @@ func (p *Process) processHeaderGen() error {
 		time.Sleep(wait)
 	}
 	header := &types.Header{
-		ParentHash:  parent.Hash(),
+		ParentHash:  parentHash,
 		Leader:      ca.GetAddress(),
 		Number:      new(big.Int).SetUint64(p.number),
 		GasLimit:    core.CalcGasLimit(parent),
@@ -128,23 +153,7 @@ func (p *Process) processHeaderGen() error {
 
 		//work.commitTransactions(self.mux, Txs, self.chain)
 		// todo： update uptime
-		/*if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
-			upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
-			if err != nil {
-				log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", p.number)
-				return err
-			}
-			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(p.number)
-			if err != nil {
-				log.ERROR(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", p.number)
-			}
-
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-			if nil != err {
-				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
-				return err
-			}
-		}*/
+		p.processUpTime(work, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
@@ -159,8 +168,8 @@ func (p *Process) processHeaderGen() error {
 		p2pBlock := &mc.HD_BlkConsensusReqMsg{Header: header, TxsCode: txsCode, ConsensusTurn: p.consensusTurn, From: ca.GetAddress()}
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
-		if len(Txs) > 0{
-			txpoolCache.MakeStruck(Txs,header.HashNoSignsAndNonce(),p.number)
+		if len(Txs) > 0 {
+			txpoolCache.MakeStruck(Txs, header.HashNoSignsAndNonce(), p.number)
 		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
