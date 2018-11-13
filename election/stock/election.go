@@ -95,9 +95,9 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 	return ValidatorEleRs
 }
 
-func (self *StockElect) ToPoUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, nettopo mc.TopologyGraph, offline []common.Address) []mc.Alternative {
+func (self *StockElect) ToPoUpdate(offline []common.Address, allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 
-	return support.ToPoUpdate(Q0, Q1, Q2, nettopo, offline)
+	return support.ToPoUpdate(offline, allNative, topoG)
 }
 
 func (self *StockElect) PrimarylistUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {

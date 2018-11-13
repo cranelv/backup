@@ -79,8 +79,8 @@ func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg
 	return &ValidatorTop
 }
 
-func (self *nochoice) ToPoUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, nettopo mc.TopologyGraph, offline []common.Address) []mc.Alternative {
-	return support.ToPoUpdate(Q0, Q1, Q2, nettopo, offline)
+func (self *nochoice) ToPoUpdate(offline []common.Address, allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
+	return support.ToPoUpdate(offline, allNative, topoG)
 }
 
 func (self *nochoice) PrimarylistUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {

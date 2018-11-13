@@ -43,3 +43,39 @@ func (self *ReElection) checkTopGenStatus(hash common.Hash) error {
 	}
 	return nil
 }
+
+func (self *ReElection) checkUpdateStatus(height uint64) error {
+	if common.IsReElectionNumber(height) {
+		if ok := self.boolNativeStatus(height); ok == false { //无该初选列表
+			log.INFO(Module, "检查初选列表时出错", "重新计算", "高度", height)
+			return self.GetNativeFromDB(height)
+		}
+		return nil
+	}
+
+	lastPoint := common.GetLastReElectionNumber(height)
+
+	log.INFO(Module, "检查初选列表阶段 上一个点", lastPoint, "现在高度", height, "状态", "开始")
+	for index := lastPoint; index <= height; index++ {
+		if self.boolNativeStatus(index) == true {
+			continue
+		}
+		log.INFO(Module, "检查初选列表阶段 该位置没数据 需要重新算 index", index)
+		if common.IsReElectionNumber(index) {
+			self.GetNativeFromDB(index)
+			continue
+		}
+		native, err := self.readNativeData(index - 1)
+		if err != nil {
+			log.Error(Module, "检查更新阶段 获取上一个初选列表失败 高度", index-1)
+			return err
+		}
+		if err = self.UpdateNative(index, native); err != nil {
+			log.Error(Module, "检查更新阶段", "更新初选列表失败 高度", index)
+			return err
+		}
+	}
+	log.INFO(Module, "检查初选列表阶段 上一个点", lastPoint, "现在高度", height, "状态", "结束")
+	return nil
+
+}

@@ -4,14 +4,26 @@
 package reelection
 
 import (
-	"errors"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
 )
 
-//todo
-
+func checkInDiff(diff common.NetTopology, add common.Address) bool {
+	for _, v := range diff.NetTopologyData {
+		if v.Account == add {
+			return true
+		}
+	}
+	return false
+}
+func checkInGraph(top *mc.TopologyGraph, pos uint16) common.Address {
+	for _, v := range top.NodeList {
+		if v.Position == pos {
+			return v.Account
+		}
+	}
+	return common.Address{}
+}
 func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prevTopology *mc.TopologyGraph) []common.Address {
 	if topologyChg.Type != common.NetTopoTypeChange {
 		return nil
@@ -93,7 +105,7 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 	srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
 	srcMap[common.ElectRoleValidatorBackUp] = info.BackUpValidator
-	orderIndex := []common.ElectRoleType{common.ElectRoleValidator, common.ElectRoleValidatorBackUp, common.ElectRoleMiner, common.ElectRoleMinerBackUp}
+	orderIndex := []common.ElectRoleType{common.ElectRoleMiner, common.ElectRoleMinerBackUp, common.ElectRoleValidator, common.ElectRoleValidatorBackUp}
 
 	for _, role := range orderIndex {
 		src := srcMap[role]
@@ -143,34 +155,35 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
 	return result
 }
 
-func (self *ReElection) paraseNetTopology(topo *common.NetTopology) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, error) {
-	if topo.Type != common.NetTopoTypeAll {
-		return nil, nil, nil, nil, errors.New("Net Topology is not all data")
-	}
-
-	MasterMiner := make([]mc.TopologyNodeInfo, 0)
-	BackUpMiner := make([]mc.TopologyNodeInfo, 0)
-	MasterValidator := make([]mc.TopologyNodeInfo, 0)
-	BackUpValidator := make([]mc.TopologyNodeInfo, 0)
-
-	for _, data := range topo.NetTopologyData {
-		node := mc.TopologyNodeInfo{
-			Account:  data.Account,
-			Position: data.Position,
-			Type:     common.GetRoleTypeFromPosition(data.Position),
-			Stock:    0,
-		}
-
-		switch node.Type {
-		case common.RoleMiner:
-			MasterMiner = append(MasterMiner, node)
-		case common.RoleBackupMiner:
-			BackUpMiner = append(BackUpMiner, node)
-		case common.RoleValidator:
-			MasterValidator = append(MasterValidator, node)
-		case common.RoleBackupValidator:
-			BackUpValidator = append(BackUpValidator, node)
-		}
-	}
-	return MasterMiner, BackUpMiner, MasterValidator, BackUpValidator, nil
-}
+//
+//func (self *ReElection) paraseNetTopology(topo *common.NetTopology) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, error) {
+//	if topo.Type != common.NetTopoTypeAll {
+//		return nil, nil, nil, nil, errors.New("Net Topology is not all data")
+//	}
+//
+//	MasterMiner := make([]mc.TopologyNodeInfo, 0)
+//	BackUpMiner := make([]mc.TopologyNodeInfo, 0)
+//	MasterValidator := make([]mc.TopologyNodeInfo, 0)
+//	BackUpValidator := make([]mc.TopologyNodeInfo, 0)
+//
+//	for _, data := range topo.NetTopologyData {
+//		node := mc.TopologyNodeInfo{
+//			Account:  data.Account,
+//			Position: data.Position,
+//			Type:     common.GetRoleTypeFromPosition(data.Position),
+//			Stock:    0,
+//		}
+//
+//		switch node.Type {
+//		case common.RoleMiner:
+//			MasterMiner = append(MasterMiner, node)
+//		case common.RoleBackupMiner:
+//			BackUpMiner = append(BackUpMiner, node)
+//		case common.RoleValidator:
+//			MasterValidator = append(MasterValidator, node)
+//		case common.RoleBackupValidator:
+//			BackUpValidator = append(BackUpValidator, node)
+//		}
+//	}
+//	return MasterMiner, BackUpMiner, MasterValidator, BackUpValidator, nil
+//}
