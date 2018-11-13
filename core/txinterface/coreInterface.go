@@ -10,7 +10,8 @@ type Message interface {
 	From() common.Address
 	//FromFrontier() (common.Address, error)
 	To() *common.Address
-
+	GasFrom() common.Address
+	AmontFrom() common.Address
 	GasPrice() *big.Int
 	Gas() uint64
 	Value() *big.Int

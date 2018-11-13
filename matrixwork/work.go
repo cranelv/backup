@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/common/hexutil"
 )
 
 var packagename string = "matrixwork"
@@ -178,7 +179,6 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
-
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("*************","ApplyTransaction:err",err)
@@ -190,7 +190,27 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 
 	return nil, receipt.Logs
 }
+func (env *Work) s_commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
+	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
+	snap := env.State.Snapshot()
+	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
+	if err != nil {
+		log.Info("*************","ApplyTransaction:err",err)
+		env.State.RevertToSnapshot(snap)
+		return err, nil
+	}
+	tmps :=make([]types.SelfTransaction,0)
+	tmps = append(tmps, tx)
+	tmps = append(tmps, env.txs...)
+	env.txs = tmps
 
+	tmpr := make([]*types.Receipt,0)
+	tmpr = append(tmpr, receipt)
+	tmpr = append(tmpr, env.Receipts...)
+	env.Receipts = tmpr
+	env.tcount++
+	return nil, receipt.Logs
+}
 //Leader
 var lostCnt int = 0
 
@@ -199,73 +219,55 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
-
-	//ret := make(chan *retStruct, 1)
-	//tm := time.NewTimer(time.Second * 5)
-	//go func(ret1 chan *retStruct) {
-	//	log.ERROR("Tx", "LostCnt", lostCnt)
-	//	log.Info("===========", "ProcessTransactions:befor", 0)
-	//	pending, err := tp.Pending()
-	//	log.Info("===========", "ProcessTransactions:after", 1)
-	//	if err != nil {
-	//		log.Error("Failed to fetch pending transactions", "err", err)
-	//		ret1 <- &retStruct{nil, nil}
-	//	}
-	//	log.INFO("===========", "ProcessTransactions:pending:", len(pending))
-	//	txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
-	//	log.INFO("===========", "ProcessTransactions:txs:", txs)
-	//	a, b := self.commitTransactions(mux, txs, bc, common.Address{})
-	//	ret1 <- &retStruct{a, b}
-	//}(ret)
-	//select {
-	//case val := <-ret:
-	//	return val.no, val.txs
-	//case <-tm.C:
-	//	log.ERROR("Tx", "Tx Proc TimeOut", lostCnt)
-	//	lostCnt++
-	//	return nil, nil
-	//}
-
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err :=  tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil,nil
 	}
-	//log.INFO("===========", "ProcessTransactions:pending:", len(pending))
 	listTx := make(types.SelfTransactions,0)
 	for _,txser:=range pending{
 		listTx = append(listTx,txser...)
 	}
-	//txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
-	//log.INFO("===========", "ProcessTransactions:txs:", txs)
-	return self.commitTransactions(mux, listTx, bc, common.Address{})
+	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
+	mapA := make(map[common.Address]uint64)
+	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
+	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+	tx1 := env.makeTransaction(common.MinerRewardAddress,mapA)//区块奖励
+	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+	tmps :=make([]types.SelfTransaction,0)
+	tmps = append(tmps, tx1)
+	tmps = append(tmps, tx2)
+	tmps = append(tmps, retTxs...)
+	retTxs = tmps
+	return
 }
-
-/*//==============================================================================//
-//Leader
-func (self *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPool, bc *core.BlockChain) ([]uint32, []*types.Transaction) {
-	pending, err := tp.Pending()
-	if err != nil {
-		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil, nil
+func (env *Work)makeTransaction(from common.Address,val map[common.Address]uint64) types.SelfTransaction{
+	extra := make([]*types.ExtraTo_tr,0)
+	var to common.Address
+	var value uint64
+	isfirst := true
+	for k,v := range val{
+		if isfirst{
+			to = k
+			value = v
+			isfirst = false
+			continue
+		}
+		if from == common.TxGasRewardAddress{
+			v = v / 10000 * env.header.GasUsed
+		}
+		extra = append(extra, &types.ExtraTo_tr{To_tr:&k,Value_tr:(*hexutil.Big)(new(big.Int).SetUint64(v)),Input_tr:nil})
 	}
-	log.INFO("===========", "ProcessTransactions:pending:", len(pending))
-	txs := types.NewTransactionsByPriceAndNonce(self.signer, pending)
-	log.INFO("===========", "ProcessTransactions:txs:", txs)
-	return self.commitTransactions(mux, txs, bc, common.Address{})
-
-}*/
-
+	tx := types.NewTransactions(env.State.GetNonce(from),to,new(big.Int).SetUint64(value),0,new(big.Int),nil,extra,0,0)
+	tx.SetFromLoad(from)
+	return tx
+}
 //Broadcast
-func (self *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) {
-
+func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) {
 	for _, tx := range txs {
-		//log.INFO("========","ProcessBroadcastTransactions:tx",tx)
-		//log.INFO("========","ProcessBroadcastTransactions:tx.price",tx.GasPrice())
-		self.commitTransaction(tx, bc, common.Address{}, nil)
+		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-
 	return
 }
 
@@ -293,6 +295,11 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
+	mapA := make(map[common.Address]uint64)
+	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
+	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+	tx1 := env.makeTransaction(common.MinerRewardAddress,mapA)//区块奖励
+	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined

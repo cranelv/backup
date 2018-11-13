@@ -69,6 +69,8 @@ var (
 
 	//YY
 	ErrTXCountOverflow = errors.New("transaction quantity spillover")
+	ErrTXToNil         = errors.New("transaction`s to(common.address) is nil")
+	ErrTXUnknownType   = errors.New("Unknown extra txtype")
 	ErrTxToRepeat      = errors.New("contains duplicate transfer accounts")
 	ErrTXWrongful      = errors.New("transaction is unlawful")
 	ErrTXPoolFull      = errors.New("txpool is full")

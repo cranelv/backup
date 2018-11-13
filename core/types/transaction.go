@@ -313,6 +313,14 @@ func (tx *Transaction)GetFromLoad() interface{}  {
 func (tx *Transaction)SetFromLoad(x interface{})  {
 	tx.from.Store(x)
 }
+func (tx *Transaction)GasFrom() common.Address{
+	//TODO 需要去委托中要💊 from
+	return tx.from.Load().(sigCache).from
+}
+func (tx *Transaction)AmontFrom() common.Address{
+	//TODO 需要去委托中要💊 from
+	return tx.from.Load().(sigCache).from
+}
 //YY
 func (tx *Transaction) GetTxFrom() (common.Address,error) {
 	if tx.from.Load() == nil{

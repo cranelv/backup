@@ -21,25 +21,6 @@ import (
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 )
-
-/*
-The State Transitioning Model
-
-A state transition is a change made when a transaction is applied to the current world state
-The state transitioning model does all all the necessary work to work out a valid new state root.
-
-1) Nonce handling
-2) Pre pay gas
-3) Create a new state object if the recipient is \0*32
-4) Value transfer
-== If contract creation ==
-  4a) Attempt to run transaction data
-  4b) If valid, use result as code for the new state object
-== end ==
-5) Run Script section
-6) Derive new state root
-*/
-
 type StateTransition struct {
 	gp         *GasPool
 	msg        txinterface.Message
@@ -57,11 +38,6 @@ type StateTransition struct {
 func IntrinsicGas(data []byte) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	//if contractCreation && homestead {
-	//	gas = params.TxGasContractCreation
-	//} else {
-	//	gas = params.TxGas
-	//}
 	gas = params.TxGas
 	// Bump the required gas by the amount of transactional data
 	if len(data) > 0 {
@@ -98,27 +74,6 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 		state:    evm.StateDB,
 	}
 }
-
-// ApplyMessage computes the new state by applying the given message
-// against the old state within the environment.
-//
-// ApplyMessage returns the bytes returned by any EVM execution (if it took place),
-// the gas used (which includes gas refunds) and an error if it failed. An error always
-// indicates a core error meaning that the message would always fail for that particular
-// state and would never be accepted within a block.
-
-func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uint64, bool, error) {
-	var stsi txinterface.StateTransitioner
-	switch tx.TxType() {
-	case types.NormalTxIndex:
-		stsi = NewStateTransition(evm,tx,gp)
-	}
-	if stsi == nil{
-		log.Error("File state_transition","func AppleMessage","interface is nil")
-	}
-	return stsi.TransitionDb()
-}
-
 // to returns the recipient of the message.
 func (st *StateTransition) To() common.Address {
 	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
@@ -146,16 +101,13 @@ func (st *StateTransition) BuyGas() error {
 			break
 		}
 	}
-	//if st.state.GetBalance(st.msg.From())[common.MainAccount].Cmp(mgval) < 0 {
-	//	return errInsufficientBalanceForGas
-	//}
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
 		return err
 	}
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(common.MainAccount,st.msg.From(), mgval)
+	st.state.SubBalance(common.MainAccount,st.msg.GasFrom(), mgval)
 	return nil
 }
 
@@ -171,10 +123,24 @@ func (st *StateTransition) PreCheck() error {
 	}
 	return st.BuyGas()
 }
-
-// TransitionDb will transition the state by applying the current message and
-// returning the result including the the used gas. It returns an error if it
-// failed. An error indicates a consensus issue.
+// ApplyMessage computes the new state by applying the given message
+// against the old state within the environment.
+//
+// ApplyMessage returns the bytes returned by any EVM execution (if it took place),
+// the gas used (which includes gas refunds) and an error if it failed. An error always
+// indicates a core error meaning that the message would always fail for that particular
+// state and would never be accepted within a block.
+func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uint64, bool, error) {
+	var stsi txinterface.StateTransitioner
+	switch tx.TxType() {
+	case types.NormalTxIndex:
+		stsi = NewStateTransition(evm,tx,gp)
+	}
+	if stsi == nil{
+		log.Error("File state_transition","func AppleMessage","interface is nil")
+	}
+	return stsi.TransitionDb()
+}
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
@@ -182,29 +148,70 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	extx := tx.GetMatrix_EX()
 	if (extx != nil) && len(extx) > 0 && extx[0].TxType != 0{
-		//toaddr := tx.To()
-		//sender := vm.AccountRef(tx.From())
-		//var (
-		//	evm = st.evm
-		//	vmerr error
-		//)
 		switch extx[0].TxType{
 		case common.ExtraRevertTxType:
-
+			return nil,0,false,ErrTXUnknownType //TODO
 		case common.ExtraUnGasTxType:
-
+			return st.CallUnGasNormalTx()
 		default:
 			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
+			return nil,0,false,ErrTXUnknownType
 		}
-		return st.CallNormalTx()
+
 	}else{
 		return st.CallNormalTx()
 	}
 }
-func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	toaddr := tx.To()
 	sender := vm.AccountRef(tx.From())
+	var (
+		evm = st.evm
+		vmerr error
+	)
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+	}
+	st.gas = 0
+	if toaddr == nil {//YY
+		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
+		return nil, 0, false, ErrTXToNil
+	} else {
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
+	}
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			if toaddr == nil {
+				log.Error("file state_transition","func CallUnGasNormalTx()","Extro to is nil")
+				return nil, 0, false, ErrTXToNil
+			} else {
+				// Increment the nonce for the next transaction
+				ret, st.gas, vmerr = evm.Call(sender, *ex.Recipient, ex.Payload, st.gas, ex.Amount)
+			}
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, vmerr
+		}
+	}
+	return ret, 0, vmerr != nil, err
+}
+func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
+	sender := vm.AccountRef(tx.AmontFrom())
 	var (
 		evm = st.evm
 		vmerr error
@@ -264,9 +271,8 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 			return nil, 0, false, vmerr
 		}
 	}
-	st.RefundGas()
-	//hezi;2018.9.6;此处不给矿工奖励
-	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	//st.RefundGas()
+	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) RefundGas() {

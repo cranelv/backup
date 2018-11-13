@@ -380,6 +380,12 @@ type NetTopology struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData
 }
+
+var (
+	MinerRewardAddress Address = HexToAddress("0x80000000000000000000")
+	TxGasRewardAddress Address = HexToAddress("0x80000000000000000001")
+)
+
 const (
 	//byte can not be 1,because 1 is occupied
 	ExtraNormalTxType    byte = 0
