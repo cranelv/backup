@@ -11,16 +11,13 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
 
-func (self *ReElection) TopoUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, netTop mc.TopologyGraph, offline []common.Address) []mc.Alternative {
-	return self.elect.ToPoUpdate(Q0, Q1, Q2, netTop, offline)
-}
-func (self *ReElection) NativeUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {
-	return self.elect.PrimarylistUpdate(Q0, Q1, Q1, online, flag)
+func (self *ReElection) TopoUpdate(offline []common.Address, allNative support.AllNative, top *mc.TopologyGraph) []mc.Alternative {
+	return self.elect.ToPoUpdate(offline, allNative, top)
 }
 
 func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
@@ -43,21 +40,6 @@ func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (
 		return common.Hash{}, err
 	}
 	return AimHash, nil
-}
-
-//得到特殊交易
-func (self *ReElection) getKeyTransInfo(hash common.Hash, Height uint64, types string) map[common.Address][]byte {
-	aimHash, err := self.GetHeaderHashByNumber(hash, Height)
-	if err != nil {
-		log.Error(Module, "获取特殊交易阶段-获取祖先hash失败 hash", hash.String(), "height", Height)
-		return make(map[common.Address][]byte)
-	}
-
-	ans, err := core.GetBroadcastTxs(self.bc, aimHash, types)
-	if err != nil {
-		log.Error(Module, "获取特殊交易失败 Height", Height, "types", types)
-	}
-	return ans
 }
 
 func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDetail, error) {
@@ -85,4 +67,15 @@ func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDeta
 
 func GetFound() []vm.DepositDetail {
 	return []vm.DepositDetail{}
+}
+
+func (self *ReElection) boolNativeStatus(height uint64) bool {
+	if _, err := self.readNativeData(height); err != nil {
+		return false
+	}
+	return true
+}
+func GetCurrentTopology(height uint64, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
+
+	return ca.GetTopologyByNumber(reqtypes, height)
 }

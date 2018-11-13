@@ -5,6 +5,7 @@ package reelection
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
@@ -26,18 +27,33 @@ func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
 		return err
 	}
 
-	/*
-		err = self.HandleNative(data.BlockNum) //处理初选列表更新
-		if err != nil {
-			log.ERROR(Module, "處理初選列表更新失敗 err", err)
-			return err
-		}
-	*/
+	err = self.HandleNative(data.BlockNum) //处理初选列表更新
+	if err != nil {
+		log.ERROR(Module, "處理初選列表更新失敗 err", err)
+		return err
+	}
+
 	log.INFO(Module, "roleUpdateProcess end height", data.BlockNum)
 	return nil
 
 }
+func (self *ReElection) HandleNative(height uint64) error {
+	if true == NeedReadTopoFromDB(height) { //300 600 900 重取缓存
+		log.INFO(Module, "需要从db中读取native 高度", height)
+		return self.GetNativeFromDB(height)
+	}
+	self.checkUpdateStatus(height - 1)
+	allNative, err := self.readNativeData(height - 1) //
+	if err != nil {
+		log.Error(Module, "readNativeData failed height", height-1)
+	}
 
+	log.INFO(Module, "self,allNative", allNative)
+
+	err = self.UpdateNative(height, allNative)
+	log.INFO(Module, "更新初选列表结束 高度 ", height, "错误信息", err, "self,allNative", allNative)
+	return err
+}
 func (self *ReElection) HandleTopGen(hash common.Hash) error {
 	var err error
 
@@ -58,6 +74,21 @@ func (self *ReElection) HandleTopGen(hash common.Hash) error {
 	}
 
 	return err
+}
+func (self *ReElection) UpdateNative(height uint64, allNative support.AllNative) error {
+
+	allNative, err := self.ToNativeValidatorStateUpdate(height, allNative)
+	if err != nil {
+		log.INFO(Module, "ToNativeMinerStateUpdate validator err", err)
+		return nil
+	}
+
+	err = self.writeNativeData(height, allNative)
+
+	log.ERROR(Module, "更新初选列表状态后-写入数据库状态 err", err, "高度", height)
+
+	return err
+
 }
 
 //是不是矿工拓扑生成时间段
@@ -84,6 +115,12 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 
 	now := height % common.GetReElectionInterval()
 	if now == ValidatorTopGenTiming {
+		return true
+	}
+	return false
+}
+func NeedReadTopoFromDB(height uint64) bool {
+	if (height)%common.GetReElectionInterval() == 0 || height == 0 {
 		return true
 	}
 	return false

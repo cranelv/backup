@@ -147,8 +147,8 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 }
 
-func (self *layered) ToPoUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, nettopo mc.TopologyGraph, offline []common.Address) []mc.Alternative {
-	return support.ToPoUpdate(Q0, Q1, Q2, nettopo, offline)
+func (self *layered) ToPoUpdate(offline []common.Address, allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
+	return support.ToPoUpdate(offline, allNative, topoG)
 }
 
 func (self *layered) PrimarylistUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {

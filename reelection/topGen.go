@@ -15,44 +15,7 @@ import (
 
 //得到随机种子
 func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
-
 	return self.random.GetRandom(hash, "electionseed")
-	//sendData := self.CalcbeforeSeedGen(hash)
-	//
-	//var err error
-	//self.electionSeedSub, err = mc.SubscribeEvent(mc.Random_TopoSeedRsp, self.electionSeedCh)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//mc.PublishEvent(mc.ReElec_TopoSeedReq, &sendData)
-	//
-	//select {
-	//case seed := <-self.electionSeedCh:
-	//	log.INFO(Module, "received seed", seed)
-	//	self.electionSeedSub.Unsubscribe()
-	//	return seed.Seed, nil
-	//
-	//case <-time.After(Time_Out_Limit):
-	//	self.electionSeedSub.Unsubscribe()
-	//	log.INFO(Module, "received seed", "Time_Out_Falied")
-	//	return nil, errors.New("Seed Gen failed")
-	//}
-}
-func (self *ReElection) GetHashByNum(height uint64) common.Hash {
-	return self.bc.GetBlockByNumber(height).Hash()
-}
-func (self *ReElection) getMinHash(height uint64) common.Hash {
-
-	minhash := self.GetHashByNum(height)
-	BroadcastInterval := common.GetBroadcastInterval()
-	for i := height - 1; i > height-BroadcastInterval; i-- {
-		blockhash := self.GetHashByNum(uint64(i))
-		if minhash.Big().Cmp(blockhash.Big()) == 1 { //前者大于后者
-			minhash = blockhash
-		}
-
-	}
-	return minhash
 }
 
 func (self *ReElection) ToGenMinerTop(hash common.Hash) error {

@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"errors"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
@@ -150,8 +152,39 @@ func (self *ReElection) update() {
 }
 
 func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address) ([]mc.Alternative, error) {
-	log.INFO(Module, "获取拓扑改变 start hash", hash.String(), "offline", offline)
-	return []mc.Alternative{}, nil
+
+	height, err := self.GetNumberByHash(hash)
+	if err != nil {
+		return []mc.Alternative{}, errors.New("根据hash获取高度失败")
+	}
+	height = height + 1
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	if common.IsReElectionNumber(height) {
+		log.INFO(Module, "是换届区块", "无差值")
+		return []mc.Alternative{}, nil
+	}
+
+	log.INFO(Module, "获取拓扑改变 start height", height, "offline", offline)
+	self.checkUpdateStatus(height - 1)
+	antive, err := self.readNativeData(height - 1)
+	if err != nil {
+		log.Error(Module, "获取上一个高度的初选列表失败 height-1", height-1)
+		return []mc.Alternative{}, err
+	}
+
+	//aim := 0x04 + 0x08
+	TopoGrap, err := GetCurrentTopology(height-1, common.RoleBackupValidator|common.RoleValidator)
+	if err != nil {
+		log.Error(Module, "获取CA当前拓扑图失败 err", err)
+		return []mc.Alternative{}, err
+	}
+
+	log.Info(Module, "获取拓扑变化 start 上一个高度缓存allNative-M", antive.MasterQ, "B", antive.BackUpQ, "Can", antive.CandidateQ)
+	DiffValidatot := self.TopoUpdate(offline, antive, TopoGrap)
+	log.INFO(Module, "获取拓扑改变 end ", DiffValidatot)
+	return DiffValidatot, nil
+
 }
 
 func (self *ReElection) GetElection(hash common.Hash) (*ElectReturnInfo, error) {
