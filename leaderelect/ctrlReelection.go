@@ -219,7 +219,7 @@ func (self *controller) handleInquiryRsp(rsp *mc.HD_ReelectInquiryRspMsg) {
 
 		signs := self.selfCache.GetInquiryAgreeSigns()
 		log.INFO(self.logInfo, "处理重选询问响应(同意更换leader响应)", "保存签名成功", "签名总数", len(signs))
-		rightSigns, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndNumber(self.dc, signs, self.dc.number)
+		rightSigns, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(self.dc, signs, self.ParentHash())
 		if err != nil {
 			log.INFO(self.logInfo, "处理重选询问响应(同意更换leader响应)", "同意的签名没有通过POS共识", "err", err)
 			return
@@ -272,7 +272,7 @@ func (self *controller) handleRLVote(msg *mc.HD_ReelectLeaderVoteMsg) {
 		return
 	}
 	signs := self.selfCache.GetRLSigns()
-	rightSigns, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndNumber(self.dc, signs, self.dc.number)
+	rightSigns, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(self.dc, signs, self.ParentHash())
 	if err != nil {
 		log.INFO(self.logInfo, "处理leader重选响应", "签名没有通过POS共识", "总票数", len(signs), "err", err)
 		return
@@ -310,7 +310,7 @@ func (self *controller) handleResultRsp(rsp *mc.HD_ReelectResultRspMsg) {
 		return
 	}
 	signs := self.selfCache.GetResultRspSigns()
-	_, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndNumber(self.dc, signs, self.dc.number)
+	_, err := self.matrix.DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(self.dc, signs, self.ParentHash())
 	if err != nil {
 		log.INFO(self.logInfo, "处理重选结果广播响应", "响应没有通过POS共识", "票总数", len(signs), "err", err)
 		return
@@ -539,7 +539,7 @@ func (self *controller) checkRLReqMsg(req *mc.HD_ReelectLeaderReqMsg) error {
 	if err := self.dc.turnTime.CheckTimeLegal(self.dc.curConsensusTurn, self.dc.curReelectTurn, int64(req.TimeStamp)); err != nil {
 		return err
 	}
-	if _, err := self.matrix.DPOSEngine().VerifyHashWithNumber(self.dc, types.RlpHash(req.InquiryReq), req.AgreeSigns, self.Number()); err != nil {
+	if _, err := self.matrix.DPOSEngine().VerifyHashWithBlock(self.dc, types.RlpHash(req.InquiryReq), req.AgreeSigns, self.ParentHash()); err != nil {
 		return errors.Errorf("请求中的询问同意签名POS未通过(%v)", err)
 	}
 
@@ -554,7 +554,7 @@ func (self *controller) checkRLResult(result *mc.HD_ReelectLeaderConsensus) erro
 	if turn < self.dc.curConsensusTurn {
 		return errors.Errorf("消息轮次(%d) <= 本地共识轮次(%d)", turn, self.dc.curConsensusTurn)
 	}
-	if _, err := self.matrix.DPOSEngine().VerifyHashWithNumber(self.dc, types.RlpHash(result.Req), result.Votes, self.dc.number); err != nil {
+	if _, err := self.matrix.DPOSEngine().VerifyHashWithBlock(self.dc, types.RlpHash(result.Req), result.Votes, self.ParentHash()); err != nil {
 		return errors.Errorf("leader重选完成中的POS结果验证错误(%v)", err)
 	}
 	return nil

@@ -188,7 +188,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 			return
 		}
 
-		if role, _ := ca.GetAccountOriginalRole(signAccount, p.number-1); common.RoleBroadcast != role {
+		if role, _ := ca.GetAccountOriginalRole(signAccount, p.preBlockHash); common.RoleBroadcast != role {
 			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法，签名人别是广播身份, role", role.String())
 			return
 		}

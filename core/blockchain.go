@@ -445,6 +445,11 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 	bc.currentFastBlock.Store(bc.genesisBlock)
 
+	//save topology
+	if err := bc.hc.topologyStore.WriteTopologyGraph(bc.genesisBlock.Header()); err != nil {
+		log.ERROR("block chain", "ResetWithGenesisBlock 缓存拓扑信息错误", err)
+	}
+
 	return nil
 }
 
@@ -520,12 +525,6 @@ func (bc *BlockChain) insert(block *types.Block) {
 	}
 	if common.IsBroadcastNumber(block.NumberU64()) {
 		SetBroadcastTxs(block, bc.chainConfig.ChainId)
-	}
-
-
-	//save topology
-	if err := bc.hc.topologyStore.WriteTopologyGraph(block.Header()); err != nil {
-		log.ERROR("block chain", "缓存拓扑信息错误", err)
 	}
 }
 
@@ -1051,6 +1050,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Set new head.
 	if status == CanonStatTy {
 		bc.insert(block)
+	}
+
+	//save topology
+	if err := bc.hc.topologyStore.WriteTopologyGraph(block.Header()); err != nil {
+		log.ERROR("block chain", "缓存拓扑信息错误", err)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
@@ -1837,16 +1841,20 @@ func (bc *BlockChain) SetDposEngine(dposEngine consensus.DPOSEngine) {
 	bc.dposEngine = dposEngine
 }
 
-func (bc *BlockChain) GetTopologyGraphByNumber(number uint64) (*mc.TopologyGraph, error) {
-	return bc.hc.GetTopologyGraphByNumber(number)
+func (bc *BlockChain) GetHashByNumber(number uint64) common.Hash {
+	return bc.hc.GetHashByNumber(number)
 }
 
-func (bc *BlockChain) GetOriginalElect(number uint64) ([]common.Elect, error) {
-	return bc.hc.GetOriginalElect(number)
+func (bc *BlockChain) GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error) {
+	return bc.hc.GetTopologyGraphByHash(blockHash)
 }
 
-func (bc *BlockChain) GetNextElect(number uint64) ([]common.Elect, error) {
-	return bc.hc.GetNextElect(number)
+func (bc *BlockChain) GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error) {
+	return bc.hc.GetOriginalElectByHash(blockHash)
+}
+
+func (bc *BlockChain) GetNextElectByHash(blockHash common.Hash) ([]common.Elect, error) {
+	return bc.hc.GetNextElectByHash(blockHash)
 }
 
 func (bc *BlockChain) NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error) {
@@ -1857,10 +1865,18 @@ func (bc *BlockChain) TopologyStore() *TopologyStore {
 	return bc.hc.topologyStore
 }
 
-func (bc *BlockChain) GetCurrentNumber() uint64 {
-	return bc.hc.GetCurrentNumber()
+func (bc *BlockChain) GetCurrentHash() common.Hash {
+	block := bc.CurrentBlock()
+	if block == nil {
+		return common.Hash{}
+	}
+	return block.Hash()
 }
 
-func (bc *BlockChain) GetValidatorByNumber(number uint64) (*mc.TopologyGraph, error) {
-	return bc.hc.GetValidatorByNumber(number)
+func (bc *BlockChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error) {
+	return bc.hc.GetValidatorByHash(hash)
+}
+
+func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
+	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
 }
