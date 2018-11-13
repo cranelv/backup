@@ -382,7 +382,7 @@ type NetTopology struct {
 }
 
 var (
-	MinerRewardAddress Address = HexToAddress("0x80000000000000000000")
+	BlkRewardAddress   Address = HexToAddress("0x80000000000000000000")
 	TxGasRewardAddress Address = HexToAddress("0x80000000000000000001")
 )
 

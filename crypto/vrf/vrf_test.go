@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/baseinterface"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/crypto"
 )
 
 func TestCompute_1(t *testing.T) {

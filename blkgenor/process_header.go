@@ -4,6 +4,12 @@
 package blkgenor
 
 import (
+	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/depoistInfo"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
+	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"time"
 
@@ -42,7 +48,25 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 
 	return nil
 }
-
+func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
+	blkreward := blkreward.New(p.blockChain())
+	blkRewardMap := blkreward.CalcBlockRewards(util.ByzantiumBlockReward, header.Leader, header)
+	for account, value := range blkRewardMap {
+		depoistInfo.AddReward(State, account, value)
+	}
+	txsReward := txsreward.New(p.blockChain())
+	txsRewardMap := txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
+	for account, value := range txsRewardMap {
+		depoistInfo.AddReward(State, account, value)
+	}
+	//todo 跑奖励交易
+	slash := slash.New(p.blockChain())
+	SlashMap := slash.CalcSlash(State, header.Number.Uint64())
+	for account, value := range SlashMap {
+		depoistInfo.SetSlash(State, account, value)
+	}
+	return blkRewardMap, txsRewardMap
+}
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
 	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
@@ -106,7 +130,8 @@ func (p *Process) processHeaderGen() error {
 			}
 			Txs = append(Txs, txs...)
 		}
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
 
 		for _, tx := range Txs {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
@@ -154,8 +179,10 @@ func (p *Process) processHeaderGen() error {
 		//work.commitTransactions(self.mux, Txs, self.chain)
 		// todo： update uptime
 		p.processUpTime(work, header)
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
+		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc)
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc,blkRward,txsReward)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)

@@ -80,15 +80,23 @@ func Config_Init(Config_PATH string) {
 		fmt.Println("无广播节点")
 		os.Exit(-1)
 	}
+	FoundationNodes = v.FoundationNode
+	if len(FoundationNodes) == 0 {
+		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
+	}
 	RandomConfig = v.RandomConfig
 	fmt.Println("RandomConfig", RandomConfig)
 	ElectPlugs=v.ElectPlugs
 	fmt.Println("ElectPlugs",ElectPlugs)
+	log.INFO("MainBootNode", "data", MainnetBootnodes)
+	log.INFO("BroadCastNode", "data", BroadCastNodes)
+	log.INFO("FoundationNodes:", "data", FoundationNodes)
 }
 
 type Config struct {
 	BootNode  []string
-	BroadNode []BroadCastNode
+	BroadNode []NodeInfo
+	FoundationNode []NodeInfo
 	RandomConfig map[string]string
 	ElectPlugs string
 }

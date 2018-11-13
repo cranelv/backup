@@ -235,7 +235,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	mapA := make(map[common.Address]uint64)
 	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
 	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-	tx1 := env.makeTransaction(common.MinerRewardAddress,mapA)//区块奖励
+	tx1 := env.makeTransaction(common.BlkRewardAddress,mapA) //区块奖励
 	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 	tmps :=make([]types.SelfTransaction,0)
 	tmps = append(tmps, tx1)
@@ -300,7 +300,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 	mapA := make(map[common.Address]uint64)
 	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
 	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-	tx1 := env.makeTransaction(common.MinerRewardAddress,mapA)//区块奖励
+	tx1 := env.makeTransaction(common.BlkRewardAddress,mapA) //区块奖励
 	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 
 	if len(coalescedLogs) > 0 || env.tcount > 0 {

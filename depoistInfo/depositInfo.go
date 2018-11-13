@@ -108,3 +108,26 @@ func getDepositListTest() {
 	address = depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)
 	fmt.Printf("get miner:%v %d\n", address, len(address))
 }
+func AddSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error {
+	return depositInfo.MatrixDeposit.AddSlash(depositInfo.Contract, stateDB, address, slash)
+}
+
+func GetSlash(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
+	return depositInfo.MatrixDeposit.GetSlash(depositInfo.Contract, stateDB, address), nil
+}
+
+func SetSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error {
+	return depositInfo.MatrixDeposit.SetSlash(depositInfo.Contract, stateDB, address, slash)
+}
+
+func AddReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
+	return depositInfo.MatrixDeposit.AddReward(depositInfo.Contract, stateDB, address, reward)
+}
+
+func GetReward(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
+	return depositInfo.MatrixDeposit.GetReward(depositInfo.Contract, stateDB, address), nil
+}
+
+func SetReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
+	return depositInfo.MatrixDeposit.SetReward(depositInfo.Contract, stateDB, address, reward)
+}

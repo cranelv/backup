@@ -496,3 +496,56 @@ func (md *MatrixDeposit) modifyRefundState(contract *Contract, evm *EVM) (*big.I
 	md.removeDepositList(contract, evm.StateDB)
 	return deposit, nil
 }
+func (md *MatrixDeposit) GetSlash(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
+	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(slashKey))
+	if info != emptyHash {
+		return info.Big()
+	}
+	return nil
+}
+
+func (md *MatrixDeposit) AddSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(slashKey))
+	dep := info.Big()
+	dep.Add(dep, slash)
+	if len(dep.Bytes()) > 32 {
+		return errOverflow
+	}
+	stateDB.SetState(contract.Address(), common.BytesToHash(slashKey), common.BigToHash(dep))
+	return nil
+}
+
+func (md *MatrixDeposit) SetSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
+	stateDB.SetState(contract.Address(), common.BytesToHash(slashKey), common.BigToHash(slash))
+	return nil
+}
+
+func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
+	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(rewardKey))
+	if info != emptyHash {
+		return info.Big()
+	}
+	return nil
+}
+
+func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(rewardKey))
+	dep := info.Big()
+	dep.Add(dep, slash)
+	if len(dep.Bytes()) > 32 {
+		return errOverflow
+	}
+	stateDB.SetState(contract.Address(), common.BytesToHash(rewardKey), common.BigToHash(dep))
+	return nil
+}
+
+func (md *MatrixDeposit) SetReward(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
+	stateDB.SetState(contract.Address(), common.BytesToHash(rewardKey), common.BigToHash(slash))
+	return nil
+}
