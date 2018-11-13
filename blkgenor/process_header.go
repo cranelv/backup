@@ -18,6 +18,29 @@ import (
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/matrix/go-matrix/params"
 )
+func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
+
+	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64())
+		if err != nil {
+			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
+			return err
+		}
+		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.Number.Uint64())
+		if err != nil {
+			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+		}
+
+		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+		if nil != err {
+			log.ERROR("core", "处理uptime错误", err)
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
@@ -129,23 +152,7 @@ func (p *Process) processHeaderGen() error {
 
 		//work.commitTransactions(self.mux, Txs, self.chain)
 		// todo： update uptime
-		/*if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
-			upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
-			if err != nil {
-				log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", p.number)
-				return err
-			}
-			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(p.number)
-			if err != nil {
-				log.ERROR(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", p.number)
-			}
-
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-			if nil != err {
-				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
-				return err
-			}
-		}*/
+		p.processUpTime(work, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
