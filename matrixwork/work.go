@@ -220,7 +220,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,gasRewar map[common.Address]*big.Int,blkRewar map[common.Address]*big.Int) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
@@ -232,36 +232,50 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		listTx = append(listTx, txser...)
 	}
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
-	mapA := make(map[common.Address]uint64)
-	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
-	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-	tx1 := env.makeTransaction(common.BlkRewardAddress,mapA) //区块奖励
-	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 	tmps :=make([]types.SelfTransaction,0)
-	tmps = append(tmps, tx1)
-	tmps = append(tmps, tx2)
+	var (
+		tx1 types.SelfTransaction
+		tx2 types.SelfTransaction
+	)
+	if len(gasRewar) > 0{
+		tx2 = env.makeTransaction(common.TxGasRewardAddress,gasRewar)//交易费奖励
+		env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+	}
+	if len(blkRewar) > 0{
+		tx1 = env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+
+	}
+	if tx1 != nil{
+		tmps = append(tmps, tx1)
+	}
+	if tx2 != nil {
+		tmps = append(tmps, tx2)
+	}
 	tmps = append(tmps, retTxs...)
 	retTxs = tmps
 	return
 }
-func (env *Work)makeTransaction(from common.Address,val map[common.Address]uint64) types.SelfTransaction{
+func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.Int) types.SelfTransaction{
 	extra := make([]*types.ExtraTo_tr,0)
 	var to common.Address
-	var value uint64
+	var value *big.Int
+	tmpv := new(big.Int).SetUint64(10000)
+	tmpgas := new(big.Int).SetUint64(env.header.GasUsed)
 	isfirst := true
 	for k,v := range val{
+		if from == common.TxGasRewardAddress{
+			v = new(big.Int).Mul(new(big.Int).Quo(v,tmpv), tmpgas)
+		}
 		if isfirst{
 			to = k
 			value = v
 			isfirst = false
 			continue
 		}
-		if from == common.TxGasRewardAddress{
-			v = v / 10000 * env.header.GasUsed
-		}
-		extra = append(extra, &types.ExtraTo_tr{To_tr:&k,Value_tr:(*hexutil.Big)(new(big.Int).SetUint64(v)),Input_tr:nil})
+		extra = append(extra, &types.ExtraTo_tr{To_tr:&k,Value_tr:(*hexutil.Big)(v),Input_tr:nil})
 	}
-	tx := types.NewTransactions(env.State.GetNonce(from),to,new(big.Int).SetUint64(value),0,new(big.Int),nil,extra,0,0)
+	tx := types.NewTransactions(env.State.GetNonce(from),to,value,0,new(big.Int),nil,extra,0,0)
 	tx.SetFromLoad(from)
 	return tx
 }
@@ -273,7 +287,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,gasRewar map[common.Address]*big.Int,blkRewar map[common.Address]*big.Int) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
@@ -297,11 +311,15 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-	mapA := make(map[common.Address]uint64)
-	tx2 := env.makeTransaction(common.TxGasRewardAddress,mapA)//交易费奖励
-	env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-	tx1 := env.makeTransaction(common.BlkRewardAddress,mapA) //区块奖励
-	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+
+	if len(gasRewar) > 0{
+		tx2 := env.makeTransaction(common.TxGasRewardAddress,gasRewar)//交易费奖励
+		env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+	}
+	if len(blkRewar) > 0{
+		tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+	}
 
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
