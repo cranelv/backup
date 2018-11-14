@@ -322,11 +322,17 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 
 	if len(gasRewar) > 0{
 		tx2 := env.makeTransaction(common.TxGasRewardAddress,gasRewar)//交易费奖励
-		env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+		err, _ :=env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+		if err != nil {
+			return err
+		}
 	}
 	if len(blkRewar) > 0{
 		tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
-		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+		err,_:=env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
