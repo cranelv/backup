@@ -356,6 +356,7 @@ func (p *Process) insertAndBcBlock(isSelf bool, header *types.Header) (common.Ha
 	txs := blockData.block.Txs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
+	log.INFO(p.logExtraInfo(),"+++++插入区块的交易列表",txs)
 	block := types.NewBlockWithTxs(insertHeader, txs)
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)

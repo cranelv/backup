@@ -414,7 +414,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 	// todo: add rewward and run
 	blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,blkRward,txsReward)
-
+	log.Info(p.logExtraInfo(),  "共识的交易列表", p.curProcessReq.txs)
 	//err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
