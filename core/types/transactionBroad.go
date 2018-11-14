@@ -87,6 +87,8 @@ func (tx *TransactionBroad) GetMatrixType() byte {
 func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}
 }
+func (tx *TransactionBroad) SetTxV(v *big.Int)  { tx.data.V = v}
+func (tx *TransactionBroad) SetTxR(r *big.Int)  { tx.data.R = r}
 //YY
 func (tx *TransactionBroad) GetTxFrom() (common.Address, error) {
 	if tx.from.Load() == nil {

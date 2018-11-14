@@ -162,7 +162,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		case common.ExtraRevocable:
 			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
-			return nil,0,false,ErrTXUnknownType //TODO
+			return st.CallRevertNormalTx()
 		case common.ExtraUnGasTxType:
 			return st.CallUnGasNormalTx()
 		default:
@@ -173,6 +173,70 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}else{
 		return st.CallNormalTx()
 	}
+}
+func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	hashlist := make([]common.Hash,0)
+	sender := vm.AccountRef(tx.AmontFrom())
+	var (
+		vmerr error
+	)
+	gas, err := IntrinsicGas(st.data)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+		for _, ex := range tmpExtra[0].ExtraTo {
+			tmpgas, tmperr := IntrinsicGas(ex.Payload)
+			if tmperr != nil {
+				return nil, 0, false, err
+			}
+			//0.7+0.3*pow(0.9,(num-1))
+			gas += tmpgas
+		}
+	}
+	if err = st.UseGas(gas); err != nil {
+		return nil, 0, false, err
+	}
+	st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+	var hash common.Hash
+	hash.SetBytes(tx.Data())
+	hashlist = append(hashlist,hash)
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			hash.SetBytes(ex.Payload)
+			hashlist = append(hashlist,hash)
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	saveMapHashAmont.mu.Lock()
+	for _,tmphash := range hashlist{
+		if common.EmptyHash(tmphash){
+			continue
+		}
+		b,ok:=saveMapHashAmont.mapHashamont[tmphash]
+		if !ok {
+			continue
+		}
+		mapTOAmonts := make([]*addrAmont,0)
+		Unmarshalerr:=json.Unmarshal(b,&mapTOAmonts)
+		if Unmarshalerr != nil{
+			saveMapHashAmont.mu.Unlock()
+			return nil, 0, false,Unmarshalerr
+		}
+		delete(saveMapHashAmont.mapHashamont,tmphash)
+	}
+	saveMapHashAmont.mu.Unlock()
+	return ret, st.GasUsed(), vmerr != nil, err
 }
 /*
  TODO
