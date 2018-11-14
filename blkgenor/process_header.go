@@ -191,7 +191,10 @@ func (p *Process) processHeaderGen() error {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
 			return err
 		}
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成finalize")
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash",header.TxHash,"交易",Txs)
+		for _,tx :=range Txs{
+			log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
+		}
 		header = block.Header()
 		p2pBlock := &mc.HD_BlkConsensusReqMsg{Header: header, TxsCode: txsCode, ConsensusTurn: p.consensusTurn, From: ca.GetAddress()}
 		//send to local block verify module

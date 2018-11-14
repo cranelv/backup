@@ -414,20 +414,25 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 	// todo: add rewward and run
 	blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,blkRward,txsReward)
-	log.Info(p.logExtraInfo(),  "共识的交易列表", p.curProcessReq.txs)
-	//err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
+	log.Info(p.logExtraInfo(),  "共识的交易列表", p.curProcessReq.txs)
+	txs:=work.GetTxs()
+	log.Info(p.logExtraInfo(),  "共识后的交易列表", txs)
+	for _,tx :=range txs{
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
+	}
 	_, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
-		p.curProcessReq.txs, nil, work.Receipts)
+		txs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证,错误", "Failed to finalize block for sealing", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
+	log.Info(p.logExtraInfo(),  "共识后的交易本地hash", localHeader.TxHash,"共识后的交易远程hash", remoteHeader.TxHash)
 	//localBlock check
 	localHash := localHeader.HashNoSignsAndNonce()
 
@@ -446,7 +451,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 
 	p.curProcessReq.receipts = work.Receipts
 	p.curProcessReq.stateDB = work.State
-
+	p.curProcessReq.txs = txs
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }

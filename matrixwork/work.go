@@ -350,7 +350,9 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 
 	return nil
 }
-
+func (env *Work) GetTxs()[]types.SelfTransaction{
+	return env.txs
+}
 func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 
 	log.INFO(packagename, "获取所有参与uptime点名高度", num)

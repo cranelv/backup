@@ -103,8 +103,12 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 		}
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
 		for _, tx := range txs {
-			txCmpResult := TxCmpResult{&tx, abs(tx.Hash().Big().Int64() - expHash.Big().Int64())}
-			txsCmpResultList = append(txsCmpResultList, txCmpResult)
+			extx := tx.GetMatrix_EX()
+			if (extx != nil) && len(extx) > 0 && extx[0].TxType == common.ExtraNormalTxType||extx == nil {
+				txCmpResult := TxCmpResult{&tx, abs(tx.Hash().Big().Int64() - expHash.Big().Int64())}
+				txsCmpResultList = append(txsCmpResultList, txCmpResult)
+			}
+
 		}
 
 		originBlockNum++

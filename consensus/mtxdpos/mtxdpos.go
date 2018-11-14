@@ -72,7 +72,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 	}
 
 	hash := header.HashNoSignsAndNonce()
-	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash,"header:",header)
+	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash,"txhash:",header.TxHash.TerminalString())
 
 	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
 	return err
