@@ -1,11 +1,14 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 package ca
 
 import (
 	"math/big"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -16,7 +19,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
-	"github.com/pkg/errors"
 )
 
 type TopologyGraphReader interface {
@@ -109,7 +111,7 @@ func Start(id discover.NodeID, path string) {
 
 	ide.blockChan = make(chan *types.Block)
 	ide.sub, _ = mc.SubscribeEvent(mc.NewBlockMessage, ide.blockChan)
-	log.INFO("CA", "订阅区块事件", "完成")
+	ide.log.Info("ca subscribe success.")
 	mc.PublishEvent(mc.CA_ReqCurrentBlock, struct{}{})
 
 	for {
@@ -119,7 +121,7 @@ func Start(id discover.NodeID, path string) {
 			hash := block.Hash()
 			ide.currentHeight = header.Number
 
-			log.INFO("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
+			ide.log.Info("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
 
 			// init current height deposit
 			ide.deposit, _ = GetElectedByHeightWithdraw(header.Number)
@@ -151,12 +153,12 @@ func Start(id discover.NodeID, path string) {
 
 			// send role message to elect
 			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader})
-			log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader})
+			ide.log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader})
 			// get nodes in buckets and send to buckets
 			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
 			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, Role: ide.currentRole})
-			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole})//lb
+			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
 			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
 		case <-ide.quit:
 			return
@@ -188,7 +190,7 @@ func initCurrentTopology() {
 			break
 		}
 	}
-	log.Info("current topology", "info:", ide.topology)
+	ide.log.Info("current topology", "info:", ide.topology)
 }
 
 // initNowTopologyResult
@@ -271,24 +273,16 @@ func GetRolesByGroupOnlyNextElect(roleType common.RoleType) (result []discover.N
 
 // Get self identity.
 func GetRole() (role common.RoleType) {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
-
 	return ide.currentRole
 }
 
+// GetHeight
 func GetHeight() *big.Int {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
-
 	return ide.currentHeight
 }
 
 // InDuration
 func InDuration() bool {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
-
 	return ide.duration
 }
 
@@ -317,7 +311,7 @@ func GetNodeNumber() (uint32, error) {
 			return uint32(n.NodeNumber), nil
 		}
 	}
-	return 0, errors.New("No current node number. ")
+	return 0, errors.New("No current node number.")
 }
 
 // getNodesInBuckets get miner nodes that should be in buckets.
@@ -415,7 +409,7 @@ func GetFrontNodes() []discover.NodeID {
 func GetAddress() common.Address {
 	addr, err := ConvertNodeIdToAddress(ide.self)
 	if err != nil {
-		log.Error("ca get self address", "error", err)
+		ide.log.Error("ca get self address", "error", err)
 	}
 	return addr
 }
@@ -447,7 +441,7 @@ func GetTopologyByNumber(reqTypes common.RoleType, number uint64) (*mc.TopologyG
 func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.TopologyGraph, error) {
 	tg, err := ide.topologyReader.GetTopologyGraphByHash(hash)
 	if err != nil {
-		log.Error("GetAccountTopologyInfo", "error", err, "hash", hash.TerminalString())
+		ide.log.Error("GetAccountTopologyInfo", "error", err, "hash", hash.TerminalString())
 		return nil, err
 	}
 

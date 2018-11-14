@@ -131,9 +131,9 @@ func (p *Process) processHeaderGen() error {
 			Txs = append(Txs, txs...)
 		}
 		// todo: add rewward and run
-		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
-		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
+		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		for _, tx := range Txs {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
