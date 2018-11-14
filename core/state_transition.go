@@ -164,6 +164,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		return st.CallNormalTx()
 	}
 }
+/*
+ TODO
+	1、可撤销交易中存储的数据格式map[hash][]byte 其中[]byte结构为结构体的切片，结构体由to和金额组成
+	2、撤销交易（收gas费）会在交易的data中携带可撤销交易的hash，根据此hash找到对应的[]byte解析出结构体，并将每笔金额退回，不收取gas费用
+	3、定时执行可撤销交易，同样从map中获取数据解析出结构体按照对应的to给其转账，此时不再收取交易费
+*/
 func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	sender := vm.AccountRef(tx.AmontFrom())
