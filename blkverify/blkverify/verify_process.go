@@ -412,8 +412,8 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 	//todo add handleuptime
 	p.processUpTime(work, localHeader.ParentHash)
 	// todo: add rewward and run
-	//blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,nil,nil)
+	blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,blkRward,txsReward)
 
 	//err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {

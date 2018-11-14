@@ -53,12 +53,15 @@ func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail
 		return nil, err
 	}
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)
-	var depositList []vm.DepositDetail
-	switch getDeposit {
-	case common.RoleValidator:
-		depositList = depositInfo.MatrixDeposit.GetValidatorDepositList(contract, db)
-	case common.RoleMiner:
-		depositList = depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)
+	//var depositList []vm.DepositDetail
+	depositList := make([]vm.DepositDetail, 0)
+	if common.RoleValidator == common.RoleValidator&getDeposit {
+
+		depositList = append(depositList, depositInfo.MatrixDeposit.GetValidatorDepositList(contract, db)...)
+	}
+
+	if common.RoleMiner == common.RoleMiner&getDeposit {
+		depositList = append(depositList, depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)...)
 	}
 	return depositList, nil
 }
