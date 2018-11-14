@@ -275,7 +275,7 @@ func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.
 		}
 		extra = append(extra, &types.ExtraTo_tr{To_tr:&k,Value_tr:(*hexutil.Big)(v),Input_tr:nil})
 	}
-	tx := types.NewTransactions(env.State.GetNonce(from),to,value,0,new(big.Int),nil,extra,0,0)
+	tx := types.NewTransactions(env.State.GetNonce(from),to,value,0,new(big.Int),nil,extra,0,common.ExtraUnGasTxType)
 	tx.SetFromLoad(from)
 	return tx
 }

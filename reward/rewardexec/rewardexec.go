@@ -23,7 +23,7 @@ type BlockReward struct {
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
 
-	if util.RewardFullRate != rewardCfg.RewardMount.MinerOutRate+rewardCfg.RewardMount.ValidatorsRate+rewardCfg.RewardMount.FoundationRate {
+	if util.RewardFullRate != rewardCfg.RewardMount.MinersRate+rewardCfg.RewardMount.ValidatorsRate+rewardCfg.RewardMount.FoundationRate {
 		return nil
 	}
 	if util.RewardFullRate != rewardCfg.RewardMount.MinerOutRate+rewardCfg.RewardMount.ElectedMineRate {
@@ -89,6 +89,10 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, rewards map[c
 func (br *BlockReward) CalcBlockRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
 
 	rewards := make(map[common.Address]*big.Int, 0)
+	if nil==br.rewardCfg{
+		log.Error(PackageName,"奖励配置为空","")
+		return nil
+	}
 	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.ValidatorsRate)
 	br.calcValidatorRewards(validatorsBlkReward, rewards, Leader, header)
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.MinersRate)

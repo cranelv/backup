@@ -181,9 +181,9 @@ func (p *Process) processHeaderGen() error {
 		// todo： update uptime
 		p.processUpTime(work, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc,blkRward,txsReward)
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.pm.bc)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")

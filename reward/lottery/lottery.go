@@ -119,7 +119,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 	secondLottery := make(map[common.Address]*big.Int, SECOND)
 	thirdLottery := make(map[common.Address]*big.Int, THIRD)
 	for _, v := range txsCmpResultList {
-		from, err := types.Sender(types.NewEIP155Signer(tlr.chain.Config().ChainId), v.Tx)
+		from, err := types.Sender(types.NewEIP155Signer(tlr.chain.Config().ChainId), *v.Tx)
 		if nil != err {
 			continue
 		}
