@@ -280,9 +280,17 @@ func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.
 	return tx
 }
 //Broadcast
-func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) {
+func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,blkRewar map[common.Address]*big.Int,gasRewar map[common.Address]*big.Int) {
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
+	}
+	if len(gasRewar) > 0{
+		tx2 := env.makeTransaction(common.TxGasRewardAddress,gasRewar)//交易费奖励
+		env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
+	}
+	if len(blkRewar) > 0{
+		tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 	}
 	return
 }

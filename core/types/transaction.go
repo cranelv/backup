@@ -165,9 +165,9 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		d.Price.Set(gasPrice)
 	}
 	//YY
+	matrixEx := new(Matrix_Extra)
+	arrayTx := make([]Tx_to, 0)
 	if len(ex) > 0 {
-		arrayTx := make([]Tx_to, 0)
-		matrixEx := new(Matrix_Extra)
 		for _, extro := range ex {
 			var input []byte
 			if extro.Input_tr == nil {
@@ -182,11 +182,11 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 			txto.Payload = input
 			arrayTx = append(arrayTx, *txto)
 		}
-		matrixEx.TxType = txType
-		matrixEx.LockHeight = localtime
-		matrixEx.ExtraTo = arrayTx
-		d.Extra = append(d.Extra, *matrixEx)
 	}
+	matrixEx.TxType = txType
+	matrixEx.LockHeight = localtime
+	matrixEx.ExtraTo = arrayTx
+	d.Extra = append(d.Extra, *matrixEx)
 	tx:=&Transaction{data: d}
 	return tx
 }
