@@ -71,7 +71,7 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		log.Error(PackageName, "get elect NodeList is Nill", "")
 		return
 	}
-	newGraph, err := chain.NewTopologyGraph(header)
+	newGraph, err :=  ca.GetTopologyByNumber(roleType, header.Number.Uint64()-1)
 
 	if err != nil {
 		log.Error(PackageName, "get current topology by number error", err)

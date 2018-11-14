@@ -1187,14 +1187,14 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 2
+					upTime = common.GetBroadcastInterval() - 3
 					log.INFO("blockchain", "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO("blockchain", "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 2
+				upTime = common.GetBroadcastInterval() - 3
 				log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
@@ -1390,16 +1390,21 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}		// todo: 判断第一和第二笔是否是奖励
-		if !common.BlkRewardAddress.Equal(block.Transactions()[0].From()){
-			err=errors.New("invalid first reward")
-			bc.reportBlock(block, nil, err)
-			return i, events, coalescedLogs, err
-		}
-		if !common.TxGasRewardAddress.Equal(block.Transactions()[1].From()){
-			err=errors.New("invalid second reward")
-			bc.reportBlock(block, nil, err)
-			return i, events, coalescedLogs, err
-		}
+		//if len(block.Transactions())<2{
+		//	err=errors.New("invalid  reward")
+		//	bc.reportBlock(block, nil, err)
+		//	return i, events, coalescedLogs, err
+		//}
+		//if !common.BlkRewardAddress.Equal(block.Transactions()[0].From()){
+		//	err=errors.New("invalid first reward")
+		//	bc.reportBlock(block, nil, err)
+		//	return i, events, coalescedLogs, err
+		//}
+		//if !common.TxGasRewardAddress.Equal(block.Transactions()[1].From()){
+		//	err=errors.New("invalid second reward")
+		//	bc.reportBlock(block, nil, err)
+		//	return i, events, coalescedLogs, err
+		//}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 		if err != nil {

@@ -149,6 +149,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	extx := tx.GetMatrix_EX()
 	if (extx != nil) && len(extx) > 0 && extx[0].TxType != 0{
 		switch extx[0].TxType{
+		case common.ExtraRevocable:
+			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
 			return nil,0,false,ErrTXUnknownType //TODO
 		case common.ExtraUnGasTxType:
@@ -161,6 +163,53 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}else{
 		return st.CallNormalTx()
 	}
+}
+func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	sender := vm.AccountRef(tx.AmontFrom())
+	var (
+		vmerr error
+	)
+	gas, err := IntrinsicGas(st.data)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+		for _, ex := range tmpExtra[0].ExtraTo {
+			tmpgas, tmperr := IntrinsicGas(ex.Payload)
+			if tmperr != nil {
+				return nil, 0, false, err
+			}
+			//0.7+0.3*pow(0.9,(num-1))
+			gas += tmpgas
+		}
+	}
+	if err = st.UseGas(gas); err != nil {
+		return nil, 0, false, err
+	}
+	st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+	st.state.AddBalance(common.WithdrawAccount,tx.From(), st.value)
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			st.state.AddBalance(common.WithdrawAccount,tx.From(), ex.Amount)
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, vmerr
+		}
+	}
+	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型

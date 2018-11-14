@@ -1,35 +1,27 @@
 package reward
 
 import (
-	"crypto/ecdsa"
+
 	"fmt"
+	"github.com/matrix/go-matrix/reward/txsreward"
 	"math/big"
-	"math/rand"
+
 	"sync"
 	"testing"
 
 	"github.com/matrix/go-matrix/reward/util"
 
-	"github.com/matrix/go-matrix/reward/cfg"
 
-	"github.com/matrix/go-matrix/reward/blkreward"
 
-	"github.com/matrix/go-matrix/reward"
-
-	"github.com/matrix/go-matrix/reward/slash"
-
-	"github.com/matrix/go-matrix/crypto"
 
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/ethash"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/reward/lottery"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -93,51 +85,84 @@ func fakeEthNew(n int) *FakeEth {
 	return eth
 }
 
-type InnerSeed struct {
+//type InnerSeed struct {
+//}
+//
+//func (s *InnerSeed) GetSeed(num uint64) *big.Int {
+//	random := rand.New(rand.NewSource(0))
+//	return new(big.Int).SetUint64(random.Uint64())
+//}
+//func TestNew(t *testing.T) {
+//	type args struct {
+//		chain reward.ChainReader
+//	}
+//	log.InitLog(3)
+//	eth := fakeEthNew(0)
+//	blkreward.New(eth.blockchain)
+//
+//}
+//
+//func TestBlockReward_setLeaderRewards(t *testing.T) {
+//
+//	log.InitLog(3)
+//	eth := fakeEthNew(0)
+//	rewardCfg := cfg.New(nil, nil)
+//	rewardobject := reward.New(eth.blockchain, rewardCfg)
+//	Convey("Leader测试", t, func() {
+//		rewards := make(map[common.Address]*big.Int, 0)
+//		validatorsBlkReward := util.CalcRateReward(ByzantiumBlockReward, rewardobject.rewardCfg.RewardMount.ValidatorsRate)
+//		leaderBlkReward := util.CalcRateReward(validatorsBlkReward, rewardobject.rewardCfg.RewardMount.LeaderRate)
+//		rewardobject.rewardCfg.SetReward.SetLeaderRewards(leaderBlkReward, rewards, common.HexToAddress(testAddress), new(big.Int).SetUint64(uint64(1)))
+//
+//	})
+//}
+//
+//func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
+//	type args struct {
+//		chain ChainReader
+//	}
+//	log.InitLog(3)
+//	eth := fakeEthNew(0)
+//	slash := slash.New(eth.blockchain)
+//	seed := &InnerSeed{}
+//	lottery := lottery.New(eth.blockchain, seed)
+//	reward := New(eth.blockchain, lottery, slash)
+//	SkipConvey("选中无节点变化测试", t, func() {
+//
+//		rewards := make(map[common.Address]*big.Int, 0)
+//		header := eth.BlockChain().CurrentHeader()
+//		newheader := types.CopyHeader(header)
+//		newheader.Number = big.NewInt(1)
+//		newheader.NetTopology.Type = common.NetTopoTypeAll
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+//		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
+//		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
+//	})
+//
+//	Convey("选中有节点变化测试", t, func() {
+//
+//		rewards := make(map[common.Address]*big.Int, 0)
+//		header := eth.BlockChain().CurrentHeader()
+//		newheader := types.CopyHeader(header)
+//		newheader.Number = big.NewInt(1)
+//		newheader.NetTopology.Type = common.NetTopoTypeAll
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
+//		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bcf"), Position: 8195})
+//		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
+//		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
+//	})
 }
 
-func (s *InnerSeed) GetSeed(num uint64) *big.Int {
-	random := rand.New(rand.NewSource(0))
-	return new(big.Int).SetUint64(random.Uint64())
-}
-func TestNew(t *testing.T) {
-	type args struct {
-		chain reward.ChainReader
-	}
-	log.InitLog(3)
-	eth := fakeEthNew(0)
-	blkreward.New(eth.blockchain)
+func TestBlockReward_calcTxsFees(t *testing.T) {
+	Convey("计算交易费", t, func() {
 
-}
-
-func TestBlockReward_setLeaderRewards(t *testing.T) {
-
-	log.InitLog(3)
-	eth := fakeEthNew(0)
-	rewardCfg := cfg.New(nil, nil)
-	rewardobject := reward.New(eth.blockchain, rewardCfg)
-	Convey("Leader测试", t, func() {
-		rewards := make(map[common.Address]*big.Int, 0)
-		validatorsBlkReward := util.CalcRateReward(ByzantiumBlockReward, rewardobject.rewardCfg.RewardMount.ValidatorsRate)
-		leaderBlkReward := util.CalcRateReward(validatorsBlkReward, rewardobject.rewardCfg.RewardMount.LeaderRate)
-		rewardobject.rewardCfg.SetReward.SetLeaderRewards(leaderBlkReward, rewards, common.HexToAddress(testAddress), new(big.Int).SetUint64(uint64(1)))
-
-	})
-}
-
-func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
-	type args struct {
-		chain ChainReader
-	}
-	log.InitLog(3)
-	eth := fakeEthNew(0)
-	slash := slash.New(eth.blockchain)
-	seed := &InnerSeed{}
-	lottery := lottery.New(eth.blockchain, seed)
-	reward := New(eth.blockchain, lottery, slash)
-	SkipConvey("选中无节点变化测试", t, func() {
-
-		rewards := make(map[common.Address]*big.Int, 0)
+		log.InitLog(3)
+		eth := fakeEthNew(0)
 		header := eth.BlockChain().CurrentHeader()
 		newheader := types.CopyHeader(header)
 		newheader.Number = big.NewInt(1)
@@ -146,59 +171,9 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
-		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
-		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
-	})
+		txsReward := txsreward.New(eth.BlockChain())
+		txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
 
-	Convey("选中有节点变化测试", t, func() {
 
-		rewards := make(map[common.Address]*big.Int, 0)
-		header := eth.BlockChain().CurrentHeader()
-		newheader := types.CopyHeader(header)
-		newheader.Number = big.NewInt(1)
-		newheader.NetTopology.Type = common.NetTopoTypeAll
-		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
-		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
-		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
-		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bcf"), Position: 8195})
-		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
-		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
-	})
-}
-
-func TestBlockReward_calcTxsFees(t *testing.T) {
-	Convey("计算交易费", t, func() {
-
-		log.InitLog(3)
-		eth := fakeEthNew(0)
-		slash := slash.New(eth.blockchain)
-		seed := &InnerSeed{}
-		lottery := lottery.New(eth.blockchain, seed)
-		reward := New(eth.blockchain, lottery, slash)
-		keys := make([]*ecdsa.PrivateKey, 25)
-		for i := 0; i < len(keys); i++ {
-			keys[i], _ = crypto.GenerateKey()
-		}
-
-		signer := types.HomesteadSigner{}
-		// Generate a batch of transactions with overlapping values, but shifted nonces
-		groups := map[common.Address]types.Transactions{}
-		for start, key := range keys {
-			addr := crypto.PubkeyToAddress(key.PublicKey)
-			for i := 0; i < 25; i++ {
-				tx, _ := types.SignTx(types.NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(100)), nil), signer, key)
-				groups[addr] = append(groups[addr], tx)
-			}
-		}
-		txset := types.NewTransactionsByPriceAndNonce(signer, groups)
-
-		txs := types.Transactions{}
-		for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
-			txs = append(txs, tx)
-			txset.Shift()
-		}
-		rewards := util.CalcTxsFees(eth.blockchain, big.NewInt(int64(0)), txs)
-
-		So(rewards.Uint64(), ShouldEqual, 1312500000)
 	})
 }

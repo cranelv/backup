@@ -313,22 +313,52 @@ func (tx *Transaction)GetFromLoad() interface{}  {
 func (tx *Transaction)SetFromLoad(x interface{})  {
 	tx.from.Store(x)
 }
-func (tx *Transaction)GasFrom() common.Address{
+func (tx *Transaction)GasFrom() (from common.Address){
 	//TODO 需要去委托中要💊 from
-	return tx.from.Load().(sigCache).from
+	tmp,ok := tx.from.Load().(sigCache)
+	if !ok{
+		tmpfrom,isok :=tx.from.Load().(common.Address)
+		if !isok{
+			return common.Address{}
+		}
+		from = tmpfrom
+	}else {
+		from = tmp.from
+	}
+	return
 }
-func (tx *Transaction)AmontFrom() common.Address{
+func (tx *Transaction)AmontFrom() (from common.Address){
 	//TODO 需要去委托中要💊 from
-	return tx.from.Load().(sigCache).from
+	tmp,ok := tx.from.Load().(sigCache)
+	if !ok{
+		tmpfrom,isok :=tx.from.Load().(common.Address)
+		if !isok{
+			return common.Address{}
+		}
+		from = tmpfrom
+	}else {
+		from = tmp.from
+	}
+	return
 }
 //YY
-func (tx *Transaction) GetTxFrom() (common.Address,error) {
+func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 	if tx.from.Load() == nil{
 		//如果交易没有做过验签则err不为空。
 		return common.Address{},errors.New("Address is Nil")
 	}
 	//如果交易做过验签则err为空。
-	return tx.from.Load().(sigCache).from, nil
+	tmp,ok := tx.from.Load().(sigCache)
+	if !ok{
+		tmpfrom,isok :=tx.from.Load().(common.Address)
+		if !isok{
+			return common.Address{},errors.New("load Address is Nil")
+		}
+		from = tmpfrom
+	}else {
+		from = tmp.from
+	}
+	return
 }
 //YY// Cost returns amount + gasprice * gaslimit.
 func (tx *Transaction) CostALL() *big.Int {
