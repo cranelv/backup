@@ -220,7 +220,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,gasRewar map[common.Address]*big.Int,blkRewar map[common.Address]*big.Int) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,blkRewar map[common.Address]*big.Int,gasRewar map[common.Address]*big.Int) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
@@ -287,7 +287,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,gasRewar map[common.Address]*big.Int,blkRewar map[common.Address]*big.Int) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,blkRewar map[common.Address]*big.Int,gasRewar map[common.Address]*big.Int) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
