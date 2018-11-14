@@ -80,6 +80,9 @@ func (tx *TransactionBroad)GasFrom() common.Address{
 func (tx *TransactionBroad)AmontFrom() common.Address{
 	return common.Address{}
 }
+func (tx *TransactionBroad) GetMatrixType() byte {
+	return 1
+}
 //
 func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}

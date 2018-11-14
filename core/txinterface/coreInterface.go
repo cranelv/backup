@@ -15,11 +15,11 @@ type Message interface {
 	GasPrice() *big.Int
 	Gas() uint64
 	Value() *big.Int
-
+	Hash() common.Hash
 	Nonce() uint64
 	CheckNonce() bool
 	Data() []byte
-	//Extra() types.Matrix_Extra //YY
+	GetMatrixType() byte
 	GetMatrix_EX() []types.Matrix_Extra //YYY  注释 Extra() 方法 改用此方法
 	TxType() common.TxTypeInt
 }

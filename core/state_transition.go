@@ -146,9 +146,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		return
 	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
-	extx := tx.GetMatrix_EX()
-	if (extx != nil) && len(extx) > 0 && extx[0].TxType != 0{
-		switch extx[0].TxType{
+	txtype := tx.GetMatrixType()
+	if txtype != common.ExtraNormalTxType{
+		switch txtype{
 		case common.ExtraRevocable:
 			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
