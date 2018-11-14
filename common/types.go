@@ -389,8 +389,9 @@ var (
 const (
 	//byte can not be 1,because 1 is occupied
 	ExtraNormalTxType    byte = 0
-	ExtraUnGasTxType     byte = 2
-	ExtraRevertTxType    byte = 3
+	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
+	ExtraRevocable       byte = 3  //可撤销的交易
+	ExtraRevertTxType    byte = 4  //撤销交易
 )
 
 type TxTypeInt uint8
