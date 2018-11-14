@@ -381,7 +381,8 @@ func (tx *Transaction)GetTxNLen()int{
 }
 //YY
 func (tx *Transaction) GetTxV() *big.Int { return tx.data.V }
-
+func (tx *Transaction) SetTxV(v *big.Int)  { tx.data.V = v}
+func (tx *Transaction) SetTxR(r *big.Int)  { tx.data.R = r}
 //YY
 func (tx *Transaction) GetTxS() *big.Int { return tx.data.S }
 //YY

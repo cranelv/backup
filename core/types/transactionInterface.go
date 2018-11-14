@@ -27,6 +27,8 @@ type SelfTransaction interface {
 	GetTxR() *big.Int
 	GetTxV() *big.Int
 	SetTxS(S *big.Int)
+	SetTxV(v *big.Int)
+	SetTxR(r *big.Int)
 	To() *common.Address
 	Hash() common.Hash
 	GetTxHashStruct()   //获取交易结构中需要哈希的成员  返回值应该是什么？？？？？
