@@ -75,23 +75,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
-	//YYY =======begin==================
-	//msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
-	//if err != nil {
-	//	return nil, 0, err
-	//}
+
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
 		from, err = types.Sender(types.NewEIP155Signer(config.ChainId), tx)
 	}
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
-	//YYY ==========end===================
-	// Create a new environment which holds all relevant information
-	// about the transaction and calling mechanisms.
+
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 	// Apply the transaction to the current state (included in the env)
-	//===============hezi====================
 	var gas uint64
 	var failed bool
 	if tx.TxType() == types.BroadCastTxIndex{
@@ -100,13 +93,11 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 			failed = true
 		}
 	} else {
-		//_, gas, failed, err = ApplyMessage(vmenv, msg, gp) //YYY
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
 		if err != nil {
 			return nil, 0, err
 		}
 	}
-	//==========================================
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
@@ -114,8 +105,6 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	} else {
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
-	//root1 := statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
-	//log.Info("*************","ApplyTransaction before:usedGas",*usedGas,"gas",gas,"root",root1)
 	*usedGas += gas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx

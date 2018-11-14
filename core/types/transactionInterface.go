@@ -43,4 +43,5 @@ type SelfTransaction interface {
 	GetConstructorType()uint16
 	GasFrom() common.Address
 	AmontFrom() common.Address
+	GetMatrixType() byte
 }

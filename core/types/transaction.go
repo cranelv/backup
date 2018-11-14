@@ -299,6 +299,13 @@ func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 
+func (tx *Transaction) GetMatrixType() byte {
+	if tx.data.Extra != nil && len(tx.data.Extra)>0{
+		return tx.data.Extra[0].TxType
+	}
+	return common.ExtraNormalTxType
+}
+
 //YYY 为了兼容去掉的Message结构体
 func (tx *Transaction) From() common.Address {
 	addr, err := tx.GetTxFrom()

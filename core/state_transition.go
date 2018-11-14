@@ -16,6 +16,8 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
+	"sync"
+	"encoding/json"
 )
 
 var (
@@ -32,7 +34,15 @@ type StateTransition struct {
 	state      vm.StateDB
 	evm        *vm.EVM
 }
-
+type mapHashAmont struct {
+	mapHashamont map[common.Hash][]byte
+	mu sync.RWMutex
+}
+var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont:make(map[common.Hash][]byte)}
+type addrAmont struct {
+	addr common.Address
+	amont *big.Int
+}
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 //func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 func IntrinsicGas(data []byte) (uint64, error) {
@@ -146,9 +156,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		return
 	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
-	extx := tx.GetMatrix_EX()
-	if (extx != nil) && len(extx) > 0 && extx[0].TxType != 0{
-		switch extx[0].TxType{
+	txtype := tx.GetMatrixType()
+	if txtype != common.ExtraNormalTxType{
+		switch txtype{
 		case common.ExtraRevocable:
 			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
@@ -180,6 +190,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if err != nil {
 		return nil, 0, false, err
 	}
+	mapTOAmonts := make([]*addrAmont,0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -200,9 +211,13 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	}
 	st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
 	st.state.AddBalance(common.WithdrawAccount,tx.From(), st.value)
+	mapTOAmont := &addrAmont{addr:st.To(),amont:st.value}
+	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			st.state.AddBalance(common.WithdrawAccount,tx.From(), ex.Amount)
+			mapTOAmont = &addrAmont{addr:*ex.Recipient,amont:ex.Amount}
+			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 			if vmerr != nil {
 				break
 			}
@@ -214,6 +229,14 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 			return nil, 0, false, vmerr
 		}
 	}
+	b,marshalerr:=json.Marshal(mapTOAmonts)
+	if marshalerr != nil{
+		return nil, 0, false,marshalerr
+	}
+	saveMapHashAmont.mu.Lock()
+	saveMapHashAmont.mapHashamont[tx.Hash()] = b
+	saveMapHashAmont.mu.Unlock()
+
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
