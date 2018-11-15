@@ -184,6 +184,7 @@ func (p *Process) processHeaderGen() error {
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),blkRward,txsReward)
+		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)
@@ -191,7 +192,7 @@ func (p *Process) processHeaderGen() error {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
 			return err
 		}
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash",header.TxHash,"交易",Txs)
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash",block.TxHash(),"交易",Txs)
 		for _,tx :=range Txs{
 			log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
 		}

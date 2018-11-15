@@ -362,6 +362,12 @@ func (p *Process) insertAndBcBlock(isSelf bool, header *types.Header) (common.Ha
 	for _,tx :=range txs{
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
 	}
+
+	log.INFO(p.logExtraInfo(),"********插入区块的交易列表",txs,"插入区块的txhash ",insertHeader.TxHash)
+	block = types.NewBlockWithTxs(insertHeader, txs)
+	log.INFO(p.logExtraInfo(),"----插入区块的交易列表",txs,"插入区块的txhash ",block.TxHash())
+
+
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "Failed writing block to chain", err)

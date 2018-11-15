@@ -382,8 +382,8 @@ type NetTopology struct {
 }
 
 var (
-	BlkRewardAddress   Address = HexToAddress("0x80000000000000000000")
-	TxGasRewardAddress Address = HexToAddress("0x80000000000000000001")
+	BlkRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000000")
+	TxGasRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000001")
 )
 
 const (

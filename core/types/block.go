@@ -266,6 +266,9 @@ func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts 
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
+		for _,tx :=range txs{
+			log.INFO("NewBlock", "tx",tx.Hash(),"区块验证请求生成，交易部分,完成交易",tx)
+		}
 		b.header.TxHash = DeriveSha(SelfTransactions(txs))
 		b.transactions = make(SelfTransactions, len(txs))
 		copy(b.transactions, txs)
@@ -306,6 +309,9 @@ func NewBlockWithTxs(header *Header, txs []SelfTransaction) *Block {
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
+		for _,tx :=range txs{
+			log.INFO("NewBlockWithTxs", "tx",tx.Hash(),"区块验证请求生成，交易部分,完成交易",tx)
+		}
 		b.header.TxHash = DeriveSha(SelfTransactions(txs))
 		b.transactions = make(SelfTransactions, len(txs))
 		copy(b.transactions, txs)
