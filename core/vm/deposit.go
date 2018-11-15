@@ -155,7 +155,7 @@ func (md *MatrixDeposit) GetOnlineTime(contract *Contract, stateDB StateDB, addr
 	if info != emptyHash {
 		return info.Big()
 	}
-	return nil
+	return big.NewInt(0)
 }
 
 func (md *MatrixDeposit) AddOnlineTime(contract *Contract, stateDB StateDB, address common.Address, ot *big.Int) error {
