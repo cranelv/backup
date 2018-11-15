@@ -8,7 +8,6 @@ PullImages:
   stage: PullImages
   script:
     - pwd
-    
 #KK:
 #    stage: KK
 #    scripts:
