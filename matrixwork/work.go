@@ -297,9 +297,7 @@ func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.
 		tmp.To_tr = &kk
 		tmp.Value_tr = (*hexutil.Big)(vv)
 		extra = append(extra, tmp)
-		break
 	}
-
 	tx := types.NewTransactions(env.State.GetNonce(from),to,value,0,new(big.Int),nil,extra,0,common.ExtraUnGasTxType)
 	tx.SetFromLoad(from)
 	tx.SetTxS(big.NewInt(1))
