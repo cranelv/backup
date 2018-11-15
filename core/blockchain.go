@@ -1389,22 +1389,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
-		}		// todo: 判断第一和第二笔是否是奖励
-		//if len(block.Transactions())<2{
-		//	err=errors.New("invalid  reward")
-		//	bc.reportBlock(block, nil, err)
-		//	return i, events, coalescedLogs, err
-		//}
-		//if !common.BlkRewardAddress.Equal(block.Transactions()[0].From()){
-		//	err=errors.New("invalid first reward")
-		//	bc.reportBlock(block, nil, err)
-		//	return i, events, coalescedLogs, err
-		//}
-		//if !common.TxGasRewardAddress.Equal(block.Transactions()[1].From()){
-		//	err=errors.New("invalid second reward")
-		//	bc.reportBlock(block, nil, err)
-		//	return i, events, coalescedLogs, err
-		//}
+		}
+
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 		if err != nil {

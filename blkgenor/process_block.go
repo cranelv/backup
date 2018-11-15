@@ -9,13 +9,13 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"time"
-	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/matrixwork"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -148,28 +148,28 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	if err != nil {
 		return nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
-	//todo: 跑交易不能添加奖励，增加新接口或map为空
+	// 跑交易不能添加奖励，增加新接口或map为空
 	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,nil,nil)
 	if err != nil {
 		return nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
-	_, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
+	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
 		Txs, nil, work.Receipts)
 	if err != nil {
 		return nil, nil, errors.Errorf("Finalize error(%v)", err)
 	}
 	//localBlock check
-	localHash := localHeader.HashNoSignsAndNonce()
+	localHash := block.Header().HashNoSignsAndNonce()
 
 	if localHash != headerHash {
 		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", headerHash.TerminalString(),
-			"local root", localHeader.Root.TerminalString(), "remote root", header.Root.TerminalString(),
-			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
-			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
-			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", header.Bloom.Big(),
-			"local GasLimit", localHeader.GasLimit, "remote GasLimit", header.GasLimit,
-			"local GasUsed", localHeader.GasUsed, "remote GasUsed", header.GasUsed)
+			"local root", block.Header().Root.TerminalString(), "remote root", header.Root.TerminalString(),
+			"local txHash", block.Header().TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
+			"local ReceiptHash", block.Header().ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
+			"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),
+			"local GasLimit", block.Header().GasLimit, "remote GasLimit", header.GasLimit,
+			"local GasUsed", block.Header().GasUsed, "remote GasUsed", header.GasUsed)
 		return nil, nil, errors.Errorf("block hash不匹配.LocalHash(%s) != remoteHash(%s)", localHash.TerminalString(), headerHash.TerminalString())
 	}
 	return work.Receipts, work.State, nil
@@ -356,17 +356,10 @@ func (p *Process) insertAndBcBlock(isSelf bool, header *types.Header) (common.Ha
 	txs := blockData.block.Txs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
-	log.INFO(p.logExtraInfo(),"+++++插入区块的交易列表",txs,"插入区块的txhash ",insertHeader.TxHash)
 	block := types.NewBlockWithTxs(insertHeader, txs)
-	log.INFO(p.logExtraInfo(),"----插入区块的交易列表",txs,"插入区块的txhash ",block.TxHash())
-	for _,tx :=range txs{
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
-	}
 
-	log.INFO(p.logExtraInfo(),"********插入区块的交易列表",txs,"插入区块的txhash ",insertHeader.TxHash)
 	block = types.NewBlockWithTxs(insertHeader, txs)
 	log.INFO(p.logExtraInfo(),"----插入区块的交易列表",txs,"插入区块的txhash ",block.TxHash())
-
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

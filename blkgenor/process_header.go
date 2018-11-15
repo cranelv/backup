@@ -5,7 +5,6 @@ package blkgenor
 
 import (
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
@@ -51,20 +50,20 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
 	blkreward := blkreward.New(p.blockChain())
 	blkRewardMap := blkreward.CalcBlockRewards(util.ByzantiumBlockReward, header.Leader, header)
-	for account, value := range blkRewardMap {
-		depoistInfo.AddReward(State, account, value)
-	}
+	//for account, value := range blkRewardMap {
+	//	depoistInfo.AddReward(State, account, value)
+	//}
 	txsReward := txsreward.New(p.blockChain())
 	txsRewardMap := txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
-	for account, value := range txsRewardMap {
-		depoistInfo.AddReward(State, account, value)
-	}
+	//for account, value := range txsRewardMap {
+	//	depoistInfo.AddReward(State, account, value)
+	//}
 	//todo 跑奖励交易
 	slash := slash.New(p.blockChain())
-	SlashMap := slash.CalcSlash(State, header.Number.Uint64())
-	for account, value := range SlashMap {
-		depoistInfo.SetSlash(State, account, value)
-	}
+	 slash.CalcSlash(State, header.Number.Uint64())
+	//for account, value := range SlashMap {
+	//	depoistInfo.SetSlash(State, account, value)
+	//}
 	return blkRewardMap, txsRewardMap
 }
 func (p *Process) processHeaderGen() error {
@@ -138,17 +137,6 @@ func (p *Process) processHeaderGen() error {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
 
-		//validators, _ := self.ca.GetPreValidatorsAddress()
-		//for validator := range pending {
-		//	for i, v := range validators {
-		//		if validator.String() == v.String() {
-		//			continue
-		//		}
-		//		if i == len(validators)-1 {
-		//			delete(pending, validator)
-		//		}
-		//	}
-		//}
 		//send to local block mining module
 		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)
 		if err != nil {
@@ -192,10 +180,7 @@ func (p *Process) processHeaderGen() error {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
 			return err
 		}
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash",block.TxHash(),"交易",Txs)
-		for _,tx :=range Txs{
-			log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
-		}
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash",block.TxHash())
 		header = block.Header()
 		p2pBlock := &mc.HD_BlkConsensusReqMsg{Header: header, TxsCode: txsCode, ConsensusTurn: p.consensusTurn, From: ca.GetAddress()}
 		//send to local block verify module

@@ -5,7 +5,6 @@ package blkverify
 
 import (
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
@@ -409,23 +408,15 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
-	//todo add handleuptime
 	p.processUpTime(work, localHeader.ParentHash)
-	// todo: add rewward and run
 	blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,blkRward,txsReward)
-	//work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,nil,nil)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	log.Info(p.logExtraInfo(),  "共识的交易列表", p.curProcessReq.txs)
 	txs:=work.GetTxs()
-	log.Info(p.logExtraInfo(),  "共识后的交易列表", txs)
-	for _,tx :=range txs{
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成交易",tx)
-	}
 	blk, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
 		txs, nil, work.Receipts)
 	if err != nil {
@@ -459,20 +450,20 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
 	blkreward := blkreward.New(p.blockChain())
 	blkRewardMap := blkreward.CalcBlockRewards(util.ByzantiumBlockReward, header.Leader, header)
-	for account, value := range blkRewardMap {
-		depoistInfo.AddReward(State, account, value)
-	}
+	//for account, value := range blkRewardMap {
+	//	//depoistInfo.AddReward(State, account, value)
+	//}
 	txsReward := txsreward.New(p.blockChain())
 	txsRewardMap := txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
-	for account, value := range txsRewardMap {
-		depoistInfo.AddReward(State, account, value)
-	}
+	//for account, value := range txsRewardMap {
+	//	//depoistInfo.AddReward(State, account, value)
+	//}
 	//todo 跑奖励交易
 	slash := slash.New(p.blockChain())
-	SlashMap := slash.CalcSlash(State, header.Number.Uint64())
-	for account, value := range SlashMap {
-		depoistInfo.SetSlash(State, account, value)
-	}
+	slash.CalcSlash(State, header.Number.Uint64())
+	//for account, value := range SlashMap {
+	//	//depoistInfo.SetSlash(State, account, value)
+	//}
 	return blkRewardMap, txsRewardMap
 }
 
