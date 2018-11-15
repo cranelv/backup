@@ -55,7 +55,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 	// Iterate over and process the individual transactions
-	for i, tx := range block.Transactions() {
+	txs := block.Transactions()[2:]
+	stxs := make([]types.SelfTransaction,0)
+	tmptx := block.Transactions()[0]
+	tmptx1 := block.Transactions()[1]
+	tmptx.SetFromLoad(common.BlkRewardAddress)
+	tmptx1.SetFromLoad(common.TxGasRewardAddress)
+	stxs = append(stxs,tmptx1)
+	stxs = append(stxs,tmptx)
+	var txcount int
+	for i, tx := range txs {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
@@ -63,6 +72,22 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
+		txcount = i
+	}
+	for _, tx := range stxs {
+		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
+		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		tmpr := make(types.Receipts,0)
+		tmpr = append(tmpr, receipt)
+		tmpr = append(tmpr, receipts...)
+		receipts = tmpr
+		tmpl := make([]*types.Log,0)
+		tmpl = append(tmpl, receipt.Logs...)
+		tmpl = append(tmpl,allLogs...)
+		allLogs = tmpl
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
