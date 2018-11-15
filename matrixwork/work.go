@@ -195,11 +195,6 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 	snap := env.State.Snapshot()
-	extra := tx.GetMatrix_EX()
-	for _,ex:=range extra[0].ExtraTo{
-		log.Info("ttttttttttttttttttttttt","aaaaaaaaaaaaaaaaaa",ex.Amount)
-		log.Info("ttttttttttttttttttttttt","bbbbbbbbbbbbbbbbbb",ex.Recipient)
-	}
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("*************","ApplyTransaction:err",err)
@@ -276,7 +271,7 @@ func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.
 	var to common.Address
 	var value *big.Int
 	tmpv := new(big.Int).SetUint64(10000)
-	tmpgas := new(big.Int).SetUint64(21000 )//env.header.GasUsed)
+	tmpgas := new(big.Int).Mul(new(big.Int).SetUint64(env.header.GasUsed),new(big.Int).SetUint64(params.TxGasPrice))
 	isfirst := true
 	for _,addr := range sorted_keys{
 		k :=common.HexToAddress(addr)
