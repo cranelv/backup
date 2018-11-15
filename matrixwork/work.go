@@ -22,6 +22,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"sort"
 )
 
 var packagename string = "matrixwork"
@@ -264,30 +265,35 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	return
 }
 func (env *Work)makeTransaction(from common.Address,val map[common.Address]*big.Int) types.SelfTransaction{
-	addr0:=common.HexToAddress("0x0ead6cdb8d214389909a535d4ccc21a393dddba9")
-	addr1:=common.HexToAddress("0x6a3217d128a76e4777403e092bde8362d4117773")
-	value0:= big.NewInt(1)
-	value1:= big.NewInt(2)
+	sorted_keys := make([]string, 0)
+
+	for k, _ := range val {
+		sorted_keys = append(sorted_keys, k.String())
+	}
+	sort.Strings(sorted_keys)
+
 	extra := make([]*types.ExtraTo_tr,0)
 	var to common.Address
 	var value *big.Int
 	tmpv := new(big.Int).SetUint64(10000)
 	tmpgas := new(big.Int).SetUint64(21000 )//env.header.GasUsed)
 	isfirst := true
-	for _,v := range val{
+	for _,addr := range sorted_keys{
+		k :=common.HexToAddress(addr)
+		v := val[k]
 		if from == common.TxGasRewardAddress{
 			v = new(big.Int).Mul(v, tmpgas)
 			v = new(big.Int).Quo(v,tmpv)
 		}
 		if isfirst{
-			to = addr0
-			value = value0
+			to = k
+			value = v
 			isfirst = false
 			continue
 		}
 		tmp := new(types.ExtraTo_tr)
-		vv := new(big.Int).Set(value1)
-		var kk common.Address = addr1
+		vv := new(big.Int).Set(v)
+		var kk common.Address = k
 		tmp.To_tr = &kk
 		tmp.Value_tr = (*hexutil.Big)(vv)
 		extra = append(extra, tmp)
