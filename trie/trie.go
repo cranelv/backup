@@ -172,7 +172,6 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
 func (t *Trie) Update(key, value []byte) {
-	log.Info("Trie Update function","key",key,"value",common.Bytes2Hex(value))
 	if err := t.TryUpdate(key, value); err != nil {
 		log.Error(fmt.Sprintf("Unhandled trie error: %v", err))
 	}
@@ -252,7 +251,6 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		return true, n, nil
 
 	case nil:
-		log.Info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 		return true, &shortNode{key, value, t.newFlag()}, nil
 
 	case hashNode:

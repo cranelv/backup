@@ -6,7 +6,6 @@ package blkverify
 import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
@@ -458,9 +457,9 @@ func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header)
 	//for account, value := range txsRewardMap {
 	//	//depoistInfo.AddReward(State, account, value)
 	//}
-	//todo 跑奖励交易
-	slash := slash.New(p.blockChain())
-	slash.CalcSlash(State, header.Number.Uint64())
+	//todo 惩罚
+	//slash := slash.New(p.blockChain())
+	//slash.CalcSlash(State, header.Number.Uint64())
 	//for account, value := range SlashMap {
 	//	//depoistInfo.SetSlash(State, account, value)
 	//}

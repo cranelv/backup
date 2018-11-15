@@ -161,6 +161,9 @@ func (md *MatrixDeposit) GetOnlineTime(contract *Contract, stateDB StateDB, addr
 func (md *MatrixDeposit) AddOnlineTime(contract *Contract, stateDB StateDB, address common.Address, ot *big.Int) error {
 	onlineKey := append(address[:], 'O', 'T')
 	info := stateDB.GetState(contract.Address(), common.BytesToHash(onlineKey))
+	if info == emptyHash{
+		info = common.BigToHash(big.NewInt(0))
+	}
 	dep := info.Big()
 	dep.Add(dep, ot)
 	if len(dep.Bytes()) > 32 {
