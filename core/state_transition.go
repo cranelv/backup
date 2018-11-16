@@ -167,6 +167,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return st.CallUnGasNormalTx()
 		case common.ExtraTimeTxType:
 			return st.CallTimeNormalTx()
+		//case common.ExtraEntrustTx:
+			//todo
+			//tx.Data()
+
 		default:
 			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
 			return nil,0,false,ErrTXUnknownType

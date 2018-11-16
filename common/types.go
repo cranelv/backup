@@ -40,7 +40,6 @@ const (
 )
 var LastAccount uint32 = EntrustAccount	//必须赋值最后一个账户
 
-
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
 
@@ -393,6 +392,7 @@ const (
 	ExtraRevocable       byte = 3  //可撤销的交易
 	ExtraRevertTxType    byte = 4  //撤销交易
 	ExtraTimeTxType      byte = 7  //定时交易
+	ExtraEntrustTx       byte = 5 //委托交易
 )
 
 type TxTypeInt uint8
