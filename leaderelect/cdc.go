@@ -33,6 +33,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		reelectMaster:    common.Address{},
 		turnTime:         newTurnTimes(),
 		chain:            chain,
+		logInfo:          logInfo,
 	}
 
 	dc.leaderCal = newLeaderCalculator(chain, dc)

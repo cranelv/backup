@@ -1,15 +1,15 @@
-// Copyright (c) 2018 The MATRIX Authors 
-// Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
-package params
+package manparams
 
 import (
 	"encoding/json"
-	"io/ioutil"
-
 	"fmt"
-	"github.com/matrix/go-matrix/log"
+	"io/ioutil"
 	"os"
+
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/common"
 )
 
 const (
@@ -36,10 +36,8 @@ const (
 	MinerReqSendInterval    = 3
 	PosedReqSendInterval    = 10
 	MinerResultSendInterval = 3
-)
 
-var (
-	DifficultList = []uint64{1}
+	MinerPickTimeout = 20
 )
 var (
 	//随机数相关
@@ -64,41 +62,58 @@ func init() {
 	RandomServiceDefaultPlugs[RandomServiceName[2]] = RandomServicePlugs[RandomServiceName[2]][0]
 }
 
+type NodeInfo struct {
+	NodeID  discover.NodeID
+	Address common.Address
+}
+
+var BroadCastNodes = []NodeInfo{}
+var InnerMinerNodes = []NodeInfo{}
+var FoundationNodes = []NodeInfo{}
 func Config_Init(Config_PATH string) {
 	log.INFO("Config_Init 函数", "Config_PATH", Config_PATH)
 
 	JsonParse := NewJsonStruct()
 	v := Config{}
 	JsonParse.Load(Config_PATH, &v)
-	MainnetBootnodes = v.BootNode
-	if len(MainnetBootnodes) <= 0 {
+
+	params.MainnetBootnodes = v.BootNode
+	if len(params.MainnetBootnodes) <= 0 {
 		fmt.Println("无bootnode节点")
 		os.Exit(-1)
 	}
+	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
+
 	BroadCastNodes = v.BroadNode
 	if len(BroadCastNodes) <= 0 {
 		fmt.Println("无广播节点")
 		os.Exit(-1)
 	}
+	log.INFO("BroadCastNode", "data", BroadCastNodes)
+
+	InnerMinerNodes = v.InnerMinerNode
+	if len(InnerMinerNodes) == 0 {
+		log.Error("内部矿工节点个数为0", "读取man.json失败", "内部矿工节点个数为0")
+	}
+	log.INFO("InnerMinerNode:", "data", InnerMinerNodes)
 	FoundationNodes = v.FoundationNode
 	if len(FoundationNodes) == 0 {
 		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
 	}
+
 	RandomConfig = v.RandomConfig
-	fmt.Println("RandomConfig", RandomConfig)
-	ElectPlugs=v.ElectPlugs
-	fmt.Println("ElectPlugs",ElectPlugs)
-	log.INFO("MainBootNode", "data", MainnetBootnodes)
-	log.INFO("BroadCastNode", "data", BroadCastNodes)
-	log.INFO("FoundationNodes:", "data", FoundationNodes)
+	log.INFO("RandomConfig", "data", RandomConfig)
+	ElectPlugs = v.ElectPlugs
+	log.INFO("ElectPlugs", "data", ElectPlugs)
 }
 
 type Config struct {
-	BootNode  []string
-	BroadNode []NodeInfo
+	BootNode       []string
+	BroadNode      []NodeInfo
+	InnerMinerNode []NodeInfo
 	FoundationNode []NodeInfo
-	RandomConfig map[string]string
-	ElectPlugs string
+	RandomConfig   map[string]string
+	ElectPlugs     string
 }
 
 type JsonStruct struct {

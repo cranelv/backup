@@ -242,6 +242,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 
 	man.topNode = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
+	man.topNode.SetValidatorReader(man.blockchain)
 	man.topNode.SetTopNodeStateInterface(topNodeInstance)
 	man.topNode.SetValidatorAccountInterface(topNodeInstance)
 	man.topNode.SetMessageSendInterface(topNodeInstance)

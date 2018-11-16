@@ -35,14 +35,14 @@ type BlockGenor struct {
 
 func New(man Backend) (*BlockGenor, error) {
 	if nil == &man {
-		log.Error("nil == &man Error")
+		log.Error("nil == &manparams Error")
 		return nil, ParaNull
 	}
 	if nil == man.BlockChain().Engine() {
-		log.Error("man.BlockChain().Engine() Error")
+		log.Error("manparams.BlockChain().Engine() Error")
 		return nil, ParaNull
 	}
-	//if nil==man.ReElection(){
+	//if nil==manparams.ReElection(){
 	//	return nil,ParaNull
 	//}
 

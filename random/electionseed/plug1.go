@@ -13,8 +13,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/random/commonsupport"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func init() {
@@ -28,7 +28,7 @@ type ElectSeedPlug1 struct {
 }
 
 func (self *ElectSeedPlug1) Prepare(height uint64) error {
-	if (height+params.RandomVoteTime)%(common.GetBroadcastInterval()) != 0 {
+	if (height+manparams.RandomVoteTime)%(common.GetBroadcastInterval()) != 0 {
 		log.INFO(ModuleElectSeed, "RoleUpdateMsgHandle", "当前不是投票点,忽略")
 		return nil
 	}
@@ -43,10 +43,10 @@ func (self *ElectSeedPlug1) Prepare(height uint64) error {
 		return err
 	}
 
-	log.INFO(ModuleElectSeed, "公钥 高度", (height + params.RandomVoteTime), "publickey", publickeySend)
-	log.INFO(ModuleElectSeed, "私钥 高度", (height + params.RandomVoteTime), "privatekey", common.BigToHash(privatekey).Bytes(), "privatekeySend", privatekeySend)
-	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + params.RandomVoteTime)), Data: publickeySend})
-	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + params.RandomVoteTime)), Data: privatekeySend})
+	log.INFO(ModuleElectSeed, "公钥 高度", (height + manparams.RandomVoteTime), "publickey", publickeySend)
+	log.INFO(ModuleElectSeed, "私钥 高度", (height + manparams.RandomVoteTime), "privatekey", common.BigToHash(privatekey).Bytes(), "privatekeySend", privatekeySend)
+	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + manparams.RandomVoteTime)), Data: publickeySend})
+	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + manparams.RandomVoteTime)), Data: privatekeySend})
 
 	self.privatekey = privatekey
 	return nil

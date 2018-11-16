@@ -44,11 +44,16 @@ func (self *ReElection) checkTopGenStatus(hash common.Hash) error {
 	return nil
 }
 
-func (self *ReElection) checkUpdateStatus(height uint64) error {
+func (self *ReElection) checkUpdateStatus(hash common.Hash) error {
+	height,err:=self.GetNumberByHash(hash)
+	if err!=nil{
+		log.Error(Module,"checkUpdateStatus err",err)
+		return err
+	}
 	if common.IsReElectionNumber(height) {
-		if ok := self.boolNativeStatus(height); ok == false { //无该初选列表
+		if ok := self.boolNativeStatus(hash); ok == false { //无该初选列表
 			log.INFO(Module, "检查初选列表时出错", "重新计算", "高度", height)
-			return self.GetNativeFromDB(height)
+			return self.GetNativeFromDB(hash)
 		}
 		return nil
 	}
@@ -57,20 +62,32 @@ func (self *ReElection) checkUpdateStatus(height uint64) error {
 
 	log.INFO(Module, "检查初选列表阶段 上一个点", lastPoint, "现在高度", height, "状态", "开始")
 	for index := lastPoint; index <= height; index++ {
-		if self.boolNativeStatus(index) == true {
+		indexHash,err:=self.GetHeaderHashByNumber(hash,index)
+		if err!=nil{
+			log.Error(Module,"GetHeaderHashByNumber err",err)
+			return err
+		}
+		if self.boolNativeStatus(indexHash) == true {
 			continue
 		}
 		log.INFO(Module, "检查初选列表阶段 该位置没数据 需要重新算 index", index)
 		if common.IsReElectionNumber(index) {
-			self.GetNativeFromDB(index)
+			self.GetNativeFromDB(indexHash)
 			continue
 		}
-		native, err := self.readNativeData(index - 1)
+
+		lastHash,err:=self.GetHeaderHashByNumber(hash,index-1)
+		if err!=nil{
+			log.Error(Module,"GetHeaderHashByNumber err",err)
+			return err
+		}
+		native, err := self.readNativeData(lastHash)
 		if err != nil {
 			log.Error(Module, "检查更新阶段 获取上一个初选列表失败 高度", index-1)
 			return err
 		}
-		if err = self.UpdateNative(index, native); err != nil {
+
+		if err = self.UpdateNative(indexHash, native); err != nil {
 			log.Error(Module, "检查更新阶段", "更新初选列表失败 高度", index)
 			return err
 		}

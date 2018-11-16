@@ -22,6 +22,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"gopkg.in/fatih/set.v0"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -58,7 +59,6 @@ type Work struct {
 
 	createdAt time.Time
 
-	difficultyList  []*big.Int
 	threadNum       int
 	isBroadcastNode bool
 }
@@ -267,20 +267,6 @@ func (self *worker) foundHandle(header *types.Header) {
 	self.startMineResultSender(cache)
 }
 
-func (self *worker) CalDiffList(difficulty uint64) []*big.Int {
-	diffList := make([]*big.Int, 0)
-	for i := 0; i < len(params.DifficultList); i++ {
-		temp := difficulty / params.DifficultList[i]
-		if temp <= 1 {
-			diffList = append(diffList, big.NewInt(int64(1)))
-			break
-		}
-		diffList = append(diffList, big.NewInt(int64(temp)))
-	}
-	log.INFO(ModuleMiner, "难度列表", diffList)
-	return diffList
-}
-
 func (self *worker) setExtra(extra []byte) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
@@ -371,10 +357,9 @@ func (self *worker) push(work *Work) {
 }
 
 // makeCurrent creates a new environment for the current cycle.
-func (self *worker) makeCurrent(header *types.Header, diffList []*big.Int, isBroadcastNode bool) error {
+func (self *worker) makeCurrent(header *types.Header, isBroadcastNode bool) error {
 	work := &Work{
 		header:          types.CopyHeader(header),
-		difficultyList:  diffList,
 		isBroadcastNode: isBroadcastNode,
 	}
 
@@ -384,8 +369,8 @@ func (self *worker) makeCurrent(header *types.Header, diffList []*big.Int, isBro
 	return nil
 }
 
-func (self *worker) CommitNewWork(header *types.Header, difficultyList []*big.Int, isBroadcastNode bool) {
-	err := self.makeCurrent(header, difficultyList, isBroadcastNode)
+func (self *worker) CommitNewWork(header *types.Header, isBroadcastNode bool) {
+	err := self.makeCurrent(header, isBroadcastNode)
 	if err != nil {
 		log.Error(ModuleMiner, "创建挖矿work失败", err)
 		return
@@ -444,22 +429,16 @@ func (self *worker) beginMine(reqData *mineReqData) {
 		}
 	}
 
-	difficultyList := make([]*big.Int, 1)
-	if reqData.isBroadcastReq {
-		difficultyList[0] = big.NewInt(int64(1))
-	} else {
-		difficultyList = self.CalDiffList(reqData.header.Difficulty.Uint64())
-	}
 	if err := self.mineReqCtrl.SetCurrentMineReq(reqData.headerHash); err != nil {
 		log.ERROR(ModuleMiner, "beginMine", "保存当前挖矿请求错误", "err", err)
 		return
 	}
-	self.CommitNewWork(reqData.header, difficultyList, reqData.isBroadcastReq)
+	self.CommitNewWork(reqData.header, reqData.isBroadcastReq)
 }
 
 func (self *worker) startMineResultSender(data *mineReqData) {
 	self.stopMineResultSender()
-	sender, err := common.NewResendMsgCtrl(data, self.sendMineResultFunc, params.MinerResultSendInterval, 0)
+	sender, err := common.NewResendMsgCtrl(data, self.sendMineResultFunc, manparams.MinerResultSendInterval, 0)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
 		return

@@ -13,7 +13,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -50,7 +50,7 @@ func NewRandom(support RandomChainSupport) (*Random, error) {
 		quitChan:      make(chan struct{}, 1),
 		mapSubService: make(map[string]RandomSubService, 0),
 	}
-	for _, name := range params.RandomServiceName {
+	for _, name := range manparams.RandomServiceName {
 		Plug, needNewSubService := getSubServicePlug(name)
 		if needNewSubService == false {
 			log.WARN(ModuleRandom, "新建子服务阶段", "", "子服务不需要被创建 名称", name)
@@ -114,13 +114,13 @@ func (self *Random) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 }
 
 func getSubServicePlug(name string) (string, bool) {
-	plug, ok := params.RandomConfig[name]
+	plug, ok := manparams.RandomConfig[name]
 	if ok == false {
-		log.ERROR(ModuleRandom, "获取插件状态", "", "配置中无该名字", params.RandomConfig[name])
+		log.ERROR(ModuleRandom, "获取插件状态", "", "配置中无该名字", manparams.RandomConfig[name])
 		return "", false
 	}
 	//检查配置中的插件正确性
-	plugs, ok := params.RandomServicePlugs[name]
+	plugs, ok := manparams.RandomServicePlugs[name]
 	if ok == false {
 		fmt.Println("无该自服务名", name)
 		log.ERROR(ModuleRandom, "获取插件阶段", "", "无该子服务 服务名称", name)
@@ -132,6 +132,6 @@ func getSubServicePlug(name string) (string, bool) {
 			return v, true
 		}
 	}
-	log.ERROR(ModuleRandom, "获取插件阶段", "", "配置中的插件不合法，使用默认插件 名称", params.RandomServiceDefaultPlugs[name])
-	return params.RandomServiceDefaultPlugs[name], true
+	log.ERROR(ModuleRandom, "获取插件阶段", "", "配置中的插件不合法，使用默认插件 名称", manparams.RandomServiceDefaultPlugs[name])
+	return manparams.RandomServiceDefaultPlugs[name], true
 }

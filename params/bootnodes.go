@@ -5,11 +5,6 @@
 
 package params
 
-import (
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/p2p/discover"
-)
-
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Matrix network.
 var MainnetBootnodes = []string{
@@ -28,13 +23,8 @@ var MainnetBootnodes = []string{
 	"enode://4b2f638f46c7ae5b1564ca7015d716621848a0d9be66f1d1e91d566d2a70eedc2f11e92b743acb8d97dec3fb412c1b2f66afd7fbb9399d4fb2423619eaa514c7@10.42.100.236:40404",*/
 }
 
-type NodeInfo struct {
-	NodeID  discover.NodeID
-	Address common.Address
-}
 
-var BroadCastNodes = []NodeInfo{}
-var FoundationNodes = []NodeInfo{}
+
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Ropsten test network.
 var TestnetBootnodes = []string{

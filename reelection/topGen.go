@@ -10,7 +10,9 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/ca"
 )
 
 //得到随机种子
@@ -155,4 +157,30 @@ func MakeElectDBKey(hash common.Hash, role common.RoleType) string {
 		log.ERROR("MakeElectDBKey failed role is not mathch role", role)
 	}
 	return ""
+}
+func GetFound() []vm.DepositDetail {
+	return []vm.DepositDetail{}
+}
+
+func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDetail, error) {
+
+	switch tp {
+	case common.RoleMiner:
+		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleMiner)
+		log.INFO("從CA獲取礦工抵押交易", "data", ans, "height", Heigh)
+		if err != nil {
+			return []vm.DepositDetail{}, errors.New("获取矿工交易身份不对")
+		}
+		return ans, nil
+	case common.RoleValidator:
+		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleValidator)
+		log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
+		if err != nil {
+			return []vm.DepositDetail{}, errors.New("获取验证者交易身份不对")
+		}
+		return ans, nil
+
+	default:
+		return []vm.DepositDetail{}, errors.New("获取抵押交易身份不对")
+	}
 }

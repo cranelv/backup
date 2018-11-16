@@ -9,8 +9,8 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type leaderCalculator struct {
@@ -80,20 +80,20 @@ func (self *leaderCalculator) GetLeader(turn uint32) (*leaderData, error) {
 	leaders := &leaderData{}
 	number := self.cdc.number
 	if common.IsReElectionNumber(number) {
-		leaders.leader.Set(params.BroadCastNodes[0].Address)
+		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])
 		return leaders, nil
 	}
 
 	if common.IsBroadcastNumber(number) {
-		leaders.leader.Set(params.BroadCastNodes[0].Address)
+		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
 		leaders.nextLeader.Set(self.leaderList[(turn)%leaderCount])
 		return leaders, nil
 	}
 
 	leaders.leader.Set(self.leaderList[turn%leaderCount])
 	if common.IsBroadcastNumber(number + 1) {
-		leaders.nextLeader.Set(params.BroadCastNodes[0].Address)
+		leaders.nextLeader.Set(manparams.BroadCastNodes[0].Address)
 	} else {
 		leaders.nextLeader.Set(self.leaderList[(turn+1)%leaderCount])
 	}

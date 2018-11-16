@@ -5,15 +5,15 @@
 package core
 
 import (
+	"github.com/hashicorp/golang-lru"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -116,7 +116,8 @@ func (ts *TopologyStore) NewTopologyGraph(header *types.Header) (*mc.TopologyGra
 	if err != nil {
 		return nil, errors.Errorf("获取父拓扑图失败:%v", err)
 	}
-	electList, err := ts.GetOriginalElectByHash(header.Hash())
+
+	electList, err := ts.getOriginalElectByHeader(header)
 	if err != nil {
 		return nil, errors.Errorf("获取选举信息失败:%v", err)
 	}
@@ -128,7 +129,19 @@ func (ts *TopologyStore) NewTopologyGraph(header *types.Header) (*mc.TopologyGra
 }
 
 func (ts *TopologyStore) GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	electIndex, err := ts.getElectIndexByHash(blockHash)
+	header := ts.reader.GetHeaderByHash(blockHash)
+	if header == nil {
+		return nil, errHeaderNotExit
+	}
+	electIndex, err := ts.getElectIndex(header)
+	if err != nil {
+		return nil, err
+	}
+	return ts.transferElectIndex2Elect(electIndex)
+}
+
+func (ts *TopologyStore) getOriginalElectByHeader(header *types.Header) ([]common.Elect, error) {
+	electIndex, err := ts.getElectIndex(header)
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +155,8 @@ func (ts *TopologyStore) GetNextElectByHash(blockHash common.Hash) ([]common.Ele
 	}
 	number := header.Number.Uint64()
 	NextElectNumber := common.GetLastReElectionNumber(number+1) + common.GetReElectionInterval()
-	minerElectNumber := NextElectNumber - params.MinerNetChangeUpTime
-	validatorElectNumber := NextElectNumber - params.VerifyNetChangeUpTime
+	minerElectNumber := NextElectNumber - manparams.MinerNetChangeUpTime
+	validatorElectNumber := NextElectNumber - manparams.VerifyNetChangeUpTime
 	curNumber := ts.reader.CurrentHeader().Number.Uint64()
 
 	nextElect := make([]common.Elect, 0)
@@ -209,26 +222,24 @@ func (ts *TopologyStore) WriteElectIndex(header *types.Header) error {
 	return nil
 }
 
-func (ts *TopologyStore) getElectIndexByHash(blockHash common.Hash) (*rawdb.ElectIndexData, error) {
-	header := ts.reader.GetHeaderByHash(blockHash)
-	if header == nil {
-		return nil, errHeaderNotExit
-	}
-	if index, ok := ts.electIndexCache.Get(blockHash); ok {
+func (ts *TopologyStore) getElectIndex(header *types.Header) (*rawdb.ElectIndexData, error) {
+	hash := header.Hash()
+	if index, ok := ts.electIndexCache.Get(hash); ok {
 		indexData, reflectOK := index.(*rawdb.ElectIndexData)
 		if !reflectOK {
 			return nil, errReflectElectIndex
 		}
 		return indexData, nil
 	}
-	index := rawdb.ReadElectIndex(ts.chainDb, blockHash, header.Number.Uint64())
+	number := header.Number.Uint64()
+	index := rawdb.ReadElectIndex(ts.chainDb, hash, number)
 	if index == nil {
 		if index = ts.newElectIndex(header); index == nil {
 			return nil, errElectIndexCantCreate
 		}
-		rawdb.WriteElectIndex(ts.chainDb, blockHash, header.Number.Uint64(), index)
+		rawdb.WriteElectIndex(ts.chainDb, hash, number, index)
 	}
-	ts.electIndexCache.Add(blockHash, index)
+	ts.electIndexCache.Add(hash, index)
 	return index, nil
 }
 
@@ -243,8 +254,8 @@ func (ts *TopologyStore) newElectIndex(header *types.Header) *rawdb.ElectIndexDa
 	}
 	if common.IsReElectionNumber(number + 1) {
 		sonHash := header.Hash()
-		minerElectNumber := number + 1 - params.MinerNetChangeUpTime
-		validatorElectNumber := number + 1 - params.VerifyNetChangeUpTime
+		minerElectNumber := number + 1 - manparams.MinerNetChangeUpTime
+		validatorElectNumber := number + 1 - manparams.VerifyNetChangeUpTime
 
 		MElectHash, err := ts.reader.GetAncestorHash(sonHash, minerElectNumber)
 		if err != nil {
@@ -261,7 +272,12 @@ func (ts *TopologyStore) newElectIndex(header *types.Header) *rawdb.ElectIndexDa
 			MElectBlock: MElectHash,
 		}
 	} else {
-		electIndex, err := ts.getElectIndexByHash(header.ParentHash)
+		parentHeader := ts.reader.GetHeaderByHash(header.ParentHash)
+		if parentHeader == nil {
+			log.ERROR("创建选举索引", "获取父节区块错误", header.ParentHash.TerminalString(), "number", header.Number.Uint64()-1)
+			return nil
+		}
+		electIndex, err := ts.getElectIndex(parentHeader)
 		if err != nil {
 			log.ERROR("创建选举索引", "获取父节点选举索引异常", err)
 			return nil

@@ -1,6 +1,7 @@
 package rewardexec
 
 import (
+	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
 
 	"github.com/matrix/go-matrix/reward/cfg"
@@ -9,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/params"
 )
 
 const (
@@ -62,14 +62,14 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, rewards map[c
 	if common.IsBroadcastNumber(num.Uint64()) {
 		return
 	}
-	foundationNum := int64(len(params.FoundationNodes))
+	foundationNum := int64(len(manparams.FoundationNodes))
 	if foundationNum == 0 {
 		return
 	}
 
 	oneFoundationReward := new(big.Int).Div(blockReward, big.NewInt(foundationNum))
 
-	for _, v := range params.FoundationNodes {
+	for _, v := range manparams.FoundationNodes {
 		util.SetAccountRewards(rewards, v.Address, oneFoundationReward)
 		log.Info(PackageName, "FoundationReward account", v.Address, "reward", oneFoundationReward.Uint64())
 	}

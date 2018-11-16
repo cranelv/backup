@@ -1,14 +1,11 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 package ca
 
 import (
 	"math/big"
 	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -18,7 +15,8 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/matrix/go-matrix/params"
+	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type TopologyGraphReader interface {
@@ -111,7 +109,7 @@ func Start(id discover.NodeID, path string) {
 
 	ide.blockChan = make(chan *types.Block)
 	ide.sub, _ = mc.SubscribeEvent(mc.NewBlockMessage, ide.blockChan)
-	ide.log.Info("ca subscribe success.")
+	log.INFO("CA", "订阅区块事件", "完成")
 	mc.PublishEvent(mc.CA_ReqCurrentBlock, struct{}{})
 
 	for {
@@ -121,7 +119,7 @@ func Start(id discover.NodeID, path string) {
 			hash := block.Hash()
 			ide.currentHeight = header.Number
 
-			ide.log.Info("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
+			log.INFO("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
 
 			// init current height deposit
 			ide.deposit, _ = GetElectedByHeightWithdraw(header.Number)
@@ -153,12 +151,12 @@ func Start(id discover.NodeID, path string) {
 
 			// send role message to elect
 			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader})
-			ide.log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader})
+			log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader})
 			// get nodes in buckets and send to buckets
 			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
 			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, Role: ide.currentRole})
-			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
+			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole})//lb
 			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
 		case <-ide.quit:
 			return
@@ -184,13 +182,19 @@ func initCurrentTopology() {
 			ide.currentRole = t.Type
 		}
 	}
-	for _, b := range params.BroadCastNodes {
+	for _, b := range manparams.BroadCastNodes {
 		if b.NodeID == ide.self {
 			ide.currentRole = common.RoleBroadcast
 			break
 		}
 	}
-	ide.log.Info("current topology", "info:", ide.topology)
+	for _, im := range manparams.InnerMinerNodes {
+		if im.NodeID == ide.self {
+			ide.currentRole = common.RoleInnerMiner
+			break
+		}
+	}
+	log.Info("current topology", "info:", ide.topology)
 }
 
 // initNowTopologyResult
@@ -200,8 +204,11 @@ func initNowTopologyResult() {
 	for _, node := range ide.topology.NodeList {
 		ide.addrByGroup[node.Type] = append(ide.addrByGroup[node.Type], node.Account)
 	}
-	for _, b := range params.BroadCastNodes {
+	for _, b := range manparams.BroadCastNodes {
 		ide.addrByGroup[common.RoleBroadcast] = append(ide.addrByGroup[common.RoleBroadcast], b.Address)
+	}
+	for _, im := range manparams.InnerMinerNodes {
+		ide.addrByGroup[common.RoleInnerMiner] = append(ide.addrByGroup[common.RoleInnerMiner], im.Address)
 	}
 	ide.lock.Unlock()
 }
@@ -273,16 +280,24 @@ func GetRolesByGroupOnlyNextElect(roleType common.RoleType) (result []discover.N
 
 // Get self identity.
 func GetRole() (role common.RoleType) {
+	ide.lock.Lock()
+	defer ide.lock.Unlock()
+
 	return ide.currentRole
 }
 
-// GetHeight
 func GetHeight() *big.Int {
+	ide.lock.Lock()
+	defer ide.lock.Unlock()
+
 	return ide.currentHeight
 }
 
 // InDuration
 func InDuration() bool {
+	ide.lock.Lock()
+	defer ide.lock.Unlock()
+
 	return ide.duration
 }
 
@@ -311,7 +326,28 @@ func GetNodeNumber() (uint32, error) {
 			return uint32(n.NodeNumber), nil
 		}
 	}
-	return 0, errors.New("No current node number.")
+	return 0, errors.New("No current node number. ")
+}
+
+// GetGapValidator
+func GetGapValidator() (rlt []discover.NodeID) {
+	ori, err := ide.topologyReader.GetOriginalElectByHash(ide.topologyReader.GetHashByNumber(ide.currentHeight.Uint64()))
+	if err != nil {
+		ide.log.Error("ca", "GetOriginalElect, error:", err)
+		return
+	}
+
+	for _, or := range ori {
+		if or.Type >= common.ElectRoleValidator {
+			id, err := ConvertAddressToNodeId(or.Account)
+			if err != nil {
+				ide.log.Error("ca", "GetGapValidator, error:", err)
+				continue
+			}
+			rlt = append(rlt, id)
+		}
+	}
+	return
 }
 
 // getNodesInBuckets get miner nodes that should be in buckets.
@@ -409,7 +445,7 @@ func GetFrontNodes() []discover.NodeID {
 func GetAddress() common.Address {
 	addr, err := ConvertNodeIdToAddress(ide.self)
 	if err != nil {
-		ide.log.Error("ca get self address", "error", err)
+		log.Error("ca get self address", "error", err)
 	}
 	return addr
 }
@@ -441,7 +477,7 @@ func GetTopologyByNumber(reqTypes common.RoleType, number uint64) (*mc.TopologyG
 func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.TopologyGraph, error) {
 	tg, err := ide.topologyReader.GetTopologyGraphByHash(hash)
 	if err != nil {
-		ide.log.Error("GetAccountTopologyInfo", "error", err, "hash", hash.TerminalString())
+		log.Error("GetAccountTopologyInfo", "error", err, "hash", hash.TerminalString())
 		return nil, err
 	}
 
@@ -455,6 +491,9 @@ func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.Topology
 		}
 	}
 
+	for _, node := range tg.ElectList {
+		rlt.ElectList = append(rlt.ElectList, node)
+	}
 	return rlt, nil
 }
 
@@ -480,9 +519,14 @@ func GetAccountTopologyInfo(account common.Address, number uint64) (*mc.Topology
 
 // GetAccountOriginalRole
 func GetAccountOriginalRole(account common.Address, hash common.Hash) (common.RoleType, error) {
-	for _, b := range params.BroadCastNodes {
+	for _, b := range manparams.BroadCastNodes {
 		if b.Address == account {
 			return common.RoleBroadcast, nil
+		}
+	}
+	for _, im := range manparams.InnerMinerNodes {
+		if im.Address == account {
+			return common.RoleInnerMiner, nil
 		}
 	}
 	ori, err := ide.topologyReader.GetOriginalElectByHash(hash)
@@ -506,9 +550,14 @@ func ConvertNodeIdToAddress(id discover.NodeID) (addr common.Address, err error)
 			return node.Address, nil
 		}
 	}
-	for _, b := range params.BroadCastNodes {
+	for _, b := range manparams.BroadCastNodes {
 		if b.NodeID == id {
 			return b.Address, nil
+		}
+	}
+	for _, im := range manparams.InnerMinerNodes {
+		if im.NodeID == id {
+			return im.Address, nil
 		}
 	}
 	return addr, errors.New("not found")
@@ -521,9 +570,14 @@ func ConvertAddressToNodeId(address common.Address) (id discover.NodeID, err err
 			return node.NodeID, nil
 		}
 	}
-	for _, b := range params.BroadCastNodes {
+	for _, b := range manparams.BroadCastNodes {
 		if b.Address == address {
 			return b.NodeID, nil
+		}
+	}
+	for _, im := range manparams.InnerMinerNodes {
+		if im.Address == address {
+			return im.NodeID, nil
 		}
 	}
 	return id, errors.New("not found")
