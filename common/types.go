@@ -391,6 +391,7 @@ const (
 	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
 	ExtraRevocable       byte = 3  //可撤销的交易
 	ExtraRevertTxType    byte = 4  //撤销交易
+	ExtraTimeTxType      byte = 7  //定时交易
 	ExtraEntrustTx       byte = 5 //委托交易
 )
 

@@ -167,6 +167,9 @@ func (tx *TransactionBroad) Size() common.StorageSize {
 }
 //YY
 func SetTransactionMx(tx_Mx *Transaction_Mx) *TransactionBroad {
+	if tx_Mx == nil{
+		return nil
+	}
 	tx := txdata{
 		AccountNonce: tx_Mx.Data.AccountNonce,
 		Price:        tx_Mx.Data.Price,
