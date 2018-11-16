@@ -74,6 +74,9 @@ func (tx *TransactionBroad) CheckNonce() bool   { return true }
 func (tx *TransactionBroad) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
+func (tx *TransactionBroad)Setentrustfrom(x interface{}){
+
+}
 func (tx *TransactionBroad)GasFrom() common.Address{
 	return common.Address{}
 }

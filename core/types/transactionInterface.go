@@ -46,4 +46,5 @@ type SelfTransaction interface {
 	GasFrom() common.Address
 	AmontFrom() common.Address
 	GetMatrixType() byte
+	Setentrustfrom(x interface{})
 }

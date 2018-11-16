@@ -48,6 +48,7 @@ type Transaction struct {
 	hash atomic.Value
 	size atomic.Value
 	from atomic.Value
+	entrustfrom atomic.Value
 	// by hezi
 	N []uint32
 }
@@ -113,6 +114,7 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
 
@@ -320,6 +322,12 @@ func (tx *Transaction)GetFromLoad() interface{}  {
 func (tx *Transaction)SetFromLoad(x interface{})  {
 	tx.from.Store(x)
 }
+//func (tx *Transaction)GetentrustFrom()(x interface{}){
+//	return tx.entrustfrom.Load()
+//}
+func (tx *Transaction)Setentrustfrom(x interface{}){
+	tx.entrustfrom.Store(x)
+}
 func (tx *Transaction)GasFrom() (from common.Address){
 	//TODO 需要去委托中要💊 from
 	tmp,ok := tx.from.Load().(sigCache)
@@ -335,8 +343,7 @@ func (tx *Transaction)GasFrom() (from common.Address){
 	return
 }
 func (tx *Transaction)AmontFrom() (from common.Address){
-	//TODO 需要去委托中要💊 from
-	tmp,ok := tx.from.Load().(sigCache)
+	tmp,ok := tx.entrustfrom.Load().(sigCache)
 	if !ok{
 		tmpfrom,isok :=tx.from.Load().(common.Address)
 		if !isok{
