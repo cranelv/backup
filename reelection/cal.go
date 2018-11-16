@@ -4,7 +4,11 @@
 package reelection
 
 import (
+	"errors"
+
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
 
@@ -187,3 +191,30 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
 //	}
 //	return MasterMiner, BackUpMiner, MasterValidator, BackUpValidator, nil
 //}
+
+func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
+	tHeader := self.bc.GetHeaderByHash(hash)
+	if tHeader == nil {
+		log.Error(Module, "GetNumberByHash 根据hash算header失败 hash", hash.String())
+		return 0, errors.New("根据hash算header失败")
+	}
+	if tHeader.Number == nil {
+		log.Error(Module, "GetNumberByHash header 内的高度获取失败", hash.String())
+		return 0, errors.New("header 内的高度获取失败")
+	}
+	return tHeader.Number.Uint64(), nil
+}
+
+func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (common.Hash, error) {
+	AimHash, err := self.bc.GetAncestorHash(hash, height)
+	if err != nil {
+		log.Error(Module, "获取祖先hash失败 hash", hash.String(), "height", height, "err", err)
+		return common.Hash{}, err
+	}
+	return AimHash, nil
+}
+
+func GetCurrentTopology(hash common.Hash, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
+	return ca.GetTopologyByHash(reqtypes, hash)
+	//return ca.GetTopologyByNumber(reqtypes, height)
+}

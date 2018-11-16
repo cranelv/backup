@@ -37,6 +37,7 @@ import (
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
 	"github.com/matrix/go-matrix/run/utils"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -207,6 +208,7 @@ func init() {
 }
 
 func main() {
+	initPanicFile()
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -309,7 +311,7 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 		utils.Fatalf("Matrix service not running :%v", err)
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
-	log.INFO("BoradCastNode", "data", params.BroadCastNodes)
+	log.INFO("BoradCastNode", "data", manparams.BroadCastNodes)
 	log.Info("main", "nodeid", stack.Server().Self().ID.String())
 
 	go func() {
@@ -364,5 +366,5 @@ func Init_Config_PATH(ctx *cli.Context) {
 		log.Error("无创世文件", "请在启动时使用--datadir", "")
 	}
 
-	params.Config_Init(config_dir + "/man.json")
+	manparams.Config_Init(config_dir + "/man.json")
 }

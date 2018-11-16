@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/matrix/go-matrix/common"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 //func Post() {

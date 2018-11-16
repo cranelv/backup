@@ -18,9 +18,9 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -84,6 +84,9 @@ func (p *Process) processHeaderGen() error {
 	}
 
 	Elect := p.genElection(parentHash)
+	if Elect == nil {
+		 return errors.New("生成elect信息错误!")
+	}
 
 	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
 	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
@@ -215,7 +218,7 @@ func (p *Process) getParentBlock() (*types.Block, error) {
 
 func (p *Process) startConsensusReqSender(req *mc.HD_BlkConsensusReqMsg) {
 	p.closeConsensusReqSender()
-	sender, err := common.NewResendMsgCtrl(req, p.sendConsensusReqFunc, params.BlkPosReqSendInterval, params.BlkPosReqSendTimes)
+	sender, err := common.NewResendMsgCtrl(req, p.sendConsensusReqFunc, manparams.BlkPosReqSendInterval, manparams.BlkPosReqSendTimes)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "创建POS完成的req发送器", "失败", "err", err)
 		return

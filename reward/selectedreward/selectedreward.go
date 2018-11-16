@@ -1,6 +1,7 @@
 package selectedreward
 
 import (
+	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -112,9 +113,9 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		depositNum = 0
 	}else{
 		if common.RoleValidator == common.RoleValidator&roleType {
-			depositNum = common.GetLastReElectionNumber(num.Uint64()) - params.VerifyTopologyGenerateUpTime
+			depositNum = common.GetLastReElectionNumber(num.Uint64()) - manparams.VerifyTopologyGenerateUpTime
 		}else{
-			depositNum = common.GetLastReElectionNumber(num.Uint64()) - params.MinerTopologyGenerateUpTime
+			depositNum = common.GetLastReElectionNumber(num.Uint64()) - manparams.MinerTopologyGenerateUpTime
 		}
 	}
 

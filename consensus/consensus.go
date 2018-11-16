@@ -112,9 +112,11 @@ type DPOSEngine interface {
 	//verify hash in given number block
 	VerifyHashWithBlock(reader ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error)
 
-	//VerifyHashWithStocks(signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error)
 
 	VerifyHashWithVerifiedSigns(reader ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error)
 
 	VerifyHashWithVerifiedSignsAndBlock(reader ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error)
+
+	//verify validators have enough stocks
+	VerifyStocksWithBlock(reader ValidatorReader, validators []common.Address, blockHash common.Hash) bool
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/pkg/errors"
 	"time"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func (self *controller) startReelect(reelectTurn uint32) {
@@ -35,7 +35,7 @@ func (self *controller) startReelect(reelectTurn uint32) {
 	if master == ca.GetAddress() {
 		log.INFO(self.logInfo, ">>>>开启重选流程(master)", master.Hex(), "轮次", self.curTurnInfo(),
 			"轮次开始时间", time.Unix(beginTime, 0).String(), "轮次结束时间", time.Unix(endTime, 0).String(), "高度", self.dc.number)
-		self.setTimer(params.LRSReelectInterval, self.reelectTimer)
+		self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
 		self.sendInquiryReq()
 	} else {
 		log.INFO(self.logInfo, ">>>>开启重选流程(follower)", master.Hex(), "轮次", self.curTurnInfo(),
@@ -103,7 +103,7 @@ func (self *controller) reelectTimeOutHandle() {
 	default:
 		self.sendInquiryReq()
 	}
-	self.setTimer(params.LRSReelectInterval, self.reelectTimer)
+	self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
 }
 
 func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {

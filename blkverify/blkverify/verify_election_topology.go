@@ -88,23 +88,48 @@ func (p *Process) verifyChgNetTopology(header *types.Header) error {
 	// get online and offline info from header and prev topology
 	offlineTopNodes, onlinePrimaryNods, offlinePrimaryNodes := p.parseOnlineState(header, prevTopology)
 
-	// get local consensus on-line state
-	curTopNodeState, primaryNodeState := p.topNode().GetConsensusOnlineState()
-	//check state from header with state in local consensus
-	if false == p.checkStateByConsensus(offlineTopNodes, nil, curTopNodeState) {
-		return errTopNodeState
+	log.INFO("scfffff-verify", "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
+	log.INFO("scfffff--verify", "prevTopology", prevTopology)
+	log.INFO("scfffff--verify", "offlineTopNodes", offlineTopNodes)
+	log.INFO("scfffff--verify", "onlinePrimaryNods", onlinePrimaryNods)
+	log.INFO("scfffff--verify", "offlinePrimaryNodes", offlinePrimaryNodes)
+
+	originTopology, err := ca.GetTopologyByHash(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, header.ParentHash)
+	if err != nil {
+		return nil
 	}
-	if false == p.checkStateByConsensus(offlinePrimaryNodes, onlinePrimaryNods, primaryNodeState) {
-		return errPrimaryNodeState
+	originTopNodes := make([]common.Address, 0)
+	for _, node := range originTopology.NodeList {
+		originTopNodes = append(originTopNodes, node.Account)
+		log.Info(p.logExtraInfo(), "originTopNode", node.Account)
+	}
+	onlineElectNodes := make([]common.Address, 0)
+	for _, node := range originTopology.ElectList {
+		onlineElectNodes = append(onlineElectNodes, node.Account)
+		log.Info(p.logExtraInfo(), "onlineElectNodes", node.Account)
+
+	}
+	electNumber:=common.GetLastReElectionNumber(p.number)
+	if electNumber > 0 {
+		electNumber -= 1
+	}
+	p.pm.topNode.SetElectNodes(originTopNodes, electNumber)
+
+	if false == p.topNode().CheckAddressConsensusOnlineState(offlineTopNodes, onlinePrimaryNods, offlinePrimaryNodes) {
+		return errTopNodeState
 	}
 
 	// generate topology alter info
+	log.INFO("scffffff---Verify---GetTopoChange start ", "p.number", p.number, "offlineTopNodes", offlineTopNodes, "onlinePrimaryNods", onlinePrimaryNods)
 	alterInfo, err := p.reElection().GetTopoChange(header.ParentHash, offlineTopNodes)
-
+	log.INFO("scffffff---Verify---GetTopoChange end", "alterInfo", alterInfo, "err", err)
 	if err != nil {
 		return err
 	}
 
+	for _, value := range alterInfo {
+		log.Info(p.logExtraInfo(), "alter-A", value.A, "position", value.Position)
+	}
 	// generate self net topology
 	netTopology := p.reElection().TransferToNetTopologyChgStu(alterInfo, onlinePrimaryNods, offlinePrimaryNodes)
 	if len(netTopology.NetTopologyData) != len(header.NetTopology.NetTopologyData) {

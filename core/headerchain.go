@@ -522,7 +522,10 @@ func (hc *HeaderChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint6
 	if sonHeader == nil {
 		return common.Hash{}, errors.Errorf("son header(%s) is not exist", sonHash)
 	}
-	if sonHeader.Number.Uint64() <= ancestorNumber {
+	sonNumber := sonHeader.Number.Uint64()
+	if sonNumber == ancestorNumber {
+		return sonHash, nil
+	} else if sonNumber < ancestorNumber {
 		return common.Hash{}, errors.Errorf("son header number(%d) is less then ancestor number(%d)", sonHeader.Number.Uint64(), ancestorNumber)
 	}
 

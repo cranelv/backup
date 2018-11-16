@@ -6,24 +6,31 @@ package reelection
 import (
 	"encoding/json"
 	"errors"
-	"math/big"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
 
-func (self *ReElection) ToNativeValidatorStateUpdate(height uint64, allNative support.AllNative) (support.AllNative, error) {
+func (self *ReElection) ToNativeValidatorStateUpdate(hash common.Hash, allNative support.AllNative) (support.AllNative, error) {
+	height,err:=self.GetNumberByHash(hash)
+	if err!=nil{
+		log.Error(Module,"ToNativeValidatorStateUpdate err",err)
+		return support.AllNative{},err
+	}
 
-	header := self.bc.GetHeaderByNumber(height)
-	if header == nil {
+	block := self.bc.GetBlockByHash(hash)
+	if block == nil {
 		log.ERROR(Module, "获取指定高度的区块头失败 高度", height)
 		return support.AllNative{}, errors.New("获取指定高度的区块头失败")
 	}
-	DiffFromBlock := header.NetTopology
+	DiffFromBlock :=block.Header().NetTopology
 
-	TopoGrap, err := GetCurrentTopology(height-1, common.RoleValidator|common.RoleBackupValidator)
+	lastHash,err:=self.GetHeaderHashByNumber(hash,height-1)
+	if err!=nil{
+		return support.AllNative{},errors.New("根据hash获取高度失败")
+	}
+	TopoGrap, err := GetCurrentTopology(lastHash, common.RoleValidator|common.RoleBackupValidator)
 	log.INFO(Module, "更新初选列表信息 拓扑的高度", height-1, "拓扑值", TopoGrap, "diff", DiffFromBlock)
 	if err != nil {
 		log.ERROR(Module, "从ca获取验证者拓扑图失败", err)
@@ -107,20 +114,20 @@ func (self *ReElection) CalOnline(diff common.NetTopology, top *mc.TopologyGraph
 
 }
 
-func (self *ReElection) writeNativeData(height uint64, data support.AllNative) error {
-	key := MakeNativeDBKey(height)
+func (self *ReElection) writeNativeData(hash common.Hash, data support.AllNative) error {
+	key := MakeNativeDBKey(hash)
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 	err = self.ldb.Put([]byte(key), jsonData, nil)
-	log.INFO(Module, "数据库 初选列表 err", err, "高度", height, "key", key)
+	log.INFO(Module, "数据库 初选列表 err", err, "高度对应的hash", hash.String(), "key", key)
 	return err
 }
 
-func (self *ReElection) readNativeData(height uint64) (support.AllNative, error) {
+func (self *ReElection) readNativeData(hash common.Hash) (support.AllNative, error) {
 
-	key := MakeNativeDBKey(height)
+	key := MakeNativeDBKey(hash)
 	ans, err := self.ldb.Get([]byte(key), nil)
 	if err != nil {
 		return support.AllNative{}, err
@@ -134,9 +141,8 @@ func (self *ReElection) readNativeData(height uint64) (support.AllNative, error)
 	return realAns, nil
 
 }
-func MakeNativeDBKey(height uint64) string {
-	t := big.NewInt(int64(height))
-	ss := t.String() + "---" + "Native"
+func MakeNativeDBKey(hash common.Hash) string {
+	ss := hash.String() + "---" + "Native"
 	return ss
 }
 func needReadFromGenesis(height uint64) bool {
@@ -174,17 +180,25 @@ func (self *ReElection) wirteNativeFromGeneis() error {
 		}
 	}
 	log.INFO(Module, "第0块到达处理阶段 更新初选列表", "从0的区块头中获取", "初选列表", preBroadcast)
-	err := self.writeNativeData(0, preBroadcast)
+	ZeroBlock:=self.bc.GetBlockByNumber(0)
+	if ZeroBlock==nil{
+		return errors.New("不存在0块")
+	}
+
+	err := self.writeNativeData(ZeroBlock.Hash(), preBroadcast)
 	log.INFO(Module, "第0块到达处理阶段 更新初选列表", "从0的区块头中获取 写数据到数据库", "err", err)
 	return err
 }
-func (self *ReElection) GetNativeFromDB(height uint64) error {
+func (self *ReElection) GetNativeFromDB(hash  common.Hash) error {
+	height,err:=self.GetNumberByHash(hash)
+	if err!=nil{
+		log.Error(Module,"GetNativeFromDB 阶段err ",err)
+		return err
+	}
 	if needReadFromGenesis(height) {
 		return self.wirteNativeFromGeneis()
 	}
 	log.INFO(Module, "GetNativeFromDB", height)
-
-	hash := self.bc.GetHashByNumber(height)
 
 	if err := self.checkTopGenStatus(hash); err != nil {
 		log.ERROR(Module, "检查top生成出错 err", err)
@@ -206,7 +220,16 @@ func (self *ReElection) GetNativeFromDB(height uint64) error {
 		preBroadcast.CandidateQ = append(preBroadcast.CandidateQ, v.Account)
 	}
 
-	err = self.writeNativeData(height, preBroadcast)
+	err = self.writeNativeData(hash, preBroadcast)
 	log.INFO(Module, "writeNativeData", height, "err", err)
 	return err
+}
+func (self *ReElection) boolNativeStatus(hash common.Hash) bool {
+	if _, err := self.readNativeData(hash); err != nil {
+		return false
+	}
+	return true
+}
+func (self *ReElection) TopoUpdate(offline []common.Address, allNative support.AllNative, top *mc.TopologyGraph) []mc.Alternative {
+	return self.elect.ToPoUpdate(offline, allNative, top)
 }

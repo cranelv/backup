@@ -13,6 +13,7 @@ import (
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/olconsensus"
 )
 
 type ProcessManage struct {
@@ -27,6 +28,7 @@ type ProcessManage struct {
 	reElection *reelection.ReElection
 	engine     consensus.Engine
 	dposEngine consensus.DPOSEngine
+	olConsensus    *olconsensus.TopNodeService
 }
 
 func NewProcessManage(matrix Backend) *ProcessManage {
@@ -41,6 +43,7 @@ func NewProcessManage(matrix Backend) *ProcessManage {
 		reElection: matrix.ReElection(),
 		engine:     matrix.BlockChain().Engine(),
 		dposEngine: matrix.BlockChain().DPOSEngine(),
+		olConsensus:    matrix.TopNode(),
 	}
 }
 

@@ -27,7 +27,7 @@ func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
 		return err
 	}
 
-	err = self.HandleNative(data.BlockNum) //处理初选列表更新
+	err = self.HandleNative(data.BlockHash) //处理初选列表更新
 	if err != nil {
 		log.ERROR(Module, "處理初選列表更新失敗 err", err)
 		return err
@@ -37,20 +37,32 @@ func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
 	return nil
 
 }
-func (self *ReElection) HandleNative(height uint64) error {
+func (self *ReElection) HandleNative(hash common.Hash) error {
+	height,err:=self.GetNumberByHash(hash)
+	if err!=nil{
+		log.Error(Module,"HandleNative阶段 err",err)
+		return err
+	}
+
 	if true == NeedReadTopoFromDB(height) { //300 600 900 重取缓存
 		log.INFO(Module, "需要从db中读取native 高度", height)
-		return self.GetNativeFromDB(height)
+		return self.GetNativeFromDB(hash)
 	}
-	self.checkUpdateStatus(height - 1)
-	allNative, err := self.readNativeData(height - 1) //
+
+	lastHash,err:=self.GetHeaderHashByNumber(hash,height-1)
+	if err!=nil{
+		log.Error(Module,"HandleNative err",err)
+		return err
+	}
+	self.checkUpdateStatus(lastHash)
+	allNative, err := self.readNativeData(lastHash) //
 	if err != nil {
 		log.Error(Module, "readNativeData failed height", height-1)
 	}
 
 	log.INFO(Module, "self,allNative", allNative)
 
-	err = self.UpdateNative(height, allNative)
+	err = self.UpdateNative(hash, allNative)
 	log.INFO(Module, "更新初选列表结束 高度 ", height, "错误信息", err, "self,allNative", allNative)
 	return err
 }
@@ -75,17 +87,17 @@ func (self *ReElection) HandleTopGen(hash common.Hash) error {
 
 	return err
 }
-func (self *ReElection) UpdateNative(height uint64, allNative support.AllNative) error {
+func (self *ReElection) UpdateNative(hash  common.Hash, allNative support.AllNative) error {
 
-	allNative, err := self.ToNativeValidatorStateUpdate(height, allNative)
+	allNative, err := self.ToNativeValidatorStateUpdate(hash, allNative)
 	if err != nil {
 		log.INFO(Module, "ToNativeMinerStateUpdate validator err", err)
 		return nil
 	}
 
-	err = self.writeNativeData(height, allNative)
+	err = self.writeNativeData(hash, allNative)
 
-	log.ERROR(Module, "更新初选列表状态后-写入数据库状态 err", err, "高度", height)
+	log.ERROR(Module, "更新初选列表状态后-写入数据库状态 err", err, "高度对应的hash", hash.String())
 
 	return err
 

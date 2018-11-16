@@ -9,7 +9,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -28,8 +28,8 @@ func RegElectPlug(name string, value func() ElectionInterface) {
 
 func NewElect() ElectionInterface {
 	//从配置中获取参数
-	if _, ok := electionPlugs[params.ElectPlugs]; ok {
-		return electionPlugs[params.ElectPlugs]()
+	if _, ok := electionPlugs[manparams.ElectPlugs]; ok {
+		return electionPlugs[manparams.ElectPlugs]()
 	}
 	return electionPlugs[DefaultElectPlug]()
 }

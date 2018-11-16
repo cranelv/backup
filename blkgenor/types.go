@@ -15,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/reelection"
+	"github.com/matrix/go-matrix/olconsensus"
 )
 
 var (
@@ -49,4 +50,5 @@ type Backend interface {
 	HD() *msgsend.HD
 	ReElection() *reelection.ReElection
 	FetcherNotify(hash common.Hash, number uint64)
+	TopNode() *olconsensus.TopNodeService
 }
