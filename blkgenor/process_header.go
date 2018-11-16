@@ -6,7 +6,6 @@ package blkgenor
 import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
@@ -58,9 +57,9 @@ func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header)
 	//for account, value := range txsRewardMap {
 	//	depoistInfo.AddReward(State, account, value)
 	//}
-	//todo 跑奖励交易
-	slash := slash.New(p.blockChain())
-	 slash.CalcSlash(State, header.Number.Uint64())
+	//todo 惩罚
+	//slash := slash.New(p.blockChain())
+	 //slash.CalcSlash(State, header.Number.Uint64())
 	//for account, value := range SlashMap {
 	//	depoistInfo.SetSlash(State, account, value)
 	//}
@@ -133,12 +132,13 @@ func (p *Process) processHeaderGen() error {
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
-		for _, tx := range Txs {
+		retTxs:=work.GetTxs()
+		for _, tx := range retTxs {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
 
 		//send to local block mining module
-		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)
+		block, err := p.engine().Finalize(p.blockChain(), header, work.State, retTxs, nil, work.Receipts)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
 			return err

@@ -52,9 +52,6 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 
 	var eleNum uint64
 	num := header.Number
-	if common.IsBroadcastNumber(num.Uint64()) {
-		return
-	}
 	if num.Uint64() < common.GetReElectionInterval() {
 		eleNum = 0
 	} else {

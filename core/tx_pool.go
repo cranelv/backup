@@ -1137,10 +1137,10 @@ func (nPool *NormalTxPool) blockTiming() {
 func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
 	for _, tx := range txs {
-		_, err := tx.GetTxFrom()
-		if err == nil {
-			continue
-		}
+		//_, err := tx.GetTxFrom() 新进来的交易一定要解签一次，防止交易自带from作弊
+		//if err == nil {
+		//	continue
+		//}
 		waitG.Add(1)
 		ttx := tx
 		go types.Sender_self(nPool.signer, ttx, waitG)

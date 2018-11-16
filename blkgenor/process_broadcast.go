@@ -53,16 +53,16 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			continue
 		}
 
-		log.INFO("*********************", "len(result.Txs)", len(result.Txs))
-		for _, tx := range result.Txs {
-			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value()) //hezi
-		}
+
 		//执行交易
-		// todo: add rewward and run
-		//blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
-		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,nil,nil)
-		_, err = p.blockChain().Engine().Finalize(p.blockChain(), result.Header, work.State, result.Txs, nil, work.Receipts)
+		blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
+		retTxs:=work.GetTxs()
+		log.INFO("*********************", "len(result.Txs)", len(retTxs))
+		for _, tx := range retTxs {
+			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
+		}
+		_, err = p.blockChain().Engine().Finalize(p.blockChain(), result.Header, work.State, retTxs, nil, work.Receipts)
 
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
@@ -72,7 +72,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 			Header:    result.Header,
 			BlockHash: common.Hash{},
-			Txs:       result.Txs,
+			Txs:       retTxs,
 			Receipts:  work.Receipts,
 			State:     work.State,
 		})
