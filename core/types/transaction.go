@@ -95,6 +95,7 @@ type Floodtxdata struct {
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
 	TxEnterType common.TxTypeInt
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
 
@@ -343,7 +344,8 @@ func (tx *Transaction)GasFrom() (from common.Address){
 	return
 }
 func (tx *Transaction)AmontFrom() (from common.Address){
-	tmp,ok := tx.entrustfrom.Load().(sigCache)
+	//TODO from 要改为entrustfrom
+	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
 		tmpfrom,isok :=tx.from.Load().(common.Address)
 		if !isok{
@@ -416,6 +418,7 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		V:     tx.data.V,
 		R:     tx.data.R,
 		TxEnterType : tx.data.TxEnterType,
+		IsEntrustTx : tx.data.IsEntrustTx,
 		Extra: tx.data.Extra,
 	}
 	return floodtx
@@ -434,6 +437,7 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.V = floodtx.V
 	tx.data.R = floodtx.R
 	tx.data.TxEnterType = floodtx.TxEnterType
+	tx.data.IsEntrustTx = floodtx.IsEntrustTx
 	tx.data.Extra = floodtx.Extra
 	return tx
 }
@@ -451,6 +455,7 @@ func  ConvTxtoMxtx(tx *Transaction) *Transaction_Mx{
 	tx_Mx.Data.R = tx.data.R
 	tx_Mx.Data.S = tx.data.S
 	tx_Mx.Data.TxEnterType = tx.data.TxEnterType
+	tx_Mx.Data.IsEntrustTx = tx.data.IsEntrustTx
 	tx_Mx.Data.Extra = tx.data.Extra
 	//tx_Mx.Data.Extra = append(tx_Mx.Data.Extra,tx.data.Extra[])
 	if len(tx.data.Extra) > 0 {
@@ -474,6 +479,7 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		R:     tx_Mx.Data.R,
 		S:     tx_Mx.Data.S,
 		TxEnterType : tx_Mx.Data.TxEnterType,
+		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
 		Extra: tx_Mx.Data.Extra,
 	}
 	if len(tx_Mx.ExtraTo) > 0 {

@@ -460,11 +460,11 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,from is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,from is nil")
 	}
 	usefrom := tx.AmontFrom()
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,usefrom is nil")
 	}
 	sender := vm.AccountRef(usefrom)
 	var (
