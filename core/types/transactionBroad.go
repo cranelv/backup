@@ -74,6 +74,7 @@ func (tx *TransactionBroad) CheckNonce() bool   { return true }
 func (tx *TransactionBroad) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
+func (tx *TransactionBroad) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
 func (tx *TransactionBroad)Setentrustfrom(x interface{}){
 
 }
@@ -106,6 +107,12 @@ func (tx *TransactionBroad)GetFromLoad() interface{}  {
 }
 func (tx *TransactionBroad)SetFromLoad(x interface{})  {
 	tx.from.Store(x)
+}
+func (tx *TransactionBroad)SetTxCurrency(currency string)  {
+
+}
+func (tx *TransactionBroad)GetTxCurrency() string {
+	return ""
 }
 //YY
 func (tx *TransactionBroad) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }

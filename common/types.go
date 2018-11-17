@@ -365,6 +365,22 @@ type Elect struct {
 	Type    ElectRoleType
 }
 
+//hezi
+type Elect1 struct {
+	Account string
+	Stock   uint16
+	Type    ElectRoleType
+}
+//hezi
+type NetTopology1 struct {
+	Type            uint8
+	NetTopologyData []NetTopologyData1
+}
+//hezi
+type NetTopologyData1 struct {
+	Account  string
+	Position uint16
+}
 const (
 	PosOffline uint16 = 0xF000
 	PosOnline  uint16 = 0xF001

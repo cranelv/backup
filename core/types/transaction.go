@@ -17,6 +17,9 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/params"
+	"fmt"
+	"github.com/matrix/go-matrix/base58"
+	"strings"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -49,6 +52,8 @@ type Transaction struct {
 	size atomic.Value
 	from atomic.Value
 	entrustfrom atomic.Value
+	Mtype	bool
+	Currency string //币种
 	// by hezi
 	N []uint32
 }
@@ -56,6 +61,8 @@ type Transaction struct {
 //YY
 type Transaction_Mx struct {
 	Data       txdata
+	Mtype 	bool	//hezi
+	Currency string
 	TxType_Mx  byte
 	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
 	ExtraTo    []Tx_to `json:"extra_to" gencodec:"required"`
@@ -90,7 +97,8 @@ type Floodtxdata struct {
 	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"    gencodec:"required"`
 	Payload      []byte          `json:"input"    gencodec:"required"`
-
+	Mtype 		bool			//hezi
+	Currency      string
 	// Signature values
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
@@ -117,6 +125,111 @@ type txdata struct {
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
+//==================================zhenghe==========================================//
+func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
+	data1.AccountNonce = data.AccountNonce
+	data1.Price = data.Price
+	data1.GasLimit = data.GasLimit
+	data1.Amount = data.Amount
+	data1.Payload = data.Payload
+	data1.V = data.V
+	data1.R = data.R
+	data1.S = data.S
+	data1.Hash = data.Hash
+	data1.Recipient = new(string)
+	to := *data.Recipient
+	*data1.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",to)))
+	//data1.Extra1 = data.Extra
+	if len(data.Extra) > 0 {
+		tmpEx1 := make([]Matrix_Extra1,0)
+		for _,er := range data.Extra{
+			tmpEr1 := new(Matrix_Extra1)
+			tmpEr1.TxType = er.TxType
+			tmpEr1.LockHeight = er.LockHeight
+			if len(er.ExtraTo) > 0{
+				exto := make([]Tx_to1,0)
+				for _,tto := range er.ExtraTo{
+					if tto.Recipient != nil{
+						tmTo := new(Tx_to1)
+						tmTo.Recipient = new(string)
+						*tmTo.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",*tto.Recipient)))
+						tmTo.Payload = tto.Payload
+						tmTo.Amount = tto.Amount
+						exto = append(exto,*tmTo)
+					}
+				}
+				tmpEr1.ExtraTo = exto
+			}
+			tmpEx1 = append(tmpEx1,*tmpEr1)
+		}
+		data1.Extra = tmpEx1
+	}
+}
+func TxdataStringToAddres(data1 *txdata1,data *txdata) {
+	data.AccountNonce = data1.AccountNonce
+	data.Price = data1.Price
+	data.GasLimit = data1.GasLimit
+	data.Amount = data1.Amount
+	data.Payload = data1.Payload
+	data.V = data1.V
+	data.R = data1.R
+	data.S = data1.S
+	data.Hash = data1.Hash
+	data.Recipient = new(common.Address)
+	*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+	if len(data1.Extra) > 0 {
+		tmpEx1 := make([]Matrix_Extra,0)
+		for _,er := range data1.Extra{
+			tmpEr1 := new(Matrix_Extra)
+			tmpEr1.TxType = er.TxType
+			tmpEr1.LockHeight = er.LockHeight
+			if len(er.ExtraTo) > 0{
+				exto := make([]Tx_to,0)
+				for _,tto := range er.ExtraTo{
+					if tto.Recipient != nil{
+						tmTo := new(Tx_to)
+						tmTo.Recipient = new(common.Address)
+						*tmTo.Recipient = base58.Base58DecodeToAddress(*tto.Recipient)
+						tmTo.Payload = tto.Payload
+						tmTo.Amount = tto.Amount
+						exto = append(exto,*tmTo)
+					}
+				}
+				tmpEr1.ExtraTo = exto
+			}
+			tmpEx1 = append(tmpEx1,*tmpEr1)
+		}
+		data.Extra = tmpEx1
+	}
+}
+
+type Tx_to1 struct {
+	Recipient *string		  `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount    *big.Int        `json:"value"    gencodec:"required"`
+	Payload   []byte          `json:"input"    gencodec:"required"`
+}
+type Matrix_Extra1 struct {
+	TxType     byte    `json:"txType" gencodec:"required"`
+	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
+	ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
+}
+//to地址为string类型
+type txdata1 struct {
+	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
+	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	GasLimit     uint64          `json:"gas"      gencodec:"required"`
+	Recipient    *string 		  `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"    gencodec:"required"`
+	Payload      []byte          `json:"input"    gencodec:"required"`
+	// Signature values
+	V *big.Int `json:"v" gencodec:"required"`
+	R *big.Int `json:"r" gencodec:"required"`
+	S *big.Int `json:"s" gencodec:"required"`
+	// This is only used when marshaling to JSON.
+	Hash  *common.Hash   `json:"hash" rlp:"-"`
+	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
+}
+//============================================================================//
 
 type txdataMarshaling struct {
 	AccountNonce hexutil.Uint64
@@ -238,15 +351,39 @@ func isProtectedV(V *big.Int) bool {
 	return true
 }
 
+type extTransaction struct {
+	Data    txdata
+	Currency string
+	Mtype    bool
+}
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &tx.data)
+	return rlp.Encode(w, extTransaction{tx.data,tx.Currency,tx.Mtype,})
+	//return rlp.Encode(w, &tx.data)
 }
 
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
+	var err error
 	_, size, _ := s.Kind()
-	err := s.Decode(&tx.data)
+	if tx.Mtype == true{
+		//var extData1 extTransaction1
+		//err = s.Decode(&extData1)
+		//data1 := extData1.Data
+		//tx.Mtype = extData1.Mtype
+		var data1 txdata1
+		err = s.Decode(&data1)
+		TxdataStringToAddres(&data1,&tx.data)
+		tx.Currency = strings.Split(*data1.Recipient,".")[0]	//币种
+		tx.Mtype = true
+	}else {
+		var extData extTransaction
+		err = s.Decode(&extData)
+		tx.data = extData.Data
+		tx.Currency = extData.Currency
+		tx.Mtype = extData.Mtype
+		//err = s.Decode(&tx.data)
+	}
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
@@ -413,6 +550,8 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		Recipient:tx.data.Recipient,
 		Amount:tx.data.Amount,
 		Payload:tx.data.Payload,
+		Mtype:		  tx.Mtype,	//hezi
+		Currency:     tx.Currency,
 		// Signature values
 		V:     tx.data.V,
 		R:     tx.data.R,
@@ -436,6 +575,8 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.R = floodtx.R
 	tx.data.TxEnterType = floodtx.TxEnterType
 	tx.data.Extra = floodtx.Extra
+	tx.Mtype = floodtx.Mtype	//hezi
+	tx.Currency = floodtx.Currency
 	return tx
 }
 
@@ -453,6 +594,8 @@ func  ConvTxtoMxtx(tx *Transaction) *Transaction_Mx{
 	tx_Mx.Data.S = tx.data.S
 	tx_Mx.Data.TxEnterType = tx.data.TxEnterType
 	tx_Mx.Data.Extra = tx.data.Extra
+	tx_Mx.Mtype = tx.Mtype	//hezi
+	tx_Mx.Currency = tx.Currency
 	//tx_Mx.Data.Extra = append(tx_Mx.Data.Extra,tx.data.Extra[])
 	if len(tx.data.Extra) > 0 {
 		tx_Mx.TxType_Mx = tx.data.Extra[0].TxType
@@ -488,13 +631,18 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		}
 		txd.Extra = append(txd.Extra, mx)
 	}
-	tx := &Transaction{data: txd}
+	tx := &Transaction{Mtype:tx_Mx.Mtype,Currency:tx_Mx.Currency,data: txd}
 	return tx
 }
 
 //hezi
 func (tx *Transaction) SetTxS(S *big.Int) { tx.data.S = S }
-
+func (tx *Transaction)SetTxCurrency(currency string)  {
+	tx.Currency = currency
+}
+func (tx *Transaction)GetTxCurrency() string {
+	return tx.Currency
+}
 //func (tx *Transaction) SetTxN(N uint32) {tx.data.N = N}
 //func (tx *Transaction) GetTxN() uint32{return tx.data.N}
 //func (tx *Transaction) GetTxIsFlood() bool{return tx.data.IsFlood}

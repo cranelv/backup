@@ -24,6 +24,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
+	"github.com/matrix/go-matrix/base58"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -59,6 +60,70 @@ type Genesis struct {
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
+//**********************************************************//
+//hezi
+type Genesis1 struct {
+	Config      *params.ChainConfig `json:"config"`
+	Nonce       uint64              `json:"nonce"`
+	Timestamp   uint64              `json:"timestamp"`
+	ExtraData   []byte              `json:"extraData"`
+	Version     []byte              `json:"version"`
+	Leader      string      `json:"leader"`
+	Elect       []common.Elect1      `json:"elect"    gencodec:"required"`
+	NetTopology common.NetTopology1  `json:"nettopology"       gencodec:"required"`
+	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
+	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
+	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
+	Mixhash    common.Hash    `json:"mixHash"`
+	Coinbase   string 			`json:"coinbase"`
+	Alloc      GenesisAlloc1   `json:"alloc"      gencodec:"required"`
+	// These fields are used for consensus tests. Please don't use them
+	// in actual genesis blocks.
+	Number     uint64      `json:"number"`
+	GasUsed    uint64      `json:"gasUsed"`
+	ParentHash common.Hash `json:"parentHash"`
+}
+type GenesisAlloc1 map[string]GenesisAccount  //hezi
+func ManGenesisToEthGensis(gensis1 *Genesis1,gensis *Genesis)  {
+	gensis.Config = gensis1.Config
+	gensis.Nonce = gensis1.Nonce
+	gensis.Timestamp = gensis1.Timestamp
+	gensis.Signatures = gensis1.Signatures
+	gensis.Difficulty = gensis1.Difficulty
+	gensis.Mixhash = gensis1.Mixhash
+	gensis.Number = gensis1.Number
+	gensis.GasUsed = gensis1.GasUsed
+	gensis.ParentHash = gensis1.ParentHash
+	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
+	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
+	//Elect
+	sliceElect := make([]common.Elect,0)
+	for _,elec := range gensis1.Elect{
+		tmp := new(common.Elect)
+		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+		tmp.Stock = elec.Stock
+		tmp.Type = elec.Type
+		sliceElect = append(sliceElect,*tmp)
+	}
+	gensis.Elect = sliceElect
+	//NetTopology
+	sliceNetTopologyData := make([]common.NetTopologyData,0)
+	for _,netTopology := range gensis1.NetTopology.NetTopologyData{
+		tmp := new(common.NetTopologyData)
+		tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
+		tmp.Position = netTopology.Position
+		sliceNetTopologyData = append(sliceNetTopologyData,*tmp)
+	}
+	gensis.NetTopology.NetTopologyData = sliceNetTopologyData
+	gensis.NetTopology.Type = gensis1.NetTopology.Type
+	//Alloc
+	gensis.Alloc = make(GenesisAlloc)
+	for kString,vGenesisAccount := range gensis1.Alloc{
+		tmpk := base58.Base58DecodeToAddress(kString)
+		gensis.Alloc[tmpk] = vGenesisAccount
+	}
+}
+//**********************************************************//
 
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
 	m := make(map[common.UnprefixedAddress]GenesisAccount)

@@ -20,6 +20,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"gopkg.in/fatih/set.v0"
+	"github.com/matrix/go-matrix/base58"
 )
 
 // Minimum amount of time between cache reloads. This limit applies if the platform does
@@ -247,7 +248,9 @@ func (ac *accountCache) scanAccounts() error {
 		// Parse the address.
 		key.Address = ""
 		err = json.NewDecoder(buf).Decode(&key)
-		addr := common.HexToAddress(key.Address)
+		//addr := common.HexToAddress(key.Address)//需修改
+		strAddr := key.Address
+		addr := base58.Base58DecodeToAddress(strAddr)
 		switch {
 		case err != nil:
 			log.Debug("Failed to decode keystore key", "path", path, "err", err)

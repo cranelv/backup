@@ -47,4 +47,7 @@ type SelfTransaction interface {
 	AmontFrom() common.Address
 	GetMatrixType() byte
 	Setentrustfrom(x interface{})
+	IsEntrustTx() bool
+	SetTxCurrency(currency string)
+	GetTxCurrency() string
 }
