@@ -75,6 +75,7 @@ var (
 	ErrTXWrongful      = errors.New("transaction is unlawful")
 	ErrTXPoolFull      = errors.New("txpool is full")
 	ErrTXNonceSame     = errors.New("the same Nonce transaction exists")
+	ErrRepeatEntrust   = errors.New("Repeat Entrust")
 )
 
 var (
@@ -1282,6 +1283,27 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 }
 
 func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) {
+	if tx.IsEntrustTx(){
+		from := tx.From()
+		mapdata := nPool.currentState.GetStateByteArray(from,from.Hash())
+		EntrustData := new(common.EntrustType)
+		err := json.Unmarshal(mapdata,EntrustData)
+		if err != nil{
+			log.Error("ExtraEntrustTx err")
+			return false,err
+		}
+
+		if EntrustData == nil{
+			log.Error("The account is not be Entrusted!")
+			return false,errors.New("Not be Entrusted")
+		}
+
+		entrustFrom := EntrustData.EntrustAddres
+		tx.Setentrustfrom(entrustFrom)
+		if EntrustData.IsEntrustTx{
+			tx.SetFromLoad(entrustFrom)
+		}
+	}
 
 	//普通交易
 	hash := tx.Hash()

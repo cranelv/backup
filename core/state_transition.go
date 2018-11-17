@@ -170,7 +170,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		//case common.ExtraEntrustTx:
 			//todo
 			//tx.Data()
-
+		case common.ExtraAuthTx:
+			return st.CallAuthTx()
 		default:
 			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
 			return nil,0,false,ErrTXUnknownType
@@ -529,6 +530,69 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	//st.RefundGas()
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
+}
+func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool, err error){
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
+	sender := vm.AccountRef(tx.From())
+	var (
+		evm = st.evm
+		vmerr error
+	)
+	//map[common.Hash][]byte:common.Hash为被委托人的from,[]byte为common.EntrustType结构的marshal编码
+	data := make(map[common.Hash][]byte)
+	err = json.Unmarshal(tx.Data(),&data)
+	if err != nil{
+		log.Error("CallAuthTx Unmarshal err")
+		return nil, 0, false, err
+	}
+	for hash,mapdata := range data{
+		tmp := st.state.GetStateByteArray(common.HashToAddress(hash),hash)
+		EntrustData := new(common.EntrustType)
+		json.Unmarshal(tmp,EntrustData)
+		if EntrustData.EntrustAddres != (common.Address{}){
+			log.Error("该委托人已经被委托过了，不能重复委托")
+			return nil, 0, false, ErrRepeatEntrust
+		}
+		st.state.SetStateByteArray(common.HashToAddress(hash),hash,mapdata)
+	}
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+	}
+	st.gas = 0
+	if toaddr == nil {//YY
+		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
+		return nil, 0, false, ErrTXToNil
+	} else {
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
+	}
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			if toaddr == nil {
+				log.Error("file state_transition","func CallUnGasNormalTx()","Extro to is nil")
+				return nil, 0, false, ErrTXToNil
+			} else {
+				// Increment the nonce for the next transaction
+				ret, st.gas, vmerr = evm.Call(sender, *ex.Recipient, ex.Payload, st.gas, ex.Amount)
+			}
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, vmerr
+		}
+	}
+	return ret, 0, vmerr != nil, err
 }
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.

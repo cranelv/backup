@@ -298,6 +298,7 @@ func (tx *Transaction)Call() error{
 	return nil
 }
 func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
+func (tx *Transaction) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 

@@ -158,6 +158,11 @@ func BytesToAddress(b []byte) Address {
 	a.SetBytes(b)
 	return a
 }
+
+func HashToAddress(hash Hash) Address {
+	return BytesToAddress(hash[11:])
+}
+
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 func HexToAddress(s string) Address   { return BytesToAddress(FromHex(s)) }
 
@@ -391,12 +396,30 @@ const (
 	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
 	ExtraRevocable       byte = 3  //可撤销的交易
 	ExtraRevertTxType    byte = 4  //撤销交易
-	ExtraTimeTxType      byte = 7  //定时交易
 	ExtraEntrustTx       byte = 5 //委托交易
+	ExtraAuthTx          byte = 6 //授权委托
+	ExtraTimeTxType      byte = 7  //定时交易
 )
 
 type TxTypeInt uint8
 type RetCallTxN struct {
 	TXt TxTypeInt
 	ListN []uint32
+}
+
+type EntrustType struct {
+	//委托地址
+	EntrustAddres Address
+
+	//委托权限
+	IsEntrustGas    bool	//委托gas
+	IsEntrustSign   bool	//委托签名
+	IsEntrustTx     bool	//委托交易（全权委托）
+
+	//委托限制
+	PeerMaxAmount   *big.Int //单笔金额
+	TotalAmount     *big.Int //总额
+	StartTime       uint64   //委托起始时间
+	EndTime         uint64   //委托结束时间
+	EntrustCount    uint32   //委托次数
 }
