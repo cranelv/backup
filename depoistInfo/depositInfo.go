@@ -114,8 +114,8 @@ func getDepositListTest() {
 	fmt.Printf("get miner:%v %d\n", address, len(address))
 }
 
-func SetSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error {
-	return depositInfo.MatrixDeposit.SetSlash(depositInfo.Contract, stateDB, address, slash)
+func ResetSlash(stateDB vm.StateDB, address common.Address) error {
+	return depositInfo.MatrixDeposit.ResetSlash(depositInfo.Contract, stateDB, address)
 }
 
 func GetSlash(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
@@ -126,8 +126,8 @@ func AddSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error 
 	return depositInfo.MatrixDeposit.AddSlash(depositInfo.Contract, stateDB, address, slash)
 }
 
-func SetReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
-	return depositInfo.MatrixDeposit.SetReward(depositInfo.Contract, stateDB, address, reward)
+func ResetReward(stateDB vm.StateDB, address common.Address) error {
+	return depositInfo.MatrixDeposit.ResetReward(depositInfo.Contract, stateDB, address)
 }
 
 func GetReward(stateDB vm.StateDB, address common.Address) (*big.Int, error) {

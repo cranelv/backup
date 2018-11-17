@@ -1,6 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 package vm
 
 import (
@@ -105,7 +106,6 @@ func (md *MatrixDeposit) deposit(in []byte, contract *Contract, evm *EVM, thresh
 	var nodeID []byte
 
 	err := depositAbi.Methods["valiDeposit"].Inputs.Unpack(&nodeID, in)
-
 	if err != nil || len(nodeID) != 64 {
 		return nil, errDeposit
 	}
@@ -285,14 +285,8 @@ func (md *MatrixDeposit) getValidatorDepositList(contract *Contract, stateDB Sta
 func (md *MatrixDeposit) GetValidatorDepositList(contract *Contract, stateDB StateDB) []DepositDetail {
 	return md.getValidatorDepositList(contract, stateDB)
 }
-func (md *MatrixDeposit) GetValidatorList(contract *Contract, stateDB StateDB) []DepositDetail {
-	return md.getValidatorDepositList(contract, stateDB)
-}
 
 func (md *MatrixDeposit) GetMinerDepositList(contract *Contract, stateDB StateDB) []DepositDetail {
-	return md.getMinerDepositList(contract, stateDB)
-}
-func (md *MatrixDeposit) GetMinerList(contract *Contract, stateDB StateDB) []DepositDetail {
 	return md.getMinerDepositList(contract, stateDB)
 }
 
@@ -505,6 +499,7 @@ func (md *MatrixDeposit) modifyRefundState(contract *Contract, evm *EVM) (*big.I
 	return deposit, nil
 }
 
+// GetSlash get current slash with state db and address.
 func (md *MatrixDeposit) GetSlash(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
 	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
 	info := stateDB.GetState(contract.Address(), common.BytesToHash(slashKey))
@@ -514,6 +509,7 @@ func (md *MatrixDeposit) GetSlash(contract *Contract, stateDB StateDB, addr comm
 	return nil
 }
 
+// AddSlash add current slash with state db and address.
 func (md *MatrixDeposit) AddSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
 	info := md.GetSlash(contract, stateDB, addr)
 	if info == nil {
@@ -523,15 +519,21 @@ func (md *MatrixDeposit) AddSlash(contract *Contract, stateDB StateDB, addr comm
 	if len(info.Bytes()) > 32 {
 		return errSlashOverflow
 	}
-	return md.SetSlash(contract, stateDB, addr, info)
+	return md.setSlash(contract, stateDB, addr, info)
 }
 
-func (md *MatrixDeposit) SetSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+// ResetSlash reset slash to zero with state db and address.
+func (md *MatrixDeposit) ResetSlash(contract *Contract, db StateDB, address common.Address) error {
+	return md.setSlash(contract, db, address, big.NewInt(0))
+}
+
+func (md *MatrixDeposit) setSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
 	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
 	stateDB.SetState(contract.Address(), common.BytesToHash(slashKey), common.BigToHash(slash))
 	return nil
 }
 
+// GetReward get current reward with state db and address.
 func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
 	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
 	info := stateDB.GetState(contract.Address(), common.BytesToHash(rewardKey))
@@ -541,6 +543,7 @@ func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr com
 	return nil
 }
 
+// AddReward add current reward with state db and address.
 func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
 	info := md.GetReward(contract, stateDB, addr)
 	if info == nil {
@@ -550,10 +553,15 @@ func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr com
 	if len(info.Bytes()) > 32 {
 		return errRewardOverflow
 	}
-	return md.SetReward(contract, stateDB, addr, info)
+	return md.setReward(contract, stateDB, addr, info)
 }
 
-func (md *MatrixDeposit) SetReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
+// ResetReward reset reward to zero with state db and address.
+func (md *MatrixDeposit) ResetReward(contract *Contract, db StateDB, address common.Address) error {
+	return md.setReward(contract, db, address, big.NewInt(0))
+}
+
+func (md *MatrixDeposit) setReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
 	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
 	stateDB.SetState(contract.Address(), common.BytesToHash(rewardKey), common.BigToHash(reward))
 	return nil
