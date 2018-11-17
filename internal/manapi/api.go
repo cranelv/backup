@@ -954,6 +954,7 @@ type RPCTransaction1 struct {
 	S                *hexutil.Big    `json:"s"`
 	TxEnterType      common.TxTypeInt `json:"TxEnterType"`
 	IsEntrustTx      bool			 `json:"IsEntrustTx"`
+	Currency         string           `json:"Currency"`
 	ExtraTo          []*ExtraTo_Mx1   `json:"extra_to"`
 }
 
@@ -973,6 +974,7 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		S:				data.S,
 		TxEnterType:    data.TxEnterType,
 		IsEntrustTx:    data.IsEntrustTx,
+		Currency:       data.Currency,
 	}
 	result.From = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",data.From)))
 	result.To = new(string)

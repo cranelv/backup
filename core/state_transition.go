@@ -461,11 +461,12 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,from is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,from is nil")
 	}
-	usefrom := tx.AmontFrom()
+	//usefrom := tx.AmontFrom()
+	usefrom := from
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,usefrom is nil")
 	}
 	sender := vm.AccountRef(usefrom)
 	var (
@@ -546,16 +547,16 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
-	for hash,mapdata := range data{
-		tmp := st.state.GetStateByteArray(common.HashToAddress(hash),hash)
-		EntrustData := new(common.EntrustType)
-		json.Unmarshal(tmp,EntrustData)
-		if EntrustData.EntrustAddres != (common.Address{}){
-			log.Error("该委托人已经被委托过了，不能重复委托")
-			return nil, 0, false, ErrRepeatEntrust
-		}
-		st.state.SetStateByteArray(common.HashToAddress(hash),hash,mapdata)
-	}
+	//for hash,mapdata := range data{
+	//	tmp := st.state.GetStateByteArray(common.HashToAddress(hash),hash)
+	//	EntrustData := new(common.EntrustType)
+	//	json.Unmarshal(tmp,EntrustData)
+	//	if EntrustData.EntrustAddres != (common.Address{}){
+	//		log.Error("该委托人已经被委托过了，不能重复委托")
+	//		return nil, 0, false, ErrRepeatEntrust
+	//	}
+	//	st.state.SetStateByteArray(common.HashToAddress(hash),hash,mapdata)
+	//}
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {

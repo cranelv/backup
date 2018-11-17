@@ -487,7 +487,7 @@ func (tx *Transaction)GasFrom() (from common.Address){
 	return
 }
 func (tx *Transaction)AmontFrom() (from common.Address){
-	tmp,ok := tx.entrustfrom.Load().(sigCache)
+	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
 		tmpfrom,isok :=tx.from.Load().(common.Address)
 		if !isok{
