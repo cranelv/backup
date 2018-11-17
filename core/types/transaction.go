@@ -136,6 +136,8 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 	data1.R = data.R
 	data1.S = data.S
 	data1.Hash = data.Hash
+	data1.TxEnterType = data.TxEnterType
+	data1.IsEntrustTx = data.IsEntrustTx
 	data1.Recipient = new(string)
 	to := *data.Recipient
 	*data1.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",to)))
@@ -175,6 +177,8 @@ func TxdataStringToAddres(data1 *txdata1,data *txdata) {
 	data.R = data1.R
 	data.S = data1.S
 	data.Hash = data1.Hash
+	data.TxEnterType = data1.TxEnterType
+	data.IsEntrustTx = data1.IsEntrustTx
 	data.Recipient = new(common.Address)
 	*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
 	if len(data1.Extra) > 0 {
@@ -227,6 +231,8 @@ type txdata1 struct {
 	S *big.Int `json:"s" gencodec:"required"`
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
+	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//

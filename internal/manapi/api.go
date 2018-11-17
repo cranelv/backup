@@ -952,6 +952,8 @@ type RPCTransaction1 struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
+	TxEnterType      common.TxTypeInt `json:"TxEnterType"`
+	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	ExtraTo          []*ExtraTo_Mx1   `json:"extra_to"`
 }
 
@@ -969,6 +971,8 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		V:				data.V,
 		R:				data.R,
 		S:				data.S,
+		TxEnterType:    data.TxEnterType,
+		IsEntrustTx:    data.IsEntrustTx,
 	}
 	result.From = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",data.From)))
 	result.To = new(string)
@@ -1009,6 +1013,8 @@ type RPCTransaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
+	TxEnterType      common.TxTypeInt `json:"TxEnterType"`
+	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	Currency         string          `json:"Currency"`
 	ExtraTo          []*ExtraTo_Mx   `json:"extra_to"`
 }
@@ -1043,6 +1049,8 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 		V:        (*hexutil.Big)(v),
 		R:        (*hexutil.Big)(r),
 		S:        (*hexutil.Big)(s),
+		TxEnterType: tx.TxType(),
+		IsEntrustTx: tx.IsEntrustTx(),
 		Currency:  tx.GetTxCurrency(),
 	}
 	if blockHash != (common.Hash{}) {
