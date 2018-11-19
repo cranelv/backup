@@ -519,15 +519,15 @@ func (md *MatrixDeposit) AddSlash(contract *Contract, stateDB StateDB, addr comm
 	if len(info.Bytes()) > 32 {
 		return errSlashOverflow
 	}
-	return md.setSlash(contract, stateDB, addr, info)
+	return md.SetSlash(contract, stateDB, addr, info)
 }
 
 // ResetSlash reset slash to zero with state db and address.
 func (md *MatrixDeposit) ResetSlash(contract *Contract, db StateDB, address common.Address) error {
-	return md.setSlash(contract, db, address, big.NewInt(0))
+	return md.SetSlash(contract, db, address, big.NewInt(0))
 }
 
-func (md *MatrixDeposit) setSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
+func (md *MatrixDeposit) SetSlash(contract *Contract, stateDB StateDB, addr common.Address, slash *big.Int) error {
 	slashKey := append(addr[:], 'S', 'L', 'A', 'S', 'H')
 	stateDB.SetState(contract.Address(), common.BytesToHash(slashKey), common.BigToHash(slash))
 	return nil
@@ -544,7 +544,7 @@ func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr com
 }
 
 // AddReward add current reward with state db and address.
-func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
+func (md *MatrixDeposit) /**/ AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
 	info := md.GetReward(contract, stateDB, addr)
 	if info == nil {
 		return errRewardEmpty
@@ -553,16 +553,26 @@ func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr com
 	if len(info.Bytes()) > 32 {
 		return errRewardOverflow
 	}
-	return md.setReward(contract, stateDB, addr, info)
+	return md.SetReward(contract, stateDB, addr, info)
 }
 
 // ResetReward reset reward to zero with state db and address.
 func (md *MatrixDeposit) ResetReward(contract *Contract, db StateDB, address common.Address) error {
-	return md.setReward(contract, db, address, big.NewInt(0))
+	return md.SetReward(contract, db, address, big.NewInt(0))
 }
 
-func (md *MatrixDeposit) setReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
+func (md *MatrixDeposit) SetReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
 	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
 	stateDB.SetState(contract.Address(), common.BytesToHash(rewardKey), common.BigToHash(reward))
 	return nil
+}
+
+// GetDeposit get deposit with address.
+func (md *MatrixDeposit) GetDeposit(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
+	return md.getDeposit(contract, stateDB, addr)
+}
+
+// SetDeposit set deposit.
+func (md *MatrixDeposit) SetDeposit(contract *Contract, stateDB StateDB, deposit *big.Int) error {
+	return md.setDeposit(contract, stateDB, deposit)
 }

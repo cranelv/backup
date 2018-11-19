@@ -6,7 +6,6 @@ package depoistInfo
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
@@ -102,18 +101,6 @@ func getDepositInfo(tm *big.Int) (db vm.StateDB, err error) {
 	return db, err
 }
 
-func getDepositListTest() {
-	db, err := getDepositInfo(big.NewInt(0))
-	if err != nil {
-		return
-	}
-	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)
-	address := depositInfo.MatrixDeposit.GetValidatorDepositList(contract, db)
-	fmt.Printf("get depositList:%v %d\n", address, len(address))
-	address = depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)
-	fmt.Printf("get miner:%v %d\n", address, len(address))
-}
-
 func ResetSlash(stateDB vm.StateDB, address common.Address) error {
 	return depositInfo.MatrixDeposit.ResetSlash(depositInfo.Contract, stateDB, address)
 }
@@ -126,6 +113,10 @@ func AddSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error 
 	return depositInfo.MatrixDeposit.AddSlash(depositInfo.Contract, stateDB, address, slash)
 }
 
+func SetSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error {
+	return depositInfo.MatrixDeposit.SetSlash(depositInfo.Contract, stateDB, address, slash)
+}
+
 func ResetReward(stateDB vm.StateDB, address common.Address) error {
 	return depositInfo.MatrixDeposit.ResetReward(depositInfo.Contract, stateDB, address)
 }
@@ -136,4 +127,16 @@ func GetReward(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 
 func AddReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
 	return depositInfo.MatrixDeposit.AddReward(depositInfo.Contract, stateDB, address, reward)
+}
+
+func SetReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
+	return depositInfo.MatrixDeposit.SetReward(depositInfo.Contract, stateDB, address, reward)
+}
+
+func GetDeposit(stateDB vm.StateDB, address common.Address) *big.Int {
+	return depositInfo.MatrixDeposit.GetDeposit(depositInfo.Contract, stateDB, address)
+}
+
+func SetDeposit(stateDB vm.StateDB, deposit *big.Int) error {
+	return depositInfo.MatrixDeposit.SetDeposit(depositInfo.Contract, stateDB, deposit)
 }
