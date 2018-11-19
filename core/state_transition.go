@@ -171,6 +171,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			//todo
 			//tx.Data()
 		case common.ExtraAuthTx:
+			log.INFO("====ZH: 授权交易","txtype",txtype)
 			return st.CallAuthTx()
 		default:
 			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
@@ -541,12 +542,12 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 		vmerr error
 	)
 	//map[common.Hash][]byte:common.Hash为被委托人的from,[]byte为common.EntrustType结构的marshal编码
-	data := make(map[common.Hash][]byte)
-	err = json.Unmarshal(tx.Data(),&data)
-	if err != nil{
-		log.Error("CallAuthTx Unmarshal err")
-		return nil, 0, false, err
-	}
+	//data := make(map[common.Hash][]byte)
+	//err = json.Unmarshal(tx.Data(),&data)
+	//if err != nil{
+	//	log.Error("CallAuthTx Unmarshal err")
+	//	return nil, 0, false, err
+	//}
 	//for hash,mapdata := range data{
 	//	tmp := st.state.GetStateByteArray(common.HashToAddress(hash),hash)
 	//	EntrustData := new(common.EntrustType)
