@@ -544,7 +544,7 @@ func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr com
 }
 
 // AddReward add current reward with state db and address.
-func (md *MatrixDeposit) /**/ AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
+func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
 	info := md.GetReward(contract, stateDB, addr)
 	if info == nil {
 		return errRewardEmpty
