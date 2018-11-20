@@ -9,14 +9,14 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"time"
-	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/matrixwork"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -189,15 +189,13 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 
 func (p *Process) minerPickTimeout() {
 	p.mu.Lock()
-	log.INFO(p.logExtraInfo(), "minerPickTimeout", "开始处理")
+	log.INFO(p.logExtraInfo(), "minerPickTimeout", "开始处理", "高度", p.number)
 	defer func() {
-		defer log.INFO(p.logExtraInfo(), "minerPickTimeout", "结束处理")
+		defer log.INFO(p.logExtraInfo(), "minerPickTimeout", "结束处理", "高度", p.number)
 		p.mu.Unlock()
 	}()
 
-	p.minerPickTimer.Stop()
-	p.minerPickTimer = nil
-
+	p.stopMinerPikerTimer()
 	p.processMinerResultVerify(p.curLeader, true)
 }
 
@@ -263,7 +261,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		blockData.block.Header = p.copyHeader(blockData.block.Header, satisfyResult)
 		blockData.state = blockStateReady
 	}
-
+	p.stopMinerPikerTimer()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
 	}

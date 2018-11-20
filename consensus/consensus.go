@@ -109,7 +109,8 @@ type DPOSEngine interface {
 	//verify hash in current block
 	VerifyHash(reader ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)
 
-	//verify hash in given number block
+
+	//verify hash in given block
 	VerifyHashWithBlock(reader ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error)
 
 

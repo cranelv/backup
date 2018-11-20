@@ -42,6 +42,10 @@ func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prev
 		}
 
 		account := checkInGraph(prevTopology, v.Position)
+		if account.Equal(common.Address{}){
+			//前拓扑中暂缺该position
+			continue
+		}
 		if checkInDiff(topologyChg, account) == false {
 			offline = append(offline, account)
 		}

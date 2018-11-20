@@ -57,6 +57,15 @@ func GetNextReElectionNumber(number uint64) uint64 {
 func GetBroadcastInterval() uint64 {
 	return broadcastInterval
 }
+
 func GetReElectionInterval() uint64 {
 	return reelectionInterval
+}
+
+func SetBroadcastInterval(interval uint64) {
+	broadcastInterval = interval
+}
+
+func SetReElectionInterval(interval uint64) {
+	reelectionInterval = interval
 }

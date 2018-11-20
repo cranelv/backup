@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package leaderelect
+
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -48,10 +49,6 @@ func (self *controller) handleMsg(data interface{}) {
 	case *mc.HD_ReelectResultRspMsg:
 		msg, _ := data.(*mc.HD_ReelectResultRspMsg)
 		self.handleResultRsp(msg)
-
-	case *sendNewBlockReadyRsp:
-		msg, _ := data.(*sendNewBlockReadyRsp)
-		self.sendInquiryRspWithNewBlockReady(msg.repHash, msg.target, msg.rspNumber)
 
 	default:
 		log.WARN(self.logInfo, "消息处理", "未知消息类型")

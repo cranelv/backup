@@ -40,19 +40,22 @@ func (cm *ControllerManager) StartController(number uint64, msg *startController
 	cm.getController(number).ReceiveMsg(msg)
 }
 
-func (cm *ControllerManager) GetController(number uint64) (*controller, error) {
+func (cm *ControllerManager) ReceiveMsgByCur(msg interface{}) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	ctrl := cm.getController(cm.curNumber)
+	ctrl.ReceiveMsg(msg)
+}
+
+func (cm *ControllerManager) ReceiveMsg(number uint64, msg interface{}) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	if err := cm.isLegalNumber(number); err != nil {
-		return nil, err
+		return err
 	}
-	return cm.getController(number), nil
-}
-
-func (cm *ControllerManager) GetCurController() *controller {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	return cm.getController(cm.curNumber)
+	ctrl := cm.getController(number)
+	ctrl.ReceiveMsg(msg)
+	return nil
 }
 
 func (cm *ControllerManager) fixCtrlMap() {

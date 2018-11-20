@@ -17,6 +17,7 @@ type cdc struct {
 	consensusLeader  common.Address
 	curReelectTurn   uint32
 	reelectMaster    common.Address
+	isMaster         bool
 	leaderCal        *leaderCalculator
 	turnTime         *turnTimes
 	chain            *core.BlockChain
@@ -31,6 +32,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		consensusLeader:  common.Address{},
 		curReelectTurn:   0,
 		reelectMaster:    common.Address{},
+		isMaster:         false,
 		turnTime:         newTurnTimes(),
 		chain:            chain,
 		logInfo:          logInfo,

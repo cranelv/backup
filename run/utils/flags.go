@@ -339,6 +339,10 @@ var (
 		Name:  "testchangerole",
 		Usage: "change role",
 	}
+	GetCommitFlag=cli.StringFlag{
+		Name:"testgetcommit",
+		Usage:"get commit",
+	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",

@@ -200,6 +200,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MetricsEnabledFlag,
 			utils.FakePoWFlag,
 			utils.NoCompactionFlag,
+			utils.GetCommitFlag,
 		}, debug.Flags...),
 	},
 	{

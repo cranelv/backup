@@ -408,24 +408,25 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	blkRward,txsReward:=p.calcRewardAndSlash(work.State, localHeader)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,blkRward,txsReward)
+	blkRward, txsReward := p.calcRewardAndSlash(work.State, localHeader)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, blkRward, txsReward)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	txs:=work.GetTxs()
-	blk, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
+	txs := work.GetTxs()
+	localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
 		txs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证,错误", "Failed to finalize block for sealing", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	log.Info(p.logExtraInfo(),  "共识后的交易本地hash", blk.TxHash(),"共识后的交易远程hash", remoteHeader.TxHash)
+	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
 	//localBlock check
-	localHash := blk.Header().HashNoSignsAndNonce()
+	localHeader = localBlock.Header()
+	localHash := localHeader.HashNoSignsAndNonce()
 
 	if localHash != p.curProcessReq.hash {
 		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",

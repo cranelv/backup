@@ -4,8 +4,6 @@
 package baseinterface
 
 import (
-	"fmt"
-
 	"github.com/matrix/go-matrix/common"
 )
 
@@ -24,6 +22,6 @@ func NewEntrust() EntrustInterface {
 }
 
 func RegEntrust(name string, value func() EntrustInterface) {
-	fmt.Println("委托交易 注册函数", "name", name)
+	//fmt.Println("委托交易 注册函数", "name", name)
 	mapEntrust[name] = value
 }
