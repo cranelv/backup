@@ -113,7 +113,8 @@ type txdata struct {
 	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"    gencodec:"required"`
 	Payload      []byte          `json:"input"    gencodec:"required"`
-
+	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	// Signature values
 	V *big.Int `json:"v" gencodec:"required"`
 	R *big.Int `json:"r" gencodec:"required"`
@@ -121,8 +122,6 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -225,14 +224,14 @@ type txdata1 struct {
 	Recipient    *string 		  `json:"to"       rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"    gencodec:"required"`
 	Payload      []byte          `json:"input"    gencodec:"required"`
+	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	// Signature values
 	V *big.Int `json:"v" gencodec:"required"`
 	R *big.Int `json:"r" gencodec:"required"`
 	S *big.Int `json:"s" gencodec:"required"`
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//
@@ -373,10 +372,6 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	var err error
 	_, size, _ := s.Kind()
 	if tx.Mtype == true{
-		//var extData1 extTransaction1
-		//err = s.Decode(&extData1)
-		//data1 := extData1.Data
-		//tx.Mtype = extData1.Mtype
 		var data1 txdata1
 		err = s.Decode(&data1)
 		TxdataStringToAddres(&data1,&tx.data)
