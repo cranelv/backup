@@ -8,8 +8,6 @@ import (
 
 	"errors"
 
-	"fmt"
-
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
@@ -17,7 +15,7 @@ import (
 )
 
 func init() {
-	fmt.Println("everybroadcastseed plug1")
+//fmt.Println("everybroadcastseed plug1")
 	EveryBroadcastSeedPlug1 := &EveryBroadcastSeedPlug1{}
 	RegisterEveryBlockSeedPlugs("MaxNonce&Key", EveryBroadcastSeedPlug1)
 }

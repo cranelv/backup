@@ -215,6 +215,7 @@ func (md *MtxDPOS) VerifyStocksWithBlock(reader consensus.ValidatorReader, valid
 	}
 	return true
 }
+
 func (md *MtxDPOS) calculateDPOSTarget(stocks map[common.Address]uint16) (*dposTarget, error) {
 	totalCount := len(stocks)
 	//check total count

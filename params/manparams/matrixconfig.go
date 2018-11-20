@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/common"
 )
 
 const (
@@ -39,6 +39,7 @@ const (
 
 	MinerPickTimeout = 20
 )
+
 var (
 	//随机数相关
 	RandomConfig              = make(map[string]string, 0)   //man.json配置中读的
@@ -70,6 +71,7 @@ type NodeInfo struct {
 var BroadCastNodes = []NodeInfo{}
 var InnerMinerNodes = []NodeInfo{}
 var FoundationNodes = []NodeInfo{}
+
 func Config_Init(Config_PATH string) {
 	log.INFO("Config_Init 函数", "Config_PATH", Config_PATH)
 
@@ -105,15 +107,27 @@ func Config_Init(Config_PATH string) {
 	log.INFO("RandomConfig", "data", RandomConfig)
 	ElectPlugs = v.ElectPlugs
 	log.INFO("ElectPlugs", "data", ElectPlugs)
+	if v.BroadcastInterval <= 0 || v.ReelectionInterval <= 0 || v.BroadcastInterval >= v.ReelectionInterval {
+		log.Error("广播区块高度和选举区块高度不正确或者尚未配置，将使用默认值 100 300")
+		//os.Exit(-1)
+	} else {
+		common.SetBroadcastInterval(uint64(v.BroadcastInterval))
+		common.SetReElectionInterval(uint64(v.ReelectionInterval))
+		log.INFO("BroadcastInterval", "BroadcastInterval", common.GetBroadcastInterval())
+		log.INFO("ReelectionInterval", "ReelectionInterval", common.GetReElectionInterval())
+	}
+
 }
 
 type Config struct {
-	BootNode       []string
-	BroadNode      []NodeInfo
-	InnerMinerNode []NodeInfo
-	FoundationNode []NodeInfo
-	RandomConfig   map[string]string
-	ElectPlugs     string
+	BootNode           []string
+	BroadNode          []NodeInfo
+	InnerMinerNode     []NodeInfo
+	FoundationNode     []NodeInfo
+	RandomConfig       map[string]string
+	ElectPlugs         string
+	ReelectionInterval int
+	BroadcastInterval  int
 }
 
 type JsonStruct struct {

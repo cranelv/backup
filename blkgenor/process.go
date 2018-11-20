@@ -342,7 +342,7 @@ func (p *Process) startMinerPikerTimer(outTime int64) {
 	if p.minerPickTimer != nil {
 		return
 	}
-
+	log.INFO(p.logExtraInfo(), "开启minerPickTimer,时间", outTime, "高度", p.number)
 	p.minerPickTimer = time.AfterFunc(time.Duration(outTime)*time.Second, func() {
 		p.minerPickTimeout()
 	})

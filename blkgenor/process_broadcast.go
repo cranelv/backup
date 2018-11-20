@@ -40,7 +40,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 
 func (p *Process) dealMinerResultVerifyBroadcast() {
 	for _, result := range p.broadcastRstCache {
-		//add by hyk, 运行广播区块交易
+		// 运行广播区块交易
 		parent := p.blockChain().GetBlockByHash(result.Header.ParentHash)
 		if parent == nil {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "获取父区块错误!")

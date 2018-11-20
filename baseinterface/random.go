@@ -5,7 +5,6 @@ package baseinterface
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
@@ -25,7 +24,7 @@ var (
 )
 
 func RegRandom(name string, fun func(string, RandomChainSupport) (RandomSubService, error)) {
-	fmt.Println("随机数服务注册函数", "name", name)
+	//fmt.Println("随机数服务注册函数", "name", name)
 	mapReg[name] = fun
 }
 
@@ -122,7 +121,7 @@ func getSubServicePlug(name string) (string, bool) {
 	//检查配置中的插件正确性
 	plugs, ok := manparams.RandomServicePlugs[name]
 	if ok == false {
-		fmt.Println("无该自服务名", name)
+	//	fmt.Println("无该自服务名", name)
 		log.ERROR(ModuleRandom, "获取插件阶段", "", "无该子服务 服务名称", name)
 		return "", false
 	}

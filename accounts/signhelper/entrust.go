@@ -5,8 +5,6 @@ package signhelper
 
 import (
 	"errors"
-	"fmt"
-
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
@@ -41,9 +39,9 @@ type SecondKey struct {
 func (self *SecondKey) GetEntrustSignInfo(height uint64) (common.Address, string, error) {
 	ans := GetEntrustSignFromStatusDB(height) //郑贺提供接口
 	log.Info("签名助手", "获取到的账户", ans.String(), "高度", height)
-	for k, v := range EntrustValue {
+	/*for k, v := range EntrustValue {
 		fmt.Println("k", k.String(), "v", v)
-	}
+	}*/
 	if _, ok := EntrustValue[ans]; ok {
 		return ans, EntrustValue[ans], nil
 	}
