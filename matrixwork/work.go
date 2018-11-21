@@ -245,7 +245,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	}
 
 	if len(blkRewar) > 0{
-		tx1 = env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		tx1 = env.makeTransaction(common.BlkMinerRewardAddress,blkRewar) //区块奖励
 		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 	}
 
@@ -311,7 +311,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 		env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
 	}
 	if len(blkRewar) > 0{
-		tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		tx1 := env.makeTransaction(common.BlkMinerRewardAddress,blkRewar) //区块奖励
 		env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 	}
 	return
@@ -351,7 +351,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 	}
 
 	if len(blkRewar) > 0{
-		tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
+		tx1 := env.makeTransaction(common.BlkMinerRewardAddress,blkRewar) //区块奖励
 		err,_:=env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
 		if err != nil {
 			return err

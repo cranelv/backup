@@ -917,7 +917,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	var addr common.Address
 	if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
 		if index == params.FirstTxIndex{
-			from = common.BlkRewardAddress
+			from = common.BlkMinerRewardAddress
 		}else if index == params.SecondTxIndex{
 			from = common.TxGasRewardAddress
 		}

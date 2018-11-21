@@ -22,10 +22,12 @@ const (
 )
 
 var (
-	FrontierBlockReward  *big.Int = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
-	ByzantiumBlockReward *big.Int = big.NewInt(3e+18) // Block reward in wei for successfully mining a block upward from Byzantium
+	//ValidatorBlockReward  *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block
+	//ValidatorBlockReward *big.Int =  new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
 	//分母10000
 	ByzantiumTxsRewardDen *big.Int = big.NewInt(10000) // Block reward in wei for successfully mining a block upward from Byzantium
+	ValidatorsBlockReward  *big.Int = big.NewInt(5e+18)
+	MinersBlockReward *big.Int = big.NewInt(5e+18)
 )
 
 type ChainReader interface {
@@ -51,6 +53,7 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
+	Genesis() *types.Block
 }
 
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {

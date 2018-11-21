@@ -60,7 +60,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	stxs := make([]types.SelfTransaction,0)
 	tmptx := block.Transactions()[params.FirstTxIndex]
 	tmptx1 := block.Transactions()[params.SecondTxIndex]
-	tmptx.SetFromLoad(common.BlkRewardAddress)
+	tmptx.SetFromLoad(common.BlkMinerRewardAddress)
 	tmptx1.SetFromLoad(common.TxGasRewardAddress)
 	stxs = append(stxs,tmptx1)
 	stxs = append(stxs,tmptx)

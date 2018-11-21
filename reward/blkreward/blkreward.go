@@ -1,10 +1,6 @@
 package blkreward
 
 import (
-	"math/big"
-
-	"github.com/matrix/go-matrix/reward/rewardexec"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -12,6 +8,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/cfg"
+	"github.com/matrix/go-matrix/reward/rewardexec"
 )
 
 type ChainReader interface {
@@ -37,18 +34,21 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
+	Genesis() *types.Block
 }
 
 type blkreward struct {
 	blockReward *rewardexec.BlockReward
+	chain ChainReader
 }
 
 func New(chain ChainReader) reward.Reward {
-
+     //todo:从状态树读取配置
 	rewardCfg := cfg.New(nil, nil)
 	return rewardexec.New(chain, rewardCfg)
 }
 
-func (tr *blkreward) CalcBlockRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
-	return tr.blockReward.CalcBlockRewards(blockReward, Leader, header)
-}
+//func (tr *blkreward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
+//	return tr.blockReward.CalcNodesRewards(blockReward, Leader, header)
+//}
+

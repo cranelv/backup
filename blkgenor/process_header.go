@@ -5,7 +5,9 @@ package blkgenor
 
 import (
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
@@ -18,9 +20,9 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -48,22 +50,26 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 }
 func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
 	blkreward := blkreward.New(p.blockChain())
-	blkRewardMap := blkreward.CalcBlockRewards(util.ByzantiumBlockReward, header.Leader, header)
+	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.BlkMinerRewardAddress)
+	minerRewardMap := blkreward.CalcMinerRewards(minerReward, header)
+
+	blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
+	blkreward.CalcValidatorRewards(minerReward,header.Leader, header)
 	//for account, value := range blkRewardMap {
 	//	depoistInfo.AddReward(State, account, value)
 	//}
 	txsReward := txsreward.New(p.blockChain())
-	txsRewardMap := txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
+	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
 	//for account, value := range txsRewardMap {
 	//	depoistInfo.AddReward(State, account, value)
 	//}
 	//todo 惩罚
-	//slash := slash.New(p.blockChain())
-	 //slash.CalcSlash(State, header.Number.Uint64())
-	//for account, value := range SlashMap {
-	//	depoistInfo.SetSlash(State, account, value)
-	//}
-	return blkRewardMap, txsRewardMap
+	slash := slash.New(p.blockChain())
+	SlashMap:=slash.CalcSlash(State, header.Number.Uint64())
+	for account, value := range SlashMap {
+		depoistInfo.SetSlash(State, account, value)
+	}
+	return minerRewardMap, txsRewardMap
 }
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")

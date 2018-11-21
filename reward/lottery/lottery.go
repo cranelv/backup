@@ -2,6 +2,7 @@ package lottery
 
 import (
 	"math/big"
+	"math/rand"
 	"sort"
 
 	"github.com/matrix/go-matrix/common"
@@ -23,8 +24,8 @@ var (
 )
 
 type TxCmpResult struct {
-	Tx        *types.SelfTransaction
-	CmpResult int64
+	Tx        types.SelfTransaction
+	CmpResult uint64
 }
 
 // A slice of Pairs that implements sort.Interface to sort by Value.
@@ -94,7 +95,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 	originBlockNum := common.GetLastBroadcastNumber(num) + 1
 
 	randSeed := tlr.seed.GetSeed(num)
-	expHash := common.BigToHash(randSeed)
+	rand.Seed(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
 
@@ -105,7 +106,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 		for _, tx := range txs {
 			extx := tx.GetMatrix_EX()
 			if (extx != nil) && len(extx) > 0 && extx[0].TxType == common.ExtraNormalTxType||extx == nil {
-				txCmpResult := TxCmpResult{&tx, abs(tx.Hash().Big().Int64() - expHash.Big().Int64())}
+				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
 			}
 
@@ -114,8 +115,18 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 		originBlockNum++
 
 	}
+	if 0==len(txsCmpResultList){
+		return  nil
+	}
 	sort.Sort(txsCmpResultList)
-	return txsCmpResultList[0:lotteryNum]
+	chooseResultList := make(TxCmpResultList,0)
+	for i:=0;i<lotteryNum&&i<len(txsCmpResultList);i++{
+		randUint64:=rand.Uint64()
+		index:=randUint64%(uint64(len(txsCmpResultList)-1))
+		chooseResultList =append(chooseResultList,txsCmpResultList[index])
+	}
+
+	return txsCmpResultList
 }
 
 func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAccountMap map[string]map[common.Address]*big.Int) {
@@ -123,10 +134,8 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 	secondLottery := make(map[common.Address]*big.Int, SECOND)
 	thirdLottery := make(map[common.Address]*big.Int, THIRD)
 	for _, v := range txsCmpResultList {
-		from, err := types.Sender(types.NewEIP155Signer(tlr.chain.Config().ChainId), *v.Tx)
-		if nil != err {
-			continue
-		}
+		from :=v.Tx.From()
+
 		//抽取一等奖
 		LotteryAccount, _ := LotteryAccountMap["First"]
 		if len(LotteryAccount) < FIRST {
