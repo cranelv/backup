@@ -86,7 +86,8 @@ type Tx_to struct {
 type Matrix_Extra struct {
 	TxType     byte    `json:"txType" gencodec:"required"`
 	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
-	ExtraTo    []Tx_to `json:"extra_to" gencodec:"required"`
+	//ExtraTo    []Tx_to `json:"extra_to" gencodec:"required"`
+	ExtraTo    []Tx_to  ` rlp:"tail"` //hezi
 }
 
 //YY 用于洪泛（传输）
@@ -113,8 +114,7 @@ type txdata struct {
 	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"    gencodec:"required"`
 	Payload      []byte          `json:"input"    gencodec:"required"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
+
 	// Signature values
 	V *big.Int `json:"v" gencodec:"required"`
 	R *big.Int `json:"r" gencodec:"required"`
@@ -122,6 +122,8 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
+	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -147,8 +149,8 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 			tmpEr1 := new(Matrix_Extra1)
 			tmpEr1.TxType = er.TxType
 			tmpEr1.LockHeight = er.LockHeight
+			exto := make([]Tx_to1,0)
 			if len(er.ExtraTo) > 0{
-				exto := make([]Tx_to1,0)
 				for _,tto := range er.ExtraTo{
 					if tto.Recipient != nil{
 						tmTo := new(Tx_to1)
@@ -159,8 +161,8 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 						exto = append(exto,*tmTo)
 					}
 				}
-				tmpEr1.ExtraTo = exto
 			}
+			tmpEr1.ExtraTo = exto
 			tmpEx1 = append(tmpEx1,*tmpEr1)
 		}
 		data1.Extra = tmpEx1
@@ -186,8 +188,8 @@ func TxdataStringToAddres(data1 *txdata1,data *txdata) {
 			tmpEr1 := new(Matrix_Extra)
 			tmpEr1.TxType = er.TxType
 			tmpEr1.LockHeight = er.LockHeight
+			exto := make([]Tx_to,0)
 			if len(er.ExtraTo) > 0{
-				exto := make([]Tx_to,0)
 				for _,tto := range er.ExtraTo{
 					if tto.Recipient != nil{
 						tmTo := new(Tx_to)
@@ -198,8 +200,8 @@ func TxdataStringToAddres(data1 *txdata1,data *txdata) {
 						exto = append(exto,*tmTo)
 					}
 				}
-				tmpEr1.ExtraTo = exto
 			}
+			tmpEr1.ExtraTo = exto
 			tmpEx1 = append(tmpEx1,*tmpEr1)
 		}
 		data.Extra = tmpEx1
@@ -214,7 +216,8 @@ type Tx_to1 struct {
 type Matrix_Extra1 struct {
 	TxType     byte    `json:"txType" gencodec:"required"`
 	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
-	ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
+	//ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
+	ExtraTo    []Tx_to1  ` rlp:"tail"` //hezi
 }
 //to地址为string类型
 type txdata1 struct {
@@ -224,14 +227,15 @@ type txdata1 struct {
 	Recipient    *string 		  `json:"to"       rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"    gencodec:"required"`
 	Payload      []byte          `json:"input"    gencodec:"required"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
+
 	// Signature values
 	V *big.Int `json:"v" gencodec:"required"`
 	R *big.Int `json:"r" gencodec:"required"`
 	S *big.Int `json:"s" gencodec:"required"`
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
+	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//
