@@ -103,7 +103,7 @@ type Floodtxdata struct {
 	// Signature values
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
-	TxEnterType common.TxTypeInt
+	TxEnterType byte
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
 
@@ -122,7 +122,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
@@ -234,7 +234,7 @@ type txdata1 struct {
 	S *big.Int `json:"s" gencodec:"required"`
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
@@ -439,7 +439,7 @@ func (tx *Transaction) GetTxHashStruct() {
 func (tx *Transaction)Call() error{
 	return nil
 }
-func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
+func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
 func (tx *Transaction) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }

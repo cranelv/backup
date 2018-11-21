@@ -7,12 +7,12 @@ import (
 
 
 const (
-	NormalTxIndex    common.TxTypeInt = iota // NormalPool save normal transaction
+	NormalTxIndex    byte = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
 )
 
 type SelfTransaction interface {
-	TxType() common.TxTypeInt
+	TxType() byte
 	Data() []byte
 	Gas() uint64
 	GasPrice() *big.Int

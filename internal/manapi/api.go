@@ -952,7 +952,7 @@ type RPCTransaction1 struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
-	TxEnterType      common.TxTypeInt `json:"TxEnterType"`
+	TxEnterType      byte `json:"TxEnterType"`
 	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	Currency         string           `json:"Currency"`
 	ExtraTo          []*ExtraTo_Mx1   `json:"extra_to"`
@@ -1015,7 +1015,7 @@ type RPCTransaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
-	TxEnterType      common.TxTypeInt `json:"TxEnterType"`
+	TxEnterType      byte `json:"TxEnterType"`
 	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	Currency         string          `json:"Currency"`
 	ExtraTo          []*ExtraTo_Mx   `json:"extra_to"`

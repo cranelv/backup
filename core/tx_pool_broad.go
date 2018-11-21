@@ -43,7 +43,7 @@ func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, 
 }
 
 // Type return txpool type.
-func (bPool *BroadCastTxPool) Type() common.TxTypeInt {
+func (bPool *BroadCastTxPool) Type() byte {
 	return types.BroadCastTxIndex
 }
 
@@ -351,6 +351,6 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
 	return nil
 }
-func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool) {
+func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 
 }
