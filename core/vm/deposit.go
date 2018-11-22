@@ -23,16 +23,16 @@ var (
 	validatorThreshold = new(big.Int).Mul(big.NewInt(100000), man)
 	withdrawState      = big.NewInt(1)
 
-	errParameters     = errors.New("error parameters")
-	errMethodId       = errors.New("error method id")
-	errWithdraw       = errors.New("withdraw is not set")
-	errDeposit        = errors.New("deposit is not found")
-	errOverflow       = errors.New("deposit is overflow")
-	errDepositEmpty   = errors.New("depositList is Empty")
-	errSlashOverflow  = errors.New("slash is overflow")
-	errSlashEmpty     = errors.New("slash is empty")
-	errRewardOverflow = errors.New("reward id overflow")
-	errRewardEmpty    = errors.New("reward is empty")
+	errParameters       = errors.New("error parameters")
+	errMethodId         = errors.New("error method id")
+	errWithdraw         = errors.New("withdraw is not set")
+	errDeposit          = errors.New("deposit is not found")
+	errOverflow         = errors.New("deposit is overflow")
+	errDepositEmpty     = errors.New("depositList is Empty")
+	errSlashOverflow    = errors.New("slash is overflow")
+	errSlashEmpty       = errors.New("slash is empty")
+	errInterestOverflow = errors.New("interest id overflow")
+	errInterestEmpty    = errors.New("interest is empty")
 
 	depositDef = ` [{"constant": true,"inputs": [],"name": "getDepositList","outputs": [{"name": "","type": "address[]"}],"payable": false,"stateMutability": "view","type": "function"},
 			{"constant": true,"inputs": [{"name": "addr","type": "address"}],"name": "getDepositInfo","outputs": [{"name": "","type": "uint256"},{"name": "","type": "bytes"},{"name": "","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},
@@ -533,37 +533,37 @@ func (md *MatrixDeposit) SetSlash(contract *Contract, stateDB StateDB, addr comm
 	return nil
 }
 
-// GetReward get current reward with state db and address.
-func (md *MatrixDeposit) GetReward(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
-	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
-	info := stateDB.GetState(contract.Address(), common.BytesToHash(rewardKey))
+// GetInterest get current interest with state db and address.
+func (md *MatrixDeposit) GetInterest(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
+	interestKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(interestKey))
 	if info != emptyHash {
 		return info.Big()
 	}
 	return nil
 }
 
-// AddReward add current reward with state db and address.
-func (md *MatrixDeposit) AddReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
-	info := md.GetReward(contract, stateDB, addr)
+// AddInterest add current interest with state db and address.
+func (md *MatrixDeposit) AddInterest(contract *Contract, stateDB StateDB, addr common.Address, interest *big.Int) error {
+	info := md.GetInterest(contract, stateDB, addr)
 	if info == nil {
-		return errRewardEmpty
+		return errInterestEmpty
 	}
-	info.Add(info, reward)
+	info.Add(info, interest)
 	if len(info.Bytes()) > 32 {
-		return errRewardOverflow
+		return errInterestOverflow
 	}
-	return md.SetReward(contract, stateDB, addr, info)
+	return md.SetInterest(contract, stateDB, addr, info)
 }
 
-// ResetReward reset reward to zero with state db and address.
-func (md *MatrixDeposit) ResetReward(contract *Contract, db StateDB, address common.Address) error {
-	return md.SetReward(contract, db, address, big.NewInt(0))
+// ResetInterest reset interest to zero with state db and address.
+func (md *MatrixDeposit) ResetInterest(contract *Contract, db StateDB, address common.Address) error {
+	return md.SetInterest(contract, db, address, big.NewInt(0))
 }
 
-func (md *MatrixDeposit) SetReward(contract *Contract, stateDB StateDB, addr common.Address, reward *big.Int) error {
-	rewardKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
-	stateDB.SetState(contract.Address(), common.BytesToHash(rewardKey), common.BigToHash(reward))
+func (md *MatrixDeposit) SetInterest(contract *Contract, stateDB StateDB, addr common.Address, interest *big.Int) error {
+	interestKey := append(addr[:], 'R', 'E', 'W', 'A', 'R', 'D')
+	stateDB.SetState(contract.Address(), common.BytesToHash(interestKey), common.BigToHash(interest))
 	return nil
 }
 

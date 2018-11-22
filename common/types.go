@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package common
 
@@ -32,24 +31,24 @@ var (
 )
 
 const (
-	MainAccount = iota	//主账户
-	FreezeAccount		//冻结账户
-	LockAccount			//锁仓账户
-	WithdrawAccount		//可撤销账户
-	EntrustAccount		//委托账户
+	MainAccount     = iota //主账户
+	FreezeAccount          //冻结账户
+	LockAccount            //锁仓账户
+	WithdrawAccount        //可撤销账户
+	EntrustAccount         //委托账户
 )
-var LastAccount uint32 = EntrustAccount	//必须赋值最后一个账户
+
+var LastAccount uint32 = EntrustAccount //必须赋值最后一个账户
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
 
 //hezi账户属性定义
 type BalanceSlice struct {
-	AccountType	uint32
-	Balance	*big.Int
+	AccountType uint32
+	Balance     *big.Int
 }
 type BalanceType []BalanceSlice
-
 
 func BytesToHash(b []byte) Hash {
 	var h Hash
@@ -388,16 +387,17 @@ var (
 
 const (
 	//byte can not be 1,because 1 is occupied
-	ExtraNormalTxType    byte = 0
-	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
-	ExtraRevocable       byte = 3  //可撤销的交易
-	ExtraRevertTxType    byte = 4  //撤销交易
-	ExtraTimeTxType      byte = 7  //定时交易
-	ExtraEntrustTx       byte = 5 //委托交易
+	ExtraNormalTxType byte = 0
+	ExtraBroadTxType  byte = 1
+	ExtraUnGasTxType  byte = 2 //无gas的奖励交易
+	ExtraRevocable    byte = 3 //可撤销的交易
+	ExtraRevertTxType byte = 4 //撤销交易
+	ExtraTimeTxType   byte = 7 //定时交易
+	ExtraEntrustTx    byte = 5 //委托交易
 )
 
 type TxTypeInt uint8
 type RetCallTxN struct {
-	TXt TxTypeInt
+	TXt   TxTypeInt
 	ListN []uint32
 }

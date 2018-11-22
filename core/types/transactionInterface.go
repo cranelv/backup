@@ -10,7 +10,6 @@ const (
 	NormalTxIndex    common.TxTypeInt = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
 
-	MapTxpoolIndex   //用来标识map的类型以便能够使rlp支持map中带有interface(与交易类型无关不可独立出去)
 )
 
 type SelfTransaction interface {
@@ -49,4 +48,22 @@ type SelfTransaction interface {
 	AmontFrom() common.Address
 	GetMatrixType() byte
 	Setentrustfrom(x interface{})
+}
+
+func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){
+	if txer.TxType() == BroadCastTxIndex{
+		txm = GetTransactionMx(txer)
+	}else if txer.TxType() == NormalTxIndex{
+		txm = ConvTxtoMxtx(txer)
+	}
+	return
+}
+
+func SetMxToTransaction(txm *Transaction_Mx)(txer SelfTransaction){
+	if txm.TxType_Mx == common.ExtraNormalTxType{
+		txer = ConvMxtotx(txm)
+	} else if txm.TxType_Mx == common.ExtraBroadTxType {
+		txer = SetTransactionMx(txm)
+	}
+	return
 }
