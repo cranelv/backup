@@ -48,6 +48,8 @@ type SelfTransaction interface {
 	AmontFrom() common.Address
 	GetMatrixType() byte
 	Setentrustfrom(x interface{})
+	CoinType()string
+	SetCoinType(typ string)
 }
 
 func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){

@@ -238,19 +238,53 @@ func isProtectedV(V *big.Int) bool {
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
-
+type EncodeTx struct {
+	Data txdata
+	From common.Address
+}
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &tx.data)
+	etx := &EncodeTx{
+				Data:tx.data,
+			}
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		etx.From = tx.From()
+	}
+	return rlp.Encode(w,etx)
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	return rlp.Encode(w, &EncodeTx{
+	//		Data:tx.data,
+	//		From:tx.From(),
+	//	})
+	//}else{
+	//	return rlp.Encode(w, &tx.data)
+	//}
 }
 
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
-	err := s.Decode(&tx.data)
+	var err error
+	entx := new(EncodeTx)
+	err = s.Decode(&entx)
+	tx.data = entx.Data
+	tx.SetFromLoad(entx.From)
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
+	//_, size, _ := s.Kind()
+	//var err error
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	entx := new(EncodeTx)
+	//	err = s.Decode(&entx)
+	//	tx.data = entx.Data
+	//	tx.SetFromLoad(entx.From)
+	//}else{
+	//	err = s.Decode(&tx.data)
+	//}
+	//if err == nil {
+	//	tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	//}
 
 	return err
 }
@@ -297,6 +331,14 @@ func (tx *Transaction) GetTxHashStruct() {
 } 
 func (tx *Transaction)Call() error{
 	return nil
+}
+func (tx *Transaction) CoinType()string{
+	//TODO 返回交易中的币种
+	return "Main"
+}
+func (tx *Transaction) SetCoinType(typ string){
+	//TODO 设置交易中的币种
+
 }
 func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
 //YY

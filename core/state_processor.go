@@ -56,16 +56,17 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 	// Iterate over and process the individual transactions
-	txs := block.Transactions()[2:]
+
 	stxs := make([]types.SelfTransaction,0)
-	tmptx := block.Transactions()[params.FirstTxIndex]
-	tmptx1 := block.Transactions()[params.SecondTxIndex]
-	tmptx.SetFromLoad(common.BlkMinerRewardAddress)
-	tmptx1.SetFromLoad(common.TxGasRewardAddress)
-	stxs = append(stxs,tmptx1)
-	stxs = append(stxs,tmptx)
 	var txcount int
-	for i, tx := range txs {
+	for i, tx := range block.Transactions() {
+		if tx.GetMatrixType() == common.ExtraUnGasTxType{
+			tmpstxs := make([]types.SelfTransaction,0)
+			tmpstxs = append(tmpstxs,tx)
+			tmpstxs = append(tmpstxs,stxs...)
+			stxs = tmpstxs
+			continue
+		}
 		_,addrerr := tx. GetTxFrom()
 		if addrerr == nil{
 			//err is nil means from not nil

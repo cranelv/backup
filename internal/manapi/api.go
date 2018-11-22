@@ -912,16 +912,29 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
 	}
-	from, _ := types.Sender(signer, tx)
-	v, r, s := tx.RawSignatureValues()
-	var addr common.Address
-	if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
-		if index == params.FirstTxIndex{
-			from = common.BlkMinerRewardAddress
-		}else if index == params.SecondTxIndex{
-			from = common.TxGasRewardAddress
-		}
+
+	var from common.Address
+
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		from = tx.From()
+	}else {
+		from, _ = types.Sender(signer, tx)
 	}
+	v, r, s := tx.RawSignatureValues()
+	//var addr common.Address
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
+	//	if index == params.FirstTxIndex{
+	//		from = common.BlkRewardAddress
+	//	}else if index == params.SecondTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.ThreeTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.FourTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.FiveTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}
+	//}
 
 	result := &RPCTransaction{
 		From:     from,
