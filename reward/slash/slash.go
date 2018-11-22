@@ -84,7 +84,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 	}
 	for _, v := range currentElectNodes.NodeList {
 
-		accountReward, error := depoistInfo.GetReward(currentState, v.Account)
+		accountReward, error := depoistInfo.GetInterest(currentState, v.Account)
 		if nil != error {
 			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
 			continue

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
@@ -32,24 +32,24 @@ var (
 )
 
 const (
-	MainAccount = iota	//主账户
-	FreezeAccount		//冻结账户
-	LockAccount			//锁仓账户
-	WithdrawAccount		//可撤销账户
-	EntrustAccount		//委托账户
+	MainAccount     = iota //主账户
+	FreezeAccount          //冻结账户
+	LockAccount            //锁仓账户
+	WithdrawAccount        //可撤销账户
+	EntrustAccount         //委托账户
 )
-var LastAccount uint32 = EntrustAccount	//必须赋值最后一个账户
+
+var LastAccount uint32 = EntrustAccount //必须赋值最后一个账户
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
 
 //hezi账户属性定义
 type BalanceSlice struct {
-	AccountType	uint32
-	Balance	*big.Int
+	AccountType uint32
+	Balance     *big.Int
 }
 type BalanceType []BalanceSlice
-
 
 func BytesToHash(b []byte) Hash {
 	var h Hash
@@ -379,21 +379,7 @@ type NetTopology struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData
 }
-//type RewarTxList struct {
-//	RtList []RewarTx
-//}
-type RewarTx struct {
-	CoinType      string
-	Fromaddr      Address
-	To_Amont      map[Address]*big.Int
-}
-//var RewarSlice *RewarTxList = new(RewarTxList)
-//func (rt *RewarTxList)ClearRewarStruct(){
-//	rt.RtList = nil
-//}
-//func (rt *RewarTxList)SetRewarStruct(r RewarTx){
-//	rt.RtList = append(rt.RtList,r)
-//}
+
 var (
 	MinersRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
 	ValidatorsRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
@@ -402,6 +388,7 @@ var (
 )
 
 const (
+	//byte can not be 1,because 1 is occupied
 	ExtraNormalTxType    byte = 0
 	ExtraBroadTxType     byte = 1  //广播交易
 	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
@@ -413,6 +400,6 @@ const (
 
 type TxTypeInt uint8
 type RetCallTxN struct {
-	TXt TxTypeInt
+	TXt   TxTypeInt
 	ListN []uint32
 }

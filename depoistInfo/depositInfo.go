@@ -109,6 +109,10 @@ func GetSlash(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 	return depositInfo.MatrixDeposit.GetSlash(depositInfo.Contract, stateDB, address), nil
 }
 
+func GetAllSlash(stateDB vm.StateDB) map[common.Address]*big.Int {
+	return depositInfo.MatrixDeposit.GetAllSlash(depositInfo.Contract, stateDB)
+}
+
 func AddSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error {
 	return depositInfo.MatrixDeposit.AddSlash(depositInfo.Contract, stateDB, address, slash)
 }
@@ -117,26 +121,30 @@ func SetSlash(stateDB vm.StateDB, address common.Address, slash *big.Int) error 
 	return depositInfo.MatrixDeposit.SetSlash(depositInfo.Contract, stateDB, address, slash)
 }
 
-func ResetReward(stateDB vm.StateDB, address common.Address) error {
-	return depositInfo.MatrixDeposit.ResetReward(depositInfo.Contract, stateDB, address)
+func ResetInterest(stateDB vm.StateDB, address common.Address) error {
+	return depositInfo.MatrixDeposit.ResetInterest(depositInfo.Contract, stateDB, address)
 }
 
-func GetReward(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
-	return depositInfo.MatrixDeposit.GetReward(depositInfo.Contract, stateDB, address), nil
+func GetInterest(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
+	return depositInfo.MatrixDeposit.GetInterest(depositInfo.Contract, stateDB, address), nil
 }
 
-func AddReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
-	return depositInfo.MatrixDeposit.AddReward(depositInfo.Contract, stateDB, address, reward)
+func GetAllInterest(stateDB vm.StateDB) map[common.Address]*big.Int {
+	return depositInfo.MatrixDeposit.GetAllInterest(depositInfo.Contract, stateDB)
 }
 
-func SetReward(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
-	return depositInfo.MatrixDeposit.SetReward(depositInfo.Contract, stateDB, address, reward)
+func AddInterest(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
+	return depositInfo.MatrixDeposit.AddInterest(depositInfo.Contract, stateDB, address, reward)
+}
+
+func SetInterest(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
+	return depositInfo.MatrixDeposit.SetInterest(depositInfo.Contract, stateDB, address, reward)
 }
 
 func GetDeposit(stateDB vm.StateDB, address common.Address) *big.Int {
 	return depositInfo.MatrixDeposit.GetDeposit(depositInfo.Contract, stateDB, address)
 }
 
-func SetDeposit(stateDB vm.StateDB, deposit *big.Int) error {
-	return depositInfo.MatrixDeposit.SetDeposit(depositInfo.Contract, stateDB, deposit)
+func SetDeposit(stateDB vm.StateDB, address common.Address, deposit *big.Int) error {
+	return depositInfo.MatrixDeposit.SetDeposit(depositInfo.Contract, stateDB, address, deposit)
 }

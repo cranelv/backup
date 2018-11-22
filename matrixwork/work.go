@@ -264,7 +264,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTx) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTxs) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
