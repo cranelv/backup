@@ -75,16 +75,26 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 
 	if calcInterestPeriod==1||0==(num+1)%uint64(calcInterestPeriod){
 		depositNodes, _ := ca.GetElectedByHeight(new(big.Int).SetUint64(num-1))
+		log.INFO(PackageName, "计算利息", "")
 		for _, v := range depositNodes {
 
 			result:=ic.calcNodeInterest(v.Deposit,depositInterestRateList)
-			depoistInfo.AddReward(state,v.Address,result)
-			log.INFO(PackageName, "calc interest reward  all reward account", v.Address.String(), "deposit",v.Deposit.String(),  "reward", result.String())
+			depoistInfo.AddInterest(state,v.Address,result)
+			log.INFO(PackageName, "账户", v.Address.String(), "deposit",v.Deposit.String(),  "利息", result.String())
 		}
 	}
 
-	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod){
-     //1.获取所有利息转到抵押账户 2.清除所有利息
+	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod) {
+		//1.获取所有利息转到抵押账户 2.清除所有利息
 		log.INFO(PackageName, "将利息转到抵押账户", "")
+
+		AllInterestMap := depoistInfo.GetAllInterest(state)
+		for account, interest := range AllInterestMap {
+			oldDeposit := depoistInfo.GetDeposit(state, account)
+			newDeposit := new(big.Int).Add(oldDeposit, interest)
+			depoistInfo.SetDeposit(state, account, newDeposit)
+			depoistInfo.ResetInterest(state,account)
+			log.INFO(PackageName,"账户",account,"利息",interest.String(),"抵押",newDeposit)
+		}
 	}
 }

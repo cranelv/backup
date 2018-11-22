@@ -5,10 +5,7 @@ package blkverify
 
 import (
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/lottery"
-	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
@@ -479,22 +476,24 @@ func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header)
 	if nil!=txsRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
 	}
-	lottery:=lottery.New(p.blockChain(),&randSeed{})
-
-	lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
-	if nil!=txsRewardMap{
-		for _,v :=range lotteryRewardMap{
-			if nil!=v{
-				rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
-			}
-		}
-	}
-	//todo 惩罚
-	slash := slash.New(p.blockChain())
-	SlashMap:=slash.CalcSlash(State, header.Number.Uint64())
-	for account, value := range SlashMap {
-		depoistInfo.SetSlash(State, account, value)
-	}
+	//lottery:=lottery.New(p.blockChain(),&randSeed{})
+	//
+	//lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
+	//if nil!=txsRewardMap{
+	//	for _,v :=range lotteryRewardMap{
+	//		if nil!=v{
+	//			rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+	//		}
+	//	}
+	//}
+	//interestReward:=interest.New(p.blockChain())
+	//interestReward.InterestCalc(State,header.Number.Uint64())
+	////todo 惩罚
+	//slash := slash.New(p.blockChain())
+	//SlashMap:=slash.CalcSlash(State, header.Number.Uint64())
+	//for account, value := range SlashMap {
+	//	depoistInfo.SetSlash(State, account, value)
+	//}
 
 
 
