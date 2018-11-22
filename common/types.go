@@ -2,7 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
-
 package common
 
 import (
@@ -380,15 +379,20 @@ type NetTopology struct {
 	NetTopologyData []NetTopologyData
 }
 
+type RewarTx struct {
+	CoinType      string
+	Fromaddr      Address
+	To_Amont      map[Address]*big.Int
+}
+
 var (
-	MinersRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
-	ValidatorsRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
-	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000002")   //交易费
-	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000003")   //彩票
+    BlkMinerRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
+    BlkValidatorRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
+	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000003")   //交易费
+	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000004")   //彩票
 )
 
 const (
-	//byte can not be 1,because 1 is occupied
 	ExtraNormalTxType    byte = 0
 	ExtraBroadTxType     byte = 1  //广播交易
 	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
@@ -396,6 +400,7 @@ const (
 	ExtraRevertTxType    byte = 4  //撤销交易
 	ExtraTimeTxType      byte = 7  //定时交易
 	ExtraEntrustTx       byte = 5 //委托交易
+
 )
 
 type TxTypeInt uint8

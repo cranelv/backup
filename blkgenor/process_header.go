@@ -61,16 +61,16 @@ func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header)
 	blkreward := blkreward.New(p.blockChain())
 	rewardList := make([]common.RewarTx,0)
 
-	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.MinersRewardAddress)
+	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.BlkMinerRewardAddress)
 	minersRewardMap := blkreward.CalcMinerRewards(minerReward, header)
     if nil!=minersRewardMap{
-	    rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.MinersRewardAddress,To_Amont:minersRewardMap})
+	    rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
     }
 
-	validatorReward:=blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.ValidatorsRewardAddress)
+	validatorReward:=blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
 	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,header.Leader, header)
      if nil!=validatorsRewardMap{
-	     rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.ValidatorsRewardAddress,To_Amont:validatorsRewardMap})
+	     rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})
      }
 
 	txsReward := txsreward.New(p.blockChain())

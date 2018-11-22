@@ -238,37 +238,53 @@ func isProtectedV(V *big.Int) bool {
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
-type encodeTx struct {
-	data txdata
-	from common.Address
+type EncodeTx struct {
+	Data txdata
+	From common.Address
 }
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
+	etx := &EncodeTx{
+				Data:tx.data,
+			}
 	if tx.GetMatrixType() == common.ExtraUnGasTxType{
-		return rlp.Encode(w, &encodeTx{
-			data:tx.data,
-			from:tx.From(),
-		})
-	}else{
-		return rlp.Encode(w, &tx.data)
+		etx.From = tx.From()
 	}
+	return rlp.Encode(w,etx)
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	return rlp.Encode(w, &EncodeTx{
+	//		Data:tx.data,
+	//		From:tx.From(),
+	//	})
+	//}else{
+	//	return rlp.Encode(w, &tx.data)
+	//}
 }
 
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
 	var err error
-	if tx.GetMatrixType() == common.ExtraUnGasTxType{
-		entx := new(encodeTx)
-		err = s.Decode(&entx)
-		tx.data = entx.data
-		tx.SetFromLoad(entx.from)
-	}else{
-		err = s.Decode(&tx.data)
-	}
+	entx := new(EncodeTx)
+	err = s.Decode(&entx)
+	tx.data = entx.Data
+	tx.SetFromLoad(entx.From)
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
+	//_, size, _ := s.Kind()
+	//var err error
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	entx := new(EncodeTx)
+	//	err = s.Decode(&entx)
+	//	tx.data = entx.Data
+	//	tx.SetFromLoad(entx.From)
+	//}else{
+	//	err = s.Decode(&tx.data)
+	//}
+	//if err == nil {
+	//	tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	//}
 
 	return err
 }

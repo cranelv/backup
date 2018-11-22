@@ -912,6 +912,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
 	}
+
 	var from common.Address
 
 	if tx.GetMatrixType() == common.ExtraUnGasTxType{

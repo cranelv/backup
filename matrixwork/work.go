@@ -79,7 +79,7 @@ func (cu *coingasUse)getCoinGasPrice(typ string) *big.Int{
 	defer cu.mu.Unlock()
 	price,ok:=cu.mapprice[typ]
 	if !ok{
-		price.SetUint64(0)
+		price = new(big.Int).SetUint64(0)
 	}
 	return price
 }
@@ -264,7 +264,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTxs) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTx) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
@@ -286,7 +286,10 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 			log.Error("file work","func ProcessTransactions:::reward Tx call Error",err)
 			return nil ,nil
 		}
-		tmps = append(tmps, tx)
+		tmptxs :=make([]types.SelfTransaction,0)
+		tmptxs = append(tmptxs, tx)
+		tmptxs = append(tmptxs, tmps...)
+		tmps = tmptxs
 	}
 	//env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
 	//}
@@ -319,7 +322,9 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 		var to common.Address
 		var value *big.Int
 		tmpv := new(big.Int).SetUint64(10000)
-		tmpgas := new(big.Int).Mul(new(big.Int).SetUint64(mapcoingasUse.getCoinGasUse(rewart.CoinType)),mapcoingasUse.getCoinGasPrice(rewart.CoinType))
+		price := mapcoingasUse.getCoinGasPrice(rewart.CoinType)
+		gas := mapcoingasUse.getCoinGasUse(rewart.CoinType)
+		tmpgas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
 		isfirst := true
 		for _,addr := range sorted_keys{
 			k :=common.HexToAddress(addr)
@@ -419,6 +424,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 	//		return err
 	//	}
 	//}
+
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
