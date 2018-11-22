@@ -123,7 +123,7 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
+	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -216,8 +216,8 @@ type Tx_to1 struct {
 type Matrix_Extra1 struct {
 	TxType     byte    `json:"txType" gencodec:"required"`
 	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
-	//ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
-	ExtraTo    []Tx_to1  ` rlp:"tail"` //hezi
+	ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
+	//ExtraTo    []Tx_to1  ` rlp:"tail"` //hezi
 }
 //to地址为string类型
 type txdata1 struct {
@@ -235,7 +235,7 @@ type txdata1 struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
+	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//
@@ -378,6 +378,9 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	if tx.Mtype == true{
 		var data1 txdata1
 		err = s.Decode(&data1)
+		if err != nil{
+			return err
+		}
 		TxdataStringToAddres(&data1,&tx.data)
 		tx.Currency = strings.Split(*data1.Recipient,".")[0]	//币种
 		tx.Mtype = true
@@ -440,7 +443,7 @@ func (tx *Transaction)Call() error{
 	return nil
 }
 func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
-func (tx *Transaction) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
+func (tx *Transaction) IsEntrustTx() bool				{ return tx.data.IsEntrustTx == 1}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 

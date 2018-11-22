@@ -74,7 +74,7 @@ func (tx *TransactionBroad) CheckNonce() bool   { return true }
 func (tx *TransactionBroad) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
-func (tx *TransactionBroad) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
+func (tx *TransactionBroad) IsEntrustTx() bool				{ return tx.data.IsEntrustTx == 1}
 func (tx *TransactionBroad)Setentrustfrom(x interface{}){
 
 }

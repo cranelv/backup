@@ -231,30 +231,20 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 		if tx.Mtype == true{
 			var data1 txdata1
 			TxdataAddresToString(tx.Currency,&tx.data,&data1)
-			if len(tx.data.Extra) > 0 {
-				return rlpHash([]interface{}{
-					data1.AccountNonce,
-					data1.Price,
-					data1.GasLimit,
-					data1.Recipient,
-					data1.Amount,
-					data1.Payload,
-					data1.Extra,
-					s.chainId, uint(0), uint(0),
-				})
-			}else{
-				return rlpHash([]interface{}{
-					data1.AccountNonce,
-					data1.Price,
-					data1.GasLimit,
-					data1.Recipient,
-					data1.Amount,
-					data1.Payload,
-					s.chainId, uint(0), uint(0),
-				})
-			}
+			return rlpHash([]interface{}{
+				data1.AccountNonce,
+				data1.Price,
+				data1.GasLimit,
+				data1.Recipient,
+				data1.Amount,
+				data1.Payload,
+				s.chainId, uint(0), uint(0),
+				data1.TxEnterType,
+				data1.IsEntrustTx,
+				data1.Extra,
+			})
+
 		}else{
-			if len(tx.data.Extra) > 0 { //YY
 				return rlpHash([]interface{}{
 					tx.data.AccountNonce,
 					tx.data.Price,
@@ -262,20 +252,11 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 					tx.data.Recipient,
 					tx.data.Amount,
 					tx.data.Payload,
+					s.chainId, uint(0), uint(0),
+					tx.data.TxEnterType,
+					tx.data.IsEntrustTx,
 					tx.data.Extra,
-					s.chainId, uint(0), uint(0),
 				})
-			} else {
-				return rlpHash([]interface{}{
-					tx.data.AccountNonce,
-					tx.data.Price,
-					tx.data.GasLimit,
-					tx.data.Recipient,
-					tx.data.Amount,
-					tx.data.Payload,
-					s.chainId, uint(0), uint(0),
-				})
-			}
 		}
 	case BroadCastTxIndex:
 		tx,ok := txer.(*TransactionBroad)
