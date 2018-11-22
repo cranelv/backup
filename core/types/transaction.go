@@ -441,8 +441,72 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.Extra = floodtx.Extra
 	return tx
 }
-
-func  ConvTxtoMxtx(tx *Transaction) *Transaction_Mx{
+//YY
+//func (tx *Transaction) SetTransactionMx(tx_Mx *Transaction_Mx)(txer SelfTransaction ){
+//	txd := txdata{
+//		AccountNonce:tx_Mx.Data.AccountNonce | params.NonceAddOne,
+//		Price:tx_Mx.Data.Price,
+//		GasLimit:tx_Mx.Data.GasLimit,
+//		Recipient:tx_Mx.Data.Recipient,
+//		Amount:tx_Mx.Data.Amount,
+//		Payload:tx_Mx.Data.Payload,
+//		// Signature values
+//		V:     tx_Mx.Data.V,
+//		R:     tx_Mx.Data.R,
+//		S:     tx_Mx.Data.S,
+//		TxEnterType : tx_Mx.Data.TxEnterType,
+//		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
+//		Extra: tx_Mx.Data.Extra,
+//	}
+//	if len(tx_Mx.ExtraTo) > 0 {
+//		mx := Matrix_Extra{
+//			TxType:     tx_Mx.TxType_Mx,
+//			LockHeight: tx_Mx.LockHeight,
+//			ExtraTo:    tx_Mx.ExtraTo,
+//		}
+//		if mx.TxType == 0 {
+//			mx.LockHeight = tx_Mx.LockHeight
+//		}
+//		txd.Extra = append(txd.Extra, mx)
+//	}
+//	newtx := &Transaction{data: txd}
+//	txer = newtx
+//	return
+//}
+//
+////YY
+//func (tx *Transaction)GetTransactionMx(stx SelfTransaction) *Transaction_Mx {
+//	btx,ok:=stx.(*Transaction)
+//	if !ok {
+//		return nil
+//	}
+//	tx_Mx:=&Transaction_Mx{}
+//	tx_Mx.Data.AccountNonce = btx.data.AccountNonce & params.NonceSubOne
+//	tx_Mx.Data.Price = btx.data.Price
+//	tx_Mx.Data.GasLimit = btx.data.GasLimit
+//	tx_Mx.Data.Recipient = btx.data.Recipient
+//	tx_Mx.Data.Amount = btx.data.Amount
+//	tx_Mx.Data.Payload = btx.data.Payload
+//	// Signature values
+//	tx_Mx.Data.V = btx.data.V
+//	tx_Mx.Data.R = btx.data.R
+//	tx_Mx.Data.S = btx.data.S
+//	tx_Mx.Data.TxEnterType = btx.data.TxEnterType
+//	tx_Mx.Data.IsEntrustTx = btx.data.IsEntrustTx
+//	tx_Mx.Data.Extra = btx.data.Extra
+//	//tx_Mx.Data.Extra = append(tx_Mx.Data.Extra,tx.data.Extra[])
+//	if len(btx.data.Extra) > 0 {
+//		tx_Mx.TxType_Mx = btx.data.Extra[0].TxType
+//		tx_Mx.LockHeight = btx.data.Extra[0].LockHeight
+//		tx_Mx.ExtraTo = btx.data.Extra[0].ExtraTo
+//	}
+//	return tx_Mx
+//}
+func  ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx{
+	tx,ok:=txer.(*Transaction)
+	if !ok {
+		return nil
+	}
 	tx_Mx:=&Transaction_Mx{}
 	tx_Mx.Data.AccountNonce = tx.data.AccountNonce & params.NonceSubOne
 	tx_Mx.Data.Price = tx.data.Price

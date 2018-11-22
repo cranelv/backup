@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package msgsend
@@ -489,7 +489,7 @@ func (*fullBlockRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
 	for i := 0; i < size; i++ {
 		tx := rsp.Txs[i]
-		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(tx))
+		marshalMsg.Txs = append(marshalMsg.Txs, types.SetTransactionToMx(tx))
 	}
 	marshalMsg.Header = rsp.Header
 	data, err := json.Marshal(marshalMsg)
@@ -513,7 +513,7 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 	}
 	size := len(msg.Txs)
 	for i := 0; i < size; i++ {
-		tx := types.SetTransactionMx(msg.Txs[i])
+		tx := types.SetMxToTransaction(msg.Txs[i])
 		sendMsg.Txs = append(sendMsg.Txs, tx)
 	}
 
