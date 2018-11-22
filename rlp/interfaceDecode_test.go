@@ -98,12 +98,14 @@ func TestByteDecode(t *testing.T)  {
 	t.Log(test1)
 }
 
-
+type Tx_to1 struct {
+	Recipient *string		  `json:"to"       rlp:"nil"` // nil means contract creation
+}
 type Matrix_Extra1 struct {
 	TxType     byte    `json:"txType" gencodec:"required"`
 	LockHeight uint64  `json:"lockHeight" gencodec:"required"`
 	//ExtraTo    []Tx_to1 `json:"extra_to" gencodec:"required"`
-	//ExtraTo    []Tx_to1  ` rlp:"tail"` //hezi
+	ExtraTo    []Tx_to1  ` rlp:"tail"` //hezi
 }
 type txdata1 struct {
 	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
@@ -121,7 +123,8 @@ type txdata1 struct {
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
-	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
+	//Extra []Matrix_Extra1 ` rlp:"tail"` //YY
+	Extra []Matrix_Extra1 `json:"Extra" gencodec:"required"` //YY
 }
 
 //{"nonce":"0x10000000000000","gasPrice":"0x098bca5a00","gasLimit":"0x033450","to":"MAN.3eKSYmc89mnRMeekbjL2WtPAKaL4zhAw656wmpUBsQVjGaU668XTAPNj","value":"0x0de0b6b3a7640000","data":"0x","TxEnterType":"0x01","IsEntrustTx":1,"extra_to":[[1,0]],"chainId":20}
@@ -135,10 +138,14 @@ func TestByteDecode1(t *testing.T)  {
 	test1.Amount = big.NewInt(0x0de0b6b3a7640000)
 	test1.TxEnterType = 0
 	test1.IsEntrustTx = false
-
 	ext := new(Matrix_Extra1)
 	ext.LockHeight = 0
 	ext.TxType = 1
+
+	//exto := make([]Tx_to1,1)
+	//to1 := "MAN.3Yd45AeqcojaRmdkCDRJzPZFWqJZkysE76CyUNiqfsnqhjZ6u5BGjoN7"
+	//exto[0].Recipient = &to1
+	//ext.ExtraTo = exto
 	test1.Extra = make([]Matrix_Extra1,1)
 	test1.Extra[0] = *ext
 
@@ -146,8 +153,13 @@ func TestByteDecode1(t *testing.T)  {
 	if err != nil{
 		fmt.Println(1111)
 	}
-	t.Log(b1)
+	fmt.Println(common.Bytes2Hex(b1))
 	var test2 txdata1
+	b1 = common.Hex2Bytes("f862871000000000000085098bca5a0083033450b83c4d414e2e33654b53596d6338396d6e524d65656b626a4c32577450414b614c347a684177363536776d7055427351566a476155363638585441504e6a880de0b6b3a7640000808080808080c20180")
 	err = DecodeBytes(b1,&test2)
+	if err != nil{
+		//fmt.Println(*test2.Extra[0].ExtraTo[0].Recipient)
+		fmt.Println(err)
+	}
 	t.Log(test2)
 }
