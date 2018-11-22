@@ -1,10 +1,13 @@
 package multicoinreward
 
 import (
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/cfg"
 	"github.com/matrix/go-matrix/reward/rewardexec"
 	"github.com/matrix/go-matrix/reward/util"
+	"math/big"
 )
 
 const (
@@ -26,8 +29,15 @@ BackupRate                   = uint64(0) //当前替补验证者奖励50%
 
 )
 
+type MultiCoinReward struct {
+	chain util.ChainReader
+	reward reward.Reward
+}
 
-func New(chain util.ChainReader) reward.Reward {
+
+
+
+func New(chain util.ChainReader) *MultiCoinReward {
 
 	RewardMount := &cfg.RewardMountCfg{
 		MinersRate:     MinerTxsRewardRate,
@@ -44,5 +54,31 @@ func New(chain util.ChainReader) reward.Reward {
 		BackupRewardRate:       BackupRate,
 	}
 	rewardCfg := cfg.New(RewardMount, nil)
-	return rewardexec.New(chain, rewardCfg)
+	return &MultiCoinReward {chain,rewardexec.New(chain, rewardCfg)}
+}
+
+func (mcr *MultiCoinReward )CalcNodesReward(rewardMount *big.Int,currentnum uint64) map[common.Address]*big.Int{
+
+
+	if !common.IsReElectionNumber(currentnum+1){
+		return nil
+	}
+	var orignum uint64
+	if currentnum < common.GetReElectionInterval() {
+		orignum = 1
+	} else {
+		orignum = currentnum - common.GetReElectionInterval()
+	}
+	rewardMap := make(map[common.Address]*big.Int)
+	for orignum < currentnum+1 {
+		header := mcr.chain.GetBlockByNumber(orignum).Header()
+		tempMap := mcr.reward.CalcNodesRewards(rewardMount, header.Leader, header)
+		for i, v := range tempMap {
+			util.SetAccountRewards(rewardMap, i, v)
+		}
+		orignum++
+	}
+
+	log.INFO(PackageName, "多币种", rewardMap)
+	return rewardMap
 }

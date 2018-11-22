@@ -1,24 +1,24 @@
 package lottery
 
 import (
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
 	"math/big"
 	"math/rand"
 	"sort"
-
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/params"
 )
 
 const (
-	N      = 10
+	N      = 6
 	FIRST  = 1 //一等奖数目
-	SECOND = 2 //二等奖数目
-	THIRD  = 3 //三等奖数目
+	SECOND = 0 //二等奖数目
+	THIRD  = 0 //三等奖数目
+	PackageName = "彩票奖励"
 )
 
 var (
-	FIRSTPRIZE   *big.Int = big.NewInt(5e+18) //一等奖金额  5man
+	FIRSTPRIZE   *big.Int = big.NewInt(6e+18) //一等奖金额  5man
 	SENCONDPRIZE *big.Int = big.NewInt(3e+18) //二等奖金额 2man
 	THIRDPRIZE   *big.Int = big.NewInt(1e+18) //三等奖金额 1man
 )
@@ -36,24 +36,6 @@ func (p TxCmpResultList) Len() int           { return len(p) }
 func (p TxCmpResultList) Less(i, j int) bool { return p[i].CmpResult < p[j].CmpResult }
 
 type ChainReader interface {
-	// Config retrieves the blockchain's chain configuration.
-	Config() *params.ChainConfig
-
-	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
-
-	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
-
-	// GetHeaderByNumber retrieves a block header from the database by number.
-	GetHeaderByNumber(number uint64) *types.Header
-
-	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
-
-	// GetBlock retrieves a block sfrom the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
-
 	GetBlockByNumber(number uint64) *types.Block
 }
 
@@ -85,23 +67,22 @@ func (tlr *TxsLottery) LotteryCalc(num uint64) map[string]map[common.Address]*bi
 		return nil
 	}
 	LotteryAccount := make(map[string]map[common.Address]*big.Int, 0)
-	txsCmpResultList := tlr.getLotteryList(num, 10)
+	txsCmpResultList := tlr.getLotteryList(num, N )
 	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
 
 	return LotteryAccount
 }
 
 func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultList {
-	originBlockNum := common.GetLastBroadcastNumber(num) + 1
+	originBlockNum := common.GetLastReElectionNumber(num)-1
 
+	if num<common.GetReElectionInterval(){
+    	originBlockNum=0
+    }
 	randSeed := tlr.seed.GetSeed(num)
 	rand.Seed(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
-
-		if !common.IsBroadcastNumber(originBlockNum) {
-			continue
-		}
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
 		for _, tx := range txs {
 			extx := tx.GetMatrix_EX()
@@ -111,9 +92,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 			}
 
 		}
-
 		originBlockNum++
-
 	}
 	if 0==len(txsCmpResultList){
 		return  nil
@@ -123,10 +102,11 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 	for i:=0;i<lotteryNum&&i<len(txsCmpResultList);i++{
 		randUint64:=rand.Uint64()
 		index:=randUint64%(uint64(len(txsCmpResultList)-1))
+		log.INFO(PackageName,"交易序号",index)
 		chooseResultList =append(chooseResultList,txsCmpResultList[index])
 	}
 
-	return txsCmpResultList
+	return chooseResultList
 }
 
 func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAccountMap map[string]map[common.Address]*big.Int) {
@@ -141,7 +121,8 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		if len(LotteryAccount) < FIRST {
 
 			firstLottery[from] = FIRSTPRIZE
-
+			LotteryAccountMap["First"] = firstLottery
+			log.INFO(PackageName,"一等奖",from.String(),"金额",FIRSTPRIZE)
 			continue
 		}
 		//抽取过的账户跳过
@@ -153,6 +134,8 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		if len(LotteryAccount) < SECOND {
 
 			secondLottery[from] = SENCONDPRIZE
+			LotteryAccountMap["Second"] = secondLottery
+			log.INFO(PackageName,"二等奖",from.String(),"金额",SENCONDPRIZE)
 
 			continue
 		}
@@ -165,12 +148,14 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		LotteryAccount, _ = LotteryAccountMap["Third"]
 		if len(LotteryAccount) < THIRD {
 			thirdLottery[from] = THIRDPRIZE
+			LotteryAccountMap["third"] = thirdLottery
+			log.INFO(PackageName,"三等奖",from.Hex())
 			continue
 		}
 		break
 
 	}
-	LotteryAccountMap["First"] = firstLottery
-	LotteryAccountMap["Second"] = secondLottery
-	LotteryAccountMap["third"] = thirdLottery
+
+
+
 }

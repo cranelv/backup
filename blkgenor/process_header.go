@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
@@ -48,28 +49,61 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 
 	return nil
 }
-func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
-	blkreward := blkreward.New(p.blockChain())
-	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.BlkMinerRewardAddress)
-	minerRewardMap := blkreward.CalcMinerRewards(minerReward, header)
 
-	blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
-	blkreward.CalcValidatorRewards(minerReward,header.Leader, header)
-	//for account, value := range blkRewardMap {
-	//	depoistInfo.AddReward(State, account, value)
-	//}
+type randSeed  struct{
+
+}
+func (r* randSeed)GetSeed(num uint64) *big.Int{
+
+	return big.NewInt(1000)
+}
+func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) ([]common.RewarTx) {
+	blkreward := blkreward.New(p.blockChain())
+	rewardList := make([]common.RewarTx,0)
+
+	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.MinersRewardAddress)
+	minersRewardMap := blkreward.CalcMinerRewards(minerReward, header)
+    if nil!=minersRewardMap{
+	    rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.MinersRewardAddress,To_Amont:minersRewardMap})
+    }
+
+	validatorReward:=blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.ValidatorsRewardAddress)
+	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,header.Leader, header)
+     if nil!=validatorsRewardMap{
+	     rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.ValidatorsRewardAddress,To_Amont:validatorsRewardMap})
+     }
+
 	txsReward := txsreward.New(p.blockChain())
 	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
-	//for account, value := range txsRewardMap {
-	//	depoistInfo.AddReward(State, account, value)
-	//}
+	if nil!=txsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+	}
+	lottery:=lottery.New(p.blockChain(),&randSeed{})
+
+	lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
+		for _,v :=range lotteryRewardMap{
+			if nil!=v{
+				rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+			}
+		}
+
+     //todo:其它币种
+	//multiCoin:=multicoinreward.New(p.blockChain())
+	//multiCoinMap := multiCoin.CalcNodesRewards(util.MultilCoinBlockReward, header.Leader, header)
+	//if nil!=multiCoinMap{
+	//  rewardList = append(rewardList,common.RewarTx{CoinType:"other",Fromaddr:common.MinersRewardAddress,To_Amont:multiCoinMap})
+	//  }
+	
 	//todo 惩罚
 	slash := slash.New(p.blockChain())
 	SlashMap:=slash.CalcSlash(State, header.Number.Uint64())
 	for account, value := range SlashMap {
 		depoistInfo.SetSlash(State, account, value)
 	}
-	return minerRewardMap, txsRewardMap
+
+
+
+	return rewardList
 }
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
@@ -138,8 +172,9 @@ func (p *Process) processHeaderGen() error {
 			Txs = append(Txs, txs...)
 		}
 		// todo: add rewward and run
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
+		rewardList:=p.calcRewardAndSlash(work.State, header)
+
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,rewardList)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
 		for _, tx := range retTxs {
@@ -178,9 +213,9 @@ func (p *Process) processHeaderGen() error {
 		// todo： update uptime
 		p.processUpTime(work, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
+		rewardList:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),blkRward,txsReward)
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),rewardList)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")

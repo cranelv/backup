@@ -81,20 +81,20 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		return
 	}
 
-	selectedNodesDeposit, totalDepositRate := sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
+	selectedNodesDeposit, totalDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
 	for account, deposit := range selectedNodesDeposit {
-		depositRate := new(big.Rat).SetInt(deposit)
-		depositProportion := new(big.Rat).Quo(depositRate, totalDepositRate)
-		oneNodeReward, _ := new(big.Rat).Mul(new(big.Rat).SetInt(reward), depositProportion).Float64()
-		util.SetAccountRewards(topRewards, account, new(big.Int).SetUint64(uint64(oneNodeReward)))
-		log.INFO(PackageName, "selected reward all deposit", totalDepositRate.String(), "deposit", deposit.Uint64(), "depositProportion", depositProportion.String())
-		log.INFO(PackageName, "selected reward  all reward", reward, "account", account, "reward", uint64(oneNodeReward))
+
+		multiReward:=new(big.Int).Mul(deposit,reward)
+		oneNodeReward:=new(big.Int).Div(multiReward,totalDeposit)
+		util.SetAccountRewards(topRewards, account,oneNodeReward)
+		log.INFO(PackageName, "selected reward all deposit", totalDeposit.String(), "deposit", deposit.Uint64())
+		log.INFO(PackageName, "selected reward  all reward", reward, "account", account, "reward", oneNodeReward.String())
 	}
 
 	return
 
 }
-func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int, *big.Rat) {
+func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int, *big.Int) {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph.NodeList {
 		NodesRewardMap[nodelist.Account] = rewardRate
@@ -128,6 +128,5 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 			totalDeposit.Add(totalDeposit, deposit)
 		}
 	}
-	totalDepositRate := new(big.Rat).SetInt(totalDeposit)
-	return selectedNodesDeposit, totalDepositRate
+	return selectedNodesDeposit, totalDeposit
 }

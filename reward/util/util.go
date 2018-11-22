@@ -23,7 +23,7 @@ const (
 
 var (
 	//ValidatorBlockReward  *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block
-	//ValidatorBlockReward *big.Int =  new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
+	MultilCoinBlockReward *big.Int =  new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
 	//分母10000
 	ByzantiumTxsRewardDen *big.Int = big.NewInt(10000) // Block reward in wei for successfully mining a block upward from Byzantium
 	ValidatorsBlockReward  *big.Int = big.NewInt(5e+18)

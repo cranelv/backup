@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
@@ -410,8 +411,9 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	blkRward, txsReward := p.calcRewardAndSlash(work.State, localHeader)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, blkRward, txsReward)
+	rewardList:= p.calcRewardAndSlash(work.State, localHeader)
+
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, rewardList)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
@@ -449,26 +451,55 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }
-func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
+type randSeed  struct{
+
+}
+func (r* randSeed)GetSeed(num uint64) *big.Int{
+
+	return big.NewInt(1000)
+}
+func (p *Process) calcRewardAndSlash(State *state.StateDB, header *types.Header) ([]common.RewarTx) {
 	blkreward := blkreward.New(p.blockChain())
-	blkRewardMap := blkreward.CalcNodesRewards(util.ValidatorsBlockReward, header.Leader, header)
-	//for account, value := range blkRewardMap {
-	//	//depoistInfo.AddReward(State, account, value)
-	//}
+	rewardList := make([]common.RewarTx,0)
+
+	minerReward:=blkreward.CalcRewardMount(State,util.MinersBlockReward,common.MinersRewardAddress)
+	minersRewardMap := blkreward.CalcMinerRewards(minerReward, header)
+	if nil!=minersRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.MinersRewardAddress,To_Amont:minersRewardMap})
+	}
+
+	validatorReward:=blkreward.CalcRewardMount(State,util.ValidatorsBlockReward,common.ValidatorsRewardAddress)
+	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,header.Leader, header)
+	if nil!=validatorsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.ValidatorsRewardAddress,To_Amont:validatorsRewardMap})
+	}
+
 	txsReward := txsreward.New(p.blockChain())
 	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, header.Leader, header)
-	//for account, value := range txsRewardMap {
-	//	//depoistInfo.AddReward(State, account, value)
-	//}
+	if nil!=txsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+	}
+	lottery:=lottery.New(p.blockChain(),&randSeed{})
+
+	lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
+	if nil!=txsRewardMap{
+		for _,v :=range lotteryRewardMap{
+			if nil!=v{
+				rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+			}
+		}
+	}
 	//todo 惩罚
 	slash := slash.New(p.blockChain())
 	SlashMap:=slash.CalcSlash(State, header.Number.Uint64())
 	for account, value := range SlashMap {
 		depoistInfo.SetSlash(State, account, value)
 	}
-	return blkRewardMap, txsRewardMap
-}
 
+
+
+	return rewardList
+}
 func (p *Process) sendVote(validate bool) {
 	signHash := p.curProcessReq.hash
 	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate)

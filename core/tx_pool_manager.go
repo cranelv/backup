@@ -188,6 +188,7 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	for _, txpool := range pm.txPools {
 		txmap, _ := txpool.Pending()
 		for addr, txs := range txmap {
+			txs = pm.filter(txs)
 			if txlist, ok := txser[addr]; ok {
 				txlist = append(txlist, txs...)
 				txser[addr] = txlist
@@ -197,6 +198,16 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 		}
 	}
 	return txser, nil
+}
+func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction){
+	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
+	for _,txer := range txser{
+		ct := txer.CoinType()
+		if ct == ""{
+
+		}
+	}
+	return
 }
 func (pm *TxPoolManager) AddRemote(tx types.SelfTransaction) (err error) {
 	pm.txPoolsMutex.Lock()

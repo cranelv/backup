@@ -1,25 +1,24 @@
-package txsreward
-
+package multicoinreward
 import (
-	"bou.ke/monkey"
-	"fmt"
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/manash"
-	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/reward/util"
-	. "github.com/smartystreets/goconvey/convey"
-	"math/big"
-	"sync"
-	"testing"
+"bou.ke/monkey"
+"fmt"
+"github.com/matrix/go-matrix/ca"
+"github.com/matrix/go-matrix/common"
+"github.com/matrix/go-matrix/consensus/manash"
+"github.com/matrix/go-matrix/core"
+"github.com/matrix/go-matrix/core/types"
+"github.com/matrix/go-matrix/core/vm"
+"github.com/matrix/go-matrix/log"
+"github.com/matrix/go-matrix/mc"
+"github.com/matrix/go-matrix/reward/util"
+. "github.com/smartystreets/goconvey/convey"
+"math/big"
+"sync"
+"testing"
 )
 type FakeEth struct {
-blockchain *core.BlockChain
-once       *sync.Once
+	blockchain *core.BlockChain
+	once       *sync.Once
 }
 
 const (
@@ -86,7 +85,9 @@ func TestNew(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
-		reward := New(eth.blockchain)
-		reward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
+		rewardtest := New(eth.blockchain)
+		rewardtest.CalcNodesReward(util.ByzantiumTxsRewardDen, newheader.Number.Uint64())
+
 	})
 }
+
