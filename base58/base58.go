@@ -147,6 +147,9 @@ func Base58EncodeToString(currency string,b []byte) string {
 }
 
 func Base58DecodeToAddress(strData string) common.Address {
+	if strData == ""{
+		return common.Address{}
+	}
 	if !strings.Contains(strData,"."){
 		return common.Address{}
 	}
