@@ -121,7 +121,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 
 	oneNodeRewardInt:= new(big.Int).Div(big.NewInt(9e+17), big.NewInt(11)).Uint64()
 	log.INFO(PackageName,"奖励",oneNodeRewardInt)
-	SkipConvey("选中无节点变化测试", t, func() {
+	Convey("选中无节点变化测试", t, func() {
 
 		rewards := make(map[common.Address]*big.Int, 0)
 		header := eth.BlockChain().CurrentHeader()

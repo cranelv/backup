@@ -96,7 +96,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
 			continue
 		}
-		accountReward:=new(big.Int).Div(currentAccountReward,preAccountReward)
+		accountReward:=new(big.Int).Sub(currentAccountReward,preAccountReward)
 		if 0 == accountReward.Cmp(new(big.Int).SetUint64(0)) {
 			log.WARN(PackageName, "获取奖励值为0，账户", v.Account)
 			continue

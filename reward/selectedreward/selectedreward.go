@@ -85,8 +85,7 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 	log.INFO(PackageName, "参与奖励大家共发放",reward)
 	for account, deposit := range selectedNodesDeposit {
 
-		multiReward:=new(big.Int).Div(new(big.Int).Mul(deposit,reward),new(big.Int).Div(deposit,big.NewInt(100)))
-
+		multiReward:=new(big.Int).Div(new(big.Int).Mul(deposit,reward),big.NewInt(100))
 		oneNodeReward:=new(big.Int).Mul(new(big.Int).Div(multiReward,totalDeposit),big.NewInt(100))
 		util.SetAccountRewards(topRewards, account,oneNodeReward)
 		log.INFO(PackageName, "账户", account, "金额", oneNodeReward.String(),"所有抵押", totalDeposit.String(), "当前抵押", deposit)
