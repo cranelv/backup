@@ -1,19 +1,20 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package olconsensus
 
 import (
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/log"
 	"sync"
+
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 )
 
 type messageCheck struct {
-	mu       sync.RWMutex
-	leader   common.Address
-	curRound uint64
+	mu        sync.RWMutex
+	leader    common.Address
+	curRound  uint64
 	blockHash common.Hash
 }
 
@@ -22,7 +23,7 @@ func (chk *messageCheck) checkLeaderChangeNotify(msg *mc.LeaderChangeNotify) boo
 		round := msg.Number*100 + uint64(msg.ReelectTurn)
 		if chk.setRound(round) {
 			chk.setLeader(msg.Leader)
-			log.Info("topnodeOnline", "设置leader", msg.Leader, "设置Number", msg.Number)
+			log.Info("TopnodeOnline", "设置leader", msg.Leader, "设置Number", msg.Number)
 			return true
 		}
 	}
@@ -32,7 +33,7 @@ func (chk *messageCheck) checkLeaderChangeNotify(msg *mc.LeaderChangeNotify) boo
 func (chk *messageCheck) checkBlockHash(hash common.Hash) bool {
 	if !hash.Equal(chk.getBlockHash()) {
 		chk.setBlockHash(hash)
-			return true
+		return true
 	}
 	return false
 }
