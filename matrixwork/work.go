@@ -455,8 +455,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	slash := slash.New(bc)
 	slash.CalcSlash(env.State, env.header.Number.Uint64())
 
-
-	return rewardList
+	return env.Reverse(rewardList)
 }
 func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 
