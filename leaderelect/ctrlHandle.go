@@ -119,6 +119,7 @@ func (self *controller) timeOutHandle() {
 		log.INFO(self.logInfo, "超时事件", "POS未完成", "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(self.ConsensusTurn()), "leader", self.dc.GetConsensusLeader().Hex())
 		remainTime := self.dc.turnTime.CalRemainTime(self.dc.curConsensusTurn, 1, time.Now().Unix())
+		//todo 负数怎么办
 		self.setTimer(remainTime, self.timer)
 		self.dc.state = stReelect
 		self.startReelect(1)
@@ -128,6 +129,7 @@ func (self *controller) timeOutHandle() {
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
 		reelectTurn := self.dc.curReelectTurn + 1
 		remainTime := self.dc.turnTime.CalRemainTime(self.dc.curConsensusTurn, reelectTurn, time.Now().Unix())
+		//todo 负数怎么办
 		self.setTimer(remainTime, self.timer)
 		self.startReelect(reelectTurn)
 	}
