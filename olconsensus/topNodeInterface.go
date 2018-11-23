@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package olconsensus
@@ -8,10 +8,10 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/p2p"
-	"github.com/matrix/go-matrix/log"
 )
 
 type OnlineState uint8
@@ -80,7 +80,7 @@ func (self *TopNodeInstance) GetTopNodeOnlineState() []NodeOnLineInfo {
 			OnlineState: value.Heartbeats,
 		}
 		onlineStat = append(onlineStat, state)
-		log.Info("获取在线状态", "node", value.Account, "心跳", value.Heartbeats)
+		log.Debug("TopnodeOnline", "获取在线状态", "node", value.Account, "心跳", value.Heartbeats)
 	}
 
 	return onlineStat

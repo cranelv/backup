@@ -5291,7 +5291,7 @@ var methods = function () {
         call: 'eth_getBalance',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
-        outputFormatter: formatters.outputBigNumberFormatter
+        //outputFormatter: formatters.outputBigNumberFormatter
     });
 
     var getStorageAt = new Method({
