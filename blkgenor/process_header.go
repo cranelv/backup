@@ -134,8 +134,9 @@ func (p *Process) processHeaderGen() error {
 		// todo: add rewward and run
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		var rewardList []common.RewarTx
-		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
-		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		rewardList = work.Reverse(rewardList)
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,rewardList)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
@@ -178,8 +179,9 @@ func (p *Process) processHeaderGen() error {
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
 		var rewardList []common.RewarTx
-		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
-		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		rewardList = work.Reverse(rewardList)
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),rewardList)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
