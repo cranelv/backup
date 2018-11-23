@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/slash"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -1391,6 +1393,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
+		interestReward:=interest.New(bc)
+		interestReward.InterestCalc(state,block.Number().Uint64())
+		//todo 惩罚
+
+		slash := slash.New(bc)
+		slash.CalcSlash(state, block.Number().Uint64())
 
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)

@@ -7,6 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
+	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"time"
 
@@ -448,6 +454,66 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 }
 func (env *Work) GetTxs()[]types.SelfTransaction{
 	return env.txs
+}
+
+type randSeed  struct{
+
+}
+func (r* randSeed)GetSeed(num uint64) *big.Int{
+
+	return big.NewInt(1000)
+}
+
+func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
+	if common.IsBroadcastNumber(env.header.Number.Uint64()){
+		return nil
+	}
+	blkreward := blkreward.New(bc)
+	rewardList := make([]common.RewarTx,0)
+
+	minerReward:=blkreward.CalcRewardMount(env.State,util.MinersBlockReward,common.BlkMinerRewardAddress)
+	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header)
+	if nil!=minersRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
+	}
+
+	validatorReward:=blkreward.CalcRewardMount(env.State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
+	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,env.header.Leader, env.header)
+	if nil!=validatorsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})
+	}
+
+	txsReward := txsreward.New(bc)
+	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, env.header.Leader, env.header)
+	if nil!=txsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+	}
+
+	lottery:=lottery.New(bc,&randSeed{})
+	lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+		for _,v :=range lotteryRewardMap{
+			if nil!=v{
+				rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+			}
+		}
+
+	// //todo:其它币种
+	////multiCoin:=multicoinreward.New(p.blockChain())
+	////multiCoinMap := multiCoin.CalcNodesRewards(util.MultilCoinBlockReward, header.Leader, header)
+	////if nil!=multiCoinMap{
+	////  rewardList = append(rewardList,common.RewarTx{CoinType:"other",Fromaddr:common.MinersRewardAddress,To_Amont:multiCoinMap})
+	////  }
+	//
+	////todo 利息
+	interestReward:=interest.New(bc)
+	interestReward.InterestCalc(env.State,env.header.Number.Uint64())
+	//todo 惩罚
+
+	slash := slash.New(bc)
+	slash.CalcSlash(env.State, env.header.Number.Uint64())
+
+
+	return rewardList
 }
 func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 

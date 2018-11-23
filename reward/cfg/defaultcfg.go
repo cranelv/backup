@@ -107,10 +107,13 @@ func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, rewards map[comm
 	str.leader.SetLeaderRewards(reward, rewards, Leader, num)
 }
 func (str *DefaultSetRewards) SetSelectedRewards(reward *big.Int, chain ChainReader, topRewards map[common.Address]*big.Int, roleType common.RoleType, header *types.Header, rate uint64) {
+	if common.IsBroadcastNumber(header.Number.Uint64()) {
+		return
+	}
 	str.selected.SetSelectedRewards(reward, chain, topRewards, roleType, header, rate)
 }
 func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
-	if common.IsBroadcastNumber(num.Uint64()-1) {
+	if common.IsBroadcastNumber(num.Uint64()) {
 		return
 	}
 	str.miner.SetMinerOutRewards(reward, chain, num, rewards)

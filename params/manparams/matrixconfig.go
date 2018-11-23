@@ -102,7 +102,7 @@ func Config_Init(Config_PATH string) {
 	if len(FoundationNodes) == 0 {
 		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
 	}
-
+	log.INFO("基金会节点:",  "data", FoundationNodes)
 	RandomConfig = v.RandomConfig
 	log.INFO("RandomConfig", "data", RandomConfig)
 	ElectPlugs = v.ElectPlugs

@@ -566,7 +566,7 @@ func (md *MatrixDeposit) GetInterest(contract *Contract, stateDB StateDB, addr c
 	if info != emptyHash {
 		return info.Big()
 	}
-	return nil
+	return big.NewInt(0)
 }
 
 // AddInterest add current interest with state db and address.

@@ -1,7 +1,9 @@
 package interest
 
 import (
+	"fmt"
 	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
@@ -57,8 +59,8 @@ func (tlr *interest)calcNodeInterest(deposit *big.Int,depositInterestRate []*Dep
 
 func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 	//todo:状态树读取利息计算的周期、支付的周期、利率
-	calcInterestPeriod:=100
-	payInterestPeriod:=3600
+	calcInterestPeriod:=common.GetBroadcastInterval()
+	payInterestPeriod:=3*common.GetBroadcastInterval()
 
 	depositInterestRateList := DepositInterestRateList{
 		&DepositInterestRate{big.NewInt(0),big.NewRat(5,Denominator)},
@@ -76,12 +78,15 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 	if calcInterestPeriod==1||0==(num+1)%uint64(calcInterestPeriod){
 		depositNodes, _ := ca.GetElectedByHeight(new(big.Int).SetUint64(num-1))
 		log.INFO(PackageName, "计算利息", "")
+		fmt.Printf("%s\n", state.Dump())
 		for _, v := range depositNodes {
 
 			result:=ic.calcNodeInterest(v.Deposit,depositInterestRateList)
 			depoistInfo.AddInterest(state,v.Address,result)
 			log.INFO(PackageName, "账户", v.Address.String(), "deposit",v.Deposit.String(),  "利息", result.String())
 		}
+		log.INFO(PackageName, "计算利息后", "")
+		fmt.Printf("%s\n", state.Dump())
 	}
 
 	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod) {

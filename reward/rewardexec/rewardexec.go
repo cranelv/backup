@@ -111,7 +111,7 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, rewards map[c
 
 	for _, v := range manparams.FoundationNodes {
 		util.SetAccountRewards(rewards, v.Address, oneFoundationReward)
-		log.Info(PackageName, "FoundationReward account", v.Address, "reward", oneFoundationReward.Uint64())
+		log.Info(PackageName, "基金会 账户", v.Address, "奖励", oneFoundationReward.Uint64())
 	}
 }
 
@@ -151,7 +151,7 @@ func (br *BlockReward) CalcRewardMount(state *state.StateDB, blockReward *big.In
 	genesisState,_:=br.chain.StateAt(br.chain.Genesis().Root())
 	genesisBalance:= genesisState.GetBalance(address)
 	log.INFO(PackageName, "计算区块奖励参数 衰减金额:",halfBalance.String(),
-		"初始账户",address.String(),"初始金额",genesisBalance[common.MainAccount].Balance.String(),"当前金额",genesisBalance[common.MainAccount].Balance.String())
+		"初始账户",address.String(),"初始金额",genesisBalance[common.MainAccount].Balance.String(),"当前金额",balance[common.MainAccount].Balance.String())
 	var reward *big.Int
 	if balance[common.MainAccount].Balance.Cmp(genesisBalance[common.MainAccount].Balance)>=0{
 		reward= blockReward

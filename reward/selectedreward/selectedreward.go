@@ -82,22 +82,25 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 	}
 
 	selectedNodesDeposit, totalDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
+	log.INFO(PackageName, "参与奖励大家共发放",reward)
 	for account, deposit := range selectedNodesDeposit {
 
-		multiReward:=new(big.Int).Mul(deposit,reward)
-		oneNodeReward:=new(big.Int).Div(multiReward,totalDeposit)
+		multiReward:=new(big.Int).Div(new(big.Int).Mul(deposit,reward),new(big.Int).Div(deposit,big.NewInt(100)))
+
+		oneNodeReward:=new(big.Int).Mul(new(big.Int).Div(multiReward,totalDeposit),big.NewInt(100))
 		util.SetAccountRewards(topRewards, account,oneNodeReward)
-		log.INFO(PackageName, "selected reward all deposit", totalDeposit.String(), "deposit", deposit.Uint64())
-		log.INFO(PackageName, "selected reward  all reward", reward, "account", account, "reward", oneNodeReward.String())
+		log.INFO(PackageName, "账户", account, "金额", oneNodeReward.String(),"所有抵押", totalDeposit.String(), "当前抵押", deposit)
 	}
 
 	return
 
 }
+
 func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int, *big.Int) {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph.NodeList {
 		NodesRewardMap[nodelist.Account] = rewardRate
+		log.INFO(PackageName,"当前节点",nodelist.Account.Hex())
 	}
 	for _, electList := range originElectNodes.NodeList {
 		if _, ok := NodesRewardMap[electList.Account]; ok {
@@ -105,6 +108,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		} else {
 			NodesRewardMap[electList.Account] = util.RewardFullRate - rewardRate
 		}
+		log.INFO(PackageName,"初选节点",electList.Account.Hex(),"比例",NodesRewardMap[electList.Account] )
 	}
 	totalDeposit := new(big.Int)
 	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
@@ -126,6 +130,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
 			selectedNodesDeposit[v.Address] = deposit
 			totalDeposit.Add(totalDeposit, deposit)
+			log.INFO(PackageName,"计算抵押总额,账户",v.Address.Hex(),"抵押",deposit)
 		}
 	}
 	return selectedNodesDeposit, totalDeposit
