@@ -111,22 +111,6 @@ const (
 	TxStatusIncluded
 )
 
-//// hezi
-//type NetworkMsgData struct {
-//	NodeId discover.NodeID
-//	Data   []*MsgStruct
-//}
-//
-//// hezi
-//type MsgStruct struct {
-//	Msgtype uint32
-//	NodeId  discover.NodeID
-//	MsgData []byte
-//}
-
-//var num uint32
-//var ldb *leveldb.DB
-
 //======struct// hezi
 type mapst struct {
 	slist []*big.Int
@@ -149,8 +133,6 @@ type sendst struct {
 //global  // hezi
 var gSendst sendst
 
-//var whitemap = make(map[common.Address]bool)
-
 // blockChain provides the state of blockchain and current gas limit to do
 // some pre checks in tx pool and event subscribers.
 type blockChain interface {
@@ -160,6 +142,10 @@ type blockChain interface {
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
 
+type ConsensusNTx struct {
+	Key uint32
+	Value types.SelfTransaction
+}
 // TxPoolConfig are the configuration parameters of the transaction pool.
 type TxPoolConfig struct {
 	PriceLimit   uint64 // Minimum gas price to enforce for acceptance into the pool
@@ -589,8 +575,10 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range nPool.pending {
-		txs := list.Flatten() // Heavy but will be cached and is needed by the miner anyway
-		nPool.pendingState.SetNonce(addr, txs[len(txs)-1].Nonce()+1)
+		for _,txs := range list.txs{
+			txs := txs.Flatten() // Heavy but will be cached and is needed by the miner anyway
+			nPool.pendingState.SetNonce(addr, txs[len(txs)-1].Nonce()+1)
+		}
 	}
 }
 
@@ -634,7 +622,9 @@ func (nPool *NormalTxPool) Stats() (int, int) {
 func (nPool *NormalTxPool) stats() (int, int) {
 	pending := 0
 	for _, list := range nPool.pending {
-		pending += list.Len()
+		for _,txs := range list.txs{
+			pending += txs.Len() //list.Len(typ)
+		}
 	}
 	queued := 0
 	return pending, queued
@@ -647,7 +637,11 @@ func (nPool *NormalTxPool) Content() (map[common.Address][]*types.Transaction, m
 	defer nPool.mu.Unlock()
 	pending := make(map[common.Address][]*types.Transaction)
 	for addr, list := range nPool.pending {
-		pending[addr] = list.Flatten()
+		txlist := make([]*types.Transaction,0)
+		for _,txs := range list.txs {
+			txlist = append(txlist,txs.Flatten()...)
+		}
+		pending[addr] = txlist
 	}
 	queued := make(map[common.Address][]*types.Transaction)
 
@@ -664,7 +658,10 @@ func (nPool *NormalTxPool) Pending() (map[common.Address][]types.SelfTransaction
 	defer nPool.mu.Unlock()
 	pending := make(map[common.Address][]types.SelfTransaction)
 	for addr, list := range nPool.pending {
-		txlist := list.Flatten()
+		txlist := make([]*types.Transaction,0)
+		for _,txs := range list.txs {
+			txlist = append(txlist,txs.Flatten()...)
+		}
 		var txser types.SelfTransactions
 		for _,tx:= range txlist{
 			txser = append(txser,tx)
@@ -684,7 +681,11 @@ func (nPool *NormalTxPool) getPendingTx() {
 	nPool.mu.Lock()
 	pending := make(map[common.Address][]*types.Transaction)
 	for addr, list := range nPool.pending {
-		pending[addr] = list.Flatten()
+		txlist := make([]*types.Transaction,0)
+		for _,txs := range list.txs {
+			txlist = append(txlist,txs.Flatten()...)
+		}
+		pending[addr] = txlist
 	}
 	for _, txs := range pending {
 		for _, tx := range txs {
@@ -1403,7 +1404,7 @@ func (nPool *NormalTxPool) Status(hashes []common.Hash) []TxStatus {
 			//YY 如果交易中已经有了from就不需要在做解签
 			from, _ := nPool.checkTxFrom(tx)
 
-			if nPool.pending[from] != nil && nPool.pending[from].txs.items[tx.Nonce()] != nil {
+			if nPool.pending[from] != nil && nPool.pending[from].txs[tx.GetTxCurrency()].items[tx.Nonce()] != nil {
 				status[i] = TxStatusPending
 			} else {
 				status[i] = TxStatusQueued
@@ -1442,7 +1443,7 @@ func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 	if pending := nPool.pending[addr]; pending != nil {
 		if removed, _ := pending.Remove(tx); removed {
 			// If no more pending transactions are left, remove the list
-			if pending.Empty() {
+			if pending.Empty(tx.GetTxCurrency()) {
 				delete(nPool.pending, addr)
 			}
 			// Update the account nonce if needed
@@ -1460,41 +1461,44 @@ func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 func (nPool *NormalTxPool) DemoteUnexecutables() {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range nPool.pending {
-		nonce := nPool.currentState.GetNonce(addr)
+		for typ,txs := range list.txs{
+			nonce := nPool.currentState.GetNonce(addr)
 
-		// Drop all transactions that are deemed too old (low nonce)
-		for _, tx := range list.Forward(nonce) {
-			//YY ========begin=========
-			nPool.deleteMap(tx)
-			//===========end===========
-			hash := tx.Hash()
-			//log.Trace("Removed old pending transaction", "hash", hash)
-			nPool.all.Remove(hash)
-			//nPool.priced.Removed()
-		}
-		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		tBalance := new(big.Int)
-		for _,tAccount := range nPool.currentState.GetBalance(addr){
-			if tAccount.AccountType == common.MainAccount{
-				tBalance = tAccount.Balance
-				break
+			// Drop all transactions that are deemed too old (low nonce)
+			for _, tx := range txs.Forward(nonce) {
+				//YY ========begin=========
+				nPool.deleteMap(tx)
+				//===========end===========
+				hash := tx.Hash()
+				//log.Trace("Removed old pending transaction", "hash", hash)
+				nPool.all.Remove(hash)
+				//nPool.priced.Removed()
+			}
+			// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
+			tBalance := new(big.Int)
+			for _,tAccount := range nPool.currentState.GetBalance(addr){
+				if tAccount.AccountType == common.MainAccount{
+					tBalance = tAccount.Balance
+					break
+				}
+			}
+			drops, _ := list.Filter(tBalance, nPool.currentMaxGas,typ)
+			for _, tx := range drops {
+				//YY ========begin=========
+				nPool.deleteMap(tx)
+				//===========end===========
+				hash := tx.Hash()
+				log.Trace("Removed unpayable pending transaction", "hash", hash)
+				nPool.all.Remove(hash)
+				//nPool.priced.Removed()
+				pendingNofundsCounter.Inc(1)
+			}
+			// Delete the entire queue entry if it became empty.
+			if list.Empty(typ) {
+				delete(nPool.pending, addr)
 			}
 		}
-		drops, _ := list.Filter(tBalance, nPool.currentMaxGas)
-		for _, tx := range drops {
-			//YY ========begin=========
-			nPool.deleteMap(tx)
-			//===========end===========
-			hash := tx.Hash()
-			log.Trace("Removed unpayable pending transaction", "hash", hash)
-			nPool.all.Remove(hash)
-			//nPool.priced.Removed()
-			pendingNofundsCounter.Inc(1)
-		}
-		// Delete the entire queue entry if it became empty.
-		if list.Empty() {
-			delete(nPool.pending, addr)
-		}
+
 	}
 }
 

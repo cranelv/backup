@@ -400,15 +400,23 @@ type NetTopology struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData
 }
+type RewarTx struct {
+	CoinType      string
+	Fromaddr      Address
+	To_Amont      map[Address]*big.Int
+}
 
 var (
-	BlkRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000000")
-	TxGasRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000001")
+	BlkRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
+	LeaderRewarAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
+	InterestRewardAddress  Address = HexToAddress("0x8000000000000000000000000000000000000002")   //利息
+	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000003")   //交易费
+	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000004")   //彩票
 )
 
 const (
-	//byte can not be 1,because 1 is occupied
 	ExtraNormalTxType    byte = 0
+	ExtraBroadTxType     byte = 1  //广播交易
 	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
 	ExtraRevocable       byte = 3  //可撤销的交易
 	ExtraRevertTxType    byte = 4  //撤销交易

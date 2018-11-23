@@ -104,6 +104,7 @@ type Floodtxdata struct {
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
 	TxEnterType byte
+	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
 
@@ -359,16 +360,20 @@ func isProtectedV(V *big.Int) bool {
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
-
 type extTransaction struct {
 	Data    txdata
 	Currency string
 	Mtype    bool
+	From common.Address
 }
+
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, extTransaction{tx.data,tx.Currency,tx.Mtype,})
-	//return rlp.Encode(w, &tx.data)
+	etx := &extTransaction{Data:tx.data,Currency: tx.Currency,Mtype: tx.Mtype}
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		etx.From = tx.From()
+	}
+	return rlp.Encode(w,etx)
 }
 
 // DecodeRLP implements rlp.Decoder
@@ -387,12 +392,12 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 		tx.data = extData.Data
 		tx.Currency = extData.Currency
 		tx.Mtype = extData.Mtype
-		//err = s.Decode(&tx.data)
+		tx.SetFromLoad(extData.From)
 	}
+
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
-
 	return err
 }
 
@@ -441,6 +446,7 @@ func (tx *Transaction)Call() error{
 }
 func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
 func (tx *Transaction) IsEntrustTx() bool				{ return tx.data.IsEntrustTx}
+
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 
@@ -486,6 +492,7 @@ func (tx *Transaction)GasFrom() (from common.Address){
 	return
 }
 func (tx *Transaction)AmontFrom() (from common.Address){
+	//TODO from 要改为entrustfrom
 	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
 		tmpfrom,isok :=tx.from.Load().(common.Address)
@@ -561,6 +568,7 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		V:     tx.data.V,
 		R:     tx.data.R,
 		TxEnterType : tx.data.TxEnterType,
+		IsEntrustTx : tx.data.IsEntrustTx,
 		Extra: tx.data.Extra,
 	}
 	return floodtx
@@ -579,13 +587,78 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.V = floodtx.V
 	tx.data.R = floodtx.R
 	tx.data.TxEnterType = floodtx.TxEnterType
+	tx.data.IsEntrustTx = floodtx.IsEntrustTx
 	tx.data.Extra = floodtx.Extra
 	tx.Mtype = floodtx.Mtype	//hezi
 	tx.Currency = floodtx.Currency
 	return tx
 }
-
-func  ConvTxtoMxtx(tx *Transaction) *Transaction_Mx{
+//YY
+//func (tx *Transaction) SetTransactionMx(tx_Mx *Transaction_Mx)(txer SelfTransaction ){
+//	txd := txdata{
+//		AccountNonce:tx_Mx.Data.AccountNonce | params.NonceAddOne,
+//		Price:tx_Mx.Data.Price,
+//		GasLimit:tx_Mx.Data.GasLimit,
+//		Recipient:tx_Mx.Data.Recipient,
+//		Amount:tx_Mx.Data.Amount,
+//		Payload:tx_Mx.Data.Payload,
+//		// Signature values
+//		V:     tx_Mx.Data.V,
+//		R:     tx_Mx.Data.R,
+//		S:     tx_Mx.Data.S,
+//		TxEnterType : tx_Mx.Data.TxEnterType,
+//		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
+//		Extra: tx_Mx.Data.Extra,
+//	}
+//	if len(tx_Mx.ExtraTo) > 0 {
+//		mx := Matrix_Extra{
+//			TxType:     tx_Mx.TxType_Mx,
+//			LockHeight: tx_Mx.LockHeight,
+//			ExtraTo:    tx_Mx.ExtraTo,
+//		}
+//		if mx.TxType == 0 {
+//			mx.LockHeight = tx_Mx.LockHeight
+//		}
+//		txd.Extra = append(txd.Extra, mx)
+//	}
+//	newtx := &Transaction{data: txd}
+//	txer = newtx
+//	return
+//}
+//
+////YY
+//func (tx *Transaction)GetTransactionMx(stx SelfTransaction) *Transaction_Mx {
+//	btx,ok:=stx.(*Transaction)
+//	if !ok {
+//		return nil
+//	}
+//	tx_Mx:=&Transaction_Mx{}
+//	tx_Mx.Data.AccountNonce = btx.data.AccountNonce & params.NonceSubOne
+//	tx_Mx.Data.Price = btx.data.Price
+//	tx_Mx.Data.GasLimit = btx.data.GasLimit
+//	tx_Mx.Data.Recipient = btx.data.Recipient
+//	tx_Mx.Data.Amount = btx.data.Amount
+//	tx_Mx.Data.Payload = btx.data.Payload
+//	// Signature values
+//	tx_Mx.Data.V = btx.data.V
+//	tx_Mx.Data.R = btx.data.R
+//	tx_Mx.Data.S = btx.data.S
+//	tx_Mx.Data.TxEnterType = btx.data.TxEnterType
+//	tx_Mx.Data.IsEntrustTx = btx.data.IsEntrustTx
+//	tx_Mx.Data.Extra = btx.data.Extra
+//	//tx_Mx.Data.Extra = append(tx_Mx.Data.Extra,tx.data.Extra[])
+//	if len(btx.data.Extra) > 0 {
+//		tx_Mx.TxType_Mx = btx.data.Extra[0].TxType
+//		tx_Mx.LockHeight = btx.data.Extra[0].LockHeight
+//		tx_Mx.ExtraTo = btx.data.Extra[0].ExtraTo
+//	}
+//	return tx_Mx
+//}
+func  ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx{
+	tx,ok:=txer.(*Transaction)
+	if !ok {
+		return nil
+	}
 	tx_Mx:=&Transaction_Mx{}
 	tx_Mx.Data.AccountNonce = tx.data.AccountNonce & params.NonceSubOne
 	tx_Mx.Data.Price = tx.data.Price
@@ -598,6 +671,7 @@ func  ConvTxtoMxtx(tx *Transaction) *Transaction_Mx{
 	tx_Mx.Data.R = tx.data.R
 	tx_Mx.Data.S = tx.data.S
 	tx_Mx.Data.TxEnterType = tx.data.TxEnterType
+	tx_Mx.Data.IsEntrustTx = tx.data.IsEntrustTx
 	tx_Mx.Data.Extra = tx.data.Extra
 	tx_Mx.Mtype = tx.Mtype	//hezi
 	tx_Mx.Currency = tx.Currency
@@ -623,6 +697,7 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		R:     tx_Mx.Data.R,
 		S:     tx_Mx.Data.S,
 		TxEnterType : tx_Mx.Data.TxEnterType,
+		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
 		Extra: tx_Mx.Data.Extra,
 	}
 	if len(tx_Mx.ExtraTo) > 0 {

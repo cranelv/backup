@@ -51,3 +51,21 @@ type SelfTransaction interface {
 	SetTxCurrency(currency string)
 	GetTxCurrency() string
 }
+
+func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){
+	if txer.TxType() == BroadCastTxIndex{
+		txm = GetTransactionMx(txer)
+	}else if txer.TxType() == NormalTxIndex{
+		txm = ConvTxtoMxtx(txer)
+	}
+	return
+}
+
+func SetMxToTransaction(txm *Transaction_Mx)(txer SelfTransaction){
+	if txm.TxType_Mx == common.ExtraNormalTxType{
+		txer = ConvMxtotx(txm)
+	} else if txm.TxType_Mx == common.ExtraBroadTxType {
+		txer = SetTransactionMx(txm)
+	}
+	return
+}

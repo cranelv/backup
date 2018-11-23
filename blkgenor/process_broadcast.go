@@ -56,7 +56,10 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 
 		//执行交易
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
+		var rewardList []common.RewarTx
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,rewardList)
 		retTxs:=work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))
 		for _, tx := range retTxs {

@@ -133,7 +133,10 @@ func (p *Process) processHeaderGen() error {
 		}
 		// todo: add rewward and run
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,blkRward,txsReward)
+		var rewardList []common.RewarTx
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,rewardList)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
 		for _, tx := range retTxs {
@@ -174,7 +177,10 @@ func (p *Process) processHeaderGen() error {
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
 		blkRward,txsReward:=p.calcRewardAndSlash(work.State, header)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),blkRward,txsReward)
+		var rewardList []common.RewarTx
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"Main",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),rewardList)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
@@ -189,7 +195,15 @@ func (p *Process) processHeaderGen() error {
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
 		if len(Txs) > 0 {
-			txpoolCache.MakeStruck(Txs, header.HashNoSignsAndNonce(), p.number)
+			txlist := make([]types.SelfTransaction,0)
+			for _,tx := range Txs{
+				if tx.GetMatrixType() != common.ExtraUnGasTxType{
+					txlist = append(txlist,tx)
+				}
+			}
+			if len(txlist) > 0{
+				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
+			}
 		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
@@ -198,7 +212,9 @@ func (p *Process) processHeaderGen() error {
 
 	return nil
 }
-
+func (p *Process) makeReward(ct string ,from common.Address,val map[common.Address]*big.Int) (rew common.RewarTx){
+	return common.RewarTx{CoinType:ct,Fromaddr:from,To_Amont:val}
+}
 func (p *Process) getParentBlock() (*types.Block, error) {
 	if p.number == 1 { // 第一个块直接返回创世区块作为父区块
 		return p.blockChain().Genesis(), nil
