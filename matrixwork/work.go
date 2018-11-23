@@ -93,9 +93,6 @@ func (cu *coingasUse)getCoinGasUse(typ string) uint64{
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gas,_:=cu.mapcoin[typ]
-	//if !ok{
-	//
-	//}
 	return gas
 }
 func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {
@@ -130,15 +127,8 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
 			break
 		}
-		// Retrieve the next transaction and abort if all done
-		//tx := txs.Peek()
-		//if tx == nil {
-		//	break
-		//}
-
 		if txer.GetTxNLen() == 0 {
 			log.Info("===========tx.N is nil")
-			//txs.Pop()
 			continue
 		}
 		// Error may be ignored here. The error has already been checked
@@ -152,8 +142,6 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		//YYY TODO 是否需要当前这个if
 		if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
 			log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
-
-			//txs.Pop()
 			continue
 		}
 		// Start executing the transaction
@@ -163,21 +151,14 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Trace("Gas limit exceeded for current block", "sender", from)
-			//txs.Pop()
-
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", txer.Nonce())
-			//txs.Shift()
-
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
 			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", txer.Nonce())
-			//txs.Pop()
-
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
-			//==========hezi===================
 			if txer.GetTxNLen() != 0 {
 				n := txer.GetTxN(0)
 				if listN, ok := tmpRetmap[txer.TxType()]; ok {
@@ -190,16 +171,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 				}
 				retTxs = append(retTxs, txer)
 			}
-			//==================================
 			coalescedLogs = append(coalescedLogs, logs...)
 			env.tcount++
-			//txs.Shift()
-
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
 			log.Debug("Transaction failed, account skipped", "hash", txer.Hash(), "err", err)
-			//txs.Shift()
 		}
 	}
 	for t, n := range tmpRetmap {
@@ -269,14 +246,18 @@ type retStruct struct {
 	no  []uint32
 	txs []*types.Transaction
 }
-
+func (env *Work)Reverse(s []common.RewarTx) []common.RewarTx {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
+}
 func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTx) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil
 	}
-	//log.INFO("===========", "ProcessTransactions:pending:", len(pending))
 	listTx := make(types.SelfTransactions, 0)
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
@@ -284,7 +265,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	mapcoingasUse.setCoinGasUse(retTxs)
 	tmps :=make([]types.SelfTransaction,0)
-	//if len(gasRewar) > 0{
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -297,21 +277,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
-	//env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-	//}
-
-	//if len(blkRewar) > 0{
-	//tx1 = env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
-	//env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
-	//}
-
-
-	//if tx1 != nil{
-	//	tmps = append(tmps, tx1)
-	//}
-	//if tx2 != nil {
-	//	tmps = append(tmps, tx2)
-	//}
 	tmps = append(tmps, retTxs...)
 	retTxs = tmps
 	return
@@ -368,10 +333,6 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-	//if len(gasRewar) > 0{
-	//tx2 := env.makeTransaction(rewart)//交易费奖励
-	//env.s_commitTransaction(tx2,bc,common.Address{},new(core.GasPool).AddGas(0))
-
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -379,11 +340,6 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 			log.Error("file work","func ProcessTransactions:::reward Tx call Error",err)
 		}
 	}
-	//}
-	//if len(blkRewar) > 0{
-	//	tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
-	//	env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
-	//}
 	return
 }
 
@@ -392,7 +348,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 	var coalescedLogs []*types.Log
-
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -404,7 +359,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 		err, logs := env.commitTransaction(tx, bc, common.Address{}, env.gasPool)
 		if err == nil {
-			//log.Info("=========","ConsensusTransactions:tx.N",tx.N)
 			env.tcount++
 			coalescedLogs = append(coalescedLogs, logs...)
 		} else {
@@ -420,17 +374,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-
-	//}
-
-	//if len(blkRewar) > 0{
-	//	tx1 := env.makeTransaction(common.BlkRewardAddress,blkRewar) //区块奖励
-	//	err,_:=env.s_commitTransaction(tx1,bc,common.Address{},new(core.GasPool).AddGas(0))
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
