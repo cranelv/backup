@@ -118,6 +118,7 @@ type RoleUpdatedMsg struct {
 
 type LeaderChangeNotify struct {
 	ConsensusState bool //共识结果
+	PreLeader      common.Address
 	Leader         common.Address
 	NextLeader     common.Address
 	Number         uint64

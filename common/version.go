@@ -1,3 +1,7 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 package common
 
 type CommitContext struct {
@@ -35,6 +39,13 @@ var (
 			Submitter: "胡源凯",
 			Commit: []string{
 				"leader服务优化，增加低轮次向高轮次询问流程",
+			},
+		},
+		CommitContext{
+			Version:   "Alg_0.0.5",
+			Submitter: "胡源凯",
+			Commit: []string{
+				"修改通过完全区块恢复状态处理时的bug2处",
 			},
 		},
 	}

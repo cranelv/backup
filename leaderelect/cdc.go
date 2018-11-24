@@ -118,6 +118,7 @@ func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 	}
 
 	return &mc.LeaderChangeNotify{
+		PreLeader:      dc.leaderCal.preLeader,
 		Leader:         leaders.leader,
 		NextLeader:     leaders.nextLeader,
 		ConsensusTurn:  dc.curConsensusTurn,
