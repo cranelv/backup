@@ -415,9 +415,9 @@ var (
 )
 
 const (
-	ExtraNormalTxType    byte = 0
-	ExtraBroadTxType     byte = 1  //广播交易
-	ExtraUnGasTxType     byte = 2  //无gas的奖励交易
+	ExtraNormalTxType    byte = 0  //普通交易
+	ExtraBroadTxType     byte = 1  //广播交易(内部交易，钱包无用)
+	ExtraUnGasTxType     byte = 2  //无gas的奖励交易(内部交易，钱包无用)
 	ExtraRevocable       byte = 3  //可撤销的交易
 	ExtraRevertTxType    byte = 4  //撤销交易
 	ExtraAuthTx          byte = 5 //授权委托
