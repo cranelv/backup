@@ -157,7 +157,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	txtype := tx.GetMatrixType()
-	if txtype != common.ExtraNormalTxType{
+	if txtype != common.ExtraNormalTxType && txtype != common.ExtraAItxType{
 		switch txtype{
 		case common.ExtraRevocable:
 			return st.CallRevocableNormalTx()
@@ -401,7 +401,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	saveMapHashAmont.mu.Lock()
 	saveMapHashAmont.mapHashamont[tx.Hash()] = b
 	saveMapHashAmont.mu.Unlock()
-
+	//TODO 调用B树存储时将时间和这个map（saveMapHashAmont.mapHashamont）一起传入，然后树会遍历map如果有相同的key(txhash)就跳过如果没有就新增key并将对应的value添上
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }

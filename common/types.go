@@ -423,6 +423,7 @@ const (
 	ExtraAuthTx          byte = 5 //授权委托
 	ExtraCancelEntrust   byte = 6 //取消委托
 	ExtraTimeTxType      byte = 7  //定时交易
+	ExtraAItxType        byte = 8 //AI 交易
 )
 
 type TxTypeInt uint8
