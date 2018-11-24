@@ -47,6 +47,8 @@ type StateDB struct {
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
 
+	btrie trie.BTree
+
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
@@ -246,6 +248,49 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 // Database retrieves the low level database supporting the lower level trie ops.
 func (self *StateDB) Database() Database {
 	return self.db
+}
+func (self *StateDB)GetBTrie(typ int)*trie.BTree{
+	switch typ {
+	case 1:
+		return &self.btrie
+	default:
+		return nil
+	}
+}
+func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash)(buf []byte){
+	var item trie.Item
+	switch typ {
+	case common.ExtraRevocable:
+		item = self.btrie.Get(trie.SpcialTxData{key,nil})
+		std,ok := item.(trie.SpcialTxData)
+		if !ok{
+			return nil
+		}
+		b,ok:=std.Value_Tx[hash]
+		if !ok{
+			return nil
+		}
+		buf = b
+	default:
+
+	}
+	return
+}
+func (self *StateDB)SaveTx(typ byte,key uint32,data map[common.Hash][]byte){
+	switch typ {
+	case common.ExtraRevocable:
+		self.btrie.ReplaceOrInsert(trie.SpcialTxData{key,data})
+	default:
+
+	}
+}
+func (self *StateDB)CommitSaveTx(){
+	tmproot := self.btrie.Root()
+	trie.BtreeSaveHash(tmproot,self.db.TrieDB())
+}
+
+func (self *StateDB)NewBTrie(){
+	self.btrie = *trie.NewBtree(2,self.db.TrieDB())
 }
 
 // StorageTrie returns the storage trie of an account.

@@ -34,6 +34,11 @@ type StateDB interface {
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
+	CommitSaveTx()
+	GetSaveTx(typ byte,key uint32,hash common.Hash)(buf []byte)
+	SaveTx(typ byte,key uint32,data map[common.Hash][]byte)
+	NewBTrie()
+
 	GetStateByteArray(common.Address, common.Hash) []byte
 	SetStateByteArray(common.Address, common.Hash, []byte)
 
@@ -51,6 +56,7 @@ type StateDB interface {
 	Snapshot() int
 
 	AddLog(*types.Log)
+	GetLogs(hash common.Hash) []*types.Log
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)

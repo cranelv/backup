@@ -16,8 +16,10 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
-	"sync"
+	//"sync"
 	"encoding/json"
+	"time"
+	"strconv"
 )
 
 var (
@@ -34,11 +36,11 @@ type StateTransition struct {
 	state      vm.StateDB
 	evm        *vm.EVM
 }
-type mapHashAmont struct {
-	mapHashamont map[common.Hash][]byte
-	mu sync.RWMutex
-}
-var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont:make(map[common.Hash][]byte)}
+//type mapHashAmont struct {
+//	mapHashamont map[common.Hash][]byte
+//	mu sync.RWMutex
+//}
+//var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont:make(map[common.Hash][]byte)}
 type addrAmont struct {
 	addr common.Address
 	amont *big.Int
@@ -244,9 +246,16 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	if marshalerr != nil{
 		return nil, 0, false,marshalerr
 	}
-	saveMapHashAmont.mu.Lock()
-	saveMapHashAmont.mapHashamont[tx.Hash()] = b
-	saveMapHashAmont.mu.Unlock()
+	mapHashamont := make(map[common.Hash][]byte)
+	mapHashamont[tx.Hash()] = b
+	ut := uint32(time.Now().Unix())
+	buf := []byte(strconv.Itoa(int(ut)))
+	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
+	st.state.CommitSaveTx()
+	st.state.AddLog(&types.Log{
+		Address: tx.From(),
+		Data:    buf,
+	})
 
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
@@ -304,28 +313,30 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	}
 	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
-	saveMapHashAmont.mu.Lock()
 	for _,tmphash := range hashlist{
 		if common.EmptyHash(tmphash){
 			continue
 		}
-		b,ok:=saveMapHashAmont.mapHashamont[tmphash]
-		if !ok {
-			continue
+
+		logs := st.state.GetLogs(tmphash)
+		var ut uint32
+		for _,log := range logs{
+			buf := log.Data
+			str := string(buf)
+			ut2,_ := strconv.Atoi(str)
+			ut=uint32(ut2)
 		}
+		b:=st.state.GetSaveTx(tx.GetMatrixType(),ut,tmphash)
 		mapTOAmonts := make([]*addrAmont,0)
 		Unmarshalerr:=json.Unmarshal(b,&mapTOAmonts)
 		if Unmarshalerr != nil{
-			saveMapHashAmont.mu.Unlock()
 			return nil, 0, false,Unmarshalerr
 		}
 		for _,ada := range mapTOAmonts{
 			st.state.AddBalance(common.MainAccount,usefrom, ada.amont)
 			st.state.SubBalance(common.WithdrawAccount,usefrom, ada.amont)
 		}
-		delete(saveMapHashAmont.mapHashamont,tmphash)
 	}
-	saveMapHashAmont.mu.Unlock()
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 /*
@@ -398,10 +409,16 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if marshalerr != nil{
 		return nil, 0, false,marshalerr
 	}
-	saveMapHashAmont.mu.Lock()
-	saveMapHashAmont.mapHashamont[tx.Hash()] = b
-	saveMapHashAmont.mu.Unlock()
-	//TODO 调用B树存储时将时间和这个map（saveMapHashAmont.mapHashamont）一起传入，然后树会遍历map如果有相同的key(txhash)就跳过如果没有就新增key并将对应的value添上
+	mapHashamont := make(map[common.Hash][]byte)
+	mapHashamont[tx.Hash()] = b
+	ut := uint32(time.Now().Unix())
+	buf := []byte(strconv.Itoa(int(ut)))
+	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
+	st.state.CommitSaveTx()
+	st.state.AddLog(&types.Log{
+		Address: tx.From(),
+		Data:    buf,
+	})
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
