@@ -191,6 +191,10 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = man.blockchain.DPOSEngine().VerifyVersion(man.blockchain, man.blockchain.Genesis().Header())
+	if err != nil {
+		return nil, err
+	}
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
