@@ -112,7 +112,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 	totalDeposit := new(big.Int)
 	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
 	var depositNum uint64
-	if num.Uint64() < common.GetBroadcastInterval(){
+	if num.Uint64() < common.GetReElectionInterval(){
 		depositNum = 0
 	}else{
 		if common.RoleValidator == common.RoleValidator&roleType {
