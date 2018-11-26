@@ -1339,7 +1339,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 	}
 	//将交易加入pending
 	if nPool.pending[from] == nil{
-		nPool.pending[from] = newTxList(false)
+		nPool.pending[from] = newTxList(false,"MAN")
 	}
 	nPool.pending[from].Add(tx, 0)
 	nPool.all.Add(tx)

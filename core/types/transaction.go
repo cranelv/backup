@@ -268,7 +268,9 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	entx := new(EncodeTx)
 	err = s.Decode(&entx)
 	tx.data = entx.Data
-	tx.SetFromLoad(entx.From)
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		tx.SetFromLoad(entx.From)
+	}
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
@@ -334,7 +336,7 @@ func (tx *Transaction)Call() error{
 }
 func (tx *Transaction) CoinType()string{
 	//TODO 返回交易中的币种
-	return "Main"
+	return "MAN"
 }
 func (tx *Transaction) SetCoinType(typ string){
 	//TODO 设置交易中的币种
@@ -405,6 +407,7 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		//如果交易没有做过验签则err不为空。
 		return common.Address{},errors.New("Address is Nil")
 	}
+	var tf common.Address
 	//如果交易做过验签则err为空。
 	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
@@ -412,7 +415,11 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		if !isok{
 			return common.Address{},errors.New("load Address is Nil")
 		}
-		from = tmpfrom
+		if tmpfrom != tf{
+			from = tmpfrom
+		}else {
+			return common.Address{},errors.New("load Address is Nil")
+		}
 	}else {
 		from = tmp.from
 	}

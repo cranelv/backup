@@ -206,6 +206,7 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 		if ct == ""{
 
 		}
+		txerlist = append(txerlist,txer)
 	}
 	return
 }
