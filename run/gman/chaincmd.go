@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
@@ -19,20 +19,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/man/downloader"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/man/downloader"
+	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/consensus/mtxdpos"
 )
 
 var (
@@ -164,16 +164,14 @@ Remove blockchain and state databases`,
 The arguments are interpreted as block numbers or hashes.
 Use "matrix dump 0" to dump the genesis block.`,
 	}
-	CommitCommand=cli.Command{
-		Action:utils.MigrateFlags(getCommit),
-		Name :"commit",
-		Usage:"Commit history ,include version submitter and commit",
-		ArgsUsage:"",
-		Flags:[]cli.Flag{
-
-		},
-		Category:"commit commands",
-		Description:"get commit history",
+	CommitCommand = cli.Command{
+		Action:      utils.MigrateFlags(getCommit),
+		Name:        "commit",
+		Usage:       "Commit history ,include version submitter and commit",
+		ArgsUsage:   "",
+		Flags:       []cli.Flag{},
+		Category:    "commit commands",
+		Description: "get commit history",
 	}
 	rollbackCommand = cli.Command{
 		Action:    utils.MigrateFlags(rollback),
@@ -549,7 +547,7 @@ func hashish(x string) bool {
 	return err != nil
 }
 func getCommit(ctx *cli.Context) error {
-	for _,v:=range common.PutCommit{
+	for _, v := range common.PutCommit {
 		fmt.Println(v)
 	}
 	return nil
@@ -587,7 +585,9 @@ func importSupBlock(ctx *cli.Context) error {
 	} else {
 		rollbackBlock = genesis.ToSuperBlock(parent.Header(), chainDb)
 	}
-
+	if nil == rollbackBlock {
+		return nil
+	}
 	err = chain.DPOSEngine().VerifySuperBlock(chain, rollbackBlock.Header())
 	if err != nil {
 		utils.Fatalf("verify super block sign is failed,%s", err)
@@ -687,9 +687,8 @@ func genblock(ctx *cli.Context) error {
 	chain, chaindb := utils.MakeChain(ctx, stack)
 	w := wizard.MakeWizard(genesisPath)
 
-
 	hash := chain.GetCurrentHash()
-	currentNum:=chain.GetBlockByHash(hash).Number().Uint64()
+	currentNum := chain.GetBlockByHash(hash).Number().Uint64()
 	if num > currentNum+1 {
 		log.Error("num is error", "current num:", currentNum)
 		return errors.New("num is error")
@@ -724,7 +723,9 @@ func signBlock(ctx *cli.Context) error {
 	} else {
 		superBlock = genesis.ToBlock(chainDb).Header()
 	}
-
+	if nil == superBlock {
+		return nil
+	}
 	blockHash := superBlock.HashNoSigns()
 	fmt.Println("sign  block is ", blockHash.TerminalString())
 	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))

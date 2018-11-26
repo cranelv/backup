@@ -31,7 +31,6 @@ import (
 
 	"github.com/matrix/go-matrix/core/state"
 
-
 	"github.com/matrix/go-matrix/common"
 
 	"github.com/matrix/go-matrix/core"
@@ -87,13 +86,17 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	// Figure out which consensus engine to choose
 	fmt.Println()
 
-	genesis.Alloc[common.HexToAddress("0x8000000000000000000000000000000000000000")] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[common.HexToAddress("0x8000000000000000000000000000000000000001")] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[common.BlkRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[common.TxGasRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	genesis.Alloc[common.HexToAddress("0x8000000000000000000000000000000000000002")] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 
-	statedb, _ := state.New(header.Root, state.NewDatabase(db))
+	statedb, err := state.New(header.Root, state.NewDatabase(db))
+	if err != nil {
+		log.Error("state new is ", "err", err)
+		return
+	}
 	for addr, account := range genesis.Alloc {
-		statedb.SetBalance(common.MainAccount,addr, account.Balance)
+		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
@@ -110,13 +113,16 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	out, _ := json.MarshalIndent(w.conf.Genesis, "", "  ")
 	if err := ioutil.WriteFile(w.network, out, 0644); err != nil {
 		log.Error("Failed to save genesis file", "err", err)
+		return
 	}
-	err := json.Unmarshal(out, w.conf.Genesis)
+	err = json.Unmarshal(out, w.conf.Genesis)
 	if err != nil {
 		log.Error("Failed to save genesis file", "err", err)
+		return
 	}
 	if err := ioutil.WriteFile(w.network, out, 0644); err != nil {
 		log.Error("Failed to save genesis file", "err", err)
+		return
 	}
 	log.Info("Exported existing genesis block")
 

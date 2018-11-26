@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
@@ -20,8 +19,8 @@ import (
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 )
@@ -58,7 +57,6 @@ type Genesis struct {
 	ParentHash common.Hash `json:"parentHash"`
 	Root       common.Hash `json:"stateRoot,omitempty"`
 }
-
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
@@ -224,7 +222,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(common.MainAccount,addr, account.Balance)
+		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
@@ -239,27 +237,27 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:      new(big.Int).SetUint64(g.Number),
-		Nonce:       types.EncodeNonce(g.Nonce),
-		Time:        new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:  g.ParentHash,
-		Extra:       g.ExtraData,
+		Number:            new(big.Int).SetUint64(g.Number),
+		Nonce:             types.EncodeNonce(g.Nonce),
+		Time:              new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:        g.ParentHash,
+		Extra:             g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		Elect:       g.Elect,
-		NetTopology: g.NetTopology,
-		Signatures:  g.Signatures,
-		Leader:      g.Leader,
-		GasLimit:    g.GasLimit,
-		GasUsed:     g.GasUsed,
-		Difficulty:  g.Difficulty,
-		MixDigest:   g.Mixhash,
-		Coinbase:    g.Coinbase,
-		Root:        root,
+		Elect:             g.Elect,
+		NetTopology:       g.NetTopology,
+		Signatures:        g.Signatures,
+		Leader:            g.Leader,
+		GasLimit:          g.GasLimit,
+		GasUsed:           g.GasUsed,
+		Difficulty:        g.Difficulty,
+		MixDigest:         g.Mixhash,
+		Coinbase:          g.Coinbase,
+		Root:              root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
-	}else if (g.GasLimit<params.MinGasLimit){
+	} else if g.GasLimit < params.MinGasLimit {
 		head.GasLimit = params.MinGasLimit
 	}
 	if g.Difficulty == nil {
@@ -278,10 +276,14 @@ func (g *Genesis) ToSuperBlock(parentHeader *types.Header, db mandb.Database) *t
 	var statedb *state.StateDB
 	if nil != parentHeader {
 
-		statedb, _ = state.New(parentHeader.Root, state.NewDatabase(db))
+		statedb, err := state.New(parentHeader.Root, state.NewDatabase(db))
+		if err != nil {
+			log.Error("state new is ", "err", err)
+			return nil
+		}
 		for addr, account := range g.Alloc {
 
-			statedb.AddBalance(common.MainAccount,addr, account.Balance)
+			statedb.AddBalance(common.MainAccount, addr, account.Balance)
 			statedb.SetCode(addr, account.Code)
 			statedb.SetNonce(addr, account.Nonce)
 			for key, value := range account.Storage {
