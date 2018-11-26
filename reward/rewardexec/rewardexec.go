@@ -146,7 +146,7 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 
 func (br *BlockReward) CalcRewardMount(state *state.StateDB, blockReward *big.Int, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
-	halfBalance := new(big.Int).Exp(big.NewInt(10), big.NewInt(21), big.NewInt(0))
+	halfBalance := new(big.Int).Exp(big.NewInt(10), big.NewInt(21g), big.NewInt(0))
 	balance := state.GetBalance(address)
 	genesisState, _ := br.chain.StateAt(br.chain.Genesis().Root())
 	genesisBalance := genesisState.GetBalance(address)
