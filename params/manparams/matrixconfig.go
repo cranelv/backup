@@ -103,6 +103,17 @@ func Config_Init(Config_PATH string) {
 		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
 	}
 
+	params.SuperVersion = v.SuperVersion
+	if len(params.SuperVersion) <= 0 {
+		fmt.Println("无版本超级节点")
+		os.Exit(-1)
+	}
+
+	params.SuperRollback = v.SuperRollback
+	if len(params.SuperRollback) <= 0 {
+		fmt.Println("无回滚超级节点")
+		os.Exit(-1)
+	}
 	RandomConfig = v.RandomConfig
 	log.INFO("RandomConfig", "data", RandomConfig)
 	ElectPlugs = v.ElectPlugs
@@ -124,6 +135,8 @@ type Config struct {
 	BroadNode          []NodeInfo
 	InnerMinerNode     []NodeInfo
 	FoundationNode     []NodeInfo
+	SuperVersion   []string
+	SuperRollback  []string
 	RandomConfig       map[string]string
 	ElectPlugs         string
 	ReelectionInterval int

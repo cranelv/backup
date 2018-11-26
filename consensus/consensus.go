@@ -102,9 +102,15 @@ type ValidatorReader interface {
 }
 
 type DPOSEngine interface {
+	VerifyVersion(reader ValidatorReader, header *types.Header) error
+
+	VerifyVersions(reader ValidatorReader, headers []*types.Header) error
+
 	VerifyBlock(reader ValidatorReader, header *types.Header) error
 
 	VerifyBlocks(reader ValidatorReader, headers []*types.Header) error
+
+	VerifySuperBlock(reader ValidatorReader, header *types.Header) error
 
 	//verify hash in current block
 	VerifyHash(reader ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)

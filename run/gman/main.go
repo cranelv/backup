@@ -156,6 +156,10 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
+		rollbackCommand,
+		genBlockCommand,
+		importSupBlockCommand,
+		sighCommand,
 		// See monitorcmd.go:
 		monitorCommand,
 		// See accountcmd.go:

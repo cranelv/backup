@@ -110,7 +110,9 @@ func (p *Process) processHeaderGen() error {
 		NetTopology: *NetTopology,
 		Signatures:  make([]common.Signature, 0),
 		Version:     parent.Header().Version, //param
+		VersionSignatures: parent.Header().VersionSignatures,
 	}
+	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
 	if err := p.engine().Prepare(p.blockChain(), header); err != nil {
 		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
 		return err

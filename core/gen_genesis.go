@@ -20,23 +20,25 @@ var _ = (*genesisSpecMarshaling)(nil)
 
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
-		Config      *params.ChainConfig                         `json:"config"`
-		Nonce       math.HexOrDecimal64                         `json:"nonce"`
-		Timestamp   math.HexOrDecimal64                         `json:"timestamp"`
-		ExtraData   hexutil.Bytes                               `json:"extraData"`
-		Version     hexutil.Bytes                               `json:"version"`
-		Leader      common.Address                              `json:"leader"`
-		Elect       []common.Elect                              `json:"elect"        gencodec:"required"`
-		NetTopology common.NetTopology                          `json:"nettopology"        gencodec:"required"`
-		Signatures  []common.Signature                          `json:"signatures" gencodec:"required"`
-		GasLimit    math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
-		Difficulty  *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
-		Mixhash     common.Hash                                 `json:"mixHash"`
-		Coinbase    common.Address                              `json:"coinbase"`
-		Alloc       map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		Number      math.HexOrDecimal64                         `json:"number"`
-		GasUsed     math.HexOrDecimal64                         `json:"gasUsed"`
-		ParentHash  common.Hash                                 `json:"parentHash"`
+		Config            *params.ChainConfig               `json:"config,omitempty"`
+		Nonce             math.HexOrDecimal64               `json:"nonce"`
+		Timestamp         math.HexOrDecimal64               `json:"timestamp"`
+		ExtraData         hexutil.Bytes                     `json:"extraData"`
+		Version           string                            `json:"version"`
+		VersionSignatures []common.Signature                `json:"versionSignatures"`
+		Leader            common.Address                    `json:"leader"`
+		Elect             []common.Elect                    `json:"elect"        gencodec:"required"`
+		NetTopology       common.NetTopology                `json:"nettopology"        gencodec:"required"`
+		Signatures        []common.Signature                `json:"signatures" gencodec:"required"`
+		GasLimit          math.HexOrDecimal64               `json:"gasLimit"   gencodec:"required"`
+		Difficulty        *math.HexOrDecimal256             `json:"difficulty" gencodec:"required"`
+		Mixhash           common.Hash                       `json:"mixHash"`
+		Coinbase          common.Address                    `json:"coinbase"`
+		Alloc             map[common.Address]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Number            math.HexOrDecimal64               `json:"number"`
+		GasUsed           math.HexOrDecimal64               `json:"gasUsed"`
+		ParentHash        common.Hash                       `json:"parentHash"`
+		Root              common.Hash                       `json:"stateRoot,omitempty"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -44,6 +46,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Timestamp = math.HexOrDecimal64(g.Timestamp)
 	enc.ExtraData = g.ExtraData
 	enc.Version = g.Version
+	enc.VersionSignatures = g.VersionSignatures
 	enc.Leader = g.Leader
 	enc.Elect = g.Elect
 	enc.NetTopology = g.NetTopology
@@ -53,36 +56,39 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Mixhash = g.Mixhash
 	enc.Coinbase = g.Coinbase
 	if g.Alloc != nil {
-		enc.Alloc = make(map[common.UnprefixedAddress]GenesisAccount, len(g.Alloc))
+		enc.Alloc = make(map[common.Address]GenesisAccount, len(g.Alloc))
 		for k, v := range g.Alloc {
-			enc.Alloc[common.UnprefixedAddress(k)] = v
+			enc.Alloc[common.Address(k)] = v
 		}
 	}
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
+	enc.Root = g.Root
 	return json.Marshal(&enc)
 }
 
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
-		Config      *params.ChainConfig                         `json:"config"`
-		Nonce       *math.HexOrDecimal64                        `json:"nonce"`
-		Timestamp   *math.HexOrDecimal64                        `json:"timestamp"`
-		ExtraData   *hexutil.Bytes                              `json:"extraData"`
-		Version     *hexutil.Bytes                              `json:"version"`
-		Leader      *common.Address                             `json:"leader"`
-		Elect       *[]common.Elect                             `json:"elect" gencodec:"required"`
-		NetTopology *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
-		Signatures  *[]common.Signature                         `json:"signatures" gencodec:"required"`
-		GasLimit    *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
-		Difficulty  *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
-		Mixhash     *common.Hash                                `json:"mixHash"`
-		Coinbase    *common.Address                             `json:"coinbase"`
-		Alloc       map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		Number      *math.HexOrDecimal64                        `json:"number"`
-		GasUsed     *math.HexOrDecimal64                        `json:"gasUsed"`
-		ParentHash  *common.Hash                                `json:"parentHash"`
+		Config            *params.ChainConfig                         `json:"config,omitempty"`
+		Nonce             *math.HexOrDecimal64                        `json:"nonce"`
+		Timestamp         *math.HexOrDecimal64                        `json:"timestamp"`
+		ExtraData         *hexutil.Bytes                              `json:"extraData"`
+		Version           string                                      `json:"version"`
+		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
+		Leader            *common.Address                             `json:"leader"`
+		Elect             *[]common.Elect                             `json:"elect" gencodec:"required"`
+		NetTopology       *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
+		Signatures        *[]common.Signature                         `json:"signatures" gencodec:"required"`
+		GasLimit          *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
+		Difficulty        *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
+		Mixhash           *common.Hash                                `json:"mixHash"`
+		Coinbase          *common.Address                             `json:"coinbase"`
+		Alloc             map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Number            *math.HexOrDecimal64                        `json:"number"`
+		GasUsed           *math.HexOrDecimal64                        `json:"gasUsed"`
+		ParentHash        *common.Hash                                `json:"parentHash"`
+		Root              *common.Hash                                `json:"stateRoot,omitempty"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -100,9 +106,10 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.ExtraData != nil {
 		g.ExtraData = *dec.ExtraData
 	}
-	if dec.Version != nil {
-		g.Version = *dec.Version
+	if dec.VersionSignatures != nil {
+		g.VersionSignatures = *dec.VersionSignatures
 	}
+	g.Version = dec.Version
 	if dec.Leader != nil {
 		g.Leader = *dec.Leader
 	}
@@ -144,6 +151,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentHash != nil {
 		g.ParentHash = *dec.ParentHash
+	}
+	if dec.Root != nil {
+		g.Root = *dec.Root
 	}
 	return nil
 }

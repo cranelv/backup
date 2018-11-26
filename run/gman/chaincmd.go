@@ -6,10 +6,16 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/accounts/keystore"
+	"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/man/wizard"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -168,6 +174,76 @@ Use "matrix dump 0" to dump the genesis block.`,
 		},
 		Category:"commit commands",
 		Description:"get commit history",
+	}
+	rollbackCommand = cli.Command{
+		Action:    utils.MigrateFlags(rollback),
+		Name:      "rollback",
+		Usage:     "Bootstrap and rollback a new super block",
+		ArgsUsage: "<genesisPath>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.LightModeFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+
+	importSupBlockCommand = cli.Command{
+		Action:    utils.MigrateFlags(importSupBlock),
+		Name:      "importSupBLock",
+		Usage:     "Bootstrap and rollback a new super block",
+		ArgsUsage: "<genesisPath>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.LightModeFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+	genBlockCommand = cli.Command{
+		Action:    utils.MigrateFlags(genblock),
+		Name:      "genblock",
+		Usage:     "Bootstrap and rollback a new super block",
+		ArgsUsage: "<genesisPath> blockNum",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.LightModeFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+
+	sighCommand = cli.Command{
+		Action:    utils.MigrateFlags(signBlock),
+		Name:      "sighblock",
+		Usage:     "Bootstrap and rollback a new super block",
+		ArgsUsage: "<genesisPath> blockNum",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.PasswordFileFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
 	}
 )
 
@@ -476,5 +552,209 @@ func getCommit(ctx *cli.Context) error {
 	for _,v:=range common.PutCommit{
 		fmt.Println(v)
 	}
+	return nil
+}
+func importSupBlock(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("Must supply path to genesis JSON file")
+	}
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	genesis := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+	//todo :验证超级节点密钥
+	// Open an initialise both full and light databases
+	stack := makeFullNode(ctx)
+	chain, chainDb := utils.MakeChain(ctx, stack)
+	var parent *types.Block
+	if genesis.Number < 2 {
+		parent = chain.Genesis()
+
+	} else {
+		parent = chain.GetBlockByHash(genesis.ParentHash)
+	}
+	var rollbackBlock *types.Block
+	if genesis.Number == 0 {
+
+		rollbackBlock = genesis.ToBlock(chainDb)
+	} else {
+		rollbackBlock = genesis.ToSuperBlock(parent.Header(), chainDb)
+	}
+
+	err = chain.DPOSEngine().VerifySuperBlock(chain, rollbackBlock.Header())
+	if err != nil {
+		utils.Fatalf("verify super block sign is failed,%s", err)
+		return nil
+	}
+	if genesis.Number == 0 {
+		chain.SetHead(0)
+		_, hash, err := core.SetupGenesisBlock(chainDb, genesis)
+		if err != nil {
+			utils.Fatalf("Failed to write genesis block: %v", err)
+		}
+		log.Info("Successfully wrote genesis state", "hash", hash)
+	} else {
+		importManBlock(chain, chainDb, genesis, rollbackBlock)
+	}
+
+	return nil
+}
+
+func importManBlock(chain *core.BlockChain, chainDb mandb.Database, genesis *core.Genesis, rollbackBlock *types.Block) error {
+	block := chain.CurrentBlock()
+	if block == nil {
+		fmt.Println("{}")
+		utils.Fatalf("block not found")
+		return errors.New("block not found")
+	} else {
+		number := chain.CurrentBlock().Number()
+		fmt.Printf("before rolllback number%v\n", number)
+		stateDB, err := state.New(block.Root(), state.NewDatabase(chainDb))
+		if err != nil {
+			utils.Fatalf("could not create new state: %v", err)
+			return err
+		}
+		fmt.Printf("state：%s\n", stateDB.Dump())
+		if genesis.Number > number.Uint64()+1 {
+			utils.Fatalf("number is error ,current : %v ,super : %v", number, genesis.Number)
+			return err
+		}
+		chain.SetHead(genesis.Number - 1)
+		block := chain.CurrentBlock()
+		number = chain.CurrentBlock().Number()
+		fmt.Printf("after rolllback number%v\n", number)
+		if genesis.Number > number.Uint64()+1 {
+			utils.Fatalf("number is error ,current : %v ,super : %v", number, genesis.Number)
+			return err
+		}
+
+		stateDB, err = state.New(block.Root(), state.NewDatabase(chainDb))
+		if err != nil {
+			utils.Fatalf("could not create new state: %v", err)
+			return err
+		}
+		fmt.Printf("state：%s\n", stateDB.Dump())
+
+		chain.WriteBlockWithState(rollbackBlock, nil, stateDB)
+		//superblock := chain.CurrentBlock()
+		number = chain.CurrentBlock().Number()
+		fmt.Printf("after insert supper block  number%v\n", number)
+		stateDB, err = state.New(rollbackBlock.Root(), state.NewDatabase(chainDb))
+		fmt.Printf("state：%s\n", stateDB.Dump())
+		return err
+	}
+	return nil
+}
+
+func rollback(ctx *cli.Context) error {
+	Snum := ctx.Args().First()
+	if len(Snum) == 0 {
+		utils.Fatalf("Must supply num")
+		return nil
+	}
+	num, err := strconv.ParseUint(Snum, 10, 64)
+	if err != nil {
+		utils.Fatalf("conver supply num error%v", err)
+		return nil
+	}
+	stack := makeFullNode(ctx)
+	chain, _ := utils.MakeChain(ctx, stack)
+	chain.SetHead(num)
+	return nil
+}
+
+func genblock(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("Must supply path to genesis JSON file")
+	}
+	Snum := ctx.Args().Get(1)
+	if len(genesisPath) == 0 {
+		utils.Fatalf("Must supply num")
+	}
+	num, err := strconv.ParseUint(Snum, 10, 64)
+	if err != nil {
+		utils.Fatalf("conver supply num error%v", err)
+	}
+	stack := makeFullNode(ctx)
+	chain, chaindb := utils.MakeChain(ctx, stack)
+	w := wizard.MakeWizard(genesisPath)
+
+
+	hash := chain.GetCurrentHash()
+	currentNum:=chain.GetBlockByHash(hash).Number().Uint64()
+	if num > currentNum+1 {
+		log.Error("num is error", "current num:", currentNum)
+		return errors.New("num is error")
+
+	}
+	w.MakeSuperGenesis(chain, chaindb, num)
+	//w.ManageSuperGenesis(chainDb)
+	return nil
+}
+
+func signBlock(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("keyfile must be given as argument")
+	}
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	genesis := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	chainDb := utils.MakeChainDatabase(ctx, stack)
+	var superBlock *types.Header
+	if genesis.Number > 0 {
+		superBlock = genesis.ToSuperBlock(nil, chainDb).Header()
+	} else {
+		superBlock = genesis.ToBlock(chainDb).Header()
+	}
+
+	blockHash := superBlock.HashNoSigns()
+	fmt.Println("sign  block is ", blockHash.TerminalString())
+	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
+	wallet := stack.AccountManager().Wallets()[0]
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	err = ks.Unlock(wallet.Accounts()[0], passphrase)
+	if err != nil {
+		utils.Fatalf("Unlocked account %v", err)
+		return nil
+	}
+	sign, err := ks.SignHashValidateWithPass(wallet.Accounts()[0], passphrase, blockHash.Bytes(), true)
+	if err != nil {
+		utils.Fatalf("Unlocked account %v", err)
+		return nil
+	}
+	temp := common.BytesToSignature(sign)
+	genesis.Signatures = append(genesis.Signatures, temp)
+	account, _, err := crypto.VerifySignWithValidate(blockHash.Bytes(), sign)
+	//fmt.Printf("Address: {%x}\n", acct.Address)
+	if !account.Equal(wallet.Accounts()[0].Address) {
+		fmt.Errorf("sign block error")
+		return nil
+	}
+	pathSplit := strings.Split(genesisPath, ".json")
+	out, _ := json.MarshalIndent(genesis, "", "  ")
+	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
+		fmt.Errorf("Failed to save genesis file", "err=%v", err)
+		return nil
+	}
+	fmt.Println("Exported sign  block to ", pathSplit[0]+"Signed.json")
 	return nil
 }

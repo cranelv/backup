@@ -314,6 +314,13 @@ func (p *Process) processReqOnce() {
 	}
 
 	//todo Version
+	//verify Version
+
+	if err := p.blockChain().DPOSEngine().VerifyVersion(p.blockChain(), p.curProcessReq.req.Header); err != nil {
+		log.ERROR(p.logExtraInfo(), "验证版本号失败", err, "高度", p.number)
+		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+		return
+	}
 
 	p.startTxsVerify()
 }

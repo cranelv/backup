@@ -465,6 +465,7 @@ type blockStats struct {
 	NetTopology common.NetTopology `json:"nettopology"       `
 	Signatures  []common.Signature `json:"signatures "        `
 	Version     []byte             `json:" version "             `
+	VersionSignatures []common.Signature `json:"versionSignatures"             `
 }
 
 // txStats is the information to report about individual transactions.

@@ -34,15 +34,16 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config      *params.ChainConfig `json:"config"`
-	Nonce       uint64              `json:"nonce"`
-	Timestamp   uint64              `json:"timestamp"`
-	ExtraData   []byte              `json:"extraData"`
-	Version     []byte              `json:"version"`
-	Leader      common.Address      `json:"leader"`
-	Elect       []common.Elect      `json:"elect"    gencodec:"required"`
-	NetTopology common.NetTopology  `json:"nettopology"       gencodec:"required"`
-	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
+	Config            *params.ChainConfig `json:"config,omitempty"`
+	Nonce             uint64              `json:"nonce"`
+	Timestamp         uint64              `json:"timestamp"    gencodec:"required"`
+	ExtraData         []byte              `json:"extraData"`
+	Version           string              `json:"version"    gencodec:"required"`
+	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
+	Leader            common.Address      `json:"leader"`
+	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
+	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
+	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 
 	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
 	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
@@ -55,7 +56,9 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	Root       common.Hash `json:"stateRoot,omitempty"`
 }
+
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
@@ -241,7 +244,8 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 		Time:        new(big.Int).SetUint64(g.Timestamp),
 		ParentHash:  g.ParentHash,
 		Extra:       g.ExtraData,
-		Version:     g.Version,
+		Version:           []byte(g.Version),
+		VersionSignatures: g.VersionSignatures,
 		Elect:       g.Elect,
 		NetTopology: g.NetTopology,
 		Signatures:  g.Signatures,
@@ -263,6 +267,61 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
+
+	return types.NewBlock(head, nil, nil, nil)
+}
+
+func (g *Genesis) ToSuperBlock(parentHeader *types.Header, db mandb.Database) *types.Block {
+	if db == nil {
+		db = mandb.NewMemDatabase()
+	}
+	var statedb *state.StateDB
+	if nil != parentHeader {
+
+		statedb, _ = state.New(parentHeader.Root, state.NewDatabase(db))
+		for addr, account := range g.Alloc {
+
+			statedb.AddBalance(common.MainAccount,addr, account.Balance)
+			statedb.SetCode(addr, account.Code)
+			statedb.SetNonce(addr, account.Nonce)
+			for key, value := range account.Storage {
+				statedb.SetState(addr, key, value)
+			}
+		}
+		root := statedb.IntermediateRoot(false)
+		if g.Root != root {
+			log.Info("genesis", "root is error,local root", root, "super root", g.Root)
+		}
+	}
+	head := &types.Header{
+		Number:            new(big.Int).SetUint64(g.Number),
+		Nonce:             types.EncodeNonce(g.Nonce),
+		Time:              new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:        g.ParentHash,
+		Extra:             g.ExtraData,
+		Version:           []byte(g.Version),
+		VersionSignatures: g.VersionSignatures,
+		Elect:             g.Elect,
+		NetTopology:       g.NetTopology,
+		Signatures:        g.Signatures,
+		Leader:            g.Leader,
+		GasLimit:          g.GasLimit,
+		GasUsed:           g.GasUsed,
+		Difficulty:        g.Difficulty,
+		MixDigest:         g.Mixhash,
+		Coinbase:          g.Coinbase,
+		Root:              g.Root,
+	}
+	if g.GasLimit == 0 {
+		head.GasLimit = params.GenesisGasLimit
+	}
+	if g.Difficulty == nil {
+		head.Difficulty = params.GenesisDifficulty
+	}
+	if nil != statedb {
+		statedb.Commit(false)
+		statedb.Database().TrieDB().Commit(g.Root, true)
+	}
 
 	return types.NewBlock(head, nil, nil, nil)
 }

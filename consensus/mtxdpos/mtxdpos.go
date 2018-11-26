@@ -4,6 +4,7 @@
 package mtxdpos
 
 import (
+	"github.com/ethereum/go-ethereum/params"
 	"math"
 
 	"github.com/matrix/go-matrix/common"
@@ -21,6 +22,7 @@ const (
 	DPOSTargetStockRatio     = 0 // 暂时关闭股权的要求
 	DPOSMinStockCount        = 3
 	DPOSFullSignThreshold    = 7
+	SuperNodeFullSignThreshold = 3
 )
 
 var (
@@ -60,8 +62,85 @@ type MtxDPOS struct {
 func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
+func (md *MtxDPOS) VerifyVersion(reader consensus.ValidatorReader, header *types.Header) error {
+	targetCount := md.calcSuperNodeTarget(len(params.SuperVersion))
 
+	if len(header.Version) < targetCount {
+		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
+		return errSignCountErr
+	}
+	verifiedVersion := md.verifyHashWithSuperNodes(common.HexToHash(string(header.Version)), header.VersionSignatures, params.SuperVersion)
+	if len(verifiedVersion) < targetCount {
+		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
+		return errSignCountErr
+	}
+	return nil
+}
+
+func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
+	targetCount := 0
+	if totalCount <= SuperNodeFullSignThreshold {
+		targetCount = totalCount
+	} else {
+		targetCount = int(math.Ceil(float64(totalCount) * DPOSTargetSignCountRatio))
+	}
+	return targetCount
+}
+
+func (md *MtxDPOS) VerifyVersions(reader consensus.ValidatorReader, headers []*types.Header) error {
+	for _, header := range headers {
+		err := md.VerifyVersion(reader, header)
+		if nil != err {
+			return err
+		}
+	}
+	return nil
+}
+func (md *MtxDPOS) VerifySuperBlock(reader consensus.ValidatorReader, header *types.Header) error {
+	targetCount := md.calcSuperNodeTarget(len(params.SuperRollback))
+	if len(header.Signatures) < targetCount {
+		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
+		return errSignCountErr
+	}
+	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, params.SuperRollback)
+	if len(verifiedSigh) < targetCount {
+		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedSigh), "target", targetCount, "hash", header.HashNoSigns().TerminalString())
+		return errSignCountErr
+	}
+	return nil
+}
+
+func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []common.Signature, superNodes []string) map[common.Address]byte {
+	verifiedSigh := make(map[common.Address]byte, 0)
+	for _, sigh := range signatures {
+		account, _, err := crypto.VerifySignWithValidate(hash.Bytes(), sigh.Bytes())
+		if nil != err {
+			log.ERROR("共识引擎", "验证版本错误", err)
+			continue
+		}
+		findFlag := 0
+		for _, superAccount := range superNodes {
+			if account.Equal(common.HexToAddress(superAccount)) {
+				findFlag = 1
+				break
+			}
+		}
+		if 0 == findFlag {
+			log.WARN("共识引擎", "验证版本 账户未找到 node", account.Hex(), "签名：", sigh)
+			continue
+		}
+		if _, ok := verifiedSigh[account]; !ok {
+			verifiedSigh[account] = 0
+		}
+	}
+	return verifiedSigh
+}
 func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.Header) error {
+	if err := md.VerifyVersion(reader, header); err != nil {
+		log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
+		return err
+	}
+
 	if common.IsBroadcastNumber(header.Number.Uint64()) {
 		return md.verifyBroadcastBlock(header)
 	}
@@ -88,6 +167,10 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 		err      error
 	)
 	for _, header := range headers {
+		if err := md.VerifyVersion(reader, header); err != nil {
+			log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
+			return err
+		}
 		if nil == preGraph {
 			preGraph, err = md.getValidatorGraph(reader, header.ParentHash)
 			if err != nil {
@@ -97,6 +180,7 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 
 		hash := header.HashNoSignsAndNonce()
 		number := header.Number.Uint64()
+		if err := md.VerifySuperBlock(reader, header); err != nil {
 		if common.IsBroadcastNumber(number) {
 			err = md.verifyBroadcastBlock(header)
 			if err != nil {
@@ -108,6 +192,7 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 			if err != nil {
 				return errors.Errorf("header(hash:%s, number:%d) dpos verify err: %v", hash.Hex(), number, err)
 			}
+		}
 		}
 		preGraph, err = preGraph.Transfer2NextGraph(header.Number.Uint64(), &header.NetTopology, nil)
 		if err != nil {
@@ -149,7 +234,7 @@ func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.ValidatorReader, signHa
 
 	verifiedSigns := md.verifySigns(signHash, signs, stocks)
 	if len(verifiedSigns) < target.targetCount {
-		log.ERROR("共识引擎", "验证后的签名数量不足 size", len(signs), "target", target.targetCount)
+		log.ERROR("共识引擎", "验证后的签名数量不足 size", len(verifiedSigns), "target", target.targetCount)
 		return nil, errSignCountErr
 	}
 

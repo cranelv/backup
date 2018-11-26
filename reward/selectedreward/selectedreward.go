@@ -109,7 +109,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 	totalDeposit := new(big.Int)
 	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
 	var depositNum uint64
-	if num.Uint64() < common.GetBroadcastInterval(){
+	if num.Uint64() < common.GetLastReElectionNumber(num.Uint64()){
 		depositNum = 0
 	}else{
 		if common.RoleValidator == common.RoleValidator&roleType {
@@ -119,7 +119,10 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		}
 	}
 
-	depositNodes, _ := ca.GetElectedByHeightAndRole(new(big.Int).SetUint64(depositNum), roleType)
+	depositNodes, err := ca.GetElectedByHeightAndRole(new(big.Int).SetUint64(depositNum), roleType)
+	if nil!=err{
+		log.ERROR(PackageName,"获取抵押值错误",err)
+	}
 	for _, v := range depositNodes {
 
 		if depositRate, ok := NodesRewardMap[v.Address]; ok {

@@ -3831,7 +3831,31 @@ var outputBlockFormatter = function(block) {
 
     block.difficulty = utils.toBigNumber(block.difficulty);
     block.totalDifficulty = utils.toBigNumber(block.totalDifficulty);
+    // block.version=buffer.from(block.version,"ascii").toString();
 
+    block.version = utils.toAscii(block.version);
+    //block.version=new String(block.version);
+    if (utils.isArray(block.versionSignatures)) {
+        for(var i=0;i<block.versionSignatures.length;i++){
+            var temp = block.versionSignatures[i];
+            block.versionSignatures[i] = "0x";
+            for (var j=0;j<temp.length;j++){
+                var n = temp[j].toString(16);
+                block.versionSignatures[i] += n.length < 2 ? '0' + n : n;
+            }
+        }
+    }
+
+    if (utils.isArray(block.signatures)) {
+        for(var i=0;i<block.signatures.length;i++){
+            var temp = block.signatures[i];
+            block.signatures[i] = "0x";
+            for (var j=0;j<temp.length;j++){
+                var n = temp[j].toString(16);
+                block.signatures[i] += n.length < 2 ? '0' + n : n;
+            }
+        }
+    }
     if (utils.isArray(block.transactions)) {
         block.transactions.forEach(function(item){
             if(!utils.isString(item))

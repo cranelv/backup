@@ -80,6 +80,7 @@ type Header struct {
 	MixDigest common.Hash `json:"mixHash"          gencodec:"required"`
 	Nonce     BlockNonce  `json:"nonce"            gencodec:"required"`
 	Version   []byte      `json:"version"              gencodec:"required"`
+	VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -119,9 +120,33 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Signatures,
 		h.Extra,
 		h.Version,
+		h.VersionSignatures,
 	})
 }
-
+func (h *Header) HashNoSigns() common.Hash {
+	return rlpHash([]interface{}{
+		h.ParentHash,
+		h.UncleHash,
+		h.Leader,
+		h.Coinbase,
+		h.Root,
+		h.TxHash,
+		h.ReceiptHash,
+		h.Bloom,
+		h.Difficulty,
+		h.Number,
+		h.GasLimit,
+		h.GasUsed,
+		h.Time,
+		h.Elect,
+		h.NetTopology,
+		h.Extra,
+		h.MixDigest,
+		h.Nonce,
+		h.Version,
+		h.VersionSignatures,
+	})
+}
 func (h *Header) HashNoSignsAndNonce() common.Hash {
 	return rlpHash([]interface{}{
 		h.ParentHash,
@@ -140,6 +165,7 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.NetTopology,
 		h.Extra,
 		h.Version,
+		h.VersionSignatures,
 	})
 }
 
@@ -349,6 +375,10 @@ func CopyHeader(h *Header) *Header {
 		cpy.Version = make([]byte, len(h.Version))
 		copy(cpy.Version, h.Version)
 	}
+	if len(h.VersionSignatures) > 0 {
+		cpy.VersionSignatures = make([]common.Signature, len(h.VersionSignatures))
+		copy(cpy.VersionSignatures, h.VersionSignatures)
+	}
 	return &cpy
 }
 
@@ -434,6 +464,10 @@ func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
 
 func (b *Block) HashNoNonce() common.Hash {
 	return b.header.HashNoNonce()
+}
+
+func (b *Block) HashNoSighs() common.Hash {
+	return b.header.HashNoSigns()
 }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
