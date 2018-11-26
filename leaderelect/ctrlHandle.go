@@ -69,7 +69,9 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		return
 	}
 
-	if err := self.dc.SetValidators(msg.parentHeader.Hash(), msg.parentHeader.Leader, msg.validators); err != nil {
+	preIsSupper := self.isSupperBlock(msg.parentHeader)
+
+	if err := self.dc.SetValidators(msg.parentHeader.Hash(), preIsSupper, msg.parentHeader.Leader, msg.validators); err != nil {
 		log.ERROR(self.logInfo, "处理开始消息", "验证者列表设置错误", "err", err)
 		return
 	}

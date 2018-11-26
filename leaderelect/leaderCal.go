@@ -9,37 +9,39 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 )
 
 type leaderCalculator struct {
-	preLeader  common.Address
-	preHash    common.Hash
-	leaderList map[uint32]common.Address
-	validators []mc.TopologyNodeInfo
-	chain      *core.BlockChain
-	cdc        *cdc
+	preLeader   common.Address
+	preHash     common.Hash
+	preIsSupper bool
+	leaderList  map[uint32]common.Address
+	validators  []mc.TopologyNodeInfo
+	chain       *core.BlockChain
+	cdc         *cdc
 }
 
 func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
 	return &leaderCalculator{
-		preLeader:  common.Address{},
-		preHash:    common.Hash{},
-		leaderList: make(map[uint32]common.Address),
-		validators: nil,
-		chain:      chain,
-		cdc:        cdc,
+		preLeader:   common.Address{},
+		preHash:     common.Hash{},
+		preIsSupper: false,
+		leaderList:  make(map[uint32]common.Address),
+		validators:  nil,
+		chain:       chain,
+		cdc:         cdc,
 	}
 }
 
-func (self *leaderCalculator) SetValidators(preHash common.Hash, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
+func (self *leaderCalculator) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
 	if validators == nil {
 		return ErrValidatorsIsNil
 	}
 
 	preNumber := self.cdc.number - 1
-	if common.IsBroadcastNumber(preNumber) && preNumber != 0 {
+	if preIsSupper == false && common.IsBroadcastNumber(preNumber) && preNumber != 0 {
 		header := self.chain.GetHeaderByNumber(preNumber - 1)
 		if nil == header {
 			log.ERROR("")
@@ -47,8 +49,8 @@ func (self *leaderCalculator) SetValidators(preHash common.Hash, preLeader commo
 		}
 		preLeader = header.Leader
 	}
-	log.INFO(self.cdc.logInfo, "计算leader列表", "开始", "preLeader", preLeader.Hex())
-	leaderList, err := calLeaderList(preLeader, preNumber, validators)
+	log.INFO(self.cdc.logInfo, "计算leader列表", "开始", "preLeader", preLeader.Hex(), "前一个区块是否为超级区块", preIsSupper)
+	leaderList, err := calLeaderList(preLeader, preNumber, preIsSupper, validators)
 	if err != nil {
 		return err
 	}
@@ -56,6 +58,7 @@ func (self *leaderCalculator) SetValidators(preHash common.Hash, preLeader commo
 	self.preLeader.Set(preLeader)
 	self.preHash.Set(preHash)
 	self.validators = validators
+	self.preIsSupper = preIsSupper
 
 	return nil
 }
@@ -100,10 +103,10 @@ func (self *leaderCalculator) GetLeader(turn uint32) (*leaderData, error) {
 	return leaders, nil
 }
 
-func calLeaderList(preLeader common.Address, preNumber uint64, validators []mc.TopologyNodeInfo) (map[uint32]common.Address, error) {
+func calLeaderList(preLeader common.Address, preNumber uint64, preIsSupper bool, validators []mc.TopologyNodeInfo) (map[uint32]common.Address, error) {
 	ValidatorNum := len(validators)
 	var startPos = 0
-	if common.IsReElectionNumber(preNumber) || common.IsReElectionNumber(preNumber+1) {
+	if preIsSupper || common.IsReElectionNumber(preNumber) || common.IsReElectionNumber(preNumber+1) {
 		startPos = 0
 	} else {
 		preIndex, err := findLeaderIndex(preLeader, validators)

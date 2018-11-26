@@ -42,8 +42,8 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	return dc
 }
 
-func (dc *cdc) SetValidators(preHash common.Hash, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
-	if err := dc.leaderCal.SetValidators(preHash, preLeader, validators); err != nil {
+func (dc *cdc) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
+	if err := dc.leaderCal.SetValidators(preHash, preIsSupper, preLeader, validators); err != nil {
 		return err
 	}
 
