@@ -2,8 +2,8 @@ package txsreward
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/reward/txsreward"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"reflect"

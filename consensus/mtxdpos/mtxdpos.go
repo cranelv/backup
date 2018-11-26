@@ -4,7 +4,7 @@
 package mtxdpos
 
 import (
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/matrix/go-matrix/params"
 	"math"
 
 	"github.com/matrix/go-matrix/common"
