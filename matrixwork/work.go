@@ -308,6 +308,8 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 				to = k
 				value = v
 				isfirst = false
+				log.Info("11111111111111111","to:",to.String())
+				log.Info("22222222222222222","Value:",value)
 				continue
 			}
 			tmp := new(types.ExtraTo_tr)
@@ -315,6 +317,8 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 			var kk common.Address = k
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
+			log.Info("33333333333333333","to:",tmp.To_tr.String(),"from",rewart.Fromaddr.String())
+			log.Info("44444444444444444","Value:",tmp.Value_tr,"VV",vv)
 			extra = append(extra, tmp)
 		}
 		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr),to,value,0,new(big.Int),nil,extra,0,common.ExtraUnGasTxType)
