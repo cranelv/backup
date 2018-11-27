@@ -211,6 +211,15 @@ func (md *MatrixDeposit) setDeposit(contract *Contract, stateDB StateDB, dep *bi
 	return nil
 }
 
+func (md *MatrixDeposit) getDepositWithNoAddress(contract *Contract, stateDB StateDB) *big.Int {
+	depositKey := append(contract.CallerAddress[:], 'D')
+	info := stateDB.GetState(contract.Address(), common.BytesToHash(depositKey))
+	if info != emptyHash {
+		return info.Big()
+	}
+	return big.NewInt(0)
+}
+
 func (md *MatrixDeposit) getNodeID(contract *Contract, stateDB StateDB, addr common.Address) *discover.NodeID {
 	nodeXKey := append(addr[:], 'N', 'X')
 	nodeX := stateDB.GetState(contract.Address(), common.BytesToHash(nodeXKey))
@@ -594,17 +603,17 @@ func (md *MatrixDeposit) SetInterest(contract *Contract, stateDB StateDB, addr c
 }
 
 // GetDeposit get deposit with address.
-func (md *MatrixDeposit) GetDeposit(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
+func (md *MatrixDeposit) GetDepositWithAddress(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
 	return md.getDeposit(contract, stateDB, addr)
 }
 
-func (md *MatrixDeposit) setDepositWithAddress(contract *Contract, stateDB StateDB, addr common.Address, deposit *big.Int) {
-	depositKey := append(addr[:], 'D')
-	stateDB.SetState(contract.Address(), common.BytesToHash(depositKey), common.BigToHash(deposit))
+// SetDeposit set deposit.
+func (md *MatrixDeposit) SetDeposit(contract *Contract, stateDB StateDB, deposit *big.Int) error {
+	md.setDeposit(contract, stateDB, deposit)
+	return nil
 }
 
-// SetDeposit set deposit.
-func (md *MatrixDeposit) SetDeposit(contract *Contract, stateDB StateDB, addr common.Address, deposit *big.Int) error {
-	md.setDepositWithAddress(contract, stateDB, addr, deposit)
-	return nil
+// GetDeposit get deposit.
+func (md *MatrixDeposit) GetDeposit(contract *Contract, stateDB StateDB) *big.Int {
+	return md.getDepositWithNoAddress(contract, stateDB)
 }

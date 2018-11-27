@@ -141,10 +141,10 @@ func SetInterest(stateDB vm.StateDB, address common.Address, reward *big.Int) er
 	return depositInfo.MatrixDeposit.SetInterest(depositInfo.Contract, stateDB, address, reward)
 }
 
-func GetDeposit(stateDB vm.StateDB, address common.Address) *big.Int {
-	return depositInfo.MatrixDeposit.GetDeposit(depositInfo.Contract, stateDB, address)
+func GetDeposit(stateDB vm.StateDB) *big.Int {
+	return depositInfo.MatrixDeposit.GetDeposit(depositInfo.Contract, stateDB)
 }
 
-func SetDeposit(stateDB vm.StateDB, address common.Address, deposit *big.Int) error {
-	return depositInfo.MatrixDeposit.SetDeposit(depositInfo.Contract, stateDB, address, deposit)
+func SetDeposit(stateDB vm.StateDB, deposit *big.Int) error {
+	return depositInfo.MatrixDeposit.SetDeposit(depositInfo.Contract, stateDB, deposit)
 }
