@@ -91,15 +91,18 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 
 	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod) {
 		//1.获取所有利息转到抵押账户 2.清除所有利息
-		log.INFO(PackageName, "将利息转到抵押账户", "")
+		log.INFO(PackageName, "将利息转到合约抵押账户", "")
 
 		AllInterestMap := depoistInfo.GetAllInterest(state)
+		Deposit := depoistInfo.GetDeposit(state)
+		log.INFO(PackageName,"设置利息前的合约抵押账户余额",Deposit)
 		for account, interest := range AllInterestMap {
-			oldDeposit := depoistInfo.GetDeposit(state, account)
-			newDeposit := new(big.Int).Add(oldDeposit, interest)
-			depoistInfo.SetDeposit(state, account, newDeposit)
+			log.INFO(PackageName,"账户",account,"利息",interest.String())
+			Deposit = new(big.Int).Add(Deposit, interest)
 			depoistInfo.ResetInterest(state,account)
-			log.INFO(PackageName,"账户",account,"利息",interest.String(),"抵押",newDeposit)
 		}
+		depoistInfo.SetDeposit(state, Deposit)
+		readDeposit := depoistInfo.GetDeposit(state)
+		log.INFO(PackageName,"设置利息后的合约抵押账户余额",readDeposit)
 	}
 }
