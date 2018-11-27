@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package p2p
@@ -51,6 +51,7 @@ var Link = &Linker{
 	role:         common.RoleNil,
 	selfPeer:     make(map[common.RoleType][]*Peer),
 	quit:         make(chan struct{}),
+	activeQuit:   make(chan struct{}),
 	topNode:      make(map[common.RoleType]map[discover.NodeID][]uint8),
 	topNodeCache: make(map[common.RoleType]map[discover.NodeID][]uint8),
 }
