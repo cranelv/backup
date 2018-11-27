@@ -140,10 +140,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
 		//YYY TODO 是否需要当前这个if
-		if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
-			continue
-		}
+		//if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
+		//	log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
+		//	continue
+		//}
 		// Start executing the transaction
 		env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
 		err, logs := env.commitTransaction(txer, bc, coinbase, env.gasPool)

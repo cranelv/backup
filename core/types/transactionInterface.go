@@ -42,7 +42,7 @@ type SelfTransaction interface {
 	GetTxNLen()int
 	GetTxN(index int) uint32
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
-	Protected() bool
+	//Protected() bool
 	GetConstructorType()uint16
 	GasFrom() common.Address
 	AmontFrom() common.Address
