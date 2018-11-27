@@ -65,6 +65,10 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 		return
 	}
 
+	if 0==len(head.Transactions()){
+		return
+	}
+
 	var (
 		signer  = types.NewEIP155Signer(chainId)
 		tempMap = make(map[string]map[common.Address][]byte)
