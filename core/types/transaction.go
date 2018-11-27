@@ -226,9 +226,9 @@ func (tx *Transaction) ChainId() *big.Int {
 }
 
 // Protected returns whether the transaction is protected from replay protection.
-func (tx *Transaction) Protected() bool {
-	return isProtectedV(tx.data.V)
-}
+//func (tx *Transaction) Protected() bool {
+//	return isProtectedV(tx.data.V)
+//}
 
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
