@@ -152,9 +152,6 @@ func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uin
 	return stsi.TransitionDb()
 }
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
-	if err = st.PreCheck(); err != nil {
-		return
-	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	txtype := tx.GetMatrixType()
 	if txtype != common.ExtraNormalTxType{
@@ -181,6 +178,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 }
 func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
 	from := tx.From()
@@ -250,6 +250,9 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	hashlist := make([]common.Hash,0)
 	var addr common.Address
@@ -333,6 +336,9 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	3、定时执行可撤销交易，同样从map中获取数据解析出结构体按照对应的to给其转账，此时不再收取交易费
 */
 func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
 	from := tx.From()
@@ -455,6 +461,9 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 	return ret, 0, vmerr != nil, err
 }
 func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	toaddr := tx.To()
 	var addr common.Address
