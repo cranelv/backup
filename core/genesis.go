@@ -275,8 +275,8 @@ func (g *Genesis) ToSuperBlock(parentHeader *types.Header, db mandb.Database) *t
 	}
 	var statedb *state.StateDB
 	if nil != parentHeader {
-
-		statedb, err := state.New(parentHeader.Root, state.NewDatabase(db))
+                var err error
+		statedb, err = state.New(parentHeader.Root, state.NewDatabase(db))
 		if err != nil {
 			log.Error("state new is ", "err", err)
 			return nil

@@ -199,6 +199,7 @@ It expects the genesis file as argument.`,
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.LightModeFlag,
+			utils.GCModeFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -560,12 +561,14 @@ func importSupBlock(ctx *cli.Context) error {
 	file, err := os.Open(genesisPath)
 	if err != nil {
 		utils.Fatalf("Failed to read genesis file: %v", err)
+		return err
 	}
 	defer file.Close()
 
 	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
+		return err
 	}
 	//todo :验证超级节点密钥
 	// Open an initialise both full and light databases
@@ -577,6 +580,10 @@ func importSupBlock(ctx *cli.Context) error {
 
 	} else {
 		parent = chain.GetBlockByHash(genesis.ParentHash)
+	}
+	if nil==parent{
+		utils.Fatalf("parent block is nil")
+		return errors.New("parent block is nil")
 	}
 	var rollbackBlock *types.Block
 	if genesis.Number == 0 {
@@ -591,7 +598,7 @@ func importSupBlock(ctx *cli.Context) error {
 	err = chain.DPOSEngine().VerifySuperBlock(chain, rollbackBlock.Header())
 	if err != nil {
 		utils.Fatalf("verify super block sign is failed,%s", err)
-		return nil
+		return errors.New("verify super block sign is failed")
 	}
 	if genesis.Number == 0 {
 		chain.SetHead(0)
@@ -607,7 +614,7 @@ func importSupBlock(ctx *cli.Context) error {
 	return nil
 }
 
-func importManBlock(chain *core.BlockChain, chainDb mandb.Database, genesis *core.Genesis, rollbackBlock *types.Block) error {
+func importManBlock(chain *core.BlockChain, chainDb mandb.Database, genesis *core.Genesis, superBlock *types.Block) error {
 	block := chain.CurrentBlock()
 	if block == nil {
 		fmt.Println("{}")
@@ -642,11 +649,15 @@ func importManBlock(chain *core.BlockChain, chainDb mandb.Database, genesis *cor
 		}
 		fmt.Printf("state：%s\n", stateDB.Dump())
 
-		chain.WriteBlockWithState(rollbackBlock, nil, stateDB)
+		chain.WriteBlockWithState(superBlock, nil, stateDB)
 		//superblock := chain.CurrentBlock()
 		number = chain.CurrentBlock().Number()
 		fmt.Printf("after insert supper block  number%v\n", number)
-		stateDB, err = state.New(rollbackBlock.Root(), state.NewDatabase(chainDb))
+		stateDB, err = state.New(superBlock.Root(), state.NewDatabase(chainDb))
+		if err != nil {
+			utils.Fatalf("could not create new state: %v", err)
+			return err
+		}
 		fmt.Printf("state：%s\n", stateDB.Dump())
 		return err
 	}
