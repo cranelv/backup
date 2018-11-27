@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"github.com/matrix/go-matrix/log"
+	"time"
 )
 type TransactionBroad struct {
 	data txdata
@@ -93,6 +94,17 @@ func (tx *TransactionBroad) GetMatrixType() byte {
 //
 func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}
+}
+func (tx *TransactionBroad) GetCreateTime() uint32{
+	return tx.data.CreateTime
+}
+
+
+func (tx * TransactionBroad)GetLocalHeight() uint32 {
+	if tx.data.Extra != nil && len(tx.data.Extra)>0{
+		return uint32(tx.data.Extra[0].LockHeight)
+	}
+	return uint32(time.Now().Unix())
 }
 func (tx *TransactionBroad) SetTxV(v *big.Int)  { tx.data.V = v}
 func (tx *TransactionBroad) SetTxR(r *big.Int)  { tx.data.R = r}

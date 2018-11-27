@@ -413,6 +413,10 @@ var (
 	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000003")   //交易费
 	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000004")   //彩票
 )
+const (
+	StateDBBtree string = "BTree"
+	OneDaySecond uint32 = 86400 //一天这么多秒
+)
 
 const (
 	ExtraNormalTxType    byte = 0  //普通交易
@@ -431,7 +435,10 @@ type RetCallTxN struct {
 	TXt byte
 	ListN []uint32
 }
-
+type AddrAmont struct {
+	Addr Address
+	Amont *big.Int
+}
 type EntrustType struct {
 	//委托地址
 	EntrustAddres Address

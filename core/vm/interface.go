@@ -35,7 +35,7 @@ type StateDB interface {
 	SetState(common.Address, common.Hash, common.Hash)
 
 	CommitSaveTx()
-	GetSaveTx(typ byte,key uint32,hash common.Hash)(buf []byte)
+	GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(buf []byte)
 	SaveTx(typ byte,key uint32,data map[common.Hash][]byte)
 	NewBTrie()
 

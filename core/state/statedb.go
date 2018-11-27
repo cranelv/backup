@@ -19,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
+	"encoding/json"
 )
 
 type revision struct {
@@ -81,7 +82,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StateDB{
+	st := &StateDB{
 		db:                db,
 		trie:              tr,
 		stateObjects:      make(map[common.Address]*stateObject),
@@ -89,7 +90,15 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-	}, nil
+	}
+	hash := common.BytesToHash(tr.GetKey(common.FromHex(common.StateDBBtree)))
+	if (hash != common.Hash{}){
+		trie.RestoreBtree(&st.btrie,nil,hash,db.TrieDB())
+	}
+	if st.btrie.Len() <= 0{
+		st.NewBTrie()
+	}
+	return st, nil
 }
 
 // setError remembers the first non-nil error it is called with.
@@ -257,7 +266,8 @@ func (self *StateDB)GetBTrie(typ int)*trie.BTree{
 		return nil
 	}
 }
-func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash)(buf []byte){
+//isdel:true 表示需要从map中删除hash，false 表示不需要删除
+func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(buf []byte){
 	var item trie.Item
 	switch typ {
 	case common.ExtraRevocable:
@@ -271,6 +281,12 @@ func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash)(buf []byte){
 			return nil
 		}
 		buf = b
+		if isdel{
+			delete(std.Value_Tx,hash)
+			item = trie.SpcialTxData{Key_Time:key,Value_Tx:std.Value_Tx}
+			self.btrie.ReplaceOrInsert(item)
+			self.CommitSaveTx()
+		}
 	default:
 
 	}
@@ -286,9 +302,40 @@ func (self *StateDB)SaveTx(typ byte,key uint32,data map[common.Hash][]byte){
 }
 func (self *StateDB)CommitSaveTx(){
 	tmproot := self.btrie.Root()
-	trie.BtreeSaveHash(tmproot,self.db.TrieDB())
+	hash := trie.BtreeSaveHash(tmproot,self.db.TrieDB())
+	self.trie.TryUpdate(common.FromHex(common.StateDBBtree),hash.Bytes())
 }
+func (self *StateDB)UpdateTxForBtree(key uint32){
+	out := make([]trie.Item,0)
+	self.btrie.DescendLessOrEqual(trie.SpcialTxData{Key_Time:key},func(a trie.Item) bool {
+		out = append(out, a)
+		return true
+	})
+	for _,it := range out{
+		item,ok := it.(trie.SpcialTxData)
+		if !ok{
+			continue
+		}
+		for k,v := range item.Value_Tx{
+			mapTOAmonts := make([]*common.AddrAmont,0)
+			logs := self.GetLogs(k)
+			var from common.Address
+			if len(logs) > 0{
+				from = logs[0].Address
+			}
+			err := json.Unmarshal(v,mapTOAmonts)
+			if err != nil{
+				log.Error("file statedb","func UpdateTxForBtree,Unmarshal err",err)
+				continue
+			}
+			for _,vv := range mapTOAmonts{ //一对多交易
+				self.AddBalance(common.MainAccount,vv.Addr,vv.Amont)
+				self.SubBalance(common.WithdrawAccount,from,vv.Amont)
+			}
+		}
+	}
 
+}
 func (self *StateDB)NewBTrie(){
 	self.btrie = *trie.NewBtree(2,self.db.TrieDB())
 }

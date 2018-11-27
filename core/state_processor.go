@@ -67,8 +67,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			stxs = tmpstxs
 			continue
 		}
-		_,addrerr := tx. GetTxFrom()
-		if addrerr == nil{
+		from,addrerr := tx.GetTxFrom()
+		var tf common.Address
+		if addrerr == nil && from != tf{
 			//err is nil means from not nil
 			return nil, nil, 0, errors.New("This tx from must is nil")
 		}

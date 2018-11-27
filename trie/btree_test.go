@@ -7,6 +7,7 @@ import (
 	"os"
 	"github.com/matrix/go-matrix/common"
 	"strconv"
+	"fmt"
 )
 
 func perm(n int) (out []Item) {
@@ -36,7 +37,13 @@ func mapMake() []map[common.Hash][]byte{
 	}
 	return x
 }
-
+func allrev(t *BTree) (out []Item) {
+	t.Descend(func(a Item) bool {
+		out = append(out, a)
+		return true
+	})
+	return
+}
 
 func rangSpcial(n int, m []map[common.Hash][]byte)(out []Item){
 
@@ -64,7 +71,7 @@ func TestBTree(t *testing.T) {
 	}
 
 	tr1.root.print(os.Stdout,2)
-
+	fmt.Println("============================================================================================")
 	treeRoot := BtreeSaveHash(tr1.root, triedb)
 
 	RestoreBtree(tr2, nil, treeRoot, triedb)

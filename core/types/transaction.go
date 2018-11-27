@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/base58"
 	"strings"
+	"time"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -105,6 +106,7 @@ type Floodtxdata struct {
 	R     *big.Int       `json:"r" gencodec:"required"`
 	TxEnterType byte
 	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
+	CreateTime  uint32 `json:"TxEnterType" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
 
@@ -125,6 +127,7 @@ type txdata struct {
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
+	CreateTime  uint32 `json:"TxEnterType" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -281,6 +284,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
+		CreateTime: uint32(time.Now().Unix()),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -331,6 +335,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
+		CreateTime: uint32(time.Now().Unix()),
 	}
 	if amount != nil {
 		d.Amount.Set(amount)
@@ -395,7 +400,9 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 		tx.data = extData.Data
 		tx.Currency = extData.Currency
 		tx.Mtype = extData.Mtype
-		tx.SetFromLoad(extData.From)
+		if tx.GetMatrixType() == common.ExtraUnGasTxType{
+			tx.SetFromLoad(extData.From)
+		}
 	}
 
 	if err == nil {
@@ -442,10 +449,20 @@ func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool   { return true }
 
 func (tx *Transaction) GetTxHashStruct() {
-	
-} 
+
+}
+func (tx *Transaction) GetCreateTime() uint32{
+	return tx.data.CreateTime
+}
+
 func (tx *Transaction)Call() error{
 	return nil
+}
+func (tx * Transaction)GetLocalHeight() uint32 {
+	if tx.data.Extra != nil && len(tx.data.Extra)>0{
+		return uint32(tx.data.Extra[0].LockHeight)
+	}
+	return uint32(time.Now().Unix())
 }
 func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
 
@@ -515,6 +532,7 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		//如果交易没有做过验签则err不为空。
 		return common.Address{},errors.New("Address is Nil")
 	}
+	var tf common.Address
 	//如果交易做过验签则err为空。
 	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
@@ -522,7 +540,11 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		if !isok{
 			return common.Address{},errors.New("load Address is Nil")
 		}
-		from = tmpfrom
+		if tmpfrom != tf{
+			from = tmpfrom
+		}else {
+			return common.Address{},errors.New("load Address is Nil")
+		}
 	}else {
 		from = tmp.from
 	}
@@ -573,6 +595,7 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		R:     tx.data.R,
 		TxEnterType : tx.data.TxEnterType,
 		IsEntrustTx : tx.data.IsEntrustTx,
+		CreateTime: tx.data.CreateTime,
 		Extra: tx.data.Extra,
 	}
 	return floodtx
@@ -592,6 +615,7 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.R = floodtx.R
 	tx.data.TxEnterType = floodtx.TxEnterType
 	tx.data.IsEntrustTx = floodtx.IsEntrustTx
+	tx.data.CreateTime = floodtx.CreateTime
 	tx.data.Extra = floodtx.Extra
 	tx.Mtype = floodtx.Mtype	//hezi
 	tx.Currency = floodtx.Currency
@@ -676,6 +700,7 @@ func  ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx{
 	tx_Mx.Data.S = tx.data.S
 	tx_Mx.Data.TxEnterType = tx.data.TxEnterType
 	tx_Mx.Data.IsEntrustTx = tx.data.IsEntrustTx
+	tx_Mx.Data.CreateTime = tx.data.CreateTime
 	tx_Mx.Data.Extra = tx.data.Extra
 	tx_Mx.Mtype = tx.Mtype	//hezi
 	tx_Mx.Currency = tx.Currency
@@ -702,6 +727,7 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		S:     tx_Mx.Data.S,
 		TxEnterType : tx_Mx.Data.TxEnterType,
 		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
+		CreateTime:tx_Mx.Data.CreateTime,
 		Extra: tx_Mx.Data.Extra,
 	}
 	if len(tx_Mx.ExtraTo) > 0 {

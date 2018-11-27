@@ -20,6 +20,7 @@ import (
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/txpoolCache"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 //YY
@@ -203,7 +204,7 @@ type NormalTxPool struct {
 	mapErrorTxs   map[*big.Int]*types.Transaction  //YY  存放所有的错误交易（20个区块自动删除）
 	mapTxsTiming  map[common.Hash]time.Time           //YY  需要做定时删除的交易
 	mapHighttx map[uint64][]uint32
-
+	stopCh  chan bool
 	homestead bool
 }
 
@@ -245,6 +246,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 
 	// Subscribe events from blockchain
 	nPool.chainHeadSub = nPool.chain.SubscribeChainHeadEvent(nPool.chainHeadCh)
+
+	nPool.stopCh = make(chan bool)
 
 	// Start the event loop and return
 	nPool.wg.Add(3)
@@ -448,12 +451,23 @@ func (nPool *NormalTxPool) ProcessMsg(m NetworkMsgData) {
 		}
 		nPool.RecvFloodTx(ntx, m.NodeId)
 	case RecvConsensusTxbyN:
-		ntx := make(map[uint32]types.SelfTransaction, 0)
-		if err = json.Unmarshal(msgData.MsgData, &ntx); err != nil {
-			log.Error("func ProcessMsg", "case RecvConsensusTxbyN:Unmarshal_err=", err)
+		mapNtx := make([]*ConsensusNTx,0)
+		err = rlp.DecodeBytes(msgData.MsgData,&mapNtx)
+		if err != nil {
+			log.Error("func ProcessMsg", "case GetConsensusTxbyN:DecodeBytes_err=", err)
 			break
 		}
+		ntx := make(map[uint32]types.SelfTransaction, 0)
+		for _,val := range mapNtx{
+			ntx[val.Key] = val.Value
+		}
 		nPool.RecvConsensusFloodTx(ntx, m.NodeId)
+		//ntx := make(map[uint32]types.SelfTransaction, 0)
+		//if err = json.Unmarshal(msgData.MsgData, &ntx); err != nil {
+		//	log.Error("func ProcessMsg", "case RecvConsensusTxbyN:Unmarshal_err=", err)
+		//	break
+		//}
+		//nPool.RecvConsensusFloodTx(ntx, m.NodeId)
 	case RecvErrTx:
 		listS := make([]*big.Int, 0)
 		if err = json.Unmarshal(msgData.MsgData, &listS); err != nil {
@@ -504,6 +518,8 @@ func (nPool *NormalTxPool) checkList() {
 			if len(gSendst.snlist.slist) >= params.FloodMaxTransactions {
 				nPool.packageSNList()
 			}
+		case <-nPool.stopCh :
+			return
 		}
 	}
 }
@@ -589,6 +605,8 @@ func (nPool *NormalTxPool) Stop() {
 
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
+	nPool.udptxsSub.Unsubscribe()
+	nPool.stopCh <- false
 	nPool.wg.Wait()
 
 	log.Info("Transaction pool stopped")
@@ -824,12 +842,14 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 	if len(listN) <= 0 {
 		return
 	}
-	mapNtx := make(map[uint32]types.SelfTransaction)
+	//mapNtx := make(map[uint32]types.SelfTransaction)
+	mapNtx := make([]*ConsensusNTx,0)
 	nPool.mu.Lock()
 	for _, n := range listN {
 		tx := nPool.getTxbyN(n, false)
 		if tx != nil {
-			mapNtx[n] = tx
+			ntx := &ConsensusNTx{n,tx}
+			mapNtx = append(mapNtx,ntx)
 		} else {
 			log.Info("=======msg_GetConsensusTxByN====YY==tx is nil")
 		}
@@ -839,16 +859,21 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 		log.Info("txpool","msg_GetConsensusTxByNlen(tmpMap)",len(tmpMap))
 		if tmpMap != nil{
 			if len(tmpMap) == len(listN){
-				mapNtx = tmpMap
+				for k,v := range tmpMap{
+					ntx := &ConsensusNTx{k,v}
+					mapNtx = append(mapNtx,ntx)
+				}
 			}else{
 				log.Info("txpool","11111msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
 				for _, n := range listN {
 					tx := nPool.getTxbyN(n,false)
 					if tx != nil {
-						mapNtx[n] = tx
+						ntx := &ConsensusNTx{n,tx}
+						mapNtx = append(mapNtx,ntx)
 					} else {
 						if ttx,ok := tmpMap[n];ok{
-							mapNtx[n] = ttx
+							ntx := &ConsensusNTx{n,ttx}
+							mapNtx = append(mapNtx,ntx)
 						}
 					}
 				}
@@ -857,9 +882,14 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 		}
 	}
 	nPool.mu.Unlock()
-	msData, _ := json.Marshal(mapNtx)
-	nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
-	log.Info("========YY===2", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
+	//msData, _ := json.Marshal(mapNtx)
+	msData, err := rlp.EncodeToBytes(mapNtx)
+	if err == nil{
+		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
+		log.Info("========YY===2", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
+	}else {
+		log.Info("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
+	}
 }
 
 //YY 根据N值获取对应的交易(洪泛)
@@ -1338,7 +1368,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 	}
 	//将交易加入pending
 	if nPool.pending[from] == nil{
-		nPool.pending[from] = newTxList(false)
+		nPool.pending[from] = newTxList(false,"MAN")
 	}
 	nPool.pending[from].Add(tx, 0)
 	nPool.all.Add(tx)

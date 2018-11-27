@@ -18,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	//"sync"
 	"encoding/json"
-	"time"
 	"strconv"
 )
 
@@ -36,15 +35,8 @@ type StateTransition struct {
 	state      vm.StateDB
 	evm        *vm.EVM
 }
-//type mapHashAmont struct {
-//	mapHashamont map[common.Hash][]byte
-//	mu sync.RWMutex
-//}
-//var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont:make(map[common.Hash][]byte)}
-type addrAmont struct {
-	addr common.Address
-	amont *big.Int
-}
+
+
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 //func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 func IntrinsicGas(data []byte) (uint64, error) {
@@ -203,7 +195,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*addrAmont,0)
+	mapTOAmonts := make([]*common.AddrAmont,0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -224,12 +216,12 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	}
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
 	st.state.AddBalance(common.WithdrawAccount,tx.From(), st.value)
-	mapTOAmont := &addrAmont{addr:st.To(),amont:st.value}
+	mapTOAmont := &common.AddrAmont{Addr:st.To(),Amont:st.value}
 	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			st.state.AddBalance(common.WithdrawAccount,tx.From(), ex.Amount)
-			mapTOAmont = &addrAmont{addr:*ex.Recipient,amont:ex.Amount}
+			mapTOAmont = &common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
 			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 			if vmerr != nil {
 				break
@@ -248,12 +240,12 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	}
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[tx.Hash()] = b
-	ut := uint32(time.Now().Unix())
+	ut := tx.GetCreateTime()
 	buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
 	st.state.CommitSaveTx()
 	st.state.AddLog(&types.Log{
-		Address: tx.From(),
+		Address: tx.AmontFrom(),
 		Data:    buf,
 	})
 
@@ -326,15 +318,15 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 			ut2,_ := strconv.Atoi(str)
 			ut=uint32(ut2)
 		}
-		b:=st.state.GetSaveTx(tx.GetMatrixType(),ut,tmphash)
-		mapTOAmonts := make([]*addrAmont,0)
+		b:=st.state.GetSaveTx(tx.GetMatrixType(),ut,tmphash,true)
+		mapTOAmonts := make([]*common.AddrAmont,0)
 		Unmarshalerr:=json.Unmarshal(b,&mapTOAmonts)
 		if Unmarshalerr != nil{
 			return nil, 0, false,Unmarshalerr
 		}
 		for _,ada := range mapTOAmonts{
-			st.state.AddBalance(common.MainAccount,usefrom, ada.amont)
-			st.state.SubBalance(common.WithdrawAccount,usefrom, ada.amont)
+			st.state.AddBalance(common.MainAccount,usefrom, ada.Amont)
+			st.state.SubBalance(common.WithdrawAccount,usefrom, ada.Amont)
 		}
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
@@ -363,7 +355,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*addrAmont,0)
+	mapTOAmonts := make([]*common.AddrAmont,0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -385,13 +377,13 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
 	st.state.AddBalance(common.WithdrawAccount,usefrom, st.value)
 	st.state.SubBalance(common.MainAccount,usefrom, st.value)
-	mapTOAmont := &addrAmont{addr:st.To(),amont:st.value}
+	mapTOAmont := &common.AddrAmont{Addr:st.To(),Amont:st.value}
 	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			st.state.AddBalance(common.WithdrawAccount,usefrom, ex.Amount)
 			st.state.SubBalance(common.MainAccount,usefrom, ex.Amount)
-			mapTOAmont = &addrAmont{addr:*ex.Recipient,amont:ex.Amount}
+			mapTOAmont = &common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
 			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 			if vmerr != nil {
 				break
@@ -411,12 +403,12 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	}
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[tx.Hash()] = b
-	ut := uint32(time.Now().Unix())
+	ut := tx.GetCreateTime()
 	buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
 	st.state.CommitSaveTx()
 	st.state.AddLog(&types.Log{
-		Address: tx.From(),
+		Address: tx.AmontFrom(),
 		Data:    buf,
 	})
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)

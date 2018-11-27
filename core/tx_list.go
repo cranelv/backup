@@ -241,14 +241,17 @@ type txList struct {
 
 // newTxList create a new transaction list for maintaining nonce-indexable fast,
 // gapped, sortable transaction lists.
-func newTxList(strict bool) *txList {
+func newTxList(strict bool,str string) *txList {
 	sortmap := newTxSortedMap()
 	tl := &txList{
 		strict:  strict,
 		txs:     make(map[string]*txSortedMap),
 		costcap: new(big.Int),
 	}
-	tl.txs[""] = sortmap //主币种
+	if str == ""{
+		str = "MAN"
+	}
+	tl.txs[str] = sortmap //主币种
 	return tl
 
 }

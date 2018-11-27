@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"encoding/json"
 	"github.com/matrix/go-matrix/log"
+	"errors"
 )
 
 // Item represents a single object in the tree.
@@ -205,9 +206,13 @@ type bnode struct {
 	cow      *copyOnWriteContext
 	db       *Database
 }
+type TransferTxData struct {
+	Key_Time uint32
+	Value_Tx []map[common.Hash][]byte
+}
 
 type BnodeSave struct{
-	Key []SpcialTxData
+	Key []TransferTxData
 	Child []common.Hash
 }
 
@@ -549,7 +554,7 @@ func (n *bnode) print(w io.Writer, level int) {
 func BtreeSaveHash(node *bnode, db *Database) common.Hash{
 
 	//buf := bytes.NewBuffer([]byte{})
-	tmpnode := &BnodeSave{[]SpcialTxData{}, []common.Hash{}}
+	tmpnode := &BnodeSave{[]TransferTxData{}, []common.Hash{}}
 	for _,it := range node.items {
 		keyItem,ok := it.(SpcialTxData)
 		if !ok{
@@ -562,7 +567,19 @@ func BtreeSaveHash(node *bnode, db *Database) common.Hash{
 			fmt.Println("BtreeSaveHash params is not valid ", buf.Bytes(), err)
 			return common.Hash{}
 		}*/
-		tmpnode.Key = append(tmpnode.Key, keyItem)
+		sorted_keys := make([]string, 0)
+		for k, _ := range keyItem.Value_Tx {
+			sorted_keys = append(sorted_keys, k.String())
+		}
+		sort.Strings(sorted_keys)
+		tmpmaps := make([]map[common.Hash][]byte,0)
+		for _,strhash := range sorted_keys{
+			hash := common.HexToHash(strhash)
+			tmap := make(map[common.Hash][]byte)
+			tmap[hash] = keyItem.Value_Tx[hash]
+			tmpmaps = append(tmpmaps,tmap)
+		}
+		tmpnode.Key = append(tmpnode.Key, TransferTxData{Key_Time:keyItem.Key_Time,Value_Tx:tmpmaps})
 	}
 
 	for _, c := range node.children {
@@ -594,24 +611,30 @@ func BtreeSaveHash(node *bnode, db *Database) common.Hash{
 func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Database) error{
 
 	if (nodeHash == common.Hash{}){
-		fmt.Println("RestoreBtree nodeHash is empty hash")
-		return nil
+		//fmt.Println("RestoreBtree nodeHash is empty hash")
+		return errors.New("RestoreBtree nodeHash is empty hash")
 	}
 	if (nil == itemNode){
 		itemNode = btree.cow.newNode()
 		btree.root = itemNode
 	}
 
-	tmpNodeSave := BnodeSave{[]SpcialTxData{}, []common.Hash{}}
+	tmpNodeSave := BnodeSave{[]TransferTxData{}, []common.Hash{}}
 	nodeData, _:= db.Node(nodeHash)
 	//err := rlp.DecodeBytes(nodeData,&tmpNodeSave)
 	err := json.Unmarshal(nodeData,&tmpNodeSave)
 	if (err != nil){
 		fmt.Println("RestoreBtree node decode err")
-		return nil
+		return errors.New("RestoreBtree node decode err")
 	}
 	for indexItem, it:= range tmpNodeSave.Key{
-		itemNode.items.insertAt(indexItem, it)
+		tm := make(map[common.Hash][]byte)
+		for _,sl := range it.Value_Tx{
+			for k,v := range sl{
+				tm[k] = v
+			}
+		}
+		itemNode.items.insertAt(indexItem, SpcialTxData{it.Key_Time,tm})
 	}
 	for _, c := range tmpNodeSave.Child {
 		childNode := btree.cow.newNode()
@@ -945,7 +968,7 @@ type SpcialTxData struct {
 }
 
 func (a SpcialTxData) Less(b Item) bool {
-	return a.Key_Time < b.(SpcialTxData).Key_Time
+	return a.Key_Time > b.(SpcialTxData).Key_Time
 }
 
 func (a SpcialTxData) InsertTxData(b Item) bool {

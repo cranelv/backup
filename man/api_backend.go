@@ -28,7 +28,6 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
 	"errors"
-	"fmt"
 	"github.com/matrix/go-matrix/core/txinterface"
 )
 
@@ -175,7 +174,11 @@ func (b *ManAPIBackend) GetPoolTransaction(hash common.Hash) types.SelfTransacti
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			return npool.Get(hash)
+			tx := npool.Get(hash)
+			if tx == nil{
+				return nil
+			}
+			return tx
 		} else {
 			return nil
 		}
@@ -235,7 +238,7 @@ func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTrans
 		if ok {
 			//ntxs, _ = npool.Content()
 			ntxs= nil //YYY TODO npool.Content()
-			fmt.Println(npool) //TODO 删除
+			log.Info("file api_backend","TxPoolContent()",npool) //TODO 删除
 		} else {
 			ntxs = nil
 		}

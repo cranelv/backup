@@ -51,6 +51,7 @@ var Link = &Linker{
 	role:         common.RoleNil,
 	selfPeer:     make(map[common.RoleType][]*Peer),
 	quit:         make(chan struct{}),
+	activeQuit:   make(chan struct{}),
 	topNode:      make(map[common.RoleType]map[discover.NodeID][]uint8),
 	topNodeCache: make(map[common.RoleType]map[discover.NodeID][]uint8),
 }
