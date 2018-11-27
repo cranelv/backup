@@ -417,26 +417,26 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	minerReward:=blkreward.CalcRewardMount(env.State,util.MinersBlockReward,common.BlkMinerRewardAddress)
 	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header)
 	if nil!=minersRewardMap{
-		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
 	}
 
 	validatorReward:=blkreward.CalcRewardMount(env.State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
 	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,env.header.Leader, env.header)
 	if nil!=validatorsRewardMap{
-		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})
 	}
 
 	txsReward := txsreward.New(bc)
 	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, env.header.Leader, env.header)
 	if nil!=txsRewardMap{
-		rewardList = append(rewardList,common.RewarTx{CoinType:"man",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
 	}
 
 	lottery:=lottery.New(bc,&randSeed{})
 	lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
 		for _,v :=range lotteryRewardMap{
 			if nil!=v{
-				rewardList = append(rewardList,common.RewarTx{CoinType:"",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+				rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
 			}
 		}
 
