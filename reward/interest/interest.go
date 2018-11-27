@@ -1,7 +1,6 @@
 package interest
 
 import (
-	"fmt"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
@@ -77,8 +76,7 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 
 	if calcInterestPeriod==1||0==(num+1)%uint64(calcInterestPeriod){
 		depositNodes, _ := ca.GetElectedByHeight(new(big.Int).SetUint64(num-1))
-		log.INFO(PackageName, "计算利息", "")
-		fmt.Printf("%s\n", state.Dump())
+		log.INFO(PackageName, "计算利息,高度", num)
 		for _, v := range depositNodes {
 
 			result:=ic.calcNodeInterest(v.Deposit,depositInterestRateList)
@@ -86,12 +84,11 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 			log.INFO(PackageName, "账户", v.Address.String(), "deposit",v.Deposit.String(),  "利息", result.String())
 		}
 		log.INFO(PackageName, "计算利息后", "")
-		fmt.Printf("%s\n", state.Dump())
 	}
 
 	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod) {
 		//1.获取所有利息转到抵押账户 2.清除所有利息
-		log.INFO(PackageName, "将利息转到合约抵押账户", "")
+		log.INFO(PackageName, "将利息转到合约抵押账户,高度", num)
 
 		AllInterestMap := depoistInfo.GetAllInterest(state)
 		Deposit := depoistInfo.GetDeposit(state)
