@@ -136,6 +136,7 @@ func (l *Linker) Start() {
 
 				if !l.broadcastActive {
 					l.ToLink()
+					l.broadcastActive = true
 				}
 			}
 		case <-l.quit:
