@@ -1,14 +1,12 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package manapi
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -36,6 +34,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -493,18 +492,18 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 		return nil, err
 	}
 	b := state.GetBalance(address)
-	if b == nil{
-		b = make(common.BalanceType,0)
+	if b == nil {
+		b = make(common.BalanceType, 0)
 		tmp := new(common.BalanceSlice)
 		var i uint32
-		for i = 0; i <= common.LastAccount; i++{
+		for i = 0; i <= common.LastAccount; i++ {
 			tmp.AccountType = i
 			tmp.Balance = new(big.Int)
-			b = append(b,*tmp)
+			b = append(b, *tmp)
 		}
 	}
 
-	log.Info("GetBalance","余额:",b)
+	log.Info("GetBalance", "余额:", b)
 	return b, state.Error()
 }
 
@@ -762,6 +761,10 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	return nil, err
 }
 
+func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
+	return s.b.ImportSuperBlock(ctx, filePath)
+}
+
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
@@ -829,28 +832,28 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
-		"number":           (*hexutil.Big)(head.Number),
-		"hash":             b.Hash(),
-		"parentHash":       head.ParentHash,
-		"nonce":            head.Nonce,
-		"mixHash":          head.MixDigest,
-		"sha3Uncles":       head.UncleHash,
-		"logsBloom":        head.Bloom,
-		"stateRoot":        head.Root,
-		"miner":            head.Coinbase,
-		"difficulty":       (*hexutil.Big)(head.Difficulty),
-		"totalDifficulty":  (*hexutil.Big)(s.b.GetTd(b.Hash())),
-		"extraData":        hexutil.Bytes(head.Extra),
-		"size":             hexutil.Uint64(b.Size()),
-		"gasLimit":         hexutil.Uint64(head.GasLimit),
-		"gasUsed":          hexutil.Uint64(head.GasUsed),
-		"timestamp":        (*hexutil.Big)(head.Time),
-		"transactionsRoot": head.TxHash,
-		"receiptsRoot":     head.ReceiptHash,
-		"leader":           head.Leader,
-		"elect":            head.Elect,
-		"nettopology":      head.NetTopology,
-		"signatures":       head.Signatures,
+		"number":            (*hexutil.Big)(head.Number),
+		"hash":              b.Hash(),
+		"parentHash":        head.ParentHash,
+		"nonce":             head.Nonce,
+		"mixHash":           head.MixDigest,
+		"sha3Uncles":        head.UncleHash,
+		"logsBloom":         head.Bloom,
+		"stateRoot":         head.Root,
+		"miner":             head.Coinbase,
+		"difficulty":        (*hexutil.Big)(head.Difficulty),
+		"totalDifficulty":   (*hexutil.Big)(s.b.GetTd(b.Hash())),
+		"extraData":         hexutil.Bytes(head.Extra),
+		"size":              hexutil.Uint64(b.Size()),
+		"gasLimit":          hexutil.Uint64(head.GasLimit),
+		"gasUsed":           hexutil.Uint64(head.GasUsed),
+		"timestamp":         (*hexutil.Big)(head.Time),
+		"transactionsRoot":  head.TxHash,
+		"receiptsRoot":      head.ReceiptHash,
+		"leader":            head.Leader,
+		"elect":             head.Elect,
+		"nettopology":       head.NetTopology,
+		"signatures":        head.Signatures,
 		"version":           string(head.Version),
 		"versionSignatures": head.VersionSignatures,
 	}
@@ -917,9 +920,9 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	v, r, s := tx.RawSignatureValues()
 	var addr common.Address
 	if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
-		if index == params.FirstTxIndex{
+		if index == params.FirstTxIndex {
 			from = common.BlkRewardAddress
-		}else if index == params.SecondTxIndex{
+		} else if index == params.SecondTxIndex {
 			from = common.TxGasRewardAddress
 		}
 	}
@@ -1374,7 +1377,7 @@ func (s *PublicTransactionPoolAPI) Sign(addr common.Address, data hexutil.Bytes)
 
 // SignTransactionResult represents a RLP encoded signed transaction.
 type SignTransactionResult struct {
-	Raw hexutil.Bytes      `json:"raw"`
+	Raw hexutil.Bytes         `json:"raw"`
 	Tx  types.SelfTransaction `json:"tx"`
 }
 

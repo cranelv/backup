@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/man/wizard"
 	"io/ioutil"
 	"os"
@@ -570,97 +569,19 @@ func importSupBlock(ctx *cli.Context) error {
 		utils.Fatalf("invalid genesis file: %v", err)
 		return err
 	}
-	//todo :验证超级节点密钥
-	// Open an initialise both full and light databases
+
 	stack := makeFullNode(ctx)
-	chain, chainDb := utils.MakeChain(ctx, stack)
-	var parent *types.Block
-	if genesis.Number < 2 {
-		parent = chain.Genesis()
-
-	} else {
-		parent = chain.GetBlockByHash(genesis.ParentHash)
-	}
-	if nil==parent{
-		utils.Fatalf("parent block is nil")
-		return errors.New("parent block is nil")
-	}
-	var rollbackBlock *types.Block
-	if genesis.Number == 0 {
-
-		rollbackBlock = genesis.ToBlock(chainDb)
-	} else {
-		rollbackBlock = genesis.ToSuperBlock(parent.Header(), chainDb)
-	}
-	if nil == rollbackBlock {
-		return nil
-	}
-	err = chain.DPOSEngine().VerifySuperBlock(chain, rollbackBlock.Header())
-	if err != nil {
-		utils.Fatalf("verify super block sign is failed,%s", err)
-		return errors.New("verify super block sign is failed")
-	}
-	if genesis.Number == 0 {
-		chain.SetHead(0)
-		_, hash, err := core.SetupGenesisBlock(chainDb, genesis)
-		if err != nil {
-			utils.Fatalf("Failed to write genesis block: %v", err)
-		}
-		log.Info("Successfully wrote genesis state", "hash", hash)
-	} else {
-		importManBlock(chain, chainDb, genesis, rollbackBlock)
+	chain, _ := utils.MakeChain(ctx, stack)
+	if chain == nil {
+		utils.Fatalf("make chain err")
+		return errors.New("make chain err")
 	}
 
-	return nil
-}
-
-func importManBlock(chain *core.BlockChain, chainDb mandb.Database, genesis *core.Genesis, superBlock *types.Block) error {
-	block := chain.CurrentBlock()
-	if block == nil {
-		fmt.Println("{}")
-		utils.Fatalf("block not found")
-		return errors.New("block not found")
-	} else {
-		number := chain.CurrentBlock().Number()
-		fmt.Printf("before rolllback number%v\n", number)
-		stateDB, err := state.New(block.Root(), state.NewDatabase(chainDb))
-		if err != nil {
-			utils.Fatalf("could not create new state: %v", err)
-			return err
-		}
-		fmt.Printf("state：%s\n", stateDB.Dump())
-		if genesis.Number > number.Uint64()+1 {
-			utils.Fatalf("number is error ,current : %v ,super : %v", number, genesis.Number)
-			return err
-		}
-		chain.SetHead(genesis.Number - 1)
-		block := chain.CurrentBlock()
-		number = chain.CurrentBlock().Number()
-		fmt.Printf("after rolllback number%v\n", number)
-		if genesis.Number > number.Uint64()+1 {
-			utils.Fatalf("number is error ,current : %v ,super : %v", number, genesis.Number)
-			return err
-		}
-
-		stateDB, err = state.New(block.Root(), state.NewDatabase(chainDb))
-		if err != nil {
-			utils.Fatalf("could not create new state: %v", err)
-			return err
-		}
-		fmt.Printf("state：%s\n", stateDB.Dump())
-
-		chain.WriteBlockWithState(superBlock, nil, stateDB)
-		//superblock := chain.CurrentBlock()
-		number = chain.CurrentBlock().Number()
-		fmt.Printf("after insert supper block  number%v\n", number)
-		stateDB, err = state.New(superBlock.Root(), state.NewDatabase(chainDb))
-		if err != nil {
-			utils.Fatalf("could not create new state: %v", err)
-			return err
-		}
-		fmt.Printf("state：%s\n", stateDB.Dump())
+	if _, err := chain.InsertSuperBlock(genesis); err != nil {
+		utils.Fatalf("insert super block err(%v)", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -727,45 +648,57 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	stack, _ := makeConfigNode(ctx)
-	chainDb := utils.MakeChainDatabase(ctx, stack)
-	var superBlock *types.Header
-	if genesis.Number > 0 {
-		superBlock = genesis.ToSuperBlock(nil, chainDb).Header()
-	} else {
-		superBlock = genesis.ToBlock(chainDb).Header()
+	chain, chainDB := utils.MakeChain(ctx, stack)
+	if chain == nil {
+		utils.Fatalf("make chain err")
 	}
-	if nil == superBlock {
-		return nil
-	}
-	blockHash := superBlock.HashNoSigns()
-	fmt.Println("sign  block is ", blockHash.TerminalString())
-	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
-	wallet := stack.AccountManager().Wallets()[0]
 
+	parent := chain.GetHeaderByHash(genesis.ParentHash)
+	if nil == parent {
+		utils.Fatalf("get parent header err")
+	}
+
+	superBlock := genesis.GenSuperBlock()
+	if nil == superBlock {
+		utils.Fatalf("genesis super block err")
+	}
+
+	// recalculate root hash
+	stateDB := genesis.GenSuperStateDB(parent, state.NewDatabase(chainDB))
+	if nil == stateDB {
+		utils.Fatalf("genesis super state db err")
+	}
+	newHeader := superBlock.Header()
+	newHeader.Root = stateDB.IntermediateRoot(chain.Config().IsEIP158(newHeader.Number))
+
+	// get block hash
+	blockHash := newHeader.HashNoSigns()
+	//todo 优化 签名账户可否不适用全节点，单启指定钱包
+	passPhrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
+	if len(stack.AccountManager().Wallets()) <= 0 {
+		utils.Fatalf("can't find wallet")
+	}
+	wallet := stack.AccountManager().Wallets()[0]
+	if len(wallet.Accounts()) <= 0 {
+		utils.Fatalf("can't find account")
+	}
+	account := wallet.Accounts()[0]
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	err = ks.Unlock(wallet.Accounts()[0], passphrase)
+	if err := ks.Unlock(account, passPhrase); err != nil {
+		utils.Fatalf("unlock account failed")
+	}
+	signBytes, err := ks.SignHash(account, blockHash.Bytes())
 	if err != nil {
-		utils.Fatalf("Unlocked account %v", err)
-		return nil
+		utils.Fatalf("Unlocked account: %v", err)
 	}
-	sign, err := ks.SignHashValidateWithPass(wallet.Accounts()[0], passphrase, blockHash.Bytes(), true)
-	if err != nil {
-		utils.Fatalf("Unlocked account %v", err)
-		return nil
-	}
-	temp := common.BytesToSignature(sign)
-	genesis.Signatures = append(genesis.Signatures, temp)
-	account, _, err := crypto.VerifySignWithValidate(blockHash.Bytes(), sign)
-	//fmt.Printf("Address: {%x}\n", acct.Address)
-	if !account.Equal(wallet.Accounts()[0].Address) {
-		fmt.Errorf("sign block error")
-		return nil
-	}
+
+	sign := common.BytesToSignature(signBytes)
+	genesis.Root = newHeader.Root
+	genesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
 	out, _ := json.MarshalIndent(genesis, "", "  ")
 	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
-		fmt.Errorf("Failed to save genesis file", "err=%v", err)
-		return nil
+		utils.Fatalf("Failed to save genesis file, err = %v", err)
 	}
 	fmt.Println("Exported sign  block to ", pathSplit[0]+"Signed.json")
 	return nil

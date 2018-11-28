@@ -5495,11 +5495,19 @@ var methods = function () {
         call: 'eth_getSelfLevel',
         params: 0
     });
+
+    var importSuperBlock = new Method ({
+        name: 'importSuperBlock',
+        call: 'eth_importSuperBlock',
+        params: 1
+    });
+
     return [
         getBalance,
         getStorageAt,
         getCode,
         getBlock,
+        getSignAccounts,
         getUncle,
         getCompilers,
         getBlockTransactionCount,
@@ -5521,7 +5529,7 @@ var methods = function () {
         getWork,
         getTopology,
         getSelfLevel,
-        getSignAccounts
+        importSuperBlock
     ];
 };
 

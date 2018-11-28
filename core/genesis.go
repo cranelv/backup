@@ -269,32 +269,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	return types.NewBlock(head, nil, nil, nil)
 }
 
-func (g *Genesis) ToSuperBlock(parentHeader *types.Header, db mandb.Database) *types.Block {
-	if db == nil {
-		db = mandb.NewMemDatabase()
-	}
-	var statedb *state.StateDB
-	if nil != parentHeader {
-                var err error
-		statedb, err = state.New(parentHeader.Root, state.NewDatabase(db))
-		if err != nil {
-			log.Error("state new is ", "err", err)
-			return nil
-		}
-		for addr, account := range g.Alloc {
-
-			statedb.AddBalance(common.MainAccount, addr, account.Balance)
-			statedb.SetCode(addr, account.Code)
-			statedb.SetNonce(addr, account.Nonce)
-			for key, value := range account.Storage {
-				statedb.SetState(addr, key, value)
-			}
-		}
-		root := statedb.IntermediateRoot(false)
-		if g.Root != root {
-			log.Info("genesis", "root is error,local root", root, "super root", g.Root)
-		}
-	}
+func (g *Genesis) GenSuperBlock() *types.Block {
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
 		Nonce:             types.EncodeNonce(g.Nonce),
@@ -320,12 +295,30 @@ func (g *Genesis) ToSuperBlock(parentHeader *types.Header, db mandb.Database) *t
 	if g.Difficulty == nil {
 		head.Difficulty = params.GenesisDifficulty
 	}
-	if nil != statedb {
-		statedb.Commit(false)
-		statedb.Database().TrieDB().Commit(g.Root, true)
+	return types.NewBlock(head, nil, nil, nil)
+}
+
+func (g *Genesis) GenSuperStateDB(parentHeader *types.Header, db state.Database) *state.StateDB {
+	if nil == parentHeader || nil == db {
+		return nil
 	}
 
-	return types.NewBlock(head, nil, nil, nil)
+	stateDB, err := state.New(parentHeader.Root, db)
+	if err != nil {
+		log.Error("genesis super block state db", "get parent state db err", err)
+		return nil
+	}
+
+	for addr, account := range g.Alloc {
+		stateDB.AddBalance(common.MainAccount, addr, account.Balance)
+		stateDB.SetCode(addr, account.Code)
+		stateDB.SetNonce(addr, account.Nonce)
+		for key, value := range account.Storage {
+			stateDB.SetState(addr, key, value)
+		}
+	}
+
+	return stateDB
 }
 
 // Commit writes the block and state of a genesis specification to the database.

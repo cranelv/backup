@@ -29,8 +29,6 @@ import (
 
 	"github.com/matrix/go-matrix/core/types"
 
-	"github.com/matrix/go-matrix/core/state"
-
 	"github.com/matrix/go-matrix/common"
 
 	"github.com/matrix/go-matrix/core"
@@ -51,59 +49,43 @@ func MakeWizard(network string) *wizard {
 // makeGenesis creates a new genesis struct based on some user input.
 func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num uint64) {
 	// Construct a default genesis block
-	var header, curheader *types.Header
+	var parentHeader, curHeader *types.Header
 	if num > 1 {
-		header = bc.GetBlockByNumber(num - 1).Header()
-		curheader = bc.GetBlockByNumber(num).Header()
+		parentHeader = bc.GetBlockByNumber(num - 1).Header()
+		curHeader = bc.GetBlockByNumber(num).Header()
 	} else if num == 0 {
-		header = bc.Genesis().Header()
-		curheader = header
+		parentHeader = bc.Genesis().Header()
+		curHeader = parentHeader
 	} else if num == 1 {
-		header = bc.Genesis().Header()
-		curheader = bc.GetBlockByNumber(num).Header()
+		parentHeader = bc.Genesis().Header()
+		curHeader = bc.GetBlockByNumber(num).Header()
 	}
 
 	genesis := &core.Genesis{
-		ParentHash:        header.Hash(),
-		Leader:            curheader.Leader,
-		Elect:             curheader.Elect,
-		NetTopology:       curheader.NetTopology,
-		Mixhash:           header.MixDigest,
+		ParentHash:        parentHeader.Hash(),
+		Leader:            common.HexToAddress("0x8111111111111111111111111111111111111111"),
+		Elect:             curHeader.Elect,
+		NetTopology:       curHeader.NetTopology,
+		Mixhash:           parentHeader.MixDigest,
 		Coinbase:          manparams.InnerMinerNodes[0].Address,
 		Signatures:        make([]common.Signature, 0),
 		Timestamp:         uint64(time.Now().Unix()),
-		GasLimit:          header.GasLimit,
-		Difficulty:        header.Difficulty,
+		GasLimit:          parentHeader.GasLimit,
+		Difficulty:        parentHeader.Difficulty,
 		Alloc:             make(core.GenesisAlloc),
 		ExtraData:         make([]byte, 0),
-		Version:           string(header.Version),
-		VersionSignatures: header.VersionSignatures,
-		Nonce:             header.Nonce.Uint64(),
+		Version:           string(parentHeader.Version),
+		VersionSignatures: parentHeader.VersionSignatures,
+		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
-		GasUsed:           header.GasUsed,
+		GasUsed:           parentHeader.GasUsed,
 	}
 
 	// Figure out which consensus engine to choose
-	fmt.Println()
-
 	genesis.Alloc[common.BlkRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	genesis.Alloc[common.TxGasRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	genesis.Alloc[common.HexToAddress("0x8000000000000000000000000000000000000002")] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 
-	statedb, err := state.New(header.Root, state.NewDatabase(db))
-	if err != nil {
-		log.Error("state new is ", "err", err)
-		return
-	}
-	for addr, account := range genesis.Alloc {
-		statedb.AddBalance(common.MainAccount, addr, account.Balance)
-		statedb.SetCode(addr, account.Code)
-		statedb.SetNonce(addr, account.Nonce)
-		for key, value := range account.Storage {
-			statedb.SetState(addr, key, value)
-		}
-	}
-	genesis.Root = statedb.IntermediateRoot(bc.Config().IsEIP158(new(big.Int).SetUint64(num)))
 	// All done, store the genesis and flush to disk
 	log.Info("Configured new genesis block")
 
@@ -115,8 +97,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		log.Error("Failed to save genesis file", "err", err)
 		return
 	}
-	err = json.Unmarshal(out, w.conf.Genesis)
-	if err != nil {
+	if err := json.Unmarshal(out, w.conf.Genesis); err != nil {
 		log.Error("Failed to save genesis file", "err", err)
 		return
 	}
@@ -125,5 +106,4 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		return
 	}
 	log.Info("Exported existing genesis block")
-
 }

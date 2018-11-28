@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package man
 
@@ -10,6 +9,8 @@ import (
 	"math/big"
 	"time"
 
+	"encoding/json"
+	"fmt"
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -18,18 +19,18 @@ import (
 	"github.com/matrix/go-matrix/core/bloombits"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/man/gasprice"
 	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/event"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
-	"errors"
-	"fmt"
-	"github.com/matrix/go-matrix/core/txinterface"
+	"github.com/pkg/errors"
+	"os"
 )
 
 // ManAPIBackend implements manapi.Backend for full nodes
@@ -124,7 +125,7 @@ func (b *ManAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 }
 
 func (b *ManAPIBackend) GetEVM(ctx context.Context, msg txinterface.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
-	state.SetBalance(common.MainAccount,msg.From(), math.MaxBig256)
+	state.SetBalance(common.MainAccount, msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg.From(), msg.GasPrice(), header, b.man.BlockChain(), nil)
@@ -151,8 +152,33 @@ func (b *ManAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscri
 	return b.man.BlockChain().SubscribeLogsEvent(ch)
 }
 
+func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
+	log.Info("ManAPIBackend", "收到超级区块插入", filePath)
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Error("ManAPIBackend", "超级区块插入", "读取配置文件异常", "err", err)
+		return common.Hash{}, errors.Errorf("reader config file from \"%s\" err (%v)", filePath, err)
+	}
+
+	superGen := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(superGen); err != nil {
+		log.Error("ManAPIBackend", "超级区块插入", "文件数据解码错误", err)
+		file.Close()
+		return common.Hash{}, errors.Errorf("decode config file from \"%s\" err (%v)", filePath, err)
+	}
+	file.Close()
+
+	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	b.man.EventMux().Post(core.NewMinedBlockEvent{Block: superBlock})
+	return superBlock.Hash(), nil
+}
+
 //TODO 调用该方法的时候应该返回错误的切片
-func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) (error) {
+func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) error {
 	//txs := make(types.SelfTransactions, 0)
 	//txs = append(txs, signedTx)
 	return b.man.txPool.AddRemote(signedTx)
@@ -234,7 +260,7 @@ func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTrans
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
 			//ntxs, _ = npool.Content()
-			ntxs= nil //YYY TODO npool.Content()
+			ntxs = nil         //YYY TODO npool.Content()
 			fmt.Println(npool) //TODO 删除
 		} else {
 			ntxs = nil

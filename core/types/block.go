@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package types contains data types related to Matrix consensus.
 package types
@@ -76,10 +75,10 @@ type Header struct {
 	NetTopology common.NetTopology `json:"nettopology"        gencodec:"required"`
 	Signatures  []common.Signature `json:"signatures "        gencodec:"required"`
 
-	Extra     []byte      `json:"extraData"        gencodec:"required"`
-	MixDigest common.Hash `json:"mixHash"          gencodec:"required"`
-	Nonce     BlockNonce  `json:"nonce"            gencodec:"required"`
-	Version   []byte      `json:"version"              gencodec:"required"`
+	Extra             []byte             `json:"extraData"        gencodec:"required"`
+	MixDigest         common.Hash        `json:"mixHash"          gencodec:"required"`
+	Nonce             BlockNonce         `json:"nonce"            gencodec:"required"`
+	Version           []byte             `json:"version"              gencodec:"required"`
 	VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
 }
 
@@ -206,6 +205,10 @@ func (h *Header) IsBroadcastHeader() bool {
 
 func (h *Header) IsReElectionHeader() bool {
 	return common.IsReElectionNumber(h.Number.Uint64())
+}
+
+func (h *Header) IsSuperHeader() bool {
+	return h.Leader == common.HexToAddress("0x8111111111111111111111111111111111111111")
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
@@ -425,9 +428,13 @@ func (b *Block) IsReElectionBlock() bool {
 	return b.header.IsReElectionHeader()
 }
 
+func (b *Block) IsSuperBlock() bool {
+	return b.header.IsSuperHeader()
+}
+
 // TODO: copies
 
-func (b *Block) Uncles() []*Header          { return b.uncles }
+func (b *Block) Uncles() []*Header               { return b.uncles }
 func (b *Block) Transactions() []SelfTransaction { return b.transactions }
 
 func (b *Block) Transaction(hash common.Hash) SelfTransaction {
@@ -466,7 +473,7 @@ func (b *Block) HashNoNonce() common.Hash {
 	return b.header.HashNoNonce()
 }
 
-func (b *Block) HashNoSighs() common.Hash {
+func (b *Block) HashNoSigns() common.Hash {
 	return b.header.HashNoSigns()
 }
 

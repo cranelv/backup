@@ -7,7 +7,6 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -36,9 +35,10 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
-	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -1909,4 +1909,59 @@ func (bc *BlockChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, e
 
 func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
+}
+
+func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
+	if nil == superBlockGen {
+		return nil, errors.New("super block is nil")
+	}
+	if superBlockGen.Number <= 0 {
+		return nil, errors.Errorf("super block`s number(%d) is too low", superBlockGen.Number)
+	}
+	parent := bc.GetBlockByHash(superBlockGen.ParentHash)
+	if nil == parent {
+		return nil, errors.Errorf("get parent block by hash(%s) err", superBlockGen.ParentHash.Hex())
+	}
+	if parent.NumberU64()+1 != superBlockGen.Number {
+		return nil, errors.Errorf("parent block number(%d) + 1 != super block number(%d)", parent.NumberU64(), superBlockGen.Number)
+	}
+
+	block := superBlockGen.GenSuperBlock()
+	if nil == block {
+		return nil, errors.New("genesis super block failed")
+	}
+	if !block.IsSuperBlock() {
+		return nil, errors.New("err, genesis block is not super block!")
+	}
+
+	stateDB := superBlockGen.GenSuperStateDB(parent.Header(), bc.stateCache)
+	if nil == stateDB {
+		return nil, errors.New("genesis super block state db failed")
+	}
+
+	if root := stateDB.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())); block.Root() != root {
+		return nil, errors.Errorf("root not match, local root(%s) != super root(%s)", root.TerminalString(), block.Root().TerminalString())
+	}
+
+	if err := bc.DPOSEngine().VerifySuperBlock(bc, block.Header()); err != nil {
+		return nil, errors.Errorf("verify super block err(%v)", err)
+	}
+
+	//todo 应该在WriteBlock时确定权威链，从而进行回滚
+	if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
+		return nil, errors.Errorf("rollback chain err(%v)", err)
+	}
+	stat, err := bc.WriteBlockWithState(block, nil, stateDB)
+	if err != nil {
+		return nil, errors.Errorf("insert chain err(%v)", err)
+	}
+
+	//发布事件
+	events := append([]interface{}{}, ChainEvent{Block: block, Hash: block.Hash(), Logs: nil})
+	if stat == CanonStatTy {
+		events = append(events, ChainHeadEvent{Block: block})
+	}
+	bc.PostChainEvents(events, nil)
+
+	return block, nil
 }
