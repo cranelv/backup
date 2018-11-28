@@ -60,6 +60,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
 		rewardList = work.Reverse(rewardList)
+		rewardList = nil
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,rewardList)
 		retTxs:=work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))

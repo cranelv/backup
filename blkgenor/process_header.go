@@ -137,6 +137,7 @@ func (p *Process) processHeaderGen() error {
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
 		rewardList = work.Reverse(rewardList)
+		rewardList = nil
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc,rewardList)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
@@ -182,6 +183,7 @@ func (p *Process) processHeaderGen() error {
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
 		rewardList = work.Reverse(rewardList)
+		rewardList = nil
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),rewardList)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))

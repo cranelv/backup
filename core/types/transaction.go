@@ -102,12 +102,12 @@ type Floodtxdata struct {
 	Mtype 		bool			//hezi
 	Currency      string
 	// Signature values
-	V     *big.Int       `json:"v" gencodec:"required"`
-	R     *big.Int       `json:"r" gencodec:"required"`
-	TxEnterType byte
-	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
-	CreateTime  uint32 `json:"TxEnterType" gencodec:"required"`//创建交易时间
-	Extra []Matrix_Extra ` rlp:"tail"`
+	V     *big.Int       		 `json:"v" gencodec:"required"`
+	R     *big.Int               `json:"r" gencodec:"required"`
+	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//是否是委托
+	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
+	CreateTime  uint32           `json:"CreateTime" gencodec:"required"`//创建交易时间
+	Extra []Matrix_Extra         ` rlp:"tail"`
 }
 
 type txdata struct {
@@ -119,16 +119,16 @@ type txdata struct {
 	Payload      []byte          `json:"input"    gencodec:"required"`
 
 	// Signature values
-	V *big.Int `json:"v" gencodec:"required"`
-	R *big.Int `json:"r" gencodec:"required"`
-	S *big.Int `json:"s" gencodec:"required"`
+	V *big.Int                   `json:"v" gencodec:"required"`
+	R *big.Int                   `json:"r" gencodec:"required"`
+	S *big.Int                   `json:"s" gencodec:"required"`
 
 	// This is only used when marshaling to JSON.
-	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
-	CreateTime  uint32 `json:"TxEnterType" gencodec:"required"`//创建交易时间
-	Extra []Matrix_Extra ` rlp:"tail"` //YY
+	Hash  *common.Hash           `json:"hash" rlp:"-"`
+	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//入池类型
+	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
+	CreateTime  uint32           `json:"CreateTime" gencodec:"required"`//创建交易时间
+	Extra []Matrix_Extra         ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
 func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
@@ -255,12 +255,12 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data,typ)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data,typ)
 }
 
 //YY
@@ -320,7 +320,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -334,9 +334,13 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
-		TxEnterType: NormalTxIndex,
+		TxEnterType:  NormalTxIndex,
 		CreateTime: uint32(time.Now().Unix()),
 	}
+	mx := new(Matrix_Extra)
+	mx.TxType = typ
+
+	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
@@ -594,7 +598,7 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		V:     tx.data.V,
 		R:     tx.data.R,
 		TxEnterType : tx.data.TxEnterType,
-		IsEntrustTx : tx.data.IsEntrustTx,
+		IsEntrustTx :tx.data.IsEntrustTx,
 		CreateTime: tx.data.CreateTime,
 		Extra: tx.data.Extra,
 	}

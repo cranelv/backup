@@ -414,7 +414,8 @@ var (
 	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000004")   //彩票
 )
 const (
-	StateDBBtree string = "BTree"
+	StateDBRevocableBtree string = "RevcBTree"
+	StateDBTimeBtree      string = "TimeBtree"
 	OneDaySecond uint32 = 86400 //一天这么多秒
 )
 

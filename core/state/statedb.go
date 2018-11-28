@@ -48,7 +48,8 @@ type StateDB struct {
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
 
-	btrie trie.BTree
+	revocablebtrie trie.BTree //可撤销
+	timebtrie trie.BTree    //定时
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -91,12 +92,19 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
 	}
-	hash := common.BytesToHash(tr.GetKey(common.FromHex(common.StateDBBtree)))
-	if (hash != common.Hash{}){
-		trie.RestoreBtree(&st.btrie,nil,hash,db.TrieDB())
+	hash1 := common.BytesToHash(tr.GetKey(common.FromHex(common.StateDBRevocableBtree)))
+	if (hash1 != common.Hash{}){
+		trie.RestoreBtree(&st.revocablebtrie,nil,hash1,db.TrieDB(),common.ExtraRevocable)
 	}
-	if st.btrie.Len() <= 0{
-		st.NewBTrie()
+	if st.revocablebtrie.Len() <= 0{
+		st.NewBTrie(common.ExtraRevocable)
+	}
+	hash2 := common.BytesToHash(tr.GetKey(common.FromHex(common.StateDBTimeBtree)))
+	if (hash2 != common.Hash{}){
+		trie.RestoreBtree(&st.timebtrie,nil,hash2,db.TrieDB(),common.ExtraTimeTxType)
+	}
+	if st.timebtrie.Len() <= 0{
+		st.NewBTrie(common.ExtraTimeTxType)
 	}
 	return st, nil
 }
@@ -258,20 +266,13 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 func (self *StateDB) Database() Database {
 	return self.db
 }
-func (self *StateDB)GetBTrie(typ int)*trie.BTree{
-	switch typ {
-	case 1:
-		return &self.btrie
-	default:
-		return nil
-	}
-}
+
 //isdel:true 表示需要从map中删除hash，false 表示不需要删除
 func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(buf []byte){
 	var item trie.Item
 	switch typ {
 	case common.ExtraRevocable:
-		item = self.btrie.Get(trie.SpcialTxData{key,nil})
+		item = self.revocablebtrie.Get(trie.SpcialTxData{key,nil})
 		std,ok := item.(trie.SpcialTxData)
 		if !ok{
 			return nil
@@ -284,8 +285,26 @@ func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(b
 		if isdel{
 			delete(std.Value_Tx,hash)
 			item = trie.SpcialTxData{Key_Time:key,Value_Tx:std.Value_Tx}
-			self.btrie.ReplaceOrInsert(item)
-			self.CommitSaveTx()
+			self.revocablebtrie.ReplaceOrInsert(item)
+			self.CommitSaveTx(typ)
+		}
+	case common.ExtraTimeTxType:
+		//todo 需要修改
+		item = self.timebtrie.Get(trie.SpcialTxData{key,nil})
+		std,ok := item.(trie.SpcialTxData)
+		if !ok{
+			return nil
+		}
+		b,ok:=std.Value_Tx[hash]
+		if !ok{
+			return nil
+		}
+		buf = b
+		if isdel{
+			delete(std.Value_Tx,hash)
+			item = trie.SpcialTxData{Key_Time:key,Value_Tx:std.Value_Tx}
+			self.timebtrie.ReplaceOrInsert(item)
+			self.CommitSaveTx(typ)
 		}
 	default:
 
@@ -295,19 +314,33 @@ func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(b
 func (self *StateDB)SaveTx(typ byte,key uint32,data map[common.Hash][]byte){
 	switch typ {
 	case common.ExtraRevocable:
-		self.btrie.ReplaceOrInsert(trie.SpcialTxData{key,data})
+		self.revocablebtrie.ReplaceOrInsert(trie.SpcialTxData{key,data})
+	case common.ExtraTimeTxType:
+		self.timebtrie.ReplaceOrInsert(trie.SpcialTxData{key,data})
 	default:
 
 	}
 }
-func (self *StateDB)CommitSaveTx(){
-	tmproot := self.btrie.Root()
-	hash := trie.BtreeSaveHash(tmproot,self.db.TrieDB())
-	self.trie.TryUpdate(common.FromHex(common.StateDBBtree),hash.Bytes())
+func (self *StateDB)CommitSaveTx(typ byte){
+	var b []byte
+	var hash common.Hash
+	switch typ {
+	case common.ExtraRevocable:
+		tmproot := self.revocablebtrie.Root()
+		hash = trie.BtreeSaveHash(tmproot,self.db.TrieDB(),typ)
+		b = common.FromHex(common.StateDBRevocableBtree)
+	case common.ExtraTimeTxType:
+		tmproot := self.timebtrie.Root()
+		hash = trie.BtreeSaveHash(tmproot,self.db.TrieDB(),typ)
+		b = common.FromHex(common.StateDBTimeBtree)
+	default:
+
+	}
+	self.trie.TryUpdate(b,hash.Bytes())
 }
 func (self *StateDB)UpdateTxForBtree(key uint32){
 	out := make([]trie.Item,0)
-	self.btrie.DescendLessOrEqual(trie.SpcialTxData{Key_Time:key},func(a trie.Item) bool {
+	self.revocablebtrie.DescendLessOrEqual(trie.SpcialTxData{Key_Time:key},func(a trie.Item) bool {
 		out = append(out, a)
 		return true
 	})
@@ -336,8 +369,13 @@ func (self *StateDB)UpdateTxForBtree(key uint32){
 	}
 
 }
-func (self *StateDB)NewBTrie(){
-	self.btrie = *trie.NewBtree(2,self.db.TrieDB())
+func (self *StateDB)NewBTrie(typ byte){
+	switch typ {
+	case common.ExtraRevocable:
+		self.revocablebtrie = *trie.NewBtree(2,self.db.TrieDB())
+	case common.ExtraTimeTxType:
+		self.timebtrie = *trie.NewBtree(2,self.db.TrieDB())
+	}
 }
 
 // StorageTrie returns the storage trie of an account.

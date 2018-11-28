@@ -21,6 +21,7 @@ type Item interface {
 	// If !a.Less(b) && !b.Less(a), we treat this to mean a == b (i.e. we can only
 	// hold one of either a or b in the tree).
 	Less(than Item) bool
+	InsertTxData(i Item) bool
 }
 
 const (
@@ -277,15 +278,9 @@ func (n *bnode) maybeSplitChild(i, maxItems int) bool {
 func (n *bnode) insert(item Item, maxItems int) Item {
 	i, found := n.items.find(item)
 	if found {
-		out := n.items[i]
-		tmp,ok:=out.(SpcialTxData)
-		if !ok {
-			log.Error("file btree","func insert","Assert SpcialTxData fail.Serious error.Serious error.Serious error.")
-			return nil
-		}
-		tmp.InsertTxData(item)
+		n.items[i].InsertTxData(item)
 		//n.items[i] = item
-		return out
+		return n.items[i]
 	}
 	if len(n.children) == 0 {
 		n.items.insertAt(i, item)
@@ -551,39 +546,50 @@ func (n *bnode) print(w io.Writer, level int) {
 }
 
 //Used for Btree save to triedb
-func BtreeSaveHash(node *bnode, db *Database) common.Hash{
+func BtreeSaveHash(node *bnode, db *Database,typ byte) common.Hash{
 
 	//buf := bytes.NewBuffer([]byte{})
 	tmpnode := &BnodeSave{[]TransferTxData{}, []common.Hash{}}
 	for _,it := range node.items {
-		keyItem,ok := it.(SpcialTxData)
-		if !ok{
-			log.Error("file btree","func BtreeSaveHash","Assert SpcialTxData fail.Serious error.Serious error.Serious error.")
-			return common.Hash{}
+		switch typ {
+		case common.ExtraTimeTxType:
+			_,ok := it.(SpcialTxData)
+			if !ok{
+				log.Error("file btree","func BtreeSaveHash","Assert SpcialTxData fail.Serious error.Serious error.Serious error.")
+				return common.Hash{}
+			}
+		case common.ExtraRevocable:
+			keyItem,ok := it.(SpcialTxData)
+			if !ok{
+				log.Error("file btree","func BtreeSaveHash","Assert SpcialTxData fail.Serious error.Serious error.Serious error.")
+				return common.Hash{}
+			}
+			sorted_keys := make([]string, 0)
+			for k, _ := range keyItem.Value_Tx {
+				sorted_keys = append(sorted_keys, k.String())
+			}
+			sort.Strings(sorted_keys)
+			tmpmaps := make([]map[common.Hash][]byte,0)
+			for _,strhash := range sorted_keys{
+				hash := common.HexToHash(strhash)
+				tmap := make(map[common.Hash][]byte)
+				tmap[hash] = keyItem.Value_Tx[hash]
+				tmpmaps = append(tmpmaps,tmap)
+			}
+			tmpnode.Key = append(tmpnode.Key, TransferTxData{Key_Time:keyItem.Key_Time,Value_Tx:tmpmaps})
 		}
+
 		/*
 		err := binary.Write(buf, binary.BigEndian, keyItem)
 		if (err != nil) {
 			fmt.Println("BtreeSaveHash params is not valid ", buf.Bytes(), err)
 			return common.Hash{}
 		}*/
-		sorted_keys := make([]string, 0)
-		for k, _ := range keyItem.Value_Tx {
-			sorted_keys = append(sorted_keys, k.String())
-		}
-		sort.Strings(sorted_keys)
-		tmpmaps := make([]map[common.Hash][]byte,0)
-		for _,strhash := range sorted_keys{
-			hash := common.HexToHash(strhash)
-			tmap := make(map[common.Hash][]byte)
-			tmap[hash] = keyItem.Value_Tx[hash]
-			tmpmaps = append(tmpmaps,tmap)
-		}
-		tmpnode.Key = append(tmpnode.Key, TransferTxData{Key_Time:keyItem.Key_Time,Value_Tx:tmpmaps})
+
 	}
 
 	for _, c := range node.children {
-		tmpnode.Child = append (tmpnode.Child, BtreeSaveHash(c, db))
+		tmpnode.Child = append (tmpnode.Child, BtreeSaveHash(c, db,typ))
 	}
 
 	/*
@@ -608,7 +614,7 @@ func BtreeSaveHash(node *bnode, db *Database) common.Hash{
 	return key
 }
 
-func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Database) error{
+func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Database,typ byte) error{
 
 	if (nodeHash == common.Hash{}){
 		//fmt.Println("RestoreBtree nodeHash is empty hash")
@@ -634,11 +640,16 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Datab
 				tm[k] = v
 			}
 		}
-		itemNode.items.insertAt(indexItem, SpcialTxData{it.Key_Time,tm})
+		switch typ {
+		case common.ExtraRevocable:
+			itemNode.items.insertAt(indexItem, SpcialTxData{it.Key_Time,tm})
+		case common.ExtraTimeTxType:
+
+		}
 	}
 	for _, c := range tmpNodeSave.Child {
 		childNode := btree.cow.newNode()
-		RestoreBtree(btree, childNode, c, db)
+		RestoreBtree(btree, childNode, c, db,typ)
 		itemNode.children = append(itemNode.children, childNode)
 	}
 	return nil
@@ -968,7 +979,7 @@ type SpcialTxData struct {
 }
 
 func (a SpcialTxData) Less(b Item) bool {
-	return a.Key_Time > b.(SpcialTxData).Key_Time
+	return (a.Key_Time - b.(SpcialTxData).Key_Time) >= common.OneDaySecond
 }
 
 func (a SpcialTxData) InsertTxData(b Item) bool {
@@ -977,12 +988,26 @@ func (a SpcialTxData) InsertTxData(b Item) bool {
 	}
 	return true
 }
-
-// Int implements the Item interface for integers.
-type Int int
-
-// Less returns true if int(a) < int(b).
-func (a Int) Less(b Item) bool {
-	return a < b.(Int)
+type SpcialTimeTxData struct {
+	Key_Time uint32
+	Value_Tx map[common.Hash][]byte
 }
+
+func (a SpcialTimeTxData) Less(b Item) bool {
+	return a.Key_Time > b.(SpcialTimeTxData).Key_Time
+}
+
+func (a SpcialTimeTxData) InsertTxData(b Item) bool {
+	for txhash, val := range b.(SpcialTimeTxData).Value_Tx{
+		a.Value_Tx[txhash] = val
+	}
+	return true
+}
+//// Int implements the Item interface for integers.
+//type Int int
+//
+//// Less returns true if int(a) < int(b).
+//func (a Int) Less(b Item) bool {
+//	return a < b.(Int)
+//}
 

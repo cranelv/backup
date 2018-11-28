@@ -34,10 +34,10 @@ type StateDB interface {
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
-	CommitSaveTx()
+	CommitSaveTx(typ byte)
 	GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool)(buf []byte)
 	SaveTx(typ byte,key uint32,data map[common.Hash][]byte)
-	NewBTrie()
+	NewBTrie(typ byte)
 
 	GetStateByteArray(common.Address, common.Hash) []byte
 	SetStateByteArray(common.Address, common.Hash, []byte)

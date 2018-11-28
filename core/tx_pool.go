@@ -1447,7 +1447,8 @@ func (nPool *NormalTxPool) Status(hashes []common.Hash) []TxStatus {
 // Get returns a transaction if it is contained in the pool
 // and nil otherwise.
 func (nPool *NormalTxPool) Get(hash common.Hash) *types.Transaction {
-	return nPool.all.Get(hash)
+	tx := nPool.all.Get(hash)
+	return tx
 }
 
 // removeTx removes a single transaction from the queue, moving all subsequent
@@ -1569,8 +1570,8 @@ func (t *txLookup) Range(f func(hash common.Hash, tx *types.Transaction) bool) {
 func (t *txLookup) Get(hash common.Hash) *types.Transaction {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
-
-	return t.all[hash]
+	tx := t.all[hash]
+	return tx
 }
 
 // Count returns the current number of items in the lookup.
@@ -1585,8 +1586,9 @@ func (t *txLookup) Count() int {
 func (t *txLookup) Add(tx *types.Transaction) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-
-	t.all[tx.Hash()] = tx
+	hash := tx.Hash()
+	log.Info("file tx_pool","all.Add()",hash.String())
+	t.all[hash] = tx
 }
 
 // Remove removes a transaction from the lookup.

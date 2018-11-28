@@ -243,7 +243,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	ut := tx.GetCreateTime()
 	buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
-	st.state.CommitSaveTx()
+	st.state.CommitSaveTx(common.ExtraTimeTxType)
 	st.state.AddLog(&types.Log{
 		Address: tx.AmontFrom(),
 		Data:    buf,
@@ -406,7 +406,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	ut := tx.GetCreateTime()
 	buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
-	st.state.CommitSaveTx()
+	st.state.CommitSaveTx(common.ExtraRevocable)
 	st.state.AddLog(&types.Log{
 		Address: tx.AmontFrom(),
 		Data:    buf,
