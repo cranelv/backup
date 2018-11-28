@@ -305,7 +305,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 // Type return txpool type.
-func (nPool *NormalTxPool) Type() common.TxTypeInt {
+func (nPool *NormalTxPool) Type() byte {
 	return types.NormalTxIndex
 }
 
@@ -775,7 +775,7 @@ func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeI
 }
 
 //YY 接收到Leader打包的交易共识消息时根据N获取tx (调用本方法需要启动协程)
-func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool) {
+func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 	log.Info("========YY===1", "ReturnAllTxsByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		retch <- &RetChan_txpool{nil, nil, resqe}
