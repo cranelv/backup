@@ -797,7 +797,7 @@ func (s *PublicBlockChainAPI) GetSelfLevel() int {
 }
 
 // GetSignAccounts get sign accounts form current block.
-func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, error) {
+func (s *PublicBlockChainAPI) getSignAccountsByNumber1(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, error) {
 	header, err := s.b.HeaderByNumber(ctx, blockNr)
 	if header != nil {
 		return header.SignAccounts(), nil
@@ -805,14 +805,48 @@ func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, block
 	return nil, err
 }
 
-func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash common.Hash) ([]common.VerifiedSign, error) {
+func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign1, error) {
+	verSignList,err := s.getSignAccountsByNumber1(ctx,blockNr)
+	if err != nil{
+		return nil, err
+	}
+
+	accounts := make([]common.VerifiedSign1, 0)
+	for _,tmpverSign := range verSignList{
+		accounts = append(accounts, common.VerifiedSign1{
+			Sign:     tmpverSign.Sign,
+			Account:  base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",tmpverSign.Account))),
+			Validate: tmpverSign.Validate,
+			Stock:    tmpverSign.Stock,
+		})
+	}
+	return accounts,nil
+}
+
+func (s *PublicBlockChainAPI) getSignAccountsByHash1(ctx context.Context, hash common.Hash) ([]common.VerifiedSign, error) {
 	block, err := s.b.GetBlock(ctx, hash)
 	if block != nil {
 		return block.SignAccounts(), nil
 	}
 	return nil, err
 }
+func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash common.Hash) ([]common.VerifiedSign1, error) {
+	verSignList,err := s.getSignAccountsByHash1(ctx,hash)
+	if err != nil{
+		return nil, err
+	}
 
+	accounts := make([]common.VerifiedSign1, 0)
+	for _,tmpverSign := range verSignList{
+		accounts = append(accounts, common.VerifiedSign1{
+			Sign:     tmpverSign.Sign,
+			Account:  base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",tmpverSign.Account))),
+			Validate: tmpverSign.Validate,
+			Stock:    tmpverSign.Stock,
+		})
+	}
+	return accounts,nil
+}
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value

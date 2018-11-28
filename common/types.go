@@ -358,6 +358,13 @@ type VerifiedSign struct {
 	Stock    uint16    `json:"stock"`
 }
 
+type VerifiedSign1 struct {
+	Sign     Signature `json:"sign"`
+	Account  string   `json:"account"`
+	Validate bool      `json:"validate"`
+	Stock    uint16    `json:"stock"`
+}
+
 //
 type Elect struct {
 	Account Address
