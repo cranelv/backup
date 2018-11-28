@@ -20,7 +20,8 @@ import (
 type Linker struct {
 	role common.RoleType
 
-	active bool
+	active          bool
+	broadcastActive bool
 
 	sub event.Subscription
 
@@ -115,6 +116,8 @@ func (l *Linker) Start() {
 				switch {
 				case common.IsBroadcastNumber(height):
 					l.ToLink()
+					l.broadcastActive = true
+
 				case common.IsBroadcastNumber(height + 2):
 					if len(l.linkMap) <= 0 {
 						break
@@ -129,6 +132,10 @@ func (l *Linker) Start() {
 					break
 				default:
 					l.sendToAllPeersPing()
+				}
+
+				if !l.broadcastActive {
+					l.ToLink()
 				}
 			}
 		case <-l.quit:
