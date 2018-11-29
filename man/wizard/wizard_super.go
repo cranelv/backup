@@ -51,21 +51,23 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	// Construct a default genesis block
 	var parentHeader, curHeader *types.Header
 	if num > 1 {
-		parentHeader = bc.GetBlockByNumber(num - 1).Header()
-		curHeader = bc.GetBlockByNumber(num).Header()
+		parentHeader = bc.GetHeaderByNumber(num - 1)
+		curHeader = bc.GetHeaderByNumber(num)
 	} else if num == 0 {
 		parentHeader = bc.Genesis().Header()
 		curHeader = parentHeader
 	} else if num == 1 {
 		parentHeader = bc.Genesis().Header()
-		curHeader = bc.GetBlockByNumber(num).Header()
+		curHeader = bc.GetHeaderByNumber(num)
+	}
+	if parentHeader == nil {
+		log.Error("get parent header err!")
+		return
 	}
 
 	genesis := &core.Genesis{
 		ParentHash:        parentHeader.Hash(),
 		Leader:            common.HexToAddress("0x8111111111111111111111111111111111111111"),
-		Elect:             curHeader.Elect,
-		NetTopology:       curHeader.NetTopology,
 		Mixhash:           parentHeader.MixDigest,
 		Coinbase:          manparams.InnerMinerNodes[0].Address,
 		Signatures:        make([]common.Signature, 0),
@@ -79,6 +81,14 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
+	}
+
+	if curHeader != nil {
+		genesis.Elect = curHeader.Elect
+		genesis.NetTopology = curHeader.NetTopology
+	} else {
+		genesis.Elect = make([]common.Elect, 0)
+		genesis.NetTopology = common.NetTopology{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData, 0)}
 	}
 
 	// Figure out which consensus engine to choose

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"strconv"
@@ -123,11 +122,4 @@ func (self *controller) setTimer(outTime int64, timer *time.Timer) {
 
 func (self *controller) curTurnInfo() string {
 	return "共识轮次(" + strconv.Itoa(int(self.dc.curConsensusTurn)) + ")&重选轮次(" + strconv.Itoa(int(self.dc.curReelectTurn)) + ")"
-}
-
-func (self *controller) isSupperBlock(header *types.Header) bool {
-	if header == nil {
-		return false
-	}
-	return header.Leader == common.HexToAddress("0x8111111111111111111111111111111111111111")
 }
