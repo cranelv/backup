@@ -193,7 +193,7 @@ It expects the genesis file as argument.`,
 
 	importSupBlockCommand = cli.Command{
 		Action:    utils.MigrateFlags(importSupBlock),
-		Name:      "importSupBLock",
+		Name:      "importSuperBlock",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath>",
 		Flags: []cli.Flag{
