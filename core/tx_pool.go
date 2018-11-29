@@ -203,7 +203,7 @@ type NormalTxPool struct {
 	mapErrorTxs   map[*big.Int]*types.Transaction  //YY  存放所有的错误交易（20个区块自动删除）
 	mapTxsTiming  map[common.Hash]time.Time           //YY  需要做定时删除的交易
 	mapHighttx map[uint64][]uint32
-
+	stopCh  chan bool
 	homestead bool
 }
 
@@ -245,6 +245,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 
 	// Subscribe events from blockchain
 	nPool.chainHeadSub = nPool.chain.SubscribeChainHeadEvent(nPool.chainHeadCh)
+
+	nPool.stopCh = make(chan bool)
 
 	// Start the event loop and return
 	nPool.wg.Add(3)
@@ -515,6 +517,8 @@ func (nPool *NormalTxPool) checkList() {
 			if len(gSendst.snlist.slist) >= params.FloodMaxTransactions {
 				nPool.packageSNList()
 			}
+		case <-nPool.stopCh :
+			return
 		}
 	}
 }
@@ -600,6 +604,8 @@ func (nPool *NormalTxPool) Stop() {
 
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
+	nPool.udptxsSub.Unsubscribe()
+	nPool.stopCh <- false
 	nPool.wg.Wait()
 
 	log.Info("Transaction pool stopped")

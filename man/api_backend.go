@@ -175,7 +175,11 @@ func (b *ManAPIBackend) GetPoolTransaction(hash common.Hash) types.SelfTransacti
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			return npool.Get(hash)
+			tx := npool.Get(hash)
+			if tx == nil{
+				return nil
+			}
+			return tx
 		} else {
 			return nil
 		}
