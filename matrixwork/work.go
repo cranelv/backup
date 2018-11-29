@@ -75,7 +75,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 	}
 
 	var coalescedLogs []*types.Log
-	tmpRetmap := make(map[common.TxTypeInt][]uint32)
+	tmpRetmap := make(map[byte][]uint32)
 	for _, txer := range txser {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {

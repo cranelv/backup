@@ -13,7 +13,7 @@ import (
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.
 type NewTxsEvent struct {
 	Txs      types.SelfTransactions
-	poolType common.TxTypeInt
+	poolType byte
 }
 
 //type NewSNEvent struct{ SN map[*big.Int]uint32 } //by hezi

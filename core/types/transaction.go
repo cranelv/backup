@@ -94,7 +94,7 @@ type Floodtxdata struct {
 	// Signature values
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
-	TxEnterType common.TxTypeInt
+	TxEnterType byte
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
@@ -114,7 +114,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
@@ -130,12 +130,12 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data,typ)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data,typ)
 }
 
 //YY
@@ -158,7 +158,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
-		TxEnterType: NormalTxIndex,
+		TxEnterType: 0,
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -194,7 +194,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -210,6 +210,9 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
 	}
+	mx := new(Matrix_Extra)
+	mx.TxType = typ
+	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
@@ -298,7 +301,7 @@ func (tx *Transaction) GetTxHashStruct() {
 func (tx *Transaction)Call() error{
 	return nil
 }
-func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
+func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 

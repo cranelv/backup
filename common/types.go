@@ -397,6 +397,6 @@ const (
 
 type TxTypeInt uint8
 type RetCallTxN struct {
-	TXt   TxTypeInt
+	TXt   byte//TxTypeInt
 	ListN []uint32
 }
