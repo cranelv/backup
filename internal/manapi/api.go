@@ -187,7 +187,9 @@ func (s *PublicAccountAPI) Accounts() []string {
 	strAddrList := make([]string, 0)
 	for _, wallet := range s.am.Wallets() {
 		for _, account := range wallet.Accounts() {
-			//addresses = append(addresses, account.Address)
+			if account.Address.Equal(common.Address{}){
+				continue
+			}
 			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",account.Address)))
 			strAddrList = append(strAddrList,strAddr)
 		}
