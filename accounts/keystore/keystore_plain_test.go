@@ -6,9 +6,11 @@
 package keystore
 
 import (
+	"bufio"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/matrix/go-matrix/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -95,7 +97,7 @@ func TestKeyStorePassphraseVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	addr0 := common.HexToAddress("e0b98f47c977267581df784de664074cad88c736")
-	sig, error := crypto.SignWithVersion(common.HexToHash("1.0.0-stable").Bytes(), k2.PrivateKey)
+	sig, error := crypto.SignWithVersion(common.HexToHash("1.0.1-stable").Bytes(), k2.PrivateKey)
 	fmt.Println("sig", sig)
 	if nil != error {
 		fmt.Println("Sign Version Error:%v", sig)
@@ -138,7 +140,7 @@ func TestKeyStorePassphraseHeader(t *testing.T) {
 	fmt.Println(" please input sigh hash")
 
 	addr0 := common.HexToAddress("e0b98f47c977267581df784de664074cad88c736")
-	sig, error := crypto.SignWithVersion(common.HexToHash("1.0.0-stable").Bytes(), key.PrivateKey)
+	sig, error := crypto.SignWithVersion(common.HexToHash("1.0.1-stable").Bytes(), key.PrivateKey)
 	fmt.Println("sig", sig)
 	if nil != error {
 		fmt.Println("Sign Version Error:%v", sig)
