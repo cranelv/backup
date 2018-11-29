@@ -24,6 +24,7 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
@@ -716,7 +717,6 @@ func signBlock(ctx *cli.Context) error {
 	return nil
 }
 
-
 func signVersion(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
@@ -734,16 +734,6 @@ func signVersion(ctx *cli.Context) error {
 	}
 
 	stack, _ := makeConfigNode(ctx)
-	chainDb := utils.MakeChainDatabase(ctx, stack)
-	var superBlock *types.Header
-	if genesis.Number > 0 {
-		superBlock = genesis.ToSuperBlock(nil, chainDb).Header()
-	} else {
-		superBlock = genesis.ToBlock(chainDb).Header()
-	}
-	if nil == superBlock {
-		return nil
-	}
 	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
 	wallet := stack.AccountManager().Wallets()[0]
 
