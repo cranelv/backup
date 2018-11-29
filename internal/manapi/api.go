@@ -1100,6 +1100,10 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		IsEntrustTx:    data.IsEntrustTx,
 		Currency:       data.Currency,
 	}
+	//内部发送的交易没有币种，默认为MAN
+	if data.Currency == ""{
+		data.Currency = "MAN"
+	}
 	result.From = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",data.From)))
 	result.To = new(string)
 	*result.To = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",*data.To)))
