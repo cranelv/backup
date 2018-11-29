@@ -678,7 +678,7 @@ func signBlock(ctx *cli.Context) error {
 	if nil == parent {
 		utils.Fatalf("get parent header err")
 	}
-
+	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
 		utils.Fatalf("genesis super block err")
@@ -753,15 +753,15 @@ func signVersion(ctx *cli.Context) error {
 	account, err := crypto.VerifySignWithVersion(common.BytesToHash([]byte(genesis.Version)).Bytes(), sign)
 	//fmt.Printf("Address: {%x}\n", acct.Address)
 	if !account.Equal(wallet.Accounts()[0].Address) {
-		fmt.Errorf("sign block error")
+		utils.Fatalf("sign verion error")
 		return nil
 	}
 	pathSplit := strings.Split(genesisPath, ".json")
 	out, _ := json.MarshalIndent(genesis, "", "  ")
-	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
+	if err := ioutil.WriteFile(pathSplit[0]+"VersionSigned.json", out, 0644); err != nil {
 		fmt.Errorf("Failed to save genesis file", "err=%v", err)
 		return nil
 	}
-	fmt.Println("Exported sign  block to ", pathSplit[0]+"Signed.json")
+	fmt.Println("Exported sign  version to ", pathSplit[0]+"VersionSigned.json")
 	return nil
 }
