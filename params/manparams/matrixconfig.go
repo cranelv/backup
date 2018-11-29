@@ -71,6 +71,8 @@ type NodeInfo struct {
 var BroadCastNodes = []NodeInfo{}
 var InnerMinerNodes = []NodeInfo{}
 var FoundationNodes = []NodeInfo{}
+var SuperVersionNodes = []NodeInfo{}
+var SuperRollbackNodes = []NodeInfo{}
 
 func Config_Init(Config_PATH string) {
 	log.INFO("Config_Init 函数", "Config_PATH", Config_PATH)
@@ -103,14 +105,14 @@ func Config_Init(Config_PATH string) {
 		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
 	}
 
-	params.SuperVersion = v.SuperVersion
-	if len(params.SuperVersion) <= 0 {
+	SuperVersionNodes = v.SuperVersion
+	if len(SuperVersionNodes) <= 0 {
 		fmt.Println("无版本超级节点")
 		os.Exit(-1)
 	}
 
-	params.SuperRollback = v.SuperRollback
-	if len(params.SuperRollback) <= 0 {
+	SuperRollbackNodes = v.SuperRollback
+	if len(SuperRollbackNodes) <= 0 {
 		fmt.Println("无回滚超级节点")
 		os.Exit(-1)
 	}
@@ -135,8 +137,8 @@ type Config struct {
 	BroadNode          []NodeInfo
 	InnerMinerNode     []NodeInfo
 	FoundationNode     []NodeInfo
-	SuperVersion   []string
-	SuperRollback  []string
+	SuperVersion       []NodeInfo
+	SuperRollback      []NodeInfo
 	RandomConfig       map[string]string
 	ElectPlugs         string
 	ReelectionInterval int

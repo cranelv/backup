@@ -582,6 +582,8 @@ func importSupBlock(ctx *cli.Context) error {
 		return err
 	}
 
+	chain.Stop()
+
 	return nil
 }
 
@@ -658,21 +660,12 @@ func signBlock(ctx *cli.Context) error {
 		utils.Fatalf("get parent header err")
 	}
 
-	superBlock := genesis.GenSuperBlock()
+	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
 		utils.Fatalf("genesis super block err")
 	}
-
-	// recalculate root hash
-	stateDB := genesis.GenSuperStateDB(parent, state.NewDatabase(chainDB))
-	if nil == stateDB {
-		utils.Fatalf("genesis super state db err")
-	}
-	newHeader := superBlock.Header()
-	newHeader.Root = stateDB.IntermediateRoot(chain.Config().IsEIP158(newHeader.Number))
-
 	// get block hash
-	blockHash := newHeader.HashNoSigns()
+	blockHash := superBlock.HashNoSigns()
 	//todo 优化 签名账户可否不适用全节点，单启指定钱包
 	passPhrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
 	if len(stack.AccountManager().Wallets()) <= 0 {
@@ -693,7 +686,8 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	genesis.Root = newHeader.Root
+	genesis.Root = superBlock.Root()
+	genesis.TxHash = superBlock.TxHash()
 	genesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
 	out, _ := json.MarshalIndent(genesis, "", "  ")

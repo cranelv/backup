@@ -1,10 +1,9 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package mtxdpos
 
 import (
-	"github.com/matrix/go-matrix/params"
 	"math"
 
 	"github.com/matrix/go-matrix/common"
@@ -13,15 +12,15 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 )
 
 const (
-	DPOSTargetSignCountRatio = 0.66667
-	DPOSTargetStockRatio     = 0 // 暂时关闭股权的要求
-	DPOSMinStockCount        = 3
-	DPOSFullSignThreshold    = 7
+	DPOSTargetSignCountRatio   = 0.66667
+	DPOSTargetStockRatio       = 0 // 暂时关闭股权的要求
+	DPOSMinStockCount          = 3
+	DPOSFullSignThreshold      = 7
 	SuperNodeFullSignThreshold = 3
 )
 
@@ -63,13 +62,14 @@ func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
 func (md *MtxDPOS) VerifyVersion(reader consensus.ValidatorReader, header *types.Header) error {
-	targetCount := md.calcSuperNodeTarget(len(params.SuperVersion))
+	targetCount := md.calcSuperNodeTarget(len(manparams.SuperVersionNodes))
 
 	if len(header.Version) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
 		return errSignCountErr
 	}
-	verifiedVersion := md.verifyHashWithSuperNodes(common.HexToHash(string(header.Version)), header.VersionSignatures, params.SuperVersion)
+
+	verifiedVersion := md.verifyHashWithSuperNodes(common.HexToHash(string(header.Version)), header.VersionSignatures, manparams.SuperVersionNodes)
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errSignCountErr
@@ -87,22 +87,13 @@ func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
 	return targetCount
 }
 
-func (md *MtxDPOS) VerifyVersions(reader consensus.ValidatorReader, headers []*types.Header) error {
-	for _, header := range headers {
-		err := md.VerifyVersion(reader, header)
-		if nil != err {
-			return err
-		}
-	}
-	return nil
-}
-func (md *MtxDPOS) VerifySuperBlock(reader consensus.ValidatorReader, header *types.Header) error {
-	targetCount := md.calcSuperNodeTarget(len(params.SuperRollback))
+func (md *MtxDPOS) checkSuperBlock(header *types.Header) error {
+	targetCount := md.calcSuperNodeTarget(len(manparams.SuperRollbackNodes))
 	if len(header.Signatures) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
 		return errSignCountErr
 	}
-	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, params.SuperRollback)
+	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, manparams.SuperRollbackNodes)
 	if len(verifiedSigh) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedSigh), "target", targetCount, "hash", header.HashNoSigns().TerminalString())
 		return errSignCountErr
@@ -110,7 +101,7 @@ func (md *MtxDPOS) VerifySuperBlock(reader consensus.ValidatorReader, header *ty
 	return nil
 }
 
-func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []common.Signature, superNodes []string) map[common.Address]byte {
+func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []common.Signature, superNodes []manparams.NodeInfo) map[common.Address]byte {
 	verifiedSigh := make(map[common.Address]byte, 0)
 	for _, sigh := range signatures {
 		account, _, err := crypto.VerifySignWithValidate(hash.Bytes(), sigh.Bytes())
@@ -120,7 +111,7 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 		}
 		findFlag := 0
 		for _, superAccount := range superNodes {
-			if account.Equal(common.HexToAddress(superAccount)) {
+			if account == superAccount.Address {
 				findFlag = 1
 				break
 			}
@@ -136,9 +127,16 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 	return verifiedSigh
 }
 func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.Header) error {
+	if nil == header {
+		return errors.New("header is nil")
+	}
 	if err := md.VerifyVersion(reader, header); err != nil {
 		log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
 		return err
+	}
+
+	if header.IsSuperHeader() {
+		return md.checkSuperBlock(header)
 	}
 
 	if common.IsBroadcastNumber(header.Number.Uint64()) {
@@ -151,7 +149,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 	}
 
 	hash := header.HashNoSignsAndNonce()
-	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash,"txhash:",header.TxHash.TerminalString())
+	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash, "txhash:", header.TxHash.TerminalString())
 
 	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
 	return err
@@ -167,10 +165,6 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 		err      error
 	)
 	for _, header := range headers {
-		if err := md.VerifyVersion(reader, header); err != nil {
-			log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
-			return err
-		}
 		if nil == preGraph {
 			preGraph, err = md.getValidatorGraph(reader, header.ParentHash)
 			if err != nil {
@@ -178,22 +172,34 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 			}
 		}
 
+		if err := md.VerifyVersion(reader, header); err != nil {
+			log.INFO("MtxDPOS", "VerifyBlocks ", "验证版本", "版本号不正确 err", err)
+			return err
+		}
+
 		hash := header.HashNoSignsAndNonce()
 		number := header.Number.Uint64()
-		if err := md.VerifySuperBlock(reader, header); err != nil {
-		if common.IsBroadcastNumber(number) {
-			err = md.verifyBroadcastBlock(header)
+
+		if header.IsSuperHeader() {
+			err = md.checkSuperBlock(header)
 			if err != nil {
 				return errors.Errorf("header(hash:%s, number:%d) verify Broadcast Block err: %v", hash.Hex(), number, err)
 			}
 		} else {
-			stocks := md.graph2ValidatorStocks(preGraph)
-			_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
-			if err != nil {
-				return errors.Errorf("header(hash:%s, number:%d) dpos verify err: %v", hash.Hex(), number, err)
+			if common.IsBroadcastNumber(number) {
+				err = md.verifyBroadcastBlock(header)
+				if err != nil {
+					return errors.Errorf("header(hash:%s, number:%d) verify Broadcast Block err: %v", hash.Hex(), number, err)
+				}
+			} else {
+				stocks := md.graph2ValidatorStocks(preGraph)
+				_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
+				if err != nil {
+					return errors.Errorf("header(hash:%s, number:%d) dpos verify err: %v", hash.Hex(), number, err)
+				}
 			}
 		}
-		}
+
 		preGraph, err = preGraph.Transfer2NextGraph(header.Number.Uint64(), &header.NetTopology, nil)
 		if err != nil {
 			return errors.Errorf("header(hash:%s, number:%d) gen next topology err: %v", hash.Hex(), number, err)
