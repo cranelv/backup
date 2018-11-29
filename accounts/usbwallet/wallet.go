@@ -557,3 +557,7 @@ func (w *wallet) SignHashValidate(account accounts.Account, hash []byte, validat
 func (w *wallet) SignHashValidateWithPass(account accounts.Account, passphrase string, hash []byte, validate bool) ([]byte, error) {
 	return nil, accounts.ErrNotSupported
 }
+
+func (w *wallet)SignVrfWithPass(account accounts.Account,passphrase string ,msg []byte)([]byte,[]byte,[]byte,error){
+	return nil,nil,nil,accounts.ErrNotSupported
+}

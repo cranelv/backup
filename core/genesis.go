@@ -39,6 +39,7 @@ type Genesis struct {
 	Timestamp   uint64              `json:"timestamp"`
 	ExtraData   []byte              `json:"extraData"`
 	Version     []byte              `json:"version"`
+	VrfValue    []byte              `json:"vrfvalue"`
 	Leader      common.Address      `json:"leader"`
 	Elect       []common.Elect      `json:"elect"    gencodec:"required"`
 	NetTopology common.NetTopology  `json:"nettopology"       gencodec:"required"`
@@ -242,6 +243,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 		ParentHash:  g.ParentHash,
 		Extra:       g.ExtraData,
 		Version:     g.Version,
+		VrfValue:    g.VrfValue,
 		Elect:       g.Elect,
 		NetTopology: g.NetTopology,
 		Signatures:  g.Signatures,

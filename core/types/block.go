@@ -74,12 +74,13 @@ type Header struct {
 	Time        *big.Int           `json:"timestamp"        gencodec:"required"`
 	Elect       []common.Elect     `json:"elect"        gencodec:"required"`
 	NetTopology common.NetTopology `json:"nettopology"        gencodec:"required"`
-	Signatures  []common.Signature `json:"signatures "        gencodec:"required"`
+	Signatures  []common.Signature `json:"signatures"        gencodec:"required"`
 
 	Extra     []byte      `json:"extraData"        gencodec:"required"`
 	MixDigest common.Hash `json:"mixHash"          gencodec:"required"`
 	Nonce     BlockNonce  `json:"nonce"            gencodec:"required"`
 	Version   []byte      `json:"version"              gencodec:"required"`
+	VrfValue []byte       `json:"vrfvalue"        gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -182,6 +183,8 @@ func (h *Header) IsReElectionHeader() bool {
 	return common.IsReElectionNumber(h.Number.Uint64())
 }
 
+
+
 func rlpHash(x interface{}) (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, x)
@@ -261,7 +264,6 @@ type storageblock struct {
 // and receipts.
 func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts []*Receipt) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
-
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
@@ -348,6 +350,10 @@ func CopyHeader(h *Header) *Header {
 	if len(h.Version) > 0 {
 		cpy.Version = make([]byte, len(h.Version))
 		copy(cpy.Version, h.Version)
+	}
+	if len(h.VrfValue)>0{
+		cpy.VrfValue=make([]byte,len(h.VrfValue))
+		copy(cpy.VrfValue,h.VrfValue)
 	}
 	return &cpy
 }
@@ -520,3 +526,5 @@ func (self blockSorter) Swap(i, j int) {
 func (self blockSorter) Less(i, j int) bool { return self.by(self.blocks[i], self.blocks[j]) }
 
 func Number(b1, b2 *Block) bool { return b1.header.Number.Cmp(b2.header.Number) < 0 }
+
+

@@ -463,8 +463,9 @@ type blockStats struct {
 	Leader      common.Address     `json:"leader"            `
 	Elect       []common.Elect     `json:"elect"        `
 	NetTopology common.NetTopology `json:"nettopology"       `
-	Signatures  []common.Signature `json:"signatures "        `
-	Version     []byte             `json:" version "             `
+	Signatures  []common.Signature `json:"signatures"        `
+	Version     []byte             `json:"version"             `
+	VrfValue    []byte             `json:"vrfvalue"`
 }
 
 // txStats is the information to report about individual transactions.
@@ -547,6 +548,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		NetTopology: header.NetTopology,
 		Signatures:  header.Signatures,
 		Version:     header.Version,
+		VrfValue:header.VrfValue,
 	}
 }
 

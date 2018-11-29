@@ -44,7 +44,7 @@ func (p *Process) sendMineReqFunc(data interface{}, times uint32) {
 	hash := req.Header.HashNoSignsAndNonce()
 	//给矿工发送区块验证结果
 	log.INFO(p.logExtraInfo(), "发出挖矿请求, Header hash with signs", hash, "次数", times, "高度", p.number)
-	p.pm.hd.SendNodeMsg(mc.HD_MiningReq, req, common.RoleMiner, nil)
+	p.pm.hd.SendNodeMsg(mc.HD_MiningReq, req, common.RoleMiner|common.RoleInnerMiner, nil)
 }
 
 func (p *Process) startPosedReqSender(req *mc.HD_BlkConsensusReqMsg) {

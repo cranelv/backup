@@ -851,7 +851,8 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 		"elect":            head.Elect,
 		"nettopology":      head.NetTopology,
 		"signatures":       head.Signatures,
-		"version":          hexutil.Bytes(head.Version),
+		"version":          string(hexutil.Bytes(head.Version)),
+		"vrfvalue":  hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {

@@ -68,7 +68,7 @@ func CalcAllValueFunction(nodelist []vm.DepositDetail) []Stf { //nodelist []Myno
 	for _, item := range nodelist {
 		self := SelfNodeInfo{nodeid: item.NodeID.String(), stk: float64(item.Deposit.Uint64()), uptime: int(item.OnlineTime.Uint64()), tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
 		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.deposit_stake()*self.Coef_stk)
-		//		CapitalMap[self.nodeid] = float32(value)
+		//		//		CapitalMap[self.nodeid] = float32(value)
 		CapitalMap = append(CapitalMap, Stf{Str: self.nodeid, Flot: float64(value)})
 	}
 	return CapitalMap

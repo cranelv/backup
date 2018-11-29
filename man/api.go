@@ -480,6 +480,12 @@ func (api *PrivateDebugAPI) Preimage(ctx context.Context, hash common.Hash) (hex
 func (api *PrivateDebugAPI) GetBadBlocks(ctx context.Context) ([]core.BadBlockArgs, error) {
 	return api.man.BlockChain().BadBlocks()
 }
+func (api *PrivateDebugAPI)GetCommit(ctx context.Context)([]common.CommitContext,error){
+	/*for _,v:=range common.PutCommit{
+		fmt.Println(v)
+	}*/
+	return common.PutCommit,nil
+}
 
 // StorageRangeResult is the result of a debug_storageRangeAt API call.
 type StorageRangeResult struct {
