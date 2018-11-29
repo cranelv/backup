@@ -113,6 +113,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	//运行交易
+	log.Info("file process_block","func ProcessFullBlockRsp:YYYYYYYY:txs",rsp.Txs)
 	receipts, stateDB, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
