@@ -1966,7 +1966,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 		return nil, errors.Errorf("verify super block err(%v)", err)
 	}
 
-	//todo 应该在WriteBlock时确定权威链，从而进行回滚
+	//todo 应该在InsertChain时确定权威链，从而进行回滚
 	if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
 		return nil, errors.Errorf("rollback chain err(%v)", err)
 	}
