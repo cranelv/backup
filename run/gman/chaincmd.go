@@ -244,6 +244,24 @@ participating.
 
 It expects the genesis file as argument.`,
 	}
+
+	sighVersionCommand = cli.Command{
+		Action:    utils.MigrateFlags(signVersion),
+		Name:      "sighverison",
+		Usage:     "Bootstrap and rollback a new super block",
+		ArgsUsage: "<genesisPath> blockNum",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.PasswordFileFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
 )
 
 // initGenesis will initialise the given JSON format genesis file and writes it as
@@ -756,6 +774,66 @@ func signBlock(ctx *cli.Context) error {
 	temp := common.BytesToSignature(sign)
 	genesis.Signatures = append(genesis.Signatures, temp)
 	account, _, err := crypto.VerifySignWithValidate(blockHash.Bytes(), sign)
+	//fmt.Printf("Address: {%x}\n", acct.Address)
+	if !account.Equal(wallet.Accounts()[0].Address) {
+		fmt.Errorf("sign block error")
+		return nil
+	}
+	pathSplit := strings.Split(genesisPath, ".json")
+	out, _ := json.MarshalIndent(genesis, "", "  ")
+	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
+		fmt.Errorf("Failed to save genesis file", "err=%v", err)
+		return nil
+	}
+	fmt.Println("Exported sign  block to ", pathSplit[0]+"Signed.json")
+	return nil
+}
+
+
+func signVersion(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("keyfile must be given as argument")
+	}
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	genesis := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	chainDb := utils.MakeChainDatabase(ctx, stack)
+	var superBlock *types.Header
+	if genesis.Number > 0 {
+		superBlock = genesis.ToSuperBlock(nil, chainDb).Header()
+	} else {
+		superBlock = genesis.ToBlock(chainDb).Header()
+	}
+	if nil == superBlock {
+		return nil
+	}
+	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
+	wallet := stack.AccountManager().Wallets()[0]
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	err = ks.Unlock(wallet.Accounts()[0], passphrase)
+	if err != nil {
+		utils.Fatalf("Unlocked account %v", err)
+		return nil
+	}
+	sign, err := ks.SignHashVersionWithPass(wallet.Accounts()[0], passphrase, common.BytesToHash([]byte(genesis.Version)).Bytes())
+	if err != nil {
+		utils.Fatalf("Unlocked account %v", err)
+		return nil
+	}
+	temp := common.BytesToSignature(sign)
+	genesis.VersionSignatures = append(genesis.VersionSignatures, temp)
+	account, err := crypto.VerifySignWithVersion(common.BytesToHash([]byte(genesis.Version)).Bytes(), sign)
 	//fmt.Printf("Address: {%x}\n", acct.Address)
 	if !account.Equal(wallet.Accounts()[0].Address) {
 		fmt.Errorf("sign block error")
