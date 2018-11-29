@@ -91,6 +91,7 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		log.INFO(PackageName, "账户", account, "金额", oneNodeReward.String(),"所有抵押", totalDeposit.String(), "当前抵押", deposit)
 	}
 
+	util.CalcDepositRate(reward,selectedNodesDeposit,topRewards)
 	return
 
 }

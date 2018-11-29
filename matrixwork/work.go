@@ -292,18 +292,10 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 		extra := make([]*types.ExtraTo_tr,0)
 		var to common.Address
 		var value *big.Int
-		tmpv := new(big.Int).SetUint64(10000)
-		price := mapcoingasUse.getCoinGasPrice(rewart.CoinType)
-		gas := mapcoingasUse.getCoinGasUse(rewart.CoinType)
-		tmpgas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
 		isfirst := true
 		for _,addr := range sorted_keys{
 			k :=common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if rewart.Fromaddr == common.TxGasRewardAddress{
-				v = new(big.Int).Mul(v, tmpgas)
-				v = new(big.Int).Quo(v,tmpv)
-			}
 			if isfirst{
 				to = k
 				value = v
@@ -427,7 +419,10 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	}
 
 	txsReward := txsreward.New(bc)
-	txsRewardMap := txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, env.header.Leader, env.header)
+	price := mapcoingasUse.getCoinGasPrice("MAN")
+	gas := mapcoingasUse.getCoinGasUse("MAN")
+	allGas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
+	txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header)
 	if nil!=txsRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
 	}
