@@ -87,9 +87,6 @@ func (cu *coingasUse)getCoinGasUse(typ string) uint64{
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gas,_:=cu.mapcoin[typ]
-	//if !ok{
-	//
-	//}
 	return gas
 }
 func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {

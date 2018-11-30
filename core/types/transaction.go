@@ -338,8 +338,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		CreateTime: uint32(time.Now().Unix()),
 	}
 	mx := new(Matrix_Extra)
-	//mx.TxType = common.ExtraRevocable
-	mx.TxType = common.ExtraRevertTxType
+	mx.TxType = typ
 
 	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
