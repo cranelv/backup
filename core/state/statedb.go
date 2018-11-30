@@ -356,10 +356,8 @@ func (self *StateDB)CommitSaveTx(){
 	for _,btree := range self.btreeMap{
 		var hash common.Hash
 		var str string
-		self.revocablebtrie.Root().Printree(2)
 		log.Info("file statedb","func CommitSaveTx:Key",btree.Key,"mapData",btree.Data)
 		self.revocablebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key,btree.Data})
-		self.revocablebtrie.Root().Printree(2)
 		tmproot := self.revocablebtrie.Root()
 		switch btree.Typ {
 		case common.StateDBRevocableBtree:
@@ -383,7 +381,6 @@ func (self *StateDB)CommitSaveTx(){
 }
 func (self *StateDB)UpdateTxForBtree(key uint32){
 	out := make([]trie.Item,0)
-	self.revocablebtrie.Root().Printree(2)
 	self.revocablebtrie.DescendLessOrEqual(trie.SpcialTxData{Key_Time:key},func(a trie.Item) bool {
 		out = append(out, a)
 		return true

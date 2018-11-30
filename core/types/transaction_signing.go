@@ -243,6 +243,7 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 				s.chainId, uint(0), uint(0),
 				data1.TxEnterType,
 				data1.IsEntrustTx,
+				data1.CommitTime,
 				data1.Extra,
 			})
 
@@ -257,6 +258,7 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 					s.chainId, uint(0), uint(0),
 					tx.data.TxEnterType,
 					tx.data.IsEntrustTx,
+					tx.data.CommitTime,
 					tx.data.Extra,
 				})
 		}

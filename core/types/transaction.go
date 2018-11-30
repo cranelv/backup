@@ -106,7 +106,7 @@ type Floodtxdata struct {
 	R     *big.Int               `json:"r" gencodec:"required"`
 	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//是否是委托
 	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
-	CommitTime  uint32           `json:"CommitTime" gencodec:"required"`//创建交易时间
+	CommitTime  uint64           `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra         ` rlp:"tail"`
 }
 
@@ -127,7 +127,7 @@ type txdata struct {
 	Hash  *common.Hash           `json:"hash" rlp:"-"`
 	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
-	CommitTime  uint32           `json:"CommitTime" gencodec:"required"`//创建交易时间
+	CommitTime  uint64           `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra         ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -242,7 +242,7 @@ type txdata1 struct {
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx byte  `json:"IsEntrustTx" gencodec:"required"`//是否是委托
-	CommitTime  uint32   `json:"CommitTime" gencodec:"required"`//创建交易时间
+	CommitTime  uint64   `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//
@@ -287,7 +287,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
-		CommitTime: uint32(time.Now().Unix()),
+		CommitTime: uint64(time.Now().Unix()),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -338,7 +338,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType:  NormalTxIndex,
-		CommitTime: uint32(time.Now().Unix()),
+		CommitTime: uint64(time.Now().Unix()),
 	}
 	mx := new(Matrix_Extra)
 	mx.TxType = typ
@@ -459,7 +459,7 @@ func (tx *Transaction) GetTxHashStruct() {
 
 }
 func (tx *Transaction) GetCreateTime() uint32{
-	return tx.data.CommitTime
+	return uint32(tx.data.CommitTime)
 }
 
 func (tx *Transaction)Call() error{
