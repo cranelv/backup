@@ -185,12 +185,14 @@ func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
 func (s *PublicAccountAPI) Accounts() []string {
 	//addresses := make([]common.Address, 0) // return [] instead of nil if empty
 	strAddrList := make([]string, 0)
+	var tmpstr string
 	for _, wallet := range s.am.Wallets() {
 		for _, account := range wallet.Accounts() {
-			if account.Address.Equal(common.Address{}){
+			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",account.Address)))
+			if tmpstr == strAddr{
 				continue
 			}
-			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",account.Address)))
+			tmpstr = strAddr
 			strAddrList = append(strAddrList,strAddr)
 		}
 	}
@@ -299,7 +301,8 @@ func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (a
 func (s *PrivateAccountAPI) NewAccount(password string) (string, error) {
 	acc, err := fetchKeystore(s.am).NewAccount(password)
 	if err == nil {
-		return acc.ManAddress, nil
+		ManAddress := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",acc.Address)))
+		return ManAddress, nil
 	}
 	return "", err
 }
