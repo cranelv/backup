@@ -236,7 +236,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	}
 	rt := new(common.RecorbleTx)
 	rt.From = tx.AmontFrom()
-	rt.Tim = tx.GetCreateTime()+common.OneDaySecond
+	rt.Tim = tx.GetCreateTime()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{
@@ -399,7 +399,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	}
 	rt := new(common.RecorbleTx)
 	rt.From = tx.AmontFrom()
-	rt.Tim = tx.GetCreateTime()+common.OneDaySecond
+	rt.Tim = tx.GetCreateTime()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{

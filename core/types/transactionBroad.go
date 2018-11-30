@@ -96,7 +96,7 @@ func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}
 }
 func (tx *TransactionBroad) GetCreateTime() uint32{
-	return tx.data.CreateTime
+	return tx.data.CommitTime
 }
 
 

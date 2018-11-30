@@ -423,7 +423,6 @@ var (
 const (
 	StateDBRevocableBtree string = "RevcBTree"
 	StateDBTimeBtree      string = "TimeBtree"
-	OneDaySecond uint32 = 300 //一天这么多秒  86400
 )
 
 const (

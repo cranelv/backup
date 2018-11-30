@@ -106,7 +106,7 @@ type Floodtxdata struct {
 	R     *big.Int               `json:"r" gencodec:"required"`
 	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//是否是委托
 	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
-	CreateTime  uint32           `json:"CreateTime" gencodec:"required"`//创建交易时间
+	CommitTime  uint32           `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra         ` rlp:"tail"`
 }
 
@@ -127,7 +127,7 @@ type txdata struct {
 	Hash  *common.Hash           `json:"hash" rlp:"-"`
 	TxEnterType byte             `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx byte             `json:"IsEntrustTx" gencodec:"required"`//是否是委托
-	CreateTime  uint32           `json:"CreateTime" gencodec:"required"`//创建交易时间
+	CommitTime  uint32           `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra         ` rlp:"tail"` //YY
 }
 //==================================zhenghe==========================================//
@@ -143,6 +143,7 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 	data1.Hash = data.Hash
 	data1.TxEnterType = data.TxEnterType
 	data1.IsEntrustTx = data.IsEntrustTx
+	data1.CommitTime = data.CommitTime
 	data1.Recipient = new(string)
 	to := *data.Recipient
 	*data1.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",to)))
@@ -184,6 +185,7 @@ func TxdataStringToAddres(data1 *txdata1,data *txdata) {
 	data.Hash = data1.Hash
 	data.TxEnterType = data1.TxEnterType
 	data.IsEntrustTx = data1.IsEntrustTx
+	data.CommitTime = data1.CommitTime
 	data.Recipient = new(common.Address)
 	*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
 	if len(data1.Extra) > 0 {
@@ -239,7 +241,8 @@ type txdata1 struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
 	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
-	IsEntrustTx byte  `json:"TxEnterType" gencodec:"required"`//是否是委托
+	IsEntrustTx byte  `json:"IsEntrustTx" gencodec:"required"`//是否是委托
+	CommitTime  uint32   `json:"CommitTime" gencodec:"required"`//创建交易时间
 	Extra []Matrix_Extra1 ` rlp:"tail"` //YY
 }
 //============================================================================//
@@ -284,7 +287,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
-		CreateTime: uint32(time.Now().Unix()),
+		CommitTime: uint32(time.Now().Unix()),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -335,7 +338,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType:  NormalTxIndex,
-		CreateTime: uint32(time.Now().Unix()),
+		CommitTime: uint32(time.Now().Unix()),
 	}
 	mx := new(Matrix_Extra)
 	mx.TxType = typ
@@ -456,7 +459,7 @@ func (tx *Transaction) GetTxHashStruct() {
 
 }
 func (tx *Transaction) GetCreateTime() uint32{
-	return tx.data.CreateTime
+	return tx.data.CommitTime
 }
 
 func (tx *Transaction)Call() error{
@@ -597,7 +600,7 @@ func GetFloodData(tx *Transaction) *Floodtxdata {
 		R:     tx.data.R,
 		TxEnterType : tx.data.TxEnterType,
 		IsEntrustTx :tx.data.IsEntrustTx,
-		CreateTime: tx.data.CreateTime,
+		CommitTime: tx.data.CommitTime,
 		Extra: tx.data.Extra,
 	}
 	return floodtx
@@ -617,7 +620,7 @@ func  SetFloodData(floodtx *Floodtxdata) *Transaction{
 	tx.data.R = floodtx.R
 	tx.data.TxEnterType = floodtx.TxEnterType
 	tx.data.IsEntrustTx = floodtx.IsEntrustTx
-	tx.data.CreateTime = floodtx.CreateTime
+	tx.data.CommitTime = floodtx.CommitTime
 	tx.data.Extra = floodtx.Extra
 	tx.Mtype = floodtx.Mtype	//hezi
 	tx.Currency = floodtx.Currency
@@ -642,7 +645,7 @@ func  ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx{
 	tx_Mx.Data.S = tx.data.S
 	tx_Mx.Data.TxEnterType = tx.data.TxEnterType
 	tx_Mx.Data.IsEntrustTx = tx.data.IsEntrustTx
-	tx_Mx.Data.CreateTime = tx.data.CreateTime
+	tx_Mx.Data.CommitTime = tx.data.CommitTime
 	tx_Mx.Data.Extra = tx.data.Extra
 	tx_Mx.Mtype = tx.Mtype	//hezi
 	tx_Mx.Currency = tx.Currency
@@ -669,7 +672,7 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		S:     tx_Mx.Data.S,
 		TxEnterType : tx_Mx.Data.TxEnterType,
 		IsEntrustTx : tx_Mx.Data.IsEntrustTx,
-		CreateTime:tx_Mx.Data.CreateTime,
+		CommitTime:tx_Mx.Data.CommitTime,
 		Extra: tx_Mx.Data.Extra,
 	}
 	if len(tx_Mx.ExtraTo) > 0 {
