@@ -301,8 +301,7 @@ func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (a
 func (s *PrivateAccountAPI) NewAccount(password string) (string, error) {
 	acc, err := fetchKeystore(s.am).NewAccount(password)
 	if err == nil {
-		ManAddress := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",acc.Address)))
-		return ManAddress, nil
+		return acc.ManAddress, nil
 	}
 	return "", err
 }

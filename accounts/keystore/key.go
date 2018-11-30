@@ -167,8 +167,7 @@ func storeNewKey(ks keyStore, rand io.Reader, auth string) (*Key, accounts.Accou
 	//key.ManAddress = base58.Encode([]byte(fmt.Sprintf("%x",key.Address)))
 	key.ManAddress = base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",key.Address)))
 	//log.Info("=========test","key.address:",fmt.Sprintf("%x",key.Address))
-	a := accounts.Account{Address: key.Address,/*ManAddress: key.ManAddress,*/ URL: accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(MankeyFileName(key.ManAddress))}}
-	ks.JoinPath(keyFileName(key.Address))
+	a := accounts.Account{Address: key.Address,ManAddress: key.ManAddress, URL: accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(MankeyFileName(key.ManAddress))}}
 	//a := accounts.Account{Address: key.Address, URL: accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(keyFileName(key.Address))}}
 	if err := ks.StoreKey(a.URL.Path, key, auth); err != nil {
 		zeroKey(key.PrivateKey)
