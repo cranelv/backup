@@ -177,9 +177,9 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 
 	if leaderMsg.ConsensusState {
 		process.SetCurLeader(leaderMsg.Leader, leaderMsg.ConsensusTurn)
-		process.SetNextLeader(leaderMsg.NextLeader)
+		process.SetNextLeader(leaderMsg.Leader, leaderMsg.NextLeader)
 		if preProcess != nil {
-			preProcess.SetNextLeader(leaderMsg.Leader)
+			preProcess.SetNextLeader(leaderMsg.PreLeader, leaderMsg.Leader)
 		}
 
 		// 提前设置下个process的leader

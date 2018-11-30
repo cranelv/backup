@@ -120,7 +120,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 	}
 
 	var coalescedLogs []*types.Log
-	tmpRetmap := make(map[common.TxTypeInt][]uint32)
+	tmpRetmap := make(map[byte][]uint32)
 	for _, txer := range txser {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -426,6 +426,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	price := mapcoingasUse.getCoinGasPrice("MAN")
 	gas := mapcoingasUse.getCoinGasUse("MAN")
 	allGas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
+	log.INFO("奖励","交易费奖励总额",allGas.String())
 	txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header)
 	if nil!=txsRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})

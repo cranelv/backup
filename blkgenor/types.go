@@ -52,3 +52,9 @@ type Backend interface {
 	FetcherNotify(hash common.Hash, number uint64)
 	TopNode() *olconsensus.TopNodeService
 }
+
+type VrfMsg struct {
+	VrfValue []byte
+	VrfProof []byte
+	Hash common.Hash
+}

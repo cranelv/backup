@@ -21,7 +21,7 @@ type Message interface {
 	Data() []byte
 	GetMatrixType() byte
 	GetMatrix_EX() []types.Matrix_Extra //YYY  注释 Extra() 方法 改用此方法
-	TxType() common.TxTypeInt
+	TxType() byte
 }
 
 type StateTransitioner interface {

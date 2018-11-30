@@ -34,7 +34,7 @@ type RetChan struct {
 type RetChan_txpool struct {
 	Rxs  []types.SelfTransaction
 	Err  error
-	Tx_t common.TxTypeInt
+	Tx_t byte
 }
 type byteNumber struct {
 	maxNum, num uint32
@@ -65,7 +65,7 @@ type TxPoolManager struct {
 	txPoolsMutex sync.RWMutex
 	once         sync.Once
 	sub          event.Subscription
-	txPools      map[common.TxTypeInt]TxPool
+	txPools      map[byte]TxPool
 	roleChan     chan common.RoleType
 	quit         chan struct{}
 	addPool      chan TxPool
@@ -75,7 +75,7 @@ type TxPoolManager struct {
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
 	txPoolManager := &TxPoolManager{
 		txPoolsMutex: sync.RWMutex{},
-		txPools:      make(map[common.TxTypeInt]TxPool),
+		txPools:      make(map[byte]TxPool),
 		quit:         make(chan struct{}),
 		roleChan:     make(chan common.RoleType),
 		addPool:      make(chan TxPool),
@@ -299,7 +299,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 }
 
 // GetTxPoolByType get txpool by given type from manager.
-func (pm *TxPoolManager) GetTxPoolByType(tp common.TxTypeInt) (txPool TxPool, err error) {
+func (pm *TxPoolManager) GetTxPoolByType(tp byte) (txPool TxPool, err error) {
 	pm.txPoolsMutex.RLock()
 	defer pm.txPoolsMutex.RUnlock()
 

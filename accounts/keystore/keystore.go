@@ -357,6 +357,21 @@ func (ks *KeyStore) SignHashValidateWithPass(a accounts.Account, passphrase stri
 	return crypto.SignWithValidate(hash, validate, key.PrivateKey)
 }
 
+func (ks *KeyStore) SignHashVersionWithPass(a accounts.Account, passphrase string, hash []byte) (signature []byte, err error) {
+	key := ks.findSignKeyInTemp(a)
+	if key == nil {
+		ks.mu.Lock()
+		_, key, err = ks.getDecryptedKey(a, passphrase)
+		if err != nil {
+			ks.mu.Unlock()
+			return nil, err
+		}
+		ks.tempPrvKey[a.Address] = key
+		ks.mu.Unlock()
+	}
+
+	return crypto.SignWithVersion(hash, key.PrivateKey)
+}
 func (ks *KeyStore) findSignKeyInTemp(a accounts.Account) *Key {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()

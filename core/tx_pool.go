@@ -19,8 +19,8 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/matrix/go-matrix/rlp"
+	"github.com/matrix/go-matrix/txpoolCache"
 )
 
 //YY
@@ -111,6 +111,22 @@ const (
 	TxStatusIncluded
 )
 
+//// hezi
+//type NetworkMsgData struct {
+//	NodeId discover.NodeID
+//	Data   []*MsgStruct
+//}
+//
+//// hezi
+//type MsgStruct struct {
+//	Msgtype uint32
+//	NodeId  discover.NodeID
+//	MsgData []byte
+//}
+
+//var num uint32
+//var ldb *leveldb.DB
+
 //======struct// hezi
 type mapst struct {
 	slist []*big.Int
@@ -133,6 +149,8 @@ type sendst struct {
 //global  // hezi
 var gSendst sendst
 
+//var whitemap = make(map[common.Address]bool)
+
 // blockChain provides the state of blockchain and current gas limit to do
 // some pre checks in tx pool and event subscribers.
 type blockChain interface {
@@ -142,10 +160,31 @@ type blockChain interface {
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
 type ConsensusNTx struct {
-	Key uint32
+	Key   uint32
 	Value types.SelfTransaction
 }
-
+//func init()  {
+//func init()  {
+//	rlp.InterfaceConstructorMap[uint16(types.MapTxpoolIndex)] = func() interface{} {
+//		return &Transaction{}
+//	}
+//}
+//func (cntx *ConsensusNTx)GetConstructorType()uint16{
+//	return uint16(types.MapTxpoolIndex)
+//}
+//func (cntx *ConsensusNTx) EncodeRLP(w io.Writer) error {
+//	return rlp.Encode(w, &cntx.GHhhhh)
+//	rlp.InterfaceConstructorMap[100] = func() interface{} {
+//		return &aa
+//	}
+//
+//}
+// DecodeRLP implements rlp.Decoder
+//func (cntx *ConsensusNTx) DecodeRLP(s *rlp.Stream) error {
+//	//_, size, _ := s.Kind()
+//	err := s.Decode(&cntx.GHhhhh)
+//	return err
+//}
 // TxPoolConfig are the configuration parameters of the transaction pool.
 type TxPoolConfig struct {
 	PriceLimit   uint64 // Minimum gas price to enforce for acceptance into the pool
@@ -164,7 +203,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalSlots:  4096 * 5 * 5 * 10, //YY 2018-08-30 改为乘以5
 	AccountQueue: 64 * 1000,
 	GlobalQueue:  1024 * 60,
-	txTimeout:  500 * time.Second,
+	txTimeout:    500 * time.Second,
 }
 
 type NormalTxPool struct {
@@ -189,7 +228,8 @@ type NormalTxPool struct {
 	SContainer map[common.Hash]*types.Transaction
 	NContainer map[uint32]*types.Transaction
 	udptxsCh   chan []*types.Transaction_Mx //udp交易订阅
-	udptxsSub  event.Subscription           //取消订阅
+	quit       chan struct{}
+	udptxsSub  event.Subscription //取消订阅
 	//=================================================//
 	//priced *txPricedList // All transactions sorted by price
 
@@ -201,9 +241,9 @@ type NormalTxPool struct {
 	mapCaclErrtxs map[common.Hash][]common.Address //YY  用来统计错误的交易
 	mapDelErrtxs  map[common.Hash]*big.Int         //YY  用来删除mapErrorTxs
 	mapErrorTxs   map[*big.Int]*types.Transaction  //YY  存放所有的错误交易（20个区块自动删除）
-	mapTxsTiming  map[common.Hash]time.Time           //YY  需要做定时删除的交易
-	mapHighttx map[uint64][]uint32
-	stopCh  chan bool
+	mapTxsTiming  map[common.Hash]time.Time        //YY  需要做定时删除的交易
+	mapHighttx    map[uint64][]uint32
+
 	homestead bool
 }
 
@@ -231,22 +271,21 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		SContainer:    make(map[common.Hash]*types.Transaction), //by hezi
 		NContainer:    make(map[uint32]*types.Transaction),      //by hezi
 		udptxsCh:      make(chan []*types.Transaction_Mx, 0),    //hezi
+		quit:          make(chan struct{}),
 		all:           newTxLookup(),
 		chainHeadCh:   make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:      new(big.Int).SetUint64(config.PriceLimit),
 		mapCaclErrtxs: make(map[common.Hash][]common.Address), //YY  用来统计错误的交易
 		mapDelErrtxs:  make(map[common.Hash]*big.Int),         //YY  用来删除mapErrorTxs
 		mapErrorTxs:   make(map[*big.Int]*types.Transaction),  //YY  存放所有的错误交易（20个区块自动删除）
-		mapTxsTiming:  make(map[common.Hash]time.Time),           //YY  需要做定时删除的交易
-		mapHighttx:  make(map[uint64][]uint32,0),
+		mapTxsTiming:  make(map[common.Hash]time.Time),        //YY  需要做定时删除的交易
+		mapHighttx:    make(map[uint64][]uint32, 0),
 	}
 	//nPool.pool.priced = newTxPricedList(nPool.pool.all)
 	nPool.reset(nil, chain.CurrentBlock().Header())
 
 	// Subscribe events from blockchain
 	nPool.chainHeadSub = nPool.chain.SubscribeChainHeadEvent(nPool.chainHeadCh)
-
-	nPool.stopCh = make(chan bool)
 
 	// Start the event loop and return
 	nPool.wg.Add(3)
@@ -266,7 +305,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 // Type return txpool type.
-func (nPool *NormalTxPool) Type() common.TxTypeInt {
+func (nPool *NormalTxPool) Type() byte {
 	return types.NormalTxIndex
 }
 
@@ -293,21 +332,21 @@ func (nPool *NormalTxPool) loop() {
 				}
 				nPool.reset(head.Header(), ev.Block.Header())
 				head = ev.Block
-				h := head.Number().Uint64()-1
-				if txlist,ok:=nPool.mapHighttx[h];ok{
-					for _,n := range txlist{
+				h := head.Number().Uint64() - 1
+				if txlist, ok := nPool.mapHighttx[h]; ok {
+					for _, n := range txlist {
 						nPool.deletnTx(n)
 					}
 				}
-				delete(nPool.mapHighttx,h)
-				txpoolCache.DeleteTxCache(head.Header().HashNoSignsAndNonce(),head.Number().Uint64())
+				delete(nPool.mapHighttx, h)
+				txpoolCache.DeleteTxCache(head.Header().HashNoSignsAndNonce(), head.Number().Uint64())
 				nPool.mu.Unlock()
 				nPool.getPendingTx() //YY
 			}
 			// Be unsubscribed due to system stopped
 		case <-nPool.chainHeadSub.Err():
 			return
-		case <- delteTime.C:
+		case <-delteTime.C:
 			nPool.mu.Lock()
 			nPool.blockTiming() //YY
 			nPool.mu.Unlock()
@@ -450,14 +489,14 @@ func (nPool *NormalTxPool) ProcessMsg(m NetworkMsgData) {
 		}
 		nPool.RecvFloodTx(ntx, m.NodeId)
 	case RecvConsensusTxbyN:
-		mapNtx := make([]*ConsensusNTx,0)
-		err = rlp.DecodeBytes(msgData.MsgData,&mapNtx)
+		mapNtx := make([]*ConsensusNTx, 0)
+		err = rlp.DecodeBytes(msgData.MsgData, &mapNtx)
 		if err != nil {
 			log.Error("func ProcessMsg", "case GetConsensusTxbyN:DecodeBytes_err=", err)
 			break
 		}
 		ntx := make(map[uint32]types.SelfTransaction, 0)
-		for _,val := range mapNtx{
+		for _, val := range mapNtx {
 			ntx[val.Key] = val.Value
 		}
 		nPool.RecvConsensusFloodTx(ntx, m.NodeId)
@@ -517,8 +556,7 @@ func (nPool *NormalTxPool) checkList() {
 			if len(gSendst.snlist.slist) >= params.FloodMaxTransactions {
 				nPool.packageSNList()
 			}
-		case <-nPool.stopCh :
-			return
+		case <-nPool.quit :
 		}
 	}
 }
@@ -604,9 +642,9 @@ func (nPool *NormalTxPool) Stop() {
 
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
-	nPool.udptxsSub.Unsubscribe()
-	nPool.stopCh <- false
+	nPool.quit <- struct{}{}
 	nPool.wg.Wait()
+	close(nPool.quit)
 
 	log.Info("Transaction pool stopped")
 }
@@ -680,14 +718,14 @@ func (nPool *NormalTxPool) Pending() (map[common.Address][]types.SelfTransaction
 			txlist = append(txlist,txs.Flatten()...)
 		}
 		var txser types.SelfTransactions
-		for _,tx:= range txlist{
-			txser = append(txser,tx)
+		for _, tx := range txlist {
+			txser = append(txser, tx)
 			if len(tx.N) <= 0 {
 				continue
 			}
 			nPool.NContainer[tx.N[0]] = tx
 		}
-		pending[addr] = txser//.Flatten()
+		pending[addr] = txser //.Flatten()
 	}
 	return pending, nil
 }
@@ -750,7 +788,7 @@ func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeI
 }
 
 //YY 接收到Leader打包的交易共识消息时根据N获取tx (调用本方法需要启动协程)
-func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool) {
+func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 	log.Info("========YY===1", "ReturnAllTxsByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		retch <- &RetChan_txpool{nil, nil, resqe}
@@ -828,7 +866,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe common.TxTypeIn
 			nPool.mu.Unlock()
 		}
 		retch <- &RetChan_txpool{txs, txerr, resqe}
-		log.Info("========YY===end if", "ReturnAllTxsByN:len(ns)", len(ns),"err",txerr)
+		log.Info("========YY===end if", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
 	} else {
 		retch <- &RetChan_txpool{txs, nil, resqe}
 		log.Info("========YY===end else", "ReturnAllTxsByN", "return success")
@@ -842,51 +880,51 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 		return
 	}
 	//mapNtx := make(map[uint32]types.SelfTransaction)
-	mapNtx := make([]*ConsensusNTx,0)
+	mapNtx := make([]*ConsensusNTx, 0)
 	nPool.mu.Lock()
 	for _, n := range listN {
 		tx := nPool.getTxbyN(n, false)
 		if tx != nil {
-			ntx := &ConsensusNTx{n,tx}
-			mapNtx = append(mapNtx,ntx)
+			ntx := &ConsensusNTx{n, tx}
+			mapNtx = append(mapNtx, ntx)
 		} else {
 			log.Info("=======msg_GetConsensusTxByN====YY==tx is nil")
 		}
 	}
-	if len(mapNtx) != len(listN){
-		tmpMap := txpoolCache.GetTxByN_Cache(listN,nPool.chain.CurrentBlock().Number().Uint64())
-		log.Info("txpool","msg_GetConsensusTxByNlen(tmpMap)",len(tmpMap))
-		if tmpMap != nil{
-			if len(tmpMap) == len(listN){
-				for k,v := range tmpMap{
-					ntx := &ConsensusNTx{k,v}
-					mapNtx = append(mapNtx,ntx)
+	if len(mapNtx) != len(listN) {
+		tmpMap := txpoolCache.GetTxByN_Cache(listN, nPool.chain.CurrentBlock().Number().Uint64())
+		log.Info("txpool", "msg_GetConsensusTxByNlen(tmpMap)", len(tmpMap))
+		if tmpMap != nil {
+			if len(tmpMap) == len(listN) {
+				for k, v := range tmpMap {
+					ntx := &ConsensusNTx{k, v}
+					mapNtx = append(mapNtx, ntx)
 				}
-			}else{
-				log.Info("txpool","11111msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+			} else {
+				log.Info("txpool", "11111msg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
 				for _, n := range listN {
-					tx := nPool.getTxbyN(n,false)
+					tx := nPool.getTxbyN(n, false)
 					if tx != nil {
-						ntx := &ConsensusNTx{n,tx}
-						mapNtx = append(mapNtx,ntx)
+						ntx := &ConsensusNTx{n, tx}
+						mapNtx = append(mapNtx, ntx)
 					} else {
-						if ttx,ok := tmpMap[n];ok{
-							ntx := &ConsensusNTx{n,ttx}
-							mapNtx = append(mapNtx,ntx)
+						if ttx, ok := tmpMap[n]; ok {
+							ntx := &ConsensusNTx{n, ttx}
+							mapNtx = append(mapNtx, ntx)
 						}
 					}
 				}
-				log.Info("txpool","22222msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+				log.Info("txpool", "22222msg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
 			}
 		}
 	}
 	nPool.mu.Unlock()
 	//msData, _ := json.Marshal(mapNtx)
 	msData, err := rlp.EncodeToBytes(mapNtx)
-	if err == nil{
+	if err == nil {
 		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
 		log.Info("========YY===2", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
-	}else {
+	} else {
 		log.Info("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
 	}
 }
@@ -922,7 +960,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 	errorTxs := make([]*big.Int, 0)
 	txs := make([]*types.Transaction, 0)
 	tmpNtx := make(map[uint32]*types.Transaction)
-	nlist := make([]uint32,0)
+	nlist := make([]uint32, 0)
 	for n, txer := range mapNtx {
 		ss := txer.GetTxS()
 		nPool.mapNs.Store(n, ss)
@@ -934,8 +972,8 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		if s == nil || n == 0 { //如果S或者N 不合法则直接跳过
 			continue
 		}
-		tx,ok := txer.(*types.Transaction)
-		if !ok{
+		tx, ok := txer.(*types.Transaction)
+		if !ok {
 			continue
 		}
 		txs = append(txs, tx)
@@ -968,9 +1006,9 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 			}
 			nPool.setTxNum(tx, n, false)
 			nPool.setnTx(n, tx, false)
-			nlist = append(nlist , n)
-		}else{
-			log.Info("msg_RecvConsensusFloodTx","msg_RecvConsensusFloodTx,tx`s N is same","continue")
+			nlist = append(nlist, n)
+		} else {
+			log.Info("msg_RecvConsensusFloodTx", "msg_RecvConsensusFloodTx,tx`s N is same", "continue")
 		}
 		//_, err := nPool.add(tx, false)
 		//if err != nil && err != ErrKnownTransaction {
@@ -984,7 +1022,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		//	nPool.deleteMap(tx)
 		//}
 	}
-	if len(nlist) > 0{
+	if len(nlist) > 0 {
 		nPool.mapHighttx[nPool.chain.CurrentBlock().Number().Uint64()] = nlist
 	}
 	nPool.mu.Unlock()
@@ -1138,7 +1176,7 @@ func (nPool *NormalTxPool) addBlockTiming(hash common.Hash) {
 	if _, ok := nPool.mapTxsTiming[hash]; ok {
 		return
 	}
-	nPool.mapTxsTiming[hash] =time.Now()
+	nPool.mapTxsTiming[hash] = time.Now()
 }
 
 //YY 20个区块定时删除(每次收到新区快头广播时触发)
@@ -1147,7 +1185,7 @@ func (nPool *NormalTxPool) blockTiming() {
 	//blockNum := nPool.chain.CurrentBlock().Number()
 	listHash := make([]common.Hash, 0)
 	for hash, t := range nPool.mapTxsTiming {
-		if time.Since(t) > nPool.config.txTimeout{
+		if time.Since(t) > nPool.config.txTimeout {
 			listHash = append(listHash, hash)
 		}
 	}
@@ -1271,9 +1309,9 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		//	return ErrInsufficientFunds
 		//}
 		//hezi
-		for _,tAccount := range nPool.currentState.GetBalance(from){
-			if tAccount.AccountType == common.MainAccount{
-				if tAccount.Balance.Cmp(tx.CostALL()) < 0{
+		for _, tAccount := range nPool.currentState.GetBalance(from) {
+			if tAccount.AccountType == common.MainAccount {
+				if tAccount.Balance.Cmp(tx.CostALL()) < 0 {
 					return ErrInsufficientFunds
 				}
 			}
@@ -1282,9 +1320,9 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		//if nPool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		//	return ErrInsufficientFunds
 		//}
-		for _,tAccount := range nPool.currentState.GetBalance(from){
-			if tAccount.AccountType == common.MainAccount{
-				if tAccount.Balance.Cmp(tx.Cost()) < 0{
+		for _, tAccount := range nPool.currentState.GetBalance(from) {
+			if tAccount.AccountType == common.MainAccount {
+				if tAccount.Balance.Cmp(tx.Cost()) < 0 {
 					return ErrInsufficientFunds
 				}
 			}
@@ -1371,9 +1409,9 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 // pricing constraints.
 func (nPool *NormalTxPool) AddTxPool(txer types.SelfTransaction) error {
 	//TODO 将交易dncode
-	txs := make([]*types.Transaction,0)
-	tx:=txer.(*types.Transaction)
-	txs = append(txs,tx)
+	txs := make([]*types.Transaction, 0)
+	tx := txer.(*types.Transaction)
+	txs = append(txs, tx)
 	err := nPool.addTxs(txs, false)
 	return err
 }
@@ -1471,20 +1509,20 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 		for typ,txs := range list.txs{
 			nonce := nPool.currentState.GetNonce(addr)
 
-			// Drop all transactions that are deemed too old (low nonce)
-			for _, tx := range txs.Forward(nonce) {
-				//YY ========begin=========
-				nPool.deleteMap(tx)
-				//===========end===========
-				hash := tx.Hash()
-				//log.Trace("Removed old pending transaction", "hash", hash)
-				nPool.all.Remove(hash)
-				//nPool.priced.Removed()
-			}
-			// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-			tBalance := new(big.Int)
-			for _,tAccount := range nPool.currentState.GetBalance(addr){
-				if tAccount.AccountType == common.MainAccount{
+		// Drop all transactions that are deemed too old (low nonce)
+		for _, tx := range txs.Forward(nonce) {
+			//YY ========begin=========
+			nPool.deleteMap(tx)
+			//===========end===========
+			hash := tx.Hash()
+			//log.Trace("Removed old pending transaction", "hash", hash)
+			nPool.all.Remove(hash)
+			//nPool.priced.Removed()
+		}
+		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
+		tBalance := new(big.Int)
+		for _, tAccount := range nPool.currentState.GetBalance(addr) {
+			if tAccount.AccountType == common.MainAccount {
 					tBalance = tAccount.Balance
 					break
 				}
@@ -1505,7 +1543,6 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 				delete(nPool.pending, addr)
 			}
 		}
-
 	}
 }
 

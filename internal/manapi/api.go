@@ -762,6 +762,9 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	return nil, err
 }
 
+func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
+	return s.b.ImportSuperBlock(ctx, filePath)
+}
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
@@ -851,7 +854,9 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 		"elect":            head.Elect,
 		"nettopology":      head.NetTopology,
 		"signatures":       head.Signatures,
-		"version":          hexutil.Bytes(head.Version),
+		"version":           string(head.Version),
+		"versionSignatures": head.VersionSignatures,
+		"vrfvalue":  hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {
@@ -1252,10 +1257,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
 	}
 	//YY
 	txtr := make([]*types.ExtraTo_tr, 0)

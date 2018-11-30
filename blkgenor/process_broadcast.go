@@ -85,7 +85,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
 		p.changeState(StateBlockInsert)
-		p.processBlockInsert()
+		p.processBlockInsert(p.curLeader)
 		return
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package olconsensus
@@ -7,9 +7,9 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/math"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/rlp"
-	"github.com/matrix/go-matrix/log"
 
 	"sync"
 )
@@ -47,7 +47,6 @@ func (ts *topNodeState) setElectNodes(nodes []common.Address, height uint64) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	if ts.electHeight != height {
-		log.Info(ts.extraInfo, "设置electnode", "", "块高", height)
 		ts.electHeight = height
 		ts.electNode = make(map[common.Address]OnlineState)
 		ts.onlineNode = nodes
@@ -69,7 +68,7 @@ func (ts *topNodeState) setCurrentTopNodeState(onLineNode, onElectNode []common.
 	for _, item := range onElectNode {
 		if !isInsideList(item, ts.onlineNode) {
 			ts.onlineNode = append(ts.onlineNode, item)
-			log.Info(ts.extraInfo, "添加在线节点列表", item.String())
+			log.Info(ts.extraInfo, "区块生成", "设置当前在线状态", "添加在线节点列表", item.String())
 
 		}
 		ts.electNode[item] = onLine
@@ -78,7 +77,7 @@ func (ts *topNodeState) setCurrentTopNodeState(onLineNode, onElectNode []common.
 	for key, value := range ts.electNode {
 		if value == offLine {
 			ts.offlineNode = append(ts.offlineNode, key)
-			log.Info(ts.extraInfo, "添加离线节点列表", key.String())
+			log.Info(ts.extraInfo, "区块生成", "设置当前在线状态", "添加离线节点列表", key.String())
 		}
 	}
 	for _, item := range ts.onlineNode {
@@ -93,7 +92,7 @@ func (ts *topNodeState) getCurrentTopNodeChange() (ret_offLineNode, ret_onElectN
 	defer ts.mu.RUnlock()
 	ret_offLineNode = ts.consensusOff
 	ret_onElectNode = ts.consensusOn
-	log.Info(ts.extraInfo, "consensusOff", len(ts.consensusOff), "consensusOn", len(ts.consensusOn))
+	log.Info(ts.extraInfo, "区块生成", "获取经过共识的在线状态", "consensusOff", len(ts.consensusOff), "consensusOn", len(ts.consensusOn))
 	for _, item := range ts.consensusOff {
 		if _, exist := ts.electNode[item]; exist {
 			ret_offElectNode = append(ret_offElectNode, item)
@@ -130,7 +129,7 @@ func (ts *topNodeState) saveConsensusNodeState(node common.Address, onlineState 
 	case offLine:
 		ts.saveOfflineNode(node)
 	default:
-		log.Error("TopnodeOnline", "无效的在线状态", onlineState)
+		log.Error(ts.extraInfo, "处理共识投票结果", "保存经过共识的节点", "无效的在线状态", onlineState)
 	}
 }
 func removeFromList(node common.Address, listNode []common.Address) []common.Address {
@@ -157,12 +156,12 @@ func (ts *topNodeState) saveOnlineNode(node common.Address) {
 	if _, exist := ts.electNode[node]; exist {
 		if !isInsideList(node, ts.consensusOn) {
 			ts.consensusOn = append(ts.consensusOn, node)
-			log.Info(ts.extraInfo, "add consensusOn: node", node.String())
+			log.Info(ts.extraInfo, "处理共识投票结果", "保存经过上线共识的节点", "node", node.String())
 		} else {
-			log.Info(ts.extraInfo, "node", node.String(), "已经在共识在线节点列表中", "")
+			log.Info(ts.extraInfo, "处理共识投票结果", "保存经过上线共识的节点", "node", node.String(), "已经在共识在线节点列表中", "")
 		}
 	} else {
-		log.Info(ts.extraInfo, "node", node.String(), "不在 ts.electNode 中", "")
+		log.Info(ts.extraInfo, "处理共识投票结果", "保存经过上线共识的节点", "node", node.String(), "不在 electNode 中", "不保存")
 	}
 }
 
@@ -171,18 +170,17 @@ func (ts *topNodeState) saveOfflineNode(node common.Address) {
 	if isInsideList(node, ts.onlineNode) {
 		if !isInsideList(node, ts.consensusOff) {
 			ts.consensusOff = append(ts.consensusOff, node)
-			log.Info(ts.extraInfo, "add consensusOff: node", node.String())
+			log.Info(ts.extraInfo, "处理共识投票结果", "保存经过离线共识的节点", "node", node.String())
 		} else {
-			log.Info(ts.extraInfo, "node", node.String(), "已经在共识掉线节点列表中", "")
+			log.Info(ts.extraInfo, "处理共识投票结果", "保存经过离线共识的节点", "node", node.String(), "已经在共识离线节点列表中", "")
 		}
 	} else {
-		log.Info(ts.extraInfo, "node", node.String(), "不在 ts.onlineNode 中", "")
+		log.Info(ts.extraInfo, "处理共识投票结果", "保存经过离线共识的节点", "node", node.String(), "不在 electNode 中", "不保存")
 	}
 }
 
 func (ts *topNodeState) getNodes(nodesOnlineStat []NodeOnLineInfo) []common.Address {
 	nodes := make([]common.Address, 0)
-	log.Info(ts.extraInfo, "nodesOnlineStat len", len(nodesOnlineStat))
 
 	for _, value := range nodesOnlineStat {
 		if value.Role == common.RoleValidator {
@@ -190,46 +188,44 @@ func (ts *topNodeState) getNodes(nodesOnlineStat []NodeOnLineInfo) []common.Addr
 
 		}
 	}
-	log.Info(ts.extraInfo, "validator node len", len(nodes))
 
 	return nodes
 }
 func (ts *topNodeState) newTopNodeState(nodesOnlineInfo []NodeOnLineInfo, leader common.Address) (online, offline []common.Address) {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
-	//	nodes := ts.getNodes(nodesOnlineInfo)
-	//	ts.setElectNodes(nodes)
-	log.Info(ts.extraInfo, "onlineNode Length", len(ts.onlineNode))
+
+	log.Debug(ts.extraInfo, "检查节点在线状态", "", "onlineNode Length", len(ts.onlineNode))
 	for _, value := range nodesOnlineInfo {
 		if value.Address.Equal(leader) {
 			continue
 		}
 		if isInsideList(value.Address, ts.onlineNode) && (!isInsideList(value.Address, ts.consensusOff)) {
-			log.Info(ts.extraInfo, "节点", value.Address.String(), "onlineState", value.OnlineState)
+			log.Debug(ts.extraInfo, "检查节点在线状态", "在线", "节点", value.Address.String(), "onlineState", value.OnlineState)
 			if isOffline(value.OnlineState) /*&& (!ts.isFinishedPropocal(value.Address, offLine))*/ {
 				offline = append(offline, value.Address)
-				log.Info(ts.extraInfo, "account", value.Address.String(), "offline", "需要共识")
+				log.Info(ts.extraInfo, "检查节点在线状态", "在线", "节点", value.Address.String(), "offline", "需要共识")
 
 			} else {
-				log.Info(ts.extraInfo, "account", value.Address.String(), "仍然online", "")
+				log.Debug(ts.extraInfo, "检查节点在线状态", "在线", "节点", value.Address.String(), "仍然online", "不需要共识")
 			}
 		} else {
-			log.Info(ts.extraInfo, "account", value.Address.String(), "不在onlneNode中", "")
+			log.Debug(ts.extraInfo, "检查节点在线状态", "在线", "节点", value.Address.String(), "不在onlneNode中", "不检查在线状态")
 		}
 		if isInsideList(value.Address, ts.offlineNode) && (!isInsideList(value.Address, ts.consensusOn)) {
 			if isOnline(value.OnlineState) /* && (!ts.isFinishedPropocal(value.Address, onLine))*/ {
 				online = append(online, value.Address)
-				log.Info(ts.extraInfo, "account", value.Address.String(), "online", "需要共识")
+				log.Info(ts.extraInfo, "检查节点在线状态", "离线", "节点", value.Address.String(), "online", "需要共识")
 
 			} else {
-				log.Info(ts.extraInfo, "account", value.Address.String(), "仍然offline", "")
+				log.Debug(ts.extraInfo, "检查节点在线状态", "离线", "节点", value.Address.String(), "仍然offline", "不需要共识")
 			}
 		} else {
-			log.Info(ts.extraInfo, "account", value.Address.String(), "不在offlineNode中", "")
+			log.Debug(ts.extraInfo, "检查节点在线状态", "离线", "节点", value.Address.String(), "不在offlineNode中", "不检查在线状态")
 
 		}
 	}
-	log.Info(ts.extraInfo, "online", online, "offline", offline)
+	log.Info(ts.extraInfo, "检查节点在线状态", "", "online", online, "offline", offline)
 	return
 }
 func (ts *topNodeState) checkAddressConsesusOnlineState(node common.Address, onlineState uint8) bool {
@@ -252,38 +248,41 @@ func (ts *topNodeState) checkAddressConsesusOnlineState(node common.Address, onl
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 	if curRound < uint64(math.MaxUint64) {
-		log.Info(ts.extraInfo, "curRount", curRound)
+		log.Debug(ts.extraInfo, "区块验证", "", "curRount", curRound)
 		return onlineState == curState
 	} else if onlineState == offLine {
 		if isInsideList(node, ts.consensusOff) {
-			log.Info(ts.extraInfo, "检查节点共识状态", "离线", "节点", node.String(), "是否在共识离线列表中", "true" , "consensusOff", len(ts.consensusOff))
+			log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "离线", "节点", node.String(), "是否在共识离线列表中",
+				"true", "consensusOff", len(ts.consensusOff))
 
 			return true
 		}
 		if isInsideList(node, ts.consensusOn) {
-			log.Info(ts.extraInfo, "检查节点共识状态", "离线", "节点", node.String(), "是否在共识离线列表中", "true" , "consensusOn", len(ts.consensusOn))
+			log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "离线", "节点", node.String(), "是否在共识离线列表中",
+				"true", "consensusOn", len(ts.consensusOn))
 
 			return false
 		}
-		log.Info(ts.extraInfo, "检查节点共识状态", "离线", "节点", node.String(), "是否在离线列表中", isInsideList(node, ts.onlineNode), "offlineNode", len(ts.offlineNode) )
+		log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "离线", "节点", node.String(),
+			"是否在离线列表中", isInsideList(node, ts.onlineNode), "offlineNode", len(ts.offlineNode))
 
 		return isInsideList(node, ts.offlineNode)
 	} else {
 		if isInsideList(node, ts.consensusOn) {
-			log.Info(ts.extraInfo, "检查节点共识状态", "在线", "节点", node.String(), "是否在共识在线列表中", "true" , "consensusOn", len(ts.consensusOn))
+			log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "在线", "节点", node.String(), "是否在共识在线列表中",
+				"true", "consensusOn", len(ts.consensusOn))
 
 			return true
-		}else{
-			log.Info(ts.extraInfo, "检查节点共识状态", "在线", "节点", node.String(), "是否在共识在线列表中", "false" , "consensusOn", len(ts.consensusOn))
+		} else {
+			log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "在线", "节点", node.String(), "是否在共识在线列表中",
+				"false", "consensusOn", len(ts.consensusOn))
 
 		}
 		if isInsideList(node, ts.consensusOff) {
-			log.Info(ts.extraInfo, "检查节点共识状态", "在线", "节点", node.String(), "是否在共识离线列表中", "true" , "consensusOff", len(ts.consensusOff))
 			return false
-		}else{
-			log.Info(ts.extraInfo, "检查节点共识状态", "在线", "节点", node.String(), "是否在共识离线列表中", "false", "consensusOff", len(ts.consensusOff) )
 		}
-		log.Info(ts.extraInfo, "检查节点共识状态", "在线", "节点", node.String(), "是否在在线列表中", isInsideList(node, ts.onlineNode), "onlineNode", len(ts.onlineNode) )
+		log.Debug(ts.extraInfo, "区块验证", "", "检查节点共识状态", "在线", "节点", node.String(), "是否在在线列表中",
+			isInsideList(node, ts.onlineNode), "onlineNode", len(ts.onlineNode))
 
 		return isInsideList(node, ts.onlineNode)
 	}
@@ -301,7 +300,6 @@ func (ts *topNodeState) isFinishedPropocal(node common.Address, onLine uint8) bo
 func (ts *topNodeState) checkNodeOnline(node common.Address, nodesOnlineInfo []NodeOnLineInfo) bool {
 	for _, item := range nodesOnlineInfo {
 		if item.Address == node {
-			log.Info(ts.extraInfo, "node", node, "onlineState", item.OnlineState)
 			return isOnline(item.OnlineState)
 		}
 	}
@@ -311,11 +309,9 @@ func (ts *topNodeState) checkNodeOffline(node common.Address, nodesOnlineInfo []
 	for _, item := range nodesOnlineInfo {
 		log.Info(ts.extraInfo, "item", item.Address.String())
 		if item.Address == node {
-			log.Info(ts.extraInfo, "node", node, "onlineState", item.OnlineState)
 			return isOffline(item.OnlineState)
 		}
 	}
-	log.Info(ts.extraInfo, "在nodesOnlineInfo中没有找到node", node.String())
 	return false
 }
 

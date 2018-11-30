@@ -1,7 +1,6 @@
 package slash
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/matrix/go-matrix/mc"
@@ -83,7 +82,6 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 	if err != nil {
 		return nil
 	}
-	fmt.Printf("惩罚前%s\n", currentState.Dump())
 	for _, v := range currentElectNodes.NodeList {
 
 		currentAccountReward, error := depoistInfo.GetInterest(currentState, v.Account)
@@ -123,6 +121,5 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 		depoistInfo.AddSlash(currentState, v.Account, slash)
 		slashMap[v.Account] = slash
 	}
-	fmt.Printf("惩罚后%s\n", currentState.Dump())
 	return slashMap
 }

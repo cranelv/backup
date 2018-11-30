@@ -152,7 +152,7 @@ func (p *Process) SetCurLeader(leader common.Address, consensusTurn uint32) {
 	p.startBcBlock()
 }
 
-func (p *Process) SetNextLeader(leader common.Address) {
+func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.nextLeader == leader {
@@ -163,7 +163,7 @@ func (p *Process) SetNextLeader(leader common.Address) {
 	if p.state < StateBlockInsert {
 		return
 	}
-	p.processBlockInsert()
+	p.processBlockInsert(preLeader)
 }
 
 func (p *Process) AddInsertBlockInfo(blockInsert *mc.HD_BlockInsertNotify) {
@@ -172,6 +172,7 @@ func (p *Process) AddInsertBlockInfo(blockInsert *mc.HD_BlockInsertNotify) {
 
 	p.startBlockInsert(blockInsert)
 }
+
 func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	blockHash := blkInsertMsg.Header.Hash()
 	log.INFO(p.logExtraInfo(), "区块插入", "启动", "block hash", blockHash.TerminalString())
@@ -212,7 +213,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
 	}
 
-	if _, err := p.insertAndBcBlock(false, header); err != nil {
+	if _, err := p.insertAndBcBlock(false, header.Leader, header); err != nil {
 		log.INFO(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString())
 		p.backend().FetcherNotify(blockHash, p.number)
 	}

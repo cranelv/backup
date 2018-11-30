@@ -71,6 +71,8 @@ type NodeInfo struct {
 var BroadCastNodes = []NodeInfo{}
 var InnerMinerNodes = []NodeInfo{}
 var FoundationNodes = []NodeInfo{}
+var SuperVersionNodes = []NodeInfo{}
+var SuperRollbackNodes = []NodeInfo{}
 
 func Config_Init(Config_PATH string) {
 	log.INFO("Config_Init 函数", "Config_PATH", Config_PATH)
@@ -102,7 +104,18 @@ func Config_Init(Config_PATH string) {
 	if len(FoundationNodes) == 0 {
 		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
 	}
-	log.INFO("基金会节点:",  "data", FoundationNodes)
+
+	SuperVersionNodes = v.SuperVersion
+	if len(SuperVersionNodes) <= 0 {
+		fmt.Println("无版本超级节点")
+		os.Exit(-1)
+	}
+
+	SuperRollbackNodes = v.SuperRollback
+	if len(SuperRollbackNodes) <= 0 {
+		fmt.Println("无回滚超级节点")
+		os.Exit(-1)
+	}
 	RandomConfig = v.RandomConfig
 	log.INFO("RandomConfig", "data", RandomConfig)
 	ElectPlugs = v.ElectPlugs
@@ -116,7 +129,12 @@ func Config_Init(Config_PATH string) {
 		log.INFO("BroadcastInterval", "BroadcastInterval", common.GetBroadcastInterval())
 		log.INFO("ReelectionInterval", "ReelectionInterval", common.GetReElectionInterval())
 	}
+	//fmt.Println("echeloc",v.Echelon)
+	if len(v.Echelon)>0{
 
+		common.EchelonArrary=v.Echelon
+	}
+	log.INFO("EchelonArrary","EchelonArrary",common.EchelonArrary)
 }
 
 type Config struct {
@@ -124,10 +142,13 @@ type Config struct {
 	BroadNode          []NodeInfo
 	InnerMinerNode     []NodeInfo
 	FoundationNode     []NodeInfo
+	SuperVersion       []NodeInfo
+	SuperRollback      []NodeInfo
 	RandomConfig       map[string]string
 	ElectPlugs         string
 	ReelectionInterval int
-	BroadcastInterval  int
+	BroadcastInterval int
+	Echelon []common.Echelon
 }
 
 type JsonStruct struct {
