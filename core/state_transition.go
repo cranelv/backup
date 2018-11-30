@@ -18,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	//"sync"
 	"encoding/json"
-	"strconv"
 )
 
 var (
@@ -146,9 +145,6 @@ func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uin
 	return stsi.TransitionDb()
 }
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
-	if err = st.PreCheck(); err != nil {
-		return
-	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	txtype := tx.GetMatrixType()
 	if txtype != common.ExtraNormalTxType && txtype != common.ExtraAItxType{
@@ -177,17 +173,19 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	}
 }
 func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,from is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,from is nil")
 	}
 	usefrom := tx.AmontFrom()
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,usefrom is nil")
 	}
-	//sender := vm.AccountRef(usefrom)
 	var (
 		vmerr error
 	)
@@ -195,7 +193,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*common.AddrAmont,0)
+	mapTOAmonts := make([]common.AddrAmont,0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -207,7 +205,6 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 			if tmperr != nil {
 				return nil, 0, false, err
 			}
-			//0.7+0.3*pow(0.9,(num-1))
 			gas += tmpgas
 		}
 	}
@@ -215,43 +212,48 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 		return nil, 0, false, err
 	}
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
-	st.state.AddBalance(common.WithdrawAccount,tx.From(), st.value)
-	mapTOAmont := &common.AddrAmont{Addr:st.To(),Amont:st.value}
+	st.state.AddBalance(common.WithdrawAccount,usefrom, st.value)
+	st.state.SubBalance(common.MainAccount,usefrom, st.value)
+	mapTOAmont := common.AddrAmont{Addr:st.To(),Amont:st.value}
 	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			st.state.AddBalance(common.WithdrawAccount,tx.From(), ex.Amount)
-			mapTOAmont = &common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
+			st.state.AddBalance(common.WithdrawAccount,usefrom, ex.Amount)
+			st.state.SubBalance(common.MainAccount,usefrom, ex.Amount)
+			mapTOAmont = common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
 			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 			if vmerr != nil {
 				break
 			}
 		}
 	}
+	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, 0, false, vmerr
 		}
 	}
-	b,marshalerr:=json.Marshal(mapTOAmonts)
+	rt := new(common.RecorbleTx)
+	rt.From = tx.AmontFrom()
+	rt.Tim = tx.GetCreateTime()+common.OneDaySecond
+	rt.Adam = append(rt.Adam,mapTOAmonts...)
+	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{
 		return nil, 0, false,marshalerr
 	}
+	txHash := tx.Hash()
 	mapHashamont := make(map[common.Hash][]byte)
-	mapHashamont[tx.Hash()] = b
-	ut := tx.GetCreateTime()
-	buf := []byte(strconv.Itoa(int(ut)))
+	mapHashamont[txHash] = b
+	ut := rt.Tim
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
-	st.state.AddLog(&types.Log{
-		Address: tx.AmontFrom(),
-		Data:    buf,
-	})
-
-	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	hashlist := make([]common.Hash,0)
 	var addr common.Address
@@ -331,13 +333,11 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
-/*
- TODO
-	1、可撤销交易中存储的数据格式map[hash][]byte 其中[]byte结构为结构体的切片，结构体由to和金额组成
-	2、撤销交易（收gas费）会在交易的data中携带可撤销交易的hash，根据此hash找到对应的[]byte解析出结构体，并将每笔金额退回，不收取gas费用
-	3、定时执行可撤销交易，同样从map中获取数据解析出结构体按照对应的to给其转账，此时不再收取交易费
-*/
+
 func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
 	from := tx.From()
@@ -399,7 +399,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	}
 	rt := new(common.RecorbleTx)
 	rt.From = tx.AmontFrom()
-	rt.Tim = tx.GetCreateTime()
+	rt.Tim = tx.GetCreateTime()+common.OneDaySecond
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{
@@ -408,7 +408,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	txHash := tx.Hash()
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
-	ut := tx.GetCreateTime()
+	ut := rt.Tim
 	//buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
 	st.state.SetMatrixData(txHash,b)
@@ -467,6 +467,9 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 	return ret, 0, vmerr != nil, err
 }
 func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	toaddr := tx.To()
 	var addr common.Address
@@ -544,6 +547,9 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	toaddr := tx.To()
 	sender := vm.AccountRef(tx.From())
