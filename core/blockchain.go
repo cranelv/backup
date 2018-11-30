@@ -966,7 +966,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return NonStatTy, err
 	}
-	log.INFO("insert Block", "commit root", root.TerminalString())
 
 	triedb := bc.stateCache.TrieDB()
 
