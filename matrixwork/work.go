@@ -396,11 +396,13 @@ func (env *Work) GetTxs()[]types.SelfTransaction{
 }
 
 type randSeed  struct{
-
+	bc *core.BlockChain
 }
 func (r* randSeed)GetSeed(num uint64) *big.Int{
-
-	return big.NewInt(1000)
+    parent:=r.bc.GetBlockByNumber(num-1)
+	_,preVrfValue,_:=common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	seed:= common.BytesToHash(preVrfValue).Big()
+	return seed
 }
 
 func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
@@ -432,7 +434,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
 	}
 
-	lottery:=lottery.New(bc,&randSeed{})
+	lottery:=lottery.New(bc,&randSeed{bc})
 	lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
 		for _,v :=range lotteryRewardMap{
 			if nil!=v{

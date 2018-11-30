@@ -58,6 +58,9 @@ func (tlr *interest)calcNodeInterest(deposit *big.Int,depositInterestRate []*Dep
 
 func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 	//todo:状态树读取利息计算的周期、支付的周期、利率
+	if num<common.GetBroadcastInterval(){
+		return
+	}
 	calcInterestPeriod:=common.GetBroadcastInterval()
 	payInterestPeriod:=3*common.GetBroadcastInterval()
 
@@ -74,7 +77,7 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 		return
 	}
 
-	if calcInterestPeriod==1||0==(num+1)%uint64(calcInterestPeriod){
+	if calcInterestPeriod==1||0==(num-1)%uint64(calcInterestPeriod){
 		depositNodes, _ := ca.GetElectedByHeight(new(big.Int).SetUint64(num-1))
 		log.INFO(PackageName, "计算利息,高度", num)
 		for _, v := range depositNodes {
@@ -86,7 +89,7 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 		log.INFO(PackageName, "计算利息后", "")
 	}
 
-	if payInterestPeriod==1||0==(num+1)%uint64(payInterestPeriod) {
+	if payInterestPeriod==1||0==(num-1)%uint64(payInterestPeriod) {
 		//1.获取所有利息转到抵押账户 2.清除所有利息
 		log.INFO(PackageName, "将利息转到合约抵押账户,高度", num)
 

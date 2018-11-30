@@ -28,7 +28,7 @@ func (chain *Chain)  GetBlockByNumber(num uint64 ) *types.Block{
 	}
     txs:=make([]types.SelfTransaction,0)
     if num==298{
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 3; i++ {
 
 		tx:=types.NewTransactions(uint64(i),common.Address{},big.NewInt(100), 100,big.NewInt(int64(100)),nil,nil,0,common.ExtraNormalTxType)
 		addr :=common.Address{}

@@ -12,8 +12,8 @@ import (
 const (
 	N      = 6
 	FIRST  = 1 //一等奖数目
-	SECOND = 0 //二等奖数目
-	THIRD  = 0 //三等奖数目
+	SECOND = 2 //二等奖数目
+	THIRD  = 3 //三等奖数目
 	PackageName = "彩票奖励"
 )
 
@@ -101,7 +101,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 	chooseResultList := make(TxCmpResultList,0)
 	for i:=0;i<lotteryNum&&i<len(txsCmpResultList);i++{
 		randUint64:=rand.Uint64()
-		index:=randUint64%(uint64(len(txsCmpResultList)-1))
+		index:=randUint64%(uint64(len(txsCmpResultList)))
 		log.INFO(PackageName,"交易序号",index)
 		chooseResultList =append(chooseResultList,txsCmpResultList[index])
 	}
