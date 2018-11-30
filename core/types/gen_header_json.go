@@ -34,12 +34,13 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
-		Leader            common.Address     `json:"leader"            gencodec:"required"`
-		Elect             []common.Elect     `json:"elect"        gencodec:"required"`
-		NetTopology       common.NetTopology `json:"nettopology"        gencodec:"required"`
+		Leader      common.Address     `json:"leader"            gencodec:"required"`
+		Elect       []common.Elect     `json:"elect"        gencodec:"required"`
+		NetTopology common.NetTopology `json:"nettopology"        gencodec:"required"`
 		Signatures        []common.Signature `json:"signatures"        gencodec:"required"`
 		VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
 		Version           string             `json:" version "              gencodec:"required"`
+		VrfValue    hexutil.Bytes            `json:"vrfValue"              gencodec:"required"`
 
 		Hash common.Hash `json:"hash"`
 	}
@@ -65,6 +66,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Signatures = h.Signatures
 	enc.VersionSignatures = h.VersionSignatures
 	enc.Version = string(h.Version)
+	enc.VrfValue = h.VrfValue
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
 }
@@ -87,12 +89,13 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		MixDigest   *common.Hash    `json:"mixHash"          gencodec:"required"`
 		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
 
-		Leader            *common.Address     `json:"leader"            gencodec:"required"`
-		Elect             *[]common.Elect     `json:"elect"        gencodec:"required"`
-		NetTopology       *common.NetTopology `json:"nettopology"        gencodec:"required"`
+		Leader      *common.Address     `json:"leader"            gencodec:"required"`
+		Elect       *[]common.Elect     `json:"elect"        gencodec:"required"`
+		NetTopology *common.NetTopology `json:"nettopology"        gencodec:"required"`
 		Signatures        *[]common.Signature `json:"signatures"        gencodec:"required"`
 		VersionSignatures *[]common.Signature `json:"versionSignatures"              gencodec:"required"`
 		Version           string              `json:" version "              gencodec:"required"`
+		VrfValue     *hexutil.Bytes            `json:"vrfValue"              gencodec:"required"`
 	}
 	//TODO: 放开注释
 	var dec Header
@@ -165,6 +168,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	}
 	h.Signatures = *dec.Signatures
 
+
 	if dec.VersionSignatures == nil {
 		return errors.New("missing required field 'version' for Header")
 	}
@@ -172,6 +176,12 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	h.VersionSignatures = *dec.VersionSignatures
 
 	h.Version = []byte(dec.Version)
+	if dec.VrfValue == nil {
+		return errors.New("missing required field 'vrfvalue' for Header")
+	}
+	h.VrfValue = *dec.VrfValue
+
+
 	if dec.Leader == nil {
 		return errors.New("missing required field 'leader' for Header")
 	}

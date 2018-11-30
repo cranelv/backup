@@ -1,6 +1,7 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 
 package core
 
@@ -19,8 +20,8 @@ import (
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 )
@@ -33,16 +34,17 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config            *params.ChainConfig `json:"config,omitempty"`
-	Nonce             uint64              `json:"nonce"`
-	Timestamp         uint64              `json:"timestamp"    gencodec:"required"`
-	ExtraData         []byte              `json:"extraData"`
-	Version           string              `json:"version"    gencodec:"required"`
+	Config      *params.ChainConfig `json:"config,omitempty"`
+	Nonce       uint64              `json:"nonce"`
+	Timestamp   uint64              `json:"timestamp"    gencodec:"required"`
+	ExtraData   []byte              `json:"extraData"`
+	Version     string             `json:"version"    gencodec:"required"`
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
-	Leader            common.Address      `json:"leader"`
-	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
-	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
-	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
+	VrfValue    []byte              `json:"vrfvalue"`
+	Leader      common.Address      `json:"leader"`
+	Elect       []common.Elect      `json:"elect"    gencodec:"required"`
+	NetTopology common.NetTopology  `json:"nettopology"       gencodec:"required"`
+	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
 
 	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
 	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
@@ -223,7 +225,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(common.MainAccount, addr, account.Balance)
+		statedb.AddBalance(common.MainAccount,addr, account.Balance)
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
@@ -238,23 +240,24 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:            new(big.Int).SetUint64(g.Number),
-		Nonce:             types.EncodeNonce(g.Nonce),
-		Time:              new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:        g.ParentHash,
-		Extra:             g.ExtraData,
+		Number:      new(big.Int).SetUint64(g.Number),
+		Nonce:       types.EncodeNonce(g.Nonce),
+		Time:        new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:  g.ParentHash,
+		Extra:       g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		Elect:             g.Elect,
-		NetTopology:       g.NetTopology,
-		Signatures:        g.Signatures,
-		Leader:            g.Leader,
-		GasLimit:          g.GasLimit,
-		GasUsed:           g.GasUsed,
-		Difficulty:        g.Difficulty,
-		MixDigest:         g.Mixhash,
-		Coinbase:          g.Coinbase,
-		Root:              root,
+		VrfValue:    g.VrfValue,
+		Elect:       g.Elect,
+		NetTopology: g.NetTopology,
+		Signatures:  g.Signatures,
+		Leader:      g.Leader,
+		GasLimit:    g.GasLimit,
+		GasUsed:     g.GasUsed,
+		Difficulty:  g.Difficulty,
+		MixDigest:   g.Mixhash,
+		Coinbase:    g.Coinbase,
+		Root:        root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit

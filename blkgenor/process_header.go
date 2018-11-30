@@ -21,6 +21,8 @@ import (
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	//"encoding/json"
+	"encoding/json"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -99,6 +101,11 @@ func (p *Process) processHeaderGen() error {
 		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
+	account,vrfValue,vrfProof,err:=p.getVrfValue(parent)
+	if err!=nil{
+		log.INFO(p.logExtraInfo(),"区块生成阶段 获取vrfValue失败 err",err)
+		return err
+	}
 	header := &types.Header{
 		ParentHash:  parentHash,
 		Leader:      ca.GetAddress(),
@@ -111,8 +118,10 @@ func (p *Process) processHeaderGen() error {
 		Signatures:  make([]common.Signature, 0),
 		Version:     parent.Header().Version, //param
 		VersionSignatures: parent.Header().VersionSignatures,
+		VrfValue:    common.GetHeaderVrf(account,vrfValue,vrfProof),
 	}
 	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
+	log.INFO(p.logExtraInfo()," vrf data headermsg",header.VrfValue,"账户户",account,"vrfValue",vrfValue,"vrfProff",vrfProof,"高度",header.Number.Uint64())
 	if err := p.engine().Prepare(p.blockChain(), header); err != nil {
 		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
 		return err
@@ -244,4 +253,28 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	}
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", len(req.TxsCode), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
+}
+
+func (p *Process)getVrfValue(parent *types.Block)([]byte,[]byte,[]byte,error){
+	_,preVrfValue,preVrfProof:=common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	parentMsg:=VrfMsg{
+		VrfProof:preVrfProof,
+		VrfValue:preVrfValue,
+		Hash:parent.Hash(),
+	}
+	vrfmsg,err:=json.Marshal(parentMsg)
+	if err!=nil{
+		log.Error(p.logExtraInfo(),"生成vefmsg出错",err,"parentMsg",parentMsg)
+		return []byte{},[]byte{},[]byte{},errors.New("生成vrfmsg出错")
+	}else{
+		log.Error("生成vrfmsg成功")
+	}
+
+	log.Info("msgggggvrf_gen","preVrfMsg",vrfmsg,"高度",p.number,"VrfProof",parentMsg.VrfProof,"VrfValue",parentMsg.VrfValue,"Hash",parentMsg.Hash)
+	if err!=nil{
+		log.Error(p.logExtraInfo(),"生成vrfValue,vrfProof失败 err",err)
+	}else{
+		log.Error(p.logExtraInfo(),"生成vrfValue,vrfProof成功 err",err)
+	}
+	return p.signHelper().SignVrf(vrfmsg)
 }

@@ -12,7 +12,7 @@ import (
 
 const (
 	ModuleElection   = "选举模块"
-	DefaultElectPlug = "stock"
+	DefaultElectPlug = "layered"
 )
 
 var (

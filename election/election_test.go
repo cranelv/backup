@@ -16,6 +16,11 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/baseinterface"
+	_ "github.com/matrix/go-matrix/election/layered"
+	_ "github.com/matrix/go-matrix/election/nochoice"
+	_ "github.com/matrix/go-matrix/election/stock"
+	"encoding/json"
 )
 
 func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
@@ -73,7 +78,7 @@ func MakeValidatorTopReq(num int, Seed uint64) *mc.MasterValidatorReElectionReqM
 	return ans
 
 }
-func GetFengcengValidatorList(num int, Seed uint64, m int, n int) *mc.MasterValidatorReElectionReqMsg {
+func GetFencengValidatorList(num int, Seed uint64, m int, n int) *mc.MasterValidatorReElectionReqMsg {
 	mList := GetDepositDetatil(num, m, n)
 	ans := &mc.MasterValidatorReElectionReqMsg{
 		SeqNum:                  Seed,
@@ -262,15 +267,24 @@ func TestUnit10(t *testing.T) {
 	//验证者拓扑生成
 	//分层方案-（1000W 4个
 	// 			100W-1000W 4个）
-	tt := NewElect()
+	tt := baseinterface.NewElect()
 	log.InitLog(3)
-	for Num := 10; Num <= 12; Num++ {
+	for Num := 13; Num <= 13; Num++ {
 		for key := 101; key <= 101; key++ {
-			req := GetFengcengValidatorList(Num, uint64(key), 4, 4)
+			req := GetFencengValidatorList(Num, uint64(key), 4, 4)
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 4, "100W", 4)
+			for k,v:=range req.ValidatorList{
+				fmt.Println("k",k,"v",v)
+			}
 			rsq := tt.ValidatorTopGen(req)
 			PrintValidator(rsq)
 		}
 
 	}
+}
+
+
+func TestAAA(t *testing.T){
+	data,err:=json.Marshal(common.EchelonArrary)
+	fmt.Println("str data",string(data),"err",err)
 }

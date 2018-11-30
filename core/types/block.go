@@ -1,6 +1,7 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors 
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 
 // Package types contains data types related to Matrix consensus.
 package types
@@ -73,13 +74,14 @@ type Header struct {
 	Time        *big.Int           `json:"timestamp"        gencodec:"required"`
 	Elect       []common.Elect     `json:"elect"        gencodec:"required"`
 	NetTopology common.NetTopology `json:"nettopology"        gencodec:"required"`
-	Signatures  []common.Signature `json:"signatures "        gencodec:"required"`
+	Signatures  []common.Signature `json:"signatures"        gencodec:"required"`
 
-	Extra             []byte             `json:"extraData"        gencodec:"required"`
-	MixDigest         common.Hash        `json:"mixHash"          gencodec:"required"`
-	Nonce             BlockNonce         `json:"nonce"            gencodec:"required"`
-	Version           []byte             `json:"version"              gencodec:"required"`
+	Extra     []byte      `json:"extraData"        gencodec:"required"`
+	MixDigest common.Hash `json:"mixHash"          gencodec:"required"`
+	Nonce     BlockNonce  `json:"nonce"            gencodec:"required"`
+	Version   []byte      `json:"version"              gencodec:"required"`
 	VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
+	VrfValue []byte       `json:"vrfvalue"        gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -290,7 +292,6 @@ type storageblock struct {
 // and receipts.
 func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts []*Receipt) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
-
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
@@ -382,8 +383,13 @@ func CopyHeader(h *Header) *Header {
 		cpy.VersionSignatures = make([]common.Signature, len(h.VersionSignatures))
 		copy(cpy.VersionSignatures, h.VersionSignatures)
 	}
-	return &cpy
-}
+		if len(h.VrfValue) > 0 {
+			cpy.VrfValue = make([]byte, len(h.VrfValue))
+			copy(cpy.VrfValue, h.VrfValue)
+		}
+		return &cpy
+	}
+
 
 // DecodeRLP decodes the Matrix
 func (b *Block) DecodeRLP(s *rlp.Stream) error {
@@ -434,7 +440,7 @@ func (b *Block) IsSuperBlock() bool {
 
 // TODO: copies
 
-func (b *Block) Uncles() []*Header               { return b.uncles }
+func (b *Block) Uncles() []*Header          { return b.uncles }
 func (b *Block) Transactions() []SelfTransaction { return b.transactions }
 
 func (b *Block) Transaction(hash common.Hash) SelfTransaction {
@@ -561,3 +567,5 @@ func (self blockSorter) Swap(i, j int) {
 func (self blockSorter) Less(i, j int) bool { return self.by(self.blocks[i], self.blocks[j]) }
 
 func Number(b1, b2 *Block) bool { return b1.header.Number.Cmp(b2.header.Number) < 0 }
+
+

@@ -129,7 +129,12 @@ func Config_Init(Config_PATH string) {
 		log.INFO("BroadcastInterval", "BroadcastInterval", common.GetBroadcastInterval())
 		log.INFO("ReelectionInterval", "ReelectionInterval", common.GetReElectionInterval())
 	}
+	//fmt.Println("echeloc",v.Echelon)
+	if len(v.Echelon)>0{
 
+		common.EchelonArrary=v.Echelon
+	}
+	log.INFO("EchelonArrary","EchelonArrary",common.EchelonArrary)
 }
 
 type Config struct {
@@ -142,7 +147,8 @@ type Config struct {
 	RandomConfig       map[string]string
 	ElectPlugs         string
 	ReelectionInterval int
-	BroadcastInterval  int
+	BroadcastInterval int
+	Echelon []common.Echelon
 }
 
 type JsonStruct struct {

@@ -322,6 +322,15 @@ func (p *Process) processReqOnce() {
 		return
 	}
 
+
+	//verify vrf
+	if err:=p.verifyVrf(p.curProcessReq.req.Header);err!=nil{
+		log.Error(p.logExtraInfo(),"验证vrf失败",err,"高度",p.number)
+		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+		return
+	}
+	log.INFO(p.logExtraInfo(),"验证vrf成功 高度",p.number)
+
 	p.startTxsVerify()
 }
 
