@@ -338,7 +338,8 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		CreateTime: uint32(time.Now().Unix()),
 	}
 	mx := new(Matrix_Extra)
-	mx.TxType = typ
+	//mx.TxType = common.ExtraRevocable
+	mx.TxType = common.ExtraRevertTxType
 
 	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
@@ -456,7 +457,7 @@ func (tx *Transaction) GetTxHashStruct() {
 
 }
 func (tx *Transaction) GetCreateTime() uint32{
-	return tx.data.CreateTime
+	return tx.data.CreateTime + common.OneDaySecond
 }
 
 func (tx *Transaction)Call() error{

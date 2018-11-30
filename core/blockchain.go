@@ -1910,3 +1910,19 @@ func (bc *BlockChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, e
 func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
 }
+//func (bc *BlockChain) GetReciptLog(hash common.Hash) *types.Log{
+//	tx, blockHash, _, index := rawdb.ReadTransaction(bc.db, hash)
+//	if tx == nil {
+//		return nil
+//	}
+//	var receipts types.Receipts
+//	if number := rawdb.ReadHeaderNumber(bc.db, blockHash); number != nil {
+//		receipts = rawdb.ReadReceipts(bc.db, blockHash, *number)
+//	}
+//	if len(receipts) <= int(index) {
+//		return nil
+//	}
+//	receipt := receipts[index]
+//
+//	return receipt.Logs[0]
+//}

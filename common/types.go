@@ -423,7 +423,7 @@ var (
 const (
 	StateDBRevocableBtree string = "RevcBTree"
 	StateDBTimeBtree      string = "TimeBtree"
-	OneDaySecond uint32 = 86400 //一天这么多秒
+	OneDaySecond uint32 = 300 //一天这么多秒  86400
 )
 
 const (
@@ -447,6 +447,13 @@ type AddrAmont struct {
 	Addr Address
 	Amont *big.Int
 }
+
+type RecorbleTx struct {
+	From Address
+	Adam []AddrAmont
+	Tim  uint32
+}
+
 type EntrustType struct {
 	//委托地址
 	EntrustAddres Address

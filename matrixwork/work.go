@@ -275,6 +275,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil
 	}
+	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
 	listTx := make(types.SelfTransactions, 0)
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
@@ -309,18 +310,10 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 		extra := make([]*types.ExtraTo_tr,0)
 		var to common.Address
 		var value *big.Int
-		tmpv := new(big.Int).SetUint64(10000)
-		price := mapcoingasUse.getCoinGasPrice(rewart.CoinType)
-		gas := mapcoingasUse.getCoinGasUse(rewart.CoinType)
-		tmpgas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
 		isfirst := true
 		for _,addr := range sorted_keys{
 			k :=common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if rewart.Fromaddr == common.TxGasRewardAddress{
-				v = new(big.Int).Mul(v, tmpgas)
-				v = new(big.Int).Quo(v,tmpv)
-			}
 			if isfirst{
 				to = k
 				value = v
@@ -347,6 +340,7 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 }
 //Broadcast
 func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,rewart []common.RewarTx) {
+	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
@@ -365,7 +359,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 	var coalescedLogs []*types.Log
-
+	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {

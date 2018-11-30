@@ -545,6 +545,16 @@ func (n *bnode) print(w io.Writer, level int) {
 	}
 }
 
+func (n *bnode) Printree(level int) {
+	if n == nil{
+		return
+	}
+	fmt.Println( "%sNODE:%v\n", strings.Repeat("  ", level), n.items)
+	for _, c := range n.children {
+		c.Printree(level+1)
+	}
+}
+
 //Used for Btree save to triedb
 func BtreeSaveHash(node *bnode, db *Database,typ byte) common.Hash{
 
@@ -979,7 +989,7 @@ type SpcialTxData struct {
 }
 
 func (a SpcialTxData) Less(b Item) bool {
-	return (a.Key_Time - b.(SpcialTxData).Key_Time) >= common.OneDaySecond
+	return a.Key_Time < b.(SpcialTxData).Key_Time
 }
 
 func (a SpcialTxData) InsertTxData(b Item) bool {

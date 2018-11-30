@@ -243,7 +243,6 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	ut := tx.GetCreateTime()
 	buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
-	st.state.CommitSaveTx(common.ExtraTimeTxType)
 	st.state.AddLog(&types.Log{
 		Address: tx.AmontFrom(),
 		Data:    buf,
@@ -309,25 +308,26 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 		if common.EmptyHash(tmphash){
 			continue
 		}
+		b := st.state.GetMatrixData(tmphash)
+		if b == nil{
+			log.Error("file state_transition","func CallRevertNormalTx,err","not found tx hash,maybe the transaction has lasted more than 24 hours")
+			continue
+		}
+		var rt common.RecorbleTx
+		errRT := json.Unmarshal(b,&rt)
+		if errRT != nil{
+			log.Error("file state_transition","func CallRevertNormalTx,Unmarshal err",errRT)
+			continue
+		}
+		for _,vv := range rt.Adam{ //一对多交易
+			log.Info("file statedb","func UpdateTxForBtree:vv.Addr",vv.Addr,"vv.Amont",vv.Amont)
+			log.Info("file statedb","func UpdateTxForBtree:from",rt.From,"vv.Amont",vv.Amont)
+			st.state.AddBalance(common.MainAccount,rt.From,vv.Amont)
+			st.state.SubBalance(common.WithdrawAccount,rt.From,vv.Amont)
+		}
+		st.state.GetSaveTx(tx.GetMatrixType(),rt.Tim,tmphash,true)
+		st.state.DeleteMxData(tmphash,b)
 
-		logs := st.state.GetLogs(tmphash)
-		var ut uint32
-		for _,log := range logs{
-			buf := log.Data
-			str := string(buf)
-			ut2,_ := strconv.Atoi(str)
-			ut=uint32(ut2)
-		}
-		b:=st.state.GetSaveTx(tx.GetMatrixType(),ut,tmphash,true)
-		mapTOAmonts := make([]*common.AddrAmont,0)
-		Unmarshalerr:=json.Unmarshal(b,&mapTOAmonts)
-		if Unmarshalerr != nil{
-			return nil, 0, false,Unmarshalerr
-		}
-		for _,ada := range mapTOAmonts{
-			st.state.AddBalance(common.MainAccount,usefrom, ada.Amont)
-			st.state.SubBalance(common.WithdrawAccount,usefrom, ada.Amont)
-		}
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
@@ -355,7 +355,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*common.AddrAmont,0)
+	mapTOAmonts := make([]common.AddrAmont,0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -377,13 +377,13 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
 	st.state.AddBalance(common.WithdrawAccount,usefrom, st.value)
 	st.state.SubBalance(common.MainAccount,usefrom, st.value)
-	mapTOAmont := &common.AddrAmont{Addr:st.To(),Amont:st.value}
+	mapTOAmont := common.AddrAmont{Addr:st.To(),Amont:st.value}
 	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			st.state.AddBalance(common.WithdrawAccount,usefrom, ex.Amount)
 			st.state.SubBalance(common.MainAccount,usefrom, ex.Amount)
-			mapTOAmont = &common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
+			mapTOAmont = common.AddrAmont{Addr:*ex.Recipient,Amont:ex.Amount}
 			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
 			if vmerr != nil {
 				break
@@ -397,20 +397,21 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 			return nil, 0, false, vmerr
 		}
 	}
-	b,marshalerr:=json.Marshal(mapTOAmonts)
+	rt := new(common.RecorbleTx)
+	rt.From = tx.AmontFrom()
+	rt.Tim = tx.GetCreateTime()
+	rt.Adam = append(rt.Adam,mapTOAmonts...)
+	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{
 		return nil, 0, false,marshalerr
 	}
+	txHash := tx.Hash()
 	mapHashamont := make(map[common.Hash][]byte)
-	mapHashamont[tx.Hash()] = b
+	mapHashamont[txHash] = b
 	ut := tx.GetCreateTime()
-	buf := []byte(strconv.Itoa(int(ut)))
+	//buf := []byte(strconv.Itoa(int(ut)))
 	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
-	st.state.CommitSaveTx(common.ExtraRevocable)
-	st.state.AddLog(&types.Log{
-		Address: tx.AmontFrom(),
-		Data:    buf,
-	})
+	st.state.SetMatrixData(txHash,b)
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
