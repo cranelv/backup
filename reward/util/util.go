@@ -89,7 +89,7 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 	}
 	log.INFO(PackageName,"计算抵押总额,账户总抵押",totalDeposit,"定点化抵押", totalDeposit)
 
-	rewardFixed :=new(big.Int).Div(reward,big.NewInt(1e7))
+	rewardFixed :=new(big.Int).Div(reward,big.NewInt(1e8))
 
 
 	sorted_keys := make([]string, 0)
@@ -105,7 +105,7 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 
 		rewardTemp:= new(big.Int).Mul(rewardFixed,rate)
 		rewardTemp1:= new(big.Int).Div(rewardTemp,big.NewInt(1e10))
-		oneNodeReward :=  new(big.Int).Mul(rewardTemp1,big.NewInt(1e7))
+		oneNodeReward :=  new(big.Int).Mul(rewardTemp1,big.NewInt(1e8))
 		SetAccountRewards(rewards, common.HexToAddress(k),oneNodeReward)
 		log.INFO(PackageName,"计算奖励金额,账户",k,"定点化金额", rewards[common.HexToAddress(k)] )
 		log.INFO(PackageName,"","" )
