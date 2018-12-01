@@ -123,7 +123,7 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		var i uint32
 		for i = 0; i <= common.LastAccount; i++{
 			tmp.AccountType = i
-			tmp.Balance = big.NewInt(0)
+			tmp.Balance = new(big.Int)
 			data.Balance = append(data.Balance,*tmp)
 		}
 	}

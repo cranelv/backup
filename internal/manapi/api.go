@@ -552,7 +552,7 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 		var i uint32
 		for i = 0; i <= common.LastAccount; i++{
 			tmp.AccountType = i
-			tmp.Balance = big.NewInt(0)
+			tmp.Balance = new(big.Int)
 			b = append(b,*tmp)
 		}
 	}
@@ -1535,7 +1535,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,common.ExtraRevocable)
 	}
 	//YY
 	txtr := make([]*types.ExtraTo_tr, 0)

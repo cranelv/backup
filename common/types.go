@@ -455,17 +455,24 @@ type RecorbleTx struct {
 
 type EntrustType struct {
 	//委托地址
-	EntrustAddres Address
-
+	EntrustAddres Address	//被委托人from
 	//委托权限
 	IsEntrustGas    bool	//委托gas
 	IsEntrustSign   bool	//委托签名
-	IsEntrustTx     bool	//委托交易（全权委托）
-
+	//IsEntrustTx     bool	//委托交易（取消）
 	//委托限制
-	PeerMaxAmount   *big.Int //单笔金额
-	TotalAmount     *big.Int //总额
-	StartTime       uint64   //委托起始时间
-	EndTime         uint64   //委托结束时间
-	EntrustCount    uint32   //委托次数
+	//PeerMaxAmount   *big.Int //单笔金额(取消)
+	//TotalAmount     *big.Int //总额(取消)
+	StartHeight     uint64   //委托起始时间
+	EndHeight       uint64   //委托结束时间
+	//EntrustCount    uint32   //委托次数(取消)
+}
+type EntrustTypes []EntrustType
+
+type AuthType struct {
+	AuthAddres Address	//授权人from
+	IsEntrustGas    bool	//委托gas
+	IsEntrustSign   bool	//委托签名
+	StartHeight     uint64   //委托起始时间
+	EndHeight       uint64   //委托结束时间
 }

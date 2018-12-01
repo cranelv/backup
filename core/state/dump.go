@@ -43,7 +43,7 @@ func (self *StateDB) RawDump() Dump {
 			panic(err)
 		}
 
-		tBalance := new(big.Int).SetUint64(0)
+		tBalance := new(big.Int)
 		for _,tAccount := range data.Balance{
 			if tAccount.AccountType == common.MainAccount {
 				tBalance = tAccount.Balance
