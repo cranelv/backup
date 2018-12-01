@@ -557,6 +557,7 @@ func (nPool *NormalTxPool) checkList() {
 				nPool.packageSNList()
 			}
 		case <-nPool.quit :
+			return
 		}
 	}
 }
@@ -642,6 +643,7 @@ func (nPool *NormalTxPool) Stop() {
 
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
+	nPool.udptxsSub.Unsubscribe()
 	nPool.quit <- struct{}{}
 	nPool.wg.Wait()
 	close(nPool.quit)

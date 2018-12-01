@@ -15,7 +15,7 @@ type Reward interface {
 	CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int
 	CalcValidatorRewards(blockReward *big.Int,  Leader common.Address, header *types.Header) map[common.Address]*big.Int
 	CalcMinerRewards(blockReward *big.Int, header *types.Header) map[common.Address]*big.Int
-	CalcRewardMount(state *state.StateDB, blockReward *big.Int,address common.Address) *big.Int
+	CalcRewardMountByNumber(state *state.StateDB,num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int
 }
 
 type Lottery interface {

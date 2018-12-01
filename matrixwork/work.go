@@ -411,14 +411,14 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	}
 	blkreward := blkreward.New(bc)
 	rewardList := make([]common.RewarTx,0)
-
-	minerReward:=blkreward.CalcRewardMount(env.State,util.MinersBlockReward,common.BlkMinerRewardAddress)
+    //todo: read half number from state
+	minerReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.MinersBlockReward,300,common.BlkMinerRewardAddress)
 	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header)
 	if nil!=minersRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
 	}
 
-	validatorReward:=blkreward.CalcRewardMount(env.State,util.ValidatorsBlockReward,common.BlkValidatorRewardAddress)
+	validatorReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.ValidatorsBlockReward,300,common.BlkValidatorRewardAddress)
 	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,env.header.Leader, env.header)
 	if nil!=validatorsRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})

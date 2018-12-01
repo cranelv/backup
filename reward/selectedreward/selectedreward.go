@@ -81,22 +81,15 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		return
 	}
 
-	selectedNodesDeposit, totalDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
+	selectedNodesDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
 	log.INFO(PackageName, "参与奖励大家共发放",reward)
-	for account, deposit := range selectedNodesDeposit {
-
-		multiReward:=new(big.Int).Div(new(big.Int).Mul(deposit,reward),big.NewInt(100))
-		oneNodeReward:=new(big.Int).Mul(new(big.Int).Div(multiReward,totalDeposit),big.NewInt(100))
-		util.SetAccountRewards(topRewards, account,oneNodeReward)
-		log.INFO(PackageName, "账户", account, "金额", oneNodeReward.String(),"所有抵押", totalDeposit.String(), "当前抵押", deposit)
-	}
 
 	util.CalcDepositRate(reward,selectedNodesDeposit,topRewards)
 	return
 
 }
 
-func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int, *big.Int) {
+func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int) {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph.NodeList {
 		NodesRewardMap[nodelist.Account] = rewardRate
@@ -110,7 +103,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		}
 		log.INFO(PackageName,"初选节点",electList.Account.Hex(),"比例",NodesRewardMap[electList.Account] )
 	}
-	totalDeposit := new(big.Int)
+
 	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
 	var depositNum uint64
 	if num.Uint64() < common.GetReElectionInterval(){
@@ -129,9 +122,8 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		if depositRate, ok := NodesRewardMap[v.Address]; ok {
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
 			selectedNodesDeposit[v.Address] = deposit
-			totalDeposit.Add(totalDeposit, deposit)
 			log.INFO(PackageName,"计算抵押总额,账户",v.Address.Hex(),"抵押",deposit)
 		}
 	}
-	return selectedNodesDeposit, totalDeposit
+	return selectedNodesDeposit
 }
