@@ -50,7 +50,6 @@ var (
 	// ErrInsufficientFunds is returned if the total cost of executing a transaction
 	// is higher than the balance of the user's account.
 	ErrInsufficientFunds = errors.New("insufficient funds for gas * price + value")
-	ErrEntrustInsufficientFunds = errors.New("entrust insufficient funds for gas * price")
 
 	// ErrIntrinsicGas is returned if the transaction is specified to use less gas
 	// than required to start the invocation.
@@ -1267,52 +1266,28 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNonceTooLow
 	}
 	//YY add if
-	var balance *big.Int
-	var entrustbalance *big.Int
-	//当前账户余额
-	for _,tAccount := range nPool.currentState.GetBalance(from){
-		if tAccount.AccountType == common.MainAccount{
-			balance = tAccount.Balance
-			break
-		}
-	}
-	//委托账户的余额
-	if tx.IsEntrustGas{
-		for _,tAccount := range nPool.currentState.GetBalance(tx.AmontFrom()){
-			if tAccount.AccountType == common.MainAccount{
-				entrustbalance = tAccount.Balance
-				break
-			}
-		}
-	}
-
 	if len(txEx) > 0 && len(txEx[0].ExtraTo) > 0 {
-		//如果是委托gas，检查授权人的账户余额是否大于gas;委托人的余额是否大于转账金额
-		if tx.IsEntrustGas{
-			totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-			if entrustbalance.Cmp(totalGas) < 0{
-				return ErrEntrustInsufficientFunds
-			}
-			if balance.Cmp(tx.TotalAmount()) < 0{
-				return ErrInsufficientFunds
-			}
-		}else {
-			if balance.Cmp(tx.CostALL()) < 0{
-				return ErrInsufficientFunds
+		// Transactor should have enough funds to cover the costs
+		//if nPool.currentState.GetBalance(from).Cmp(tx.CostALL()) < 0 {
+		//	return ErrInsufficientFunds
+		//}
+		//hezi
+		for _,tAccount := range nPool.currentState.GetBalance(from){
+			if tAccount.AccountType == common.MainAccount{
+				if tAccount.Balance.Cmp(tx.CostALL()) < 0{
+					return ErrInsufficientFunds
+				}
 			}
 		}
 	} else {
-		if tx.IsEntrustGas{
-			totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-			if entrustbalance.Cmp(totalGas) < 0{
-				return ErrEntrustInsufficientFunds
-			}
-			if balance.Cmp(tx.Value()) < 0{
-				return ErrInsufficientFunds
-			}
-		}else {
-			if balance.Cmp(tx.Cost()) < 0{
-				return ErrInsufficientFunds
+		//if nPool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+		//	return ErrInsufficientFunds
+		//}
+		for _,tAccount := range nPool.currentState.GetBalance(from){
+			if tAccount.AccountType == common.MainAccount{
+				if tAccount.Balance.Cmp(tx.Cost()) < 0{
+					return ErrInsufficientFunds
+				}
 			}
 		}
 	}
@@ -1340,29 +1315,26 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 
 func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if tx.IsEntrustTx(){
-		//***************************************************************//
-		//测试
-		//EnType := new(common.EntrustType)
-		//EnType.EntrustAddres = common.HexToAddress("0x2d886318ce42885a4fac70d81c200d600e310d7d")
-		//EnType.IsEntrustTx = true
-		//bt,err1 := json.Marshal(EnType)
-		//if err1 != nil{
-		//	fmt.Println("=====err")
+		log.INFO("===ZH:委托交易","IsEntrustTx",true)
+		//from := tx.From()
+		//mapdata := nPool.currentState.GetStateByteArray(from,from.Hash())
+		//EntrustData := new(common.EntrustType)
+		//err := json.Unmarshal(mapdata,EntrustData)
+		//if err != nil{
+		//	log.Error("ExtraEntrustTx err")
+		//	return false,err
 		//}
-		//data1 := make(map[common.Hash][]byte)
-		//add := tx.From()
-		//data1[add.Hash()] = bt
-		////btdata ,err1 := json.Marshal(data1)
-		//nPool.currentState.SetStateByteArray(add,add.Hash(),bt)
-		//***************************************************************//
-
-		//通过from获得的数据为授权人marsha1过的数据
-		from := tx.From()
-		entrustFrom := nPool.currentState.GetAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
-		if !entrustFrom.Equal(common.Address{}){
-			tx.Setentrustfrom(entrustFrom)
-			tx.IsEntrustGas = true
-		}
+		//
+		//if EntrustData == nil{
+		//	log.Error("The account is not be Entrusted!")
+		//	return false,errors.New("Not be Entrusted")
+		//}
+		//
+		//entrustFrom := EntrustData.EntrustAddres
+		//tx.Setentrustfrom(entrustFrom)
+		//if EntrustData.IsEntrustTx{
+		//	tx.SetFromLoad(entrustFrom)
+		//}
 	}
 
 	//普通交易

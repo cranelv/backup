@@ -63,12 +63,6 @@ type StateDB interface {
 	SetMatrixData(hash common.Hash,val []byte)
 	GetMatrixData(hash common.Hash) (val []byte)
 	DeleteMxData(hash common.Hash,val []byte)
-
-	GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
-	GetAllEntrustSignFrom(authFrom common.Address) []common.Address
-	GetAllEntrustGasFrom(authFrom common.Address) []common.Address
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM EVM
