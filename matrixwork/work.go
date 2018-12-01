@@ -412,7 +412,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	blkreward := blkreward.New(bc)
 	rewardList := make([]common.RewarTx,0)
     //todo: read half number from state
-	minerReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.MinersBlockReward,300,common.BlkMinerRewardAddress)
+	minerReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.MinersBlockReward,1000000,common.BlkMinerRewardAddress)
 	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header)
 	if nil!=minersRewardMap{
 		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
