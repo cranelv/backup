@@ -497,7 +497,12 @@ func (tx *Transaction)GetFromLoad() interface{}  {
 	return tx.from.Load()
 }
 func (tx *Transaction)SetFromLoad(x interface{})  {
-	tx.from.Store(x)
+	from,ok := x.(common.Address)
+	if ok{
+		tx.from.Store(sigCache{signer: NewEIP155Signer(tx.ChainId()), from: from})
+	}else {
+		tx.from.Store(x)
+	}
 }
 
 func (tx *Transaction)Setentrustfrom(x interface{}){
