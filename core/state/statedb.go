@@ -50,6 +50,7 @@ type StateDB struct {
 
 	revocablebtrie trie.BTree //可撤销
 	timebtrie trie.BTree    //定时
+	entrustbtrie trie.BTree //委托
 
 	btreeMap       	[]BtreeDietyStruct
 	btreeMapDirty   []BtreeDietyStruct
@@ -217,7 +218,16 @@ func (self *StateDB) GetBalance(addr common.Address) common.BalanceType {
 	if stateObject != nil {
 		return stateObject.Balance()
 	}
-	return nil
+
+	b := make(common.BalanceType,0)
+	tmp := new(common.BalanceSlice)
+	var i uint32
+	for i = 0; i <= common.LastAccount; i++{
+		tmp.AccountType = i
+		tmp.Balance = new(big.Int)
+		b = append(b,*tmp)
+	}
+	return b
 }
 
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
@@ -276,6 +286,82 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 	}
 	return nil
 }
+//根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名)
+func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.IsEntrustSign == true && entrustData.StartHeight <= height && entrustData.EndHeight >= height {
+			addressList = append(addressList,entrustData.EntrustAddres)
+		}
+	}
+	return addressList
+}
+
+//根据委托人from和高度获取授权人的from,返回授权人地址(算法组调用,仅适用委托签名)
+func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
+	AuthData := new(common.AuthType) //授权数据是单个结构
+	err := json.Unmarshal(AuthMarsha1Data,AuthData)
+	if err != nil{
+		return common.Address{}
+	}
+	if AuthData.IsEntrustSign == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
+		return AuthData.AuthAddres
+	}
+	return common.Address{}
+}
+//根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustSignFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.IsEntrustSign == true{
+			addressList = append(addressList,entrustData.EntrustAddres)
+		}
+	}
+	return addressList
+}
+//根据授权人获取所有委托gas列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.IsEntrustGas == true{
+			addressList = append(addressList,entrustData.EntrustAddres)
+		}
+	}
+	return addressList
+}
+//根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
+	AuthData := new(common.AuthType) //授权数据是单个结构
+	err := json.Unmarshal(AuthMarsha1Data,AuthData)
+	if err != nil{
+		return common.Address{}
+	}
+	if AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
+		return AuthData.AuthAddres
+	}
+	return common.Address{}
+}
+
 
 // Database retrieves the low level database supporting the lower level trie ops.
 func (self *StateDB) Database() Database {
@@ -579,6 +665,8 @@ func (self *StateDB) deleteMatrixData(hash common.Hash,val []byte) {
 }
 
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	//if val = self.matrixData[hash]; val != nil{
 	//	return val
 	//}
@@ -593,6 +681,8 @@ func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 }
 
 func (self *StateDB) SetMatrixData(hash common.Hash,val []byte) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	self.journal.append(addMatrixDataChange{hash: hash})
 	self.matrixData[hash] = val
 	self.matrixDataDirty[hash] = val
