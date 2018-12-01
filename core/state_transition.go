@@ -18,6 +18,7 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	//"sync"
 	"encoding/json"
+	"fmt"
 )
 
 var (
@@ -163,6 +164,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		case common.ExtraAuthTx:
 			log.INFO("====ZH: 授权交易","txtype",txtype)
 			return st.CallAuthTx()
+		case common.ExtraCancelEntrust:
+			log.INFO("====ZH: 取消委托","txtype",txtype)
+			return st.CallCancelAuthTx()
 		default:
 			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
 			return nil,0,false,ErrTXUnknownType
@@ -182,7 +186,8 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	if from == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,from is nil")
 	}
-	usefrom := tx.AmontFrom()
+	//usefrom := tx.AmontFrom()
+	usefrom := tx.From()
 	if usefrom == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,usefrom is nil")
 	}
@@ -235,7 +240,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 		}
 	}
 	rt := new(common.RecorbleTx)
-	rt.From = tx.AmontFrom()
+	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
@@ -261,7 +266,7 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	if from == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,from is nil")
 	}
-	usefrom := tx.AmontFrom()
+	usefrom := tx.From()
 	if usefrom == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,usefrom is nil")
 	}
@@ -344,7 +349,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if from == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,from is nil")
 	}
-	usefrom := tx.AmontFrom()
+	usefrom := tx.From()
 	if usefrom == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,usefrom is nil")
 	}
@@ -398,7 +403,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 		}
 	}
 	rt := new(common.RecorbleTx)
-	rt.From = tx.AmontFrom()
+	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
@@ -546,6 +551,8 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
+
+//授权交易的from和to是同一个地址
 func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool, err error){
 	if err = st.PreCheck(); err != nil {
 		return
@@ -557,23 +564,128 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 		evm = st.evm
 		vmerr error
 	)
-	//map[common.Hash][]byte:common.Hash为被委托人的from,[]byte为common.EntrustType结构的marshal编码
-	//data := make(map[common.Hash][]byte)
-	//err = json.Unmarshal(tx.Data(),&data)
-	//if err != nil{
-	//	log.Error("CallAuthTx Unmarshal err")
-	//	return nil, 0, false, err
-	//}
-	//for hash,mapdata := range data{
-	//	tmp := st.state.GetStateByteArray(common.HashToAddress(hash),hash)
-	//	EntrustData := new(common.EntrustType)
-	//	json.Unmarshal(tmp,EntrustData)
-	//	if EntrustData.EntrustAddres != (common.Address{}){
-	//		log.Error("该委托人已经被委托过了，不能重复委托")
-	//		return nil, 0, false, ErrRepeatEntrust
-	//	}
-	//	st.state.SetStateByteArray(common.HashToAddress(hash),hash,mapdata)
-	//}
+
+	//*************************测试代码*****************************/
+	testlist := make([]common.EntrustType,0)
+	testdata := new(common.EntrustType)
+	testdata.IsEntrustSign = true
+	testdata.EntrustAddres = common.HexToAddress("0x1a1af9f6dab895b59cc9d84d432b3c30f0f0de85")
+	testdata.StartHeight = 50
+	testdata.EndHeight = 100
+	testlist = append(testlist,*testdata)
+	testdata1 := new(common.EntrustType)
+	testdata1.IsEntrustSign = true
+	testdata1.EntrustAddres = common.HexToAddress("0x42601484fc7cf9710242d73bcb732b17c9f98f71")
+	testdata1.StartHeight = 150
+	testdata1.EndHeight = 200
+	testlist = append(testlist,*testdata1)
+	bt1 ,err := json.Marshal(testlist)
+	//********************22222************************************//
+	var entrustOK bool = false
+	Authfrom := tx.From()
+	EntrustList := make([]common.EntrustType,0)
+	//err = json.Unmarshal(tx.Data(),&EntrustList) //EntrustList为被委托人的EntrustType切片
+	err = json.Unmarshal(bt1,&EntrustList) //!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	if err != nil{
+		log.Error("CallAuthTx Unmarshal err")
+		return nil, 0, false, err
+	}
+	for _,EntrustData := range EntrustList{
+		addres := EntrustData.EntrustAddres //被委托人地址
+		tmpAuthMarsha1Data := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))
+		if len(tmpAuthMarsha1Data) != 0{
+			AuthData := new(common.AuthType)
+			err = json.Unmarshal(tmpAuthMarsha1Data,AuthData)
+			if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
+				log.Error("该委托人已经被委托过了，不能重复委托")
+				return	//如果一个不满足就返回，不continue
+			}
+			//如果是同一个人委托，委托的时间不能重合
+			if AuthData.AuthAddres.Equal(Authfrom){
+				if EntrustData.StartHeight <= AuthData.EndHeight{
+					log.Error("同一个授权人的委托时间不能重合")
+					//return nil, 0, false, ErrRepeatEntrust
+					return
+				}
+			}
+		}
+		entrustOK = true
+		//反向存储AuthType结构，用来通过被委托人from和高度查找授权人from
+		authData := new(common.AuthType)
+		authData.StartHeight = EntrustData.StartHeight
+		authData.EndHeight = EntrustData.EndHeight
+		authData.IsEntrustSign = EntrustData.IsEntrustSign
+		authData.IsEntrustGas = EntrustData.IsEntrustGas
+		authData.AuthAddres = Authfrom
+		marshalAuthData,err := json.Marshal(authData)
+		if err != nil{
+			log.Error("Marshal err")
+			return nil, 0, false, err
+		}
+		//marsha1AuthData是authData的Marsha1编码
+		st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
+	}
+	if entrustOK{
+		//st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),tx.Data()) //tx.Data()钱包marshal过的EntrustType列表
+		st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),bt1)//!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		entrustOK = false
+	}else{
+		log.Error("委托条件不满足")
+	}
+
+
+	//*************************测试代码*****************************/
+	for _,EntrustData := range EntrustList{
+		addres := EntrustData.EntrustAddres //被委托人地址
+		tmpAuthMarsha1Data := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))
+		if len(tmpAuthMarsha1Data) != 0{
+			AuthData := new(common.AuthType)
+			err = json.Unmarshal(tmpAuthMarsha1Data,AuthData)
+			if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
+				log.Error("该委托人已经被委托过了，不能重复委托")
+				continue
+			}
+			//如果是同一个人委托，委托的时间不能重合
+			if AuthData.AuthAddres.Equal(Authfrom){
+				if EntrustData.StartHeight <= AuthData.EndHeight{
+					log.Error("同一个授权人的委托时间不能重合")
+					//return nil, 0, false, ErrRepeatEntrust
+					continue
+				}
+			}
+		}
+		entrustOK = true
+		//反向存储AuthType结构，用来通过被委托人from和高度查找授权人from
+		authData := new(common.AuthType)
+		authData.StartHeight = EntrustData.StartHeight
+		authData.EndHeight = EntrustData.EndHeight
+		authData.IsEntrustSign = EntrustData.IsEntrustSign
+		authData.IsEntrustGas = EntrustData.IsEntrustGas
+		authData.AuthAddres = Authfrom
+		marshalAuthData,err := json.Marshal(authData)
+		if err != nil{
+			log.Error("Marshal err")
+			return nil, 0, false, err
+		}
+		//marsha1AuthData是authData的Marsha1编码
+		st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
+	}
+	if entrustOK{
+		//st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),tx.Data()) //tx.Data()钱包marshal过的EntrustType列表
+		st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),bt1)//!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	}else{
+		log.Error("委托条件不满足")
+	}
+
+	//111111111111111111111111111111111111111111111111111111111111
+	entrustlist := st.state.GetEntrustFrom(Authfrom,60)
+	fmt.Println(entrustlist)
+	authfrom := st.state.GetAuthFrom(testdata1.EntrustAddres,150)
+	fmt.Println(authfrom)
+	gasauthfrom := st.state.GetGasAuthFrom(testdata1.EntrustAddres,150)
+	fmt.Println(gasauthfrom)
+	//************************222*************************************//
+
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -583,7 +695,7 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 	}
 	st.gas = 0
 	if toaddr == nil {//YY
-		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
+		log.Error("file state_transition","func CallAuthTx()","to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -593,7 +705,91 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition","func CallUnGasNormalTx()","Extro to is nil")
+				log.Error("file state_transition","func CallAuthTx()","Extro to is nil")
+				return nil, 0, false, ErrTXToNil
+			} else {
+				// Increment the nonce for the next transaction
+				ret, st.gas, vmerr = evm.Call(sender, *ex.Recipient, ex.Payload, st.gas, ex.Amount)
+			}
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, vmerr
+		}
+	}
+	return ret, 0, vmerr != nil, err
+}
+func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed bool, err error){
+	if err = st.PreCheck(); err != nil {
+		return
+	}
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
+	sender := vm.AccountRef(tx.From())
+	var (
+		evm = st.evm
+		vmerr error
+	)
+
+	//Authfrom := tx.From()
+	EntrustList := make([]common.EntrustType,0)
+	err = json.Unmarshal(tx.Data(),&EntrustList) //EntrustList为被委托人的EntrustType切片
+	//err = json.Unmarshal(bt1,&EntrustList) //!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	if err != nil{
+		log.Error("CallAuthTx Unmarshal err")
+		return nil, 0, false, err
+	}
+	for _,EntrustData := range EntrustList {
+		addres := EntrustData.EntrustAddres //被委托人地址
+		marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的委托数据,marshal编码过的
+		if len(marshaldata) > 0{
+			oldEntrustData := new(common.EntrustType)
+			json.Unmarshal(marshaldata,oldEntrustData)
+			if !EntrustData.IsEntrustGas && !EntrustData.IsEntrustSign{
+				log.Error("未设置取消委托条件")
+				return nil, 0, false, errors.New("without set cancel entrust type")
+			}
+			//取消委托gas
+			if EntrustData.IsEntrustGas{
+				if oldEntrustData.IsEntrustGas == true{
+					oldEntrustData.IsEntrustGas = false
+				}
+			}
+			if EntrustData.IsEntrustSign{
+				if oldEntrustData.IsEntrustSign == true{
+					oldEntrustData.IsEntrustSign = false
+				}
+			}
+			newEntrustData,_ := json.Marshal(oldEntrustData)
+			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newEntrustData)
+		}
+	}
+
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+	}
+	st.gas = 0
+	if toaddr == nil {//YY
+		log.Error("file state_transition","func CallAuthTx()","to is nil")
+		return nil, 0, false, ErrTXToNil
+	} else {
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
+	}
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			if toaddr == nil {
+				log.Error("file state_transition","func CallAuthTx()","Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				// Increment the nonce for the next transaction

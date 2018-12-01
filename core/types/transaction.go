@@ -57,6 +57,8 @@ type Transaction struct {
 	Currency string //币种
 	// by hezi
 	N []uint32
+	IsEntrustGas bool
+	//IsEntrustSign bool
 }
 
 //YY
@@ -559,6 +561,13 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		from = tmp.from
 	}
 	return
+}
+func (tx *Transaction) TotalAmount() *big.Int {
+	total := tx.data.Amount
+	for _, extra := range tx.data.Extra[0].ExtraTo {
+		total.Add(total, extra.Amount)
+	}
+	return total
 }
 //YY// Cost returns amount + gasprice * gaslimit.
 func (tx *Transaction) CostALL() *big.Int {
