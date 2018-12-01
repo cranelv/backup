@@ -340,10 +340,11 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		TxEnterType:  NormalTxIndex,
 		CommitTime: uint64(time.Now().Unix()),
 	}
-	mx := new(Matrix_Extra)
-	mx.TxType = typ
-
-	d.Extra = append(d.Extra,*mx)
+	if typ > 0{
+		mx := new(Matrix_Extra)
+		mx.TxType = typ
+		d.Extra = append(d.Extra,*mx)
+	}
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
