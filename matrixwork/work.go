@@ -272,7 +272,9 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil
 	}
-	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
+	tim := env.header.Time.Uint64()
+	env.State.UpdateTxForBtree(uint32(tim))
+	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	listTx := make(types.SelfTransactions, 0)
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
@@ -337,7 +339,9 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 }
 //Broadcast
 func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,rewart []common.RewarTx) {
-	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
+	tim := env.header.Time.Uint64()
+	env.State.UpdateTxForBtree(uint32(tim))
+	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
@@ -356,7 +360,9 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 	var coalescedLogs []*types.Log
-	env.State.UpdateTxForBtree(uint32(time.Now().Unix()))
+	tim := env.header.Time.Uint64()
+	env.State.UpdateTxForBtree(uint32(tim))
+	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {

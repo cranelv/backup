@@ -229,7 +229,19 @@ func (self *StateDB) GetBalance(addr common.Address) common.BalanceType {
 	}
 	return b
 }
+// Retrieve the balance from the given address or 0 if object not found
+func (self *StateDB) GetBalanceByType(addr common.Address,accType uint32) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		for _,tAccount := range stateObject.data.Balance{
+			if tAccount.AccountType == accType{
+				return tAccount.Balance
+			}
+		}
+	}
 
+	return big.NewInt(0)
+}
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -478,7 +490,7 @@ func (self *StateDB)UpdateTxForBtree(key uint32){
 			continue
 		}
 		log.Info("file statedb","func UpdateTxForBtree:item.key",item.Key_Time,"item.Value",item.Value_Tx)
-		for _,tm :=range item.Value_Tx{
+		for hash,tm :=range item.Value_Tx{
 			//self.GetMatrixData(hash)
 			var rt common.RecorbleTx
 			errRT := json.Unmarshal(tm,&rt)
@@ -489,9 +501,45 @@ func (self *StateDB)UpdateTxForBtree(key uint32){
 			for _,vv := range rt.Adam{ //一对多交易
 				log.Info("file statedb","func UpdateTxForBtree:vv.Addr",vv.Addr,"vv.Amont",vv.Amont)
 				log.Info("file statedb","func UpdateTxForBtree:from",rt.From,"vv.Amont",vv.Amont)
-				self.AddBalance(common.MainAccount,vv.Addr,vv.Amont)
-				self.SubBalance(common.WithdrawAccount,rt.From,vv.Amont)
+				if self.GetBalanceByType(rt.From,common.WithdrawAccount).Cmp(vv.Amont) >= 0{
+					self.SubBalance(common.WithdrawAccount,rt.From,vv.Amont)
+					self.AddBalance(common.MainAccount,vv.Addr,vv.Amont)
+				}
 			}
+			self.GetSaveTx(common.ExtraRevocable,key,hash,true)
+		}
+	}
+}
+func (self *StateDB)UpdateTxForBtreeBytime(key uint32){
+	out := make([]trie.Item,0)
+	self.timebtrie.DescendLessOrEqual(trie.SpcialTxData{Key_Time:key},func(a trie.Item) bool {
+		out = append(out, a)
+		return true
+	})
+	log.Info("file statedb","func UpdateTxForBtreeBytime:len(out)",len(out),"time",key)
+	for _,it := range out{
+		item,ok := it.(trie.SpcialTxData)
+		if !ok{
+			continue
+		}
+		log.Info("file statedb","func UpdateTxForBtreeBytime:item.key",item.Key_Time,"item.Value",item.Value_Tx)
+		for hash,tm :=range item.Value_Tx{
+			//self.GetMatrixData(hash)
+			var rt common.RecorbleTx
+			errRT := json.Unmarshal(tm,&rt)
+			if errRT != nil{
+				log.Error("file statedb","func UpdateTxForBtreeBytime,Unmarshal err",errRT)
+				continue
+			}
+			for _,vv := range rt.Adam{ //一对多交易
+				log.Info("file statedb","func UpdateTxForBtreeBytime:vv.Addr",vv.Addr,"vv.Amont",vv.Amont)
+				log.Info("file statedb","func UpdateTxForBtreeBytime:from",rt.From,"vv.Amont",vv.Amont)
+				if self.GetBalanceByType(rt.From,common.WithdrawAccount).Cmp(vv.Amont) >= 0{
+					self.SubBalance(common.WithdrawAccount,rt.From,vv.Amont)
+					self.AddBalance(common.MainAccount,vv.Addr,vv.Amont)
+				}
+			}
+			self.GetSaveTx(common.ExtraTimeTxType,key,hash,true)
 		}
 	}
 }

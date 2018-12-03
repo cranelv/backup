@@ -56,7 +56,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 	// Iterate over and process the individual transactions
-
+	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
+	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
 	stxs := make([]types.SelfTransaction,0)
 	var txcount int
 	for i, tx := range block.Transactions() {
@@ -97,6 +98,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		tmpl = append(tmpl,allLogs...)
 		allLogs = tmpl
 	}
+
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
