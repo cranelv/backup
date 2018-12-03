@@ -1081,6 +1081,7 @@ type RPCTransaction1 struct {
 	TxEnterType      byte `json:"TxEnterType"`
 	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	Currency         string           `json:"Currency"`
+	CommitTime       hexutil.Uint64  `json:"CommitTime"`
 	ExtraTo          []*ExtraTo_Mx1   `json:"extra_to"`
 }
 
@@ -1101,6 +1102,7 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		TxEnterType:    data.TxEnterType,
 		IsEntrustTx:    data.IsEntrustTx,
 		Currency:       data.Currency,
+		CommitTime:     data.CommitTime,
 	}
 	//内部发送的交易没有币种，默认为MAN
 	if data.Currency == ""{
@@ -1148,6 +1150,7 @@ type RPCTransaction struct {
 	TxEnterType      byte `json:"TxEnterType"`
 	IsEntrustTx      bool			 `json:"IsEntrustTx"`
 	Currency         string          `json:"Currency"`
+	CommitTime       hexutil.Uint64  `json:"CommitTime"`
 	ExtraTo          []*ExtraTo_Mx   `json:"extra_to"`
 }
 
@@ -1166,20 +1169,6 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 		from, _ = types.Sender(signer, tx)
 	}
 	v, r, s := tx.RawSignatureValues()
-	//var addr common.Address
-	//if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
-	//	if index == params.FirstTxIndex{
-	//		from = common.BlkRewardAddress
-	//	}else if index == params.SecondTxIndex{
-	//		from = common.TxGasRewardAddress
-	//	}else if index == params.ThreeTxIndex{
-	//		from = common.TxGasRewardAddress
-	//	}else if index == params.FourTxIndex{
-	//		from = common.TxGasRewardAddress
-	//	}else if index == params.FiveTxIndex{
-	//		from = common.TxGasRewardAddress
-	//	}
-	//}
 
 	result := &RPCTransaction{
 		From:     from,
@@ -1196,6 +1185,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 		TxEnterType: tx.TxType(),
 		IsEntrustTx: tx.IsEntrustTx(),
 		Currency:  tx.GetTxCurrency(),
+		CommitTime:hexutil.Uint64(tx.GetCreateTime()),
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
