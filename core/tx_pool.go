@@ -651,7 +651,7 @@ func (nPool *NormalTxPool) stats() (int, int) {
 
 // Content retrieves the data content of the transaction pool, returning all the
 // pending as well as queued transactions, grouped by account and sorted by nonce.
-func (nPool *NormalTxPool) Content() (map[common.Address][]*types.Transaction, map[common.Address][]*types.Transaction) {
+func (nPool *NormalTxPool) Content() (map[common.Address][]*types.Transaction) {
 	nPool.mu.Lock()
 	defer nPool.mu.Unlock()
 	pending := make(map[common.Address][]*types.Transaction)
@@ -662,11 +662,8 @@ func (nPool *NormalTxPool) Content() (map[common.Address][]*types.Transaction, m
 		}
 		pending[addr] = txlist
 	}
-	queued := make(map[common.Address][]*types.Transaction)
-
-	log.Info("============YY========", "Content()::SContainer", len(nPool.SContainer))
-	log.Info("============YY========", "Content()::NContainer", len(nPool.NContainer))
-	return pending, queued
+	//queued := make(map[common.Address][]*types.Transaction)
+	return pending
 }
 
 // Pending retrieves all currently processable transactions, groupped by origin

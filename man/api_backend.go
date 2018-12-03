@@ -150,10 +150,7 @@ func (b *ManAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscri
 	return b.man.BlockChain().SubscribeLogsEvent(ch)
 }
 
-//TODO 调用该方法的时候应该返回错误的切片
 func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) (error) {
-	//txs := make(types.SelfTransactions, 0)
-	//txs = append(txs, signedTx)
 	return b.man.txPool.AddRemote(signedTx)
 }
 
@@ -223,6 +220,8 @@ func (b *ManAPIBackend) Stats() (pending int, queued int) {
 
 //TODO 应该将返回值加入切片中否则以后多一种交易就要添加一个返回值
 func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTransactions, btxs map[common.Address]types.SelfTransactions) {
+	ntxs = make(map[common.Address]types.SelfTransactions)
+	btxs = make(map[common.Address]types.SelfTransactions)
 	bpooler, err := b.man.TxPool().GetTxPoolByType(types.BroadCastTxIndex)
 	if err == nil {
 		_, ok := bpooler.(*core.BroadCastTxPool)
@@ -236,9 +235,17 @@ func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTrans
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			//ntxs, _ = npool.Content()
-			ntxs= nil //YYY TODO npool.Content()
-			log.Info("file api_backend","TxPoolContent()",npool) //TODO 删除
+			txlist := npool.Content()
+			for k,vlist := range txlist{
+				txser := make([]types.SelfTransaction,0)
+				for _,v := range vlist{
+					txser = append(txser,v)
+				}
+				if vs,ok := ntxs[k]; !ok{
+					txser = append(txser,vs...)
+				}
+				ntxs[k] = txser
+			}
 		} else {
 			ntxs = nil
 		}
