@@ -736,7 +736,7 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 		vmerr error
 	)
 
-	//Authfrom := tx.From()
+	Authfrom := tx.From()
 	EntrustList := make([]common.EntrustType,0)
 	err = json.Unmarshal(tx.Data(),&EntrustList) //EntrustList为被委托人的EntrustType切片
 	//err = json.Unmarshal(bt1,&EntrustList) //!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -744,6 +744,7 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
+
 	for _,EntrustData := range EntrustList {
 		addres := EntrustData.EntrustAddres //被委托人地址
 		marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的委托数据,marshal编码过的
@@ -759,16 +760,35 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 				if oldEntrustData.IsEntrustGas == true{
 					oldEntrustData.IsEntrustGas = false
 				}
+				entrustlist := st.state.GetAllEntrustGasFrom(Authfrom)
+				for _,entrustFrom := range entrustlist{
+					if entrustFrom.Equal(addres){
+						//cancelEntrustGasList = append(cancelEntrustGasList,entrustFrom)
+						EntrustData.IsEntrustGas = false
+					}
+				}
 			}
 			if EntrustData.IsEntrustSign{
 				if oldEntrustData.IsEntrustSign == true{
 					oldEntrustData.IsEntrustSign = false
+				}
+				entrustlist := st.state.GetAllEntrustSignFrom(Authfrom)
+				for _,entrustFrom := range entrustlist{
+					if entrustFrom.Equal(addres){
+						//cancelEntrustSignList = append(cancelEntrustSignList,entrustFrom)
+						EntrustData.IsEntrustSign = false
+					}
 				}
 			}
 			newEntrustData,_ := json.Marshal(oldEntrustData)
 			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newEntrustData)
 		}
 	}
+	newMarshalEntrustlist,err := json.Marshal(EntrustList)
+	if err != nil{
+		return nil, 0, false,err
+	}
+	st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newMarshalEntrustlist)
 
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
