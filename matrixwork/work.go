@@ -51,27 +51,28 @@ type Work struct {
 	createdAt time.Time
 }
 type coingasUse struct {
-	mapcoin map[string]uint64
+	mapcoin map[string]*big.Int
 	mapprice map[string]*big.Int
 	mu sync.RWMutex
 }
-var mapcoingasUse coingasUse = coingasUse{mapcoin:make(map[string]uint64),mapprice:make(map[string]*big.Int)}
-func (cu *coingasUse)setCoinGasUse(txers []types.SelfTransaction){
+var mapcoingasUse coingasUse = coingasUse{mapcoin:make(map[string]*big.Int),mapprice:make(map[string]*big.Int)}
+func (cu *coingasUse)setCoinGasUse(txer types.SelfTransaction,gasuse uint64){
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
-	cu.mapcoin = make(map[string]uint64)
+	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
-	for _,tx := range txers{
-		gasAll := tx.Gas()
-		priceAll := tx.GasPrice()
-		if gas,ok := cu.mapcoin[tx.GetTxCurrency()];ok{
-			gasAll += gas
+	tx :=txer
+	gasAll := new(big.Int).SetUint64(gasuse)
+	priceAll := tx.GasPrice()
+	if gas,ok := cu.mapcoin[tx.GetTxCurrency()];ok{
+		gasAll = new(big.Int).Add(gasAll,gas)
+	}
+	cu.mapcoin[tx.GetTxCurrency()] = gasAll
+
+	if _,ok := cu.mapprice[tx.GetTxCurrency()];!ok{
+		if priceAll.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) >= 0 {
+			cu.mapprice[tx.GetTxCurrency()] = priceAll
 		}
-		cu.mapcoin[tx.GetTxCurrency()] = gasAll
-		if price,ok := cu.mapprice[tx.GetTxCurrency()];ok{
-			priceAll = new(big.Int).Add(priceAll,price)
-		}
-		cu.mapprice[tx.GetTxCurrency()] = priceAll
 	}
 }
 func (cu *coingasUse)getCoinGasPrice(typ string) *big.Int{
@@ -83,7 +84,7 @@ func (cu *coingasUse)getCoinGasPrice(typ string) *big.Int{
 	}
 	return price
 }
-func (cu *coingasUse)getCoinGasUse(typ string) uint64{
+func (cu *coingasUse)getCoinGasUse(typ string) *big.Int{
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gas,_:=cu.mapcoin[typ]
@@ -229,7 +230,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 	}
 	env.txs = append(env.txs, tx)
 	env.Receipts = append(env.Receipts, receipt)
-
+	mapcoingasUse.setCoinGasUse(tx,receipt.GasUsed)
 	return nil, receipt.Logs
 }
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
@@ -280,7 +281,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		listTx = append(listTx, txser...)
 	}
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
-	mapcoingasUse.setCoinGasUse(retTxs)
 	tmps :=make([]types.SelfTransaction,0)
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
@@ -380,7 +380,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-	mapcoingasUse.setCoinGasUse(txs)
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
