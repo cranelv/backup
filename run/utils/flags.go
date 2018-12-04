@@ -339,9 +339,9 @@ var (
 		Name:  "testchangerole",
 		Usage: "change role",
 	}
-	GetCommitFlag=cli.StringFlag{
-		Name:"testgetcommit",
-		Usage:"get commit",
+	GetCommitFlag = cli.StringFlag{
+		Name:  "testgetcommit",
+		Usage: "get commit",
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -352,6 +352,16 @@ var (
 	PasswordFileFlag = cli.StringFlag{
 		Name:  "password",
 		Usage: "Password file to use for non-interactive password input",
+		Value: "",
+	}
+	ManAddressFlag = cli.StringFlag{
+		Name:  "manAddress",
+		Usage: "deposit user signature account.",
+		Value: "",
+	}
+	ManPasswordFlag = cli.StringFlag{
+		Name:  "manPassword",
+		Usage: "signature account password.",
 		Value: "",
 	}
 	AccountPasswordFileFlag = cli.StringFlag{
@@ -878,6 +888,12 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	}
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
 		cfg.NoDiscovery = true
+	}
+	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
+		cfg.ManAddress = common.HexToAddress(manAddr)
+	}
+	if manPass := ctx.GlobalString(ManPasswordFlag.Name); manPass != "" {
+		cfg.ManPassword = manPass
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery
