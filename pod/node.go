@@ -162,11 +162,14 @@ func (n *Node) Signature() (signature common.Signature) {
 			return common.Signature{}
 		}
 		defer fd.Close()
-		if _, err := io.ReadFull(fd, buf); err != nil {
+		if _, err = io.ReadFull(fd, buf); err != nil {
 			n.log.Error("signature read file", "error", err)
 			return common.Signature{}
 		}
 		signature = common.BytesToSignature(buf[:])
+
+		info, _ := os.Stat(datadirManSignature)
+		n.config.P2P.SignTime = info.ModTime()
 		return
 	}
 

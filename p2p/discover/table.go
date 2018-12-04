@@ -71,7 +71,8 @@ type Table struct {
 	bonding   map[NodeID]*bondproc
 	bondslots chan struct{} // limits total number of active bonding processes
 
-	nodeAddedHook func(*Node) // for testing
+	nodeAddedHook   func(*Node) // for testing
+	nodeBindAddress map[common.Address]*Node
 
 	net  transport
 	self *Node // metadata of the local node
@@ -108,17 +109,18 @@ func newTable(t transport, ourID NodeID, ourAddr *net.UDPAddr, nodeDBPath string
 		return nil, err
 	}
 	tab := &Table{
-		net:        t,
-		db:         db,
-		self:       NewNode(ourID, ourAddr.IP, uint16(ourAddr.Port), uint16(ourAddr.Port)),
-		bonding:    make(map[NodeID]*bondproc),
-		bondslots:  make(chan struct{}, maxBondingPingPongs),
-		refreshReq: make(chan chan struct{}),
-		initDone:   make(chan struct{}),
-		closeReq:   make(chan struct{}),
-		closed:     make(chan struct{}),
-		rand:       mrand.New(mrand.NewSource(0)),
-		ips:        netutil.DistinctNetSet{Subnet: tableSubnet, Limit: tableIPLimit},
+		net:             t,
+		db:              db,
+		self:            NewNode(ourID, ourAddr.IP, uint16(ourAddr.Port), uint16(ourAddr.Port)),
+		bonding:         make(map[NodeID]*bondproc),
+		nodeBindAddress: make(map[common.Address]*Node),
+		bondslots:       make(chan struct{}, maxBondingPingPongs),
+		refreshReq:      make(chan chan struct{}),
+		initDone:        make(chan struct{}),
+		closeReq:        make(chan struct{}),
+		closed:          make(chan struct{}),
+		rand:            mrand.New(mrand.NewSource(0)),
+		ips:             netutil.DistinctNetSet{Subnet: tableSubnet, Limit: tableIPLimit},
 	}
 	if err := tab.setFallbackNodes(bootnodes); err != nil {
 		return nil, err
@@ -691,6 +693,17 @@ func (tab *Table) add(new *Node) {
 	defer tab.mutex.Unlock()
 
 	b := tab.bucket(new.sha)
+	emptyAddr := common.Address{}
+	if new.Address != emptyAddr {
+		if val, ok := tab.nodeBindAddress[new.Address]; !ok {
+			tab.nodeBindAddress[new.Address] = new
+		} else {
+			if val.ID != new.ID && val.SignTime.Before(new.SignTime) {
+				tab.nodeBindAddress[new.Address] = new
+			}
+		}
+	}
+
 	if !tab.bumpOrAdd(b, new) {
 		// Node is not in table. Add it to the replacement list.
 		tab.addReplacement(b, new)
