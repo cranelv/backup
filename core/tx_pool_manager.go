@@ -221,11 +221,13 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 		txmap, _ := txpool.Pending()
 		for addr, txs := range txmap {
 			txs = pm.filter(txs)
-			if txlist, ok := txser[addr]; ok {
-				txlist = append(txlist, txs...)
-				txser[addr] = txlist
-			} else {
-				txser[addr] = txs
+			if len(txs) > 0{
+				if txlist, ok := txser[addr]; ok {
+					txlist = append(txlist, txs...)
+					txser[addr] = txlist
+				} else {
+					txser[addr] = txs
+				}
 			}
 		}
 	}
