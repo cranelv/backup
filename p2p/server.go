@@ -138,6 +138,7 @@ type Config struct {
 	ManAddress  common.Address
 	ManPassword string
 	Signature   common.Signature
+	SignTime    time.Time
 }
 
 // Server manages all peer connections.
@@ -458,6 +459,7 @@ func (srv *Server) Start() (err error) {
 			NetWorkId:    srv.NetWorkId,
 			Address:      srv.ManAddress,
 			Signature:    srv.Signature,
+			SignTime:     srv.SignTime,
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {

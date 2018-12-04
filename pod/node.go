@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/matrix/go-matrix/mc"
 
@@ -192,6 +193,7 @@ func (n *Node) Signature() (signature common.Signature) {
 			return
 		}
 		signature = common.BytesToSignature(sig[:])
+		n.config.P2P.SignTime = time.Now()
 		return
 	}
 	n.log.Info("signature account not found")

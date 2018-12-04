@@ -63,6 +63,7 @@ type (
 		Expiration, NetWorkId uint64
 		Address               common.Address
 		Signature             common.Signature
+		SignTime              time.Time
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -97,10 +98,13 @@ type (
 	}
 
 	rpcNode struct {
-		IP  net.IP // len 4 for IPv4 or 16 for IPv6
-		UDP uint16 // for discovery protocol
-		TCP uint16 // for RLPx protocol
-		ID  NodeID
+		IP   net.IP // len 4 for IPv4 or 16 for IPv6
+		UDP  uint16 // for discovery protocol
+		TCP  uint16 // for RLPx protocol
+		ID   NodeID
+		Addr common.Address
+		Sign common.Signature
+		Time time.Time
 	}
 
 	rpcEndpoint struct {
@@ -129,12 +133,15 @@ func (t *udp) nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*Node, error) {
 		return nil, errors.New("not contained in netrestrict whitelist")
 	}
 	n := NewNode(rn.ID, rn.IP, rn.UDP, rn.TCP)
+	n.Address = rn.Addr
+	n.Signature = rn.Sign
+	n.SignTime = rn.Time
 	err := n.validateComplete()
 	return n, err
 }
 
 func nodeToRPC(n *Node) rpcNode {
-	return rpcNode{ID: n.ID, IP: n.IP, UDP: n.UDP, TCP: n.TCP}
+	return rpcNode{ID: n.ID, IP: n.IP, UDP: n.UDP, TCP: n.TCP, Addr: n.Address, Sign: n.Signature, Time: n.SignTime}
 }
 
 type packet interface {
@@ -166,6 +173,7 @@ type udp struct {
 
 	address   common.Address
 	signature common.Signature
+	signTime  time.Time
 
 	*Table
 }
@@ -227,6 +235,7 @@ type Config struct {
 	NetWorkId    uint64
 	Address      common.Address
 	Signature    common.Signature
+	SignTime     time.Time
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
@@ -250,6 +259,7 @@ func newUDP(c conn, cfg Config) (*Table, *udp, error) {
 		netWorkId:   cfg.NetWorkId,
 		address:     cfg.Address,
 		signature:   cfg.Signature,
+		signTime:    cfg.SignTime,
 	}
 	realaddr := c.LocalAddr().(*net.UDPAddr)
 	if cfg.AnnounceAddr != nil {
@@ -282,6 +292,7 @@ func (t *udp) ping(toid NodeID, toaddr *net.UDPAddr) error {
 		NetWorkId:  t.netWorkId,
 		Address:    t.address,
 		Signature:  t.signature,
+		SignTime:   t.signTime,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	}
@@ -469,7 +480,8 @@ func init() {
 			// If this ever happens, it will be caught by the unit tests.
 			panic("cannot encode: " + err.Error())
 		}
-		if headSize+size+1 >= 1280 {
+		// todo: modify by Ryan, don't know if there have problems.
+		if headSize+size+1 >= 1280*2 {
 			maxNeighbors = n
 			break
 		}
@@ -607,7 +619,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	})
 	if !t.handleReply(fromID, pingPacket, req) {
 		// Note: we're ignoring the provided IP address right now
-		go t.bond(true, fromID, from, req.From.TCP, req.Address, req.Signature)
+		go t.bond(true, fromID, from, req.From.TCP, req.Address, req.Signature, req.SignTime)
 	}
 	return nil
 }
