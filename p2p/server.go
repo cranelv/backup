@@ -133,6 +133,11 @@ type Config struct {
 
 	// NetWorkId
 	NetWorkId uint64
+
+	// ManAddress
+	ManAddress  common.Address
+	ManPassword string
+	Signature   common.Signature
 }
 
 // Server manages all peer connections.
@@ -451,6 +456,7 @@ func (srv *Server) Start() (err error) {
 			Bootnodes:    srv.BootstrapNodes,
 			Unhandled:    unhandled,
 			NetWorkId:    srv.NetWorkId,
+			Address:      srv.ManAddress,
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {

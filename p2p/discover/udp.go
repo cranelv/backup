@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/common"
 	"net"
 	"time"
 
@@ -59,6 +60,8 @@ type (
 		Version               uint
 		From, To              rpcEndpoint
 		Expiration, NetWorkId uint64
+		Address               common.Address
+		Signature             common.Signature
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -160,6 +163,9 @@ type udp struct {
 
 	netWorkId uint64
 
+	address   common.Address
+	signature common.Signature
+
 	*Table
 }
 
@@ -218,6 +224,8 @@ type Config struct {
 	Bootnodes    []*Node           // list of bootstrap nodes
 	Unhandled    chan<- ReadPacket // unhandled packets are sent on this channel
 	NetWorkId    uint64
+	Address      common.Address
+	Signatur     common.Signature
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
@@ -269,6 +277,8 @@ func (t *udp) ping(toid NodeID, toaddr *net.UDPAddr) error {
 		Version:    Version,
 		From:       t.ourEndpoint,
 		NetWorkId:  t.netWorkId,
+		Address:    t.address,
+		Signature:  t.signature,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	}
