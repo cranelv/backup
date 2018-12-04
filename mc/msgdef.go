@@ -130,10 +130,11 @@ type LeaderChangeNotify struct {
 
 //block verify server
 type HD_BlkConsensusReqMsg struct {
-	From          common.Address
-	Header        *types.Header
-	ConsensusTurn uint32
-	TxsCode       []*common.RetCallTxN
+	From                   common.Address
+	Header                 *types.Header
+	ConsensusTurn          uint32
+	TxsCode                []*common.RetCallTxN
+	OnlineConsensusResults []*HD_OnlineConsensusVoteResultMsg
 }
 
 type LocalBlockVerifyConsensusReq struct {
@@ -180,12 +181,20 @@ type ElectionEvent struct {
 	Seed *big.Int
 }
 
+type OnlineState uint8
+
+const (
+	OnLine OnlineState = iota + 1
+	OffLine
+)
+
 //在线状态共识请求
 type OnlineConsensusReq struct {
-	Leader      common.Address //leader地址
-	Seq         uint64         //共识轮次
+	Number      uint64         // 高度
+	LeaderTurn  uint32         // leader轮次
+	Leader      common.Address // leader地址
 	Node        common.Address // node 地址
-	OnlineState uint8          //在线状态
+	OnlineState OnlineState    //在线状态
 }
 
 //在线状态共识请求消息
@@ -197,7 +206,7 @@ type HD_OnlineConsensusReqs struct {
 //共识投票消息
 type HD_ConsensusVote struct {
 	SignHash common.Hash
-	Round    uint64
+	Number   uint64
 	Sign     common.Signature
 	From     common.Address
 }
@@ -255,11 +264,6 @@ type HD_ReelectLeaderReqMsg struct {
 	InquiryReq *HD_ReelectInquiryReqMsg
 	AgreeSigns []common.Signature
 	TimeStamp  uint64
-}
-
-type HD_ReelectLeaderVoteMsg struct {
-	Vote   HD_ConsensusVote
-	Number uint64
 }
 
 type HD_ReelectLeaderConsensus struct {

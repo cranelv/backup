@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkverify
@@ -13,7 +13,6 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/msgsend"
-	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
 )
@@ -28,7 +27,6 @@ type ProcessManage struct {
 	bc         *core.BlockChain
 	txPool     *core.TxPoolManager //YYY
 	reElection *reelection.ReElection
-	topNode    *olconsensus.TopNodeService
 	event      *event.TypeMux
 }
 
@@ -42,7 +40,6 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 		bc:         matrix.BlockChain(),
 		txPool:     matrix.TxPool(),
 		reElection: matrix.ReElection(),
-		topNode:    matrix.TopNode(),
 		event:      matrix.EventMux(),
 	}
 }

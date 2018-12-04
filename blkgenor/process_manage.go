@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -11,39 +11,39 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/olconsensus"
 )
 
 type ProcessManage struct {
-	mu         sync.Mutex
-	curNumber  uint64
-	processMap map[uint64]*Process
-	matrix     Backend
-	hd         *msgsend.HD
-	signHelper *signhelper.SignHelper
-	bc         *core.BlockChain
-	txPool     *core.TxPoolManager //YYY
-	reElection *reelection.ReElection
-	engine     consensus.Engine
-	dposEngine consensus.DPOSEngine
-	olConsensus    *olconsensus.TopNodeService
+	mu          sync.Mutex
+	curNumber   uint64
+	processMap  map[uint64]*Process
+	matrix      Backend
+	hd          *msgsend.HD
+	signHelper  *signhelper.SignHelper
+	bc          *core.BlockChain
+	txPool      *core.TxPoolManager //YYY
+	reElection  *reelection.ReElection
+	engine      consensus.Engine
+	dposEngine  consensus.DPOSEngine
+	olConsensus *olconsensus.TopNodeService
 }
 
 func NewProcessManage(matrix Backend) *ProcessManage {
 	return &ProcessManage{
-		curNumber:  0,
-		processMap: make(map[uint64]*Process),
-		matrix:     matrix,
-		hd:         matrix.HD(),
-		signHelper: matrix.SignHelper(),
-		bc:         matrix.BlockChain(),
-		txPool:     matrix.TxPool(),
-		reElection: matrix.ReElection(),
-		engine:     matrix.BlockChain().Engine(),
-		dposEngine: matrix.BlockChain().DPOSEngine(),
-		olConsensus:    matrix.TopNode(),
+		curNumber:   0,
+		processMap:  make(map[uint64]*Process),
+		matrix:      matrix,
+		hd:          matrix.HD(),
+		signHelper:  matrix.SignHelper(),
+		bc:          matrix.BlockChain(),
+		txPool:      matrix.TxPool(),
+		reElection:  matrix.ReElection(),
+		engine:      matrix.BlockChain().Engine(),
+		dposEngine:  matrix.BlockChain().DPOSEngine(),
+		olConsensus: matrix.OLConsensus(),
 	}
 }
 
