@@ -971,17 +971,6 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		}else{
 			log.Info("msg_RecvConsensusFloodTx","msg_RecvConsensusFloodTx,tx`s N is same","continue")
 		}
-		//_, err := nPool.add(tx, false)
-		//if err != nil && err != ErrKnownTransaction {
-		//	log.Info("msg_RecvConsensusFloodTx", "Error=", err)
-		//	if _, ok := nPool.mapErrorTxs[s]; !ok {
-		//		errorTxs = append(errorTxs, s)
-		//		nPool.mapErrorTxs[s] = tx
-		//		nPool.mapDelErrtxs[tx.Hash()] = s
-		//	}
-		//	//对于添加失败的交易要调用删除map方法
-		//	nPool.deleteMap(tx)
-		//}
 	}
 	if len(nlist) > 0{
 		nPool.mapHighttx[nPool.chain.CurrentBlock().Number().Uint64()] = nlist
@@ -1407,7 +1396,6 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		}
 	} else if selfRole == common.RoleDefault {
 		promoted := make([]types.SelfTransaction, 0)
-		//TODO 将交易encode
 		promoted = append(promoted, tx)
 		nPool.txFeed.Send(NewTxsEvent{promoted, types.NormalTxIndex})
 	}
@@ -1418,7 +1406,6 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (nPool *NormalTxPool) AddTxPool(txer types.SelfTransaction) error {
-	//TODO 将交易dncode
 	txs := make([]*types.Transaction,0)
 	tx:=txer.(*types.Transaction)
 	txs = append(txs,tx)

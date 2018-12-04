@@ -512,7 +512,6 @@ func (tx *Transaction)Setentrustfrom(x interface{}){
 	tx.entrustfrom.Store(x)
 }
 func (tx *Transaction)GasFrom() (from common.Address){
-	//TODO 需要去委托中要💊 from
 	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
 		tmpfrom,isok :=tx.from.Load().(common.Address)

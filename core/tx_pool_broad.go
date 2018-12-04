@@ -161,7 +161,7 @@ func (bPool *BroadCastTxPool) Stop() {
 func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) {
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
-	//TODO 1、将交易dncode,2、过滤交易（白名单）
+	//TODO 过滤交易（白名单）
 	//for _, tx := range txs {
 	if uint64(tx.Size()) > params.TxSize {
 		log.Error("add broadcast tx pool", "tx`s size is too big", tx.Size())
@@ -209,7 +209,7 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 	return reerr //bPool.addTxs(txs, false)
 }
 func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok bool) {
-	/*   TODO 第三个问题不在这实现，上面已经做了判断了
+	/*    第三个问题不在这实现，上面已经做了判断了
 			1、从ca模块中获取顶层节点的from 然后判断交易的具体类型（心跳、公钥、私钥）查找tx中的from是否存在。
 	  		2、从ca模块中获取参选节点的from（不包括顶层节点） 然后判断交易的具体类型（心跳）查找tx中的from是否存在。
 			3、判断同一个节点在此区间内是否发送过相同类型的交易（每个节点在一个区间内一种类型的交易只能发送一笔）。

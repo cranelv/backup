@@ -398,7 +398,6 @@ func (self *StateDB)GetSaveTx(typ byte,key uint32,hash common.Hash,isdel bool){
 		}
 		str = common.StateDBRevocableBtree
 	case common.ExtraTimeTxType:
-		//todo 需要修改
 		item = self.timebtrie.Get(trie.SpcialTxData{key,nil})
 		std,ok := item.(trie.SpcialTxData)
 		if !ok{

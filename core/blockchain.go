@@ -1154,7 +1154,7 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	val := broadcastBlock.Uint64() % ((common.GetBroadcastInterval()) - 1)
 
 	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
+		currentAcc := v.Big()
 		ret := currentAcc.Uint64() % (common.GetBroadcastInterval() - 1)
 		if ret == val {
 			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
@@ -1652,7 +1652,7 @@ func (bc *BlockChain) sendBroadTx() {
 			}
 		}
 		log.Info("===========YYY============2", "blockChian:sendBroadTx()", subVal)
-		currentAcc := ca.GetAddress().Big() //block.Coinbase().Big() //YY TODO 这里应该是广播账户。后期需要修改
+		currentAcc := ca.GetAddress().Big()  //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))

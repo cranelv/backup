@@ -493,7 +493,7 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	val := broadcastBlock.Uint64() % ((common.GetBroadcastInterval()) - 1)
 
 	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
+		currentAcc := v.Big()
 		ret := currentAcc.Uint64() % (common.GetBroadcastInterval() - 1)
 		if ret == val {
 			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
