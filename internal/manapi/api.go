@@ -1441,6 +1441,7 @@ type SendTxArgs struct {
 	Input      *hexutil.Bytes `json:"input"`
 	TxType     byte           `json:"txType"`     //YY
 	LockHeight uint64         `json:"lockHeight"` //YY
+	IsEntrustTx byte           `json:"isEntrustTx"`
 	ExtraTo    []*ExtraTo_Mx  `json:"extra_to"`   //YY
 }
 
@@ -1463,6 +1464,7 @@ type SendTxArgs1 struct {
 	Input      *hexutil.Bytes `json:"input"`
 	TxType     byte           `json:"txType"`     //YY
 	LockHeight uint64         `json:"lockHeight"` //YY
+	IsEntrustTx byte           `json:"isEntrustTx"`
 	ExtraTo    []*ExtraTo_Mx1  `json:"extra_to"`   //YY
 }
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1522,10 +1524,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0,args.IsEntrustTx)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0,args.IsEntrustTx)
 	}
 	//YY
 	txtr := make([]*types.ExtraTo_tr, 0)
@@ -1542,7 +1544,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 			txtr = append(txtr, tmp)
 		}
 	}
-	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, txtr, args.LockHeight, args.TxType)
+	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, txtr, args.LockHeight, args.TxType,args.IsEntrustTx)
 
 }
 
@@ -1625,6 +1627,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs,err error){
 	args.Input = args1.Input
 	args.TxType = args1.TxType
 	args.LockHeight = args1.LockHeight
+	args.IsEntrustTx = args1.IsEntrustTx
 	if len(args1.ExtraTo) > 0 { //扩展交易中的to属性不填写则删掉这个扩展交易
 		extra := make([]*ExtraTo_Mx,0)
 		for _, ar := range args1.ExtraTo {

@@ -455,6 +455,18 @@ type RecorbleTx struct {
 
 type EntrustType struct {
 	//委托地址
+	EntrustAddres string	//被委托人from
+	//委托权限
+	IsEntrustGas    bool	//委托gas
+	IsEntrustSign   bool	//委托签名
+
+	//委托限制
+	StartHeight     uint64   //委托起始时间
+	EndHeight       uint64   //委托结束时间
+}
+
+type EntrustType1 struct {
+	//委托地址
 	EntrustAddres Address	//被委托人from
 	//委托权限
 	IsEntrustGas    bool	//委托gas
@@ -467,7 +479,6 @@ type EntrustType struct {
 	EndHeight       uint64   //委托结束时间
 	//EntrustCount    uint32   //委托次数(取消)
 }
-type EntrustTypes []EntrustType
 
 type AuthType struct {
 	AuthAddres Address	//授权人from

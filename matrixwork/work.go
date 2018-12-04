@@ -334,7 +334,7 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 			tmp.Value_tr = (*hexutil.Big)(vv)
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr),to,value,0,new(big.Int),nil,extra,0,common.ExtraUnGasTxType)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr),to,value,0,new(big.Int),nil,extra,0,common.ExtraUnGasTxType,0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		tx.SetTxS(big.NewInt(1))
 		tx.SetTxV(big.NewInt(1))

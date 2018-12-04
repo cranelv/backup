@@ -1325,29 +1325,24 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 
 func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if tx.IsEntrustTx(){
-		//***************************************************************//
-		//测试
-		//EnType := new(common.EntrustType)
-		//EnType.EntrustAddres = common.HexToAddress("0x2d886318ce42885a4fac70d81c200d600e310d7d")
-		//EnType.IsEntrustTx = true
-		//bt,err1 := json.Marshal(EnType)
-		//if err1 != nil{
-		//	fmt.Println("=====err")
-		//}
-		//data1 := make(map[common.Hash][]byte)
-		//add := tx.From()
-		//data1[add.Hash()] = bt
-		////btdata ,err1 := json.Marshal(data1)
-		//nPool.currentState.SetStateByteArray(add,add.Hash(),bt)
-		//***************************************************************//
-
 		//通过from获得的数据为授权人marsha1过的数据
 		from := tx.From()
-		entrustFrom := nPool.currentState.GetAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
+		entrustFrom := nPool.currentState.GetGasAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
+		//from := common.HexToAddress("0x8c3d1a9504a36d49003f1652fadb9f06c32a4408")//测试
+		//entrustFrom := nPool.currentState.GetGasAuthFrom(from,60)//测试
 		if !entrustFrom.Equal(common.Address{}){
 			tx.Setentrustfrom(entrustFrom)
 			tx.IsEntrustGas = true
 		}
+
+		////======测试===================//
+		//tmpfrom := common.HexToAddress("0x53f36c0cd8e4889b6d87681e0deab030b23cfb7e")
+		//entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
+		//fmt.Println("===委托列表",entrustlist)
+		//addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
+		//entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
+		//fmt.Println("授权人",entrustfrom)
+		////========2222222=============//
 	}
 
 	//普通交易

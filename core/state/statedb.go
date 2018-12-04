@@ -20,6 +20,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"encoding/json"
+	"github.com/matrix/go-matrix/base58"
 )
 
 type revision struct {
@@ -309,7 +310,8 @@ func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []co
 	addressList := make([]common.Address,0)
 	for _,entrustData := range entrustDataList{
 		if entrustData.IsEntrustSign == true && entrustData.StartHeight <= height && entrustData.EndHeight >= height {
-			addressList = append(addressList,entrustData.EntrustAddres)
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
 		}
 	}
 	return addressList
@@ -339,7 +341,8 @@ func (self *StateDB) GetAllEntrustSignFrom(authFrom common.Address) []common.Add
 	addressList := make([]common.Address,0)
 	for _,entrustData := range entrustDataList{
 		if entrustData.IsEntrustSign == true{
-			addressList = append(addressList,entrustData.EntrustAddres)
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
 		}
 	}
 	return addressList
@@ -355,7 +358,8 @@ func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Addr
 	addressList := make([]common.Address,0)
 	for _,entrustData := range entrustDataList{
 		if entrustData.IsEntrustGas == true{
-			addressList = append(addressList,entrustData.EntrustAddres)
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
 		}
 	}
 	return addressList

@@ -260,21 +260,21 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data,typ)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte,isEntrustTx byte) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data,typ,isEntrustTx)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data,typ)
-}
-
-//YY
-func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte) *Transaction {
-	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data, ex, localtime, txType)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte,isEntrustTx byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data,typ,isEntrustTx)
 }
 
 //YY
-func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte) *Transaction {
+func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte,isEntrustTx byte) *Transaction {
+	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data, ex, localtime, txType,isEntrustTx)
+}
+
+//YY
+func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte,isEntrustTx byte) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -289,6 +289,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
+		IsEntrustTx:  isEntrustTx,
 		CommitTime: uint64(time.Now().Unix()),
 		Extra:        make([]Matrix_Extra, 0),
 	}
@@ -325,7 +326,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte,isEntrustTx byte) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -340,6 +341,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		R:            new(big.Int),
 		S:            new(big.Int),
 		TxEnterType:  NormalTxIndex,
+		IsEntrustTx:  isEntrustTx,
 		CommitTime: uint64(time.Now().Unix())+uint64(30),
 	}
 	if typ > 0{
@@ -526,11 +528,11 @@ func (tx *Transaction)GasFrom() (from common.Address){
 }
 func (tx *Transaction)AmontFrom() (from common.Address){
 	//TODO from 要改为entrustfrom
-	tmp,ok := tx.from.Load().(sigCache)
+	tmp,ok := tx.entrustfrom.Load().(sigCache)
 	if !ok{
-		tmpfrom,isok :=tx.from.Load().(common.Address)
+		tmpfrom,isok :=tx.entrustfrom.Load().(common.Address)
 		if !isok{
-			return common.Address{}
+			return tx.From()
 		}
 		from = tmpfrom
 	}else {
