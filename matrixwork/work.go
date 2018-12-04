@@ -87,7 +87,10 @@ func (cu *coingasUse)getCoinGasPrice(typ string) *big.Int{
 func (cu *coingasUse)getCoinGasUse(typ string) *big.Int{
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
-	gas,_:=cu.mapcoin[typ]
+	gas,ok:=cu.mapcoin[typ]
+	if !ok{
+		gas = new(big.Int).SetUint64(0)
+	}
 	return gas
 }
 func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {
