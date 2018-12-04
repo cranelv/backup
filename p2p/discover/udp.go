@@ -34,6 +34,7 @@ var (
 	errClockWarp        = errors.New("reply deadline too far in the future")
 	errClosed           = errors.New("socket closed")
 	errWrongNetWorkId   = errors.New("wrong network id")
+	errSignature        = errors.New("wrong signature with node")
 )
 
 // Timeouts
@@ -225,7 +226,7 @@ type Config struct {
 	Unhandled    chan<- ReadPacket // unhandled packets are sent on this channel
 	NetWorkId    uint64
 	Address      common.Address
-	Signatur     common.Signature
+	Signature    common.Signature
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
@@ -247,6 +248,8 @@ func newUDP(c conn, cfg Config) (*Table, *udp, error) {
 		gotreply:    make(chan reply),
 		addpending:  make(chan *pending),
 		netWorkId:   cfg.NetWorkId,
+		address:     cfg.Address,
+		signature:   cfg.Signature,
 	}
 	realaddr := c.LocalAddr().(*net.UDPAddr)
 	if cfg.AnnounceAddr != nil {
@@ -589,6 +592,14 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	if req.NetWorkId != t.netWorkId {
 		return errWrongNetWorkId
 	}
+	emptyAddr := common.Address{}
+	emptySign := common.Signature{}
+	if req.Address != emptyAddr || req.Signature != emptySign {
+		addr, _, _ := crypto.VerifySignWithValidate(fromID.Bytes(), req.Signature[:])
+		if addr != req.Address {
+			return errSignature
+		}
+	}
 	t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
@@ -596,7 +607,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	})
 	if !t.handleReply(fromID, pingPacket, req) {
 		// Note: we're ignoring the provided IP address right now
-		go t.bond(true, fromID, from, req.From.TCP)
+		go t.bond(true, fromID, from, req.From.TCP, req.Address, req.Signature)
 	}
 	return nil
 }

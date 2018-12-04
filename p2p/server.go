@@ -457,6 +457,7 @@ func (srv *Server) Start() (err error) {
 			Unhandled:    unhandled,
 			NetWorkId:    srv.NetWorkId,
 			Address:      srv.ManAddress,
+			Signature:    srv.Signature,
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {

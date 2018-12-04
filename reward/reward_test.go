@@ -1,7 +1,6 @@
 package reward
 
 import (
-
 	"fmt"
 	"github.com/matrix/go-matrix/reward/txsreward"
 	"math/big"
@@ -10,9 +9,6 @@ import (
 	"testing"
 
 	"github.com/matrix/go-matrix/reward/util"
-
-
-
 
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
@@ -156,7 +152,6 @@ func fakeEthNew(n int) *FakeEth {
 //		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
 //		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
 //	})
-}
 
 func TestBlockReward_calcTxsFees(t *testing.T) {
 	Convey("计算交易费", t, func() {
@@ -173,7 +168,6 @@ func TestBlockReward_calcTxsFees(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		txsReward := txsreward.New(eth.BlockChain())
 		txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
-
 
 	})
 }
