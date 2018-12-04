@@ -150,7 +150,7 @@ func (n *Node) Signature() (signature common.Signature) {
 		return
 	}
 	if n.config.P2P.ManPassword == "" || n.config.P2P.ManAddress == emptyAddress {
-		n.log.Error("man address or password is empty. please ensure commad and args.")
+		n.log.Error("man address or password is empty. please ensure command and args.")
 		return
 	}
 
