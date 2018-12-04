@@ -94,7 +94,7 @@ type Floodtxdata struct {
 	// Signature values
 	V     *big.Int       `json:"v" gencodec:"required"`
 	R     *big.Int       `json:"r" gencodec:"required"`
-	TxEnterType common.TxTypeInt
+	TxEnterType byte
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"`
 }
@@ -114,7 +114,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash   `json:"hash" rlp:"-"`
-	TxEnterType common.TxTypeInt  `json:"TxEnterType" gencodec:"required"`//入池类型
+	TxEnterType byte  `json:"TxEnterType" gencodec:"required"`//入池类型
 	IsEntrustTx bool  `json:"TxEnterType" gencodec:"required"`//是否是委托
 	Extra []Matrix_Extra ` rlp:"tail"` //YY
 }
@@ -130,12 +130,12 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data,typ)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data,typ)
 }
 
 //YY
@@ -158,7 +158,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
-		TxEnterType: NormalTxIndex,
+		TxEnterType: 0,
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -194,7 +194,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,typ byte) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -210,6 +210,9 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
 	}
+	mx := new(Matrix_Extra)
+	mx.TxType = typ
+	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
@@ -226,9 +229,9 @@ func (tx *Transaction) ChainId() *big.Int {
 }
 
 // Protected returns whether the transaction is protected from replay protection.
-func (tx *Transaction) Protected() bool {
-	return isProtectedV(tx.data.V)
-}
+//func (tx *Transaction) Protected() bool {
+//	return isProtectedV(tx.data.V)
+//}
 
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
@@ -238,19 +241,55 @@ func isProtectedV(V *big.Int) bool {
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
-
+type EncodeTx struct {
+	Data txdata
+	From common.Address
+}
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &tx.data)
+	etx := &EncodeTx{
+				Data:tx.data,
+			}
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		etx.From = tx.From()
+	}
+	return rlp.Encode(w,etx)
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	return rlp.Encode(w, &EncodeTx{
+	//		Data:tx.data,
+	//		From:tx.From(),
+	//	})
+	//}else{
+	//	return rlp.Encode(w, &tx.data)
+	//}
 }
 
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
-	err := s.Decode(&tx.data)
+	var err error
+	entx := new(EncodeTx)
+	err = s.Decode(&entx)
+	tx.data = entx.Data
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		tx.SetFromLoad(entx.From)
+	}
 	if err == nil {
 		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
 	}
+	//_, size, _ := s.Kind()
+	//var err error
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	//	entx := new(EncodeTx)
+	//	err = s.Decode(&entx)
+	//	tx.data = entx.Data
+	//	tx.SetFromLoad(entx.From)
+	//}else{
+	//	err = s.Decode(&tx.data)
+	//}
+	//if err == nil {
+	//	tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	//}
 
 	return err
 }
@@ -298,7 +337,15 @@ func (tx *Transaction) GetTxHashStruct() {
 func (tx *Transaction)Call() error{
 	return nil
 }
-func (tx *Transaction) TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
+func (tx *Transaction) CoinType()string{
+	//TODO 返回交易中的币种
+	return "MAN"
+}
+func (tx *Transaction) SetCoinType(typ string){
+	//TODO 设置交易中的币种
+
+}
+func (tx *Transaction) TxType() byte		{ return tx.data.TxEnterType}
 //YY
 func (tx *Transaction) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 
@@ -363,6 +410,7 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		//如果交易没有做过验签则err不为空。
 		return common.Address{},errors.New("Address is Nil")
 	}
+	var tf common.Address
 	//如果交易做过验签则err为空。
 	tmp,ok := tx.from.Load().(sigCache)
 	if !ok{
@@ -370,7 +418,11 @@ func (tx *Transaction) GetTxFrom() (from common.Address,err error) {
 		if !isok{
 			return common.Address{},errors.New("load Address is Nil")
 		}
-		from = tmpfrom
+		if tmpfrom != tf{
+			from = tmpfrom
+		}else {
+			return common.Address{},errors.New("load Address is Nil")
+		}
 	}else {
 		from = tmp.from
 	}

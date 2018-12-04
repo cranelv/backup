@@ -8,7 +8,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/matrix/go-matrix/common"
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"log"
 )
 
 //func Post() {
@@ -55,4 +59,64 @@ func TestT(t *testing.T) {
 func TestCase(t *testing.T) {
 	ans1, ans2 := GetAllElectedByHeight(big.NewInt(100), common.RoleMiner)
 	fmt.Println(ans1, ans2)
+}
+
+func TestNew1(t *testing.T) {
+	info_temp:=Info{
+		Position:1,
+		Account:common.BigToAddress(big.NewInt(100)),
+	}
+	info:=[]Info{}
+	info=append(info,info_temp)
+	node:=NodeSupport{}
+	node.First=append(node.First,info[0:]...)
+	node.Second=append(node.Second,info[0:]...)
+	node.Third=append(node.Third,info[0:]...)
+
+
+	marshalData, err := json.Marshal(node)
+	if err != nil {
+		fmt.Println("测试支持", "Marshal失败 data", node)
+
+	}
+	err = ioutil.WriteFile("./test.json", marshalData, os.ModeAppend)
+	if err != nil {
+		fmt.Println("测试支持", "生成test文件成功")
+	}
+
+
+}
+type JsonConfig struct {
+	First []Info
+	Second []Info
+	Third []Info
+}
+
+type JsonStruct struct {
+}
+
+func NewJsonStruct() *JsonStruct {
+	return &JsonStruct{}
+}
+
+func (jst *JsonStruct) Load(filename string, v interface{}) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Println("读取通用配置文件失败 err", err, "file", filename)
+		os.Exit(-1)
+		return
+	}
+	err = json.Unmarshal(data, v)
+	if err != nil {
+		log.Println("通用配置文件数据获取失败 err", err)
+		os.Exit(-1)
+		return
+	}
+}
+
+func Test111(t *testing.T){
+	JsonParse := NewJsonStruct()
+	v := JsonConfig{}
+	JsonParse.Load("./test.json", &v)
+	fmt.Println("ans",v)
 }

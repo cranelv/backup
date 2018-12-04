@@ -55,8 +55,9 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 
 
 		//执行交易
-		blkRward,txsReward:=p.calcRewardAndSlash(work.State, result.Header)
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,blkRward,txsReward)
+
+
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,nil)
 		retTxs:=work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))
 		for _, tx := range retTxs {

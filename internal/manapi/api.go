@@ -762,6 +762,9 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	return nil, err
 }
 
+func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
+	return s.b.ImportSuperBlock(ctx, filePath)
+}
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
@@ -851,7 +854,9 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 		"elect":            head.Elect,
 		"nettopology":      head.NetTopology,
 		"signatures":       head.Signatures,
-		"version":          hexutil.Bytes(head.Version),
+		"version":           string(head.Version),
+		"versionSignatures": head.VersionSignatures,
+		"vrfvalue":  hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {
@@ -909,19 +914,32 @@ type RPCTransaction struct {
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
 	var signer types.Signer //= types.FrontierSigner{}
-	if tx.Protected() {
+	//if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
+	//}
+
+	var from common.Address
+
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		from = tx.From()
+	}else {
+		from, _ = types.Sender(signer, tx)
 	}
-	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
-	var addr common.Address
-	if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
-		if index == params.FirstTxIndex{
-			from = common.BlkRewardAddress
-		}else if index == params.SecondTxIndex{
-			from = common.TxGasRewardAddress
-		}
-	}
+	//var addr common.Address
+	//if tx.GetMatrixType() == common.ExtraUnGasTxType && from == addr {
+	//	if index == params.FirstTxIndex{
+	//		from = common.BlkRewardAddress
+	//	}else if index == params.SecondTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.ThreeTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.FourTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}else if index == params.FiveTxIndex{
+	//		from = common.TxGasRewardAddress
+	//	}
+	//}
 
 	result := &RPCTransaction{
 		From:     from,
@@ -1106,9 +1124,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	receipt := receipts[index]
 
 	var signer types.Signer //= types.FrontierSigner{}
-	if tx.Protected() {
+	//if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
-	}
+	//}
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1239,10 +1257,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
 	}
 	//YY
 	txtr := make([]*types.ExtraTo_tr, 0)
@@ -1415,9 +1433,9 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
-		if tx.Protected() {
+		//if tx.Protected() {
 			signer = types.NewEIP155Signer(tx.ChainId())
-		}
+		//}
 		from, _ := types.Sender(signer, tx)
 		if _, err := s.b.AccountManager().Find(accounts.Account{Address: from}); err == nil {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
@@ -1443,9 +1461,9 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 
 	for _, p := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
-		if p.Protected() {
+		//if p.Protected() {
 			signer = types.NewEIP155Signer(p.ChainId())
-		}
+		//}
 		wantSigHash := signer.Hash(matchTx)
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p) == wantSigHash {

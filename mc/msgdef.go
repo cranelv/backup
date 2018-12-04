@@ -185,7 +185,7 @@ type OnlineConsensusReq struct {
 	Leader      common.Address //leader地址
 	Seq         uint64         //共识轮次
 	Node        common.Address // node 地址
-	OnlineState int            //在线状态
+	OnlineState uint8          //在线状态
 }
 
 //在线状态共识请求消息

@@ -64,7 +64,11 @@ func newBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	tx:=&TransactionBroad{data: d}
 	return tx
 }
-func (tx *TransactionBroad)  TxType() common.TxTypeInt		{ return tx.data.TxEnterType}
+func (tx *TransactionBroad) CoinType()string{
+	return ""
+}
+func (tx *TransactionBroad) SetCoinType(typ string){}
+func (tx *TransactionBroad)  TxType() byte		{ return tx.data.TxEnterType}
 func (tx *TransactionBroad) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
 func (tx *TransactionBroad) Gas() uint64        { return tx.data.GasLimit }
 func (tx *TransactionBroad) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }

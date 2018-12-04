@@ -359,6 +359,11 @@ web3._extend({
 			params: 0,
 		}),
 		new web3._extend.Method({
+			name:'getCommit',
+			call:'debug_getCommit',
+			params:0,
+		}),
+		new web3._extend.Method({
 			name: 'storageRangeAt',
 			call: 'debug_storageRangeAt',
 			params: 5,

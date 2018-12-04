@@ -11,6 +11,11 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/pkg/errors"
+	"github.com/btcsuite/btcd/btcec"
+	"crypto/ecdsa"
+	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/crypto"
+	"encoding/json"
 )
 
 var (
@@ -52,6 +57,57 @@ func (p *Process) verifyNetTopology(header *types.Header) error {
 	}
 
 	return p.verifyChgNetTopology(header)
+}
+func (p *Process)verifyVrf(header *types.Header)error{
+	log.Error("vrf","len header.VrfValue",len(header.VrfValue),"data",header.VrfValue,"高度",header.Number.Uint64())
+	account,_,_:=common.GetVrfInfoFromHeader(header.VrfValue)
+
+	log.Error("vrf","从区块头重算出账户户",account,"高度",header.Number.Uint64())
+
+	public:=account
+	curve := btcec.S256()
+	pk1, err := btcec.ParsePubKey(public, curve)
+	if err != nil {
+		log.Error("vrf转换失败","err",err,"account",account,"len",len(account))
+		return err
+	}
+
+	pk1_1 := (*ecdsa.PublicKey)(pk1)
+	_,vrfValue,vrfProof:=common.GetVrfInfoFromHeader(header.VrfValue)
+
+	preBlock:=p.blockChain().GetBlockByHash(header.ParentHash)
+	if preBlock==nil{
+		return errors.New("获取父区块失败")
+	}
+	_,preVrfValue,preVrfProof:=common.GetVrfInfoFromHeader(preBlock.Header().VrfValue)
+
+	preMsg:=common.VrfMsg{
+		VrfValue:preVrfValue,
+		VrfProof:preVrfProof,
+		Hash:header.ParentHash,
+	}
+
+	preVrfMsg,err:=json.Marshal(preMsg)
+	if err!=nil{
+		log.Error(p.logExtraInfo(),"生成vefmsg出错",err,"parentMsg",preVrfMsg)
+		return errors.New("生成vrfmsg出错")
+	}else{
+		log.Error("生成vrfmsg成功")
+	}
+	//log.Info("msgggggvrf_verify","preVrfMsg",preVrfMsg,"高度",header.Number.Uint64(),"VrfProof",preMsg.VrfProof,"VrfValue",preMsg.VrfValue,"Hash",preMsg.Hash)
+	if err:=baseinterface.NewVrf().VerifyVrf(pk1_1,preVrfMsg,vrfValue,vrfProof);err!=nil{
+		log.Error("vrf verify ","err",err)
+		return err
+	}
+
+	ans:=crypto.PubkeyToAddress(*pk1_1)
+	if ans.Equal(header.Leader){
+		log.Error("vrf leader comparre","与leader不匹配","nil")
+		return nil
+	}
+	return errors.New("公钥与leader账户不匹配")
+
+
 }
 
 func (p *Process) verifyAllNetTopology(header *types.Header) error {

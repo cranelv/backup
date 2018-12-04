@@ -244,6 +244,10 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 // newCanonical creates a chain database, and injects a deterministic canonical
 // chain. Depending on the full flag, if creates either a full block chain or a
 // header only chain.
+func NewCanonical(engine consensus.Engine, n int, full bool) (mandb.Database, *BlockChain, error) {
+	return newCanonical(engine,n,full)
+}
+
 func newCanonical(engine consensus.Engine, n int, full bool) (mandb.Database, *BlockChain, error) {
 	var (
 		db      = mandb.NewMemDatabase()

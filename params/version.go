@@ -32,3 +32,4 @@ func VersionWithCommit(gitCommit string) string {
 	}
 	return vsn
 }
+

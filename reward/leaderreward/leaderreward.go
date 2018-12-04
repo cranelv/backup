@@ -22,5 +22,5 @@ func (lr *LeaderReward) SetLeaderRewards(reward *big.Int, rewards map[common.Add
 		return
 	}
 	util.SetAccountRewards(rewards, Leader, reward)
-	log.INFO(PackageName, "leader reward addr", Leader, "reward", reward)
+	log.INFO(PackageName, "leader 奖励地址", Leader, "奖励金额", reward)
 }

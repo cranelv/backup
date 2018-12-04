@@ -61,13 +61,16 @@ func SignTx(tx SelfTransaction, s Signer, prv *ecdsa.PrivateKey) (SelfTransactio
 // not match the signer used in the current call.
 func Sender(signer Signer, tx SelfTransaction) (common.Address, error) {
 	if sc := tx.GetFromLoad(); sc != nil {
-		sigCache := sc.(sigCache)
-		// If the signer used to derive from in a previous
-		// call is not the same as used current, invalidate
-		// the cache.
-		if sigCache.signer.Equal(signer) {
-			return sigCache.from, nil
+		sigCache ,ok := sc.(sigCache)
+		if ok{
+			// If the signer used to derive from in a previous
+			// call is not the same as used current, invalidate
+			// the cache.
+			if sigCache.signer.Equal(signer) {
+				return sigCache.from, nil
+			}
 		}
+
 	}
 
 	addr, err := signer.Sender(tx)

@@ -7,13 +7,13 @@ import (
 
 
 const (
-	NormalTxIndex    common.TxTypeInt = iota // NormalPool save normal transaction
+	NormalTxIndex    byte = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
 
 )
 
 type SelfTransaction interface {
-	TxType() common.TxTypeInt
+	TxType() byte
 	Data() []byte
 	Gas() uint64
 	GasPrice() *big.Int
@@ -42,12 +42,14 @@ type SelfTransaction interface {
 	GetTxNLen()int
 	GetTxN(index int) uint32
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
-	Protected() bool
+	//Protected() bool
 	GetConstructorType()uint16
 	GasFrom() common.Address
 	AmontFrom() common.Address
 	GetMatrixType() byte
 	Setentrustfrom(x interface{})
+	CoinType()string
+	SetCoinType(typ string)
 }
 
 func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){

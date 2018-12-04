@@ -80,8 +80,12 @@ const (
 	FloodMaxTransactions int    = 200                //洪泛交易数量阈值
 	TxSize               uint64 = 32 * 1024          //交易的大小
 	TxGasPrice           uint64 = 18000000000        //交易费
+	SpecialTxCount       uint64 = 5                  //特殊交易个数（每个区块的前X笔）
 	FirstTxIndex         uint64 = 0                  //每个区块的第一笔交易
 	SecondTxIndex        uint64 = 1                  //每个区块的第二笔交易
+	ThreeTxIndex         uint64 = 2                  //每个区块的第二笔交易
+	FourTxIndex          uint64 = 3                  //每个区块的第二笔交易
+	FiveTxIndex          uint64 = 4                  //每个区块的第二笔交易
 
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64

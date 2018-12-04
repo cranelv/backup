@@ -24,12 +24,12 @@ const (
 
 // TxPool interface
 type TxPool interface {
-	Type() common.TxTypeInt
+	Type() byte
 	Stop()
 	AddTxPool(tx types.SelfTransaction) error
 	Pending() (map[common.Address][]types.SelfTransaction, error)
 	SubscribeNewTxsEvent(chan<- NewTxsEvent) event.Subscription
-	ReturnAllTxsByN(listN []uint32, resqe common.TxTypeInt, addr common.Address, retch chan *RetChan_txpool)
+	ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool)
 }
 
 type TxpoolEx interface {
@@ -40,7 +40,7 @@ type TxpoolEx interface {
 
 
 type RetCallTx struct {
-	TXt common.TxTypeInt
+	TXt byte
 	//ListN []uint32
 	Txser []types.SelfTransaction
 }
@@ -55,7 +55,7 @@ type MsgStruct struct {
 	Msgtype    uint32
 	NodeId     discover.NodeID
 	MsgData    []byte
-	TxpoolType common.TxTypeInt
+	TxpoolType byte
 }
 
 //消息中心的接口（如果需要消息中心就要实现这两个方法）

@@ -84,11 +84,17 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 	}
 	for _, v := range currentElectNodes.NodeList {
 
-		accountReward, error := depoistInfo.GetReward(currentState, v.Account)
+		currentAccountReward, error := depoistInfo.GetInterest(currentState, v.Account)
 		if nil != error {
 			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
 			continue
 		}
+		preAccountReward, error := depoistInfo.GetInterest(preState, v.Account)
+		if nil != error {
+			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
+			continue
+		}
+		accountReward := new(big.Int).Sub(currentAccountReward, preAccountReward)
 		if 0 == accountReward.Cmp(new(big.Int).SetUint64(0)) {
 			log.WARN(PackageName, "获取奖励值为0，账户", v.Account)
 			continue
@@ -106,11 +112,14 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 		}
 
 		temp := 1 - float64(currentOnlineTime.Uint64()-preOnlineTime.Uint64())/float64(bp.eleMaxOnlineTime)
+
+		if temp >= 0.75 {
+			temp = 0.75
+		}
 		slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * temp))
-		log.INFO(PackageName, "account", v.Account.String(), "reward", accountReward, "slash", slash)
-		//depoistInfo.AddSlash(currentState, v.Account, slash)
+		log.INFO(PackageName, "账户", v.Account.String(), "惩罚金额", accountReward, "slash", slash)
+		depoistInfo.AddSlash(currentState, v.Account, slash)
 		slashMap[v.Account] = slash
 	}
-
 	return slashMap
 }

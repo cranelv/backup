@@ -8,18 +8,112 @@ import (
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"errors"
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"github.com/matrix/go-matrix/params/manparams"
+	"strconv"
 )
+
+type Info struct {
+	Position uint16
+	Account common.Address
+}
+type NodeSupport struct {
+	First []Info
+	Second []Info
+	Third []Info
+}
+
+func CheckFileExist(filename string)bool{
+	exist :=true
+	if _,err:=os.Stat(filename);os.IsNotExist(err){
+		exist=false
+	}
+	return exist
+
+}
+func (self *ReElection)TestSupport(data *mc.RoleUpdatedMsg)error {
+	if self.currentID != common.RoleBroadcast {
+		return nil
+	}
+	filename:=""
+	log.Info("测试支持", "开始存储", "start","高度",data.BlockNum)
+	nodeSupport := NodeSupport{}
+	if data.BlockNum ==0{
+		blk := self.bc.GetBlockByHash(data.BlockHash)
+		if blk == nil {
+			log.Error("测试支持", "获取区块信息失败 高度", data.BlockNum)
+			return errors.New("获取区块头失败")
+		}
+		for _, v := range blk.Header().NetTopology.NetTopologyData {
+			switch common.GetRoleTypeFromPosition(v.Position) {
+			case common.RoleValidator:
+				nodeSupport.First = append(nodeSupport.First, Info{Position: v.Position, Account: v.Account})
+			case common.RoleBackupValidator:
+				nodeSupport.Second = append(nodeSupport.Second, Info{Position: v.Position, Account: v.Account})
+			default:
+				continue
+
+			}
+		}
+		filename="./0_top.json"
+
+	}else if data.BlockNum%common.GetReElectionInterval()>=292 && data.BlockNum%common.GetReElectionInterval()<=299{
+		validatorHash, err := self.GetHeaderHashByNumber(data.BlockHash, common.GetNextReElectionNumber(data.BlockNum)-manparams.MinerTopologyGenerateUpTime)
+		if err!=nil{
+			log.Error("测试支持 ","获取292区块头hash失败 err",err,"高度",common.GetNextReElectionNumber(data.BlockNum)-manparams.MinerTopologyGenerateUpTime)
+		}
+		_,b,err:=self.readElectData(common.RoleValidator,validatorHash)
+		if err!=nil{
+			log.Error("测试支持","获取选举信息失败","err")
+		}
+		for _,v:=range b.MasterValidator{
+			nodeSupport.First=append(nodeSupport.First,Info{Position:v.Position,Account:v.Account})
+		}
+		for _,v:=range b.BackUpValidator{
+			nodeSupport.Second=append(nodeSupport.Second,Info{Position:v.Position,Account:v.Account})
+		}
+		for _,v:=range b.CandidateValidator{
+			nodeSupport.Third=append(nodeSupport.Third,Info{Position:v.Position,Account:v.Account})
+		}
+		aim:=data.BlockNum/common.GetReElectionInterval()
+		aim++
+		aim=aim*common.GetReElectionInterval()
+		aimF:=strconv.Itoa(int(aim))
+		filename="./"+aimF+"_top.json"
+	}
+
+	if filename==""{
+		return nil
+	}
+	marshalData, err := json.Marshal(nodeSupport)
+	if err != nil {
+		log.Error("测试支持", "Marshal失败 data", nodeSupport)
+		return err
+	}
+	err = ioutil.WriteFile(filename, marshalData, os.ModeAppend)
+	if err != nil {
+		log.Error("测试支持", "生成test文件成功")
+	}
+	return err
+}
+
+
+
 
 //身份变更消息带来
 func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
+
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	self.currentID = data.Role
-
-	if common.RoleValidator != self.currentID { //不是验证者，不处理
-		log.ERROR(Module, "當前不是驗證者，不處理", self.currentID)
-		return nil
-	}
+	self.TestSupport(data)
+	//if common.RoleValidator != self.currentID { //不是验证者，不处理
+	//	log.ERROR(Module, "當前不是驗證者，不處理", self.currentID)
+	//	return nil
+	//}
 
 	err := self.HandleTopGen(data.BlockHash) //处理拓扑生成
 	if err != nil {
