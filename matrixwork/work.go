@@ -59,19 +59,16 @@ var mapcoingasUse coingasUse = coingasUse{mapcoin:make(map[string]*big.Int),mapp
 func (cu *coingasUse)setCoinGasUse(txer types.SelfTransaction,gasuse uint64){
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
-	cu.mapcoin = make(map[string]*big.Int)
-	cu.mapprice = make(map[string]*big.Int)
-	tx :=txer
 	gasAll := new(big.Int).SetUint64(gasuse)
-	priceAll := tx.GasPrice()
-	if gas,ok := cu.mapcoin[tx.GetTxCurrency()];ok{
+	priceAll := txer.GasPrice()
+	if gas,ok := cu.mapcoin[txer.GetTxCurrency()];ok{
 		gasAll = new(big.Int).Add(gasAll,gas)
 	}
-	cu.mapcoin[tx.GetTxCurrency()] = gasAll
+	cu.mapcoin[txer.GetTxCurrency()] = gasAll
 
-	if _,ok := cu.mapprice[tx.GetTxCurrency()];!ok{
+	if _,ok := cu.mapprice[txer.GetTxCurrency()];!ok{
 		if priceAll.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) >= 0 {
-			cu.mapprice[tx.GetTxCurrency()] = priceAll
+			cu.mapprice[txer.GetTxCurrency()] = priceAll
 		}
 	}
 }
@@ -92,6 +89,12 @@ func (cu *coingasUse)getCoinGasUse(typ string) *big.Int{
 		gas = new(big.Int).SetUint64(0)
 	}
 	return gas
+}
+func (cu *coingasUse)clearmap()  {
+	cu.mu.Lock()
+	defer cu.mu.Unlock()
+	cu.mapcoin =make(map[string]*big.Int)
+	cu.mapprice = make(map[string]*big.Int)
 }
 func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {
 
@@ -270,12 +273,13 @@ func (env *Work)Reverse(s []common.RewarTx) []common.RewarTx {
 	}
 	return s
 }
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain,rewart []common.RewarTx) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil
 	}
+	mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
@@ -285,12 +289,13 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	}
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	tmps :=make([]types.SelfTransaction,0)
+	var rewart []common.RewarTx //TODO 需要合并代码
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
 		if err != nil {
 			log.Error("file work","func ProcessTransactions:::reward Tx call Error",err)
-			return nil ,nil
+			continue
 		}
 		tmptxs :=make([]types.SelfTransaction,0)
 		tmptxs = append(tmptxs, tx)
@@ -341,13 +346,15 @@ func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTra
 	return
 }
 //Broadcast
-func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,rewart []common.RewarTx) {
+func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) {
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
+	mapcoingasUse.clearmap()
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
+	var rewart []common.RewarTx //TODO 需要合并代码
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -358,10 +365,11 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain,rewart []common.RewarTx) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
+	mapcoingasUse.clearmap()
 	var coalescedLogs []*types.Log
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
@@ -383,6 +391,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
+	var rewart []common.RewarTx //TODO 需要合并代码
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))

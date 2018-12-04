@@ -408,13 +408,8 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	blkRward, txsReward := p.calcRewardAndSlash(work.State, localHeader)
-	var rewardList []common.RewarTx
-	rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkRewardAddress,To_Amont:blkRward})
-	rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsReward})
-	rewardList = work.Reverse(rewardList)
-	rewardList = nil
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc,rewardList)
+
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
