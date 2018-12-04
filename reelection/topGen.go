@@ -8,11 +8,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 )
 
 //得到随机种子

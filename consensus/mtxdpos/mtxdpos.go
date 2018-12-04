@@ -70,7 +70,7 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.ValidatorReader, header *types
 	}
 
 	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, manparams.SuperVersionNodes)
-	log.INFO("共识引擎","版本",string(header.Version),"签名",header.VersionSignatures[0].Bytes(),"版本节点",manparams.SuperVersionNodes[0].Address.String())
+	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", manparams.SuperVersionNodes[0].Address.String())
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errSignCountErr

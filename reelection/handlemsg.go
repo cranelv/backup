@@ -4,44 +4,44 @@
 package reelection
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"errors"
-	"encoding/json"
+	"github.com/matrix/go-matrix/params/manparams"
 	"io/ioutil"
 	"os"
-	"github.com/matrix/go-matrix/params/manparams"
 	"strconv"
 )
 
 type Info struct {
 	Position uint16
-	Account common.Address
+	Account  common.Address
 }
 type NodeSupport struct {
-	First []Info
+	First  []Info
 	Second []Info
-	Third []Info
+	Third  []Info
 }
 
-func CheckFileExist(filename string)bool{
-	exist :=true
-	if _,err:=os.Stat(filename);os.IsNotExist(err){
-		exist=false
+func CheckFileExist(filename string) bool {
+	exist := true
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		exist = false
 	}
 	return exist
 
 }
-func (self *ReElection)TestSupport(data *mc.RoleUpdatedMsg)error {
+func (self *ReElection) TestSupport(data *mc.RoleUpdatedMsg) error {
 	if self.currentID != common.RoleBroadcast {
 		return nil
 	}
-	filename:=""
-	log.Info("测试支持", "开始存储", "start","高度",data.BlockNum)
+	filename := ""
+	log.Info("测试支持", "开始存储", "start", "高度", data.BlockNum)
 	nodeSupport := NodeSupport{}
-	if data.BlockNum ==0{
+	if data.BlockNum == 0 {
 		blk := self.bc.GetBlockByHash(data.BlockHash)
 		if blk == nil {
 			log.Error("测试支持", "获取区块信息失败 高度", data.BlockNum)
@@ -58,34 +58,34 @@ func (self *ReElection)TestSupport(data *mc.RoleUpdatedMsg)error {
 
 			}
 		}
-		filename="./0_top.json"
+		filename = "./0_top.json"
 
-	}else if data.BlockNum%common.GetReElectionInterval()>=292 && data.BlockNum%common.GetReElectionInterval()<=299{
+	} else if data.BlockNum%common.GetReElectionInterval() >= 292 && data.BlockNum%common.GetReElectionInterval() <= 299 {
 		validatorHash, err := self.GetHeaderHashByNumber(data.BlockHash, common.GetNextReElectionNumber(data.BlockNum)-manparams.MinerTopologyGenerateUpTime)
-		if err!=nil{
-			log.Error("测试支持 ","获取292区块头hash失败 err",err,"高度",common.GetNextReElectionNumber(data.BlockNum)-manparams.MinerTopologyGenerateUpTime)
+		if err != nil {
+			log.Error("测试支持 ", "获取292区块头hash失败 err", err, "高度", common.GetNextReElectionNumber(data.BlockNum)-manparams.MinerTopologyGenerateUpTime)
 		}
-		_,b,err:=self.readElectData(common.RoleValidator,validatorHash)
-		if err!=nil{
-			log.Error("测试支持","获取选举信息失败","err")
+		_, b, err := self.readElectData(common.RoleValidator, validatorHash)
+		if err != nil {
+			log.Error("测试支持", "获取选举信息失败", "err")
 		}
-		for _,v:=range b.MasterValidator{
-			nodeSupport.First=append(nodeSupport.First,Info{Position:v.Position,Account:v.Account})
+		for _, v := range b.MasterValidator {
+			nodeSupport.First = append(nodeSupport.First, Info{Position: v.Position, Account: v.Account})
 		}
-		for _,v:=range b.BackUpValidator{
-			nodeSupport.Second=append(nodeSupport.Second,Info{Position:v.Position,Account:v.Account})
+		for _, v := range b.BackUpValidator {
+			nodeSupport.Second = append(nodeSupport.Second, Info{Position: v.Position, Account: v.Account})
 		}
-		for _,v:=range b.CandidateValidator{
-			nodeSupport.Third=append(nodeSupport.Third,Info{Position:v.Position,Account:v.Account})
+		for _, v := range b.CandidateValidator {
+			nodeSupport.Third = append(nodeSupport.Third, Info{Position: v.Position, Account: v.Account})
 		}
-		aim:=data.BlockNum/common.GetReElectionInterval()
+		aim := data.BlockNum / common.GetReElectionInterval()
 		aim++
-		aim=aim*common.GetReElectionInterval()
-		aimF:=strconv.Itoa(int(aim))
-		filename="./"+aimF+"_top.json"
+		aim = aim * common.GetReElectionInterval()
+		aimF := strconv.Itoa(int(aim))
+		filename = "./" + aimF + "_top.json"
 	}
 
-	if filename==""{
+	if filename == "" {
 		return nil
 	}
 	marshalData, err := json.Marshal(nodeSupport)
@@ -99,9 +99,6 @@ func (self *ReElection)TestSupport(data *mc.RoleUpdatedMsg)error {
 	}
 	return err
 }
-
-
-
 
 //身份变更消息带来
 func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
@@ -132,9 +129,9 @@ func (self *ReElection) roleUpdateProcess(data *mc.RoleUpdatedMsg) error {
 
 }
 func (self *ReElection) HandleNative(hash common.Hash) error {
-	height,err:=self.GetNumberByHash(hash)
-	if err!=nil{
-		log.Error(Module,"HandleNative阶段 err",err)
+	height, err := self.GetNumberByHash(hash)
+	if err != nil {
+		log.Error(Module, "HandleNative阶段 err", err)
 		return err
 	}
 
@@ -143,9 +140,9 @@ func (self *ReElection) HandleNative(hash common.Hash) error {
 		return self.GetNativeFromDB(hash)
 	}
 
-	lastHash,err:=self.GetHeaderHashByNumber(hash,height-1)
-	if err!=nil{
-		log.Error(Module,"HandleNative err",err)
+	lastHash, err := self.GetHeaderHashByNumber(hash, height-1)
+	if err != nil {
+		log.Error(Module, "HandleNative err", err)
 		return err
 	}
 	self.checkUpdateStatus(lastHash)
@@ -181,7 +178,7 @@ func (self *ReElection) HandleTopGen(hash common.Hash) error {
 
 	return err
 }
-func (self *ReElection) UpdateNative(hash  common.Hash, allNative support.AllNative) error {
+func (self *ReElection) UpdateNative(hash common.Hash, allNative support.AllNative) error {
 
 	allNative, err := self.ToNativeValidatorStateUpdate(hash, allNative)
 	if err != nil {

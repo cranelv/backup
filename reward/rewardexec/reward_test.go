@@ -90,13 +90,12 @@ func (s *InnerSeed) GetSeed(num uint64) *big.Int {
 	return new(big.Int).SetUint64(random.Uint64())
 }
 
-
 func TestBlockReward_setLeaderRewards(t *testing.T) {
 
 	log.InitLog(3)
 	eth := fakeEthNew(0)
 	rewardCfg := cfg.New(nil, nil)
-	rewardobject:=New(eth.blockchain, rewardCfg)
+	rewardobject := New(eth.blockchain, rewardCfg)
 	Convey("Leader测试", t, func() {
 		rewards := make(map[common.Address]*big.Int, 0)
 		validatorsBlkReward := util.CalcRateReward(util.ValidatorsBlockReward, rewardobject.rewardCfg.RewardMount.ValidatorsRate)
@@ -113,14 +112,14 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 	eth := fakeEthNew(0)
 	rewardCfg := cfg.New(nil, nil)
 	reward := New(eth.blockchain, rewardCfg)
-	depositProportion := big.NewRat(1,11)
-	oneNodeReward,err:= new(big.Rat).Mul(new(big.Rat).SetInt(big.NewInt(9e+18)), depositProportion).Float64()
-	oneNodeRewardString:= new(big.Rat).Mul(new(big.Rat).SetInt(big.NewInt(9e+18)), depositProportion).FloatString(10)
+	depositProportion := big.NewRat(1, 11)
+	oneNodeReward, err := new(big.Rat).Mul(new(big.Rat).SetInt(big.NewInt(9e+18)), depositProportion).Float64()
+	oneNodeRewardString := new(big.Rat).Mul(new(big.Rat).SetInt(big.NewInt(9e+18)), depositProportion).FloatString(10)
 	v2, _ := strconv.ParseFloat(oneNodeRewardString, 64)
-	log.INFO(PackageName,"奖励",oneNodeReward,"err",err,"oneNodeRewardString",oneNodeRewardString,"v2",v2)
+	log.INFO(PackageName, "奖励", oneNodeReward, "err", err, "oneNodeRewardString", oneNodeRewardString, "v2", v2)
 
-	oneNodeRewardInt:= new(big.Int).Div(big.NewInt(9e+17), big.NewInt(11)).Uint64()
-	log.INFO(PackageName,"奖励",oneNodeRewardInt)
+	oneNodeRewardInt := new(big.Int).Div(big.NewInt(9e+17), big.NewInt(11)).Uint64()
+	log.INFO(PackageName, "奖励", oneNodeRewardInt)
 	Convey("选中无节点变化测试", t, func() {
 
 		rewards := make(map[common.Address]*big.Int, 0)
@@ -132,8 +131,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
-		reward.rewardCfg.SetReward.SetSelectedRewards(big.NewInt(11e+17), eth.blockchain,rewards, common.RoleValidator|common.RoleBackupValidator, newheader, reward.rewardCfg.RewardMount.BackupRewardRate)
-
+		reward.rewardCfg.SetReward.SetSelectedRewards(big.NewInt(11e+17), eth.blockchain, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, reward.rewardCfg.RewardMount.BackupRewardRate)
 
 		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
 	})
@@ -149,7 +147,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bcf"), Position: 8195})
-		reward.rewardCfg.SetReward.SetSelectedRewards(util.ValidatorsBlockReward, eth.blockchain,rewards, common.RoleValidator|common.RoleBackupValidator, newheader, reward.rewardCfg.RewardMount.BackupRewardRate)
+		reward.rewardCfg.SetReward.SetSelectedRewards(util.ValidatorsBlockReward, eth.blockchain, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, reward.rewardCfg.RewardMount.BackupRewardRate)
 		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
 	})
 }

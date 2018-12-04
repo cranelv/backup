@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package manapi
 
@@ -493,18 +492,18 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 		return nil, err
 	}
 	b := state.GetBalance(address)
-	if b == nil{
-		b = make(common.BalanceType,0)
+	if b == nil {
+		b = make(common.BalanceType, 0)
 		tmp := new(common.BalanceSlice)
 		var i uint32
-		for i = 0; i <= common.LastAccount; i++{
+		for i = 0; i <= common.LastAccount; i++ {
 			tmp.AccountType = i
 			tmp.Balance = new(big.Int)
-			b = append(b,*tmp)
+			b = append(b, *tmp)
 		}
 	}
 
-	log.Info("GetBalance","余额:",b)
+	log.Info("GetBalance", "余额:", b)
 	return b, state.Error()
 }
 
@@ -765,6 +764,7 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
 	return s.b.ImportSuperBlock(ctx, filePath)
 }
+
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
 // execution status, the amount of gas used and the return value
@@ -832,31 +832,31 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
-		"number":           (*hexutil.Big)(head.Number),
-		"hash":             b.Hash(),
-		"parentHash":       head.ParentHash,
-		"nonce":            head.Nonce,
-		"mixHash":          head.MixDigest,
-		"sha3Uncles":       head.UncleHash,
-		"logsBloom":        head.Bloom,
-		"stateRoot":        head.Root,
-		"miner":            head.Coinbase,
-		"difficulty":       (*hexutil.Big)(head.Difficulty),
-		"totalDifficulty":  (*hexutil.Big)(s.b.GetTd(b.Hash())),
-		"extraData":        hexutil.Bytes(head.Extra),
-		"size":             hexutil.Uint64(b.Size()),
-		"gasLimit":         hexutil.Uint64(head.GasLimit),
-		"gasUsed":          hexutil.Uint64(head.GasUsed),
-		"timestamp":        (*hexutil.Big)(head.Time),
-		"transactionsRoot": head.TxHash,
-		"receiptsRoot":     head.ReceiptHash,
-		"leader":           head.Leader,
-		"elect":            head.Elect,
-		"nettopology":      head.NetTopology,
-		"signatures":       head.Signatures,
+		"number":            (*hexutil.Big)(head.Number),
+		"hash":              b.Hash(),
+		"parentHash":        head.ParentHash,
+		"nonce":             head.Nonce,
+		"mixHash":           head.MixDigest,
+		"sha3Uncles":        head.UncleHash,
+		"logsBloom":         head.Bloom,
+		"stateRoot":         head.Root,
+		"miner":             head.Coinbase,
+		"difficulty":        (*hexutil.Big)(head.Difficulty),
+		"totalDifficulty":   (*hexutil.Big)(s.b.GetTd(b.Hash())),
+		"extraData":         hexutil.Bytes(head.Extra),
+		"size":              hexutil.Uint64(b.Size()),
+		"gasLimit":          hexutil.Uint64(head.GasLimit),
+		"gasUsed":           hexutil.Uint64(head.GasUsed),
+		"timestamp":         (*hexutil.Big)(head.Time),
+		"transactionsRoot":  head.TxHash,
+		"receiptsRoot":      head.ReceiptHash,
+		"leader":            head.Leader,
+		"elect":             head.Elect,
+		"nettopology":       head.NetTopology,
+		"signatures":        head.Signatures,
 		"version":           string(head.Version),
 		"versionSignatures": head.VersionSignatures,
-		"vrfvalue":  hexutil.Bytes(head.VrfValue),
+		"vrfvalue":          hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {
@@ -915,14 +915,14 @@ type RPCTransaction struct {
 func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
 	var signer types.Signer //= types.FrontierSigner{}
 	//if tx.Protected() {
-		signer = types.NewEIP155Signer(tx.ChainId())
+	signer = types.NewEIP155Signer(tx.ChainId())
 	//}
 
 	var from common.Address
 
-	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	if tx.GetMatrixType() == common.ExtraUnGasTxType {
 		from = tx.From()
-	}else {
+	} else {
 		from, _ = types.Sender(signer, tx)
 	}
 	v, r, s := tx.RawSignatureValues()
@@ -1125,7 +1125,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 	var signer types.Signer //= types.FrontierSigner{}
 	//if tx.Protected() {
-		signer = types.NewEIP155Signer(tx.ChainId())
+	signer = types.NewEIP155Signer(tx.ChainId())
 	//}
 	from, _ := types.Sender(signer, tx)
 
@@ -1257,10 +1257,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,0)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0)
 	}
 	//YY
 	txtr := make([]*types.ExtraTo_tr, 0)
@@ -1391,7 +1391,7 @@ func (s *PublicTransactionPoolAPI) Sign(addr common.Address, data hexutil.Bytes)
 
 // SignTransactionResult represents a RLP encoded signed transaction.
 type SignTransactionResult struct {
-	Raw hexutil.Bytes      `json:"raw"`
+	Raw hexutil.Bytes         `json:"raw"`
 	Tx  types.SelfTransaction `json:"tx"`
 }
 
@@ -1434,7 +1434,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	for _, tx := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
 		//if tx.Protected() {
-			signer = types.NewEIP155Signer(tx.ChainId())
+		signer = types.NewEIP155Signer(tx.ChainId())
 		//}
 		from, _ := types.Sender(signer, tx)
 		if _, err := s.b.AccountManager().Find(accounts.Account{Address: from}); err == nil {
@@ -1462,7 +1462,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	for _, p := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
 		//if p.Protected() {
-			signer = types.NewEIP155Signer(p.ChainId())
+		signer = types.NewEIP155Signer(p.ChainId())
 		//}
 		wantSigHash := signer.Hash(matchTx)
 

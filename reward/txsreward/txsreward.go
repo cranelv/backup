@@ -39,15 +39,15 @@ func New(chain util.ChainReader) reward.Reward {
 		MinersRate:     MinerTxsRewardRate,
 		ValidatorsRate: ValidatorsTxsRewardRate,
 
-		MinerOutRate:     MinerOutRewardRate,
-		ElectedMinerRate: ElectedMinerRewardRate,
+		MinerOutRate:        MinerOutRewardRate,
+		ElectedMinerRate:    ElectedMinerRewardRate,
 		FoundationMinerRate: FoundationTxsRewardRate,
 
-		LeaderRate:            LeaderRewardRate,
-		ElectedValidatorsRate: ElectedValidatorsRewardRate,
-		FoundationValidatorRate:FoundationTxsRewardRate,
-		OriginElectOfflineRate: OriginElectOfflineRewardRate,
-		BackupRewardRate:       BackupRate,
+		LeaderRate:              LeaderRewardRate,
+		ElectedValidatorsRate:   ElectedValidatorsRewardRate,
+		FoundationValidatorRate: FoundationTxsRewardRate,
+		OriginElectOfflineRate:  OriginElectOfflineRewardRate,
+		BackupRewardRate:        BackupRate,
 	}
 	rewardCfg := cfg.New(RewardMount, nil)
 	return rewardexec.New(chain, rewardCfg)

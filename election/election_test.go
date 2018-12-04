@@ -11,16 +11,16 @@ import (
 
 	"fmt"
 
+	"encoding/json"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/matrix/go-matrix/baseinterface"
 	_ "github.com/matrix/go-matrix/election/layered"
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
-	"encoding/json"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/p2p/discover"
 )
 
 func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
@@ -273,8 +273,8 @@ func TestUnit10(t *testing.T) {
 		for key := 101; key <= 101; key++ {
 			req := GetFencengValidatorList(Num, uint64(key), 4, 4)
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 4, "100W", 4)
-			for k,v:=range req.ValidatorList{
-				fmt.Println("k",k,"v",v)
+			for k, v := range req.ValidatorList {
+				fmt.Println("k", k, "v", v)
 			}
 			rsq := tt.ValidatorTopGen(req)
 			PrintValidator(rsq)
@@ -283,8 +283,7 @@ func TestUnit10(t *testing.T) {
 	}
 }
 
-
-func TestAAA(t *testing.T){
-	data,err:=json.Marshal(common.EchelonArrary)
-	fmt.Println("str data",string(data),"err",err)
+func TestAAA(t *testing.T) {
+	data, err := json.Marshal(common.EchelonArrary)
+	fmt.Println("str data", string(data), "err", err)
 }

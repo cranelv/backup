@@ -10,6 +10,7 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -17,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/trie"
-	"github.com/matrix/go-matrix/core/rawdb"
 )
 
 type BroadCastTxPool struct {
@@ -43,7 +43,7 @@ func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, 
 }
 
 // Type return txpool type.
-func (bPool *BroadCastTxPool) Type() byte{
+func (bPool *BroadCastTxPool) Type() byte {
 	return types.BroadCastTxIndex
 }
 
@@ -65,7 +65,7 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 		return
 	}
 
-	if 0==len(head.Transactions()){
+	if 0 == len(head.Transactions()) {
 		return
 	}
 
@@ -110,10 +110,10 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 
 	hash := head.Hash()
 	for typeStr, content := range tempMap {
-		if err := insertManTrie(typeStr,hash,content); err != nil {
-			log.Error("SetBroadcastTxs insertDB", "height", head.Number().Uint64(),"hash",hash)
-		}else{
-			log.Info("SetBroadcastTxs success","content",content)
+		if err := insertManTrie(typeStr, hash, content); err != nil {
+			log.Error("SetBroadcastTxs insertDB", "height", head.Number().Uint64(), "hash", hash)
+		} else {
+			log.Info("SetBroadcastTxs success", "content", content)
 		}
 	}
 }
@@ -158,8 +158,6 @@ func (bPool *BroadCastTxPool) Stop() {
 	//}
 	log.Info("Broad Transaction pool stopped")
 }
-
-
 
 // AddTxPool
 func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) {
@@ -303,25 +301,25 @@ func (bPool *BroadCastTxPool) Pending() (map[common.Address][]types.SelfTransact
 
 // insertDB
 //func insertManTrie(keyData []byte, val map[common.Address][]byte,bc *BlockChain) error {
-func insertManTrie(txtype string,hash common.Hash, val map[common.Address][]byte) error {
+func insertManTrie(txtype string, hash common.Hash, val map[common.Address][]byte) error {
 	keyData := types.RlpHash(txtype + hash.String())
 	dataVal, err := json.Marshal(val)
 	if err != nil {
 		log.Error("insertDB", "json.Marshal(val) err", err)
 		return err
 	}
-	key := append(rawdb.BroadcastPrefix,keyData.Bytes()...)
-	return rawdb.SetManTrie(key,dataVal)
+	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
+	return rawdb.SetManTrie(key, dataVal)
 }
 
 // GetBroadcastTxs get broadcast transactions' data from stateDB.
 func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
 	keyData := types.RlpHash(txtype + hash.String())
-	key := append(rawdb.BroadcastPrefix,keyData.Bytes()...)
-	dataVal,err := trie.ManTrie.TryGet(key)
+	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
+	dataVal, err := trie.ManTrie.TryGet(key)
 	//dataVal, err := ldb.Get(hv.Bytes(), nil)
 	if err != nil {
-		log.Error("GetBroadcastTxs from trie failed","keydata",key)
+		log.Error("GetBroadcastTxs from trie failed", "keydata", key)
 		return nil, err
 	}
 
@@ -329,7 +327,7 @@ func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address
 	if err != nil {
 		log.Error("GetBroadcastTxs", "Unmarshal failed", err)
 	}
-	log.Info("GetBroadcastTxs","type",txtype,"reqval",reqVal,"keydata",key)
+	log.Info("GetBroadcastTxs", "type", txtype, "reqval", reqVal, "keydata", key)
 	return reqVal, err
 }
 

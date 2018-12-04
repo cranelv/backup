@@ -163,6 +163,7 @@ type ConsensusNTx struct {
 	Key   uint32
 	Value types.SelfTransaction
 }
+
 //func init()  {
 //func init()  {
 //	rlp.InterfaceConstructorMap[uint16(types.MapTxpoolIndex)] = func() interface{} {
@@ -556,7 +557,7 @@ func (nPool *NormalTxPool) checkList() {
 			if len(gSendst.snlist.slist) >= params.FloodMaxTransactions {
 				nPool.packageSNList()
 			}
-		case <-nPool.quit :
+		case <-nPool.quit:
 			return
 		}
 	}
@@ -629,7 +630,7 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range nPool.pending {
-		for _,txs := range list.txs{
+		for _, txs := range list.txs {
 			txs := txs.Flatten() // Heavy but will be cached and is needed by the miner anyway
 			nPool.pendingState.SetNonce(addr, txs[len(txs)-1].Nonce()+1)
 		}
@@ -679,7 +680,7 @@ func (nPool *NormalTxPool) Stats() (int, int) {
 func (nPool *NormalTxPool) stats() (int, int) {
 	pending := 0
 	for _, list := range nPool.pending {
-		for _,txs := range list.txs{
+		for _, txs := range list.txs {
 			pending += txs.Len() //list.Len(typ)
 		}
 	}
@@ -694,9 +695,9 @@ func (nPool *NormalTxPool) Content() (map[common.Address][]*types.Transaction, m
 	defer nPool.mu.Unlock()
 	pending := make(map[common.Address][]*types.Transaction)
 	for addr, list := range nPool.pending {
-		txlist := make([]*types.Transaction,0)
-		for _,txs := range list.txs {
-			txlist = append(txlist,txs.Flatten()...)
+		txlist := make([]*types.Transaction, 0)
+		for _, txs := range list.txs {
+			txlist = append(txlist, txs.Flatten()...)
 		}
 		pending[addr] = txlist
 	}
@@ -715,9 +716,9 @@ func (nPool *NormalTxPool) Pending() (map[common.Address][]types.SelfTransaction
 	defer nPool.mu.Unlock()
 	pending := make(map[common.Address][]types.SelfTransaction)
 	for addr, list := range nPool.pending {
-		txlist := make([]*types.Transaction,0)
-		for _,txs := range list.txs {
-			txlist = append(txlist,txs.Flatten()...)
+		txlist := make([]*types.Transaction, 0)
+		for _, txs := range list.txs {
+			txlist = append(txlist, txs.Flatten()...)
 		}
 		var txser types.SelfTransactions
 		for _, tx := range txlist {
@@ -738,9 +739,9 @@ func (nPool *NormalTxPool) getPendingTx() {
 	nPool.mu.Lock()
 	pending := make(map[common.Address][]*types.Transaction)
 	for addr, list := range nPool.pending {
-		txlist := make([]*types.Transaction,0)
-		for _,txs := range list.txs {
-			txlist = append(txlist,txs.Flatten()...)
+		txlist := make([]*types.Transaction, 0)
+		for _, txs := range list.txs {
+			txlist = append(txlist, txs.Flatten()...)
 		}
 		pending[addr] = txlist
 	}
@@ -1384,8 +1385,8 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		return false, ErrTXNonceSame
 	}
 	//将交易加入pending
-	if nPool.pending[from] == nil{
-		nPool.pending[from] = newTxList(false,"MAN")
+	if nPool.pending[from] == nil {
+		nPool.pending[from] = newTxList(false, "MAN")
 	}
 	nPool.pending[from].Add(tx, 0)
 	nPool.all.Add(tx)
@@ -1508,28 +1509,28 @@ func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 func (nPool *NormalTxPool) DemoteUnexecutables() {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range nPool.pending {
-		for typ,txs := range list.txs{
+		for typ, txs := range list.txs {
 			nonce := nPool.currentState.GetNonce(addr)
 
-		// Drop all transactions that are deemed too old (low nonce)
-		for _, tx := range txs.Forward(nonce) {
-			//YY ========begin=========
-			nPool.deleteMap(tx)
-			//===========end===========
-			hash := tx.Hash()
-			//log.Trace("Removed old pending transaction", "hash", hash)
-			nPool.all.Remove(hash)
-			//nPool.priced.Removed()
-		}
-		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		tBalance := new(big.Int)
-		for _, tAccount := range nPool.currentState.GetBalance(addr) {
-			if tAccount.AccountType == common.MainAccount {
+			// Drop all transactions that are deemed too old (low nonce)
+			for _, tx := range txs.Forward(nonce) {
+				//YY ========begin=========
+				nPool.deleteMap(tx)
+				//===========end===========
+				hash := tx.Hash()
+				//log.Trace("Removed old pending transaction", "hash", hash)
+				nPool.all.Remove(hash)
+				//nPool.priced.Removed()
+			}
+			// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
+			tBalance := new(big.Int)
+			for _, tAccount := range nPool.currentState.GetBalance(addr) {
+				if tAccount.AccountType == common.MainAccount {
 					tBalance = tAccount.Balance
 					break
 				}
 			}
-			drops, _ := list.Filter(tBalance, nPool.currentMaxGas,typ)
+			drops, _ := list.Filter(tBalance, nPool.currentMaxGas, typ)
 			for _, tx := range drops {
 				//YY ========begin=========
 				nPool.deleteMap(tx)

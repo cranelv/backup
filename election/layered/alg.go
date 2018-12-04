@@ -6,31 +6,28 @@ package layered
 import (
 	"sort"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/election/support"
 	"math/big"
-	"github.com/matrix/go-matrix/common"
 	"math/rand"
 )
 
-
 const (
 	DefauleStock = 1
-
 )
 
 var (
-	man                = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	vip1     = new(big.Int).Mul(big.NewInt(100000), man)
-	vip2     = new(big.Int).Mul(big.NewInt(40000), man)
-
+	man  = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	vip1 = new(big.Int).Mul(big.NewInt(100000), man)
+	vip2 = new(big.Int).Mul(big.NewInt(40000), man)
 )
 
 func FindIndex(ans *big.Int) int {
 
 	for k, v := range common.EchelonArrary {
 		//fmt.Println("v.MinMoney",v.MinMoney,"ans",ans)
-		if ans.Cmp(v.MinMoney)>=0{
+		if ans.Cmp(v.MinMoney) >= 0 {
 			return k
 		}
 	}
@@ -97,21 +94,20 @@ func (self VMS) Swap(i, j int) {
 	self[i].OnlineTime, self[j].OnlineTime = self[j].OnlineTime, self[i].OnlineTime
 }
 
-
-func Knuth_Fisher_Yates_Algorithm(vm []vm.DepositDetail,randSeed *big.Int)[]vm.DepositDetail{
+func Knuth_Fisher_Yates_Algorithm(vm []vm.DepositDetail, randSeed *big.Int) []vm.DepositDetail {
 	//高纳德置乱算法
 	rand.Seed(randSeed.Int64())
-	for index:=len(vm)-1;index>0;index--{
-		aimIndex:=rand.Intn(index+1)
-		t:=vm[index]
-		vm[index]=vm[aimIndex]
-		vm[aimIndex]=t
+	for index := len(vm) - 1; index > 0; index-- {
+		aimIndex := rand.Intn(index + 1)
+		t := vm[index]
+		vm[index] = vm[aimIndex]
+		vm[aimIndex] = t
 	}
 	return vm
 }
-func sortByDepositAndUptime(vm []vm.DepositDetail,random *big.Int) []vm.DepositDetail {
+func sortByDepositAndUptime(vm []vm.DepositDetail, random *big.Int) []vm.DepositDetail {
 
-	vm=Knuth_Fisher_Yates_Algorithm(vm,random )
+	vm = Knuth_Fisher_Yates_Algorithm(vm, random)
 
 	/*
 		for _, v := range vm {

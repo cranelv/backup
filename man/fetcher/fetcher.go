@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package fetcher contains the block announcement based synchronisation.
 package fetcher
@@ -80,10 +79,10 @@ type headerFilterTask struct {
 // headerFilterTask represents a batch of block bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string                 // The source peer of block bodies
+	peer         string                    // The source peer of block bodies
 	transactions [][]types.SelfTransaction // Collection of transactions per block bodies
-	uncles       [][]*types.Header      // Collection of uncles per block bodies
-	time         time.Time              // Arrival time of the blocks' contents
+	uncles       [][]*types.Header         // Collection of uncles per block bodies
+	time         time.Time                 // Arrival time of the blocks' contents
 }
 
 // inject represents a schedules import operation.

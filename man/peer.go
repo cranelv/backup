@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package man
 
@@ -78,12 +77,12 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownTxs    *set.Set                  // Set of transaction hashes known to be known by this peer
-	knownBlocks *set.Set                  // Set of block hashes known to be known by this peer
+	knownTxs    *set.Set                     // Set of transaction hashes known to be known by this peer
+	knownBlocks *set.Set                     // Set of block hashes known to be known by this peer
 	queuedTxs   chan []types.SelfTransaction // Queue of transactions to broadcast to the peer
-	queuedProps chan *propEvent           // Queue of blocks to broadcast to the peer
-	queuedAnns  chan *types.Block         // Queue of blocks to announce to the peer
-	term        chan struct{}             // Termination channel to stop the broadcaster
+	queuedProps chan *propEvent              // Queue of blocks to broadcast to the peer
+	queuedAnns  chan *types.Block            // Queue of blocks to announce to the peer
+	term        chan struct{}                // Termination channel to stop the broadcaster
 	Msgcenter   *mc.Center
 }
 
@@ -194,10 +193,10 @@ func (p *peer) SendTransactions(txser []types.SelfTransaction) error {
 	tmptxs := make([]types.SelfTransaction, 0)
 	for _, txer := range txser {
 		p.knownTxs.Add(txer.Hash())
-		switch txer.TxType(){
+		switch txer.TxType() {
 		case types.NormalTxIndex:
-			tmptx,ok := txer.(*types.Transaction)
-			if !ok{
+			tmptx, ok := txer.(*types.Transaction)
+			if !ok {
 				break
 			}
 			tx := *tmptx
@@ -207,12 +206,12 @@ func (p *peer) SendTransactions(txser []types.SelfTransaction) error {
 			}
 			tmptxs = append(tmptxs, &tx)
 		default:
-			log.Trace("man/peer.go","SendTransactions()","tx type unknown")
+			log.Trace("man/peer.go", "SendTransactions()", "tx type unknown")
 			break
 		}
 	}
 	if len(tmptxs) <= 0 {
-		log.Trace("man/peer.go","SendTransactions()","tmptxs length is 0")
+		log.Trace("man/peer.go", "SendTransactions()", "tmptxs length is 0")
 	}
 	return p2p.Send(p.rw, TxMsg, tmptxs)
 }
@@ -221,10 +220,10 @@ func (p *peer) SendTransactions(txser []types.SelfTransaction) error {
 func SendUdpTransactions(txser []types.SelfTransaction) error {
 	udptmptxs := make([]*types.Transaction_Mx, 0)
 	for _, txer := range txser {
-		switch txer.TxType(){
+		switch txer.TxType() {
 		case types.NormalTxIndex:
-			tmptx,ok := txer.(*types.Transaction)
-			if !ok{
+			tmptx, ok := txer.(*types.Transaction)
+			if !ok {
 				break
 			}
 			tx := *tmptx
@@ -236,7 +235,7 @@ func SendUdpTransactions(txser []types.SelfTransaction) error {
 			udptx := types.ConvTxtoMxtx(&tx)
 			udptmptxs = append(udptmptxs, udptx)
 		default:
-			log.Trace("man/peer.go","SendUdpTransactions()","tx type unknown")
+			log.Trace("man/peer.go", "SendUdpTransactions()", "tx type unknown")
 			break
 		}
 	}

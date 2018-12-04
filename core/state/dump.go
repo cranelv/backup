@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package state
 
@@ -44,7 +43,7 @@ func (self *StateDB) RawDump() Dump {
 		}
 
 		tBalance := new(big.Int)
-		for _,tAccount := range data.Balance{
+		for _, tAccount := range data.Balance {
 			if tAccount.AccountType == common.MainAccount {
 				tBalance = tAccount.Balance
 				break

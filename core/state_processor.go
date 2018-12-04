@@ -1,11 +1,11 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
 import (
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
@@ -14,7 +14,6 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
-	"errors"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -57,19 +56,19 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 	// Iterate over and process the individual transactions
 
-	stxs := make([]types.SelfTransaction,0)
+	stxs := make([]types.SelfTransaction, 0)
 	var txcount int
 	for i, tx := range block.Transactions() {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType{
-			tmpstxs := make([]types.SelfTransaction,0)
-			tmpstxs = append(tmpstxs,tx)
-			tmpstxs = append(tmpstxs,stxs...)
+		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+			tmpstxs := make([]types.SelfTransaction, 0)
+			tmpstxs = append(tmpstxs, tx)
+			tmpstxs = append(tmpstxs, stxs...)
 			stxs = tmpstxs
 			continue
 		}
-		from,addrerr := tx.GetTxFrom()
+		from, addrerr := tx.GetTxFrom()
 		var tf common.Address
-		if addrerr == nil && from != tf{
+		if addrerr == nil && from != tf {
 			//err is nil means from not nil
 			return nil, nil, 0, errors.New("This tx from must is nil")
 		}
@@ -88,13 +87,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		tmpr := make(types.Receipts,0)
+		tmpr := make(types.Receipts, 0)
 		tmpr = append(tmpr, receipt)
 		tmpr = append(tmpr, receipts...)
 		receipts = tmpr
-		tmpl := make([]*types.Log,0)
+		tmpl := make([]*types.Log, 0)
 		tmpl = append(tmpl, receipt.Logs...)
-		tmpl = append(tmpl,allLogs...)
+		tmpl = append(tmpl, allLogs...)
 		allLogs = tmpl
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
@@ -120,8 +119,8 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64
 	var failed bool
-	if tx.TxType() == types.BroadCastTxIndex{
-		if extx := tx.GetMatrix_EX(); (extx != nil) && len(extx) > 0 && extx[0].TxType == 1{
+	if tx.TxType() == types.BroadCastTxIndex {
+		if extx := tx.GetMatrix_EX(); (extx != nil) && len(extx) > 0 && extx[0].TxType == 1 {
 			gas = uint64(0)
 			failed = true
 		}

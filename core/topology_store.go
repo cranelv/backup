@@ -12,8 +12,8 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 )
 
 const (

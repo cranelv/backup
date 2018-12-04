@@ -20,7 +20,7 @@ var (
 )
 
 func RegElectPlug(name string, value func() ElectionInterface) {
-//	fmt.Println("选举服务 注册函数", "name", name)
+	//	fmt.Println("选举服务 注册函数", "name", name)
 	electionPlugs[name] = value
 }
 

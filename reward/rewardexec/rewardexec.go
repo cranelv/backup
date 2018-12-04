@@ -144,7 +144,7 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 	return rewards
 }
 
-func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB,blockReward *big.Int, address common.Address) *big.Int {
+func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB, blockReward *big.Int, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
 	halfBalance := new(big.Int).Exp(big.NewInt(10), big.NewInt(21), big.NewInt(0))
 	balance := state.GetBalance(address)
@@ -178,12 +178,12 @@ func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB,blockReward
 
 }
 
-func (br *BlockReward) CalcRewardMountByNumber(state *state.StateDB,num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int {
+func (br *BlockReward) CalcRewardMountByNumber(state *state.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
 	balance := state.GetBalance(address)
 	genesisState, _ := br.chain.StateAt(br.chain.Genesis().Root())
 	genesisBalance := genesisState.GetBalance(address)
-	log.INFO(PackageName, "计算区块奖励参数 当前高度:", num,"半衰高度:", halfNum,
+	log.INFO(PackageName, "计算区块奖励参数 当前高度:", num, "半衰高度:", halfNum,
 		"初始账户", address.String(), "初始金额", genesisBalance[common.MainAccount].Balance.String(), "当前金额", balance[common.MainAccount].Balance.String())
 	var reward *big.Int
 	if balance[common.MainAccount].Balance.Cmp(genesisBalance[common.MainAccount].Balance) >= 0 {
@@ -192,7 +192,7 @@ func (br *BlockReward) CalcRewardMountByNumber(state *state.StateDB,num uint64, 
 
 	n := uint64(0)
 	if 0 != halfNum {
-		n = num/halfNum
+		n = num / halfNum
 	}
 
 	if 0 == n {

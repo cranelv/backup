@@ -317,14 +317,13 @@ func (p *Process) processReqOnce() {
 		return
 	}
 
-
 	//verify vrf
-	if err:=p.verifyVrf(p.curProcessReq.req.Header);err!=nil{
-		log.Error(p.logExtraInfo(),"验证vrf失败",err,"高度",p.number)
+	if err := p.verifyVrf(p.curProcessReq.req.Header); err != nil {
+		log.Error(p.logExtraInfo(), "验证vrf失败", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
-	log.INFO(p.logExtraInfo(),"验证vrf成功 高度",p.number)
+	log.INFO(p.logExtraInfo(), "验证vrf成功 高度", p.number)
 
 	p.startTxsVerify()
 }
@@ -419,7 +418,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	rewardList:=work.CalcRewardAndSlash(p.blockChain())
+	rewardList := work.CalcRewardAndSlash(p.blockChain())
 
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, rewardList)
 	if err != nil {

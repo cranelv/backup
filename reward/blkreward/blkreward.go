@@ -39,11 +39,11 @@ type ChainReader interface {
 
 type blkreward struct {
 	blockReward *rewardexec.BlockReward
-	chain ChainReader
+	chain       ChainReader
 }
 
 func New(chain ChainReader) reward.Reward {
-     //todo:从状态树读取配置
+	//todo:从状态树读取配置
 	rewardCfg := cfg.New(nil, nil)
 	return rewardexec.New(chain, rewardCfg)
 }
@@ -51,4 +51,3 @@ func New(chain ChainReader) reward.Reward {
 //func (tr *blkreward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
 //	return tr.blockReward.CalcNodesRewards(blockReward, Leader, header)
 //}
-

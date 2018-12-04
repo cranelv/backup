@@ -199,14 +199,14 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return txser, nil
 }
-func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction){
+func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
-	for _,txer := range txser{
+	for _, txer := range txser {
 		ct := txer.CoinType()
-		if ct == ""{
+		if ct == "" {
 
 		}
-		txerlist = append(txerlist,txer)
+		txerlist = append(txerlist, txer)
 	}
 	return
 }

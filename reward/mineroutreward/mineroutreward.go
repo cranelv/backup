@@ -53,9 +53,9 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader,
 		return
 	}
 	var coinBase common.Address
-	if common.IsBroadcastNumber(num.Uint64()-1){
+	if common.IsBroadcastNumber(num.Uint64() - 1) {
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 2).Coinbase
-	}else{
+	} else {
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 1).Coinbase
 	}
 	util.SetAccountRewards(rewards, coinBase, reward)

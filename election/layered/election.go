@@ -69,8 +69,8 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	}
 
 	QuotaArray := CalEchelonNum(mvrerm.ValidatorList)
-	for k,v:=range QuotaArray{
-		log.ERROR("quotaarray","等级",k,"长度",len(v),"data",v)
+	for k, v := range QuotaArray {
+		log.ERROR("quotaarray", "等级", k, "长度", len(v), "data", v)
 	}
 	//fmt.Println(len(FirstQuota), len(SecondQuota))
 	//fmt.Println("QuotaArray", len(QuotaArray[0]))
@@ -80,7 +80,7 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	for k, v := range QuotaArray {
 		sumCount += common.EchelonArrary[k].Quota
 		if len(v) > common.EchelonArrary[k].Quota {
-			v = sortByDepositAndUptime(v,mvrerm.RandSeed)
+			v = sortByDepositAndUptime(v, mvrerm.RandSeed)
 		}
 		for _, vv := range v {
 			tempNodeInfo := mc.TopologyNodeInfo{

@@ -11,8 +11,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/random/commonsupport"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/random/commonsupport"
 )
 
 func init() {

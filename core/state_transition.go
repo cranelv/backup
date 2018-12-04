@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
@@ -10,19 +9,20 @@ import (
 	"math"
 	"math/big"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/txinterface"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/core/txinterface"
-	"github.com/matrix/go-matrix/core/types"
 	"sync"
-	"encoding/json"
 )
 
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 )
+
 type StateTransition struct {
 	gp         *GasPool
 	msg        txinterface.Message
@@ -36,13 +36,16 @@ type StateTransition struct {
 }
 type mapHashAmont struct {
 	mapHashamont map[common.Hash][]byte
-	mu sync.RWMutex
+	mu           sync.RWMutex
 }
-var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont:make(map[common.Hash][]byte)}
+
+var saveMapHashAmont mapHashAmont = mapHashAmont{mapHashamont: make(map[common.Hash][]byte)}
+
 type addrAmont struct {
-	addr common.Address
+	addr  common.Address
 	amont *big.Int
 }
+
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
 //func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 func IntrinsicGas(data []byte) (uint64, error) {
@@ -72,6 +75,7 @@ func IntrinsicGas(data []byte) (uint64, error) {
 	}
 	return gas, nil
 }
+
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
@@ -84,6 +88,7 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 		state:    evm.StateDB,
 	}
 }
+
 // to returns the recipient of the message.
 func (st *StateTransition) To() common.Address {
 	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
@@ -103,10 +108,10 @@ func (st *StateTransition) UseGas(amount uint64) error {
 
 func (st *StateTransition) BuyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	for _,tAccount := range st.state.GetBalance(st.msg.From()){
-		if tAccount.AccountType == common.MainAccount{
-			if tAccount.Balance.Cmp(mgval) < 0{
-		return errInsufficientBalanceForGas
+	for _, tAccount := range st.state.GetBalance(st.msg.From()) {
+		if tAccount.AccountType == common.MainAccount {
+			if tAccount.Balance.Cmp(mgval) < 0 {
+				return errInsufficientBalanceForGas
 			}
 			break
 		}
@@ -117,7 +122,7 @@ func (st *StateTransition) BuyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(common.MainAccount,st.msg.AmontFrom(), mgval)
+	st.state.SubBalance(common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
 
@@ -133,6 +138,7 @@ func (st *StateTransition) PreCheck() error {
 	}
 	return st.BuyGas()
 }
+
 // ApplyMessage computes the new state by applying the given message
 // against the old state within the environment.
 //
@@ -144,18 +150,18 @@ func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uin
 	var stsi txinterface.StateTransitioner
 	switch tx.TxType() {
 	case types.NormalTxIndex:
-		stsi = NewStateTransition(evm,tx,gp)
+		stsi = NewStateTransition(evm, tx, gp)
 	}
-	if stsi == nil{
-		log.Error("File state_transition","func AppleMessage","interface is nil")
+	if stsi == nil {
+		log.Error("File state_transition", "func AppleMessage", "interface is nil")
 	}
 	return stsi.TransitionDb()
 }
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	txtype := tx.GetMatrixType()
-	if txtype != common.ExtraNormalTxType{
-		switch txtype{
+	if txtype != common.ExtraNormalTxType {
+		switch txtype {
 		case common.ExtraRevocable:
 			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
@@ -165,19 +171,19 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		case common.ExtraTimeTxType:
 			return st.CallTimeNormalTx()
 		//case common.ExtraEntrustTx:
-			//todo
-			//tx.Data()
+		//todo
+		//tx.Data()
 
 		default:
-			log.Info("File state_transition","func Transitiondb","Unknown extra txtype")
-			return nil,0,false,ErrTXUnknownType
+			log.Info("File state_transition", "func Transitiondb", "Unknown extra txtype")
+			return nil, 0, false, ErrTXUnknownType
 		}
 
-	}else{
+	} else {
 		return st.CallNormalTx()
 	}
 }
-func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
 	}
@@ -199,7 +205,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*addrAmont,0)
+	mapTOAmonts := make([]*addrAmont, 0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -219,14 +225,14 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 		return nil, 0, false, err
 	}
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
-	st.state.AddBalance(common.WithdrawAccount,tx.From(), st.value)
-	mapTOAmont := &addrAmont{addr:st.To(),amont:st.value}
-	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
+	st.state.AddBalance(common.WithdrawAccount, tx.From(), st.value)
+	mapTOAmont := &addrAmont{addr: st.To(), amont: st.value}
+	mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			st.state.AddBalance(common.WithdrawAccount,tx.From(), ex.Amount)
-			mapTOAmont = &addrAmont{addr:*ex.Recipient,amont:ex.Amount}
-			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
+			st.state.AddBalance(common.WithdrawAccount, tx.From(), ex.Amount)
+			mapTOAmont = &addrAmont{addr: *ex.Recipient, amont: ex.Amount}
+			mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 			if vmerr != nil {
 				break
 			}
@@ -238,23 +244,23 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 			return nil, 0, false, vmerr
 		}
 	}
-	b,marshalerr:=json.Marshal(mapTOAmonts)
-	if marshalerr != nil{
-		return nil, 0, false,marshalerr
+	b, marshalerr := json.Marshal(mapTOAmonts)
+	if marshalerr != nil {
+		return nil, 0, false, marshalerr
 	}
 	saveMapHashAmont.mu.Lock()
 	saveMapHashAmont.mapHashamont[tx.Hash()] = b
 	saveMapHashAmont.mu.Unlock()
 
-	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
-func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
 	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
-	hashlist := make([]common.Hash,0)
+	hashlist := make([]common.Hash, 0)
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
@@ -293,49 +299,50 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
 	var hash common.Hash
 	hash.SetBytes(tx.Data())
-	hashlist = append(hashlist,hash)
+	hashlist = append(hashlist, hash)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			hash.SetBytes(ex.Payload)
-			hashlist = append(hashlist,hash)
+			hashlist = append(hashlist, hash)
 			if vmerr != nil {
 				break
 			}
 		}
 	}
 	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
-	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, costGas)
 	saveMapHashAmont.mu.Lock()
-	for _,tmphash := range hashlist{
-		if common.EmptyHash(tmphash){
+	for _, tmphash := range hashlist {
+		if common.EmptyHash(tmphash) {
 			continue
 		}
-		b,ok:=saveMapHashAmont.mapHashamont[tmphash]
+		b, ok := saveMapHashAmont.mapHashamont[tmphash]
 		if !ok {
 			continue
 		}
-		mapTOAmonts := make([]*addrAmont,0)
-		Unmarshalerr:=json.Unmarshal(b,&mapTOAmonts)
-		if Unmarshalerr != nil{
+		mapTOAmonts := make([]*addrAmont, 0)
+		Unmarshalerr := json.Unmarshal(b, &mapTOAmonts)
+		if Unmarshalerr != nil {
 			saveMapHashAmont.mu.Unlock()
-			return nil, 0, false,Unmarshalerr
+			return nil, 0, false, Unmarshalerr
 		}
-		for _,ada := range mapTOAmonts{
-			st.state.AddBalance(common.MainAccount,usefrom, ada.amont)
-			st.state.SubBalance(common.WithdrawAccount,usefrom, ada.amont)
+		for _, ada := range mapTOAmonts {
+			st.state.AddBalance(common.MainAccount, usefrom, ada.amont)
+			st.state.SubBalance(common.WithdrawAccount, usefrom, ada.amont)
 		}
-		delete(saveMapHashAmont.mapHashamont,tmphash)
+		delete(saveMapHashAmont.mapHashamont, tmphash)
 	}
 	saveMapHashAmont.mu.Unlock()
 	return ret, st.GasUsed(), vmerr != nil, err
 }
+
 /*
  TODO
 	1、可撤销交易中存储的数据格式map[hash][]byte 其中[]byte结构为结构体的切片，结构体由to和金额组成
 	2、撤销交易（收gas费）会在交易的data中携带可撤销交易的hash，根据此hash找到对应的[]byte解析出结构体，并将每笔金额退回，不收取gas费用
 	3、定时执行可撤销交易，同样从map中获取数据解析出结构体按照对应的to给其转账，此时不再收取交易费
 */
-func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
 	}
@@ -356,7 +363,7 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 	if err != nil {
 		return nil, 0, false, err
 	}
-	mapTOAmonts := make([]*addrAmont,0)
+	mapTOAmonts := make([]*addrAmont, 0)
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -376,16 +383,16 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 		return nil, 0, false, err
 	}
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
-	st.state.AddBalance(common.WithdrawAccount,usefrom, st.value)
-	st.state.SubBalance(common.MainAccount,usefrom, st.value)
-	mapTOAmont := &addrAmont{addr:st.To(),amont:st.value}
-	mapTOAmonts = append(mapTOAmonts,mapTOAmont)
+	st.state.AddBalance(common.WithdrawAccount, usefrom, st.value)
+	st.state.SubBalance(common.MainAccount, usefrom, st.value)
+	mapTOAmont := &addrAmont{addr: st.To(), amont: st.value}
+	mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			st.state.AddBalance(common.WithdrawAccount,usefrom, ex.Amount)
-			st.state.SubBalance(common.MainAccount,usefrom, ex.Amount)
-			mapTOAmont = &addrAmont{addr:*ex.Recipient,amont:ex.Amount}
-			mapTOAmonts = append(mapTOAmonts,mapTOAmont)
+			st.state.AddBalance(common.WithdrawAccount, usefrom, ex.Amount)
+			st.state.SubBalance(common.MainAccount, usefrom, ex.Amount)
+			mapTOAmont = &addrAmont{addr: *ex.Recipient, amont: ex.Amount}
+			mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 			if vmerr != nil {
 				break
 			}
@@ -398,18 +405,18 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 			return nil, 0, false, vmerr
 		}
 	}
-	b,marshalerr:=json.Marshal(mapTOAmonts)
-	if marshalerr != nil{
-		return nil, 0, false,marshalerr
+	b, marshalerr := json.Marshal(mapTOAmonts)
+	if marshalerr != nil {
+		return nil, 0, false, marshalerr
 	}
 	saveMapHashAmont.mu.Lock()
 	saveMapHashAmont.mapHashamont[tx.Hash()] = b
 	saveMapHashAmont.mu.Unlock()
 
-	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
-func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	toaddr := tx.To()
 	var addr common.Address
@@ -419,7 +426,7 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 	}
 	sender := vm.AccountRef(from)
 	var (
-		evm = st.evm
+		evm   = st.evm
 		vmerr error
 	)
 	//YY
@@ -430,8 +437,8 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 		}
 	}
 	st.gas = 0
-	if toaddr == nil {//YY
-		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
+	if toaddr == nil { //YY
+		log.Error("file state_transition", "func CallUnGasNormalTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -441,7 +448,7 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition","func CallUnGasNormalTx()","Extro to is nil")
+				log.Error("file state_transition", "func CallUnGasNormalTx()", "Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				// Increment the nonce for the next transaction
@@ -460,7 +467,7 @@ func (st *StateTransition) CallUnGasNormalTx()(ret []byte, usedGas uint64, faile
 	}
 	return ret, 0, vmerr != nil, err
 }
-func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed bool, err error){
+func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
 	}
@@ -477,7 +484,7 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	}
 	sender := vm.AccountRef(usefrom)
 	var (
-		evm = st.evm
+		evm   = st.evm
 		vmerr error
 	)
 	// Pay intrinsic gas
@@ -503,7 +510,7 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-	if toaddr == nil {//YY
+	if toaddr == nil { //YY
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
@@ -536,7 +543,7 @@ func (st *StateTransition) CallNormalTx()(ret []byte, usedGas uint64, failed boo
 		}
 	}
 	//st.RefundGas()
-	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) RefundGas() {
@@ -549,7 +556,7 @@ func (st *StateTransition) RefundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(common.MainAccount,st.msg.From(), remaining)
+	st.state.AddBalance(common.MainAccount, st.msg.From(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

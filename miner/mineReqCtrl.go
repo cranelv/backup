@@ -10,10 +10,10 @@ import (
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"math/big"
 	"sync"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type mineReqData struct {

@@ -38,7 +38,7 @@ type ElectionSeed struct {
 }
 
 func RegisterElectSeedPlugs(name string, plug ElectSeedPlugs) {
-//	fmt.Println(ModuleElectSeed, "选举种子注册阶段", "", "插件名称", name)
+	//	fmt.Println(ModuleElectSeed, "选举种子注册阶段", "", "插件名称", name)
 	mapElectSeedPlugs[name] = plug
 }
 

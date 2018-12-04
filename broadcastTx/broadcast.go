@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package broadcastTx
@@ -98,10 +98,10 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		log.Info("=========YY=========", "sendBroadCastTransaction:SignTx=", err)
 		return err
 	}
-	t2:=time.Since(t1)
+	t2 := time.Since(t1)
 	err1 := bc.manBackend.SendBroadTx(context.Background(), signed, bType)
-	t3:=time.Since(t1)
-	log.Info("File BroadCast","func sendBroadCastTransaction:t2",t2,"t3",t3)
+	t3 := time.Since(t1)
+	log.Info("File BroadCast", "func sendBroadCastTransaction:t2", t2, "t3", t3)
 	log.Info("=========YY=========", "sendBroadCastTransaction:Return=", err1)
 	return nil
 }

@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package man
 
@@ -13,8 +12,8 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 )
@@ -157,7 +156,7 @@ func (pm *ProtocolManager) syncer() {
 	pm.fetcher.Start()
 	defer pm.fetcher.Stop()
 	defer pm.downloader.Terminate()
-	log.WARN("syncer","syncer IpfsDownloadflg", pm.downloader.IpfsMode)
+	log.WARN("syncer", "syncer IpfsDownloadflg", pm.downloader.IpfsMode)
 	if pm.downloader.IpfsMode {
 		pm.WaitForDownLoadMode()
 

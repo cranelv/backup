@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package state provides a caching layer atop the Matrix state trie.
 package state
@@ -263,25 +262,25 @@ func (self *StateDB) HasSuicided(addr common.Address) bool {
  */
 
 // AddBalance adds amount to the account associated with addr.
-func (self *StateDB) AddBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) AddBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.AddBalance(accountType,amount)
+		stateObject.AddBalance(accountType, amount)
 	}
 }
 
 // SubBalance subtracts amount from the account associated with addr.
-func (self *StateDB) SubBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) SubBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SubBalance(accountType,amount)
+		stateObject.SubBalance(accountType, amount)
 	}
 }
 
-func (self *StateDB) SetBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) SetBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetBalance(accountType,amount)
+		stateObject.SetBalance(accountType, amount)
 	}
 }
 
@@ -317,14 +316,14 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 		return false
 	}
 	self.journal.append(suicideChange{
-		account:     &addr,
-		prev:        stateObject.suicided,
+		account: &addr,
+		prev:    stateObject.suicided,
 		//prevbalance: new(big.Int).Set(stateObject.Balance()),
 		prevbalance: stateObject.Balance(),
 	})
 	stateObject.markSuicided()
 	//stateObject.data.Balance = new(big.Int)
-	stateObject.data.Balance = make(common.BalanceType,0)
+	stateObject.data.Balance = make(common.BalanceType, 0)
 
 	return true
 }
@@ -419,8 +418,8 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {
 		//new.setBalance(prev.data.Balance)
-		for _,tAccount := range prev.data.Balance{
-			new.setBalance(tAccount.AccountType,tAccount.Balance)
+		for _, tAccount := range prev.data.Balance {
+			new.setBalance(tAccount.AccountType, tAccount.Balance)
 		}
 	}
 }

@@ -21,7 +21,6 @@ const (
 	RecvConsensusTxbyN
 )
 
-
 // TxPool interface
 type TxPool interface {
 	Type() byte
@@ -36,14 +35,15 @@ type TxpoolEx interface {
 	DemoteUnexecutables()
 	ListenUdp()
 }
-//Expansion interface
 
+//Expansion interface
 
 type RetCallTx struct {
 	TXt byte
 	//ListN []uint32
 	Txser []types.SelfTransaction
 }
+
 // hezi
 type NetworkMsgData struct {
 	NodeId discover.NodeID

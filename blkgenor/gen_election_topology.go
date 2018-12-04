@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -20,7 +20,7 @@ func (p *Process) genElection(parentHash common.Hash) []common.Elect {
 	return p.reElection().TransferToElectionStu(info)
 }
 
-func (p *Process) getNetTopology(currentNetTopology common.NetTopology, num uint64,parentHash common.Hash) *common.NetTopology {
+func (p *Process) getNetTopology(currentNetTopology common.NetTopology, num uint64, parentHash common.Hash) *common.NetTopology {
 	if common.IsReElectionNumber(num + 1) {
 		return p.genAllNetTopology(parentHash)
 	}
@@ -139,7 +139,7 @@ func (p *Process) genChgNetTopology(currentNetTopology common.NetTopology, paren
 		return nil
 	}
 	for _, value := range alterInfo {
-		log.Info(p.logExtraInfo(), "alter-A", value.A, "alter-B","", "position", value.Position, "number", p.number)
+		log.Info(p.logExtraInfo(), "alter-A", value.A, "alter-B", "", "position", value.Position, "number", p.number)
 	}
 
 	// generate self net topology

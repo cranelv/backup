@@ -145,7 +145,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	trie.Mantriedb = trie.NewDatabase(trie.MatrixDb)
 	troot := rawdb.ReadMatrixRoot()
 	trie.ManTrie, err = trie.New(troot, trie.Mantriedb)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	/************************************************/

@@ -8,11 +8,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/matrix/go-matrix/common"
 	"encoding/json"
+	"github.com/matrix/go-matrix/common"
 	"io/ioutil"
-	"os"
 	"log"
+	"os"
 )
 
 //func Post() {
@@ -62,17 +62,16 @@ func TestCase(t *testing.T) {
 }
 
 func TestNew1(t *testing.T) {
-	info_temp:=Info{
-		Position:1,
-		Account:common.BigToAddress(big.NewInt(100)),
+	info_temp := Info{
+		Position: 1,
+		Account:  common.BigToAddress(big.NewInt(100)),
 	}
-	info:=[]Info{}
-	info=append(info,info_temp)
-	node:=NodeSupport{}
-	node.First=append(node.First,info[0:]...)
-	node.Second=append(node.Second,info[0:]...)
-	node.Third=append(node.Third,info[0:]...)
-
+	info := []Info{}
+	info = append(info, info_temp)
+	node := NodeSupport{}
+	node.First = append(node.First, info[0:]...)
+	node.Second = append(node.Second, info[0:]...)
+	node.Third = append(node.Third, info[0:]...)
 
 	marshalData, err := json.Marshal(node)
 	if err != nil {
@@ -84,12 +83,12 @@ func TestNew1(t *testing.T) {
 		fmt.Println("测试支持", "生成test文件成功")
 	}
 
-
 }
+
 type JsonConfig struct {
-	First []Info
+	First  []Info
 	Second []Info
-	Third []Info
+	Third  []Info
 }
 
 type JsonStruct struct {
@@ -114,9 +113,9 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 	}
 }
 
-func Test111(t *testing.T){
+func Test111(t *testing.T) {
 	JsonParse := NewJsonStruct()
 	v := JsonConfig{}
 	JsonParse.Load("./test.json", &v)
-	fmt.Println("ans",v)
+	fmt.Println("ans", v)
 }

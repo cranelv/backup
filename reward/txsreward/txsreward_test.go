@@ -17,14 +17,16 @@ import (
 	"sync"
 	"testing"
 )
+
 type FakeEth struct {
-blockchain *core.BlockChain
-once       *sync.Once
+	blockchain *core.BlockChain
+	once       *sync.Once
 }
 
 const (
 	testAddress = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
+
 func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 
 func fakeEthNew(n int) *FakeEth {

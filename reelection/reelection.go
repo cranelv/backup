@@ -17,8 +17,8 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -166,10 +166,10 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 	}
 
 	log.INFO(Module, "获取拓扑改变 start height", height, "offline", offline)
-	lastHash,err:=self.GetHeaderHashByNumber(hash,height-1)
-	if err!=nil{
-		log.Error(Module,"根据hash获取高度失败 err",err)
-		return []mc.Alternative{} ,err
+	lastHash, err := self.GetHeaderHashByNumber(hash, height-1)
+	if err != nil {
+		log.Error(Module, "根据hash获取高度失败 err", err)
+		return []mc.Alternative{}, err
 	}
 	self.checkUpdateStatus(lastHash)
 	antive, err := self.readNativeData(lastHash)

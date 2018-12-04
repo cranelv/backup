@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package accounts implements high level Matrix account management.
 package accounts
@@ -119,7 +118,7 @@ type Wallet interface {
 	SignHashValidate(account Account, hash []byte, validate bool) ([]byte, error)
 
 	SignHashValidateWithPass(account Account, passphrase string, hash []byte, validate bool) ([]byte, error)
-	SignVrfWithPass(account Account,passphrase string ,msg []byte)([]byte,[]byte,[]byte,error)
+	SignVrfWithPass(account Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error)
 }
 
 // Backend is a "wallet provider" that may contain a batch of accounts they can

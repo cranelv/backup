@@ -13,9 +13,9 @@ import (
 // gas分段计价 第二笔gas，0x80001垫付，写入创世配置文件，初始金额，网络组判断  ，多币种和子链需要考虑，配置超级节点上链。
 type Reward interface {
 	CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int
-	CalcValidatorRewards(blockReward *big.Int,  Leader common.Address, header *types.Header) map[common.Address]*big.Int
+	CalcValidatorRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int
 	CalcMinerRewards(blockReward *big.Int, header *types.Header) map[common.Address]*big.Int
-	CalcRewardMountByNumber(state *state.StateDB,num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int
+	CalcRewardMountByNumber(state *state.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int
 }
 
 type Lottery interface {

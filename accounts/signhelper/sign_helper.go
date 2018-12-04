@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package signhelper
@@ -132,12 +132,11 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int) (types.
 	return sh.signWallet.SignTxWithPassphrase(sh.signAccount, sh.signPassword, tx, chainID)
 }
 
-
-func (sh *SignHelper)SignVrf(msg []byte)([]byte,[]byte,[]byte,error){
+func (sh *SignHelper) SignVrf(msg []byte) ([]byte, []byte, []byte, error) {
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
-	if nil==sh.signWallet{
-		return []byte{},[]byte{},[]byte{},ErrUnSetSignAccount
+	if nil == sh.signWallet {
+		return []byte{}, []byte{}, []byte{}, ErrUnSetSignAccount
 	}
-	return sh.signWallet.SignVrfWithPass(sh.signAccount,sh.signPassword,msg)
+	return sh.signWallet.SignVrfWithPass(sh.signAccount, sh.signPassword, msg)
 }

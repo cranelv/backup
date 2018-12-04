@@ -1412,12 +1412,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		interestReward:=interest.New(bc)
-		interestReward.InterestCalc(state,block.Number().Uint64())
-		//todo 惩罚
+			interestReward := interest.New(bc)
+			interestReward.InterestCalc(state, block.Number().Uint64())
+			//todo 惩罚
 
-		slash := slash.New(bc)
-		slash.CalcSlash(state, block.Number().Uint64())
+			slash := slash.New(bc)
+			slash.CalcSlash(state, block.Number().Uint64())
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {
