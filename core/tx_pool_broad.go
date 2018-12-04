@@ -348,9 +348,9 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 	return reqVal
 }
 
-func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
-	return nil
-}
+//func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
+//	return nil
+//}
 func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 
 }

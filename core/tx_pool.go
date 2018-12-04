@@ -174,9 +174,10 @@ type NormalTxPool struct {
 	chainconfig  *params.ChainConfig
 	chain        blockChain
 	gasPrice     *big.Int
-	txFeed       event.Feed
-	scope        event.SubscriptionScope
+	//txFeed       event.Feed
+	//scope        event.SubscriptionScope
 	chainHeadCh  chan ChainHeadEvent
+	sendTxCh     chan NewTxsEvent
 	chainHeadSub event.Subscription
 	signer       types.Signer
 	mu           sync.RWMutex
@@ -220,7 +221,7 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 	return conf
 }
 
-func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *NormalTxPool {
+func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain,sendch chan NewTxsEvent) *NormalTxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 	// Create the transaction pool with its initial settings
@@ -233,6 +234,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		SContainer:    make(map[common.Hash]*types.Transaction), //by hezi
 		NContainer:    make(map[uint32]*types.Transaction),      //by hezi
 		udptxsCh:      make(chan []*types.Transaction_Mx, 0),    //hezi
+		sendTxCh:     make(chan NewTxsEvent),
 		all:           newTxLookup(),
 		chainHeadCh:   make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:      new(big.Int).SetUint64(config.PriceLimit),
@@ -247,7 +249,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 
 	// Subscribe events from blockchain
 	nPool.chainHeadSub = nPool.chain.SubscribeChainHeadEvent(nPool.chainHeadCh)
-
+	nPool.sendTxCh = sendch
 	nPool.stopCh = make(chan bool)
 
 	// Start the event loop and return
@@ -601,9 +603,6 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 
 // Stop terminates the transaction pool.
 func (nPool *NormalTxPool) Stop() {
-	// Unsubscribe all subscriptions registered from txpool
-	nPool.scope.Close()
-
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
 	nPool.udptxsSub.Unsubscribe()
@@ -615,9 +614,9 @@ func (nPool *NormalTxPool) Stop() {
 
 // SubscribeNewTxsEvent registers a subscription of NewTxsEvent and
 // starts sending event to the given channel.
-func (nPool *NormalTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
-	return nPool.scope.Track(nPool.txFeed.Subscribe(ch))
-}
+//func (nPool *NormalTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
+//	return nPool.scope.Track(nPool.txFeed.Subscribe(ch))
+//}
 
 // State returns the virtual managed state of the transaction pool.
 func (nPool *NormalTxPool) State() *state.ManagedState {
@@ -1397,7 +1396,8 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 	} else if selfRole == common.RoleDefault {
 		promoted := make([]types.SelfTransaction, 0)
 		promoted = append(promoted, tx)
-		nPool.txFeed.Send(NewTxsEvent{promoted, types.NormalTxIndex})
+		nPool.sendTxCh <- NewTxsEvent{promoted, types.NormalTxIndex}
+		//nPool.txFeed.Send(NewTxsEvent{promoted, types.NormalTxIndex})
 	}
 	return true, nil
 }

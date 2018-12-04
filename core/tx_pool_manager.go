@@ -95,6 +95,9 @@ type TxPoolManager struct {
 	quit         chan struct{}
 	addPool      chan TxPool
 	delPool      chan TxPool
+	sendTxCh     chan NewTxsEvent
+	txFeed       event.Feed
+	scope        event.SubscriptionScope
 }
 
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
@@ -105,6 +108,7 @@ func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chai
 		roleChan:     make(chan common.RoleType),
 		addPool:      make(chan TxPool),
 		delPool:      make(chan TxPool),
+		sendTxCh:     make(chan NewTxsEvent),
 	}
 	SelfBlackList = NewInitblacklist()
 	go txPoolManager.loop(config, chainconfig, chain, path)
@@ -165,7 +169,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 		return
 	}
 
-	normalTxPool := NewTxPool(config, chainconfig, chain)
+	normalTxPool := NewTxPool(config, chainconfig, chain,pm.sendTxCh)
 	pm.Subscribe(normalTxPool)
 
 	for {
@@ -188,6 +192,8 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 				log.Error("txpool manager unsubscribe", "error", err)
 				continue
 			}
+		case txevent:= <- pm.sendTxCh:
+			pm.txFeed.Send(txevent)
 		case <-pm.quit:
 			return
 		}
@@ -198,7 +204,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 func (pm *TxPoolManager) Stop() {
 	pm.txPoolsMutex.Lock()
 	defer pm.txPoolsMutex.Unlock()
-
+	pm.scope.Close()
 	for _, pool := range pm.txPools {
 		pool.Stop()
 	}
@@ -254,11 +260,12 @@ func (pm *TxPoolManager) AddRemotes(txs []types.SelfTransaction) []error {
 }
 
 func (pm *TxPoolManager) SubscribeNewTxsEvent(ch chan NewTxsEvent) (ev event.Subscription) {
-	//TODO 消息订阅这块需要重构用来支持多个交易池，目前只支持一个交易池
-	pm.txPoolsMutex.RLock()
-	defer pm.txPoolsMutex.RUnlock()
-	ev = pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
-	return
+	return pm.scope.Track(pm.txFeed.Subscribe(ch))
+	////TODO 消息订阅这块需要重构用来支持多个交易池，目前只支持一个交易池
+	//pm.txPoolsMutex.RLock()
+	//defer pm.txPoolsMutex.RUnlock()
+	//ev = pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
+	//return
 }
 
 // ProcessMsg

@@ -69,7 +69,7 @@ func (cu *coingasUse)setCoinGasUse(txers []types.SelfTransaction){
 		}
 		cu.mapcoin[tx.GetTxCurrency()] = gasAll
 		if price,ok := cu.mapprice[tx.GetTxCurrency()];ok{
-			priceAll = new(big.Int).Sub(priceAll,price)
+			priceAll = new(big.Int).Add(priceAll,price)
 		}
 		cu.mapprice[tx.GetTxCurrency()] = priceAll
 	}
