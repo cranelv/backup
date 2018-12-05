@@ -121,7 +121,7 @@ func Config_Init(Config_PATH string) {
 	ElectPlugs = v.ElectPlugs
 	log.INFO("ElectPlugs", "data", ElectPlugs)
 	if v.BroadcastInterval <= 0 || v.ReelectionInterval <= 0 || v.BroadcastInterval >= v.ReelectionInterval {
-		log.Error("广播区块高度和选举区块高度不正确或者尚未配置，将使用默认值 100 300")
+		log.Error("广播区块高度和选举区块高度不正确或者尚未配置，将使用默认值", "BroadcastInterval", common.GetBroadcastInterval(), "ReelectionInterval", common.GetReElectionInterval())
 		//os.Exit(-1)
 	} else {
 		common.SetBroadcastInterval(uint64(v.BroadcastInterval))

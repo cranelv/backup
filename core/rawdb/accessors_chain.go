@@ -479,3 +479,34 @@ func WriteElectIndex(db DatabaseWriter, blockHash common.Hash, number uint64, el
 		log.Crit("Failed to store elect index", "err", err)
 	}
 }
+
+func ReadSuperBlockIndex(db DatabaseReader)  *SuperBlockIndexData {
+
+	data,err:= db.Get([]byte("SBLK"))
+	if err != nil {
+		log.Error("ReadSuperBlockIndex ", "err",err)
+		return nil
+	}
+	if len(data) == 0 {
+		log.Error("ReadSuperBlockIndex ", "data len ",0)
+		return nil
+	}
+
+	sbi := new(SuperBlockIndexData)
+	if err := json.Unmarshal(data, &sbi); err != nil {
+		log.Error("Invalid SuperBlockIndexData data", "err", err)
+		return nil
+	}
+	return sbi
+}
+
+func WriteSuperBlockIndex(db DatabaseWriter, sbi *SuperBlockIndexData) {
+
+	bytes, err := json.Marshal(sbi)
+	if err != nil {
+		log.Crit("Failed to encode elect index", "err", err)
+	}
+	if err := db.Put([]byte("SBLK"), bytes); err != nil {
+		log.Crit("Failed to store elect index", "err", err)
+	}
+}

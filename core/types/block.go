@@ -213,6 +213,14 @@ func (h *Header) IsSuperHeader() bool {
 	return h.Leader == common.HexToAddress("0x8111111111111111111111111111111111111111")
 }
 
+func (h  *Header) SuperBlockSeq() uint64            {
+	if len(h.Extra)<8{
+		return 0
+	}
+
+	return uint64(binary.BigEndian.Uint64(h.Extra[:8]))
+}
+
 func rlpHash(x interface{}) (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, x)

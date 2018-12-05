@@ -435,7 +435,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	}
 
 	lottery:=lottery.New(bc,&randSeed{bc})
-	lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+	lotteryRewardMap := lottery.LotteryCalc(env.State,env.header.Number.Uint64())
 		for _,v :=range lotteryRewardMap{
 			if nil!=v{
 				rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.LotteryRewardAddress,To_Amont:v})

@@ -80,3 +80,8 @@ type ElectIndexData struct {
 	VElectBlock common.Hash
 	MElectBlock common.Hash
 }
+
+type SuperBlockIndexData struct {
+	BlockHash common.Hash
+	Seq uint64
+}

@@ -2,8 +2,10 @@ package lottery
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -61,9 +63,15 @@ func abs(n int64) int64 {
 	return (n ^ y) - y
 }
 
-func (tlr *TxsLottery) LotteryCalc(num uint64) map[string]map[common.Address]*big.Int {
+func (tlr *TxsLottery) LotteryCalc(state *state.StateDB, num uint64) map[string]map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 	if !common.IsReElectionNumber(num + 1) {
+		return nil
+	}
+
+	balance := state.GetBalance(common.LotteryRewardAddress)
+	if balance[common.MainAccount].Balance.Cmp(FIRSTPRIZE) < 0 {
+		log.ERROR(PackageName, "彩票账户余额不足，余额为", balance[common.MainAccount].Balance.String())
 		return nil
 	}
 	LotteryAccount := make(map[string]map[common.Address]*big.Int, 0)
@@ -120,7 +128,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		LotteryAccount, _ := LotteryAccountMap["First"]
 		if len(LotteryAccount) < FIRST {
 
-			firstLottery[from] = FIRSTPRIZE
+			util.SetAccountRewards(firstLottery,from,FIRSTPRIZE)
 			LotteryAccountMap["First"] = firstLottery
 			log.INFO(PackageName,"一等奖",from.String(),"金额",FIRSTPRIZE)
 			continue
@@ -133,7 +141,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		LotteryAccount, _ = LotteryAccountMap["Second"]
 		if len(LotteryAccount) < SECOND {
 
-			secondLottery[from] = SENCONDPRIZE
+			util.SetAccountRewards(secondLottery,from,SENCONDPRIZE)
 			LotteryAccountMap["Second"] = secondLottery
 			log.INFO(PackageName,"二等奖",from.String(),"金额",SENCONDPRIZE)
 
@@ -147,9 +155,8 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		//抽取三等奖
 		LotteryAccount, _ = LotteryAccountMap["Third"]
 		if len(LotteryAccount) < THIRD {
-			thirdLottery[from] = THIRDPRIZE
+			util.SetAccountRewards(thirdLottery,from,THIRDPRIZE)
 			LotteryAccountMap["third"] = thirdLottery
-			log.INFO(PackageName,"三等奖",from.Hex())
 			continue
 		}
 		break

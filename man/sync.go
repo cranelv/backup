@@ -195,12 +195,20 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.blockchain.CurrentBlock()
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-
-	pHead, pTd := peer.Head()
-	log.Trace("download sync.go enter Synchronise td", "td", td, "pTd", pTd)
-	if pTd.Cmp(td) <= 0 {
-		return
+	sbs:=pm.blockchain.GetSuperBlockSeq()
+	pHead, pTd,pSbs,pSbHash := peer.Head()
+	log.Trace("download sync.go enter Synchronise td", "td", td, "pTd", pTd,  "Sbs", sbs,"pSbs", pSbs)
+	if pSbs<sbs {
+		log.Warn("对端peer超级序号小于本地的序号", "本地序号", sbs,"peer序号",pSbs,"peer hex",peer.id)
+       return
 	}
+	if pSbs== sbs{
+		if pTd.Cmp(td) <= 0 {
+			log.Warn("对端peer超级td小于本地的td", "本地td", td,"peertd",pTd,"peer hex",peer.id)
+			return
+		}
+	}
+
 	log.Warn("download sync.go enter Synchronise", "currentBlock", currentBlock.NumberU64())
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
@@ -222,13 +230,18 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if mode == downloader.FastSync {
 		log.Trace("download sync.go enter Synchronise fastSync hash", "currentBlock", currentBlock.NumberU64())
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
+		if sbs>pSbs {
 			return
 		}
+        if sbs==pSbs{
+	        if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
+		        return
+	        }
+        }
 	}
 	log.Trace("download sync.go enter Synchronise downloader", "currentBlock", currentBlock.NumberU64())
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
+	if err := pm.downloader.Synchronise(peer.id, pHead, pTd,pSbs,pSbHash, mode); err != nil {
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {

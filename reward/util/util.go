@@ -57,6 +57,10 @@ type ChainReader interface {
 }
 
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {
+
+	if 0==reward.Cmp(big.NewInt(0)){
+		return
+	}
 	if _, ok := rewards[account]; ok {
 		rewards[account] = rewards[account].Add(rewards[account], reward)
 	} else {

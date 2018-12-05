@@ -478,6 +478,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	currentHeader := hc.CurrentHeader()
 	peer := downloader.NewFakePeer("local", db, hc, dl)
 	if err = dl.RegisterPeer("local", 63, peer); err != nil {
 		return err
@@ -485,8 +486,8 @@ func copyDb(ctx *cli.Context) error {
 	// Synchronise with the simulated peer
 	start := time.Now()
 
-	currentHeader := hc.CurrentHeader()
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncmode); err != nil {
+
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq() ,hc.GetSuperBlockHash(),syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {

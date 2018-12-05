@@ -21,11 +21,11 @@ import (
 	"github.com/matrix/go-matrix/consensus/misc"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/man/fetcher"
 	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/event"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/p2p"
@@ -300,8 +300,10 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		hash    = head.Hash()
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
+		sbs = pm.blockchain.GetSuperBlockSeq()
+		sbHash = pm.blockchain.GetSuperBlockHash()
 	)
-	if err := p.Handshake(pm.networkId, td, hash, genesis.Hash()); err != nil {
+	if err := p.Handshake(pm.networkId, td, hash,sbs, genesis.Hash(),sbHash); err != nil {
 		p.Log().Debug("Matrix handshake failed", "err", err)
 		return err
 	}
@@ -458,6 +460,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&headers); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
+
+		log.Debug("BlockHeadersMsg")
+
 		// If no headers were received, but we're expending a DAO fork check, maybe it's that
 		if len(headers) == 0 && p.forkDrop != nil {
 			// Possibly an empty reply to the fork header checks, sanity check TDs
@@ -466,9 +471,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// If we already have a DAO header, we can check the peer's TD against it. If
 			// the peer's ahead of this, it too must have a reply to the DAO check
 			if daoHeader := pm.blockchain.GetHeaderByNumber(pm.chainconfig.DAOForkBlock.Uint64()); daoHeader != nil {
-				if _, td := p.Head(); td.Cmp(pm.blockchain.GetTd(daoHeader.Hash(), daoHeader.Number.Uint64())) >= 0 {
+				_, td,sbs,_ := p.Head()
+				if sbs>pm.blockchain.GetSuperBlockSeq(){
 					verifyDAO = false
+				}else if sbs==pm.blockchain.GetSuperBlockSeq(){
+					if td.Cmp(pm.blockchain.GetTd(daoHeader.Hash(), daoHeader.Number.Uint64())) >= 0 {
+						verifyDAO = false
+					}
 				}
+
 			}
 			// If we're seemingly on the same chain, disable the drop timer
 			if verifyDAO {
@@ -682,19 +693,26 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		var (
 			trueHead = request.Block.ParentHash()
 			trueTD   = new(big.Int).Sub(request.TD, request.Block.Difficulty())
+			trueSBS = request.SBS
 		)
 		// Update the peers total difficulty if better than the previous
-		if _, td := p.Head(); trueTD.Cmp(td) > 0 {
-			p.SetHead(trueHead, trueTD)
-
-			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
-			// a singe block (as the true TD is below the propagated block), however this
-			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.blockchain.CurrentBlock()
-			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 0 {
-				go pm.synchronise(p)
-			}
+		_, td,sbs,_ := p.Head()
+		log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS)
+		if trueSBS < sbs {
+			break
 		}
+
+        if trueSBS > sbs||trueTD.Cmp(td) > 0{
+	        p.SetHead(trueHead, trueTD,sbs,request.SBH)
+
+	        // Schedule a sync if above ours. Note, this will not fire a sync for a gap of
+	        // a singe block (as the true TD is below the propagated block), however this
+	        // scenario should easily be covered by the fetcher.
+	        currentBlock := pm.blockchain.CurrentBlock()
+	        if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 0 {
+		        go pm.synchronise(p)
+	        }
+        }
 
 	case msg.Code == TxMsg:
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
@@ -761,6 +779,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 // will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
+	sbi:=pm.blockchain.GetSuperBlockInfo()
+
 	//	peers := pm.peers.PeersWithoutBlock(hash)
 	peers := pm.Peers.PeersWithoutBlock(hash)
 
@@ -777,7 +797,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		// Send the block to a subset of our peers
 		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
 		for _, peer := range transfer {
-			peer.AsyncSendNewBlock(block, td)
+			peer.AsyncSendNewBlock(block, td,sbi.BlockHash,sbi.Seq)
 		}
 		log.Trace("Propagated block", "hash", hash, "recipients", len(transfer), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 		return

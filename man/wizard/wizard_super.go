@@ -18,6 +18,7 @@ package wizard
 
 import (
 	"bufio"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/matrix/go-matrix/mandb"
@@ -75,13 +76,15 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		GasLimit:          parentHeader.GasLimit,
 		Difficulty:        parentHeader.Difficulty,
 		Alloc:             make(core.GenesisAlloc),
-		ExtraData:         make([]byte, 0),
+		ExtraData:         make([]byte, 8),
 		Version:           string(parentHeader.Version),
 		VersionSignatures: parentHeader.VersionSignatures,
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
 	}
+
+	binary.BigEndian.PutUint64(genesis.ExtraData, bc.GetSuperBlockSeq()+1)
 
 	if curHeader != nil {
 		genesis.Elect = curHeader.Elect

@@ -511,7 +511,21 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // Note, this function assumes that the `mu` mutex is held!
 func (bc *BlockChain) insert(block *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
-	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
+	var updateHeads bool
+	if block.IsSuperBlock(){
+		bc.bodyCache.Purge()
+		bc.bodyRLPCache.Purge()
+		bc.blockCache.Purge()
+		bc.futureBlocks.Purge()
+		delFn := func(hash common.Hash, num uint64) {
+			rawdb.DeleteBody(bc.db, hash, num)
+		}
+		bc.hc.SetHead(block.NumberU64()-1, delFn)
+		updateHeads =true
+	}else{
+		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
+	}
+
 
 	// Add the block to the canonical chain number scheme and mark as the head
 	rawdb.WriteCanonicalHash(bc.db, block.Hash(), block.NumberU64())
@@ -526,7 +540,7 @@ func (bc *BlockChain) insert(block *types.Block) {
 
 		bc.currentFastBlock.Store(block)
 	}
-	if common.IsBroadcastNumber(block.NumberU64()) {
+	if common.IsBroadcastNumber(block.NumberU64())&&!block.Header().IsSuperHeader() {
 		SetBroadcastTxs(block, bc.chainConfig.ChainId)
 	}
 }
@@ -1028,25 +1042,31 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
-	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-	}
-	if reorg {
-		// Reorganise the chain if the parent is not the head block
-		if block.ParentHash() != currentBlock.Hash() {
-			if err := bc.reorg(currentBlock, block); err != nil {
-				return NonStatTy, err
-			}
-		}
-		// Write the positional metadata for transaction/receipt lookups and preimages
-		rawdb.WriteTxLookupEntries(batch, block)
-		rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
-
+	if block.IsSuperBlock(){
 		status = CanonStatTy
-	} else {
-		status = SideStatTy
+	}else{
+		if !reorg && externTd.Cmp(localTd) == 0 {
+			// Split same-difficulty blocks by number, then at random
+			reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		}
+		if reorg {
+			// Reorganise the chain if the parent is not the head block
+			if block.ParentHash() != currentBlock.Hash() {
+				if err := bc.reorg(currentBlock, block); err != nil {
+					return NonStatTy, err
+				}
+			}
+			// Write the positional metadata for transaction/receipt lookups and preimages
+			rawdb.WriteTxLookupEntries(batch, block)
+			rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+
+			status = CanonStatTy
+		} else {
+			status = SideStatTy
+		}
 	}
+
+
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
@@ -1394,7 +1414,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			logs                    = make([]*types.Log, 0)
 			usedGas  uint64         = 0
 		)
-		if block.IsSuperBlock() {
+		if block.IsSuperBlock() &&block.Header().SuperBlockSeq()>bc.GetSuperBlockSeq(){
 			err = bc.processSuperBlockState(block, state)
 			if err != nil {
 				bc.reportBlock(block, receipts, err)
@@ -1822,6 +1842,22 @@ func (bc *BlockChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	return bc.hc.GetTd(hash, number)
 }
 
+func (bc *BlockChain) GetSuperBlockSeq() uint64 {
+	return bc.hc.GetSuperBlockSeq()
+}
+
+func (bc *BlockChain) GetSuperBlockHash() common.Hash {
+	return bc.hc.GetSuperBlockHash()
+}
+
+func (bc *BlockChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData{
+	return  bc.hc.GetSuperBlockInfo()
+}
+
+func (bc *BlockChain) SetSuperBlockInfo(sbi *rawdb.SuperBlockIndexData){
+	bc.hc.SetSuperBlockInfo(sbi)
+}
+
 // GetTdByHash retrieves a block's total difficulty in the canonical chain from the
 // database by hash, caching it if found.
 func (bc *BlockChain) GetTdByHash(hash common.Hash) *big.Int {
@@ -1974,9 +2010,9 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 	}
 
 	//todo 应该在InsertChain时确定权威链，从而进行回滚
-	if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
-		return nil, errors.Errorf("rollback chain err(%v)", err)
-	}
+	//if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
+	//	return nil, errors.Errorf("rollback chain err(%v)", err)
+	//}
 
 	if _, err := bc.InsertChain(types.Blocks{block}); err != nil {
 		return nil, errors.Errorf("insert super block err(%v)", err)
@@ -2020,5 +2056,6 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			stateDB.SetState(addr, key, value)
 		}
 	}
+	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash:block.Hash(),Seq:block.Header().SuperBlockSeq()})
 	return nil
 }

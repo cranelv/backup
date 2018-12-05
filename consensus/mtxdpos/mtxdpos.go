@@ -88,7 +88,7 @@ func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
 	return targetCount
 }
 
-func (md *MtxDPOS) checkSuperBlock(header *types.Header) error {
+func (md *MtxDPOS) CheckSuperBlock(header *types.Header) error {
 	targetCount := md.calcSuperNodeTarget(len(manparams.SuperRollbackNodes))
 	if len(header.Signatures) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
@@ -137,7 +137,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 	}
 
 	if header.IsSuperHeader() {
-		return md.checkSuperBlock(header)
+		return md.CheckSuperBlock(header)
 	}
 
 	if common.IsBroadcastNumber(header.Number.Uint64()) {
@@ -182,7 +182,7 @@ func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*typ
 		number := header.Number.Uint64()
 
 		if header.IsSuperHeader() {
-			err = md.checkSuperBlock(header)
+			err = md.CheckSuperBlock(header)
 			if err != nil {
 				return errors.Errorf("header(hash:%s, number:%d) verify Broadcast Block err: %v", hash.Hex(), number, err)
 			}
