@@ -116,7 +116,4 @@ type DPOSEngine interface {
 	VerifyHashWithVerifiedSigns(reader ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error)
 
 	VerifyHashWithVerifiedSignsAndBlock(reader ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error)
-
-	//verify validators have enough stocks
-	VerifyStocksWithBlock(reader ValidatorReader, validators []common.Address, blockHash common.Hash) bool
 }

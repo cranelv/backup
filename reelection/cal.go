@@ -54,7 +54,7 @@ func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prev
 	return offline
 }
 
-func (self *ReElection) ParsePrimaryTopNodeState(topologyChg common.NetTopology) ([]common.Address, []common.Address) {
+func (self *ReElection) ParseElectTopNodeState(topologyChg common.NetTopology) ([]common.Address, []common.Address) {
 	if topologyChg.Type != common.NetTopoTypeChange {
 		return nil, nil
 	}
@@ -81,10 +81,10 @@ func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.El
 
 	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
-	srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
+	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
 	srcMap[common.ElectRoleValidatorBackUp] = info.BackUpValidator
-	orderIndex := []common.ElectRoleType{common.ElectRoleValidator, common.ElectRoleValidatorBackUp, common.ElectRoleMiner, common.ElectRoleMinerBackUp}
+	orderIndex := []common.ElectRoleType{common.ElectRoleValidator, common.ElectRoleValidatorBackUp, common.ElectRoleMiner}
 
 	for _, role := range orderIndex {
 		src := srcMap[role]
@@ -110,10 +110,10 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 
 	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
-	srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
+	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
 	srcMap[common.ElectRoleValidatorBackUp] = info.BackUpValidator
-	orderIndex := []common.ElectRoleType{common.ElectRoleMiner, common.ElectRoleMinerBackUp, common.ElectRoleValidator, common.ElectRoleValidatorBackUp}
+	orderIndex := []common.ElectRoleType{common.ElectRoleMiner, common.ElectRoleValidator, common.ElectRoleValidatorBackUp}
 
 	for _, role := range orderIndex {
 		src := srcMap[role]

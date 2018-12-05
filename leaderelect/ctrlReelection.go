@@ -282,23 +282,20 @@ func (self *controller) handleRLReq(req *mc.HD_ReelectLeaderReqMsg) {
 		log.ERROR(self.logInfo, "leader重选请求处理", "签名错误", "err", err)
 		return
 	}
-	rsp := &mc.HD_ReelectLeaderVoteMsg{
-		Number: self.dc.number,
-		Vote: mc.HD_ConsensusVote{
-			SignHash: hash,
-			Round:    uint64(self.dc.curReelectTurn + self.dc.curConsensusTurn),
-			Sign:     sign,
-		},
+	rsp := &mc.HD_ConsensusVote{
+		Number:   self.dc.number,
+		SignHash: hash,
+		Sign:     sign,
 	}
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectVote, rsp, common.RoleNil, []common.Address{req.InquiryReq.From})
 }
 
-func (self *controller) handleRLVote(msg *mc.HD_ReelectLeaderVoteMsg) {
+func (self *controller) handleRLVote(msg *mc.HD_ConsensusVote) {
 	if nil == msg {
 		log.ERROR(self.logInfo, "处理leader重选响应", "消息为nil")
 		return
 	}
-	if err := self.selfCache.SaveRLVote(msg.Vote.SignHash, msg.Vote.Sign, msg.Vote.From); err != nil {
+	if err := self.selfCache.SaveRLVote(msg.SignHash, msg.Sign, msg.From); err != nil {
 		log.ERROR(self.logInfo, "处理leader重选响应", "保存签名错误", "err", err)
 		return
 	}

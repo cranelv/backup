@@ -110,7 +110,7 @@ type Matrix struct {
 
 	reelection   *reelection.ReElection //换届服务
 	random       *baseinterface.Random
-	topNode      *olconsensus.TopNodeService
+	olConsensus  *olconsensus.TopNodeService
 	blockgen     *blkgenor.BlockGenor
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
@@ -244,15 +244,15 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
 
-	man.topNode = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
+	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
-	man.topNode.SetValidatorReader(man.blockchain)
-	man.topNode.SetTopNodeStateInterface(topNodeInstance)
-	man.topNode.SetValidatorAccountInterface(topNodeInstance)
-	man.topNode.SetMessageSendInterface(topNodeInstance)
-	man.topNode.SetMessageCenterInterface(topNodeInstance)
+	man.olConsensus.SetValidatorReader(man.blockchain)
+	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
+	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
+	man.olConsensus.SetMessageSendInterface(topNodeInstance)
+	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
 
-	if err = man.topNode.Start(); err != nil {
+	if err = man.olConsensus.Start(); err != nil {
 		return nil, err
 	}
 
@@ -463,23 +463,23 @@ func (s *Matrix) StopMining()         { s.miner.Stop() }
 func (s *Matrix) IsMining() bool      { return s.miner.Mining() }
 func (s *Matrix) Miner() *miner.Miner { return s.miner }
 
-func (s *Matrix) AccountManager() *accounts.Manager    { return s.accountManager }
-func (s *Matrix) BlockChain() *core.BlockChain         { return s.blockchain }
-func (s *Matrix) TxPool() *core.TxPoolManager          { return s.txPool } //YYY
-func (s *Matrix) EventMux() *event.TypeMux             { return s.eventMux }
-func (s *Matrix) Engine() consensus.Engine             { return s.engine }
-func (s *Matrix) DPOSEngine() consensus.DPOSEngine     { return s.blockchain.DPOSEngine() }
-func (s *Matrix) ChainDb() mandb.Database              { return s.chainDb }
-func (s *Matrix) IsListening() bool                    { return true } // Always listening
-func (s *Matrix) ManVersion() int                      { return int(s.protocolManager.SubProtocols[0].Version) }
-func (s *Matrix) NetVersion() uint64                   { return s.networkId }
-func (s *Matrix) Downloader() *downloader.Downloader   { return s.protocolManager.downloader }
-func (s *Matrix) CA() *ca.Identity                     { return s.ca }
-func (s *Matrix) MsgCenter() *mc.Center                { return s.msgcenter }
-func (s *Matrix) SignHelper() *signhelper.SignHelper   { return s.signHelper }
-func (s *Matrix) ReElection() *reelection.ReElection   { return s.reelection }
-func (s *Matrix) HD() *msgsend.HD                      { return s.hd }
-func (s *Matrix) TopNode() *olconsensus.TopNodeService { return s.topNode }
+func (s *Matrix) AccountManager() *accounts.Manager        { return s.accountManager }
+func (s *Matrix) BlockChain() *core.BlockChain             { return s.blockchain }
+func (s *Matrix) TxPool() *core.TxPoolManager              { return s.txPool } //YYY
+func (s *Matrix) EventMux() *event.TypeMux                 { return s.eventMux }
+func (s *Matrix) Engine() consensus.Engine                 { return s.engine }
+func (s *Matrix) DPOSEngine() consensus.DPOSEngine         { return s.blockchain.DPOSEngine() }
+func (s *Matrix) ChainDb() mandb.Database                  { return s.chainDb }
+func (s *Matrix) IsListening() bool                        { return true } // Always listening
+func (s *Matrix) ManVersion() int                          { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Matrix) NetVersion() uint64                       { return s.networkId }
+func (s *Matrix) Downloader() *downloader.Downloader       { return s.protocolManager.downloader }
+func (s *Matrix) CA() *ca.Identity                         { return s.ca }
+func (s *Matrix) MsgCenter() *mc.Center                    { return s.msgcenter }
+func (s *Matrix) SignHelper() *signhelper.SignHelper       { return s.signHelper }
+func (s *Matrix) ReElection() *reelection.ReElection       { return s.reelection }
+func (s *Matrix) HD() *msgsend.HD                          { return s.hd }
+func (s *Matrix) OLConsensus() *olconsensus.TopNodeService { return s.olConsensus }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.

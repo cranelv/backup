@@ -11,7 +11,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
-	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 )
 
@@ -22,7 +21,6 @@ type Matrix interface {
 	SignHelper() *signhelper.SignHelper
 	ReElection() *reelection.ReElection
 	EventMux() *event.TypeMux
-	TopNode() *olconsensus.TopNodeService
 }
 
 type BlockVerify struct {
@@ -205,7 +203,7 @@ func (self *BlockVerify) handleVoteMsg(voteMsg *mc.HD_ConsensusVote) {
 	}
 	log.INFO(self.logExtraInfo(), "投票消息处理", "开始", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
 	defer log.INFO(self.logExtraInfo(), "投票消息处理", "结束", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
-	if err := self.processManage.AddVoteToPool(voteMsg.SignHash, voteMsg.Sign, voteMsg.From, voteMsg.Round); err != nil {
+	if err := self.processManage.AddVoteToPool(voteMsg.SignHash, voteMsg.Sign, voteMsg.From, voteMsg.Number); err != nil {
 		log.ERROR(self.logExtraInfo(), "投票消息，加入票池失败", err)
 		return
 	}

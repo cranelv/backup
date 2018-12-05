@@ -16,7 +16,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 )
 
@@ -302,7 +301,7 @@ func (p *Process) processReqOnce() {
 	}
 
 	// verify net topology info
-	if err := p.verifyNetTopology(p.curProcessReq.req.Header); err != nil {
+	if err := p.verifyNetTopology(p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		log.ERROR(p.logExtraInfo(), "验证拓扑信息失败", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
@@ -467,7 +466,7 @@ func (p *Process) sendVote(validate bool) {
 		return
 	}
 
-	p.startVoteMsgSender(&mc.HD_ConsensusVote{SignHash: signHash, Sign: sign, Round: p.number})
+	p.startVoteMsgSender(&mc.HD_ConsensusVote{SignHash: signHash, Sign: sign, Number: p.number})
 
 	//将自己的投票加入票池
 	if err := p.votePool().AddVote(signHash, sign, common.Address{}, p.number, false); err != nil {
@@ -611,5 +610,3 @@ func (p *Process) reElection() *reelection.ReElection { return p.pm.reElection }
 func (p *Process) logExtraInfo() string { return p.pm.logExtraInfo() }
 
 func (p *Process) eventMux() *event.TypeMux { return p.pm.event }
-
-func (p *Process) topNode() *olconsensus.TopNodeService { return p.pm.topNode }

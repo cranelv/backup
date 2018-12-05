@@ -43,7 +43,7 @@ func NewProcessManage(matrix Backend) *ProcessManage {
 		reElection:  matrix.ReElection(),
 		engine:      matrix.BlockChain().Engine(),
 		dposEngine:  matrix.BlockChain().DPOSEngine(),
-		olConsensus: matrix.TopNode(),
+		olConsensus: matrix.OLConsensus(),
 	}
 }
 

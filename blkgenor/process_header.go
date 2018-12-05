@@ -55,20 +55,24 @@ func (p *Process) processHeaderGen() error {
 	}
 	parentHash := parent.Hash()
 
-	tstamp := tstart.Unix()
-	NetTopology := p.getNetTopology(parent.Header().NetTopology, p.number, parentHash)
+	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash)
 	if nil == NetTopology {
 		log.Error(p.logExtraInfo(), "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
 	}
+	if nil == onlineConsensusResults {
+		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
+	}
 
 	Elect := p.genElection(parentHash)
 	if Elect == nil {
-		return errors.New("生成elect信息错误!")
+		return errors.New("生成elect信息失败")
 	}
 
 	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
 	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
+
+	tstamp := tstart.Unix()
 	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
 		tstamp = parent.Time().Int64() + 1
 	}
@@ -174,7 +178,12 @@ func (p *Process) processHeaderGen() error {
 		}
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash", block.TxHash())
 		header = block.Header()
-		p2pBlock := &mc.HD_BlkConsensusReqMsg{Header: header, TxsCode: txsCode, ConsensusTurn: p.consensusTurn, From: ca.GetAddress()}
+		p2pBlock := &mc.HD_BlkConsensusReqMsg{
+			Header:                 header,
+			TxsCode:                txsCode,
+			ConsensusTurn:          p.consensusTurn,
+			OnlineConsensusResults: onlineConsensusResults,
+			From: ca.GetAddress()}
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
 		if len(Txs[2:]) > 0 {

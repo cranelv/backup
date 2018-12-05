@@ -50,7 +50,7 @@ type Backend interface {
 	HD() *msgsend.HD
 	ReElection() *reelection.ReElection
 	FetcherNotify(hash common.Hash, number uint64)
-	TopNode() *olconsensus.TopNodeService
+	OLConsensus() *olconsensus.TopNodeService
 }
 
 type VrfMsg struct {

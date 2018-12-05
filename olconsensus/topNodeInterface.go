@@ -14,24 +14,6 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 )
 
-type OnlineState uint8
-
-const (
-	Online OnlineState = iota + 1
-	Offline
-)
-
-func (o OnlineState) String() string {
-	switch o {
-	case Online:
-		return "在线"
-	case Offline:
-		return "下线"
-	default:
-		return "未知状态"
-	}
-}
-
 type NodeOnLineInfo struct {
 	Address     common.Address
 	Role        common.RoleType
@@ -80,7 +62,7 @@ func (self *TopNodeInstance) GetTopNodeOnlineState() []NodeOnLineInfo {
 			OnlineState: value.Heartbeats,
 		}
 		onlineStat = append(onlineStat, state)
-		log.Debug("TopnodeOnline", "获取在线状态", "node", value.Account, "心跳", value.Heartbeats)
+		log.Debug("TopNodeOnline", "获取在线状态, node", value.Account, "心跳", value.Heartbeats)
 	}
 
 	return onlineStat

@@ -40,7 +40,7 @@ func (mp *msgPool) SavePOSNotifyMsg(msg *mc.BlockPOSFinishedNotify) error {
 
 func (mp *msgPool) GetPOSNotifyMsg(leader common.Address, consensusTurn uint32) (*mc.BlockPOSFinishedNotify, error) {
 	for _, msg := range mp.posNotifyCache {
-		if msg.ConsensusTurn == msg.ConsensusTurn && msg.Header.Leader == msg.Header.Leader {
+		if msg.ConsensusTurn == consensusTurn && msg.Header.Leader == leader {
 			return msg, nil
 		}
 	}
