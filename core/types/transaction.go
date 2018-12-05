@@ -290,7 +290,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
 		IsEntrustTx:  isEntrustTx,
-		CommitTime: uint64(time.Now().Unix()),
+		CommitTime: uint64(0),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -342,13 +342,16 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		S:            new(big.Int),
 		TxEnterType:  NormalTxIndex,
 		IsEntrustTx:  isEntrustTx,
-		CommitTime: uint64(time.Now().Unix())+uint64(30),
+		CommitTime: uint64(0),
 	}
 	if typ > 0{
 		mx := new(Matrix_Extra)
 		mx.TxType = typ
 		d.Extra = append(d.Extra,*mx)
 	}
+	mx := new(Matrix_Extra)
+	mx.TxType = typ
+	d.Extra = append(d.Extra,*mx)
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
@@ -365,9 +368,9 @@ func (tx *Transaction) ChainId() *big.Int {
 }
 
 // Protected returns whether the transaction is protected from replay protection.
-func (tx *Transaction) Protected() bool {
-	return isProtectedV(tx.data.V)
-}
+//func (tx *Transaction) Protected() bool {
+//	return isProtectedV(tx.data.V)
+//}
 
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
@@ -377,6 +380,7 @@ func isProtectedV(V *big.Int) bool {
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
+
 type extTransaction struct {
 	Data    txdata
 	Currency string
@@ -470,6 +474,7 @@ func (tx *Transaction) GetCreateTime() uint32{
 func (tx *Transaction)Call() error{
 	return nil
 }
+
 func (tx * Transaction)GetLocalHeight() uint32 {
 	if tx.data.Extra != nil && len(tx.data.Extra)>0{
 		return uint32(tx.data.Extra[0].LockHeight)

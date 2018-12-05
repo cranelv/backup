@@ -6,9 +6,9 @@ package random
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/matrix/go-matrix/consensus/ethash"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/params"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"fmt"
@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"bou.ke/monkey"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/mc"
-	"github.com/ethereum/go-ethereum/random/commonsupport"
-	"github.com/ethereum/go-ethereum/random/electionseed"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/random/commonsupport"
+	"github.com/matrix/go-matrix/random/electionseed"
 )
 
 func Monkey_NeedVote() *monkey.PatchGuard {

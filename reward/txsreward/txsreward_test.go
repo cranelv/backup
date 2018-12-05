@@ -1,27 +1,36 @@
 package txsreward
 
 import (
+	"bou.ke/monkey"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/reward/txsreward"
+	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reward/util"
+	. "github.com/smartystreets/goconvey/convey"
 	"math/big"
-	"reflect"
 	"sync"
 	"testing"
-
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/reward/rewardexec"
-	"github.com/matrix/go-matrix/log"
-	. "github.com/smartystreets/goconvey/convey"
 )
+type FakeEth struct {
+blockchain *core.BlockChain
+once       *sync.Once
+}
 
+const (
+	testAddress = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
+)
+func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 
 func fakeEthNew(n int) *FakeEth {
 	eth := &FakeEth{once: new(sync.Once)}
 	eth.once.Do(func() {
-		_, blockchain, err := core.NewCanonical(ethash.NewFaker(), n, true)
+		_, blockchain, err := core.NewCanonical(manash.NewFaker(), n, true)
 		if err != nil {
 			fmt.Println("failed to create pristine chain: ", err)
 			return
@@ -59,29 +68,25 @@ func fakeEthNew(n int) *FakeEth {
 
 			return Deposit, nil
 		})
-		//id, _ := discover.HexID(myNodeId)
-		//ca.Start(id, "")
+
 	})
 	return eth
 }
-func TestTxsReward_CalcBlockRewards(t *testing.T) {
 
-		Convey("计算交易费", t, func() {
+func TestNew(t *testing.T) {
+	Convey("计算交易费", t, func() {
 
-			log.InitLog(3)
-			eth := fakeEthNew(0)
-			header := eth.BlockChain().CurrentHeader()
-			newheader := types.CopyHeader(header)
-			newheader.Number = big.NewInt(1)
-			newheader.NetTopology.Type = common.NetTopoTypeAll
-			newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
-			newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
-			newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
-			newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
-			txsReward := txsreward.New(eth.BlockChain())
-			txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
-
-
-		})
-
+		log.InitLog(3)
+		eth := fakeEthNew(0)
+		header := eth.BlockChain().CurrentHeader()
+		newheader := types.CopyHeader(header)
+		newheader.Number = big.NewInt(1)
+		newheader.NetTopology.Type = common.NetTopoTypeAll
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		reward := New(eth.blockchain)
+		reward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
+	})
 }

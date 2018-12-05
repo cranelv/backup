@@ -6,32 +6,14 @@ package layered
 import (
 	//"fmt"
 
+	"math/big"
+
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-)
-
-type Echelon struct {
-	MinMoney uint64
-	Quota    int
-}
-
-const (
-	DefauleStock = 1
-)
-
-var (
-	FirstEchelon = Echelon{
-		MinMoney: 10000000,
-		Quota:    3,
-	}
-	SecondEchelon = Echelon{
-		MinMoney: 100000,
-		Quota:    3,
-	}
 )
 
 type layered struct {
@@ -47,13 +29,37 @@ func RegInit() baseinterface.ElectionInterface {
 
 func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("分层方案", "矿工拓扑生成", len(mmrerm.MinerList))
+	for k, v := range mmrerm.MinerList {
+		if v.Deposit == nil {
+			mmrerm.MinerList[k].Deposit = big.NewInt(100)
+		}
+		if v.WithdrawH == nil {
+			mmrerm.MinerList[k].WithdrawH = big.NewInt(100)
+		}
+		if v.OnlineTime == nil {
+			mmrerm.MinerList[k].OnlineTime = big.NewInt(100)
+		}
+	}
 	return support.MinerTopGen(mmrerm)
 
 }
 
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
+	for k, v := range mvrerm.ValidatorList {
+		if v.Deposit == nil {
+			mvrerm.ValidatorList[k].Deposit = big.NewInt(100)
+		}
+		if v.WithdrawH == nil {
+			mvrerm.ValidatorList[k].WithdrawH = big.NewInt(100)
+		}
+		if v.OnlineTime == nil {
+			mvrerm.ValidatorList[k].OnlineTime = big.NewInt(100)
+		}
+	}
+
 	log.INFO("分层方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
 	ValidatorTopGen := mc.MasterValidatorReElectionRsq{}
+
 	ChoiceToMaster := make(map[common.Address]int, 0)
 
 	InitMapList := make(map[string]vm.DepositDetail, 0)
@@ -62,43 +68,35 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		InitMapList[v.NodeID.String()] = v
 	}
 
-	FirstQuota, SecondQuota := CalEchelonNum(mvrerm.ValidatorList)
+	QuotaArray := CalEchelonNum(mvrerm.ValidatorList)
+	for k,v:=range QuotaArray{
+		log.ERROR("quotaarray","等级",k,"长度",len(v),"data",v)
+	}
 	//fmt.Println(len(FirstQuota), len(SecondQuota))
+	//fmt.Println("QuotaArray", len(QuotaArray[0]))
 
-	if len(FirstQuota) > FirstEchelon.Quota {
-		FirstQuota = sortByDepositAndUptime(FirstQuota)
-	}
-	for _, v := range FirstQuota {
-		tempNodeInfo := mc.TopologyNodeInfo{
-			Account:  v.Address,
-			Position: uint16(len(ValidatorTopGen.MasterValidator)),
-			Stock:    DefauleStock,
-			Type:     common.RoleValidator,
+	sumCount := 0
+	//fmt.Println("EchelonArrary", EchelonArrary)
+	for k, v := range QuotaArray {
+		sumCount += common.EchelonArrary[k].Quota
+		if len(v) > common.EchelonArrary[k].Quota {
+			v = sortByDepositAndUptime(v,mvrerm.RandSeed)
 		}
-		ValidatorTopGen.MasterValidator = append(ValidatorTopGen.MasterValidator, tempNodeInfo)
-		ChoiceToMaster[v.Address] = 1
-		if len(ValidatorTopGen.MasterValidator) >= FirstEchelon.Quota {
-			break
-		}
-	}
-
-	if len(SecondQuota) > SecondEchelon.Quota {
-		SecondQuota = sortByDepositAndUptime(SecondQuota)
-	}
-	for _, v := range SecondQuota {
-		tempNodeInfo := mc.TopologyNodeInfo{
-			Account:  v.Address,
-			Position: uint16(len(ValidatorTopGen.MasterValidator)),
-			Stock:    DefauleStock,
-			Type:     common.RoleValidator,
-		}
-		ValidatorTopGen.MasterValidator = append(ValidatorTopGen.MasterValidator, tempNodeInfo)
-		ChoiceToMaster[v.Address] = 1
-		if len(ValidatorTopGen.MasterValidator) >= SecondEchelon.Quota+FirstEchelon.Quota {
-			break
+		for _, vv := range v {
+			tempNodeInfo := mc.TopologyNodeInfo{
+				Account:  vv.Address,
+				Position: uint16(len(ValidatorTopGen.MasterValidator)),
+				Stock:    DefauleStock,
+				Type:     common.RoleValidator,
+			}
+			ValidatorTopGen.MasterValidator = append(ValidatorTopGen.MasterValidator, tempNodeInfo)
+			ChoiceToMaster[vv.Address] = 1
+			if len(ValidatorTopGen.MasterValidator) >= sumCount || len(ValidatorTopGen.MasterValidator) >= common.MasterValidatorNum {
+				//fmt.Println(len(ValidatorTopGen.MasterValidator), sumCount, len(ValidatorTopGen.MasterValidator), common.MasterValidatorNum)
+				break
+			}
 		}
 	}
-	//fmt.Println("94", len(ValidatorTopGen.MasterValidator), len(ValidatorTopGen.BackUpValidator))
 
 	NowList := []vm.DepositDetail{}
 	for _, v := range mvrerm.ValidatorList {

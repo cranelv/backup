@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 	"errors"
 	"io"
-	"github.com/matrix/go-matrix/log"
 	"time"
 )
 type TransactionBroad struct {
@@ -67,6 +66,7 @@ func newBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	return tx
 }
 
+func (tx *TransactionBroad) SetCoinType(typ string){}
 func (tx *TransactionBroad)  TxType() byte		{ return tx.data.TxEnterType}
 
 func (tx *TransactionBroad) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
@@ -171,11 +171,6 @@ func (tx *TransactionBroad) WithSignature(signer Signer, sig []byte) (SelfTransa
 // Hash hashes the RLP encoding of tx.
 // It uniquely identifies the transaction.
 func (tx *TransactionBroad) Hash() common.Hash {
-	log.Info("file TransactionBroad","func hash,txtype",tx.GetMatrixType())
-	log.Info("file TransactionBroad","func hash,txtype",tx.Gas())
-	log.Info("file TransactionBroad","func hash,txtype",tx.GetMatrixType())
-	log.Info("file TransactionBroad","func hash,txtype",tx.GetMatrixType())
-
 	v := rlpHash(tx)
 	return v
 }

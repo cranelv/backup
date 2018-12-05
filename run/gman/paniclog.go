@@ -1,4 +1,4 @@
-//+build linux
+//+build linux darwin
 
 package main
 
@@ -9,6 +9,7 @@ import (
 )
 
 const panicFile = "/tmp/panic.log"
+
 var globalFile *os.File
 
 func initPanicFile() {

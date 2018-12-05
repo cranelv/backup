@@ -520,7 +520,7 @@ func (hc *HeaderChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, 
 func (hc *HeaderChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
 	sonHeader := hc.GetHeaderByHash(sonHash)
 	if sonHeader == nil {
-		return common.Hash{}, errors.Errorf("son header(%s) is not exist", sonHash)
+		return common.Hash{}, errors.Errorf("son header(%s) is not exist", sonHash.Hex())
 	}
 	sonNumber := sonHeader.Number.Uint64()
 	if sonNumber == ancestorNumber {

@@ -40,7 +40,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 
 func (p *Process) dealMinerResultVerifyBroadcast() {
 	for _, result := range p.broadcastRstCache {
-		//add by hyk, 运行广播区块交易
+		// 运行广播区块交易
 		parent := p.blockChain().GetBlockByHash(result.Header.ParentHash)
 		if parent == nil {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "获取父区块错误!")
@@ -52,7 +52,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
 			continue
 		}
-
+		//执行交易
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))
@@ -81,7 +81,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
 		p.changeState(StateBlockInsert)
-		p.processBlockInsert()
+		p.processBlockInsert(p.curLeader)
 		return
 	}
 }

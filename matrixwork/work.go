@@ -7,6 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
+	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"time"
 
@@ -128,15 +134,8 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
 			break
 		}
-		// Retrieve the next transaction and abort if all done
-		//tx := txs.Peek()
-		//if tx == nil {
-		//	break
-		//}
-
 		if txer.GetTxNLen() == 0 {
 			log.Info("===========tx.N is nil")
-			//txs.Pop()
 			continue
 		}
 		// Error may be ignored here. The error has already been checked
@@ -148,12 +147,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
 		//YYY TODO 是否需要当前这个if
-		if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
-
-			//txs.Pop()
-			continue
-		}
+		//if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
+		//	log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
+		//	continue
+		//}
 		// Start executing the transaction
 		env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
 		err, logs := env.commitTransaction(txer, bc, coinbase, env.gasPool)
@@ -161,21 +158,14 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Trace("Gas limit exceeded for current block", "sender", from)
-			//txs.Pop()
-
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", txer.Nonce())
-			//txs.Shift()
-
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
 			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", txer.Nonce())
-			//txs.Pop()
-
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
-			//==========hezi===================
 			if txer.GetTxNLen() != 0 {
 				n := txer.GetTxN(0)
 				if listN, ok := tmpRetmap[txer.TxType()]; ok {
@@ -188,16 +178,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 				}
 				retTxs = append(retTxs, txer)
 			}
-			//==================================
 			coalescedLogs = append(coalescedLogs, logs...)
 			env.tcount++
-			//txs.Shift()
-
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
 			log.Debug("Transaction failed, account skipped", "hash", txer.Hash(), "err", err)
-			//txs.Shift()
 		}
 	}
 	for t, n := range tmpRetmap {
@@ -287,9 +273,10 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
+	log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY", "len(listTx)", len(listTx))
 	listret,retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	tmps :=make([]types.SelfTransaction,0)
-	var rewart []common.RewarTx //TODO 需要合并代码
+	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -354,7 +341,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-	var rewart []common.RewarTx //TODO 需要合并代码
+	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -391,7 +378,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-	var rewart []common.RewarTx //TODO 需要合并代码
+	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
 	for _,tx:=range txers{
 		err, _ :=env.s_commitTransaction(tx,bc,common.Address{},new(core.GasPool).AddGas(0))
@@ -422,6 +409,71 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 }
 func (env *Work) GetTxs()[]types.SelfTransaction{
 	return env.txs
+}
+
+type randSeed  struct{
+	bc *core.BlockChain
+}
+func (r* randSeed)GetSeed(num uint64) *big.Int{
+    parent:=r.bc.GetBlockByNumber(num-1)
+	_,preVrfValue,_:=common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	seed:= common.BytesToHash(preVrfValue).Big()
+	return seed
+}
+
+func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
+	if common.IsBroadcastNumber(env.header.Number.Uint64()){
+		return nil
+	}
+	blkreward := blkreward.New(bc)
+	rewardList := make([]common.RewarTx,0)
+    //todo: read half number from state
+	minerReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.MinersBlockReward,1000000,common.BlkMinerRewardAddress)
+	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header)
+	if nil!=minersRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkMinerRewardAddress,To_Amont:minersRewardMap})
+	}
+
+	validatorReward:=blkreward.CalcRewardMountByNumber(env.State,env.header.Number.Uint64()-1,util.ValidatorsBlockReward,300,common.BlkValidatorRewardAddress)
+	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward,env.header.Leader, env.header)
+	if nil!=validatorsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.BlkValidatorRewardAddress,To_Amont:validatorsRewardMap})
+	}
+
+	txsReward := txsreward.New(bc)
+	price := mapcoingasUse.getCoinGasPrice("MAN")
+	gas := mapcoingasUse.getCoinGasUse("MAN")
+	allGas := new(big.Int).Mul(gas,price)
+	log.INFO("奖励","交易费奖励总额",allGas.String())
+	txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header)
+	if nil!=txsRewardMap{
+		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+	}
+
+	lottery:=lottery.New(bc,&randSeed{bc})
+	lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+		for _,v :=range lotteryRewardMap{
+			if nil!=v{
+				rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.LotteryRewardAddress,To_Amont:v})
+			}
+		}
+
+	// //todo:其它币种
+	////multiCoin:=multicoinreward.New(p.blockChain())
+	////multiCoinMap := multiCoin.CalcNodesRewards(util.MultilCoinBlockReward, header.Leader, header)
+	////if nil!=multiCoinMap{
+	////  rewardList = append(rewardList,common.RewarTx{CoinType:"other",Fromaddr:common.MinersRewardAddress,To_Amont:multiCoinMap})
+	////  }
+	//
+	////todo 利息
+	interestReward:=interest.New(bc)
+	interestReward.InterestCalc(env.State,env.header.Number.Uint64())
+	//todo 惩罚
+
+	slash := slash.New(bc)
+	slash.CalcSlash(env.State, env.header.Number.Uint64())
+
+	return env.Reverse(rewardList)
 }
 func (env *Work) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 

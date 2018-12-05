@@ -9,6 +9,7 @@ import (
 const (
 	NormalTxIndex    byte = iota // NormalPool save normal transaction
 	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
+
 )
 
 type SelfTransaction interface {
@@ -39,7 +40,7 @@ type SelfTransaction interface {
 	GetTxNLen()int
 	GetTxN(index int) uint32
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
-	Protected() bool
+	//Protected() bool
 	GetConstructorType()uint16
 	GasFrom() common.Address
 	AmontFrom() common.Address
@@ -60,7 +61,6 @@ func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){
 	}
 	return
 }
-
 func SetMxToTransaction(txm *Transaction_Mx)(txer SelfTransaction){
 	if txm.TxType_Mx == common.ExtraNormalTxType{
 		txer = ConvMxtotx(txm)

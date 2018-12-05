@@ -17,6 +17,7 @@ type cdc struct {
 	consensusLeader  common.Address
 	curReelectTurn   uint32
 	reelectMaster    common.Address
+	isMaster         bool
 	leaderCal        *leaderCalculator
 	turnTime         *turnTimes
 	chain            *core.BlockChain
@@ -31,6 +32,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		consensusLeader:  common.Address{},
 		curReelectTurn:   0,
 		reelectMaster:    common.Address{},
+		isMaster:         false,
 		turnTime:         newTurnTimes(),
 		chain:            chain,
 		logInfo:          logInfo,
@@ -40,8 +42,8 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	return dc
 }
 
-func (dc *cdc) SetValidators(preHash common.Hash, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
-	if err := dc.leaderCal.SetValidators(preHash, preLeader, validators); err != nil {
+func (dc *cdc) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
+	if err := dc.leaderCal.SetValidators(preHash, preIsSupper, preLeader, validators); err != nil {
 		return err
 	}
 
@@ -116,6 +118,7 @@ func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 	}
 
 	return &mc.LeaderChangeNotify{
+		PreLeader:      dc.leaderCal.preLeader,
 		Leader:         leaders.leader,
 		NextLeader:     leaders.nextLeader,
 		ConsensusTurn:  dc.curConsensusTurn,

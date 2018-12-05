@@ -9,8 +9,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
 
-	"fmt"
-
 	"errors"
 
 	"github.com/matrix/go-matrix/baseinterface"
@@ -19,7 +17,7 @@ import (
 )
 
 func init() {
-	fmt.Println("everyblockseed plug1")
+	//fmt.Println("everyblockseed plug1")
 	EveryBlockSeedPlug1 := &EveryBlockSeedPlug1{privatekey: big.NewInt(0)}
 	RegisterLotterySeedPlugs("Nonce&Address&Coinbase", EveryBlockSeedPlug1)
 }
@@ -43,7 +41,7 @@ func (self *EveryBlockSeedPlug1) CalcSeed(hash common.Hash, support baseinterfac
 	KeyData := big.NewInt(0)
 	for k := height - 1; k >= 0; k-- {
 		if IsBlockOwner(support, k, selfAddress) {
-			fmt.Println(ModuleEveryBlockSeed, "计算阶段", "", "找到上个区块高度", k, "当前区块高度", height)
+			//fmt.Println(ModuleEveryBlockSeed, "计算阶段", "", "找到上个区块高度", k, "当前区块高度", height)
 			tempHash, err := commonsupport.GetHeaderHashByNumber(hash, k, support)
 			if err != nil {
 				break
@@ -53,7 +51,7 @@ func (self *EveryBlockSeedPlug1) CalcSeed(hash common.Hash, support baseinterfac
 				log.INFO(ModuleEveryBlockSeed, "计算阶段", "", "找到上个区块高度", k, "当前区块高度", height, "公私钥配对", "")
 				KeyData = common.BytesToHash(prv).Big()
 			} else {
-				fmt.Println(ModuleEveryBlockSeed, "计算阶段", "", "找到上个区块高度", k, "当前区块高度", height, "公私钥不配对 上一次出块的公钥", pub, "当前块私钥", prv)
+				//fmt.Println(ModuleEveryBlockSeed, "计算阶段", "", "找到上个区块高度", k, "当前区块高度", height, "公私钥不配对 上一次出块的公钥", pub, "当前块私钥", prv)
 			}
 			break
 		}

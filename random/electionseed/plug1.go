@@ -6,8 +6,6 @@ package electionseed
 import (
 	"math/big"
 
-	"fmt"
-
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -18,7 +16,7 @@ import (
 )
 
 func init() {
-	fmt.Println("electionseed Minhash&Key")
+	//fmt.Println("electionseed Minhash&Key")
 	electSeedPlug1 := &ElectSeedPlug1{privatekey: big.NewInt(0)}
 	RegisterElectSeedPlugs("Minhash&Key", electSeedPlug1)
 }

@@ -81,23 +81,19 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		return
 	}
 
-	selectedNodesDeposit, totalDepositRate := sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
-	for account, deposit := range selectedNodesDeposit {
-		depositRate := new(big.Rat).SetInt(deposit)
-		depositProportion := new(big.Rat).Quo(depositRate, totalDepositRate)
-		oneNodeReward, _ := new(big.Rat).Mul(new(big.Rat).SetInt(reward), depositProportion).Float64()
-		util.SetAccountRewards(topRewards, account, new(big.Int).SetUint64(uint64(oneNodeReward)))
-		log.INFO(PackageName, "selected reward all deposit", totalDepositRate.String(), "deposit", deposit.Uint64(), "depositProportion", depositProportion.String())
-		log.INFO(PackageName, "selected reward  all reward", reward, "account", account, "reward", uint64(oneNodeReward))
-	}
+	selectedNodesDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
+	log.INFO(PackageName, "参与奖励大家共发放",reward)
 
+	util.CalcDepositRate(reward,selectedNodesDeposit,topRewards)
 	return
 
 }
-func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int, *big.Rat) {
+
+func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, originElectNodes *mc.TopologyGraph, num *big.Int, roleType common.RoleType, rewardRate uint64) (map[common.Address]*big.Int) {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph.NodeList {
 		NodesRewardMap[nodelist.Account] = rewardRate
+		log.INFO(PackageName,"当前节点",nodelist.Account.Hex())
 	}
 	for _, electList := range originElectNodes.NodeList {
 		if _, ok := NodesRewardMap[electList.Account]; ok {
@@ -105,11 +101,12 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		} else {
 			NodesRewardMap[electList.Account] = util.RewardFullRate - rewardRate
 		}
+		log.INFO(PackageName,"初选节点",electList.Account.Hex(),"比例",NodesRewardMap[electList.Account] )
 	}
-	totalDeposit := new(big.Int)
+
 	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
 	var depositNum uint64
-	if num.Uint64() < common.GetBroadcastInterval(){
+	if num.Uint64() < common.GetReElectionInterval(){
 		depositNum = 0
 	}else{
 		if common.RoleValidator == common.RoleValidator&roleType {
@@ -125,9 +122,8 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		if depositRate, ok := NodesRewardMap[v.Address]; ok {
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
 			selectedNodesDeposit[v.Address] = deposit
-			totalDeposit.Add(totalDeposit, deposit)
+			log.INFO(PackageName,"计算抵押总额,账户",v.Address.Hex(),"抵押",deposit)
 		}
 	}
-	totalDepositRate := new(big.Rat).SetInt(totalDeposit)
-	return selectedNodesDeposit, totalDepositRate
+	return selectedNodesDeposit
 }

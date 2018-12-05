@@ -504,7 +504,9 @@ func decodeInterfaceRLP(s *Stream, val reflect.Value) error {
 	valRLP := InterfaceRLP{}
 	val1 := reflect.ValueOf(&valRLP).Elem()
 	typ := reflect.TypeOf(valRLP)
+	typeCacheMutex.Lock()
 	fields, err := structFields(typ)
+	typeCacheMutex.Unlock()
 	if err != nil {
 		return  err
 	}

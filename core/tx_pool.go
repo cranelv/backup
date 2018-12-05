@@ -19,8 +19,8 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/matrix/go-matrix/rlp"
+	"github.com/matrix/go-matrix/txpoolCache"
 )
 
 //YY
@@ -148,6 +148,7 @@ type ConsensusNTx struct {
 	Key uint32
 	Value types.SelfTransaction
 }
+
 // TxPoolConfig are the configuration parameters of the transaction pool.
 type TxPoolConfig struct {
 	PriceLimit   uint64 // Minimum gas price to enforce for acceptance into the pool
@@ -166,7 +167,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalSlots:  4096 * 5 * 5 * 10, //YY 2018-08-30 改为乘以5
 	AccountQueue: 64 * 1000,
 	GlobalQueue:  1024 * 60,
-	txTimeout:  500 * time.Second,
+	txTimeout:    500 * time.Second,
 }
 
 type NormalTxPool struct {
@@ -192,7 +193,8 @@ type NormalTxPool struct {
 	SContainer map[common.Hash]*types.Transaction
 	NContainer map[uint32]*types.Transaction
 	udptxsCh   chan []*types.Transaction_Mx //udp交易订阅
-	udptxsSub  event.Subscription           //取消订阅
+	quit       chan struct{}
+	udptxsSub  event.Subscription //取消订阅
 	//=================================================//
 	//priced *txPricedList // All transactions sorted by price
 
@@ -206,8 +208,6 @@ type NormalTxPool struct {
 	mapErrorTxs   map[*big.Int]*types.Transaction  //YY  存放所有的错误交易（20个区块自动删除）
 	mapTxsTiming  map[common.Hash]time.Time           //YY  需要做定时删除的交易
 	mapHighttx map[uint64][]uint32
-	stopCh  chan bool
-	homestead bool
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -235,14 +235,15 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		NContainer:    make(map[uint32]*types.Transaction),      //by hezi
 		udptxsCh:      make(chan []*types.Transaction_Mx, 0),    //hezi
 		sendTxCh:     make(chan NewTxsEvent),
+		quit:          make(chan struct{}),
 		all:           newTxLookup(),
 		chainHeadCh:   make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:      new(big.Int).SetUint64(config.PriceLimit),
 		mapCaclErrtxs: make(map[common.Hash][]common.Address), //YY  用来统计错误的交易
 		mapDelErrtxs:  make(map[common.Hash]*big.Int),         //YY  用来删除mapErrorTxs
 		mapErrorTxs:   make(map[*big.Int]*types.Transaction),  //YY  存放所有的错误交易（20个区块自动删除）
-		mapTxsTiming:  make(map[common.Hash]time.Time),           //YY  需要做定时删除的交易
-		mapHighttx:  make(map[uint64][]uint32,0),
+		mapTxsTiming:  make(map[common.Hash]time.Time),        //YY  需要做定时删除的交易
+		mapHighttx:    make(map[uint64][]uint32, 0),
 	}
 	//nPool.pool.priced = newTxPricedList(nPool.pool.all)
 	nPool.reset(nil, chain.CurrentBlock().Header())
@@ -250,7 +251,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	// Subscribe events from blockchain
 	nPool.chainHeadSub = nPool.chain.SubscribeChainHeadEvent(nPool.chainHeadCh)
 	nPool.sendTxCh = sendch
-	nPool.stopCh = make(chan bool)
 
 	// Start the event loop and return
 	nPool.wg.Add(3)
@@ -292,26 +292,23 @@ func (nPool *NormalTxPool) loop() {
 		case ev := <-nPool.chainHeadCh:
 			if ev.Block != nil {
 				nPool.mu.Lock()
-				if nPool.chainconfig.IsHomestead(ev.Block.Number()) {
-					nPool.homestead = true
-				}
 				nPool.reset(head.Header(), ev.Block.Header())
 				head = ev.Block
-				h := head.Number().Uint64()-1
-				if txlist,ok:=nPool.mapHighttx[h];ok{
-					for _,n := range txlist{
+				h := head.Number().Uint64() - 1
+				if txlist, ok := nPool.mapHighttx[h]; ok {
+					for _, n := range txlist {
 						nPool.deletnTx(n)
 					}
 				}
-				delete(nPool.mapHighttx,h)
-				txpoolCache.DeleteTxCache(head.Header().HashNoSignsAndNonce(),head.Number().Uint64())
+				delete(nPool.mapHighttx, h)
+				txpoolCache.DeleteTxCache(head.Header().HashNoSignsAndNonce(), head.Number().Uint64())
 				nPool.mu.Unlock()
 				nPool.getPendingTx() //YY
 			}
 			// Be unsubscribed due to system stopped
 		case <-nPool.chainHeadSub.Err():
 			return
-		case <- delteTime.C:
+		case <-delteTime.C:
 			nPool.mu.Lock()
 			nPool.blockTiming() //YY
 			nPool.mu.Unlock()
@@ -521,7 +518,7 @@ func (nPool *NormalTxPool) checkList() {
 			if len(gSendst.snlist.slist) >= params.FloodMaxTransactions {
 				nPool.packageSNList()
 			}
-		case <-nPool.stopCh :
+		case <-nPool.quit :
 			return
 		}
 	}
@@ -606,8 +603,9 @@ func (nPool *NormalTxPool) Stop() {
 	// Unsubscribe subscriptions registered from blockchain
 	nPool.chainHeadSub.Unsubscribe()
 	nPool.udptxsSub.Unsubscribe()
-	nPool.stopCh <- false
+	nPool.quit <- struct{}{}
 	nPool.wg.Wait()
+	close(nPool.quit)
 
 	log.Info("Transaction pool stopped")
 }
@@ -678,14 +676,14 @@ func (nPool *NormalTxPool) Pending() (map[common.Address][]types.SelfTransaction
 			txlist = append(txlist,txs.Flatten()...)
 		}
 		var txser types.SelfTransactions
-		for _,tx:= range txlist{
-			txser = append(txser,tx)
+		for _, tx := range txlist {
+			txser = append(txser, tx)
 			if len(tx.N) <= 0 {
 				continue
 			}
 			nPool.NContainer[tx.N[0]] = tx
 		}
-		pending[addr] = txser//.Flatten()
+		pending[addr] = txser //.Flatten()
 	}
 	return pending, nil
 }
@@ -826,7 +824,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 			nPool.mu.Unlock()
 		}
 		retch <- &RetChan_txpool{txs, txerr, resqe}
-		log.Info("========YY===end if", "ReturnAllTxsByN:len(ns)", len(ns),"err",txerr)
+		log.Info("========YY===end if", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
 	} else {
 		retch <- &RetChan_txpool{txs, nil, resqe}
 		log.Info("========YY===end else", "ReturnAllTxsByN", "return success")
@@ -839,7 +837,6 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 	if len(listN) <= 0 {
 		return
 	}
-	//mapNtx := make(map[uint32]types.SelfTransaction)
 	mapNtx := make([]*ConsensusNTx,0)
 	nPool.mu.Lock()
 	for _, n := range listN {
@@ -863,7 +860,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 			}else{
 				log.Info("txpool","11111msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
 				for _, n := range listN {
-					tx := nPool.getTxbyN(n,false)
+					tx := nPool.getTxbyN(n, false)
 					if tx != nil {
 						ntx := &ConsensusNTx{n,tx}
 						mapNtx = append(mapNtx,ntx)
@@ -874,7 +871,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 						}
 					}
 				}
-				log.Info("txpool","22222msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+				log.Info("txpool", "22222msg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
 			}
 		}
 	}
@@ -920,7 +917,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 	errorTxs := make([]*big.Int, 0)
 	txs := make([]*types.Transaction, 0)
 	tmpNtx := make(map[uint32]*types.Transaction)
-	nlist := make([]uint32,0)
+	nlist := make([]uint32, 0)
 	for n, txer := range mapNtx {
 		ss := txer.GetTxS()
 		nPool.mapNs.Store(n, ss)
@@ -932,8 +929,8 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		if s == nil || n == 0 { //如果S或者N 不合法则直接跳过
 			continue
 		}
-		tx,ok := txer.(*types.Transaction)
-		if !ok{
+		tx, ok := txer.(*types.Transaction)
+		if !ok {
 			continue
 		}
 		txs = append(txs, tx)
@@ -966,12 +963,12 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 			}
 			nPool.setTxNum(tx, n, false)
 			nPool.setnTx(n, tx, false)
-			nlist = append(nlist , n)
-		}else{
-			log.Info("msg_RecvConsensusFloodTx","msg_RecvConsensusFloodTx,tx`s N is same","continue")
+			nlist = append(nlist, n)
+		} else {
+			log.Info("msg_RecvConsensusFloodTx", "msg_RecvConsensusFloodTx,tx`s N is same", "continue")
 		}
 	}
-	if len(nlist) > 0{
+	if len(nlist) > 0 {
 		nPool.mapHighttx[nPool.chain.CurrentBlock().Number().Uint64()] = nlist
 	}
 	nPool.mu.Unlock()
@@ -1125,7 +1122,7 @@ func (nPool *NormalTxPool) addBlockTiming(hash common.Hash) {
 	if _, ok := nPool.mapTxsTiming[hash]; ok {
 		return
 	}
-	nPool.mapTxsTiming[hash] =time.Now()
+	nPool.mapTxsTiming[hash] = time.Now()
 }
 
 //YY 20个区块定时删除(每次收到新区快头广播时触发)
@@ -1134,7 +1131,7 @@ func (nPool *NormalTxPool) blockTiming() {
 	//blockNum := nPool.chain.CurrentBlock().Number()
 	listHash := make([]common.Hash, 0)
 	for hash, t := range nPool.mapTxsTiming {
-		if time.Since(t) > nPool.config.txTimeout{
+		if time.Since(t) > nPool.config.txTimeout {
 			listHash = append(listHash, hash)
 		}
 	}
@@ -1155,10 +1152,6 @@ func (nPool *NormalTxPool) blockTiming() {
 func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
 	for _, tx := range txs {
-		//_, err := tx.GetTxFrom() 新进来的交易一定要解签一次，防止交易自带from作弊
-		//if err == nil {
-		//	continue
-		//}
 		waitG.Add(1)
 		ttx := tx
 		go types.Sender_self(nPool.signer, ttx, waitG)
@@ -1270,7 +1263,6 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 		}
 	}
-
 	if len(txEx) > 0 && len(txEx[0].ExtraTo) > 0 {
 		//如果是委托gas，检查授权人的账户余额是否大于gas;委托人的余额是否大于转账金额
 		if tx.IsEntrustGas{
@@ -1298,6 +1290,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		}else {
 			if balance.Cmp(tx.Cost()) < 0{
 				return ErrInsufficientFunds
+
 			}
 		}
 	}
@@ -1434,13 +1427,11 @@ func (nPool *NormalTxPool) addTxsLocked(txs []*types.Transaction, local bool) (e
 func (nPool *NormalTxPool) Status(hashes []common.Hash) []TxStatus {
 	nPool.mu.RLock()
 	defer nPool.mu.RUnlock()
-
 	status := make([]TxStatus, len(hashes))
 	for i, hash := range hashes {
 		if tx := nPool.all.Get(hash); tx != nil {
 			//YY 如果交易中已经有了from就不需要在做解签
 			from, _ := nPool.checkTxFrom(tx)
-
 			if nPool.pending[from] != nil && nPool.pending[from].txs[tx.GetTxCurrency()].items[tx.Nonce()] != nil {
 				status[i] = TxStatusPending
 			} else {
@@ -1501,7 +1492,6 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 	for addr, list := range nPool.pending {
 		for typ,txs := range list.txs{
 			nonce := nPool.currentState.GetNonce(addr)
-
 			// Drop all transactions that are deemed too old (low nonce)
 			for _, tx := range txs.Forward(nonce) {
 				//YY ========begin=========
@@ -1536,7 +1526,6 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 				delete(nPool.pending, addr)
 			}
 		}
-
 	}
 }
 

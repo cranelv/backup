@@ -2,20 +2,19 @@ package slash
 
 import (
 	"fmt"
+	"github.com/matrix/go-matrix/mandb"
 	"math/big"
 	"sync"
 	"testing"
 
 	"github.com/matrix/go-matrix/core/state"
 
-	"github.com/matrix/go-matrix/ethdb"
-
 	"github.com/matrix/go-matrix/depoistInfo"
 
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/ethash"
+	"github.com/matrix/go-matrix/consensus/manash"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
@@ -37,7 +36,7 @@ func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 func fakeEthNew(n int) *FakeEth {
 	eth := &FakeEth{once: new(sync.Once)}
 	eth.once.Do(func() {
-		_, blockchain, err := core.NewCanonical(ethash.NewFaker(), n, true)
+		_, blockchain, err := core.NewCanonical(manash.NewFaker(), n, true)
 		if err != nil {
 			fmt.Println("failed to create pristine chain: ", err)
 			return
@@ -76,7 +75,7 @@ func TestBlockSlash_CalcSlash(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)

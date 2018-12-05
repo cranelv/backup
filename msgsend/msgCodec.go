@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package msgsend
@@ -246,6 +246,9 @@ func (*onlineConsensusReqCodec) DecodeFn(data []byte, from common.Address) (inte
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
+	if msg.ReqList == nil {
+		return nil, errors.New("`ReqList` of msg if nil")
+	}
 	msg.From.Set(from)
 	return msg, nil
 }
@@ -271,8 +274,8 @@ func (*onlineConsensusVoteCodec) DecodeFn(data []byte, from common.Address) (int
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
 
-	for _, vote := range msg.Votes {
-		vote.From.Set(from)
+	for i := 0; i < len(msg.Votes); i++ {
+		msg.Votes[i].From.Set(from)
 	}
 
 	return msg, nil
@@ -298,6 +301,13 @@ func (*onlineConsensusResultCodec) DecodeFn(data []byte, from common.Address) (i
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	if msg.Req == nil {
+		return nil, errors.New("`req` in msg struct is nil")
+	}
+	msg.From = from
 	return msg, nil
 }
 
@@ -391,12 +401,12 @@ func (*lrVoteCodec) EncodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (*lrVoteCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := new(mc.HD_ReelectLeaderVoteMsg)
+	msg := new(mc.HD_ConsensusVote)
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
-	msg.Vote.From.Set(from)
+	msg.From.Set(from)
 	return msg, nil
 }
 
@@ -489,7 +499,7 @@ func (*fullBlockRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
 	for i := 0; i < size; i++ {
 		tx := rsp.Txs[i]
-		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(tx))
+		marshalMsg.Txs = append(marshalMsg.Txs, types.SetTransactionToMx(tx))
 	}
 	marshalMsg.Header = rsp.Header
 	data, err := json.Marshal(marshalMsg)
@@ -513,7 +523,7 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 	}
 	size := len(msg.Txs)
 	for i := 0; i < size; i++ {
-		tx := types.SetTransactionMx(msg.Txs[i])
+		tx := types.SetMxToTransaction(msg.Txs[i])
 		sendMsg.Txs = append(sendMsg.Txs, tx)
 	}
 

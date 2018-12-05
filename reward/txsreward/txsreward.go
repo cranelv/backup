@@ -1,16 +1,12 @@
 package txsreward
 
 import (
-	"math/big"
-
 	"github.com/matrix/go-matrix/reward/rewardexec"
 
 	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/reward/cfg"
 
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/reward"
 )
 
@@ -42,14 +38,14 @@ func New(chain util.ChainReader) reward.Reward {
 	RewardMount := &cfg.RewardMountCfg{
 		MinersRate:     MinerTxsRewardRate,
 		ValidatorsRate: ValidatorsTxsRewardRate,
-		FoundationRate: FoundationTxsRewardRate,
 
-		MinerOutRate:    MinerOutRewardRate,
-		ElectedMineRate: ElectedMinerRewardRate,
+		MinerOutRate:     MinerOutRewardRate,
+		ElectedMinerRate: ElectedMinerRewardRate,
+		FoundationMinerRate: FoundationTxsRewardRate,
 
 		LeaderRate:            LeaderRewardRate,
 		ElectedValidatorsRate: ElectedValidatorsRewardRate,
-
+		FoundationValidatorRate:FoundationTxsRewardRate,
 		OriginElectOfflineRate: OriginElectOfflineRewardRate,
 		BackupRewardRate:       BackupRate,
 	}
@@ -57,6 +53,6 @@ func New(chain util.ChainReader) reward.Reward {
 	return rewardexec.New(chain, rewardCfg)
 }
 
-func (tr *TxsReward) CalcBlockRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
-	return tr.blockReward.CalcBlockRewards(blockReward, Leader, header)
-}
+//func (tr *TxsReward) CalcBlockRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
+//	return tr.blockReward.CalcBlockRewards(blockReward, Leader, header)
+//}

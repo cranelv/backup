@@ -29,7 +29,7 @@ type LeaderIdentity struct {
 	rlInquiryRspSub  event.Subscription
 	rlReqCh          chan *mc.HD_ReelectLeaderReqMsg
 	rlReqSub         event.Subscription
-	rlVoteCh         chan *mc.HD_ReelectLeaderVoteMsg
+	rlVoteCh         chan *mc.HD_ConsensusVote
 	rlVoteSub        event.Subscription
 	rlResultBCCh     chan *mc.HD_ReelectResultBroadcastMsg
 	rlResultBCSub    event.Subscription
@@ -48,7 +48,7 @@ func NewLeaderIdentityService(matrix Matrix, extraInfo string) (*LeaderIdentity,
 		rlInquiryReqCh:  make(chan *mc.HD_ReelectInquiryReqMsg, 1),
 		rlInquiryRspCh:  make(chan *mc.HD_ReelectInquiryRspMsg, 1),
 		rlReqCh:         make(chan *mc.HD_ReelectLeaderReqMsg, 1),
-		rlVoteCh:        make(chan *mc.HD_ReelectLeaderVoteMsg, 1),
+		rlVoteCh:        make(chan *mc.HD_ConsensusVote, 1),
 		rlResultBCCh:    make(chan *mc.HD_ReelectResultBroadcastMsg, 1),
 		rlResultRspCh:   make(chan *mc.HD_ReelectResultRspMsg, 1),
 	}
@@ -212,12 +212,10 @@ func (self *LeaderIdentity) blockPOSFinishedMsgHandle(msg *mc.BlockPOSFinishedNo
 	}
 
 	log.INFO(self.extraInfo, "收到区块POS完成消息", "开始", "高度", msg.Number)
-	ctrl, err := self.ctrlManager.GetController(msg.Number)
+	err := self.ctrlManager.ReceiveMsg(msg.Number, msg)
 	if err != nil {
-		log.ERROR(self.extraInfo, "区块POS完成消息处理", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "区块POS完成消息处理", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(msg)
 }
 
 func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) {
@@ -225,22 +223,7 @@ func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) 
 		log.Error(self.extraInfo, "重选询问消息", "错误", "消息不合法", ErrMsgIsNil)
 		return
 	}
-	log.INFO(self.extraInfo, "收到重选询问消息", "开始", "高度", req.Number, "共识轮次", req.ConsensusTurn, "重选轮次", req.ReelectTurn, "from", req.From.Hex())
-
-	curCtrl := self.ctrlManager.GetCurController()
-	if curCtrl.Number() > req.Number {
-		reqHash := types.RlpHash(req)
-		log.INFO(self.extraInfo, "重选询问消息处理", "高度低于当前高度，发送新区块已准备完毕响应", "高度", req.Number, "本地高度", curCtrl.Number(), "reqHash", reqHash.TerminalString())
-		curCtrl.ReceiveMsg(&sendNewBlockReadyRsp{repHash: reqHash, target: req.From, rspNumber: req.Number})
-		return
-	}
-
-	ctrl, err := self.ctrlManager.GetController(req.Number)
-	if err != nil {
-		log.ERROR(self.extraInfo, "重选询问消息处理", "获取controller失败", "err", err)
-		return
-	}
-	ctrl.ReceiveMsg(req)
+	self.ctrlManager.ReceiveMsgByCur(req)
 }
 
 func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) {
@@ -248,12 +231,10 @@ func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) 
 		log.Error(self.extraInfo, "重选询问响应", "错误", "消息不合法", ErrMsgIsNil)
 		return
 	}
-	ctrl, err := self.ctrlManager.GetController(rsp.Number)
+	err := self.ctrlManager.ReceiveMsg(rsp.Number, rsp)
 	if err != nil {
-		log.ERROR(self.extraInfo, "重选询问消息响应", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "重选询问消息响应", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(rsp)
 }
 
 func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
@@ -261,27 +242,23 @@ func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 		log.Error(self.extraInfo, "leader重选请求", "错误", "消息不合法", ErrMsgIsNil)
 		return
 	}
-	ctrl, err := self.ctrlManager.GetController(req.InquiryReq.Number)
+	err := self.ctrlManager.ReceiveMsg(req.InquiryReq.Number, req)
 	if err != nil {
-		log.ERROR(self.extraInfo, "leader重选请求处理", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "leader重选请求处理", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(req)
 }
 
-func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ReelectLeaderVoteMsg) {
+func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 	if req == nil {
 		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrMsgIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到leader重选投票", "开始", "高度", req.Number)
 
-	ctrl, err := self.ctrlManager.GetController(req.Number)
+	err := self.ctrlManager.ReceiveMsg(req.Number, req)
 	if err != nil {
-		log.ERROR(self.extraInfo, "leader重选投票处理", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "leader重选投票处理", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(req)
 }
 
 func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroadcastMsg) {
@@ -291,12 +268,10 @@ func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroa
 	}
 	log.INFO(self.extraInfo, "收到重选结果广播", "开始", "高度", msg.Number, "结果类型", msg.Type, "from", msg.From.Hex())
 
-	ctrl, err := self.ctrlManager.GetController(msg.Number)
+	err := self.ctrlManager.ReceiveMsg(msg.Number, msg)
 	if err != nil {
-		log.ERROR(self.extraInfo, "重选结果广播处理", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "重选结果广播处理", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(msg)
 }
 
 func (self *LeaderIdentity) rlResultRspHandle(rsp *mc.HD_ReelectResultRspMsg) {
@@ -306,12 +281,10 @@ func (self *LeaderIdentity) rlResultRspHandle(rsp *mc.HD_ReelectResultRspMsg) {
 	}
 	log.INFO(self.extraInfo, "收到重选结果响应", "开始", "高度", rsp.Number)
 
-	ctrl, err := self.ctrlManager.GetController(rsp.Number)
+	err := self.ctrlManager.ReceiveMsg(rsp.Number, rsp)
 	if err != nil {
-		log.ERROR(self.extraInfo, "重选结果响应处理", "获取controller失败", "err", err)
-		return
+		log.ERROR(self.extraInfo, "重选结果响应处理", "controller接受消息失败", "err", err)
 	}
-	ctrl.ReceiveMsg(rsp)
 }
 
 func (self *LeaderIdentity) genValidatorList(header *types.Header) (*mc.TopologyGraph, error) {

@@ -4,8 +4,6 @@
 package baseinterface
 
 import (
-	"fmt"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/mc"
@@ -14,7 +12,7 @@ import (
 
 const (
 	ModuleElection   = "选举模块"
-	DefaultElectPlug = "stock"
+	DefaultElectPlug = "layered"
 )
 
 var (
@@ -22,7 +20,7 @@ var (
 )
 
 func RegElectPlug(name string, value func() ElectionInterface) {
-	fmt.Println("选举服务 注册函数", "name", name)
+//	fmt.Println("选举服务 注册函数", "name", name)
 	electionPlugs[name] = value
 }
 

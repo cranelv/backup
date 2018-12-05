@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package olconsensus
@@ -17,9 +17,12 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pborman/uuid"
+	//"github.com/pborman/uuid"
 	"math/rand"
+
 	"github.com/matrix/go-matrix/consensus"
+	//"unicode"
+	"github.com/matrix/go-matrix/messageState"
 )
 
 var (
@@ -31,36 +34,40 @@ var (
 )
 
 type testDPOSEngine struct {
-	dops *mtxdpos.MtxDPOS
+	dops   *mtxdpos.MtxDPOS
 	reader consensus.ValidatorReader
 }
 
-func (tsdpos *testDPOSEngine) VerifyBlock(header *types.Header) error {
-	return tsdpos.dops.VerifyBlock(, header)
+func (tsdpos *testDPOSEngine) VerifyBlock(reader consensus.ValidatorReader, header *types.Header) error {
+	return tsdpos.dops.VerifyBlock(reader, header)
 }
 
-func (tsdpos *testDPOSEngine) VerifyBlocks(headers []*types.Header) error {
+func (tsdpos *testDPOSEngine) VerifyBlocks(reader consensus.ValidatorReader, headers []*types.Header) error {
 	return nil
 }
 
 //verify hash in current block
-func (tsdpos *testDPOSEngine) VerifyHash(signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
-	return tsdpos.dops.VerifyHash(signHash, signs)
+func (tsdpos *testDPOSEngine) VerifyHash(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
+	return tsdpos.dops.VerifyHash(reader, signHash, signs)
 }
 
 //verify hash in given number block
-func (tsdpos *testDPOSEngine) VerifyHashWithNumber(signHash common.Hash, signs []common.Signature, number uint64) ([]common.Signature, error) {
-	return tsdpos.dops.VerifyHashWithStocks(signHash, signs, dposStocks)
+func (tsdpos *testDPOSEngine) VerifyHashWithBlock(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error) {
+	return tsdpos.dops.VerifyHashWithBlock(reader, signHash, signs, blockHash)
 }
 
 //VerifyHashWithStocks(signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error)
 
-func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSigns(signs []*common.VerifiedSign) ([]common.Signature, error) {
-	return tsdpos.dops.VerifyHashWithVerifiedSigns(signs)
+func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSigns(reader consensus.ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error) {
+	return tsdpos.dops.VerifyHashWithVerifiedSigns(reader, signs)
 }
 
-func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSignsAndNumber(signs []*common.VerifiedSign, number uint64) ([]common.Signature, error) {
-	return tsdpos.dops.VerifyHashWithVerifiedSignsAndNumber(signs, number)
+func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSignsAndBlock(reader consensus.ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error) {
+	return tsdpos.dops.VerifyHashWithVerifiedSignsAndBlock(reader, signs, blockHash)
+}
+
+func (tsdpos *testDPOSEngine) VerifyStocksWithBlock(reader consensus.ValidatorReader, validators []common.Address, blockHash common.Hash) bool {
+	return true
 }
 
 type Center struct {
@@ -184,10 +191,11 @@ type testNodeService struct {
 func (serv *testNodeService) getMessageLoop() {
 	for {
 		rand.Seed(time.Now().UnixNano())
-		randNumber := rand.Intn(1000)
+		//randNumber := rand.Intn(1000)
+		randNumber := 0
 		select {
 		case data := <-serv.msgChan:
-			fmt.Printf("Sleep %d Millisecond\n", randNumber)
+			//fmt.Printf("Sleep %d Millisecond\n", randNumber)
 			time.Sleep(time.Duration(randNumber) * time.Millisecond)
 
 			switch data.(type) {
@@ -208,19 +216,19 @@ func (serv *testNodeService) getMessageLoop() {
 	}
 }
 func newTestNodeService(testInfo *testNodeState, id int) *TopNodeService {
-	testDpos := testDPOSEngine{dops: mtxdpos.NewMtxDPOS(nil)}
-	testServ := NewTopNodeService(&testDpos, id)
+	testDpos := testDPOSEngine{dops: mtxdpos.NewMtxDPOS()}
+	testServ := NewTopNodeService(&testDpos)
 	testServ.topNodeState = testInfo
 	testServ.validatorSign = testInfo
 	testServ.msgSender = testInfo
 	testServ.msgCenter = newCenter()
-
 	testServ.Start()
+	//todo: add fake validatorReader
 
 	return testServ
 
 }
-func newTestServer() {
+func newTestServer() []testNodeService {
 
 	testServs = make([]testNodeService, 11)
 	nodes := make([]common.Address, 11)
@@ -243,7 +251,7 @@ func newTestServer() {
 			nodeInfo[i].OnlineState = fullstate
 		}
 	}
-
+	return testServs
 }
 func setLeader(index int, number uint64, turn uint8) {
 	serv := testServs[index]
@@ -251,7 +259,7 @@ func setLeader(index int, number uint64, turn uint8) {
 		ConsensusState: true,
 		Leader:         serv.testInfo.self.Address,
 		Number:         number,
-		ReelectTurn:    turn,
+		ReelectTurn:    uint32(turn),
 	}
 	roleChange := mc.RoleUpdatedMsg{
 		Leader:   serv.testInfo.self.Address,
@@ -309,4 +317,350 @@ func TestNewTopNodeServiceRound(t *testing.T) {
 	//	t.Log(testServs[i].TN.stateMap.finishedProposal.DPosVoteS[1].Proposal)
 	//}
 
+}
+
+func TestLeaderChangeNotifyHandler(t *testing.T) {
+	log.InitLog(3)
+
+	t.Run("leaderIsNil", testLeaderIsNil)
+	t.Run("testLeaderIsNotSelf", testLeaderIsNotSelf)
+	t.Run("testLeaderIsSelf", testLeaderIsSelf)
+}
+
+func testLeaderIsNil(t *testing.T) {
+	testService := testNodeService{
+		msgChan: make(chan interface{}, 10),
+	}
+	testService.testInfo = newTestNodeState(1)
+	testService.TN = newTestNodeService(testService.testInfo, 1)
+	leader := common.BytesToAddress([]byte(""))
+	testService.TN.LeaderChangeNotifyHandler(leader)
+
+}
+
+func testLeaderIsNotSelf(t *testing.T) {
+	testService := testNodeService{
+		msgChan: make(chan interface{}, 10),
+	}
+	testService.testInfo = newTestNodeState(1)
+	testService.TN = newTestNodeService(testService.testInfo, 1)
+	leader := common.BytesToAddress([]byte("leader"))
+	testService.TN.LeaderChangeNotifyHandler(leader)
+
+}
+
+func testLeaderIsSelf(t *testing.T) {
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	leader := testService[0].testInfo.self.Address
+	testService[0].TN.LeaderChangeNotifyHandler(leader)
+
+}
+
+func TestConsensusReqMsgHandler(t *testing.T) {
+	log.InitLog(3)
+
+	t.Run("pointerOfRequestIsNil", TestPointerOfRequestIsNil)
+	t.Run("RequestIsNil", TestRequestIsNil)
+	t.Run("RequestIsNotNil", TestRequestIsNotNil)
+	t.Run("ReqIsNil", TestReqIsNil)
+}
+
+func TestPointerOfRequestIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+
+	testService[0].TN.consensusReqMsgHandler(nil)
+
+}
+
+func TestRequestIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+
+	requests := make([]*mc.OnlineConsensusReq, 0)
+	testService[0].TN.consensusReqMsgHandler(requests)
+
+}
+
+func TestRequestIsNotNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	req := &mc.OnlineConsensusReq{
+		Leader:      testService[0].testInfo.self.Address,
+		Seq:         1,
+		Node:        common.Address{},
+		OnlineState: onLine,
+	}
+	requests := make([]*mc.OnlineConsensusReq, 0)
+	requests = append(requests, req)
+	testService[0].TN.consensusReqMsgHandler(requests)
+
+}
+
+func TestReqIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	req := &mc.OnlineConsensusReq{}
+	requests := make([]*mc.OnlineConsensusReq, 0)
+	requests = append(requests, req)
+	testService[0].TN.consensusReqMsgHandler(requests)
+
+}
+
+func TestConsensusVoteMsgHandler(t *testing.T) {
+	log.InitLog(3)
+
+	t.Run("pointerOfMsgtIsNil", TestPointerOfMsgIsNil)
+	t.Run("msgIsNil", TestMsgIsNil)
+	t.Run("msgIsNotNil", TestMsgIsNotNil)
+	t.Run("voteIsNil", TestVoteIsNil)
+}
+
+func TestPointerOfMsgIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+
+	testService[0].TN.consensusVoteMsgHandler(nil)
+}
+
+func TestMsgIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	msg := make([]mc.HD_ConsensusVote, 0)
+	testService[0].TN.consensusVoteMsgHandler(msg)
+
+}
+
+func TestMsgIsNotNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	consensusVote := mc.HD_ConsensusVote{
+		SignHash: common.Hash{},
+		Round:    1,
+		Sign:     common.Signature{},
+		From:     testService[0].testInfo.self.Address,
+	}
+	msg := make([]mc.HD_ConsensusVote, 0)
+	msg = append(msg, consensusVote)
+	testService[0].TN.consensusVoteMsgHandler(msg)
+
+}
+
+func TestVoteIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	consensusVote := mc.HD_ConsensusVote{}
+	msg := make([]mc.HD_ConsensusVote, 0)
+	msg = append(msg, consensusVote)
+	testService[0].TN.consensusVoteMsgHandler(msg)
+
+}
+
+func TestOnlineConsensusVoteResultMsgHandler(t *testing.T) {
+	log.InitLog(3)
+	t.Run("TestPointerOfVoteResultMsgIsNil", TestPointerOfVoteResultMsgIsNil)
+	t.Run("VoteResultmsgIsNil", TestVoteResultMsgIsNil)
+	t.Run("TestSignListOfVoteResultIsBlank", TestSignListOfVoteResultIsBlank)
+	t.Run("VoteResultmsgIsNotNil", TestVoteResultMsgIsNotNil)
+	t.Run("voteIsNil", TestVoteIsNil)
+
+}
+
+func TestPointerOfVoteResultMsgIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+
+	testService[0].TN.OnlineConsensusVoteResultMsgHandler(nil)
+}
+
+func TestVoteResultMsgIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	msg := new(mc.HD_OnlineConsensusVoteResultMsg)
+	fmt.Println("msg", msg)
+	testService[0].TN.OnlineConsensusVoteResultMsgHandler(msg)
+
+}
+
+func TestSignListOfVoteResultIsBlank(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	voteResultMsg := mc.HD_OnlineConsensusVoteResultMsg{
+		Req: &mc.OnlineConsensusReq{
+			Leader:      testService[0].testInfo.self.Address,
+			Seq:         1,
+			Node:        testService[1].testInfo.self.Address,
+			OnlineState: 1,
+		},
+		SignList: make([]common.Signature, 1),
+		From:     testService[0].testInfo.self.Address,
+	}
+
+	testService[0].TN.OnlineConsensusVoteResultMsgHandler(&voteResultMsg)
+
+}
+
+func TestVoteResultMsgIsNotNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	voteResultMsg := mc.HD_OnlineConsensusVoteResultMsg{
+		Req: &mc.OnlineConsensusReq{
+			Leader:      testService[0].testInfo.self.Address,
+			Seq:         1,
+			Node:        testService[1].testInfo.self.Address,
+			OnlineState: 1,
+		},
+		SignList: make([]common.Signature, 1),
+		From:     testService[0].testInfo.self.Address,
+	}
+	sign := common.BytesToSignature([]byte("signlist"))
+	voteResultMsg.SignList = append(voteResultMsg.SignList, sign)
+
+	testService[0].TN.OnlineConsensusVoteResultMsgHandler(&voteResultMsg)
+
+}
+
+func TestCheckPosVoteResults(t *testing.T) {
+	t.Run("TestProposeIsNil", TestProposeIsNil)
+	t.Run("TestVotesIsNil", TestVotesIsNil)
+	t.Run("TestSighHashOfVotesIsNil", TestSighHashOfVotesIsNil)
+	t.Run("TestRountOfVotesIsZero", TestRountOfVotesIsZero)
+	t.Run("TestSighOfVotesIsBlank", TestSighOfVotesIsBlank)
+
+}
+
+func TestProposeIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	vote := &mc.HD_ConsensusVote{
+		SignHash: common.BytesToHash([]byte("hash")),
+		Round:    1,
+		Sign:     common.BytesToSignature([]byte("sigh")),
+		From:     testService[0].testInfo.self.Address,
+	}
+	insVote := voteInfo{messageState.RlpFnvHash(vote), vote}
+	votes := make([]voteInfo, 0)
+	votes = append(votes, insVote)
+	testService[0].TN.checkPosVoteResults(nil, votes)
+}
+
+func TestVotesIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	testService[0].TN.checkPosVoteResults(nil, nil)
+}
+
+func TestSighHashOfVotesIsNil(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	vote := &mc.HD_ConsensusVote{
+		SignHash: common.Hash{},
+		Round:    1,
+		Sign:     common.BytesToSignature([]byte("sigh")),
+		From:     testService[0].testInfo.self.Address,
+	}
+	insVote := voteInfo{messageState.RlpFnvHash(vote), vote}
+	votes := make([]voteInfo, 0)
+	votes = append(votes, insVote)
+	testService[0].TN.checkPosVoteResults(nil, votes)
+}
+func TestRountOfVotesIsZero(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	vote := &mc.HD_ConsensusVote{
+		SignHash: common.BytesToHash([]byte("hash")),
+		Round:    0,
+		Sign:     common.BytesToSignature([]byte("sigh")),
+		From:     testService[0].testInfo.self.Address,
+	}
+	insVote := voteInfo{messageState.RlpFnvHash(vote), vote}
+	votes := make([]voteInfo, 0)
+	votes = append(votes, insVote)
+	testService[0].TN.checkPosVoteResults(nil, votes)
+}
+
+func TestSighOfVotesIsBlank(t *testing.T) {
+	log.InitLog(3)
+
+	testService := newTestServer()
+	testService[0].testInfo = newTestNodeState(0)
+	testService[0].TN = newTestNodeService(testService[0].testInfo, 0)
+	setLeader(0, 1, 0)
+	vote := &mc.HD_ConsensusVote{
+		SignHash: common.BytesToHash([]byte("hash")),
+		Round:    1,
+		Sign:     common.Signature{},
+		From:     testService[0].testInfo.self.Address,
+	}
+	insVote := voteInfo{messageState.RlpFnvHash(vote), vote}
+	votes := make([]voteInfo, 0)
+	votes = append(votes, insVote)
+	testService[0].TN.checkPosVoteResults(nil, votes)
 }

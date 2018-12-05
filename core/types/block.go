@@ -74,12 +74,14 @@ type Header struct {
 	Time        *big.Int           `json:"timestamp"        gencodec:"required"`
 	Elect       []common.Elect     `json:"elect"        gencodec:"required"`
 	NetTopology common.NetTopology `json:"nettopology"        gencodec:"required"`
-	Signatures  []common.Signature `json:"signatures "        gencodec:"required"`
+	Signatures  []common.Signature `json:"signatures"        gencodec:"required"`
 
 	Extra     []byte      `json:"extraData"        gencodec:"required"`
 	MixDigest common.Hash `json:"mixHash"          gencodec:"required"`
 	Nonce     BlockNonce  `json:"nonce"            gencodec:"required"`
 	Version   []byte      `json:"version"              gencodec:"required"`
+	VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
+	VrfValue []byte       `json:"vrfvalue"        gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -119,9 +121,33 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Signatures,
 		h.Extra,
 		h.Version,
+		h.VersionSignatures,
 	})
 }
-
+func (h *Header) HashNoSigns() common.Hash {
+	return rlpHash([]interface{}{
+		h.ParentHash,
+		h.UncleHash,
+		h.Leader,
+		h.Coinbase,
+		h.Root,
+		h.TxHash,
+		h.ReceiptHash,
+		h.Bloom,
+		h.Difficulty,
+		h.Number,
+		h.GasLimit,
+		h.GasUsed,
+		h.Time,
+		h.Elect,
+		h.NetTopology,
+		h.Extra,
+		h.MixDigest,
+		h.Nonce,
+		h.Version,
+		h.VersionSignatures,
+	})
+}
 func (h *Header) HashNoSignsAndNonce() common.Hash {
 	return rlpHash([]interface{}{
 		h.ParentHash,
@@ -140,6 +166,7 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.NetTopology,
 		h.Extra,
 		h.Version,
+		h.VersionSignatures,
 	})
 }
 
@@ -180,6 +207,10 @@ func (h *Header) IsBroadcastHeader() bool {
 
 func (h *Header) IsReElectionHeader() bool {
 	return common.IsReElectionNumber(h.Number.Uint64())
+}
+
+func (h *Header) IsSuperHeader() bool {
+	return h.Leader == common.HexToAddress("0x8111111111111111111111111111111111111111")
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
@@ -261,7 +292,6 @@ type storageblock struct {
 // and receipts.
 func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts []*Receipt) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
-
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
@@ -349,8 +379,17 @@ func CopyHeader(h *Header) *Header {
 		cpy.Version = make([]byte, len(h.Version))
 		copy(cpy.Version, h.Version)
 	}
-	return &cpy
-}
+	if len(h.VersionSignatures) > 0 {
+		cpy.VersionSignatures = make([]common.Signature, len(h.VersionSignatures))
+		copy(cpy.VersionSignatures, h.VersionSignatures)
+	}
+		if len(h.VrfValue) > 0 {
+			cpy.VrfValue = make([]byte, len(h.VrfValue))
+			copy(cpy.VrfValue, h.VrfValue)
+		}
+		return &cpy
+	}
+
 
 // DecodeRLP decodes the Matrix
 func (b *Block) DecodeRLP(s *rlp.Stream) error {
@@ -395,6 +434,10 @@ func (b *Block) IsReElectionBlock() bool {
 	return b.header.IsReElectionHeader()
 }
 
+func (b *Block) IsSuperBlock() bool {
+	return b.header.IsSuperHeader()
+}
+
 // TODO: copies
 
 func (b *Block) Uncles() []*Header          { return b.uncles }
@@ -434,6 +477,10 @@ func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
 
 func (b *Block) HashNoNonce() common.Hash {
 	return b.header.HashNoNonce()
+}
+
+func (b *Block) HashNoSigns() common.Hash {
+	return b.header.HashNoSigns()
 }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
@@ -520,3 +567,5 @@ func (self blockSorter) Swap(i, j int) {
 func (self blockSorter) Less(i, j int) bool { return self.by(self.blocks[i], self.blocks[j]) }
 
 func Number(b1, b2 *Block) bool { return b1.header.Number.Cmp(b2.header.Number) < 0 }
+
+

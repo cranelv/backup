@@ -6,11 +6,11 @@ package leaderelect
 import (
 	"time"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"strconv"
 	"sync"
-	"github.com/matrix/go-matrix/common"
 )
 
 type controller struct {
@@ -103,7 +103,7 @@ func (self *controller) sendLeaderMsg() {
 
 func (self *controller) setTimer(outTime int64, timer *time.Timer) {
 	var OK bool
-	if outTime == 0 {
+	if outTime <= 0 {
 		OK = timer.Stop()
 	} else {
 		OK = timer.Reset(time.Duration(outTime) * time.Second)

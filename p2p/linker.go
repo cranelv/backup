@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package p2p
@@ -20,7 +20,8 @@ import (
 type Linker struct {
 	role common.RoleType
 
-	active bool
+	active          bool
+	broadcastActive bool
 
 	sub event.Subscription
 
@@ -78,9 +79,6 @@ func (l *Linker) Start() {
 
 				if r.Role <= common.RoleBucket {
 					l.role = common.RoleNil
-					if l.active {
-						l.activeQuit <- struct{}{}
-					}
 					break
 				}
 				if l.role != r.Role {
@@ -118,6 +116,8 @@ func (l *Linker) Start() {
 				switch {
 				case common.IsBroadcastNumber(height):
 					l.ToLink()
+					l.broadcastActive = true
+
 				case common.IsBroadcastNumber(height + 2):
 					if len(l.linkMap) <= 0 {
 						break
@@ -133,6 +133,11 @@ func (l *Linker) Start() {
 				default:
 					l.sendToAllPeersPing()
 				}
+
+				if !l.broadcastActive {
+					l.ToLink()
+					l.broadcastActive = true
+				}
 			}
 		case <-l.quit:
 			return
@@ -142,7 +147,9 @@ func (l *Linker) Start() {
 
 func (l *Linker) Stop() {
 	l.quit <- struct{}{}
-	l.activeQuit <- struct{}{}
+	if l.active {
+		l.activeQuit <- struct{}{}
+	}
 }
 
 func (l *Linker) initTopNodeMap() {

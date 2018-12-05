@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package common
 
@@ -32,24 +31,24 @@ var (
 )
 
 const (
-	MainAccount = iota	//主账户
-	FreezeAccount		//冻结账户
-	LockAccount			//锁仓账户
-	WithdrawAccount		//可撤销账户
-	EntrustAccount		//委托账户
+	MainAccount     = iota //主账户
+	FreezeAccount          //冻结账户
+	LockAccount            //锁仓账户
+	WithdrawAccount        //可撤销账户
+	EntrustAccount         //委托账户
 )
-var LastAccount uint32 = EntrustAccount	//必须赋值最后一个账户
+
+var LastAccount uint32 = EntrustAccount //必须赋值最后一个账户
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
 
 //hezi账户属性定义
 type BalanceSlice struct {
-	AccountType	uint32
-	Balance	*big.Int
+	AccountType uint32
+	Balance     *big.Int
 }
 type BalanceType []BalanceSlice
-
 
 func BytesToHash(b []byte) Hash {
 	var h Hash
@@ -413,16 +412,16 @@ type RewarTx struct {
 	To_Amont      map[Address]*big.Int
 }
 
-var (
-	BlkRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
-	LeaderRewarAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
-	InterestRewardAddress  Address = HexToAddress("0x8000000000000000000000000000000000000002")   //利息
-	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000003")   //交易费
-	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000004")   //彩票
-)
 const (
 	StateDBRevocableBtree string = "RevcBTree"
 	StateDBTimeBtree      string = "TimeBtree"
+)
+
+var (
+    BlkMinerRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
+    BlkValidatorRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
+	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000002")   //交易费
+	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000003")   //彩票
 )
 
 const (
@@ -435,6 +434,8 @@ const (
 	ExtraCancelEntrust   byte = 6 //取消委托
 	ExtraTimeTxType      byte = 7  //定时交易
 	ExtraAItxType        byte = 8 //AI 交易
+	ExtraSuperBlockTx    byte = 120 //超级区块交易
+
 )
 
 type TxTypeInt uint8
@@ -487,3 +488,4 @@ type AuthType struct {
 	StartHeight     uint64   //委托起始时间
 	EndHeight       uint64   //委托结束时间
 }
+

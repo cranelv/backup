@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
-
 	"github.com/matrix/go-matrix/p2p"
-
 	"time"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"

@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package consensus implements different Matrix consensus engines.
 package consensus
@@ -12,9 +11,9 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
-	"github.com/matrix/go-matrix/mc"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -102,6 +101,8 @@ type ValidatorReader interface {
 }
 
 type DPOSEngine interface {
+	VerifyVersion(reader ValidatorReader, header *types.Header) error
+
 	VerifyBlock(reader ValidatorReader, header *types.Header) error
 
 	VerifyBlocks(reader ValidatorReader, headers []*types.Header) error
@@ -109,14 +110,10 @@ type DPOSEngine interface {
 	//verify hash in current block
 	VerifyHash(reader ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)
 
-	//verify hash in given number block
+	//verify hash in given block
 	VerifyHashWithBlock(reader ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error)
-
 
 	VerifyHashWithVerifiedSigns(reader ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error)
 
 	VerifyHashWithVerifiedSignsAndBlock(reader ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error)
-
-	//verify validators have enough stocks
-	VerifyStocksWithBlock(reader ValidatorReader, validators []common.Address, blockHash common.Hash) bool
 }

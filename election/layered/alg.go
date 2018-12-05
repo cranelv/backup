@@ -8,21 +8,62 @@ import (
 
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/election/support"
+	"math/big"
+	"github.com/matrix/go-matrix/common"
+	"math/rand"
 )
 
-func CalEchelonNum(vmData []vm.DepositDetail) ([]vm.DepositDetail, []vm.DepositDetail) {
-	FirstQuota := []vm.DepositDetail{}
-	SecondQuota := []vm.DepositDetail{}
-	for _, v := range vmData {
-		if v.Deposit.Uint64() >= FirstEchelon.MinMoney {
-			FirstQuota = append(FirstQuota, v)
-		} else if v.Deposit.Uint64() >= SecondEchelon.MinMoney {
-			SecondQuota = append(SecondQuota, v)
+
+const (
+	DefauleStock = 1
+
+)
+
+var (
+	man                = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	vip1     = new(big.Int).Mul(big.NewInt(100000), man)
+	vip2     = new(big.Int).Mul(big.NewInt(40000), man)
+
+)
+
+func FindIndex(ans *big.Int) int {
+
+	for k, v := range common.EchelonArrary {
+		//fmt.Println("v.MinMoney",v.MinMoney,"ans",ans)
+		if ans.Cmp(v.MinMoney)>=0{
+			return k
 		}
 	}
-	return FirstQuota, SecondQuota
+	return -1
+}
+func CalEchelonNum(vmData []vm.DepositDetail) [][]vm.DepositDetail {
+	ans := [][]vm.DepositDetail{}
+	for index := 0; index < len(common.EchelonArrary); index++ {
+		ans = append(ans, []vm.DepositDetail{})
+	}
+
+	for _, v := range vmData {
+		//fmt.Println("56666666","big.Nit",v.Deposit.String(),"Uint64",v.Deposit.Uint64())
+		index := FindIndex(v.Deposit)
+		//	fmt.Println("index", index, "deposit", v.Deposit.Uint64())
+		if index == -1 {
+			continue
+		}
+		ans[index] = append(ans[index], v)
+	}
+	return ans
 }
 
+func GetRatio(aim uint64) float64 {
+	switch {
+	case aim >= 10000000:
+		return 2.0
+	case aim >= 1000000 && aim < 10000000:
+		return 1.0
+	default:
+		return 0.5
+	}
+}
 func GetValueByDeposit(vm []vm.DepositDetail) []support.Stf {
 	value := []support.Stf{}
 	for _, v := range vm {
@@ -30,19 +71,7 @@ func GetValueByDeposit(vm []vm.DepositDetail) []support.Stf {
 			Str: v.NodeID.String(),
 		}
 
-		if v.Deposit.Uint64() >= 1000*1000 {
-			temp.Flot = 1.5
-		} else if v.Deposit.Uint64() >= 100*1000 {
-			temp.Flot = 1.4
-		} else if v.Deposit.Uint64() >= 10*1000 {
-			temp.Flot = 1.3
-		} else if v.Deposit.Uint64() >= 1*1000 {
-			temp.Flot = 1.2
-		} else if v.Deposit.Uint64() >= 0.1*1000 {
-			temp.Flot = 1.1
-		} else {
-			temp.Flot = 1.0
-		}
+		temp.Flot = GetRatio(v.Deposit.Uint64())
 		value = append(value, temp)
 	}
 	return value
@@ -68,7 +97,22 @@ func (self VMS) Swap(i, j int) {
 	self[i].OnlineTime, self[j].OnlineTime = self[j].OnlineTime, self[i].OnlineTime
 }
 
-func sortByDepositAndUptime(vm []vm.DepositDetail) []vm.DepositDetail {
+
+func Knuth_Fisher_Yates_Algorithm(vm []vm.DepositDetail,randSeed *big.Int)[]vm.DepositDetail{
+	//高纳德置乱算法
+	rand.Seed(randSeed.Int64())
+	for index:=len(vm)-1;index>0;index--{
+		aimIndex:=rand.Intn(index+1)
+		t:=vm[index]
+		vm[index]=vm[aimIndex]
+		vm[aimIndex]=t
+	}
+	return vm
+}
+func sortByDepositAndUptime(vm []vm.DepositDetail,random *big.Int) []vm.DepositDetail {
+
+	vm=Knuth_Fisher_Yates_Algorithm(vm,random )
+
 	/*
 		for _, v := range vm {
 			fmt.Println("sort前", v.NodeID.String(), v.Address.String(), v.OnlineTime.String())

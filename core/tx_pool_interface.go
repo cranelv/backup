@@ -27,7 +27,6 @@ type TxPool interface {
 	Stop()
 	AddTxPool(tx types.SelfTransaction) error
 	Pending() (map[common.Address][]types.SelfTransaction, error)
-	//SubscribeNewTxsEvent(chan<- NewTxsEvent) event.Subscription
 	ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool)
 }
 

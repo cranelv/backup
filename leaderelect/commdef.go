@@ -10,8 +10,8 @@ import (
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/msgsend"
 )
 
 var (
@@ -80,10 +80,4 @@ type startControllerMsg struct {
 	role         common.RoleType
 	validators   []mc.TopologyNodeInfo
 	parentHeader *types.Header
-}
-
-type sendNewBlockReadyRsp struct {
-	repHash   common.Hash
-	target    common.Address
-	rspNumber uint64
 }

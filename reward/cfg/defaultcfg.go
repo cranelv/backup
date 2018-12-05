@@ -20,15 +20,17 @@ const (
 	PackageName = "奖励"
 
 	//todo: 分母10000， 加法做参数检查
-	MinersBlockRewardRate     = uint64(4000) //矿工网络奖励40%
+	MinersBlockRewardRate     = uint64(5000) //矿工网络奖励50%
 	ValidatorsBlockRewardRate = uint64(5000) //验证者网络奖励50%
-	FoundationBlockRewardRate = uint64(1000) //基金会网络奖励10%
+
 
 	MinerOutRewardRate     = uint64(4000) //出块矿工奖励40%
-	ElectedMinerRewardRate = uint64(6000) //当选矿工奖励60%
+	ElectedMinerRewardRate = uint64(5000) //当选矿工奖励50%
+	FoundationMinerRewardRate = uint64(1000) //基金会网络奖励10%
 
 	LeaderRewardRate            = uint64(4000) //出块验证者（leader）奖励40%
-	ElectedValidatorsRewardRate = uint64(6000) //当选验证者奖励60%
+	ElectedValidatorsRewardRate = uint64(5000) //当选验证者奖励60%
+	FoundationValidatorsRewardRate = uint64(1000) //基金会网络奖励10%
 
 	OriginElectOfflineRewardRate = uint64(5000) //初选下线验证者奖励50%
 	BackupRate                   = uint64(5000) //当前替补验证者奖励50%
@@ -37,13 +39,15 @@ const (
 type RewardMountCfg struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
-	FoundationRate uint64 //基金会网络奖励
 
-	MinerOutRate    uint64 //出块矿工奖励
-	ElectedMineRate uint64 //当选矿工奖励
+
+	MinerOutRate        uint64 //出块矿工奖励
+	ElectedMinerRate    uint64 //当选矿工奖励
+	FoundationMinerRate uint64 //基金会网络奖励
 
 	LeaderRate            uint64 //出块验证者（leader）奖励
 	ElectedValidatorsRate uint64 //当选验证者奖励
+	FoundationValidatorRate uint64 //基金会网络奖励
 
 	OriginElectOfflineRate uint64 //初选下线验证者奖励
 	BackupRewardRate       uint64 //当前替补验证者奖励
@@ -103,10 +107,13 @@ func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, rewards map[comm
 	str.leader.SetLeaderRewards(reward, rewards, Leader, num)
 }
 func (str *DefaultSetRewards) SetSelectedRewards(reward *big.Int, chain ChainReader, topRewards map[common.Address]*big.Int, roleType common.RoleType, header *types.Header, rate uint64) {
+	if common.IsBroadcastNumber(header.Number.Uint64()) {
+		return
+	}
 	str.selected.SetSelectedRewards(reward, chain, topRewards, roleType, header, rate)
 }
 func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
-	if common.IsBroadcastNumber(num.Uint64()-1) {
+	if common.IsBroadcastNumber(num.Uint64()) {
 		return
 	}
 	str.miner.SetMinerOutRewards(reward, chain, num, rewards)
@@ -119,13 +126,15 @@ func New(RewardMount *RewardMountCfg, SetReward SetRewardsExec) *RewardCfg {
 		RewardMount = &RewardMountCfg{
 			MinersRate:     MinersBlockRewardRate,
 			ValidatorsRate: ValidatorsBlockRewardRate,
-			FoundationRate: FoundationBlockRewardRate,
 
-			MinerOutRate:    MinerOutRewardRate,
-			ElectedMineRate: ElectedMinerRewardRate,
+
+			MinerOutRate:     MinerOutRewardRate,
+			ElectedMinerRate: ElectedMinerRewardRate,
+			FoundationMinerRate:FoundationMinerRewardRate,
 
 			LeaderRate:            LeaderRewardRate,
 			ElectedValidatorsRate: ElectedValidatorsRewardRate,
+			FoundationValidatorRate:FoundationValidatorsRewardRate,
 
 			OriginElectOfflineRate: OriginElectOfflineRewardRate,
 			BackupRewardRate:       BackupRate,

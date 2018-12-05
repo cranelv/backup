@@ -70,6 +70,7 @@ func Sender(signer Signer, tx SelfTransaction) (common.Address, error) {
 				return sigCache.from, nil
 			}
 		}
+
 	}
 
 	addr, err := signer.Sender(tx)

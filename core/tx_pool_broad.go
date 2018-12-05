@@ -65,6 +65,10 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 		return
 	}
 
+	if 0==len(head.Transactions()){
+		return
+	}
+
 	var (
 		signer  = types.NewEIP155Signer(chainId)
 		tempMap = make(map[string]map[common.Address][]byte)
@@ -347,10 +351,6 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 	log.Info("File tx_pool_broad", "func GetAllSpecialTxs::len(reqVal)", len(reqVal))
 	return reqVal
 }
-
-//func (bPool *BroadCastTxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
-//	return nil
-//}
 func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 
 }

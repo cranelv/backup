@@ -839,7 +839,6 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	if err != nil{
 		return nil, err
 	}
-
 	accounts := make([]common.VerifiedSign1, 0)
 	for _,tmpverSign := range verSignList{
 		accounts = append(accounts, common.VerifiedSign1{
@@ -850,6 +849,9 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 		})
 	}
 	return accounts,nil
+}
+func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
+	return s.b.ImportSuperBlock(ctx, filePath)
 }
 // ExecutionResult groups all structured logs emitted by the EVM
 // while replaying a transaction in debug mode as well as transaction
@@ -940,7 +942,9 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 		"elect":            head.Elect,
 		"nettopology":      head.NetTopology,
 		"signatures":       head.Signatures,
-		"version":          hexutil.Bytes(head.Version),
+		"version":           string(head.Version),
+		"versionSignatures": head.VersionSignatures,
+		"vrfvalue":  hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {
@@ -1158,9 +1162,10 @@ type RPCTransaction struct {
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
 	var signer types.Signer //= types.FrontierSigner{}
-	if tx.Protected() {
+	//if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
-	}
+	//}
+
 	var from common.Address
 
 	if tx.GetMatrixType() == common.ExtraUnGasTxType{
@@ -1366,9 +1371,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	receipt := receipts[index]
 
 	var signer types.Signer //= types.FrontierSigner{}
-	if tx.Protected() {
+	//if tx.Protected() {
 		signer = types.NewEIP155Signer(tx.ChainId())
-	}
+	//}
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1853,9 +1858,9 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
-		if tx.Protected() {
+		//if tx.Protected() {
 			signer = types.NewEIP155Signer(tx.ChainId())
-		}
+		//}
 		from, _ := types.Sender(signer, tx)
 		if _, err := s.b.AccountManager().Find(accounts.Account{Address: from}); err == nil {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
@@ -1886,9 +1891,9 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs1 SendTxA
 
 	for _, p := range pending {
 		var signer types.Signer //= types.HomesteadSigner{}
-		if p.Protected() {
+		//if p.Protected() {
 			signer = types.NewEIP155Signer(p.ChainId())
-		}
+		//}
 		wantSigHash := signer.Hash(matchTx)
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p) == wantSigHash {
