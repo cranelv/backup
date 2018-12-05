@@ -227,7 +227,7 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 		if index >= len(seals) {
 			index = len(seals) - 1
 		}
-		if common.IsBroadcastNumber(chain[index].Number.Uint64()) {
+		if common.IsBroadcastNumber(chain[index].Number.Uint64()) ||chain[index].IsSuperHeader(){
 			seals[index] = false
 		} else {
 			seals[index] = true

@@ -703,7 +703,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
         if trueSBS > sbs||trueTD.Cmp(td) > 0{
-	        p.SetHead(trueHead, trueTD,sbs,request.SBH)
+	        p.SetHead(trueHead, trueTD,trueSBS,request.SBH)
 
 	        // Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 	        // a singe block (as the true TD is below the propagated block), however this

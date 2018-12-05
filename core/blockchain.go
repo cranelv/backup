@@ -1414,7 +1414,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			logs                    = make([]*types.Log, 0)
 			usedGas  uint64         = 0
 		)
-		if block.IsSuperBlock() &&block.Header().SuperBlockSeq()>bc.GetSuperBlockSeq(){
+		if block.IsSuperBlock() {
+			if block.Header().SuperBlockSeq()<=bc.GetSuperBlockSeq(){
+				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)",block.Header().SuperBlockSeq(), bc.GetSuperBlockSeq())
+			}
 			err = bc.processSuperBlockState(block, state)
 			if err != nil {
 				bc.reportBlock(block, receipts, err)
@@ -2003,6 +2006,9 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 	}
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
+	}
+	if block.Header().SuperBlockSeq()<=bc.GetSuperBlockSeq(){
+		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) != genesis block(%v)", bc.GetSuperBlockSeq(), block.Header().SuperBlockSeq())
 	}
 
 	if err := bc.DPOSEngine().VerifyBlock(bc, block.Header()); err != nil {
