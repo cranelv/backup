@@ -5,8 +5,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/rlp"
 	"io"
-	"math/big"
-	"sync/atomic"
+	"time"
 )
 
 type TransactionBroad struct {
@@ -68,20 +67,20 @@ func newBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	tx := &TransactionBroad{data: d}
 	return tx
 }
-func (tx *TransactionBroad) CoinType() string {
-	return ""
-}
+
 func (tx *TransactionBroad) SetCoinType(typ string) {}
 func (tx *TransactionBroad) TxType() byte           { return tx.data.TxEnterType }
-func (tx *TransactionBroad) Data() []byte           { return common.CopyBytes(tx.data.Payload) }
-func (tx *TransactionBroad) Gas() uint64            { return tx.data.GasLimit }
-func (tx *TransactionBroad) GasPrice() *big.Int     { return new(big.Int).Set(tx.data.Price) }
-func (tx *TransactionBroad) Value() *big.Int        { return new(big.Int).Set(tx.data.Amount) }
-func (tx *TransactionBroad) Nonce() uint64          { return tx.data.AccountNonce }
-func (tx *TransactionBroad) CheckNonce() bool       { return true }
+
+func (tx *TransactionBroad) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
+func (tx *TransactionBroad) Gas() uint64        { return tx.data.GasLimit }
+func (tx *TransactionBroad) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
+func (tx *TransactionBroad) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
+func (tx *TransactionBroad) Nonce() uint64      { return tx.data.AccountNonce }
+func (tx *TransactionBroad) CheckNonce() bool   { return true }
 func (tx *TransactionBroad) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
+func (tx *TransactionBroad) IsEntrustTx() bool { return tx.data.IsEntrustTx == 1 }
 func (tx *TransactionBroad) Setentrustfrom(x interface{}) {
 
 }
@@ -98,6 +97,17 @@ func (tx *TransactionBroad) GetMatrixType() byte {
 //
 func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}
+}
+
+func (tx *TransactionBroad) GetCreateTime() uint32 {
+	return uint32(tx.data.CommitTime)
+}
+
+func (tx *TransactionBroad) GetLocalHeight() uint32 {
+	if tx.data.Extra != nil && len(tx.data.Extra) > 0 {
+		return uint32(tx.data.Extra[0].LockHeight)
+	}
+	return uint32(time.Now().Unix())
 }
 func (tx *TransactionBroad) SetTxV(v *big.Int) { tx.data.V = v }
 func (tx *TransactionBroad) SetTxR(r *big.Int) { tx.data.R = r }
@@ -116,6 +126,13 @@ func (tx *TransactionBroad) GetFromLoad() interface{} {
 }
 func (tx *TransactionBroad) SetFromLoad(x interface{}) {
 	tx.from.Store(x)
+}
+
+func (tx *TransactionBroad) SetTxCurrency(currency string) {
+
+}
+func (tx *TransactionBroad) GetTxCurrency() string {
+	return ""
 }
 
 //YY
@@ -186,6 +203,58 @@ func (tx *TransactionBroad) Size() common.StorageSize {
 	return common.StorageSize(c)
 }
 
+////YY
+//func (tx *TransactionBroad) SetTransactionMx(tx_Mx *Transaction_Mx)(txer SelfTransaction ){
+//	if tx_Mx == nil{
+//		return nil
+//	}
+//
+//	tx.data.AccountNonce=tx_Mx.Data.AccountNonce
+//	tx.data.Price=tx_Mx.Data.Price
+//	tx.data.GasLimit=tx_Mx.Data.GasLimit
+//	tx.data.Recipient=tx_Mx.Data.Recipient
+//	tx.data.Amount=tx_Mx.Data.Amount
+//	tx.data.Payload=tx_Mx.Data.Payload
+//	// Signature values
+//	tx.data.V=tx_Mx.Data.V
+//	tx.data.R=tx_Mx.Data.R
+//	tx.data.S=tx_Mx.Data.S
+//	tx.data.TxEnterType=BroadCastTxIndex
+//	tx.data.Extra=tx_Mx.Data.Extra
+//
+//	mx := Matrix_Extra{
+//		TxType: tx_Mx.TxType_Mx,
+//	}
+//	tx.data.Extra = append(tx.data.Extra, mx)
+//	txa := &TransactionBroad{data: tx.data}
+//	txer = txa
+//	return
+//}
+//
+////YY
+//func (tx *TransactionBroad)GetTransactionMx(stx SelfTransaction) *Transaction_Mx {
+//	btx,ok:=stx.(*TransactionBroad)
+//	if !ok {
+//		return nil
+//	}
+//	tx_Mx := &Transaction_Mx{}
+//	tx_Mx.Data.AccountNonce = btx.data.AccountNonce
+//	tx_Mx.Data.Price = btx.data.Price
+//	tx_Mx.Data.GasLimit = btx.data.GasLimit
+//	tx_Mx.Data.Recipient = btx.data.Recipient
+//	tx_Mx.Data.Amount = btx.data.Amount
+//	tx_Mx.Data.Payload = btx.data.Payload
+//	// Signature values
+//	tx_Mx.Data.V = btx.data.V
+//	tx_Mx.Data.R = btx.data.R
+//	tx_Mx.Data.S = btx.data.S
+//	tx_Mx.Data.Extra = btx.data.Extra
+//	tx_Mx.Data.TxEnterType = btx.data.TxEnterType
+//	if len(btx.data.Extra) > 0 {
+//		tx_Mx.TxType_Mx = btx.data.Extra[0].TxType
+//	}
+//	return tx_Mx
+//}
 //YY
 func SetTransactionMx(tx_Mx *Transaction_Mx) *TransactionBroad {
 	if tx_Mx == nil {

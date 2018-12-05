@@ -417,9 +417,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	rewardList := work.CalcRewardAndSlash(p.blockChain())
-
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, rewardList)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)

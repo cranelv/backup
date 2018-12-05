@@ -230,17 +230,23 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 		if !ok {
 			return common.Hash{}
 		}
-		if len(tx.data.Extra) > 0 { //YY
+		if tx.Mtype == true {
+			var data1 txdata1
+			TxdataAddresToString(tx.Currency, &tx.data, &data1)
 			return rlpHash([]interface{}{
-				tx.data.AccountNonce,
-				tx.data.Price,
-				tx.data.GasLimit,
-				tx.data.Recipient,
-				tx.data.Amount,
-				tx.data.Payload,
-				tx.data.Extra,
+				data1.AccountNonce,
+				data1.Price,
+				data1.GasLimit,
+				data1.Recipient,
+				data1.Amount,
+				data1.Payload,
 				s.chainId, uint(0), uint(0),
+				data1.TxEnterType,
+				data1.IsEntrustTx,
+				data1.CommitTime,
+				data1.Extra,
 			})
+
 		} else {
 			return rlpHash([]interface{}{
 				tx.data.AccountNonce,
@@ -250,6 +256,10 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 				tx.data.Amount,
 				tx.data.Payload,
 				s.chainId, uint(0), uint(0),
+				tx.data.TxEnterType,
+				tx.data.IsEntrustTx,
+				tx.data.CommitTime,
+				tx.data.Extra,
 			})
 		}
 	case BroadCastTxIndex:

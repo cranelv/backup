@@ -31,8 +31,6 @@ type SelfTransaction interface {
 	SetTxR(r *big.Int)
 	To() *common.Address
 	Hash() common.Hash
-	GetTxHashStruct() //获取交易结构中需要哈希的成员  返回值应该是什么？？？？？
-	Call() error      //执行交易
 	Size() common.StorageSize
 	GetFromLoad() interface{}
 	SetFromLoad(x interface{})
@@ -47,8 +45,11 @@ type SelfTransaction interface {
 	AmontFrom() common.Address
 	GetMatrixType() byte
 	Setentrustfrom(x interface{})
-	CoinType() string
-	SetCoinType(typ string)
+	IsEntrustTx() bool
+	SetTxCurrency(currency string)
+	GetTxCurrency() string
+	GetCreateTime() uint32
+	GetLocalHeight() uint32
 }
 
 func SetTransactionToMx(txer SelfTransaction) (txm *Transaction_Mx) {

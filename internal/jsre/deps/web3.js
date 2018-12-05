@@ -2246,10 +2246,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
+    if (!(/^[A-Z]{2,8}\.[0-9a-zA-Z]{40,60}$/.test(address))) {
         // check if it has the basic requirements of an address
         return false;
-    } else if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+    } else if ((/^[A-Z]{2,8}\.[0-9a-zA-Z]{40,60}$/.test(address))) {
         // If it's all small caps or all all caps, return true
         return true;
     } else {
@@ -2267,7 +2267,7 @@ var isAddress = function (address) {
 */
 var isChecksumAddress = function (address) {
     // Check each case
-    address = address.replace('0x','');
+    //address = address.replace('0x','');
     var addressHash = sha3(address.toLowerCase());
 
     for (var i = 0; i < 40; i++ ) {
@@ -2318,8 +2318,8 @@ var toAddress = function (address) {
         return address;
     }
 
-    if (/^[0-9a-f]{40}$/.test(address)) {
-        return '0x' + address;
+    if (/^[A-Z]{2,8}\.[0-9a-zA-Z]{40,60}$/.test(address)) {
+        return address;
     }
 
     return '0x' + padLeft(toHex(address).substr(2), 40);
@@ -3960,13 +3960,13 @@ var outputVerifiedSignFormatter = function (VerifiedSigns) {
 var inputAddressFormatter = function (address) {
     var iban = new Iban(address);
     if (iban.isValid() && iban.isDirect()) {
-        return '0x' + iban.address();
+        return iban.address();
     } else if (utils.isStrictAddress(address)) {
         return address;
     } else if (utils.isAddress(address)) {
-        return '0x' + address;
+        return address;
     }
-    throw new Error('invalid address');
+    throw new Error('invalid address 111');
 };
 
 

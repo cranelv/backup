@@ -167,3 +167,90 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	return nil
 }
+
+//hezi
+func (g *Genesis1) UnmarshalJSON(input []byte) error {
+	type Genesis struct {
+		Config            *params.ChainConfig       `json:"config"`
+		Nonce             *math.HexOrDecimal64      `json:"nonce"`
+		Timestamp         *math.HexOrDecimal64      `json:"timestamp"`
+		ExtraData         *hexutil.Bytes            `json:"extraData"`
+		Version           string                    `json:"version"`
+		VersionSignatures *[]common.Signature       `json:"versionSignatures"`
+		Leader            *string                   `json:"leader"`
+		Elect             *[]common.Elect1          `json:"elect" gencodec:"required"`
+		NetTopology       *common.NetTopology1      `json:"nettopology"        gencodec:"required"`
+		Signatures        *[]common.Signature       `json:"signatures" gencodec:"required"`
+		GasLimit          *math.HexOrDecimal64      `json:"gasLimit"   gencodec:"required"`
+		Difficulty        *math.HexOrDecimal256     `json:"difficulty" gencodec:"required"`
+		Mixhash           *common.Hash              `json:"mixHash"`
+		Coinbase          *string                   `json:"coinbase"`
+		Alloc             map[string]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Number            *math.HexOrDecimal64      `json:"number"`
+		GasUsed           *math.HexOrDecimal64      `json:"gasUsed"`
+		ParentHash        *common.Hash              `json:"parentHash"`
+	}
+	var dec Genesis
+	if err := json.Unmarshal(input, &dec); err != nil {
+		return err
+	}
+	if dec.Config != nil {
+		g.Config = dec.Config
+	}
+	if dec.Nonce != nil {
+		g.Nonce = uint64(*dec.Nonce)
+	}
+	if dec.Timestamp != nil {
+		g.Timestamp = uint64(*dec.Timestamp)
+	}
+	if dec.ExtraData != nil {
+		g.ExtraData = *dec.ExtraData
+	}
+	g.Version = dec.Version
+	if dec.VersionSignatures != nil {
+		g.VersionSignatures = *dec.VersionSignatures
+	}
+	if dec.Leader != nil {
+		g.Leader = *dec.Leader
+	}
+	if dec.Elect != nil {
+		g.Elect = *dec.Elect
+	}
+	if dec.NetTopology != nil {
+		g.NetTopology = *dec.NetTopology
+	}
+	if dec.Signatures != nil {
+		g.Signatures = *dec.Signatures
+	}
+	if dec.GasLimit == nil {
+		return errors.New("missing required field 'gasLimit' for Genesis")
+	}
+	g.GasLimit = uint64(*dec.GasLimit)
+	if dec.Difficulty == nil {
+		return errors.New("missing required field 'difficulty' for Genesis")
+	}
+	g.Difficulty = (*big.Int)(dec.Difficulty)
+	if dec.Mixhash != nil {
+		g.Mixhash = *dec.Mixhash
+	}
+	if dec.Coinbase != nil {
+		g.Coinbase = *dec.Coinbase
+	}
+	if dec.Alloc == nil {
+		return errors.New("missing required field 'alloc' for Genesis")
+	}
+	g.Alloc = make(GenesisAlloc1, len(dec.Alloc))
+	for k, v := range dec.Alloc {
+		g.Alloc[k] = v
+	}
+	if dec.Number != nil {
+		g.Number = uint64(*dec.Number)
+	}
+	if dec.GasUsed != nil {
+		g.GasUsed = uint64(*dec.GasUsed)
+	}
+	if dec.ParentHash != nil {
+		g.ParentHash = *dec.ParentHash
+	}
+	return nil
+}
