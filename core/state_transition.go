@@ -599,13 +599,13 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 			AuthData := new(common.AuthType)
 			err = json.Unmarshal(tmpAuthMarsha1Data,AuthData)
 			if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
-				log.Error("该委托人已经被委托过了，不能重复委托")
+				log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
 				return nil, 0, false, ErrRepeatEntrust //如果一个不满足就返回，不continue
 			}
 			//如果是同一个人委托，委托的时间不能重合
 			if AuthData.AuthAddres.Equal(Authfrom){
 				if EntrustData.StartHeight <= AuthData.EndHeight{
-					log.Error("同一个授权人的委托时间不能重合")
+					log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
 					return nil, 0, false, ErrRepeatEntrust
 				}
 			}
