@@ -160,9 +160,12 @@ func (tab *Table) Self() *Node {
 }
 
 func (tab *Table) GetNodeByAddress(address common.Address) *Node {
+	tab.mutex.Lock()
 	if val, ok := tab.nodeBindAddress[address]; ok {
+		tab.mutex.Unlock()
 		return val
 	}
+	tab.mutex.Unlock()
 	// Otherwise, do a network lookup.
 	for _, boot := range params.MainnetBootnodes {
 		node, _ := ParseNode(boot)
