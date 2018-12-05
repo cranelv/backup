@@ -1151,6 +1151,10 @@ func (nPool *NormalTxPool) blockTiming() {
 //YY 根据交易获取交易中的from
 func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
+	maxProcs := runtime.NumCPU()   //获取cpu个数
+	if maxProcs >= 2{
+		runtime.GOMAXPROCS(maxProcs-1)  //限制同时运行的goroutines数量
+	}
 	for _, tx := range txs {
 		waitG.Add(1)
 		ttx := tx
