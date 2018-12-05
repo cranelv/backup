@@ -292,6 +292,17 @@ func (srv *Server) AddPeer(node *discover.Node) {
 	}
 }
 
+func (srv *Server) AddPeerByAddress(addr common.Address) {
+	node := srv.ntab.GetNodeByAddress(addr)
+	if node == nil {
+		return
+	}
+	select {
+	case srv.addstatic <- node:
+	case <-srv.quit:
+	}
+}
+
 // RemovePeer disconnects from the given node
 func (srv *Server) RemovePeer(node *discover.Node) {
 	select {

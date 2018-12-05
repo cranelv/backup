@@ -53,6 +53,8 @@ const (
 	pongPacket
 	findnodePacket
 	neighborsPacket
+	findnodeByAddrPacket
+	addrNeighborsPacket
 )
 
 // RPC request structures
@@ -95,6 +97,18 @@ type (
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
+	}
+
+	findnodeByAddress struct {
+		Target     common.Address
+		Expiration uint64
+		Rest       []rlp.RawValue `rlp:"tail"`
+	}
+
+	addrNeighbors struct {
+		Node       rpcNode
+		Expiration uint64
+		Rest       []rlp.RawValue `rlp:"tail"`
 	}
 
 	rpcNode struct {
@@ -335,6 +349,26 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	})
 	err := <-errc
 	return nodes, err
+}
+
+func (t *udp) findnodeByAddress(toid NodeID, toaddr *net.UDPAddr, target common.Address) (*Node, error) {
+	node := new(Node)
+
+	errc := t.pending(toid, addrNeighborsPacket, func(r interface{}) bool {
+		reply := r.(*addrNeighbors)
+		n, err := t.nodeFromRPC(toaddr, reply.Node)
+		if err != nil {
+			log.Trace("Invalid neighbor node received", "ip", reply.Node.IP, "addr", toaddr, "err", err)
+		}
+		node = n
+		return node == nil
+	})
+	t.send(toaddr, findnodeByAddrPacket, &findnodeByAddress{
+		Target:     target,
+		Expiration: uint64(time.Now().Add(expiration).Unix()),
+	})
+	err := <-errc
+	return node, err
 }
 
 // pending adds a reply callback to the pending reply queue.
@@ -589,6 +623,10 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 		req = new(findnode)
 	case neighborsPacket:
 		req = new(neighbors)
+	case findnodeByAddrPacket:
+		req = new(findnodeByAddress)
+	case addrNeighborsPacket:
+		req = new(addrNeighbors)
 	default:
 		return nil, fromID, hash, fmt.Errorf("unknown type: %d", ptype)
 	}
@@ -695,6 +733,45 @@ func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 }
 
 func (req *neighbors) name() string { return "NEIGHBORS/v4" }
+
+func (req *findnodeByAddress) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	if expired(req.Expiration) {
+		return errExpired
+	}
+	if !t.db.hasBond(fromID) {
+		// No bond exists, we don't process the packet. This prevents
+		// an attack vector where the discovery protocol could be used
+		// to amplify traffic in a DDOS attack. A malicious actor
+		// would send a findnode request with the IP address and UDP
+		// port of the target as the source address. The recipient of
+		// the findnode packet would then send a neighbors packet
+		// (which is a much bigger packet than findnode) to the victim.
+		return errUnknownNode
+	}
+
+	p := addrNeighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if val, ok := t.nodeBindAddress[req.Target]; ok {
+		p.Node = nodeToRPC(val)
+		t.send(from, addrNeighborsPacket, &p)
+	}
+	return nil
+}
+
+func (req *findnodeByAddress) name() string { return "FINDNODEBYADDR/v4" }
+
+func (req *addrNeighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	if expired(req.Expiration) {
+		return errExpired
+	}
+	if !t.handleReply(fromID, addrNeighborsPacket, req) {
+		return errUnsolicitedReply
+	}
+	return nil
+}
+
+func (req *addrNeighbors) name() string { return "ADDRNEIGHBORS/v4" }
 
 func expired(ts uint64) bool {
 	return time.Unix(int64(ts), 0).Before(time.Now())

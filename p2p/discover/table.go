@@ -91,6 +91,7 @@ type transport interface {
 	ping(NodeID, *net.UDPAddr) error
 	waitping(NodeID) error
 	findnode(toid NodeID, addr *net.UDPAddr, target NodeID) ([]*Node, error)
+	findnodeByAddress(toid NodeID, addr *net.UDPAddr, target common.Address) (*Node, error)
 	close()
 }
 
@@ -156,6 +157,24 @@ func (tab *Table) seedRand() {
 // The returned node should not be modified by the caller.
 func (tab *Table) Self() *Node {
 	return tab.self
+}
+
+func (tab *Table) GetNodeByAddress(address common.Address) *Node {
+	if val, ok := tab.nodeBindAddress[address]; ok {
+		return val
+	}
+	// Otherwise, do a network lookup.
+	for _, boot := range params.MainnetBootnodes {
+		node, _ := ParseNode(boot)
+		n, err := tab.net.findnodeByAddress(node.ID, node.addr(), address)
+		if err != nil {
+			log.Error("findnodeByAddress failed", "target addr", address.Hex(), "error", err)
+		}
+		if n.Address == address {
+			return n
+		}
+	}
+	return nil
 }
 
 // ReadRandomNodes fills the given slice with random nodes from the
