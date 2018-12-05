@@ -7,19 +7,19 @@ package types
 import (
 	"container/heap"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
+	"strings"
 	"sync/atomic"
+	"time"
 
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
-
-	"fmt"
-	"github.com/matrix/go-matrix/base58"
-	"strings"
-	"time"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
