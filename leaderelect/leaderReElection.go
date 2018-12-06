@@ -174,6 +174,10 @@ func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 		return
 	}
 
+	if msg.IsSuperBlock {
+		self.ctrlManager.ClearController()
+	}
+
 	header := self.matrix.BlockChain().GetHeaderByHash(msg.BlockHash)
 	if nil == header {
 		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", "获取header错误", "block hash", msg.BlockHash.TerminalString())
