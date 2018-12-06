@@ -51,7 +51,6 @@ type StateDB struct {
 
 	revocablebtrie trie.BTree //可撤销
 	timebtrie trie.BTree    //定时
-	entrustbtrie trie.BTree //委托
 
 	btreeMap       	[]BtreeDietyStruct
 	btreeMapDirty   []BtreeDietyStruct
