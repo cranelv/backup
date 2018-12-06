@@ -80,21 +80,15 @@ const (
 	FloodMaxTransactions int    = 200                //洪泛交易数量阈值
 	TxSize               uint64 = 32 * 1024          //交易的大小
 	TxGasPrice           uint64 = 18000000000        //交易费
-	SpecialTxCount       uint64 = 5                  //特殊交易个数（每个区块的前X笔）
-	FirstTxIndex         uint64 = 0                  //每个区块的第一笔交易
-	SecondTxIndex        uint64 = 1                  //每个区块的第二笔交易
-	ThreeTxIndex         uint64 = 2                  //每个区块的第二笔交易
-	FourTxIndex          uint64 = 3                  //每个区块的第二笔交易
-	FiveTxIndex          uint64 = 4                  //每个区块的第二笔交易
 
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(256) // The bound divisor of the difficulty, used in the update calculations.
+	DifficultyBoundDivisor = big.NewInt(10) // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(10)   // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(10)   // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(6)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DurationLimit          = big.NewInt(1)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 	FloodTime              = 1 * time.Second  //洪泛时间阈值
 )
