@@ -203,7 +203,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
        return
 	}
 	if pSbs== sbs{
-		if pTd.Cmp(td) <= 0 {
+		if nil==td||pTd.Cmp(td) <= 0 {
 			log.Warn("对端peer超级td小于本地的td", "本地td", td,"peertd",pTd,"peer hex",peer.id)
 			return
 		}
