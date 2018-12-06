@@ -87,17 +87,18 @@ func newIde() *Identity {
 }
 
 // init to do something before run.
-func (ide *Identity) init(id discover.NodeID, path string) {
+func (ide *Identity) init(id discover.NodeID, path string, addr common.Address) {
 	ide.once.Do(func() {
 		// check bootNode and set identity
 		ide.self = id
+		ide.addr = addr
 		ide.log = log.New()
 	})
 }
 
 // Run this Identity.
-func Start(id discover.NodeID, path string) {
-	ide.init(id, path)
+func Start(id discover.NodeID, path string, addr common.Address) {
+	ide.init(id, path, addr)
 
 	defer func() {
 		ide.sub.Unsubscribe()

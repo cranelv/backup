@@ -297,7 +297,7 @@ func (n *Node) Start() error {
 	//boot := boot.New(bc, n.Server().NodeInfo().ID)
 	//boot.Run()
 	// start ca
-	go ca.Start(running.Self().ID, n.config.DataDir)
+	go ca.Start(running.Self().ID, n.config.DataDir, n.config.P2P.ManAddress)
 
 	// Finish initializing the startup
 	n.services = services
