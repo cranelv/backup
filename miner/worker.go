@@ -195,10 +195,10 @@ func (self *worker) update() {
 	}
 }
 func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
-	if data.BlockNum+1 > self.mineReqCtrl.curNumber {
+	if data.BlockNum+1 > self.mineReqCtrl.curNumber || data.IsSuperBlock{
 		self.stopMineResultSender()
 	}
-	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role)
+	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role,data.IsSuperBlock)
 	canMining := self.mineReqCtrl.CanMining()
 	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", data.Role, "是否可以挖矿", canMining)
 	if canMining {

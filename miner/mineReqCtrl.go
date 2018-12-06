@@ -75,7 +75,15 @@ func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.Val
 	}
 }
 
-func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
+func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType, preIsSuperBlock bool) {
+
+	if preIsSuperBlock{
+		ctrl.curNumber = number
+		ctrl.role = role
+		ctrl.fixMap()
+		return
+	}
+
 	if ctrl.curNumber > number {
 		return
 	} else if ctrl.curNumber == number {

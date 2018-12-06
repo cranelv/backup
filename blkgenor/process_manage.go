@@ -19,7 +19,7 @@ import (
 type ProcessManage struct {
 	mu            sync.Mutex
 	curNumber     uint64
-	PreSuperBlock bool
+	preSuperBlock bool
 	processMap    map[uint64]*Process
 	matrix        Backend
 	hd            *msgsend.HD
@@ -35,7 +35,7 @@ type ProcessManage struct {
 func NewProcessManage(matrix Backend) *ProcessManage {
 	return &ProcessManage{
 		curNumber:     0,
-		PreSuperBlock: false,
+		preSuperBlock: false,
 		processMap:    make(map[uint64]*Process),
 		matrix:        matrix,
 		hd:            matrix.HD(),
@@ -49,12 +49,12 @@ func NewProcessManage(matrix Backend) *ProcessManage {
 	}
 }
 
-func (pm *ProcessManage) SetCurNumber(number uint64,PreSuperBlock bool) {
+func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
-	pm.PreSuperBlock = PreSuperBlock
+	pm.preSuperBlock = preSuperBlock
 	pm.fixProcessMap()
 }
 
@@ -108,7 +108,7 @@ func (pm *ProcessManage) fixProcessMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
-		if pm.PreSuperBlock || key < pm.curNumber-1 {
+		if pm.preSuperBlock || key < pm.curNumber-1 {
 			process.Close()
 			delKeys = append(delKeys, key)
 		}
