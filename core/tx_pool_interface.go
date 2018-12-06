@@ -45,13 +45,13 @@ type RetCallTx struct {
 // hezi
 type NetworkMsgData struct {
 	SendAddress common.Address
-	Data   []*MsgStruct
+	Data        []*MsgStruct
 }
 
 // hezi
 type MsgStruct struct {
 	Msgtype    uint32
-	SendAddr     common.Address
+	SendAddr   common.Address
 	MsgData    []byte
 	TxpoolType byte
 }
