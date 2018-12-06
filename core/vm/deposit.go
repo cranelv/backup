@@ -25,6 +25,7 @@ var (
 	errParameters       = errors.New("error parameters")
 	errMethodId         = errors.New("error method id")
 	errWithdraw         = errors.New("withdraw is not set")
+	errExist            = errors.New("sign address exist")
 	errDeposit          = errors.New("deposit is not found")
 	errOverflow         = errors.New("deposit is overflow")
 	errDepositEmpty     = errors.New("depositList is Empty")
@@ -127,7 +128,10 @@ func (md *MatrixDeposit) deposit(in []byte, contract *Contract, evm *EVM, thresh
 
 	var address common.Address
 	copy(address[:], addr)
-	md.modifyDepositState(contract, evm, address)
+	err = md.modifyDepositState(contract, evm, address)
+	if err != nil {
+		return nil, err
+	}
 
 	return []byte{1}, nil
 }
@@ -241,10 +245,15 @@ func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address
 	if (address == common.Address{}) {
 		return nil
 	}
+	nodeYKey := append(address[:], 'N', 'Y')
+	hs := stateDB.GetState(contract.Address(), common.BytesToHash(nodeYKey))
+	if hs == emptyHash {
+		return errExist
+	}
+	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())
+
 	nodeXKey := append(contract.CallerAddress[:], 'N', 'X')
 	stateDB.SetState(contract.Address(), common.BytesToHash(nodeXKey), address.Hash())
-	nodeYKey := append(address[:], 'N', 'Y')
-	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())
 	return nil
 }
 
@@ -470,7 +479,10 @@ func (md *MatrixDeposit) modifyDepositState(contract *Contract, evm *EVM, addr c
 	if err != nil {
 		return err
 	}
-	md.setAddress(contract, evm.StateDB, addr)
+	err = md.setAddress(contract, evm.StateDB, addr)
+	if err != nil {
+		return err
+	}
 	if bNew {
 		md.insertDepositList(contract, evm.StateDB)
 	}
