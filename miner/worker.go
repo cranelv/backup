@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package miner
 
@@ -19,10 +18,10 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
-	"gopkg.in/fatih/set.v0"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
+	"gopkg.in/fatih/set.v0"
 )
 
 const (
@@ -195,10 +194,16 @@ func (self *worker) update() {
 	}
 }
 func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
-	if data.BlockNum+1 > self.mineReqCtrl.curNumber || data.IsSuperBlock{
+	if data.IsSuperBlock {
+		self.StopAgent()
+		self.stopMineResultSender()
+		self.mineReqCtrl.Clear()
+	}
+
+	if data.BlockNum+1 > self.mineReqCtrl.curNumber {
 		self.stopMineResultSender()
 	}
-	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role,data.IsSuperBlock)
+	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role)
 	canMining := self.mineReqCtrl.CanMining()
 	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", data.Role, "是否可以挖矿", canMining)
 	if canMining {

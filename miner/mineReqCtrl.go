@@ -10,10 +10,10 @@ import (
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"math/big"
 	"sync"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type mineReqData struct {
@@ -75,15 +75,16 @@ func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.Val
 	}
 }
 
-func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType, preIsSuperBlock bool) {
+func (ctrl *mineReqCtrl) Clear() {
+	ctrl.curNumber = 0
+	ctrl.role = common.RoleNil
+	ctrl.currentMineReq = nil
+	ctrl.reqCache = make(map[common.Hash]*mineReqData)
+	ctrl.futureReq = make(map[uint64][]*mineReqData)
+	return
+}
 
-	if preIsSuperBlock{
-		ctrl.curNumber = number
-		ctrl.role = role
-		ctrl.fixMap()
-		return
-	}
-
+func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
 	if ctrl.curNumber > number {
 		return
 	} else if ctrl.curNumber == number {
