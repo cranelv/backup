@@ -19,7 +19,6 @@ import (
 type ProcessManage struct {
 	mu            sync.Mutex
 	curNumber     uint64
-	preSuperBlock bool
 	processMap    map[uint64]*Process
 	matrix        Backend
 	hd            *msgsend.HD
@@ -35,7 +34,6 @@ type ProcessManage struct {
 func NewProcessManage(matrix Backend) *ProcessManage {
 	return &ProcessManage{
 		curNumber:     0,
-		preSuperBlock: false,
 		processMap:    make(map[uint64]*Process),
 		matrix:        matrix,
 		hd:            matrix.HD(),
@@ -54,8 +52,12 @@ func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
-	pm.preSuperBlock = preSuperBlock
-	pm.fixProcessMap()
+	if preSuperBlock{
+		pm.clearProcessMap()
+	}else{
+		pm.fixProcessMap()
+	}
+
 }
 
 func (pm *ProcessManage) GetCurNumber() uint64 {
@@ -108,7 +110,7 @@ func (pm *ProcessManage) fixProcessMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
-		if pm.preSuperBlock || key < pm.curNumber-1 {
+		if  key < pm.curNumber-1 {
 			process.Close()
 			delKeys = append(delKeys, key)
 		}
@@ -119,6 +121,30 @@ func (pm *ProcessManage) fixProcessMap() {
 	}
 
 	log.INFO(pm.logExtraInfo(), "PM 结束修正map, process数量", len(pm.processMap))
+}
+
+func (pm *ProcessManage) clearProcessMap() {
+	if pm.curNumber == 0 {
+		return
+	}
+
+	if len(pm.processMap) == 0 {
+		return
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 开始删除map, process数量", len(pm.processMap), "修复高度", pm.curNumber)
+
+	delKeys := make([]uint64, 0)
+	for key, process := range pm.processMap {
+			process.Close()
+			delKeys = append(delKeys, key)
+	}
+
+	for _, delKey := range delKeys {
+		delete(pm.processMap, delKey)
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
 }
 
 func (pm *ProcessManage) isLegalNumber(number uint64) error {
