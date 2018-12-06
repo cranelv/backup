@@ -14,7 +14,8 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
-	"errors"
+	"sync"
+	"runtime"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -60,19 +61,35 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
 	stxs := make([]types.SelfTransaction,0)
 	var txcount int
-	for i, tx := range block.Transactions() {
+	txs := block.Transactions()
+	var waitG = &sync.WaitGroup{}
+	maxProcs := runtime.NumCPU()   //获取cpu个数
+	if maxProcs >= 2{
+		runtime.GOMAXPROCS(maxProcs-1)  //限制同时运行的goroutines数量
+	}
+	normalTxindex := 0
+	for _,tx:=range txs{
+		if tx.GetMatrixType() == common.ExtraUnGasTxType{
+			tmpstxs := make([]types.SelfTransaction,0)
+			tmpstxs = append(tmpstxs,tx)
+			tmpstxs = append(tmpstxs,stxs...)
+			stxs = tmpstxs
+			normalTxindex++
+			continue
+		}
+		sig := types.NewEIP155Signer(tx.ChainId())
+		waitG.Add(1)
+		ttx := tx
+		go types.Sender_self(sig,ttx,waitG)
+	}
+	waitG.Wait()
+	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType{
 			tmpstxs := make([]types.SelfTransaction,0)
 			tmpstxs = append(tmpstxs,tx)
 			tmpstxs = append(tmpstxs,stxs...)
 			stxs = tmpstxs
 			continue
-		}
-		from,addrerr := tx.GetTxFrom()
-		var tf common.Address
-		if addrerr == nil && from != tf{
-			//err is nil means from not nil
-			return nil, nil, 0, errors.New("This tx from must is nil")
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)

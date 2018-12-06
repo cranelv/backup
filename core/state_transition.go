@@ -266,10 +266,6 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	if from == addr {
 		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,from is nil")
 	}
-	usefrom := tx.From()
-	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,usefrom is nil")
-	}
 	var (
 		vmerr error
 	)
