@@ -19,39 +19,42 @@ import (
 )
 
 type ProcessManage struct {
-	mu         sync.Mutex
-	curNumber  uint64
-	processMap map[uint64]*Process
-	votePool   *votepool.VotePool
-	hd         *msgsend.HD
-	signHelper *signhelper.SignHelper
-	bc         *core.BlockChain
-	txPool     *core.TxPoolManager //YYY
-	reElection *reelection.ReElection
-	topNode    *olconsensus.TopNodeService
-	event      *event.TypeMux
+	mu            sync.Mutex
+	curNumber     uint64
+	PreSuperBlock bool
+	processMap    map[uint64]*Process
+	votePool      *votepool.VotePool
+	hd            *msgsend.HD
+	signHelper    *signhelper.SignHelper
+	bc            *core.BlockChain
+	txPool        *core.TxPoolManager //YYY
+	reElection    *reelection.ReElection
+	topNode       *olconsensus.TopNodeService
+	event         *event.TypeMux
 }
 
 func NewProcessManage(matrix Matrix) *ProcessManage {
 	return &ProcessManage{
-		curNumber:  0,
-		processMap: make(map[uint64]*Process),
-		votePool:   votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
-		hd:         matrix.HD(),
-		signHelper: matrix.SignHelper(),
-		bc:         matrix.BlockChain(),
-		txPool:     matrix.TxPool(),
-		reElection: matrix.ReElection(),
-		topNode:    matrix.TopNode(),
-		event:      matrix.EventMux(),
+		curNumber:     0,
+		PreSuperBlock: false,
+		processMap:    make(map[uint64]*Process),
+		votePool:      votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
+		hd:            matrix.HD(),
+		signHelper:    matrix.SignHelper(),
+		bc:            matrix.BlockChain(),
+		txPool:        matrix.TxPool(),
+		reElection:    matrix.ReElection(),
+		topNode:       matrix.TopNode(),
+		event:         matrix.EventMux(),
 	}
 }
 
-func (pm *ProcessManage) SetCurNumber(number uint64) {
+func (pm *ProcessManage) SetCurNumber(number uint64,PreSuperBlock bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
+	pm.PreSuperBlock = PreSuperBlock
 	pm.fixProcessMap()
 }
 
@@ -94,7 +97,7 @@ func (pm *ProcessManage) fixProcessMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
-		if key < pm.curNumber {
+		if pm.PreSuperBlock || key < pm.curNumber-1 {
 			process.Close()
 			delKeys = append(delKeys, key)
 		}

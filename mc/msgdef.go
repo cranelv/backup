@@ -114,6 +114,7 @@ type RoleUpdatedMsg struct {
 	BlockNum  uint64
 	BlockHash common.Hash
 	Leader    common.Address
+	IsSuperBlock bool
 }
 
 type LeaderChangeNotify struct {

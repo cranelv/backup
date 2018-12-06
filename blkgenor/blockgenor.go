@@ -146,7 +146,7 @@ func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 	defer log.INFO(self.logExtraInfo(), "CA身份消息处理", "结束", "高度", roleMsg.BlockNum)
 
 	curNumber := roleMsg.BlockNum + 1
-	self.pm.SetCurNumber(curNumber)
+	self.pm.SetCurNumber(curNumber,roleMsg.IsSuperBlock)
 	if roleMsg.Role == common.RoleValidator || roleMsg.Role == common.RoleBroadcast {
 		curProcess := self.pm.GetCurrentProcess()
 		curProcess.StartRunning(roleMsg.Role)
