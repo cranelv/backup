@@ -513,14 +513,20 @@ func (bc *BlockChain) insert(block *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	var updateHeads bool
 	if block.IsSuperBlock(){
-		bc.bodyCache.Purge()
-		bc.bodyRLPCache.Purge()
-		bc.blockCache.Purge()
-		bc.futureBlocks.Purge()
-		delFn := func(hash common.Hash, num uint64) {
-			rawdb.DeleteBody(bc.db, hash, num)
+		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
+
+		if currentblock.NumberU64()>block.NumberU64(){
+			log.INFO("blockchain","rewind to",block.NumberU64()-1)
+			bc.bodyCache.Purge()
+			bc.bodyRLPCache.Purge()
+			bc.blockCache.Purge()
+			bc.futureBlocks.Purge()
+			delFn := func(hash common.Hash, num uint64) {
+				rawdb.DeleteBody(bc.db, hash, num)
+			}
+			bc.hc.SetHead(block.NumberU64()-1, delFn)
 		}
-		bc.hc.SetHead(block.NumberU64()-1, delFn)
+
 		updateHeads =true
 	}else{
 		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
@@ -791,6 +797,9 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 
 // SetReceiptsData computes all the non-consensus fields of the receipts
 func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts types.Receipts) error {
+	if block.IsSuperBlock(){
+		return nil
+	}
 	signer := types.MakeSigner(config, block.Number())
 
 	transactions, logIndex := block.Transactions(), uint(0)
