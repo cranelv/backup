@@ -1084,6 +1084,7 @@ type RPCTransaction1 struct {
 	IsEntrustTx      bool           `json:"IsEntrustTx"`
 	Currency         string         `json:"Currency"`
 	CommitTime       hexutil.Uint64 `json:"CommitTime"`
+	MatrixType       byte           `json:"matrixType"`
 	ExtraTo          []*ExtraTo_Mx1 `json:"extra_to"`
 }
 
@@ -1104,6 +1105,7 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		TxEnterType:      data.TxEnterType,
 		IsEntrustTx:      data.IsEntrustTx,
 		Currency:         data.Currency,
+		MatrixType:       data.MatrixType,
 		CommitTime:       data.CommitTime,
 	}
 	//内部发送的交易没有币种，默认为MAN
@@ -1153,6 +1155,7 @@ type RPCTransaction struct {
 	IsEntrustTx      bool            `json:"IsEntrustTx"`
 	Currency         string          `json:"Currency"`
 	CommitTime       hexutil.Uint64  `json:"CommitTime"`
+	MatrixType       byte            `json:"matrixType"`
 	ExtraTo          []*ExtraTo_Mx   `json:"extra_to"`
 }
 
@@ -1188,6 +1191,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 		TxEnterType: tx.TxType(),
 		IsEntrustTx: tx.IsEntrustTx(),
 		Currency:    tx.GetTxCurrency(),
+		MatrixType:  tx.GetMatrixType(),
 		CommitTime:  hexutil.Uint64(tx.GetCreateTime()),
 	}
 	if blockHash != (common.Hash{}) {

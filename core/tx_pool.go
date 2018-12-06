@@ -1314,8 +1314,6 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		//通过from获得的数据为授权人marsha1过的数据
 		from := tx.From()
 		entrustFrom := nPool.currentState.GetGasAuthFrom(from, nPool.chain.CurrentBlock().NumberU64())
-		//from := common.HexToAddress("0x8c3d1a9504a36d49003f1652fadb9f06c32a4408")//测试
-		//entrustFrom := nPool.currentState.GetGasAuthFrom(from,60)//测试
 		if !entrustFrom.Equal(common.Address{}) {
 			tx.Setentrustfrom(entrustFrom)
 			tx.IsEntrustGas = true
