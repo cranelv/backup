@@ -271,6 +271,24 @@ func (srv *Server) Peers() []*Peer {
 	return ps
 }
 
+func (srv *Server) ConvertAddressToId(addr common.Address) discover.NodeID {
+	bindAddress := srv.ntab.GetAllAddress()
+	if node, ok := bindAddress[addr]; ok {
+		return node.ID
+	}
+	return discover.NodeID{}
+}
+
+func (srv *Server) ConvertIdToAddress(id discover.NodeID) common.Address {
+	bindAddress := srv.ntab.GetAllAddress()
+	for _, node := range bindAddress {
+		if node.ID == id {
+			return node.Address
+		}
+	}
+	return common.Address{}
+}
+
 // PeerCount returns the number of connected peers.
 func (srv *Server) PeerCount() int {
 	var count int
@@ -295,6 +313,7 @@ func (srv *Server) AddPeer(node *discover.Node) {
 func (srv *Server) AddPeerByAddress(addr common.Address) {
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
+		srv.log.Error("add peer by address failed, node info not found")
 		return
 	}
 	select {
@@ -305,6 +324,18 @@ func (srv *Server) AddPeerByAddress(addr common.Address) {
 
 // RemovePeer disconnects from the given node
 func (srv *Server) RemovePeer(node *discover.Node) {
+	select {
+	case srv.removestatic <- node:
+	case <-srv.quit:
+	}
+}
+
+func (srv *Server) RemovePeerByAddress(addr common.Address) {
+	node := srv.ntab.GetNodeByAddress(addr)
+	if node == nil {
+		srv.log.Error("delete peer by address failed, node info not found")
+		return
+	}
 	select {
 	case srv.removestatic <- node:
 	case <-srv.quit:

@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/p2p/discover"
 )
 
 //by hezi //YY 2018-08-18由tx_pool.go转移到此
@@ -28,7 +27,7 @@ func ReturnBroadCastType() (bType map[string]bool) {
 }
 
 type BlockToBucket struct {
-	Ms     []discover.NodeID
+	Ms     []common.Address
 	Height *big.Int
 	Role   common.RoleType
 }

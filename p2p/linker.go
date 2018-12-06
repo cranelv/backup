@@ -32,11 +32,11 @@ type Linker struct {
 	mu    sync.Mutex
 	topMu sync.RWMutex
 
-	linkMap  map[discover.NodeID]uint32
+	linkMap  map[common.Address]uint32
 	selfPeer map[common.RoleType][]*Peer
 
-	topNode      map[common.RoleType]map[discover.NodeID][]uint8
-	topNodeCache map[common.RoleType]map[discover.NodeID][]uint8
+	topNode      map[common.RoleType]map[common.Address][]uint8
+	topNodeCache map[common.RoleType]map[common.Address][]uint8
 }
 
 type NodeAliveInfo struct {
@@ -53,9 +53,14 @@ var Link = &Linker{
 	selfPeer:     make(map[common.RoleType][]*Peer),
 	quit:         make(chan struct{}),
 	activeQuit:   make(chan struct{}),
-	topNode:      make(map[common.RoleType]map[discover.NodeID][]uint8),
-	topNodeCache: make(map[common.RoleType]map[discover.NodeID][]uint8),
+	topNode:      make(map[common.RoleType]map[common.Address][]uint8),
+	topNodeCache: make(map[common.RoleType]map[common.Address][]uint8),
 }
+
+var (
+	emptyNodeId  = discover.NodeID{}
+	emptyAddress = common.Address{}
+)
 
 func (l *Linker) Start() {
 	defer func() {
@@ -86,7 +91,7 @@ func (l *Linker) Start() {
 				}
 				dropNodes := ca.GetDropNode()
 				l.dropNode(dropNodes)
-				go l.dropNodeDefer(dropNodes)
+				//go l.dropNodeDefer(dropNodes)
 
 				log.Info("self ide", "linker", l.role)
 
@@ -94,11 +99,11 @@ func (l *Linker) Start() {
 
 				if common.IsReElectionNumber(height) {
 					l.topNodeCache = l.topNode
-					l.topNode = make(map[common.RoleType]map[discover.NodeID][]uint8)
+					l.topNode = make(map[common.RoleType]map[common.Address][]uint8)
 					l.initTopNodeMap()
 				}
 				if common.IsReElectionNumber(height - 10) {
-					l.topNodeCache = make(map[common.RoleType]map[discover.NodeID][]uint8)
+					l.topNodeCache = make(map[common.RoleType]map[common.Address][]uint8)
 					l.initTopNodeMapCache()
 				}
 
@@ -155,7 +160,7 @@ func (l *Linker) Stop() {
 func (l *Linker) initTopNodeMap() {
 	l.topMu.Lock()
 	for i := int(common.RoleBackupMiner); i <= int(common.RoleValidator); i = i << 1 {
-		l.topNode[common.RoleType(i)] = make(map[discover.NodeID][]uint8)
+		l.topNode[common.RoleType(i)] = make(map[common.Address][]uint8)
 	}
 	l.topMu.Unlock()
 }
@@ -163,7 +168,7 @@ func (l *Linker) initTopNodeMap() {
 func (l *Linker) initTopNodeMapCache() {
 	l.topMu.Lock()
 	for i := int(common.RoleBackupMiner); i <= int(common.RoleValidator); i = i << 1 {
-		l.topNodeCache[common.RoleType(i)] = make(map[discover.NodeID][]uint8)
+		l.topNodeCache[common.RoleType(i)] = make(map[common.Address][]uint8)
 	}
 	l.topMu.Unlock()
 }
@@ -174,18 +179,18 @@ func (l *Linker) maintainPeer() {
 }
 
 // disconnect all peers.
-func (l *Linker) dropNode(drops []discover.NodeID) {
+func (l *Linker) dropNode(drops []common.Address) {
 	for _, drop := range drops {
-		ServerP2p.RemovePeer(discover.NewNode(drop, nil, 0, 0))
+		ServerP2p.RemovePeerByAddress(drop)
 	}
 }
 
 // dropNodeDefer disconnect all peers.
-func (l *Linker) dropNodeDefer(drops []discover.NodeID) {
+func (l *Linker) dropNodeDefer(drops []common.Address) {
 	select {
 	case <-time.After(time.Second * 5):
 		for _, drop := range drops {
-			ServerP2p.RemovePeer(discover.NewNode(drop, nil, 0, 0))
+			ServerP2p.RemovePeerByAddress(drop)
 		}
 	}
 }
@@ -193,22 +198,18 @@ func (l *Linker) dropNodeDefer(drops []discover.NodeID) {
 // Link peers that should to link.
 // link peers by group
 func (l *Linker) link(roleType common.RoleType) {
-	log.Info("coming linker", "role", l.role)
 	all := ca.GetTopologyInLinker()
-	log.Info("len all", "length", len(all))
 	for key, peers := range all {
 		if key >= roleType {
 			for _, peer := range peers {
-				node := discover.NewNode(peer, nil, defaultPort, defaultPort)
-				ServerP2p.AddPeer(node)
+				ServerP2p.AddPeerByAddress(peer)
 			}
 		}
 	}
 	if roleType&(common.RoleValidator|common.RoleBackupValidator) != 0 {
 		gap := ca.GetGapValidator()
 		for _, val := range gap {
-			node := discover.NewNode(val, nil, defaultPort, defaultPort)
-			ServerP2p.AddPeer(node)
+			ServerP2p.AddPeerByAddress(val)
 		}
 	}
 }
@@ -236,7 +237,7 @@ func (l *Linker) recordTopNodeActiveInfo() {
 		topNodes := ca.GetRolesByGroup(common.RoleType(i))
 
 		for _, tn := range topNodes {
-			if tn == ServerP2p.Self().ID {
+			if tn.String() == ServerP2p.ManPassword {
 				continue
 			}
 			if _, ok := l.topNode[common.RoleType(i)][tn]; !ok {
@@ -249,7 +250,8 @@ func (l *Linker) recordTopNodeActiveInfo() {
 		for key := range l.topNode[role] {
 			ok := false
 			for _, peer := range ServerP2p.Peers() {
-				if peer.ID() == key {
+				id := ServerP2p.ConvertAddressToId(key)
+				if id != emptyNodeId && peer.ID() == id {
 					ok = true
 				}
 			}
@@ -273,13 +275,8 @@ func GetTopNodeAliveInfo(roleType common.RoleType) (result []NodeAliveInfo) {
 	if len(Link.topNode) <= 0 {
 		for key, val := range Link.topNodeCache {
 			if (key & roleType) != 0 {
-				for nodeId, val := range val {
-					addr, err := ca.ConvertNodeIdToAddress(nodeId)
-					if err != nil {
-						log.Error("convert info", "error", err)
-						continue
-					}
-					result = append(result, NodeAliveInfo{Account: addr, Heartbeats: val})
+				for signAddr, hearts := range val {
+					result = append(result, NodeAliveInfo{Account: signAddr, Heartbeats: hearts})
 				}
 			}
 		}
@@ -288,13 +285,8 @@ func GetTopNodeAliveInfo(roleType common.RoleType) (result []NodeAliveInfo) {
 
 	for key, vals := range Link.topNode {
 		if (key & roleType) != 0 {
-			for nodeId, val := range vals {
-				addr, err := ca.ConvertNodeIdToAddress(nodeId)
-				if err != nil {
-					log.Error("convert info", "error", err)
-					continue
-				}
-				result = append(result, NodeAliveInfo{Account: addr, Heartbeats: val})
+			for signAddr, val := range vals {
+				result = append(result, NodeAliveInfo{Account: signAddr, Heartbeats: val})
 			}
 		}
 	}
@@ -302,32 +294,36 @@ func GetTopNodeAliveInfo(roleType common.RoleType) (result []NodeAliveInfo) {
 }
 
 func (l *Linker) ToLink() {
-	l.linkMap = make(map[discover.NodeID]uint32)
+	l.linkMap = make(map[common.Address]uint32)
 	h := ca.GetHeight()
 	elects, _ := ca.GetElectedByHeight(h)
 
 	if len(elects) <= MaxLinkers {
 		for _, elect := range elects {
-			node := discover.NewNode(elect.NodeID, nil, defaultPort, defaultPort)
-			ServerP2p.AddPeer(node)
-			l.linkMap[elect.NodeID] = 0
+			ServerP2p.AddPeerByAddress(elect.SignAddress)
+			l.linkMap[elect.SignAddress] = 0
 		}
 		return
 	}
 
 	randoms := Random(len(elects), MaxLinkers)
 	for _, index := range randoms {
-		node := discover.NewNode(elects[index].NodeID, nil, defaultPort, defaultPort)
-		ServerP2p.AddPeer(node)
-		l.linkMap[elects[index].NodeID] = 0
+		ServerP2p.AddPeerByAddress(elects[index].SignAddress)
+		l.linkMap[elects[index].SignAddress] = 0
 	}
 }
 
 func Record(id discover.NodeID) error {
 	Link.mu.Lock()
 	defer Link.mu.Unlock()
-	if _, ok := Link.linkMap[id]; ok {
-		Link.linkMap[id]++
+
+	signAddr := ServerP2p.ConvertIdToAddress(id)
+	if signAddr == emptyAddress {
+		return nil
+	}
+
+	if _, ok := Link.linkMap[signAddr]; ok {
+		Link.linkMap[signAddr]++
 	}
 	return nil
 }
@@ -344,11 +340,7 @@ func (l *Linker) encodeData() ([]byte, error) {
 	defer Link.mu.Unlock()
 	r := make(map[string]uint32)
 	for key, value := range l.linkMap {
-		addr, err := ca.ConvertNodeIdToAddress(key)
-		if err != nil {
-			return nil, err
-		}
-		r[addr.Hex()] = value
+		r[key.Hex()] = value
 	}
 	return json.Marshal(r)
 }
@@ -360,11 +352,7 @@ func GetRollBook() (map[common.Address]struct{}, error) {
 
 	r := make(map[common.Address]struct{})
 	for key := range Link.linkMap {
-		addr, err := ca.ConvertNodeIdToAddress(key)
-		if err != nil {
-			return nil, err
-		}
-		r[addr] = struct{}{}
+		r[key] = struct{}{}
 	}
 	return r, nil
 }

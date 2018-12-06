@@ -159,6 +159,12 @@ func (tab *Table) Self() *Node {
 	return tab.self
 }
 
+func (tab *Table) GetAllAddress() map[common.Address]*Node {
+	tab.mutex.Lock()
+	defer tab.mutex.Unlock()
+	return tab.nodeBindAddress
+}
+
 func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 	tab.mutex.Lock()
 	if val, ok := tab.nodeBindAddress[address]; ok {
@@ -171,12 +177,24 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 		node, _ := ParseNode(boot)
 		n, err := tab.net.findnodeByAddress(node.ID, node.addr(), address)
 		if err != nil {
-			log.Error("findnodeByAddress failed", "target addr", address.Hex(), "error", err)
+			log.Error("findnodeByAddress attempt", "target addr", address.Hex(), "error", err)
 		}
 		if n.Address == address {
 			return n
 		}
 	}
+
+	for i := 0; i < 3; i++ {
+		randNode, _ := tab.nodeToRevalidate()
+		n, err := tab.net.findnodeByAddress(randNode.ID, randNode.addr(), address)
+		if err != nil {
+			log.Error("findnodeByAddress attempt", "target addr", address.Hex(), "error", err)
+		}
+		if n.Address == address {
+			return n
+		}
+	}
+	log.Error("findnodeByAddress failed", "target addr", address.Hex())
 	return nil
 }
 

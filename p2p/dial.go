@@ -80,6 +80,7 @@ type discoverTable interface {
 	Lookup(target discover.NodeID) []*discover.Node
 	ReadRandomNodes([]*discover.Node) int
 	GetNodeByAddress(target common.Address) *discover.Node
+	GetAllAddress() map[common.Address]*discover.Node
 }
 
 // the dial history remembers recent dials.
