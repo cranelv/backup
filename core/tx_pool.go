@@ -17,7 +17,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/p2p"
-	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
@@ -428,28 +427,28 @@ func (nPool *NormalTxPool) ProcessMsg(m NetworkMsgData) {
 			log.Error("func ProcessMsg", "case SendFloodSN:Unmarshal_err=", err)
 			break
 		}
-		nPool.CheckTx(snMap, m.NodeId)
+		nPool.CheckTx(snMap, m.SendAddress)
 	case GetTxbyN:
 		listN := make([]uint32, 0)
 		if err = json.Unmarshal(msgData.MsgData, &listN); err != nil {
 			log.Error("func ProcessMsg", "case GetTxbyN:Unmarshal_err=", err)
 			break
 		}
-		nPool.GetTxByN(listN, m.NodeId)
+		nPool.GetTxByN(listN, m.SendAddress)
 	case GetConsensusTxbyN:
 		listN := make([]uint32, 0)
 		if err = json.Unmarshal(msgData.MsgData, &listN); err != nil {
 			log.Error("func ProcessMsg", "case GetConsensusTxbyN:Unmarshal_err=", err)
 			break
 		}
-		nPool.GetConsensusTxByN(listN, m.NodeId)
+		nPool.GetConsensusTxByN(listN, m.SendAddress)
 	case RecvTxbyN:
 		ntx := make(map[uint32]*types.Floodtxdata, 0)
 		if err = json.Unmarshal(msgData.MsgData, &ntx); err != nil {
 			log.Error("func ProcessMsg", "case RecvTxbyN:Unmarshal_err=", err)
 			break
 		}
-		nPool.RecvFloodTx(ntx, m.NodeId)
+		nPool.RecvFloodTx(ntx, m.SendAddress)
 	case RecvConsensusTxbyN:
 		mapNtx := make([]*ConsensusNTx, 0)
 		err = rlp.DecodeBytes(msgData.MsgData, &mapNtx)
@@ -461,7 +460,7 @@ func (nPool *NormalTxPool) ProcessMsg(m NetworkMsgData) {
 		for _, val := range mapNtx {
 			ntx[val.Key] = val.Value
 		}
-		nPool.RecvConsensusFloodTx(ntx, m.NodeId)
+		nPool.RecvConsensusFloodTx(ntx, m.SendAddress)
 		//ntx := make(map[uint32]types.SelfTransaction, 0)
 		//if err = json.Unmarshal(msgData.MsgData, &ntx); err != nil {
 		//	log.Error("func ProcessMsg", "case RecvConsensusTxbyN:Unmarshal_err=", err)
@@ -474,7 +473,7 @@ func (nPool *NormalTxPool) ProcessMsg(m NetworkMsgData) {
 			log.Error("func ProcessMsg", "case RecvErrTx:Unmarshal_err=", err)
 			break
 		}
-		nPool.RecvErrTx(common.HexToAddress(m.NodeId.String()), listS)
+		nPool.RecvErrTx(common.HexToAddress(m.SendAddress.String()), listS)
 	}
 }
 
@@ -491,7 +490,7 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 	case GetTxbyN, RecvTxbyN, GetConsensusTxbyN, RecvConsensusTxbyN: //YY
 		//给固定的节点发送根据N获取Tx的请求
 		log.Info("===sendMSG ======YY====", "Msgtype", data.Msgtype)
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	case RecvErrTx: //YY 给全部验证者发送错误交易做共识
 		if selfRole == common.RoleValidator {
 			log.Info("===sendMsg ErrTx===YY===", "selfRole", selfRole)
@@ -709,7 +708,7 @@ func (nPool *NormalTxPool) getPendingTx() {
 }
 
 //YY 检查当前map中是否存在洪泛过来的交易
-func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeID) {
+func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid common.Address) {
 	log.Info("**************msg_CheckTx IN")
 	defer log.Info("**************msg_CheckTx OUT")
 	log.Info("========YY===1", "msg_CheckTx:len(mapSN)", len(mapSN))
@@ -741,7 +740,7 @@ func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeI
 	nPool.mu.Unlock()
 	if len(listN) > 0 {
 		msData, _ := json.Marshal(listN)
-		nPool.SendMsg(MsgStruct{Msgtype: GetTxbyN, NodeId: nid, MsgData: msData})
+		nPool.SendMsg(MsgStruct{Msgtype: GetTxbyN, SendAddr: nid, MsgData: msData})
 	}
 }
 
@@ -768,13 +767,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 	log.Info("========YY===3", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
 	if len(ns) > 0 {
 		txs = make([]types.SelfTransaction, 0)
-		nid, err1 := ca.ConvertAddressToNodeId(addr)
-		log.Info("leader node", "addr::", addr, "id::", nid.String())
-		if err1 != nil {
-			log.Info("========YY===5", "ReturnAllTxsByN:discover=err", err1)
-			retch <- &RetChan_txpool{nil, err1, resqe}
-			return
-		}
+		log.Info("leader node", "addr::", addr, "id::", addr.String())
 		msData, err2 := json.Marshal(ns)
 		if err2 != nil {
 			log.Info("========YY===6", "ReturnAllTxsByN:Marshal=err", err2)
@@ -782,7 +775,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 			return
 		}
 		// 发送缺失交易N的列表
-		nPool.SendMsg(MsgStruct{Msgtype: GetConsensusTxbyN, NodeId: nid, MsgData: msData}) //modi hezi(共识要的交易都带s)
+		nPool.SendMsg(MsgStruct{Msgtype: GetConsensusTxbyN, SendAddr: addr, MsgData: msData}) //modi hezi(共识要的交易都带s)
 
 		rettime := time.NewTimer(4 * time.Second) // 2秒后没有收到需要的交易则返回
 	forBreak:
@@ -832,7 +825,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 }
 
 // (共识要交易)根据N值获取对应的交易(modi hezi)
-func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID) {
+func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address) {
 	log.Info("==========YY", "msg_GetConsensusTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
@@ -879,7 +872,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 	//msData, _ := json.Marshal(mapNtx)
 	msData, err := rlp.EncodeToBytes(mapNtx)
 	if err == nil {
-		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
+		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, SendAddr: nid, MsgData: msData})
 		log.Info("========YY===2", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 	} else {
 		log.Info("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
@@ -887,7 +880,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 }
 
 //YY 根据N值获取对应的交易(洪泛)
-func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
+func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid common.Address) {
 	log.Info("==========YY", "msg_GetTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
@@ -905,12 +898,12 @@ func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
 	}
 	nPool.mu.Unlock()
 	msData, _ := json.Marshal(mapNtx)
-	nPool.SendMsg(MsgStruct{Msgtype: RecvTxbyN, NodeId: nid, MsgData: msData})
+	nPool.SendMsg(MsgStruct{Msgtype: RecvTxbyN, SendAddr: nid, MsgData: msData})
 	log.Info("========YY===2", "msg_GetTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 }
 
 //此接口传的交易带s(modi hezi)
-func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTransaction, nid discover.NodeID) {
+func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTransaction, nid common.Address) {
 	//nPool.selfmlk.Lock()
 	log.Info("func msg_RecvConsensusFloodTx", "len(mapNtx)=", len(mapNtx))
 	defer log.Info("func msg_RecvConsensusFloodTx defer ", "len(mapNtx)=", 0)
@@ -980,14 +973,14 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		if err != nil {
 			log.Error("function msg_RecvConsensusFloodTx", "send error Tx,json.Marshal is err:", err)
 		} else {
-			nPool.SendMsg(MsgStruct{Msgtype: RecvErrTx, NodeId: nid, MsgData: msData})
+			nPool.SendMsg(MsgStruct{Msgtype: RecvErrTx, SendAddr: nid, MsgData: msData})
 			nPool.RecvErrTx(common.Address{}, errorTxs)
 		}
 	}
 }
 
 //YY 接收洪泛的交易（根据N请求到的交易）
-func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid discover.NodeID) {
+func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid common.Address) {
 	//nPool.selfmlk.Lock()
 	log.Info("func msg_RecvFloodTx", "msg_RecvFloodTx: len(mapNtx)=", len(mapNtx))
 	defer log.Info("func msg_RecvFloodTx defer ", "msg_RecvFloodTx: len(mapNtx)=", 0)
@@ -1061,7 +1054,7 @@ func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid
 		if err != nil {
 			log.Error("function msg_RecvFloodTx", "send error Tx,json.Marshal is err:", err)
 		} else {
-			nPool.SendMsg(MsgStruct{Msgtype: RecvErrTx, NodeId: nid, MsgData: msData})
+			nPool.SendMsg(MsgStruct{Msgtype: RecvErrTx, SendAddr: nid, MsgData: msData})
 			nPool.RecvErrTx(common.Address{}, errorTxs)
 		}
 	}

@@ -144,7 +144,7 @@ func (bPool *BroadCastTxPool) ProcessMsg(m NetworkMsgData) {
 func (bPool *BroadCastTxPool) SendMsg(data MsgStruct) {
 	if data.Msgtype == BroadCast {
 		data.TxpoolType = types.BroadCastTxIndex
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	}
 }
 
@@ -243,13 +243,8 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			log.Error("The current block height is higher than the broadcast block height. (func filter())")
 			return false
 		}
-		bids := ca.GetRolesByGroup(common.RoleBroadcast)
-		for _, bid := range bids {
-			addr, err := ca.ConvertNodeIdToAddress(bid)
-			if err != nil {
-				log.Error("ConvertNodeIdToAddress error (func filter()  BroadCastTxPool)", "error", err)
-				return false
-			}
+		addrs := ca.GetRolesByGroup(common.RoleBroadcast)
+		for _, addr := range addrs {
 			if addr == from {
 				return true
 			}

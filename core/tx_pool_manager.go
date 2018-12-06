@@ -299,7 +299,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 // SendMsg
 func (pm *TxPoolManager) SendMsg(data MsgStruct) {
 	if data.Msgtype == BroadCast {
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	}
 }
 
@@ -320,7 +320,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
-			pm.SendMsg(MsgStruct{Msgtype: BroadCast, NodeId: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
+			pm.SendMsg(MsgStruct{Msgtype: BroadCast, SendAddr: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
 		}
 		return nil
 	}

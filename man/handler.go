@@ -728,8 +728,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Info("====", "err", err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		log.Info("=====xiangzi==", "ProcessMsg", m)
-		go pm.txpool.ProcessMsg(core.NetworkMsgData{NodeId: p.ID(), Data: m})
+		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
+		go pm.txpool.ProcessMsg(core.NetworkMsgData{SendAddress: addr, Data: m})
 
 	case msg.Code == common.AlgorithmMsg:
 		var m msgsend.NetData
@@ -737,11 +737,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("algorithm message", "error", err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		addr, err := ca.ConvertNodeIdToAddress(p.ID())
-		if err != nil {
-			log.Error("convert message", "error", err, "pid", p.ID().String())
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
+		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
+
 		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: addr, Data: m})
 
 	case msg.Code == common.BroadcastReqMsg:
