@@ -483,7 +483,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		}
 	}
 
-	if sbs> superBLock.SuperBlockSeq(){
+	if sbs>superBLock.SuperBlockSeq()||superBLock.SuperBlockSeq()!=pSbs{
 		log.Error("获取超级超级区块后验证序号错误","err",err)
 		return errBadPeer
 	}
