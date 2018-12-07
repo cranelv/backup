@@ -147,6 +147,15 @@ func (eg *ElectGraph) TransferNextElect2CommonElect() []common.Elect {
 	return rst
 }
 
+func (eos *ElectOnlineStatus) FindNodeElectOnlineState(node common.Address) *ElectNodeInfo {
+	for _, elect := range eos.ElectOnline {
+		if elect.Account == node {
+			return &elect
+		}
+	}
+	return nil
+}
+
 func (msg *HD_OnlineConsensusVoteResultMsg) IsValidity(curNumber uint64, validityTime uint64) bool {
 	if msg.Req == nil {
 		return false

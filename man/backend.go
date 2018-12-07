@@ -203,7 +203,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.bloomIndexer.Start(man.blockchain)
 
-	ca.SetTopologyReader(man.blockchain.TopologyStore())
+	ca.SetTopologyReader(man.blockchain.GetGraphStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
@@ -247,6 +247,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
 	man.olConsensus.SetValidatorReader(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain)
 	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
 	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
 	man.olConsensus.SetMessageSendInterface(topNodeInstance)

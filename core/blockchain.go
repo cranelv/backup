@@ -433,6 +433,14 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 	return state.New(root, bc.stateCache)
 }
 
+func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDB, error) {
+	block := bc.GetBlockByHash(hash)
+	if block == nil {
+		return nil, errors.New("can't find block by hash")
+	}
+	return bc.StateAt(block.Root())
+}
+
 // Reset purges the entire blockchain, restoring it to its genesis state.
 func (bc *BlockChain) Reset() error {
 	return bc.ResetWithGenesisBlock(bc.genesisBlock)
@@ -1986,15 +1994,15 @@ func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.E
 }
 
 func (bc *BlockChain) GetGraphByState(state *state.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
-	topologyGraph, err := bc.graphStore.GetTopologyGraphByState(state)
+	topologyGraph, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
 	if err != nil {
 		return nil, nil, err
 	}
-	electGraph, err := bc.graphStore.GetElectGraphByState(state)
+	electGraph, err := matrixstate.GetDataByState(matrixstate.MSPElectGraph, state)
 	if err != nil {
 		return nil, nil, err
 	}
-	return topologyGraph, electGraph, nil
+	return topologyGraph.(*mc.TopologyGraph), electGraph.(*mc.ElectGraph), nil
 }
 
 func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {

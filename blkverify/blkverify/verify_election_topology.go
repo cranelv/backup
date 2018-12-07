@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -134,53 +133,26 @@ func (p *Process) verifyChgNetTopology(header *types.Header, onlineConsensusResu
 		return nil
 	}
 
-	// get prev topology
-	prevTopology, err := ca.GetTopologyByHash(common.RoleValidator|common.RoleBackupValidator, header.ParentHash)
-	if err != nil {
-		return err
-	}
-
 	// get online and offline info from header and prev topology
-	offlineTopNodes, onlineElectNods, offlineElectNodes := p.parseOnlineState(header, prevTopology)
+	offlineNodes, onlineNods := p.parseOnlineState(header)
 	log.INFO("scfffff-verify", "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
-	log.INFO("scfffff--verify", "prevTopology", prevTopology)
-	log.INFO("scfffff--verify", "offlineTopNodes", offlineTopNodes)
-	log.INFO("scfffff--verify", "onlinePrimaryNods", onlineElectNods)
-	log.INFO("scfffff--verify", "offlinePrimaryNodes", offlineElectNodes)
+	log.INFO("scfffff--verify", "offlineNodes", offlineNodes)
+	log.INFO("scfffff--verify", "onlineNods", onlineNods)
 
-	for _, node := range offlineTopNodes {
-		if err := p.checkConsensusResult(node, header, onlineConsensusResults); err != nil {
+	for _, node := range offlineNodes {
+		if err := p.checkConsensusResult(node, mc.OffLine, header, onlineConsensusResults); err != nil {
 			return err
 		}
 	}
-	for _, node := range onlineElectNods {
-		if err := p.checkConsensusResult(node, header, onlineConsensusResults); err != nil {
+	for _, node := range onlineNods {
+		if err := p.checkConsensusResult(node, mc.OnLine, header, onlineConsensusResults); err != nil {
 			return err
-		}
-		electInfo := prevTopology.GetAccountElectInfo(node)
-		if electInfo == nil {
-			return errors.Errorf("节点(%s)不是elect节点", node.Hex())
-		}
-		if electInfo.Position != common.PosOffline {
-			return errors.Errorf("节点(%s)header中共识在线，但原链上状态不是离线")
-		}
-	}
-	for _, node := range offlineElectNodes {
-		if err := p.checkConsensusResult(node, header, onlineConsensusResults); err != nil {
-			return err
-		}
-		electInfo := prevTopology.GetAccountElectInfo(node)
-		if electInfo == nil {
-			return errors.Errorf("节点(%s)不是elect节点", node.Hex())
-		}
-		if electInfo.Position != common.PosOnline {
-			return errors.Errorf("节点(%s)header中共识离线，但原链上状态不是在线")
 		}
 	}
 
 	// generate topology alter info
-	log.INFO("scffffff---Verify---GetTopoChange start ", "p.number", p.number, "offlineTopNodes", offlineTopNodes, "onlineElectNods", onlineElectNods)
-	alterInfo, err := p.reElection().GetTopoChange(header.ParentHash, offlineTopNodes)
+	log.INFO("scffffff---Verify---GetTopoChange start ", "p.number", p.number, "offlineNodes", offlineNodes, "onlineNods", onlineNods)
+	alterInfo, err := p.reElection().GetTopoChange(header.ParentHash, offlineNodes, onlineNods)
 	log.INFO("scffffff---Verify---GetTopoChange end", "alterInfo", alterInfo, "err", err)
 	if err != nil {
 		return err
@@ -190,7 +162,7 @@ func (p *Process) verifyChgNetTopology(header *types.Header, onlineConsensusResu
 		log.Info(p.logExtraInfo(), "alter-A", value.A, "position", value.Position)
 	}
 	// generate self net topology
-	netTopology := p.reElection().TransferToNetTopologyChgStu(alterInfo, onlineElectNods, offlineElectNodes)
+	netTopology := p.reElection().TransferToNetTopologyChgStu(alterInfo)
 	if len(netTopology.NetTopologyData) != len(header.NetTopology.NetTopologyData) {
 		return errTopoSize
 	}
@@ -203,10 +175,14 @@ func (p *Process) verifyChgNetTopology(header *types.Header, onlineConsensusResu
 	return nil
 }
 
-func (p *Process) checkConsensusResult(node common.Address, header *types.Header, resultList []*mc.HD_OnlineConsensusVoteResultMsg) error {
+func (p *Process) checkConsensusResult(node common.Address, state mc.OnlineState, header *types.Header, resultList []*mc.HD_OnlineConsensusVoteResultMsg) error {
 	conResult := findResultInList(node, resultList)
 	if conResult == nil {
 		log.Error(p.logExtraInfo(), "检查拓扑变化消息", "online共识结果未找到", "node", node.Hex())
+		return errors.New("online共识结果未找到")
+	}
+	if conResult.Req.OnlineState != state {
+		log.Error(p.logExtraInfo(), "检查拓扑变化消息", "共识结果的状态不匹配", "node", node.Hex(), "结果状态", conResult.Req.OnlineState.String(), "头中状态", state.String())
 		return errors.New("online共识结果未找到")
 	}
 	if conResult.IsValidity(p.number, manparams.OnlineConsensusValidityTime) == false {
@@ -227,10 +203,25 @@ func (p *Process) checkConsensusResult(node common.Address, header *types.Header
 	return nil
 }
 
-func (p *Process) parseOnlineState(header *types.Header, prevTopology *mc.TopologyGraph) ([]common.Address, []common.Address, []common.Address) {
-	offlineTopNodes := p.reElection().ParseTopNodeOffline(header.NetTopology, prevTopology)
-	onlineElectNods, offlineElectNodes := p.reElection().ParseElectTopNodeState(header.NetTopology)
-	return offlineTopNodes, onlineElectNods, offlineElectNodes
+func (p *Process) parseOnlineState(header *types.Header) ([]common.Address, []common.Address) {
+	if header.NetTopology.Type != common.NetTopoTypeChange {
+		return nil, nil
+	}
+
+	online := make([]common.Address, 0)
+	offline := make([]common.Address, 0)
+	for _, v := range header.NetTopology.NetTopologyData {
+
+		if v.Position == common.PosOffline {
+			offline = append(offline, v.Account)
+			continue
+		}
+		if v.Position == common.PosOnline {
+			online = append(online, v.Account)
+			continue
+		}
+	}
+	return offline, online
 }
 
 func findResultInList(node common.Address, resultList []*mc.HD_OnlineConsensusVoteResultMsg) *mc.HD_OnlineConsensusVoteResultMsg {

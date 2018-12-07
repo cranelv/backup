@@ -4,15 +4,16 @@
 package blkgenor
 
 import (
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 )
 
-func (p *Process) genElection(parentHash common.Hash) []common.Elect {
-	info, err := p.reElection().GetElection(parentHash)
+func (p *Process) genElection(state *state.StateDB) []common.Elect {
+	info, err := p.reElection().GetElection(state, p.preBlockHash)
 	if err != nil {
 		log.Warn(p.logExtraInfo(), "verifyElection: get election err", err)
 		return nil
@@ -40,9 +41,31 @@ func (p *Process) genAllNetTopology(parentHash common.Hash) (*common.NetTopology
 }
 
 func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg) {
-	currentTopology, err := ca.GetTopologyByHash(common.RoleValidator|common.RoleBackupValidator, parentHash)
+	state, err := p.blockChain().GetStateByHash(parentHash)
 	if err != nil {
-		log.Warn(p.logExtraInfo(), "get topology by parentHash error", err)
+		log.Warn(p.logExtraInfo(), "生成拓扑变化", "获取父状态树失败", "err", err)
+		return nil, nil
+	}
+
+	topoData, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
+	if err != nil {
+		log.Warn(p.logExtraInfo(), "生成拓扑变化", "状态树获取拓扑图失败", "err", err)
+		return nil, nil
+	}
+	topology, OK := topoData.(*mc.TopologyGraph)
+	if OK == false || topology == nil {
+		log.Warn(p.logExtraInfo(), "生成拓扑变化", "拓扑图数据反射失败")
+		return nil, nil
+	}
+
+	electStateData, err := matrixstate.GetDataByState(matrixstate.MSPElectOnlineState, state)
+	if err != nil {
+		log.Warn(p.logExtraInfo(), "生成拓扑变化", "状态树获取elect在线状态失败", "err", err)
+		return nil, nil
+	}
+	electState, OK := electStateData.(*mc.ElectOnlineStatus)
+	if OK == false || topology == nil {
+		log.Warn(p.logExtraInfo(), "生成拓扑变化", "elect在线状态数据反射失败")
 		return nil, nil
 	}
 
@@ -52,9 +75,8 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		return nil, nil
 	}
 
-	offlineTopNodes := make([]common.Address, 0)
-	onlineElectNods := make([]common.Address, 0)
-	offlineElectNodes := make([]common.Address, 0)
+	offlineNodes := make([]common.Address, 0)
+	onlineNods := make([]common.Address, 0)
 	consensusList := make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 
 	// 筛选共识结果
@@ -72,9 +94,9 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		node := result.Req.Node
 		state := result.Req.OnlineState
 		// 节点为当前拓扑图节点
-		if currentTopology.AccountIsInGraph(node) {
+		if topology.AccountIsInGraph(node) {
 			if state == mc.OffLine {
-				offlineTopNodes = append(offlineTopNodes, node)
+				offlineNodes = append(offlineNodes, node)
 				consensusList = append(consensusList, result)
 			} else {
 				log.Info(p.logExtraInfo(), "生成拓扑变化信息", "当前拓扑图中的节点，顶点共识状态错误", "状态", state)
@@ -83,7 +105,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		}
 
 		// 查看节点elect信息
-		electInfo := currentTopology.GetAccountElectInfo(node)
+		electInfo := electState.FindNodeElectOnlineState(node)
 		if electInfo == nil {
 			// 没有elect信息，表明节点非elect节点，不关心上下线信息
 			continue
@@ -92,13 +114,13 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		case mc.OnLine:
 			if electInfo.Position == common.PosOffline {
 				// 链上状态离线，当前共识结果在线，则需要上header
-				onlineElectNods = append(onlineElectNods, node)
+				onlineNods = append(onlineNods, node)
 				consensusList = append(consensusList, result)
 			}
 		case mc.OffLine:
 			if electInfo.Position == common.PosOnline {
 				// 链上状态在线，当前共识结果离线，则需要上header
-				offlineElectNodes = append(offlineElectNodes, node)
+				offlineNodes = append(offlineNodes, node)
 				consensusList = append(consensusList, result)
 			}
 		default:
@@ -106,18 +128,15 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		}
 	}
 
-	for i, value := range offlineTopNodes {
+	for i, value := range onlineNods {
 		log.Info(p.logExtraInfo(), "offlineTopNodes", value.String(), "index", i)
 	}
-	for i, value := range onlineElectNods {
+	for i, value := range offlineNodes {
 		log.Info(p.logExtraInfo(), "onlineElectNods", value.String(), "index", i)
-	}
-	for i, value := range offlineElectNodes {
-		log.Info(p.logExtraInfo(), "offlineElectNodes", value.String(), "index", i)
 	}
 
 	// generate topology alter info
-	alterInfo, err := p.reElection().GetTopoChange(parentHash, offlineTopNodes)
+	alterInfo, err := p.reElection().GetTopoChange(parentHash, offlineNodes, onlineNods)
 	if err != nil {
 		log.Warn(p.logExtraInfo(), "get topology change info by reelection server err", err)
 		return nil, nil
@@ -127,7 +146,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 	}
 
 	// generate self net topology
-	ans := p.reElection().TransferToNetTopologyChgStu(alterInfo, onlineElectNods, offlineElectNodes)
+	ans := p.reElection().TransferToNetTopologyChgStu(alterInfo)
 	log.INFO("scfffff-TransferToNetTopologyChgStu", "ans", ans)
 	return ans, consensusList
 }

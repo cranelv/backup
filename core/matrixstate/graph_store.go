@@ -5,7 +5,6 @@
 package matrixstate
 
 import (
-	"encoding/json"
 	"github.com/hashicorp/golang-lru"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
@@ -37,7 +36,7 @@ func NewGraphStore(reader stateReader) *GraphStore {
 	}
 }
 
-func (gs GraphStore) ProduceTopologyStateData(block *types.Block, readFn PreStateReadFn) ([]byte, error) {
+func (gs GraphStore) ProduceTopologyStateData(block *types.Block, readFn PreStateReadFn) (interface{}, error) {
 	header := block.Header()
 	number := header.Number.Uint64()
 
@@ -45,19 +44,15 @@ func (gs GraphStore) ProduceTopologyStateData(block *types.Block, readFn PreStat
 	if err != nil {
 		return nil, errors.Errorf("read pre data err(%v)", err)
 	}
-	preGraph := new(mc.TopologyGraph)
-	if err := json.Unmarshal(preData, &preGraph); err != nil {
-		return nil, errors.Errorf("Invalid preGraph(number = %d) json data: %v", number-1, err)
+	preGraph, OK := preData.(*mc.TopologyGraph)
+	if OK == false || preGraph == nil {
+		return nil, errors.Errorf("Invalid preGraph(number = %d)", number-1)
 	}
 	newGraph, err := preGraph.Transfer2NextGraph(number, &header.NetTopology)
 	if err != nil {
 		return nil, err
 	}
-	bytes, err := json.Marshal(newGraph)
-	if err != nil {
-		return nil, errors.Errorf("Failed to encode topology graph: %v", err)
-	}
-	return bytes, nil
+	return newGraph, nil
 }
 
 func (gs GraphStore) GetHashByNumber(number uint64) common.Hash {
@@ -74,29 +69,13 @@ func (gs GraphStore) GetTopologyGraphByHash(blockHash common.Hash) (*mc.Topology
 		return nil, err
 	}
 
-	graph, err := gs.GetTopologyGraphByState(state)
+	graphData, err := GetDataByState(MSPTopologyGraph, state)
 	if err != nil {
 		return nil, err
 	}
+
+	graph, _ := graphData.(*mc.TopologyGraph)
 	gs.topologyCache.Add(blockHash, graph)
-	return graph, nil
-}
-
-func (gs GraphStore) GetTopologyGraphByState(state *state.StateDB) (*mc.TopologyGraph, error) {
-	data, err := gs.reader.GetMatrixStateData(MSPTopologyGraph, state)
-	if err != nil {
-		return nil, errors.Errorf("get topology state data err(%s)", err)
-	}
-
-	graph := new(mc.TopologyGraph)
-	if err := json.Unmarshal(data, &graph); err != nil {
-		return nil, errors.Errorf("Invalid topology graph json data: %v", err)
-	}
-
-	if graph == nil {
-		return nil, errors.New("topology graph is nil")
-	}
-
 	return graph, nil
 }
 
@@ -110,30 +89,12 @@ func (gs GraphStore) GetElectGraphByHash(blockHash common.Hash) (*mc.ElectGraph,
 		return nil, err
 	}
 
-	elect, err := gs.GetElectGraphByState(state)
+	electData, err := GetDataByState(MSPElectGraph, state)
 	if err != nil {
 		return nil, err
 	}
-
+	elect, _ := electData.(*mc.ElectGraph)
 	gs.electCache.Add(blockHash, elect)
-	return elect, nil
-}
-
-func (gs GraphStore) GetElectGraphByState(state *state.StateDB) (*mc.ElectGraph, error) {
-	data, err := gs.reader.GetMatrixStateData(MSPElectGraph, state)
-	if err != nil {
-		return nil, errors.Errorf("get elect state data err(%s)", err)
-	}
-
-	elect := new(mc.ElectGraph)
-	if err := json.Unmarshal(data, &elect); err != nil {
-		return nil, errors.Errorf("Invalid elect graph json data: %v", err)
-	}
-
-	if elect == nil {
-		return nil, errors.New("elect graph is nil")
-	}
-
 	return elect, nil
 }
 

@@ -412,21 +412,20 @@ type ElectOnlineStatus struct {
 	CandV   []common.Address
 }
 */
-func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixstate.PreStateReadFn) ([]byte, error) {
+func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
-		return []byte{}, err
+		return nil, err
 	}
 	data, err := readFn(matrixstate.MSPTopologyGraph)
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", matrixstate.MSPTopologyGraph, "err", err)
-		return []byte{}, err
+		return nil, err
 	}
-	var electStates mc.ElectGraph
-	err = json.Unmarshal(data, &electStates)
-	if err != nil {
-		log.ERROR(Module, "ElectStates Unmarshal失败 err", err)
-		return []byte{}, err
+	electStates, OK := data.(*mc.ElectGraph)
+	if OK == false || electStates == nil {
+		log.ERROR(Module, "ElectStates 非法", "反射失败")
+		return nil, err
 	}
 	electStates.Number = block.Header().Number.Uint64()
 
@@ -467,7 +466,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	return SloveElectStatus(electStates)
 }
 
-func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) ([]byte, error) {
+func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return []byte{}, err
@@ -498,7 +497,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 			tt.Position = common.PosOnline
 			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
 		}
-		return SloveOnlineStatus(electOnline)
+		return SloveOnlineStatus(&electOnline)
 	}
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
@@ -507,10 +506,9 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 		log.ERROR(Module, "readFn 失败 key", matrixstate.MSPTopologyGraph, "err", err)
 		return []byte{}, err
 	}
-	var electStates mc.ElectOnlineStatus
-	err = json.Unmarshal(data, &electStates)
-	if err != nil {
-		log.ERROR(Module, "ElectStates Unmarshal失败 err", err)
+	electStates, OK := data.(*mc.ElectOnlineStatus)
+	if OK == false || electStates == nil {
+		log.ERROR(Module, "ElectStates 非法", "反射失败")
 		return []byte{}, err
 	}
 	mappStatus := make(map[common.Address]uint16)

@@ -4,6 +4,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
 	"sync"
 )
@@ -51,12 +52,8 @@ func (ms *MatrixState) ProcessMatrixState(block *types.Block, state *state.State
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	readFn := func(key string) ([]byte, error) {
-		info, err := ms.findKeyInfo(key)
-		if err != nil {
-			return nil, err
-		}
-		return state.GetMatrixData(info.keyHash), nil
+	readFn := func(key string) (interface{}, error) {
+		return GetDataByState(key, state)
 	}
 
 	dataMap := make(map[common.Hash][]byte)
@@ -65,12 +62,25 @@ func (ms *MatrixState) ProcessMatrixState(block *types.Block, state *state.State
 			continue
 		}
 
+		codec, exist := km.codecMap[key]
+		if exist == false {
+			log.Error("matrix state", "编解码器未找到", key)
+			continue
+		}
+
 		data, err := info.dataProducer(block, readFn)
 		if err != nil {
 			return errors.Errorf("key(%s) produce matrix state data err(%v)", key, err)
 		}
+		if nil == data {
+			continue
+		}
+		bytes, err := codec.encodeFn(data)
+		if err != nil {
+			return errors.Errorf("encode data of key(%s) err: %v", key, err)
+		}
 		if data != nil {
-			dataMap[info.keyHash] = data
+			dataMap[info.keyHash] = bytes
 		}
 	}
 

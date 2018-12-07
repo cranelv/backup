@@ -2,7 +2,9 @@ package matrixstate
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -22,6 +24,21 @@ func GetKeyHash(key string) common.Hash {
 	}
 }
 
+func GetDataByState(key string, state *state.StateDB) (interface{}, error) {
+	hash := GetKeyHash(key)
+	if (hash == common.Hash{}) {
+		return nil, errors.Errorf("key(%s) not find", key)
+	}
+	codec, exist := km.codecMap[key]
+	if !exist {
+		return nil, errors.Errorf("codec of key(%s) not find", key)
+	}
+
+	bytes := state.GetMatrixData(hash)
+
+	return codec.decodeFn(bytes)
+}
+
 const (
 	matrixStatePrefix = "ms_"
 )
@@ -33,7 +50,8 @@ func init() {
 }
 
 type keyManager struct {
-	keys map[string]common.Hash
+	keys     map[string]common.Hash
+	codecMap map[string]codec
 }
 
 func newKeyManager() *keyManager {
@@ -46,5 +64,6 @@ func newKeyManager() *keyManager {
 			MSPElectOnlineState:  types.RlpHash(matrixStatePrefix + MSPElectOnlineState),
 		},
 	}
+	km.initCodec()
 	return km
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -36,6 +37,10 @@ type MessageSendInterface interface {
 type MessageCenterInterface interface {
 	SubscribeEvent(aim mc.EventCode, ch interface{}) (event.Subscription, error)
 	PublishEvent(aim mc.EventCode, data interface{}) error
+}
+
+type StateReaderInterface interface {
+	GetStateByHash(hash common.Hash) (*state.StateDB, error)
 }
 
 ////////////////////////////////////////////////////////////////////

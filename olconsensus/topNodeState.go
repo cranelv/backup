@@ -22,7 +22,7 @@ type topNodeState struct {
 	mu                  sync.RWMutex
 	curNumber           uint64
 	curTopologyNodes    []*mc.TopologyNodeInfo                // 当前拓扑图
-	curElectNodes       []*mc.TopologyNodeInfo                // 不在拓扑中选举节点的状态(链上的状态)
+	curElectNodes       []*mc.ElectNodeInfo                   // 不在拓扑中选举节点的状态(链上的状态)
 	consensusResultRing []*mc.HD_OnlineConsensusVoteResultMsg //  todo   使用环，增加数量限制
 	capacity            int
 	last                int
@@ -41,14 +41,18 @@ func newTopNodeState(capacity int, info string) *topNodeState {
 	}
 }
 
-func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup []mc.TopologyNodeInfo, electNodeStates []mc.TopologyNodeInfo) {
+func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.TopologyGraph, electNodeStates *mc.ElectGraph) {
+	if topologyGroup == nil || electNodeStates == nil {
+		log.Error(ts.extraInfo, "拓扑或者选举节点在线信息异常", "为nil")
+		return
+	}
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	ts.curNumber = curNumber
 	ts.curTopologyNodes = make([]*mc.TopologyNodeInfo, 0)
-	ts.curElectNodes = make([]*mc.TopologyNodeInfo, 0)
-	for i := 0; i < len(topologyGroup); i++ {
-		node := topologyGroup[i]
+	ts.curElectNodes = make([]*mc.ElectNodeInfo, 0)
+	for i := 0; i < len(topologyGroup.NodeList); i++ {
+		node := topologyGroup.NodeList[i]
 		if node.Type != common.RoleValidator && node.Type != common.RoleBackupValidator {
 			// 只关注验证者和备选验证者
 			continue
@@ -56,8 +60,8 @@ func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup []mc.Topolo
 		ts.curTopologyNodes = append(ts.curTopologyNodes, &node)
 	}
 
-	for i := 0; i < len(electNodeStates); i++ {
-		electState := electNodeStates[i]
+	for i := 0; i < len(electNodeStates.ElectList); i++ {
+		electState := electNodeStates.ElectList[i]
 		if electState.Type != common.RoleValidator && electState.Type != common.RoleBackupValidator {
 			// 只关注验证者和备选验证者
 			continue

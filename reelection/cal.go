@@ -6,7 +6,6 @@ package reelection
 import (
 	"errors"
 
-	"encoding/json"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -54,28 +53,6 @@ func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prev
 
 	}
 	return offline
-}
-
-func (self *ReElection) ParseElectTopNodeState(topologyChg common.NetTopology) ([]common.Address, []common.Address) {
-	if topologyChg.Type != common.NetTopoTypeChange {
-		return nil, nil
-	}
-
-	online := make([]common.Address, 0)
-	offline := make([]common.Address, 0)
-	for _, v := range topologyChg.NetTopologyData {
-
-		if v.Position == common.PosOffline {
-			offline = append(offline, v.Account)
-			continue
-		}
-		if v.Position == common.PosOnline {
-			online = append(online, v.Account)
-			continue
-		}
-	}
-
-	return online, offline
 }
 
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
@@ -221,7 +198,7 @@ func CheckBlock(block *types.Block) error {
 	return nil
 }
 
-func SloveElectStatus(electStates mc.ElectGraph) ([]byte, error) {
+func SloveElectStatus(electStates *mc.ElectGraph) (interface{}, error) {
 
 	log.INFO("上树信息", "electStates 高度", electStates.Number)
 	for _, v := range electStates.ElectList {
@@ -230,23 +207,12 @@ func SloveElectStatus(electStates mc.ElectGraph) ([]byte, error) {
 	for _, v := range electStates.NextElect {
 		log.INFO("上树信息", "下届拓扑图 类型", v.Type, "账户", v.Account.String())
 	}
-	data, err := json.Marshal(electStates)
-	if err != nil {
-		log.ERROR("上树信息", "return status electStates err", err)
-	}
-	log.INFO("上树信息", "return status electStates nil", err)
-	return data, err
+	return electStates, nil
 }
-func SloveOnlineStatus(electonline mc.ElectOnlineStatus) ([]byte, error) {
+func SloveOnlineStatus(electonline *mc.ElectOnlineStatus) (interface{}, error) {
 	log.INFO("上树信息", "electonline 高度", electonline.Number)
 	for _, v := range electonline.ElectOnline {
 		log.INFO("上树信息", "当前上下线状态", v.Position, "账户", v.Account.String())
 	}
-
-	data, err := json.Marshal(electonline)
-	if err != nil {
-		log.ERROR("上树信息", "return status electonline err", err)
-	}
-	log.INFO("上树信息", "return status electonline nil", err)
-	return data, err
+	return electonline, nil
 }

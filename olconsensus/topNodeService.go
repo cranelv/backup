@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -30,6 +31,7 @@ type TopNodeService struct {
 	validatorSign   ValidatorAccountInterface
 	msgSender       MessageSendInterface
 	msgCenter       MessageCenterInterface
+	stateReader     StateReaderInterface
 	cd              consensus.DPOSEngine
 
 	roleUpdateCh       chan *mc.RoleUpdatedMsg
@@ -85,6 +87,10 @@ func (serv *TopNodeService) SetMessageSendInterface(inter MessageSendInterface) 
 
 func (serv *TopNodeService) SetMessageCenterInterface(inter MessageCenterInterface) {
 	serv.msgCenter = inter
+}
+
+func (serv *TopNodeService) SetStateReaderInterface(inter StateReaderInterface) {
+	serv.stateReader = inter
 }
 
 func (serv *TopNodeService) Start() error {
@@ -143,14 +149,26 @@ func (serv *TopNodeService) update() {
 	for {
 		select {
 		case data := <-serv.roleUpdateCh:
-			topology, err := ca.GetTopologyByHash(common.RoleValidator|common.RoleBackupValidator, data.BlockHash)
-			if err != nil {
-				log.Error(serv.extraInfo, "处理CA通知消息", "获取拓扑图错误", "err", err)
-				continue
-			}
-			if serv.msgCheck.CheckRoleUpdateMsg(data, topology) {
+			if serv.msgCheck.CheckRoleUpdateMsg(data) {
+				state, err := serv.stateReader.GetStateByHash(data.BlockHash)
+				if err != nil || state == nil {
+					log.Error(serv.extraInfo, "处理CA通知消息", "获取状态错误", "err", err)
+					continue
+				}
+
+				topology, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
+				if err != nil {
+					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
+					continue
+				}
+				electOline, err := matrixstate.GetDataByState(matrixstate.MSPElectOnlineState, state)
+				if err != nil {
+					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
+					continue
+				}
+
 				log.Debug(serv.extraInfo, "处理CA通知消息", "", "块高", data.BlockNum)
-				serv.stateMap.SetCurStates(data.BlockNum+1, topology.NodeList, topology.ElectList)
+				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectGraph))
 				go serv.LeaderChangeNotifyHandler(serv.msgCheck.GetCurLeader())
 			}
 		case data := <-serv.leaderChangeCh:
