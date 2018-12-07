@@ -1,18 +1,17 @@
 package interest
 
 import (
-	"bou.ke/monkey"
+	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+
+	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/consensus/manash"
-	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mc"
-	"math/big"
-	"sync"
-	"testing"
 
 	"github.com/matrix/go-matrix/common"
 	. "github.com/smartystreets/goconvey/convey"
@@ -22,16 +21,16 @@ type State struct {
 	balance int64
 }
 
-func (st *State) GetBalance(addr common.Address) *big.Int {
-	return big.NewInt(st.balance)
+func (st *State) GetBalance(addr common.Address) common.BalanceType {
+	return []common.BalanceSlice{{common.MainAccount, big.NewInt(st.balance)}}
 }
 
 func (st *State) CreateAccount(common.Address) {
 
 }
 
-func (st *State) SubBalance(common.Address, *big.Int) {}
-func (st *State) AddBalance(common.Address, *big.Int) {}
+func (st *State) SubBalance(uint32, common.Address, *big.Int) {}
+func (st *State) AddBalance(uint32, common.Address, *big.Int) {}
 
 func (st *State) GetNonce(common.Address) uint64  { return 0 }
 func (st *State) SetNonce(common.Address, uint64) {}
@@ -196,7 +195,7 @@ func Test_interest6(t *testing.T) {
 
 }
 
-func Test_interest6(t *testing.T) {
+func Test_interest7(t *testing.T) {
 	Convey("利息错误", t, func() {
 		log.InitLog(3)
 		monkey.Patch(ca.GetElectedByHeight, func(height *big.Int) ([]vm.DepositDetail, error) {
@@ -220,4 +219,3 @@ func Test_interest6(t *testing.T) {
 	})
 
 }
-

@@ -46,26 +46,28 @@ type ChainReader interface {
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
+func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num uint64)  map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
-	if num.Uint64() < uint64(2) || common.IsBroadcastNumber(num.Uint64()) {
-		log.WARN(PackageName, "挖坑奖励高度错误：", num.Uint64())
-		return
+	if num< uint64(2) || common.IsBroadcastNumber(num) {
+		log.WARN(PackageName, "挖坑奖励高度错误：", num)
+		return nil
 	}
 	if reward.Cmp(big.NewInt(0)) <= 0 {
 		log.WARN(PackageName, "奖励金额不合法", reward)
-		return
+		return nil
 	}
 	var coinBase common.Address
-	if common.IsBroadcastNumber(num.Uint64()-1){
-		coinBase = chain.GetHeaderByNumber(num.Uint64() - 2).Coinbase
+	if common.IsBroadcastNumber(num-1){
+		coinBase = chain.GetHeaderByNumber(num - 2).Coinbase
 	}else{
-		coinBase = chain.GetHeaderByNumber(num.Uint64() - 1).Coinbase
+		coinBase = chain.GetHeaderByNumber(num - 1).Coinbase
 	}
 	if coinBase.Equal(common.Address{}) {
 		log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
-		return
+		return nil
 	}
+	rewards := make(map[common.Address]*big.Int)
 	util.SetAccountRewards(rewards, coinBase, reward)
-	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num.Uint64(), "奖励金额", reward)
+	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
+	return rewards
 }

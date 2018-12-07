@@ -1,11 +1,14 @@
 package slash
 
 import (
+	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/mandb"
 	"math/big"
-	"sync"
 	"testing"
+
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/core/state"
 
@@ -14,14 +17,11 @@ import (
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/manash"
-	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
 
 const account0 = "0x475baee143cf541ff3ee7b00c1c933129238d793"
 const account1 = "0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"
@@ -88,7 +88,7 @@ func TestBlockSlash_CalcSlash(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)
@@ -128,7 +128,7 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)
@@ -184,7 +184,7 @@ func TestBlockSlash_CalcSlash33(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)
@@ -233,7 +233,7 @@ func TestBlockSlash_CalcSlash44(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)
@@ -294,7 +294,7 @@ func TestBlockSlash_CalcSlash55(t *testing.T) {
 			fmt.Println("use monkey  depoistInfo.AddSlash", "address", address.String(), "slash", slash.Uint64())
 			return nil
 		})
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 		monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
 			fmt.Println("use monkey  ca.GetOnlineTime")
 			onlineTime := big.NewInt(291)

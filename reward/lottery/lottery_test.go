@@ -1,23 +1,23 @@
 package lottery
 
 import (
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/log"
 	"math/big"
 	"strconv"
 	"testing"
+
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params"
 )
 
-
 type Chain struct {
-
 }
 
-type randSeed  struct{
-
+type randSeed struct {
 }
-func (r* randSeed)GetSeed(num uint64) *big.Int{
+
+func (r *randSeed) GetSeed(num uint64) *big.Int {
 
 	return big.NewInt(1000)
 }
@@ -26,12 +26,12 @@ type State struct {
 	balance int64
 }
 
-func (st *State) GetBalance(common.Address) *big.Int {
-	return big.NewInt(st.balance)
+func (st *State) GetBalance(addr common.Address) common.BalanceType {
+	return []common.BalanceSlice{{common.MainAccount, big.NewInt(st.balance)}}
 }
 func (chain *Chain) GetBlockByNumber(num uint64) *types.Block {
 	header := &types.Header{}
-	txs := make([]*types.Transaction, 0)
+	txs := make([]types.SelfTransaction, 0)
 	if num == 298 {
 		for i := 0; i < 3; i++ {
 

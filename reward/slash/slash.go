@@ -52,36 +52,40 @@ func New(chain ChainReader) *BlockSlash {
 	return &BlockSlash{chain: chain, eleMaxOnlineTime: 97 * common.GetReElectionInterval() / common.GetBroadcastInterval()}
 }
 
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[common.Address]*big.Int {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {
 	var eleNum uint64
-	slashMap := make(map[common.Address]*big.Int)
+
+	if num < common.GetBroadcastInterval() {
+		return
+	}
 	//选举周期的最后时刻分配
 	if !common.IsReElectionNumber(num - 1) {
 		log.INFO(PackageName, "当前高度非法", num)
-		return nil
+		return
 	}
 	//计算选举的拓扑图的高度
-	if num < common.GetReElectionInterval() {
+	if num < common.GetReElectionInterval()+2 {
 		eleNum = 0
 	} else {
-		eleNum = common.GetLastReElectionNumber(num) - 1
+		eleNum = common.GetLastReElectionNumber(num-2) - 1
 	}
 
 	currentElectNodes, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator, eleNum)
 	if err != nil {
-		log.Error(PackageName, "get topology by number error", err)
-		return nil
+		log.Error(PackageName, "获取初选列表错误", err)
+		return
 	}
 
 	if 0 == len(currentElectNodes.NodeList) {
-		log.Error(PackageName, "get NodeList is Nill", "")
-		return nil
+		log.Error(PackageName, "获取初选列表为nil", "")
+		return
 	}
 	header := bp.chain.GetHeaderByNumber(eleNum)
 	preState, err := bp.chain.StateAt(header.Root)
 
 	if err != nil {
-		return nil
+		log.Error(PackageName, "获取前一个状态树错误", "")
+		return
 	}
 	for _, v := range currentElectNodes.NodeList {
 
@@ -112,18 +116,20 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 			continue
 		}
 
-		temp := 1 - float64(currentOnlineTime.Uint64()-preOnlineTime.Uint64())/float64(bp.eleMaxOnlineTime)
-
-		if temp >= 0.75 {
-			temp = 0.75
-		} else if temp < 0 {
+		slash := bp.getSlash(currentOnlineTime, preOnlineTime, accountReward)
+		if slash.Cmp(big.NewInt(0)) < 0 {
 			log.ERROR(PackageName, "惩罚比例为负数", "")
 			continue
 		}
-		slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * temp))
-		log.INFO(PackageName, "账户", v.Account.String(), "惩罚金额", accountReward, "slash", slash)
 		depoistInfo.AddSlash(currentState, v.Account, slash)
-		slashMap[v.Account] = slash
 	}
-	return slashMap
+}
+
+func (bp *BlockSlash) getSlash(currentOnlineTime *big.Int, preOnlineTime *big.Int, accountReward *big.Int) *big.Int {
+	temp := 1 - float64(currentOnlineTime.Uint64()-preOnlineTime.Uint64())/float64(bp.eleMaxOnlineTime)
+	if temp >= 0.75 {
+		temp = 0.75
+	}
+	slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * temp))
+	return slash
 }

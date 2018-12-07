@@ -1,8 +1,12 @@
 package txsreward
 
 import (
-	"bou.ke/monkey"
 	"fmt"
+	"math/big"
+	"sync"
+	"testing"
+
+	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/manash"
@@ -13,18 +17,17 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reward/util"
 	. "github.com/smartystreets/goconvey/convey"
-	"math/big"
-	"sync"
-	"testing"
 )
+
 type FakeEth struct {
-blockchain *core.BlockChain
-once       *sync.Once
+	blockchain *core.BlockChain
+	once       *sync.Once
 }
 
 const (
 	testAddress = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
+
 func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 
 func fakeEthNew(n int) *FakeEth {
@@ -87,7 +90,7 @@ func TestNew1(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		reward := New(eth.blockchain)
-		reward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
+		reward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), 1)
 	})
 }
 
@@ -105,7 +108,7 @@ func TestNew2(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		reward := New(eth.blockchain)
-		reward.CalcNodesRewards(big.NewInt(0), common.HexToAddress(testAddress), header)
+		reward.CalcNodesRewards(big.NewInt(0), common.HexToAddress(testAddress), 1)
 	})
 }
 func TestNew3(t *testing.T) {
@@ -122,6 +125,6 @@ func TestNew3(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		reward := New(eth.blockchain)
-		reward.CalcNodesRewards(big.NewInt(-1), common.HexToAddress(testAddress), header)
+		reward.CalcNodesRewards(big.NewInt(-1), common.HexToAddress(testAddress), 1)
 	})
 }
