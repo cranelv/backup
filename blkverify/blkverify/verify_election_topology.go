@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"

@@ -308,7 +308,7 @@ func KInTop(aim uint16, topoG *mc.TopologyGraph) bool {
 	}
 	return false
 }
-func ToPoUpdate(offline []common.Address, allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
+func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	ans := []mc.Alternative{}
 	mapMaster := make(map[uint16]common.Address)
 	mapBackup := make(map[uint16]common.Address)
@@ -318,7 +318,7 @@ func ToPoUpdate(offline []common.Address, allNative AllNative, topoG *mc.Topolog
 	//	fmt.Println(v.Position,v.Account.String())
 	//}
 	for _, v := range topoG.NodeList {
-		if findAddr(v.Account, offline) {
+		if findAddr(v.Account, []common.Address{}) {
 			continue //删除节点
 		}
 		//fmt.Println("v.Pos",v.Position,"v.addr",v.Account.String())
