@@ -504,8 +504,16 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		}
 	}else if sbs<superBLock.SuperBlockSeq(){
 		latest=superBLock
-		origin = latest.Number.Uint64()-1
 		height = latest.Number.Uint64()
+		log.Debug("Synchronising with the syncWithPeer ", "height", height)
+		origin, err = d.findAncestor(p, height)
+		if err != nil {
+			return err
+		}
+		if latest.Number.Uint64()-1 < origin{
+			origin = latest.Number.Uint64()-1
+		}
+
 	}
 
 

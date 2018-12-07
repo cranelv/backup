@@ -229,7 +229,7 @@ It expects the genesis file as argument.`,
 
 	sighCommand = cli.Command{
 		Action:    utils.MigrateFlags(signBlock),
-		Name:      "sighblock",
+		Name:      "signblock",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
