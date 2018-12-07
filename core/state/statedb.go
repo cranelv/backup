@@ -319,13 +319,15 @@ func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []co
 //根据委托人from和高度获取授权人的from,返回授权人地址(算法组调用,仅适用委托签名)
 func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
-	AuthData := new(common.AuthType) //授权数据是单个结构
-	err := json.Unmarshal(AuthMarsha1Data,AuthData)
+	AuthDataList := make([]common.AuthType,0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data,AuthDataList)
 	if err != nil{
 		return common.Address{}
 	}
+	for _,AuthData := range AuthDataList{
 	if AuthData.IsEntrustSign == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
 		return AuthData.AuthAddres
+		}
 	}
 	return common.Address{}
 }
@@ -366,17 +368,31 @@ func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Addr
 //根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
-	AuthData := new(common.AuthType) //授权数据是单个结构
-	err := json.Unmarshal(AuthMarsha1Data,AuthData)
+	AuthDataList := make([]common.AuthType,0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data,AuthDataList)
 	if err != nil{
 		return common.Address{}
 	}
+	for _,AuthData := range AuthDataList{
 	if AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
 		return AuthData.AuthAddres
+		}
 	}
 	return common.Address{}
 }
+func (self *StateDB) GetAllEntrustList(authFrom common.Address) []common.EntrustType {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	if len(EntrustMarsha1Data) == 0{
+		return nil
+	}
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
 
+	return entrustDataList
+}
 
 // Database retrieves the low level database supporting the lower level trie ops.
 func (self *StateDB) Database() Database {

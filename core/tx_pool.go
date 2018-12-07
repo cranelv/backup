@@ -22,6 +22,8 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"runtime"
+	"fmt"
+	"github.com/matrix/go-matrix/base58"
 )
 
 //YY
@@ -168,7 +170,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalSlots:  4096 * 5 * 5 * 10, //YY 2018-08-30 改为乘以5
 	AccountQueue: 64 * 1000,
 	GlobalQueue:  1024 * 60,
-	txTimeout:    6000 * time.Second,
+	txTimeout:    180 * time.Second,
 }
 
 type NormalTxPool struct {
@@ -1328,21 +1330,21 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if tx.IsEntrustTx(){
 		//通过from获得的数据为授权人marsha1过的数据
-		from := tx.From()
-		entrustFrom := nPool.currentState.GetGasAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
-		if !entrustFrom.Equal(common.Address{}){
-			tx.Setentrustfrom(entrustFrom)
-			tx.IsEntrustGas = true
-		}
+		//from := tx.From()
+		//entrustFrom := nPool.currentState.GetGasAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
+		//if !entrustFrom.Equal(common.Address{}){
+		//	tx.Setentrustfrom(entrustFrom)
+		//	tx.IsEntrustGas = true
+		//}
 
-		////======测试===================//
-		//tmpfrom := common.HexToAddress("0x53f36c0cd8e4889b6d87681e0deab030b23cfb7e")
-		//entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
-		//fmt.Println("===委托列表",entrustlist)
-		//addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		//entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
-		//fmt.Println("授权人",entrustfrom)
-		////========2222222=============//
+		//======测试===================//
+		tmpfrom := common.HexToAddress("0x53f36c0cd8e4889b6d87681e0deab030b23cfb7e")
+		entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
+		fmt.Println("===委托列表",entrustlist)
+		addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
+		entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
+		fmt.Println("授权人",entrustfrom)
+		//========2222222=============//
 	}
 
 	//普通交易

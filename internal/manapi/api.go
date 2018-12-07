@@ -560,7 +560,15 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 	//log.Info("GetBalance","余额:",b)
 	return b, state.Error()
 }
-
+//钱包调用
+func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
+	state,err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	return state.GetAllEntrustList(authFrom)
+}
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {

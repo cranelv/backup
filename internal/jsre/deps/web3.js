@@ -2235,7 +2235,7 @@ var toTwosComplement = function (number) {
  * @return {Boolean}
 */
 var isStrictAddress = function (address) {
-    return /^0x[0-9a-f]{40}$/i.test(address);
+    return /^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/i.test(address);
 };
 
 /**
@@ -2246,10 +2246,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!(/^[A-Z]{2,8}\.[0-9a-zA-Z]{40,60}$/.test(address))) {
+    if (!(/^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/.test(address))) {
         // check if it has the basic requirements of an address
         return false;
-    } else if ((/^[A-Z]{2,8}\.[0-9a-zA-Z]{40,60}$/.test(address))) {
+    } else if ((/^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/.test(address))) {
         // If it's all small caps or all all caps, return true
         return true;
     } else {
@@ -5318,6 +5318,14 @@ var methods = function () {
         //outputFormatter: formatters.outputBigNumberFormatter
     });
 
+    var getEntrustList = new Method({
+        name: 'getEntrustList',
+        call: 'eth_getEntrustList',
+        params: 1,
+        inputFormatter: [formatters.inputAddressFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+
     var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'eth_getStorageAt',
@@ -5504,6 +5512,7 @@ var methods = function () {
 
     return [
         getBalance,
+        getEntrustList,
         getStorageAt,
         getCode,
         getBlock,

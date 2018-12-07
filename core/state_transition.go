@@ -565,48 +565,104 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 	Authfrom := tx.From()
 	EntrustList := make([]common.EntrustType,0)
 	err = json.Unmarshal(tx.Data(),&EntrustList) //EntrustList为被委托人的EntrustType切片
-	//err = json.Unmarshal(bt1,&EntrustList) //!!!!!!!!!!!=====测试用==!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	if err != nil{
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
+
 	for _,EntrustData := range EntrustList{
+		HeightAuthDataList := make([]common.AuthType,0)//按高度存储授权数据列表
+		TimeAuthDataList := make([]common.AuthType,0)
 		str_addres := EntrustData.EntrustAddres //被委托人地址
 		addres := base58.Base58DecodeToAddress(str_addres)
 		tmpAuthMarsha1Data := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))
 		if len(tmpAuthMarsha1Data) != 0{
-			AuthData := new(common.AuthType)
-			err = json.Unmarshal(tmpAuthMarsha1Data,AuthData)
-			if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
-				log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
-				return nil, 0, false, ErrRepeatEntrust //如果一个不满足就返回，不continue
-			}
-			//如果是同一个人委托，委托的时间不能重合
-			if AuthData.AuthAddres.Equal(Authfrom){
-				if EntrustData.StartHeight <= AuthData.EndHeight{
-					log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
-					return nil, 0, false, ErrRepeatEntrust
+			//AuthData := new(common.AuthType)
+			AuthDataList := make([]common.AuthType,0)
+			err = json.Unmarshal(tmpAuthMarsha1Data,AuthDataList)
+			for _,AuthData := range AuthDataList{
+				if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
+					log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
+					return nil, 0, false, ErrRepeatEntrust //如果一个不满足就返回，不continue
+				}
+				//如果是同一个人委托，委托的高度不能重合
+				if AuthData.AuthAddres.Equal(Authfrom){
+					if EntrustData.EnstrustSetType == 0{
+						//按高度委托
+						if EntrustData.StartHeight <= AuthData.EndHeight{
+							log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
+							return nil, 0, false, ErrRepeatEntrust
+						}
+						HeightAuthDataList = append(HeightAuthDataList,AuthData)
+					}else if EntrustData.EnstrustSetType == 1{
+						//按时间委托
+						if EntrustData.StartTime <= AuthData.EndTime{
+							log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
+							return nil, 0, false, ErrRepeatEntrust
+						}
+						TimeAuthDataList = append(TimeAuthDataList,AuthData)
+					}else{
+						log.Error("未设置委托类型","from",tx.From(),"Nonce",tx.Nonce())
+						return nil, 0, false, errors.New("without set entrust type")
+					}
 				}
 			}
 		}
 		entrustOK = true
 		//反向存储AuthType结构，用来通过被委托人from和高度查找授权人from
-		authData := new(common.AuthType)
-		authData.StartHeight = EntrustData.StartHeight
-		authData.EndHeight = EntrustData.EndHeight
-		authData.IsEntrustSign = EntrustData.IsEntrustSign
-		authData.IsEntrustGas = EntrustData.IsEntrustGas
-		authData.AuthAddres = Authfrom
-		marshalAuthData,err := json.Marshal(authData)
-		if err != nil{
-			log.Error("Marshal err")
-			return nil, 0, false, err
+		if EntrustData.EnstrustSetType == 0{
+			//按块高存
+			t_authData := new(common.AuthType)
+			t_authData.StartHeight = EntrustData.StartHeight
+			t_authData.EndHeight = EntrustData.EndHeight
+			t_authData.IsEntrustSign = EntrustData.IsEntrustSign
+			t_authData.IsEntrustGas = EntrustData.IsEntrustGas
+			t_authData.AuthAddres = Authfrom
+			HeightAuthDataList = append(HeightAuthDataList,*t_authData)
+			marshalAuthData,err := json.Marshal(HeightAuthDataList)
+			if err != nil{
+				log.Error("Marshal err")
+				return nil, 0, false, err
+			}
+			//marsha1AuthData是authData的Marsha1编码
+			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
 		}
-		//marsha1AuthData是authData的Marsha1编码
-		st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
+
+		if EntrustData.EnstrustSetType == 1{
+			//按时间存
+			t_authData := new(common.AuthType)
+			t_authData.StartTime = EntrustData.StartTime
+			t_authData.EndTime = EntrustData.EndTime
+			t_authData.IsEntrustSign = EntrustData.IsEntrustSign
+			t_authData.IsEntrustGas = EntrustData.IsEntrustGas
+			t_authData.AuthAddres = Authfrom
+			TimeAuthDataList = append(TimeAuthDataList,*t_authData)
+			marshalAuthData,err := json.Marshal(TimeAuthDataList)
+			if err != nil{
+				log.Error("Marshal err")
+				return nil, 0, false, err
+			}
+			//marsha1AuthData是authData的Marsha1编码
+			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
+		}
 	}
 	if entrustOK{
-		st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),tx.Data()) //tx.Data()钱包marshal过的EntrustType列表
+		//获取之前的委托数据(结构体切片经过marshal编码)
+		AllEntrustList := make([]common.EntrustType,0)
+		oldEntrustList := st.state.GetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]))
+		if len(oldEntrustList) != 0{
+			err = json.Unmarshal(oldEntrustList,&AllEntrustList)
+			if err != nil{
+				log.Error("CallAuthTx Unmarshal err")
+				return nil, 0, false, err
+			}
+		}
+		AllEntrustList = append(AllEntrustList,EntrustList...)
+		allDataList,err := json.Marshal(AllEntrustList)
+		if err != nil{
+			log.Error("Marshal error")
+		}
+		st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),allDataList)
 		entrustOK = false
 	}else{
 		log.Error("委托条件不满足")
@@ -650,6 +706,16 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 	}
 	return ret, 0, vmerr != nil, err
 }
+
+func isContain(a uint32,list []uint32) bool {
+	for _,data := range list{
+		if data == a{
+			return true
+		}
+	}
+	return false
+}
+
 func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed bool, err error){
 	if err = st.PreCheck(); err != nil {
 		return
@@ -663,64 +729,114 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 	)
 
 	Authfrom := tx.From()
-	EntrustList := make([]common.EntrustType,0)
-	err = json.Unmarshal(tx.Data(),&EntrustList) //EntrustList为被委托人的EntrustType切片
+	delIndexList := make([]uint32,0)
+	err = json.Unmarshal(tx.Data(),&delIndexList) //EntrustList为被委托人的EntrustType切片
 	if err != nil{
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
 
-	newEntrustlist := make([]common.EntrustType,0)
-	for _,EntrustData := range EntrustList {
-		str_addres := EntrustData.EntrustAddres //被委托人地址
-		addres := base58.Base58DecodeToAddress(str_addres)
-		marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的委托数据,marshal编码过的
-		if len(marshaldata) > 0{
-			oldEntrustData := new(common.AuthType)   //oldEntrustData的地址为0x地址
-			err = json.Unmarshal(marshaldata,oldEntrustData)	//oldEntrustData的地址为0x地址
-			if err != nil{
-				return nil, 0, false, err
-			}
-			if !EntrustData.IsEntrustGas && !EntrustData.IsEntrustSign{
-				log.Error("未设置取消委托条件")
-				return nil, 0, false, errors.New("without set cancel entrust type")
-			}
-			//取消委托gas
-			if EntrustData.IsEntrustGas{
-				if oldEntrustData.IsEntrustGas == true{
-					oldEntrustData.IsEntrustGas = false
+	EntrustMarsha1Data := st.state.GetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]))
+	if len(EntrustMarsha1Data) == 0{
+		log.Error("没有委托数据")
+		return nil, 0, false, errors.New("without entrust data")
+	}
+	entrustDataList := make([]common.EntrustType,0)
+	err = json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		log.Error("CallAuthTx Unmarshal err")
+	}
+	newentrustDataList := make([]common.EntrustType,0)
+	for index,entrustFrom := range entrustDataList{
+		if isContain(uint32(index),delIndexList){
+			//要删除的切片数据
+			str_addres := entrustFrom.EntrustAddres //被委托人地址
+			addres := base58.Base58DecodeToAddress(str_addres)
+			marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的授权数据切片,marshal编码过的
+			if len(marshaldata) > 0{
+				//oldAuthData := new(common.AuthType)   //oldAuthData的地址为0x地址
+				oldAuthDataList := make([]common.AuthType,0)
+				err = json.Unmarshal(marshaldata,&oldAuthDataList)	//oldAuthData的地址为0x地址
+				if err != nil{
+					return nil, 0, false, err
 				}
-				entrustlist := st.state.GetAllEntrustGasFrom(Authfrom)
-				for _,entrustFrom := range entrustlist{
-					if entrustFrom.Equal(addres){
-						EntrustData.IsEntrustGas = false
+				for _,oldAuthData := range oldAuthDataList{
+					//只要起始高度能对应上，就是要删除的切片
+					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime{
+						oldAuthData.IsEntrustGas = false
+						oldAuthData.IsEntrustSign = false
+						newAuthData,err := json.Marshal(oldAuthData)
+						if err != nil{
+							return nil, 0, false, err
+						}
+						st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newAuthData)
 					}
 				}
 			}
-			if EntrustData.IsEntrustSign{
-				if oldEntrustData.IsEntrustSign == true{
-					oldEntrustData.IsEntrustSign = false
-				}
-				entrustlist := st.state.GetAllEntrustSignFrom(Authfrom)
-				for _,entrustFrom := range entrustlist{
-					if entrustFrom.Equal(addres){
-						EntrustData.IsEntrustSign = false
-					}
-				}
-			}
-			newEntrustlist = append(newEntrustlist,EntrustData)
-			newEntrustData,err := json.Marshal(oldEntrustData)
-			if err != nil{
-				return nil, 0, false, err
-			}
-			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newEntrustData)
+		}else{
+			//新的切片数据
+			newentrustDataList = append(newentrustDataList,entrustFrom)
 		}
 	}
-	newMarshalEntrustlist,err := json.Marshal(newEntrustlist)
+
+	newEntrustList ,err := json.Marshal(newentrustDataList)
 	if err != nil{
-		return nil, 0, false,err
+		log.Error("CallAuthTx Marshal err")
 	}
-	st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newMarshalEntrustlist)
+	st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newEntrustList)
+
+
+	//newEntrustlist := make([]common.EntrustType,0)
+	//for _,EntrustData := range EntrustList {
+	//	str_addres := EntrustData.EntrustAddres //被委托人地址
+	//	addres := base58.Base58DecodeToAddress(str_addres)
+	//	marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的委托数据,marshal编码过的
+	//	if len(marshaldata) > 0{
+	//		oldEntrustData := new(common.AuthType)   //oldEntrustData的地址为0x地址
+	//		err = json.Unmarshal(marshaldata,oldEntrustData)	//oldEntrustData的地址为0x地址
+	//		if err != nil{
+	//			return nil, 0, false, err
+	//		}
+	//		if !EntrustData.IsEntrustGas && !EntrustData.IsEntrustSign{
+	//			log.Error("未设置取消委托条件")
+	//			return nil, 0, false, errors.New("without set cancel entrust type")
+	//		}
+	//		//取消委托gas
+	//		if EntrustData.IsEntrustGas{
+	//			if oldEntrustData.IsEntrustGas == true{
+	//				oldEntrustData.IsEntrustGas = false
+	//			}
+	//			entrustlist := st.state.GetAllEntrustGasFrom(Authfrom)
+	//			for _,entrustFrom := range entrustlist{
+	//				if entrustFrom.Equal(addres){
+	//					EntrustData.IsEntrustGas = false
+	//				}
+	//			}
+	//		}
+	//		if EntrustData.IsEntrustSign{
+	//			if oldEntrustData.IsEntrustSign == true{
+	//				oldEntrustData.IsEntrustSign = false
+	//			}
+	//			entrustlist := st.state.GetAllEntrustSignFrom(Authfrom)
+	//			for _,entrustFrom := range entrustlist{
+	//				if entrustFrom.Equal(addres){
+	//					EntrustData.IsEntrustSign = false
+	//				}
+	//			}
+	//		}
+	//		newEntrustlist = append(newEntrustlist,EntrustData)
+	//		newEntrustData,err := json.Marshal(oldEntrustData)
+	//		if err != nil{
+	//			return nil, 0, false, err
+	//		}
+	//		st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newEntrustData)
+	//	}
+	//}
+	//newMarshalEntrustlist,err := json.Marshal(newEntrustlist)
+	//if err != nil{
+	//	return nil, 0, false,err
+	//}
+	//st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newMarshalEntrustlist)
 
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
