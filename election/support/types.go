@@ -21,9 +21,9 @@ const (
 )
 
 type AllNative struct {
-	Master    []mc.TopologyNodeInfo //验证者主节点
-	BackUp    []mc.TopologyNodeInfo //验证者备份
-	Candidate []mc.TopologyNodeInfo //验证者候选
+	Master    []mc.ElectNodeInfo //验证者主节点
+	BackUp    []mc.ElectNodeInfo //验证者备份
+	Candidate []mc.ElectNodeInfo //验证者候选
 
 	MasterQ    []common.Address //第一梯队候选
 	BackUpQ    []common.Address //第二梯队候选

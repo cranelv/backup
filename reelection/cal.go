@@ -6,8 +6,10 @@ package reelection
 import (
 	"errors"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
@@ -42,7 +44,7 @@ func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prev
 		}
 
 		account := checkInGraph(prevTopology, v.Position)
-		if account.Equal(common.Address{}){
+		if account.Equal(common.Address{}) {
 			//前拓扑中暂缺该position
 			continue
 		}

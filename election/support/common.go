@@ -4,10 +4,10 @@
 package support
 
 import (
+	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"fmt"
 )
 
 func locate(addr common.Address, top *mc.TopologyGraph) int {
@@ -136,7 +136,6 @@ func SloveFirstOffline(pos uint16, alter []mc.Alternative, native AllNative, fla
 		return alter, native
 	}
 
-
 	for k, v := range native.BackUpQ { //1级缓存
 		temp := mc.Alternative{
 			A:        v,
@@ -176,7 +175,7 @@ func findAddress(addr common.Address, aim []common.Address) bool {
 	}
 	return false
 }
-func findAddressInTop(addr common.Address, aim []mc.TopologyNodeInfo) bool {
+func findAddressInTop(addr common.Address, aim []mc.ElectNodeInfo) bool {
 	for _, v := range aim {
 		if v.Account == addr {
 			return true
@@ -192,23 +191,23 @@ const (
 
 func Slove(topG *mc.TopologyGraph, native AllNative) *mc.TopologyGraph {
 
-	backInMaster:=[]mc.TopologyNodeInfo{}
+	backInMaster := []mc.TopologyNodeInfo{}
 	backInitList := []mc.TopologyNodeInfo{}
 	backNoInitList := []mc.TopologyNodeInfo{}
 	for _, v := range topG.NodeList {
 		if v.Type != common.RoleBackupValidator {
 			continue
 		}
-		if findAddressInTop(v.Account,native.Master){
-			backInMaster=append(backInMaster,v)
-		}else  if findAddressInTop(v.Account, native.BackUp) {
+		if findAddressInTop(v.Account, native.Master) {
+			backInMaster = append(backInMaster, v)
+		} else if findAddressInTop(v.Account, native.BackUp) {
 			backInitList = append(backInitList, v)
 		} else {
 			backNoInitList = append(backNoInitList, v)
 		}
 	}
-	for _,v:=range backInitList{
-		backInMaster=append(backInMaster,v)
+	for _, v := range backInitList {
+		backInMaster = append(backInMaster, v)
 	}
 	for _, v := range backNoInitList {
 		backInMaster = append(backInMaster, v)
@@ -231,98 +230,96 @@ func Slove(topG *mc.TopologyGraph, native AllNative) *mc.TopologyGraph {
 
 	return ans
 }
-func findAddr(addr common.Address,list []common.Address)bool{
-	for _,v:=range list{
-		if v.Equal(addr){
+func findAddr(addr common.Address, list []common.Address) bool {
+	for _, v := range list {
+		if v.Equal(addr) {
 			return true
 		}
 	}
 	return false
 }
-func DelIndex(native AllNative,flag int)AllNative{
-	ans:=AllNative{}
-	switch flag{
+func DelIndex(native AllNative, flag int) AllNative {
+	ans := AllNative{}
+	switch flag {
 	case 1:
-		for k,v:=range native.MasterQ{
-			if k==0{
+		for k, v := range native.MasterQ {
+			if k == 0 {
 				continue
 			}
-			ans.MasterQ=append(ans.MasterQ,v)
+			ans.MasterQ = append(ans.MasterQ, v)
 		}
-		ans.BackUpQ=append(ans.BackUpQ,native.BackUpQ[0:]...)
-		ans.CandidateQ=append(ans.CandidateQ,native.CandidateQ[0:]...)
+		ans.BackUpQ = append(ans.BackUpQ, native.BackUpQ[0:]...)
+		ans.CandidateQ = append(ans.CandidateQ, native.CandidateQ[0:]...)
 		return ans
 	case 2:
-		for k,v:=range native.BackUpQ{
-			if k==0{
+		for k, v := range native.BackUpQ {
+			if k == 0 {
 				continue
 			}
-			ans.BackUpQ=append(ans.BackUpQ,v)
+			ans.BackUpQ = append(ans.BackUpQ, v)
 		}
-		ans.MasterQ=append(ans.MasterQ,native.MasterQ[0:]...)
-		ans.CandidateQ=append(ans.CandidateQ,native.CandidateQ[0:]...)
+		ans.MasterQ = append(ans.MasterQ, native.MasterQ[0:]...)
+		ans.CandidateQ = append(ans.CandidateQ, native.CandidateQ[0:]...)
 		return ans
 	case 3:
-		for k,v:=range native.CandidateQ{
-			if k==0{
+		for k, v := range native.CandidateQ {
+			if k == 0 {
 				continue
 			}
-			ans.CandidateQ=append(ans.CandidateQ,v)
+			ans.CandidateQ = append(ans.CandidateQ, v)
 		}
-		ans.MasterQ=append(ans.MasterQ,native.MasterQ[0:]...)
-		ans.BackUpQ=append(ans.BackUpQ,native.BackUpQ[0:]...)
+		ans.MasterQ = append(ans.MasterQ, native.MasterQ[0:]...)
+		ans.BackUpQ = append(ans.BackUpQ, native.BackUpQ[0:]...)
 		return ans
 	default:
 		return ans
 
 	}
 }
-func GetNodeFromBuff(native AllNative)(AllNative,common.Address){
-	if len(native.MasterQ)>0{
-		return DelIndex(native,1),native.MasterQ[0]
+func GetNodeFromBuff(native AllNative) (AllNative, common.Address) {
+	if len(native.MasterQ) > 0 {
+		return DelIndex(native, 1), native.MasterQ[0]
 	}
-	if len(native.BackUpQ)>0{
-		return DelIndex(native,2),native.BackUpQ[0]
+	if len(native.BackUpQ) > 0 {
+		return DelIndex(native, 2), native.BackUpQ[0]
 	}
-	if len(native.CandidateQ)>0{
-		return DelIndex(native,3),native.CandidateQ[0]
+	if len(native.CandidateQ) > 0 {
+		return DelIndex(native, 3), native.CandidateQ[0]
 	}
-	return native,common.Address{}
+	return native, common.Address{}
 }
-func BackUpdata(top *mc.TopologyGraph,mapp map[uint16]common.Address)uint16{
-	for _,v:=range top.NodeList{
+func BackUpdata(top *mc.TopologyGraph, mapp map[uint16]common.Address) uint16 {
+	for _, v := range top.NodeList {
 		types := common.GetRoleTypeFromPosition(v.Position)
-		if _,ok:=mapp[v.Position];ok==false{
+		if _, ok := mapp[v.Position]; ok == false {
 			continue
 		}
-		if types == common.RoleBackupValidator  {
+		if types == common.RoleBackupValidator {
 			return v.Position
 		}
 	}
 	return 0
 }
-func KInTop(aim uint16,topoG *mc.TopologyGraph)bool{
-	for _,v:=range topoG.NodeList{
-		if v.Position==aim{
+func KInTop(aim uint16, topoG *mc.TopologyGraph) bool {
+	for _, v := range topoG.NodeList {
+		if v.Position == aim {
 			return true
 		}
 	}
 	return false
 }
 func ToPoUpdate(offline []common.Address, allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
-	ans:=[]mc.Alternative{}
+	ans := []mc.Alternative{}
 	mapMaster := make(map[uint16]common.Address)
 	mapBackup := make(map[uint16]common.Address)
-
-
 
 	//fmt.Println("len topG.NodeList",len(topoG.NodeList))
 	//for _,v:=range topoG.NodeList{
 	//	fmt.Println(v.Position,v.Account.String())
 	//}
 	for _, v := range topoG.NodeList {
-		if findAddr(v.Account,offline){
-			continue	//删除节点
+		if findAddr(v.Account, offline) {
+			continue //删除节点
 		}
 		//fmt.Println("v.Pos",v.Position,"v.addr",v.Account.String())
 		types := common.GetRoleTypeFromPosition(v.Position)
@@ -335,50 +332,50 @@ func ToPoUpdate(offline []common.Address, allNative AllNative, topoG *mc.Topolog
 	}
 	//fmt.Println("mapMaster",mapMaster,"len",len(mapMaster))
 	//fmt.Println("mapBackup",mapBackup,"len",len(mapBackup))
-	for index := 0; index < common.MasterValidatorNum; index++ {//用一级在线去补
+	for index := 0; index < common.MasterValidatorNum; index++ { //用一级在线去补
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		_, ok := mapMaster[k]
-		if ok==true{
-		//	fmt.Println("该位置已存在",k)
+		if ok == true {
+			//	fmt.Println("该位置已存在",k)
 			continue
 		}
 
-		trans:=BackUpdata(topoG,mapBackup)
-		if trans==0{
+		trans := BackUpdata(topoG, mapBackup)
+		if trans == 0 {
 			//fmt.Println("已空")
 			continue
 		}
-		if _,ok:=mapBackup[trans];ok==false{
-		//	fmt.Println("mapBack没有",trans)
+		if _, ok := mapBackup[trans]; ok == false {
+			//	fmt.Println("mapBack没有",trans)
 			continue
 		}
 
-		ans=append(ans,mc.Alternative{
-			A:mapBackup[trans],
-			Position:k,
+		ans = append(ans, mc.Alternative{
+			A:        mapBackup[trans],
+			Position: k,
 		})
-	//	fmt.Println("一级在线去补",mapBackup[trans].String(),k)
-		mapMaster[k]=mapBackup[trans]
-		delete(mapBackup,trans)
+		//	fmt.Println("一级在线去补",mapBackup[trans].String(),k)
+		mapMaster[k] = mapBackup[trans]
+		delete(mapBackup, trans)
 
 	}
-	for index:=0;index<common.MasterValidatorNum;index++{//用buff去补
+	for index := 0; index < common.MasterValidatorNum; index++ { //用buff去补
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		_, ok := mapMaster[k]
-		if ok==true{
+		if ok == true {
 			continue
 		}
 		var addr common.Address
-		allNative,addr=GetNodeFromBuff(allNative)
-		if addr.Equal(common.Address{}){
+		allNative, addr = GetNodeFromBuff(allNative)
+		if addr.Equal(common.Address{}) {
 			continue
 		}
-		ans=append(ans,mc.Alternative{
-			A:addr,
-			Position:k,
+		ans = append(ans, mc.Alternative{
+			A:        addr,
+			Position: k,
 		})
-		mapMaster[k]=addr
-	//	fmt.Println("用buff去补",addr,k)
+		mapMaster[k] = addr
+		//	fmt.Println("用buff去补",addr,k)
 	}
 	for index := 0; index < common.BackupValidatorNum; index++ {
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidatorBackUp)
@@ -387,44 +384,43 @@ func ToPoUpdate(offline []common.Address, allNative AllNative, topoG *mc.Topolog
 			continue
 		}
 		var addr common.Address
-		allNative,addr=GetNodeFromBuff(allNative)
-		if addr.Equal(common.Address{}){
+		allNative, addr = GetNodeFromBuff(allNative)
+		if addr.Equal(common.Address{}) {
 			continue
 		}
-		ans=append(ans,mc.Alternative{
-			A:addr,
-			Position:k,
+		ans = append(ans, mc.Alternative{
+			A:        addr,
+			Position: k,
 		})
-		mapBackup[k]=addr
+		mapBackup[k] = addr
 	}
 
-
-	for index:=0;index<common.MasterValidatorNum;index++{//算一级下线
+	for index := 0; index < common.MasterValidatorNum; index++ { //算一级下线
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
-		if KInTop(k,topoG)==false{
-			fmt.Println("一级 该点不在顶层内","不处理")
+		if KInTop(k, topoG) == false {
+			fmt.Println("一级 该点不在顶层内", "不处理")
 			continue
 		}
-		if _,ok:=mapMaster[k];ok==false{
+		if _, ok := mapMaster[k]; ok == false {
 			//fmt.Println("该店直接下线-一级")
-			ans=append(ans,mc.Alternative{
-				A:common.Address{},
-				Position:k,
+			ans = append(ans, mc.Alternative{
+				A:        common.Address{},
+				Position: k,
 			})
 		}
 	}
-	for index := 0; index < common.BackupValidatorNum; index++ {//算二级下线
+	for index := 0; index < common.BackupValidatorNum; index++ { //算二级下线
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidatorBackUp)
 		//fmt.Println("222222222---k",k)
-		if KInTop(k,topoG)==false{
-			fmt.Println("二级 该点不在顶层内","不处理")
+		if KInTop(k, topoG) == false {
+			fmt.Println("二级 该点不在顶层内", "不处理")
 			continue
 		}
-		if _,ok:=mapBackup[k];ok==false{
-		//	fmt.Println("该店直接下线-二级")
-			ans=append(ans,mc.Alternative{
-				A:common.Address{},
-				Position:k,
+		if _, ok := mapBackup[k]; ok == false {
+			//	fmt.Println("该店直接下线-二级")
+			ans = append(ans, mc.Alternative{
+				A:        common.Address{},
+				Position: k,
 			})
 		}
 	}

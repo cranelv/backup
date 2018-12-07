@@ -31,7 +31,7 @@ func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Ma
 	MinerTopGenAns := mc.MasterMinerReElectionRsp{}
 
 	for index, v := range mmrerm.MinerList {
-		tempNode := mc.TopologyNodeInfo{
+		tempNode := mc.ElectNodeInfo{
 			Account:  v.Address,
 			Position: uint16(index),
 			Stock:    DefauleStock,
@@ -55,7 +55,7 @@ func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg
 	BackupNum := 0
 
 	for index, v := range mvrerm.ValidatorList {
-		tempNode := mc.TopologyNodeInfo{
+		tempNode := mc.ElectNodeInfo{
 			Account:  v.Address,
 			Position: uint16(index),
 			Stock:    DefauleStock,

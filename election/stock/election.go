@@ -53,19 +53,19 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 
 	var a, b, c []support.Strallyint
 	var value []support.Stf
-	if len(mvrerm.FoundationValidatoeList) == 0 {
+	if len(mvrerm.FoundationValidatorList) == 0 {
 		value = support.CalcAllValueFunction(mvrerm.ValidatorList)
 		a, b, c = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), 11, 5, 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
 	} else {
 		value = support.CalcAllValueFunction(mvrerm.ValidatorList)
-		valuefound := support.CalcAllValueFunction(mvrerm.FoundationValidatoeList)
-		a, b, c = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), 11, 5, len(mvrerm.FoundationValidatoeList)) //0x12217)
+		valuefound := support.CalcAllValueFunction(mvrerm.FoundationValidatorList)
+		a, b, c = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), 11, 5, len(mvrerm.FoundationValidatorList)) //0x12217)
 		a = support.CommbineFundNodesAndPricipal(value, valuefound, a, 0.25, 4.0)
 	}
 
 	for index, item := range a {
 		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
+		var ToG mc.ElectNodeInfo
 		ToG.Account = tmp.Address
 		ToG.Position = uint16(index)
 		ToG.Type = common.RoleValidator
@@ -75,7 +75,7 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 
 	for index, item := range b {
 		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
+		var ToG mc.ElectNodeInfo
 		ToG.Account = tmp.Address
 		ToG.Position = uint16(index)
 		ToG.Type = common.RoleBackupValidator
@@ -85,7 +85,7 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 
 	for index, item := range c {
 		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
+		var ToG mc.ElectNodeInfo
 		ToG.Account = tmp.Address
 		ToG.Position = uint16(index)
 		ToG.Type = common.RoleCandidateValidator

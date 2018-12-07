@@ -5,8 +5,6 @@ package reelection
 
 import (
 	"github.com/matrix/go-matrix/common"
-
-	"github.com/matrix/go-matrix/log"
 )
 
 func (self *ReElection) boolTopStatus(hash common.Hash, types common.RoleType) bool {
