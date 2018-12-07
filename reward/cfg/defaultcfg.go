@@ -1,6 +1,7 @@
 package cfg
 
 import (
+	"github.com/matrix/go-matrix/log"
 	"math/big"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -102,6 +103,7 @@ func DefaultSetRewardNew() *DefaultSetRewards {
 
 func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, rewards map[common.Address]*big.Int, Leader common.Address, num *big.Int) {
 	if common.IsBroadcastNumber(num.Uint64()) {
+		log.WARN(PackageName, "leader奖励高度错误", num)
 		return
 	}
 	str.leader.SetLeaderRewards(reward, rewards, Leader, num)
@@ -114,6 +116,7 @@ func (str *DefaultSetRewards) SetSelectedRewards(reward *big.Int, chain ChainRea
 }
 func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
 	if common.IsBroadcastNumber(num.Uint64()) {
+		log.WARN(PackageName, "矿工奖励高度错误", num)
 		return
 	}
 	str.miner.SetMinerOutRewards(reward, chain, num, rewards)

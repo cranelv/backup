@@ -24,10 +24,6 @@ type BlockReward struct {
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
 
-	if util.RewardFullRate != rewardCfg.RewardMount.MinersRate+rewardCfg.RewardMount.ValidatorsRate {
-		log.ERROR(PackageName, "固定区块奖励比例配置错误", "")
-		return nil
-	}
 	if util.RewardFullRate != rewardCfg.RewardMount.MinerOutRate+rewardCfg.RewardMount.ElectedMinerRate+rewardCfg.RewardMount.FoundationMinerRate {
 		log.ERROR(PackageName, "矿工固定区块奖励比例配置错误", "")
 		return nil
@@ -128,10 +124,11 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, rewards map[c
 
 func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
 
-	if blockReward.Uint64() == 0 {
-		log.Error(PackageName, "账户余额为0，不发放奖励", "")
+	if blockReward.Cmp(big.NewInt(0)) <= 0 {
+		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
 		return nil
 	}
+	log.INFO(PackageName, "奖励金额", blockReward)
 	rewards := make(map[common.Address]*big.Int, 0)
 	if nil == br.rewardCfg {
 		log.Error(PackageName, "奖励配置为空", "")
@@ -178,17 +175,26 @@ func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB,blockReward
 
 }
 
-func (br *BlockReward) CalcRewardMountByNumber(state *state.StateDB,num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int {
+func (br *BlockReward) CalcRewardMountByNumber(st util.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
-	balance := state.GetBalance(address)
+	if blockReward.Cmp(big.NewInt(0)) < 0 {
+		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
+		return big.NewInt(0)
+	}
+	if nil == st {
+		log.ERROR(PackageName, "状态树是空", "")
+		return big.NewInt(0)
+	}
+	balance := st.GetBalance(address)
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
+		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
+		return big.NewInt(0)
+	}
 	genesisState, _ := br.chain.StateAt(br.chain.Genesis().Root())
 	genesisBalance := genesisState.GetBalance(address)
 	log.INFO(PackageName, "计算区块奖励参数 当前高度:", num,"半衰高度:", halfNum,
 		"初始账户", address.String(), "初始金额", genesisBalance[common.MainAccount].Balance.String(), "当前金额", balance[common.MainAccount].Balance.String())
 	var reward *big.Int
-	if balance[common.MainAccount].Balance.Cmp(genesisBalance[common.MainAccount].Balance) >= 0 {
-		reward = blockReward
-	}
 
 	n := uint64(0)
 	if 0 != halfNum {

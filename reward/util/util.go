@@ -56,9 +56,16 @@ type ChainReader interface {
 	Genesis() *types.Block
 }
 
+type StateDB interface {
+	GetBalance(common.Address) common.BalanceType
+}
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {
 
-	if 0==reward.Cmp(big.NewInt(0)){
+	if 0 == reward.Cmp(big.NewInt(0)) {
+		return
+	}
+	if account.Equal(common.Address{}) {
+		log.ERROR(PackageName, "奖励的地址非法", account.Hex())
 		return
 	}
 	if _, ok := rewards[account]; ok {
@@ -84,18 +91,25 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 	depositNodesFix := make(map[common.Address ]*big.Int)
 	for k, v := range depositNodes {
 		depositTemp := new(big.Int).Div(v,big.NewInt(1e18))
+		if depositTemp.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "定点化的抵押值错误", depositTemp)
+			return
+		}
 		depositNodesFix[k] = depositTemp
 		totalDeposit.Add(totalDeposit, depositTemp)
 	}
-	if 0==totalDeposit.Cmp(big.NewInt(0)){
-		log.ERROR(PackageName,"定点化抵押值为0","")
+	if totalDeposit.Cmp(big.NewInt(0)) <= 0 {
+		log.ERROR(PackageName, "定点化抵押值为非法", totalDeposit)
 		return
 	}
 	log.INFO(PackageName,"计算抵押总额,账户总抵押",totalDeposit,"定点化抵押", totalDeposit)
 
 	rewardFixed :=new(big.Int).Div(reward,big.NewInt(1e8))
 
-
+	if 0 == rewardFixed.Cmp(big.NewInt(0)) {
+		log.ERROR(PackageName, "定点化奖励金额为0", "")
+		return
+	}
 	sorted_keys := make([]string, 0)
 
 	for k, _ := range depositNodesFix {
@@ -105,6 +119,10 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 	for _,k:=range sorted_keys{
 		rateTemp := new(big.Int).Mul(depositNodesFix[common.HexToAddress(k)],big.NewInt(1e10))
 		rate:=new(big.Int).Div(rateTemp,totalDeposit)
+		if rate.Cmp(big.NewInt(0)) < 0 {
+			log.ERROR(PackageName, "定点化比例非法", rate)
+			continue
+		}
 		log.INFO(PackageName,"计算比例,账户",k,"定点化比例", rate)
 
 		rewardTemp:= new(big.Int).Mul(rewardFixed,rate)

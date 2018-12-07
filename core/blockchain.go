@@ -1444,7 +1444,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		interestReward:=interest.New(bc)
+		interestReward:=interest.New()
 		interestReward.InterestCalc(state,block.Number().Uint64())
 		//todo 惩罚
 

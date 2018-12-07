@@ -429,9 +429,15 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	gas := mapcoingasUse.getCoinGasUse("MAN")
 	allGas := new(big.Int).Mul(new(big.Int).SetUint64(gas),price)
 	log.INFO("奖励","交易费奖励总额",allGas.String())
-	txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header)
-	if nil!=txsRewardMap{
-		rewardList = append(rewardList,common.RewarTx{CoinType:"MAN",Fromaddr:common.TxGasRewardAddress,To_Amont:txsRewardMap})
+	balance := env.State.GetBalance(common.TxGasRewardAddress)
+
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
+	} else {
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header)
+		if nil != txsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+		}
 	}
 
 	lottery:=lottery.New(bc,&randSeed{bc})
@@ -450,7 +456,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) ([]common.RewarTx) {
 	////  }
 	//
 	////todo 利息
-	interestReward:=interest.New(bc)
+	interestReward:=interest.New()
 	interestReward.InterestCalc(env.State,env.header.Number.Uint64())
 	//todo 惩罚
 

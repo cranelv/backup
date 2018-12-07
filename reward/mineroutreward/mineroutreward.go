@@ -49,7 +49,11 @@ type ChainReader interface {
 func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
 	if num.Uint64() < uint64(2) || common.IsBroadcastNumber(num.Uint64()) {
-		log.WARN(PackageName, "miner out height is wrong,height", num.Uint64())
+		log.WARN(PackageName, "挖坑奖励高度错误：", num.Uint64())
+		return
+	}
+	if reward.Cmp(big.NewInt(0)) <= 0 {
+		log.WARN(PackageName, "奖励金额不合法", reward)
 		return
 	}
 	var coinBase common.Address
@@ -57,6 +61,10 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader,
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 2).Coinbase
 	}else{
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 1).Coinbase
+	}
+	if coinBase.Equal(common.Address{}) {
+		log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
+		return
 	}
 	util.SetAccountRewards(rewards, coinBase, reward)
 	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num.Uint64(), "奖励金额", reward)

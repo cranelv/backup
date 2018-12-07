@@ -59,32 +59,38 @@ func (sr *SelectedReward) SetSelectedRewards(reward *big.Int, chain ChainReader,
 		eleNum = common.GetLastReElectionNumber(num.Uint64()) - 1
 	}
 
+	if reward.Cmp(big.NewInt(0)) <= 0 {
+		log.WARN(PackageName, "奖励金额不合法", reward)
+		return
+	}
 	originElectNodes, err := ca.GetTopologyByNumber(roleType, eleNum)
 	if err != nil {
-		log.Error(PackageName, "get elect topology by number error", err)
+		log.Error(PackageName, "获取初选拓扑图错误", err)
 		return
 	}
 
 	if 0 == len(originElectNodes.NodeList) {
-		log.Error(PackageName, "get elect NodeList is Nill", "")
+		log.Error(PackageName, "get获取初选列表为空", "")
 		return
 	}
 	newGraph, err :=  ca.GetTopologyByNumber(roleType, header.Number.Uint64()-1)
 
 	if err != nil {
-		log.Error(PackageName, "get current topology by number error", err)
+		log.Error(PackageName, "获取当前拓扑图错误", err)
 		return
 	}
 
 	if 0 == len(newGraph.NodeList) {
-		log.Error(PackageName, "get current NodeList is Nill", "")
+		log.Error(PackageName, "当前拓扑图是 空", "")
 		return
 	}
-
-	selectedNodesDeposit:= sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
-	log.INFO(PackageName, "参与奖励大家共发放",reward)
-
-	util.CalcDepositRate(reward,selectedNodesDeposit,topRewards)
+	log.INFO(PackageName, "参与奖励大家共发放", reward)
+	selectedNodesDeposit := sr.caclSelectedDeposit(newGraph, originElectNodes, num, roleType, rate)
+	if 0 == len(selectedNodesDeposit) {
+		log.Error(PackageName, "获取参与的抵押列表错误", "")
+		return
+	}
+	util.CalcDepositRate(reward, selectedNodesDeposit, topRewards)
 	return
 
 }
@@ -116,10 +122,22 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph *mc.TopologyGraph, origin
 		}
 	}
 
-	depositNodes, _ := ca.GetElectedByHeightAndRole(new(big.Int).SetUint64(depositNum), roleType)
+	depositNodes, err:= ca.GetElectedByHeightAndRole(new(big.Int).SetUint64(depositNum), roleType)
+	if nil != err {
+		log.ERROR(PackageName, "获取抵押列表错误", err)
+		return nil
+	}
+	if 0 == len(depositNodes) {
+		log.ERROR(PackageName, "获取抵押列表为空", "")
+		return nil
+	}
 	for _, v := range depositNodes {
 
 		if depositRate, ok := NodesRewardMap[v.Address]; ok {
+			if v.Deposit.Cmp(big.NewInt(0)) < 0 {
+				log.ERROR(PackageName, "获取抵押值错误，抵押", v.Deposit, "账户", v.Address.Hex())
+				return nil
+			}
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
 			selectedNodesDeposit[v.Address] = deposit
 			log.INFO(PackageName,"计算抵押总额,账户",v.Address.Hex(),"抵押",deposit)

@@ -2,7 +2,6 @@ package lottery
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/reward/util"
@@ -14,8 +13,8 @@ import (
 const (
 	N      = 6
 	FIRST  = 1 //一等奖数目
-	SECOND = 2 //二等奖数目
-	THIRD  = 3 //三等奖数目
+	SECOND      = 0 //二等奖数目
+	THIRD       = 0 //三等奖数目
 	PackageName = "彩票奖励"
 )
 
@@ -63,7 +62,7 @@ func abs(n int64) int64 {
 	return (n ^ y) - y
 }
 
-func (tlr *TxsLottery) LotteryCalc(state *state.StateDB, num uint64) map[string]map[common.Address]*big.Int {
+func (tlr *TxsLottery) LotteryCalc(state util.StateDB, num uint64) map[string]map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 	if !common.IsReElectionNumber(num + 1) {
 		return nil
@@ -123,7 +122,10 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 	thirdLottery := make(map[common.Address]*big.Int, THIRD)
 	for _, v := range txsCmpResultList {
 		from :=v.Tx.From()
-
+		if from.Equal(common.Address{}){
+			log.ERROR(PackageName,"交易地址为空",nil)
+			continue
+		}
 		//抽取一等奖
 		LotteryAccount, _ := LotteryAccountMap["First"]
 		if len(LotteryAccount) < FIRST {
@@ -157,6 +159,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 		if len(LotteryAccount) < THIRD {
 			util.SetAccountRewards(thirdLottery,from,THIRDPRIZE)
 			LotteryAccountMap["third"] = thirdLottery
+			log.INFO(PackageName, "三等奖", from.Hex())
 			continue
 		}
 		break

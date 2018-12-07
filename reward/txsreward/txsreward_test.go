@@ -73,7 +73,7 @@ func fakeEthNew(n int) *FakeEth {
 	return eth
 }
 
-func TestNew(t *testing.T) {
+func TestNew1(t *testing.T) {
 	Convey("计算交易费", t, func() {
 
 		log.InitLog(3)
@@ -88,5 +88,40 @@ func TestNew(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		reward := New(eth.blockchain)
 		reward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
+	})
+}
+
+func TestNew2(t *testing.T) {
+	Convey("计算交易费", t, func() {
+
+		log.InitLog(3)
+		eth := fakeEthNew(0)
+		header := eth.BlockChain().CurrentHeader()
+		newheader := types.CopyHeader(header)
+		newheader.Number = big.NewInt(1)
+		newheader.NetTopology.Type = common.NetTopoTypeAll
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		reward := New(eth.blockchain)
+		reward.CalcNodesRewards(big.NewInt(0), common.HexToAddress(testAddress), header)
+	})
+}
+func TestNew3(t *testing.T) {
+	Convey("计算交易费", t, func() {
+
+		log.InitLog(3)
+		eth := fakeEthNew(0)
+		header := eth.BlockChain().CurrentHeader()
+		newheader := types.CopyHeader(header)
+		newheader.Number = big.NewInt(1)
+		newheader.NetTopology.Type = common.NetTopoTypeAll
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x475baee143cf541ff3ee7b00c1c933129238d793"), Position: 8192})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Position: 8193})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
+		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		reward := New(eth.blockchain)
+		reward.CalcNodesRewards(big.NewInt(-1), common.HexToAddress(testAddress), header)
 	})
 }

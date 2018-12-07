@@ -56,7 +56,8 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 	var eleNum uint64
 	slashMap := make(map[common.Address]*big.Int)
 	//选举周期的最后时刻分配
-	if !common.IsReElectionNumber(num + 1) {
+	if !common.IsReElectionNumber(num - 1) {
+		log.INFO(PackageName, "当前高度非法", num)
 		return nil
 	}
 	//计算选举的拓扑图的高度
@@ -86,17 +87,17 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 
 		currentAccountReward, error := depoistInfo.GetInterest(currentState, v.Account)
 		if nil != error {
-			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
+			log.WARN(PackageName, "获取前一个状态的利息错误，账户", v.Account)
 			continue
 		}
 		preAccountReward, error := depoistInfo.GetInterest(preState, v.Account)
 		if nil != error {
-			log.WARN(PackageName, "获取奖励错误，账户", v.Account)
+			log.WARN(PackageName, "获取当前利息错误，账户", v.Account)
 			continue
 		}
 		accountReward := new(big.Int).Sub(currentAccountReward, preAccountReward)
-		if 0 == accountReward.Cmp(new(big.Int).SetUint64(0)) {
-			log.WARN(PackageName, "获取奖励值为0，账户", v.Account)
+		if accountReward.Cmp(new(big.Int).SetUint64(0)) <= 0 {
+			log.WARN(PackageName, "获取利息非法，账户", v.Account)
 			continue
 		}
 		preOnlineTime, err := depoistInfo.GetOnlineTime(preState, v.Account)
@@ -115,6 +116,9 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) map[com
 
 		if temp >= 0.75 {
 			temp = 0.75
+		} else if temp < 0 {
+			log.ERROR(PackageName, "惩罚比例为负数", "")
+			continue
 		}
 		slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * temp))
 		log.INFO(PackageName, "账户", v.Account.String(), "惩罚金额", accountReward, "slash", slash)

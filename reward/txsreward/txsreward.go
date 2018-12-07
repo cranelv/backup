@@ -1,6 +1,7 @@
 package txsreward
 
 import (
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/reward/rewardexec"
 
 	"github.com/matrix/go-matrix/reward/util"
@@ -50,6 +51,10 @@ func New(chain util.ChainReader) reward.Reward {
 		BackupRewardRate:       BackupRate,
 	}
 	rewardCfg := cfg.New(RewardMount, nil)
+	if util.RewardFullRate != rewardCfg.RewardMount.MinersRate+rewardCfg.RewardMount.ValidatorsRate {
+		log.ERROR(PackageName, "交易费奖励比例配置错误", "")
+		return nil
+	}
 	return rewardexec.New(chain, rewardCfg)
 }
 
