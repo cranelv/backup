@@ -196,9 +196,12 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	currentBlock := pm.blockchain.CurrentBlock()
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	sbs:=pm.blockchain.GetSuperBlockSeq()
+	sbhash:=pm.blockchain.GetSuperBlockHash()
 	pHead, pTd,pSbs,pSbHash := peer.Head()
 	log.Trace("download sync.go enter Synchronise td", "td", td, "pTd", pTd,  "Sbs", sbs,"pSbs", pSbs)
 	if pSbs<sbs {
+		go peer.SendBlockHeaders([]*types.Header{currentBlock.Header()})
+		go peer.AsyncSendNewBlock(currentBlock, td,sbhash,sbs)
 		log.Warn("对端peer超级序号小于本地的序号", "本地序号", sbs,"peer序号",pSbs,"peer hex",peer.id)
        return
 	}
@@ -249,7 +252,11 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		atomic.StoreUint32(&pm.fastSync, 0)
 	}
 	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
-	if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
+
+	if pSbs<sbs {
+		go peer.SendBlockHeaders([]*types.Header{currentBlock.Header()})
+		go peer.AsyncSendNewBlock(currentBlock, td,sbhash,sbs)
+	} else if head := pm.blockchain.CurrentBlock(); head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify
 		// all its out-of-date peers of the availability of a new block. This failure

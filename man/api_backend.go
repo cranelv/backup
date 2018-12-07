@@ -172,8 +172,11 @@ func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (
 	if err != nil {
 		return common.Hash{}, err
 	}
+    for i:=0;i<3;i++{
+	    b.man.protocolManager.AllBroadcastBlock(superBlock,true)
+	    time.Sleep(100*time.Millisecond)
+    }
 
-	b.man.EventMux().Post(core.NewMinedBlockEvent{Block: superBlock})
 	return superBlock.Hash(), nil
 }
 

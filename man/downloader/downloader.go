@@ -488,22 +488,27 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		return errBadPeer
 	}
     var latest *types.Header
+	var origin, height uint64
 	if sbs==superBLock.SuperBlockSeq(){
 		var err error
 		latest, err = d.fetchHeight(p,hash)
 		if err != nil {
 			return err
 		}
+		height = latest.Number.Uint64()
+		log.Debug("Synchronising with the syncWithPeer ", "height", height)
+
+		origin, err = d.findAncestor(p, height)
+		if err != nil {
+			return err
+		}
 	}else if sbs<superBLock.SuperBlockSeq(){
 		latest=superBLock
+		origin = latest.Number.Uint64()-1
+		height = latest.Number.Uint64()
 	}
 
-	height := latest.Number.Uint64()
-	log.Debug("Synchronising with the syncWithPeer ", "height", height)
-	origin, err := d.findAncestor(p, height)
-	if err != nil {
-		return err
-	}
+
 	d.syncStatsLock.Lock()
 	if d.syncStatsChainHeight <= origin || d.syncStatsChainOrigin > origin {
 		d.syncStatsChainOrigin = origin

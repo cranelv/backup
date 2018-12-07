@@ -2016,13 +2016,20 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
 	}
+
+	if block.Hash()==bc.GetSuperBlockHash(){
+		log.WARN("blockchain","eth same super block","")
+		return block, nil
+	}
+
 	if block.Header().SuperBlockSeq()<=bc.GetSuperBlockSeq(){
-		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) != genesis block(%v)", bc.GetSuperBlockSeq(), block.Header().SuperBlockSeq())
+		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) < genesis block(%v)", bc.GetSuperBlockSeq(), block.Header().SuperBlockSeq())
 	}
 
 	if err := bc.DPOSEngine().VerifyBlock(bc, block.Header()); err != nil {
 		return nil, errors.Errorf("verify super block err(%v)", err)
 	}
+
 
 	//todo 应该在InsertChain时确定权威链，从而进行回滚
 	//if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
