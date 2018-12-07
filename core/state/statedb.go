@@ -452,7 +452,7 @@ func (self *StateDB)SaveTx(typ byte,key uint32,data map[common.Hash][]byte){
 }
 func (self *StateDB)CommitSaveTx(){
 	var typ byte
-	log.Info("file statedb","func CommitSaveTx:len(self.btreeMap)",self.btreeMap)
+	//log.Info("file statedb","func CommitSaveTx:len(self.btreeMap)",self.btreeMap)
 	for _,btree := range self.btreeMap{
 		var hash common.Hash
 		var str string
@@ -474,7 +474,6 @@ func (self *StateDB)CommitSaveTx(){
 		if err != nil {
 			log.Error("file statedb", "func CommitSaveTx:err",err)
 		}
-		log.Info("file statedb","func CommitSaveTx","ooooooooooooooooooooooooooo")
 	}
 	self.btreeMap = make([]BtreeDietyStruct,0)
 	self.btreeMapDirty = make([]BtreeDietyStruct,0)

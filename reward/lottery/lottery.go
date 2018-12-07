@@ -115,6 +115,10 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAc
 	thirdLottery := make(map[common.Address]*big.Int, THIRD)
 	for _, v := range txsCmpResultList {
 		from :=v.Tx.From()
+		var addr common.Address
+		if addr == from{
+			continue
+		}
 
 		//抽取一等奖
 		LotteryAccount, _ := LotteryAccountMap["First"]
