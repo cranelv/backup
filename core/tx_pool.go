@@ -380,7 +380,10 @@ func (nPool *NormalTxPool) deletsTx(s *big.Int) {
 // packageSNList
 func (nPool *NormalTxPool) packageSNList() {
 	if len(gSendst.snlist.slist) == 0 {
+		log.Trace("txpool:packageSNList11", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
 		return
+	}else {
+		log.Trace("txpool:packageSNList22", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
 	}
 	lst := gSendst.snlist.slist
 	gSendst.snlist.slist = make([]*big.Int, 0)
@@ -396,7 +399,7 @@ func (nPool *NormalTxPool) packageSNList() {
 					continue
 				}
 				tmpnum := byte4Number.catNumber()
-				log.Trace("txpool:packageSNList", "tx N", tmpnum)
+				log.Trace("txpool:packageSNList33", "tx N", tmpnum)
 				nPool.setTxNum(tx, tmpnum, false)
 				tmpsnlst[tmpnum] = s
 				nPool.setnTx(tmpnum, tx, false)
@@ -1383,13 +1386,19 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		tx_s := tx.GetTxS()
 		nPool.setsTx(tx_s, tx)
 		if len(tx.N) == 0 {
+			log.Trace("txpool:add()", "gSendst.notice", "")
 			gSendst.notice <- tx.GetTxS()
+		}else{
+			log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
 		}
 	} else if selfRole == common.RoleDefault {
 		promoted := make([]types.SelfTransaction, 0)
 		promoted = append(promoted, tx)
 		nPool.sendTxCh <- NewTxsEvent{promoted, types.NormalTxIndex}
 		//nPool.txFeed.Send(NewTxsEvent{promoted, types.NormalTxIndex})
+		log.Trace("txpool:add()", "selfRole == common.RoleDefault", selfRole)
+	}else {
+		log.Trace("txpool:add()", "unknown selfRole ", selfRole)
 	}
 	return true, nil
 }
