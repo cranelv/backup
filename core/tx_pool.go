@@ -1586,7 +1586,7 @@ func (t *txLookup) Add(tx *types.Transaction) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	hash := tx.Hash()
-	//log.Info("file tx_pool","all.Add()",hash.String())
+	log.Info("file tx_pool","all.Add()",hash.String())
 	t.all[hash] = tx
 }
 
