@@ -68,7 +68,6 @@ type stateObject struct {
 
 	cachedStorage Storage // Storage entry cache to avoid duplicate reads
 	dirtyStorage  Storage // Storage entries that need to be flushed to disk
-	inputdata map[common.Hash][]byte //hezi 存储交易的input数据
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie

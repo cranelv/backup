@@ -3,7 +3,6 @@ package slash
 import (
 	"math/big"
 
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -40,7 +39,6 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
 type BlockSlash struct {

@@ -55,7 +55,7 @@ func (self *controller) Number() uint64 {
 	return self.dc.number
 }
 
-func (self *controller) State() state {
+func (self *controller) State() stateDef {
 	return self.dc.state
 }
 

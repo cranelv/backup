@@ -13,10 +13,10 @@ import (
 )
 
 func (self *ReElection) ToNativeValidatorStateUpdate(hash common.Hash, allNative support.AllNative) (support.AllNative, error) {
-	height,err:=self.GetNumberByHash(hash)
-	if err!=nil{
-		log.Error(Module,"ToNativeValidatorStateUpdate err",err)
-		return support.AllNative{},err
+	height, err := self.GetNumberByHash(hash)
+	if err != nil {
+		log.Error(Module, "ToNativeValidatorStateUpdate err", err)
+		return support.AllNative{}, err
 	}
 
 	block := self.bc.GetBlockByHash(hash)
@@ -24,11 +24,11 @@ func (self *ReElection) ToNativeValidatorStateUpdate(hash common.Hash, allNative
 		log.ERROR(Module, "获取指定高度的区块头失败 高度", height)
 		return support.AllNative{}, errors.New("获取指定高度的区块头失败")
 	}
-	DiffFromBlock :=block.Header().NetTopology
+	DiffFromBlock := block.Header().NetTopology
 
-	lastHash,err:=self.GetHeaderHashByNumber(hash,height-1)
-	if err!=nil{
-		return support.AllNative{},errors.New("根据hash获取高度失败")
+	lastHash, err := self.GetHeaderHashByNumber(hash, height-1)
+	if err != nil {
+		return support.AllNative{}, errors.New("根据hash获取高度失败")
 	}
 	TopoGrap, err := GetCurrentTopology(lastHash, common.RoleValidator|common.RoleBackupValidator)
 	log.INFO(Module, "更新初选列表信息 拓扑的高度", height-1, "拓扑值", TopoGrap, "diff", DiffFromBlock)
@@ -151,6 +151,16 @@ func needReadFromGenesis(height uint64) bool {
 	}
 	return false
 }
+
+func findStockInElect(node common.Address, electList []common.Elect) uint16 {
+	for _, elect := range electList {
+		if elect.Account == node {
+			return elect.Stock
+		}
+	}
+	return 1
+}
+
 func (self *ReElection) wirteNativeFromGeneis() error {
 	preBroadcast := support.AllNative{}
 	block := self.bc.GetBlockByNumber(0)
@@ -164,24 +174,26 @@ func (self *ReElection) wirteNativeFromGeneis() error {
 	for _, v := range header.NetTopology.NetTopologyData {
 		switch common.GetRoleTypeFromPosition(v.Position) {
 		case common.RoleValidator:
-			temp := mc.TopologyNodeInfo{
+			temp := mc.ElectNodeInfo{
 				Account:  v.Account,
 				Position: v.Position,
+				Stock:    findStockInElect(v.Account, header.Elect),
 				Type:     common.RoleValidator,
 			}
 			preBroadcast.Master = append(preBroadcast.Master, temp)
 		case common.RoleBackupValidator:
-			temp := mc.TopologyNodeInfo{
+			temp := mc.ElectNodeInfo{
 				Account:  v.Account,
 				Position: v.Position,
+				Stock:    findStockInElect(v.Account, header.Elect),
 				Type:     common.RoleBackupValidator,
 			}
 			preBroadcast.BackUp = append(preBroadcast.BackUp, temp)
 		}
 	}
 	log.INFO(Module, "第0块到达处理阶段 更新初选列表", "从0的区块头中获取", "初选列表", preBroadcast)
-	ZeroBlock:=self.bc.GetBlockByNumber(0)
-	if ZeroBlock==nil{
+	ZeroBlock := self.bc.GetBlockByNumber(0)
+	if ZeroBlock == nil {
 		return errors.New("不存在0块")
 	}
 
@@ -189,10 +201,12 @@ func (self *ReElection) wirteNativeFromGeneis() error {
 	log.INFO(Module, "第0块到达处理阶段 更新初选列表", "从0的区块头中获取 写数据到数据库", "err", err)
 	return err
 }
-func (self *ReElection) GetNativeFromDB(hash  common.Hash) error {
-	height,err:=self.GetNumberByHash(hash)
-	if err!=nil{
-		log.Error(Module,"GetNativeFromDB 阶段err ",err)
+
+/*
+func (self *ReElection) GetNativeFromDB(hash common.Hash) error {
+	height, err := self.GetNumberByHash(hash)
+	if err != nil {
+		log.Error(Module, "GetNativeFromDB 阶段err ", err)
 		return err
 	}
 	if needReadFromGenesis(height) {
@@ -224,12 +238,13 @@ func (self *ReElection) GetNativeFromDB(hash  common.Hash) error {
 	log.INFO(Module, "writeNativeData", height, "err", err)
 	return err
 }
+*/
 func (self *ReElection) boolNativeStatus(hash common.Hash) bool {
 	if _, err := self.readNativeData(hash); err != nil {
 		return false
 	}
 	return true
 }
-func (self *ReElection) TopoUpdate(offline []common.Address, allNative support.AllNative, top *mc.TopologyGraph) []mc.Alternative {
-	return self.elect.ToPoUpdate(offline, allNative, top)
+func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.TopologyGraph) []mc.Alternative {
+	return self.elect.ToPoUpdate(allNative, top)
 }

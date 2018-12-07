@@ -115,6 +115,9 @@ type (
 	addPreimageChange struct {
 		hash common.Hash
 	}
+	addMatrixDataChange struct {
+		hash common.Hash
+	}
 	touchChange struct {
 		account   *common.Address
 		prev      bool
@@ -225,5 +228,13 @@ func (ch addPreimageChange) revert(s *StateDB) {
 }
 
 func (ch addPreimageChange) dirtied() *common.Address {
+	return nil
+}
+
+func (ch addMatrixDataChange) revert(s *StateDB) {
+	delete(s.matrixData, ch.hash)
+}
+
+func (ch addMatrixDataChange) dirtied() *common.Address {
 	return nil
 }

@@ -28,8 +28,8 @@ var (
 	errPrimaryNodeState = errors.New("primary node consensus state not match")
 )
 
-func (p *Process) verifyElection(header *types.Header) error {
-	info, err := p.reElection().GetElection(header.ParentHash)
+func (p *Process) verifyElection(header *types.Header, state *state.StateDB) error {
+	info, err := p.reElection().GetElection(state, header.ParentHash)
 	if err != nil {
 		return errGetElection
 	}

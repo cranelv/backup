@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
@@ -14,15 +13,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
-	"github.com/hashicorp/golang-lru"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
 
@@ -52,10 +50,9 @@ type HeaderChain struct {
 
 	procInterrupt func() bool
 
-	rand          *mrand.Rand
-	engine        consensus.Engine
-	dposEngine    consensus.DPOSEngine
-	topologyStore *TopologyStore
+	rand       *mrand.Rand
+	engine     consensus.Engine
+	dposEngine consensus.DPOSEngine
 }
 
 // NewHeaderChain creates a new HeaderChain structure.
@@ -97,9 +94,6 @@ func NewHeaderChain(chainDb mandb.Database, config *params.ChainConfig, engine c
 		}
 	}
 	hc.currentHeaderHash = hc.CurrentHeader().Hash()
-
-	hc.topologyStore = NewTopologyStore(hc, hc.chainDb)
-	hc.topologyStore.WriteTopologyGraph(hc.genesisHeader)
 
 	return hc, nil
 }
@@ -184,11 +178,6 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 		status = SideStatTy
 	}
 
-	//write topology graph
-	if err := hc.topologyStore.WriteTopologyGraph(header); err != nil {
-		log.ERROR("header chain", "缓存拓扑信息错误", err)
-	}
-
 	hc.headerCache.Add(hash, header)
 	hc.numberCache.Add(hash, number)
 
@@ -215,11 +204,12 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 		}
 	}
 
-	err := hc.dposEngine.VerifyBlocks(hc, chain)
+	//todo 目前头链无法验证POS，拓扑图在状态树中
+	/*err := hc.dposEngine.VerifyBlocks(hc, chain)
 	if err != nil {
 		log.Error("区块下载验证头链", "DPOS共识错误", err)
 		return 0, err
-	}
+	}*/
 	// Generate the list of seal verification requests, and start the parallel verifier
 	seals := make([]bool, len(chain))
 	for i := 0; i < len(seals)/checkFreq; i++ {
@@ -227,7 +217,7 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 		if index >= len(seals) {
 			index = len(seals) - 1
 		}
-		if common.IsBroadcastNumber(chain[index].Number.Uint64()) ||chain[index].IsSuperHeader(){
+		if common.IsBroadcastNumber(chain[index].Number.Uint64()) || chain[index].IsSuperHeader() {
 			seals[index] = false
 		} else {
 			seals[index] = true
@@ -324,34 +314,33 @@ func (hc *HeaderChain) GetBlockHashesFromHash(hash common.Hash, max uint64) []co
 
 // GetTd retrieves a block's total difficulty in the canonical chain from the
 // database by hash and number, caching it if found.
-func (hc *HeaderChain) GetSuperBlockSeq() uint64{
+func (hc *HeaderChain) GetSuperBlockSeq() uint64 {
 	// Short circuit if the td's already in the cache, retrieve otherwise
-    //todo:暂时从区块的extra信息读取,后续从状态树读取
-   sbi := rawdb.ReadSuperBlockIndex(hc.topologyStore.chainDb)
-   if nil==sbi{
-   	return 0
-   }
+	//todo:暂时从区块的extra信息读取,后续从状态树读取
+	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
+	if nil == sbi {
+		return 0
+	}
 	return sbi.Seq
 }
 
-func (hc *HeaderChain) GetSuperBlockHash() common.Hash{
+func (hc *HeaderChain) GetSuperBlockHash() common.Hash {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	//todo:暂时从区块10  读取超级区块hash
-	sbi := rawdb.ReadSuperBlockIndex(hc.topologyStore.chainDb)
-	if nil==sbi{
+	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
+	if nil == sbi {
 		return hc.genesisHeader.Hash()
 	}
 
 	return sbi.BlockHash
 }
 
-
-func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData{
+func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	//todo:暂时从区块10  读取超级区块hash
-	sbi := rawdb.ReadSuperBlockIndex(hc.topologyStore.chainDb)
-	if nil==sbi{
-		return &rawdb.SuperBlockIndexData{hc.genesisHeader.Hash(),0}
+	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
+	if nil == sbi {
+		return &rawdb.SuperBlockIndexData{hc.genesisHeader.Hash(), 0}
 	}
 
 	return sbi
@@ -360,7 +349,7 @@ func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData{
 func (hc *HeaderChain) SetSuperBlockInfo(sbi *rawdb.SuperBlockIndexData) {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	//todo:暂时从区块10  读取超级区块hash
-     rawdb.WriteSuperBlockIndex(hc.topologyStore.chainDb,sbi)
+	rawdb.WriteSuperBlockIndex(hc.chainDb, sbi)
 }
 
 func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
@@ -509,51 +498,6 @@ func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
 // a header chain does not have blocks available for retrieval.
 func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
-}
-
-func (hc *HeaderChain) GetHashByNumber(number uint64) common.Hash {
-	header := hc.GetHeaderByNumber(number)
-	if header == nil {
-		return common.Hash{}
-	}
-	return header.Hash()
-}
-
-func (hc *HeaderChain) GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error) {
-	return hc.topologyStore.GetTopologyGraphByHash(blockHash)
-}
-
-func (hc *HeaderChain) GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return hc.topologyStore.GetOriginalElectByHash(blockHash)
-}
-
-func (hc *HeaderChain) GetNextElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return hc.topologyStore.GetNextElectByHash(blockHash)
-}
-
-func (hc *HeaderChain) NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error) {
-	return hc.topologyStore.NewTopologyGraph(header)
-}
-
-func (hc *HeaderChain) GetCurrentHash() common.Hash {
-	return hc.currentHeaderHash
-}
-
-func (hc *HeaderChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error) {
-	tg, err := hc.GetTopologyGraphByHash(hash)
-	if err != nil {
-		return nil, err
-	}
-	rlt := &mc.TopologyGraph{
-		Number:        tg.Number,
-		CurNodeNumber: tg.CurNodeNumber,
-	}
-	for _, node := range tg.NodeList {
-		if node.Type&common.RoleValidator != 0 {
-			rlt.NodeList = append(rlt.NodeList, node)
-		}
-	}
-	return rlt, nil
 }
 
 func (hc *HeaderChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {

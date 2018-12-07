@@ -47,6 +47,9 @@ type StateDB struct {
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
 
+	matrixData      map[common.Hash][]byte
+	matrixDataDirty map[common.Hash][]byte
+
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
@@ -84,6 +87,8 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		trie:              tr,
 		stateObjects:      make(map[common.Address]*stateObject),
 		stateObjectsDirty: make(map[common.Address]struct{}),
+		matrixData:        make(map[common.Hash][]byte),
+		matrixDataDirty:   make(map[common.Hash][]byte),
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
@@ -111,6 +116,8 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.trie = tr
 	self.stateObjects = make(map[common.Address]*stateObject)
 	self.stateObjectsDirty = make(map[common.Address]struct{})
+	self.matrixData = make(map[common.Hash][]byte)
+	self.matrixDataDirty = make(map[common.Hash][]byte)
 	self.thash = common.Hash{}
 	self.bhash = common.Hash{}
 	self.txIndex = 0
@@ -381,6 +388,40 @@ func (self *StateDB) setStateObject(object *stateObject) {
 	self.stateObjects[object.Address()] = object
 }
 
+/************************11************************************************/
+func (self *StateDB) updateMatrixData(hash common.Hash,val []byte) {
+	self.setError(self.trie.TryUpdate(hash[:], val))
+}
+
+func (self *StateDB) deleteMatrixData(hash common.Hash,val []byte) {
+	self.setError(self.trie.TryDelete(hash[:]))
+}
+
+func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	//if val = self.matrixData[hash]; val != nil{
+	//	return val
+	//}
+
+	// Load the data from the database.
+	val, err := self.trie.TryGet(hash[:])
+	if len(val) == 0 {
+		self.setError(err)
+		return nil
+	}
+	return
+}
+
+func (self *StateDB) SetMatrixData(hash common.Hash,val []byte) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	self.journal.append(addMatrixDataChange{hash: hash})
+	self.matrixData[hash] = val
+	self.matrixDataDirty[hash] = val
+}
+/**************************22***********************************************/
+
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 	stateObject := self.getStateObject(addr)
@@ -458,6 +499,8 @@ func (self *StateDB) Copy() *StateDB {
 		trie:              self.db.CopyTrie(self.trie),
 		stateObjects:      make(map[common.Address]*stateObject, len(self.journal.dirties)),
 		stateObjectsDirty: make(map[common.Address]struct{}, len(self.journal.dirties)),
+		matrixData:        make(map[common.Hash][]byte),
+		matrixDataDirty:   make(map[common.Hash][]byte),
 		refund:            self.refund,
 		logs:              make(map[common.Hash][]*types.Log, len(self.logs)),
 		logSize:           self.logSize,
@@ -491,6 +534,17 @@ func (self *StateDB) Copy() *StateDB {
 	}
 	for hash, preimage := range self.preimages {
 		state.preimages[hash] = preimage
+	}
+
+	//for hash := range self.matrixDataDirty {
+	//	if _, exist := state.matrixData[hash]; !exist {
+	//		state.stateObjects[addr] = self.matrixData[hash].deepCopy(state)
+	//		state.stateObjectsDirty[addr] = struct{}{}
+	//	}
+	//}
+	for hash, mandata := range self.matrixData {
+		state.matrixData[hash] = mandata
+		state.matrixDataDirty[hash] = mandata
 	}
 	return state
 }
@@ -547,6 +601,15 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		}
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
+
+	for hash,val := range s.matrixData{
+		_, isDirty := s.matrixDataDirty[hash]
+		if isDirty{
+			s.updateMatrixData(hash,val)
+		}
+		delete(s.matrixDataDirty,hash)
+	}
+
 	// Invalidate journal because reverting across transactions is not allowed.
 	s.clearJournalAndRefund()
 }
@@ -603,6 +666,15 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		delete(s.stateObjectsDirty, addr)
 	}
+
+	for hash,val := range s.matrixData{
+		_, isDirty := s.matrixDataDirty[hash]
+		if isDirty{
+			s.updateMatrixData(hash,val)
+		}
+		delete(s.matrixDataDirty,hash)
+	}
+
 	// Write trie changes.
 	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account

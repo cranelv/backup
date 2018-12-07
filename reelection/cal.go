@@ -79,7 +79,7 @@ func (self *ReElection) ParseElectTopNodeState(topologyChg common.NetTopology) (
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
 	result := make([]common.Elect, 0)
 
-	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
+	srcMap := make(map[common.ElectRoleType][]mc.ElectNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
 	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
@@ -108,7 +108,7 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 		NetTopologyData: make([]common.NetTopologyData, 0),
 	}
 
-	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
+	srcMap := make(map[common.ElectRoleType][]mc.ElectNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
 	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
@@ -129,9 +129,7 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 	return result
 }
 
-func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
-	onlinePrimaryNods []common.Address,
-	offlinePrimaryNodes []common.Address) *common.NetTopology {
+func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative) *common.NetTopology {
 	result := &common.NetTopology{
 		Type:            common.NetTopoTypeChange,
 		NetTopologyData: make([]common.NetTopologyData, 0),
@@ -145,21 +143,6 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
 		result.NetTopologyData = append(result.NetTopologyData, data)
 	}
 
-	for _, onlineNode := range onlinePrimaryNods {
-		data := common.NetTopologyData{
-			Account:  onlineNode,
-			Position: common.PosOnline,
-		}
-		result.NetTopologyData = append(result.NetTopologyData, data)
-	}
-
-	for _, offlineNode := range offlinePrimaryNodes {
-		data := common.NetTopologyData{
-			Account:  offlineNode,
-			Position: common.PosOffline,
-		}
-		result.NetTopologyData = append(result.NetTopologyData, data)
-	}
 	return result
 }
 
@@ -221,4 +204,47 @@ func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (
 func GetCurrentTopology(hash common.Hash, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
 	return ca.GetTopologyByHash(reqtypes, hash)
 	//return ca.GetTopologyByNumber(reqtypes, height)
+}
+
+func CheckBlock(block *types.Block) error {
+	if block == nil {
+		return errors.New("block为空")
+	}
+	if block.Header() == nil {
+		return errors.New("block.Header()为空")
+	}
+	if block.Header().Number == nil {
+		return errors.New("block.Header.Number为空 ")
+	}
+	return nil
+}
+
+func SloveElectStatus(electStates mc.ElectGraph) ([]byte, error) {
+
+	log.INFO("上树信息", "electStates 高度", electStates.Number)
+	for _, v := range electStates.ElectList {
+		log.INFO("上树信息", "当前拓扑图类型", v.Type, "账户", v.Account.String())
+	}
+	for _, v := range electStates.NextElect {
+		log.INFO("上树信息", "下届拓扑图 类型", v.Type, "账户", v.Account.String())
+	}
+	data, err := json.Marshal(electStates)
+	if err != nil {
+		log.ERROR("上树信息", "return status electStates err", err)
+	}
+	log.INFO("上树信息", "return status electStates nil", err)
+	return data, err
+}
+func SloveOnlineStatus(electonline mc.ElectOnlineStatus) ([]byte, error) {
+	log.INFO("上树信息", "electonline 高度", electonline.Number)
+	for _, v := range electonline.ElectOnline {
+		log.INFO("上树信息", "当前上下线状态", v.Position, "账户", v.Account.String())
+	}
+
+	data, err := json.Marshal(electonline)
+	if err != nil {
+		log.ERROR("上树信息", "return status electonline err", err)
+	}
+	log.INFO("上树信息", "return status electonline nil", err)
+	return data, err
 }

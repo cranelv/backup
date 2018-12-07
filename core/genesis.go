@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
@@ -9,7 +8,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -17,13 +15,16 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
+	"github.com/pkg/errors"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -34,17 +35,17 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config      *params.ChainConfig `json:"config,omitempty"`
-	Nonce       uint64              `json:"nonce"`
-	Timestamp   uint64              `json:"timestamp"    gencodec:"required"`
-	ExtraData   []byte              `json:"extraData"`
-	Version     string             `json:"version"    gencodec:"required"`
+	Config            *params.ChainConfig `json:"config,omitempty"`
+	Nonce             uint64              `json:"nonce"`
+	Timestamp         uint64              `json:"timestamp"    gencodec:"required"`
+	ExtraData         []byte              `json:"extraData"`
+	Version           string              `json:"version"    gencodec:"required"`
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
-	VrfValue    []byte              `json:"vrfvalue"`
-	Leader      common.Address      `json:"leader"`
-	Elect       []common.Elect      `json:"elect"    gencodec:"required"`
-	NetTopology common.NetTopology  `json:"nettopology"       gencodec:"required"`
-	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
+	VrfValue          []byte              `json:"vrfvalue"`
+	Leader            common.Address      `json:"leader"`
+	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
+	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
+	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 
 	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
 	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
@@ -225,7 +226,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(common.MainAccount,addr, account.Balance)
+		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
@@ -238,26 +239,32 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 			statedb.SetState(addr, key, value)
 		}
 	}
+
+	if err := g.setMatrixState(statedb); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
+
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:      new(big.Int).SetUint64(g.Number),
-		Nonce:       types.EncodeNonce(g.Nonce),
-		Time:        new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:  g.ParentHash,
-		Extra:       g.ExtraData,
+		Number:            new(big.Int).SetUint64(g.Number),
+		Nonce:             types.EncodeNonce(g.Nonce),
+		Time:              new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:        g.ParentHash,
+		Extra:             g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		VrfValue:    g.VrfValue,
-		Elect:       g.Elect,
-		NetTopology: g.NetTopology,
-		Signatures:  g.Signatures,
-		Leader:      g.Leader,
-		GasLimit:    g.GasLimit,
-		GasUsed:     g.GasUsed,
-		Difficulty:  g.Difficulty,
-		MixDigest:   g.Mixhash,
-		Coinbase:    g.Coinbase,
-		Root:        root,
+		VrfValue:          g.VrfValue,
+		Elect:             g.Elect,
+		NetTopology:       g.NetTopology,
+		Signatures:        g.Signatures,
+		Leader:            g.Leader,
+		GasLimit:          g.GasLimit,
+		GasUsed:           g.GasUsed,
+		Difficulty:        g.Difficulty,
+		MixDigest:         g.Mixhash,
+		Coinbase:          g.Coinbase,
+		Root:              root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -292,6 +299,11 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		for key, value := range account.Storage {
 			stateDB.SetState(addr, key, value)
 		}
+	}
+
+	if err := g.setMatrixState(stateDB); err != nil {
+		log.Error("genesis super block", "设置matrix状态树错误", err)
+		return nil
 	}
 
 	head := &types.Header{
@@ -450,4 +462,104 @@ func decodePrealloc(data string) GenesisAlloc {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
 	}
 	return ga
+}
+
+func (g *Genesis) setMatrixState(state *state.StateDB) error {
+	if err := g.setTopologyToState(state); err != nil {
+		return err
+	}
+
+	if err := g.setElectToState(state); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Genesis) setTopologyToState(state *state.StateDB) error {
+	if g.NetTopology.Type != common.NetTopoTypeAll {
+		return nil
+	}
+	if len(g.NetTopology.NetTopologyData) == 0 {
+		return errors.New("genesis net topology is empty！")
+	}
+
+	var newGraph *mc.TopologyGraph = nil
+	var err error
+	if g.Number == 0 {
+		newGraph, err = mc.NewGenesisTopologyGraph(g.Number, g.NetTopology)
+		if err != nil {
+			return err
+		}
+	} else {
+		data := state.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPTopologyGraph))
+		preGraph := new(mc.TopologyGraph)
+		if err := json.Unmarshal(data, &preGraph); err != nil {
+			return errors.Errorf("Invalid pre topology graph json data: %v", err)
+		}
+		if preGraph == nil {
+			return errors.New("pre topology graph is nil")
+		}
+		newGraph, err = preGraph.Transfer2NextGraph(g.Number, &g.NetTopology)
+		if err != nil {
+			return err
+		}
+	}
+
+	if newGraph == nil {
+		return errors.New("topology graph is nil")
+	}
+
+	newData, err := json.Marshal(newGraph)
+	if err != nil {
+		return errors.Errorf("Failed to encode topology graph: %v", err)
+	}
+	state.SetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPTopologyGraph), newData)
+	return nil
+}
+
+func (g *Genesis) setElectToState(state *state.StateDB) error {
+	if len(g.Elect) == 0 {
+		return nil
+	}
+
+	elect := &mc.ElectGraph{
+		Number:    g.Number,
+		ElectList: make([]mc.ElectNodeInfo, 0),
+		NextElect: make([]mc.ElectNodeInfo, 0),
+	}
+
+	minerIndex, backUpMinerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0), uint16(0)
+	for _, item := range g.Elect {
+		nodeInfo := mc.ElectNodeInfo{
+			Account: item.Account,
+			Stock:   item.Stock,
+			Type:    item.Type.Transfer2CommonRole(),
+		}
+		switch item.Type {
+		case common.ElectRoleMiner:
+			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
+			minerIndex++
+		case common.ElectRoleMinerBackUp:
+			nodeInfo.Position = common.GeneratePosition(backUpMinerIndex, item.Type)
+			backUpMinerIndex++
+		case common.ElectRoleValidator:
+			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
+			validatorIndex++
+		case common.ElectRoleValidatorBackUp:
+			nodeInfo.Position = common.GeneratePosition(backUpValidatorIndex, item.Type)
+			backUpValidatorIndex++
+		default:
+			nodeInfo.Position = 0
+		}
+		elect.ElectList = append(elect.ElectList, nodeInfo)
+	}
+
+	newData, err := json.Marshal(elect)
+	if err != nil {
+		return errors.Errorf("Failed to encode elect graph: %v", err)
+	}
+	state.SetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectGraph), newData)
+	return nil
+
 }

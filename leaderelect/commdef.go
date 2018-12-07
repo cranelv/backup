@@ -9,8 +9,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 )
 
@@ -36,16 +36,16 @@ type Matrix interface {
 	FetcherNotify(hash common.Hash, number uint64)
 }
 
-type state uint8
+type stateDef uint8
 
 const (
-	stIdle state = iota
+	stIdle stateDef = iota
 	stPos
 	stReelect
 	stMining
 )
 
-func (s state) String() string {
+func (s stateDef) String() string {
 	switch s {
 	case stIdle:
 		return "未运行阶段"
@@ -77,7 +77,6 @@ func (self *leaderData) copyData() *leaderData {
 }
 
 type startControllerMsg struct {
-	role         common.RoleType
-	validators   []mc.TopologyNodeInfo
-	parentHeader *types.Header
+	parentHeader  *types.Header
+	parentStateDB *state.StateDB
 }

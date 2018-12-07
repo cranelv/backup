@@ -22,6 +22,7 @@ const (
 	DPOSMinStockCount          = 3
 	DPOSFullSignThreshold      = 7
 	SuperNodeFullSignThreshold = 3
+	DPOSDefStock               = 1 // 默认股权值
 )
 
 var (
@@ -70,7 +71,7 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.ValidatorReader, header *types
 	}
 
 	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, manparams.SuperVersionNodes)
-	log.INFO("共识引擎","版本",string(header.Version),"签名",header.VersionSignatures[0].Bytes(),"版本节点",manparams.SuperVersionNodes[0].Address.String())
+	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", manparams.SuperVersionNodes[0].Address.String())
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errSignCountErr
@@ -154,60 +155,6 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 
 	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
 	return err
-}
-
-func (md *MtxDPOS) VerifyBlocks(reader consensus.ValidatorReader, headers []*types.Header) error {
-	if len(headers) <= 0 {
-		return errInputHeaderErr
-	}
-
-	var (
-		preGraph *mc.TopologyGraph = nil
-		err      error
-	)
-	for _, header := range headers {
-		if nil == preGraph {
-			preGraph, err = md.getValidatorGraph(reader, header.ParentHash)
-			if err != nil {
-				return err
-			}
-		}
-
-		if err := md.VerifyVersion(reader, header); err != nil {
-			log.INFO("MtxDPOS", "VerifyBlocks ", "验证版本", "版本号不正确 err", err)
-			return err
-		}
-
-		hash := header.HashNoSignsAndNonce()
-		number := header.Number.Uint64()
-
-		if header.IsSuperHeader() {
-			err = md.CheckSuperBlock(header)
-			if err != nil {
-				return errors.Errorf("header(hash:%s, number:%d) verify Broadcast Block err: %v", hash.Hex(), number, err)
-			}
-		} else {
-			if common.IsBroadcastNumber(number) {
-				err = md.verifyBroadcastBlock(header)
-				if err != nil {
-					return errors.Errorf("header(hash:%s, number:%d) verify Broadcast Block err: %v", hash.Hex(), number, err)
-				}
-			} else {
-				stocks := md.graph2ValidatorStocks(preGraph)
-				_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
-				if err != nil {
-					return errors.Errorf("header(hash:%s, number:%d) dpos verify err: %v", hash.Hex(), number, err)
-				}
-			}
-		}
-
-		preGraph, err = preGraph.Transfer2NextGraph(header.Number.Uint64(), &header.NetTopology, nil)
-		if err != nil {
-			return errors.Errorf("header(hash:%s, number:%d) gen next topology err: %v", hash.Hex(), number, err)
-		}
-	}
-
-	return nil
 }
 
 func (md *MtxDPOS) VerifyHash(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
@@ -419,34 +366,35 @@ func (md *MtxDPOS) verifyBroadcastBlock(header *types.Header) error {
 }
 
 func (md *MtxDPOS) getValidatorStocks(reader consensus.ValidatorReader, hash common.Hash) (map[common.Address]uint16, error) {
-	graphInfo, err := md.getValidatorGraph(reader, hash)
+	topologyInfo, electInfo, err := reader.GetGraphByHash(hash)
 	if err != nil {
 		return nil, err
 	}
-	return md.graph2ValidatorStocks(graphInfo), nil
+	return md.graph2ValidatorStocks(topologyInfo, electInfo), nil
 }
 
-func (md *MtxDPOS) getValidatorGraph(reader consensus.ValidatorReader, hash common.Hash) (*mc.TopologyGraph, error) {
-	graphInfo, err := reader.GetValidatorByHash(hash)
-	if err != nil {
-		return nil, err
-	}
-	return graphInfo, nil
-}
-
-func (md *MtxDPOS) graph2ValidatorStocks(graph *mc.TopologyGraph) map[common.Address]uint16 {
+func (md *MtxDPOS) graph2ValidatorStocks(topologyInfo *mc.TopologyGraph, electInfo *mc.ElectGraph) map[common.Address]uint16 {
 	stocks := make(map[common.Address]uint16)
-	for _, node := range graph.NodeList {
+	for _, node := range topologyInfo.NodeList {
 		if node.Type != common.RoleValidator {
 			continue
 		}
 		if _, exist := stocks[node.Account]; exist {
 			continue
 		}
-		stocks[node.Account] = node.Stock
+		stocks[node.Account] = md.findStockInElect(node.Account, electInfo)
 		//log.Info("DPOS引擎", "验证者", validator.Account, "股权", validator.Stock, "高度", graph.Number)
 	}
 	return stocks
+}
+
+func (md *MtxDPOS) findStockInElect(node common.Address, electInfo *mc.ElectGraph) uint16 {
+	for _, elect := range electInfo.ElectList {
+		if elect.Account == node {
+			return elect.Stock
+		}
+	}
+	return DPOSDefStock
 }
 
 func (md *MtxDPOS) isBroadcastRole(address common.Address) bool {

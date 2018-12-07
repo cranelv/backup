@@ -15,8 +15,8 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/pkg/errors"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 )
 
 type TopologyGraphReader interface {
@@ -155,13 +155,13 @@ func Start(id discover.NodeID, path string) {
 			nodesInBuckets := getNodesInBuckets(header.Number)
 
 			// send role message to elect
-			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader,IsSuperBlock:header.IsSuperHeader()})
+			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader, IsSuperBlock: header.IsSuperHeader()})
 			log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader})
 			// get nodes in buckets and send to buckets
 			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
 			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, Role: ide.currentRole})
-			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole})//lb
+			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
 			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
 		case <-ide.quit:
 			return
@@ -502,12 +502,6 @@ func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.Topology
 	for _, node := range tg.NodeList {
 		if node.Type&reqTypes != 0 {
 			rlt.NodeList = append(rlt.NodeList, node)
-		}
-	}
-
-	for _, node := range tg.ElectList {
-		if node.Type&reqTypes != 0 {
-			rlt.ElectList = append(rlt.ElectList, node)
 		}
 	}
 

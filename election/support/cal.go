@@ -44,7 +44,7 @@ func MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElecti
 	for index, item := range a {
 		//	fmt.Println(item.Nodeid, []byte(item.Nodeid))
 		tmp := MinerElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
+		var ToG mc.ElectNodeInfo
 		ToG.Account = tmp.Address
 		ToG.Position = uint16(index)
 		ToG.Type = common.RoleMiner
@@ -54,7 +54,7 @@ func MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElecti
 
 	for index, item := range b {
 		tmp := MinerElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
+		var ToG mc.ElectNodeInfo
 		ToG.Account = tmp.Address
 		//				ToG.OnlineState = true
 		ToG.Position = uint16(index)

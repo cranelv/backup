@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/reward/leaderreward"
@@ -23,13 +22,12 @@ const (
 	MinersBlockRewardRate     = uint64(5000) //矿工网络奖励50%
 	ValidatorsBlockRewardRate = uint64(5000) //验证者网络奖励50%
 
-
-	MinerOutRewardRate     = uint64(4000) //出块矿工奖励40%
-	ElectedMinerRewardRate = uint64(5000) //当选矿工奖励50%
+	MinerOutRewardRate        = uint64(4000) //出块矿工奖励40%
+	ElectedMinerRewardRate    = uint64(5000) //当选矿工奖励50%
 	FoundationMinerRewardRate = uint64(1000) //基金会网络奖励10%
 
-	LeaderRewardRate            = uint64(4000) //出块验证者（leader）奖励40%
-	ElectedValidatorsRewardRate = uint64(5000) //当选验证者奖励60%
+	LeaderRewardRate               = uint64(4000) //出块验证者（leader）奖励40%
+	ElectedValidatorsRewardRate    = uint64(5000) //当选验证者奖励60%
 	FoundationValidatorsRewardRate = uint64(1000) //基金会网络奖励10%
 
 	OriginElectOfflineRewardRate = uint64(5000) //初选下线验证者奖励50%
@@ -40,13 +38,12 @@ type RewardMountCfg struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
 
-
 	MinerOutRate        uint64 //出块矿工奖励
 	ElectedMinerRate    uint64 //当选矿工奖励
 	FoundationMinerRate uint64 //基金会网络奖励
 
-	LeaderRate            uint64 //出块验证者（leader）奖励
-	ElectedValidatorsRate uint64 //当选验证者奖励
+	LeaderRate              uint64 //出块验证者（leader）奖励
+	ElectedValidatorsRate   uint64 //当选验证者奖励
 	FoundationValidatorRate uint64 //基金会网络奖励
 
 	OriginElectOfflineRate uint64 //初选下线验证者奖励
@@ -78,7 +75,6 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 type SetRewardsExec interface {
 	SetLeaderRewards(reward *big.Int, rewards map[common.Address]*big.Int, Leader common.Address, num *big.Int)
@@ -127,14 +123,13 @@ func New(RewardMount *RewardMountCfg, SetReward SetRewardsExec) *RewardCfg {
 			MinersRate:     MinersBlockRewardRate,
 			ValidatorsRate: ValidatorsBlockRewardRate,
 
+			MinerOutRate:        MinerOutRewardRate,
+			ElectedMinerRate:    ElectedMinerRewardRate,
+			FoundationMinerRate: FoundationMinerRewardRate,
 
-			MinerOutRate:     MinerOutRewardRate,
-			ElectedMinerRate: ElectedMinerRewardRate,
-			FoundationMinerRate:FoundationMinerRewardRate,
-
-			LeaderRate:            LeaderRewardRate,
-			ElectedValidatorsRate: ElectedValidatorsRewardRate,
-			FoundationValidatorRate:FoundationValidatorsRewardRate,
+			LeaderRate:              LeaderRewardRate,
+			ElectedValidatorsRate:   ElectedValidatorsRewardRate,
+			FoundationValidatorRate: FoundationValidatorsRewardRate,
 
 			OriginElectOfflineRate: OriginElectOfflineRewardRate,
 			BackupRewardRate:       BackupRate,

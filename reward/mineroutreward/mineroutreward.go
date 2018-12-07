@@ -5,7 +5,6 @@ import (
 
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/reward/util"
@@ -43,7 +42,6 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
 func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
@@ -53,9 +51,9 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader,
 		return
 	}
 	var coinBase common.Address
-	if common.IsBroadcastNumber(num.Uint64()-1){
+	if common.IsBroadcastNumber(num.Uint64() - 1) {
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 2).Coinbase
-	}else{
+	} else {
 		coinBase = chain.GetHeaderByNumber(num.Uint64() - 1).Coinbase
 	}
 	util.SetAccountRewards(rewards, coinBase, reward)

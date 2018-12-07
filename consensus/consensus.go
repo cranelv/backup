@@ -97,7 +97,7 @@ type PoW interface {
 
 type ValidatorReader interface {
 	GetCurrentHash() common.Hash
-	GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error)
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
 }
 
 type DPOSEngine interface {
@@ -106,8 +106,6 @@ type DPOSEngine interface {
 	CheckSuperBlock(header *types.Header) error
 
 	VerifyBlock(reader ValidatorReader, header *types.Header) error
-
-	VerifyBlocks(reader ValidatorReader, headers []*types.Header) error
 
 	//verify hash in current block
 	VerifyHash(reader ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)

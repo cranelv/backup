@@ -15,6 +15,8 @@ func (self *ReElection) boolTopStatus(hash common.Hash, types common.RoleType) b
 	}
 	return true
 }
+
+/*
 func (self *ReElection) checkTopGenStatus(hash common.Hash) error {
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
@@ -43,11 +45,12 @@ func (self *ReElection) checkTopGenStatus(hash common.Hash) error {
 	}
 	return nil
 }
-
+*/
+/*
 func (self *ReElection) checkUpdateStatus(hash common.Hash) error {
-	height,err:=self.GetNumberByHash(hash)
-	if err!=nil{
-		log.Error(Module,"checkUpdateStatus err",err)
+	height, err := self.GetNumberByHash(hash)
+	if err != nil {
+		log.Error(Module, "checkUpdateStatus err", err)
 		return err
 	}
 	if common.IsReElectionNumber(height) {
@@ -62,9 +65,9 @@ func (self *ReElection) checkUpdateStatus(hash common.Hash) error {
 
 	log.INFO(Module, "检查初选列表阶段 上一个点", lastPoint, "现在高度", height, "状态", "开始")
 	for index := lastPoint; index <= height; index++ {
-		indexHash,err:=self.GetHeaderHashByNumber(hash,index)
-		if err!=nil{
-			log.Error(Module,"GetHeaderHashByNumber err",err)
+		indexHash, err := self.GetHeaderHashByNumber(hash, index)
+		if err != nil {
+			log.Error(Module, "GetHeaderHashByNumber err", err)
 			return err
 		}
 		if self.boolNativeStatus(indexHash) == true {
@@ -76,9 +79,9 @@ func (self *ReElection) checkUpdateStatus(hash common.Hash) error {
 			continue
 		}
 
-		lastHash,err:=self.GetHeaderHashByNumber(hash,index-1)
-		if err!=nil{
-			log.Error(Module,"GetHeaderHashByNumber err",err)
+		lastHash, err := self.GetHeaderHashByNumber(hash, index-1)
+		if err != nil {
+			log.Error(Module, "GetHeaderHashByNumber err", err)
 			return err
 		}
 		native, err := self.readNativeData(lastHash)
@@ -96,3 +99,4 @@ func (self *ReElection) checkUpdateStatus(hash common.Hash) error {
 	return nil
 
 }
+*/
