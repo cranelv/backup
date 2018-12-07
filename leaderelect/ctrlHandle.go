@@ -38,8 +38,8 @@ func (self *controller) handleMsg(data interface{}) {
 		msg, _ := data.(*mc.HD_ReelectLeaderReqMsg)
 		self.handleRLReq(msg)
 
-	case *mc.HD_ReelectLeaderVoteMsg:
-		msg, _ := data.(*mc.HD_ReelectLeaderVoteMsg)
+	case *mc.HD_ConsensusVote:
+		msg, _ := data.(*mc.HD_ConsensusVote)
 		self.handleRLVote(msg)
 
 	case *mc.HD_ReelectResultBroadcastMsg:

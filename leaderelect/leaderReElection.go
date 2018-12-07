@@ -29,7 +29,7 @@ type LeaderIdentity struct {
 	rlInquiryRspSub  event.Subscription
 	rlReqCh          chan *mc.HD_ReelectLeaderReqMsg
 	rlReqSub         event.Subscription
-	rlVoteCh         chan *mc.HD_ReelectLeaderVoteMsg
+	rlVoteCh         chan *mc.HD_ConsensusVote
 	rlVoteSub        event.Subscription
 	rlResultBCCh     chan *mc.HD_ReelectResultBroadcastMsg
 	rlResultBCSub    event.Subscription
@@ -48,7 +48,7 @@ func NewLeaderIdentityService(matrix Matrix, extraInfo string) (*LeaderIdentity,
 		rlInquiryReqCh:  make(chan *mc.HD_ReelectInquiryReqMsg, 1),
 		rlInquiryRspCh:  make(chan *mc.HD_ReelectInquiryRspMsg, 1),
 		rlReqCh:         make(chan *mc.HD_ReelectLeaderReqMsg, 1),
-		rlVoteCh:        make(chan *mc.HD_ReelectLeaderVoteMsg, 1),
+		rlVoteCh:        make(chan *mc.HD_ConsensusVote, 1),
 		rlResultBCCh:    make(chan *mc.HD_ReelectResultBroadcastMsg, 1),
 		rlResultRspCh:   make(chan *mc.HD_ReelectResultRspMsg, 1),
 	}
@@ -252,7 +252,7 @@ func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 	}
 }
 
-func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ReelectLeaderVoteMsg) {
+func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 	if req == nil {
 		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrMsgIsNil)
 		return

@@ -35,6 +35,7 @@ type Identity struct {
 	// if in elected duration
 	duration      bool
 	currentHeight *big.Int
+	hash          common.Hash
 
 	trChan         chan TopologyGraphReader
 	topologyReader TopologyGraphReader
@@ -62,6 +63,9 @@ type Identity struct {
 
 	// deposit in current height
 	deposit []vm.DepositDetail
+
+	gapValidator      []common.Address
+	gapValidatorCache []common.Address
 
 	// addrByGroup
 	addrByGroup map[common.RoleType][]common.Address
@@ -118,6 +122,7 @@ func Start(id discover.NodeID, path string) {
 			header := block.Header()
 			hash := block.Hash()
 			ide.currentHeight = header.Number
+			ide.hash = block.Hash()
 
 			log.INFO("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
 
@@ -175,11 +180,15 @@ func Stop() {
 
 // InitCurrentTopology init current topology.
 func initCurrentTopology() {
+	ide.lock.Lock()
+	// change default role
 	ide.currentRole = common.RoleDefault
 
 	for _, t := range ide.topology.NodeList {
 		if t.Account == ide.addr {
+			log.INFO("initCurrentTopology", "accont", t.Account.String(), "type", t.Type)
 			ide.currentRole = t.Type
+			break
 		}
 	}
 	for _, b := range manparams.BroadCastNodes {
@@ -194,6 +203,7 @@ func initCurrentTopology() {
 			break
 		}
 	}
+	ide.lock.Unlock()
 	log.Info("current topology", "info:", ide.topology)
 }
 
@@ -221,6 +231,8 @@ func SetTopologyReader(topologyReader TopologyGraphReader) {
 // GetRolesByGroup
 func GetRolesByGroup(roleType common.RoleType) (result []discover.NodeID) {
 	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+
 	for k, v := range ide.addrByGroup {
 		if (k & roleType) != 0 {
 			for _, addr := range v {
@@ -233,7 +245,6 @@ func GetRolesByGroup(roleType common.RoleType) (result []discover.NodeID) {
 			}
 		}
 	}
-	ide.lock.RUnlock()
 	return
 }
 
@@ -280,23 +291,23 @@ func GetRolesByGroupOnlyNextElect(roleType common.RoleType) (result []discover.N
 
 // Get self identity.
 func GetRole() (role common.RoleType) {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
 
 	return ide.currentRole
 }
 
 func GetHeight() *big.Int {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
 
 	return ide.currentHeight
 }
 
 // InDuration
 func InDuration() bool {
-	ide.lock.Lock()
-	defer ide.lock.Unlock()
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
 
 	return ide.duration
 }
@@ -331,7 +342,7 @@ func GetNodeNumber() (uint32, error) {
 
 // GetGapValidator
 func GetGapValidator() (rlt []discover.NodeID) {
-	ori, err := ide.topologyReader.GetOriginalElectByHash(ide.topologyReader.GetHashByNumber(ide.currentHeight.Uint64()))
+	ori, err := ide.topologyReader.GetOriginalElectByHash(ide.hash)
 	if err != nil {
 		ide.log.Error("ca", "GetOriginalElect, error:", err)
 		return
@@ -377,6 +388,9 @@ func getNodesInBuckets(height *big.Int) (result []discover.NodeID) {
 
 // GetTopologyInLinker
 func GetTopologyInLinker() (result map[common.RoleType][]discover.NodeID) {
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+
 	ide.frontNodes = make([]discover.NodeID, 0)
 	ide.frontNodes = ide.currentNodes
 	ide.currentNodes = make([]discover.NodeID, 0)
@@ -492,8 +506,11 @@ func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.Topology
 	}
 
 	for _, node := range tg.ElectList {
-		rlt.ElectList = append(rlt.ElectList, node)
+		if node.Type&reqTypes != 0 {
+			rlt.ElectList = append(rlt.ElectList, node)
+		}
 	}
+
 	return rlt, nil
 }
 

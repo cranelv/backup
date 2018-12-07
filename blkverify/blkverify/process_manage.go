@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkverify
@@ -13,37 +13,34 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/msgsend"
-	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
 )
 
 type ProcessManage struct {
-	mu            sync.Mutex
-	curNumber     uint64
-	processMap    map[uint64]*Process
-	votePool      *votepool.VotePool
-	hd            *msgsend.HD
-	signHelper    *signhelper.SignHelper
-	bc            *core.BlockChain
-	txPool        *core.TxPoolManager //YYY
-	reElection    *reelection.ReElection
-	topNode       *olconsensus.TopNodeService
-	event         *event.TypeMux
+	mu         sync.Mutex
+	curNumber  uint64
+	processMap map[uint64]*Process
+	votePool   *votepool.VotePool
+	hd         *msgsend.HD
+	signHelper *signhelper.SignHelper
+	bc         *core.BlockChain
+	txPool     *core.TxPoolManager //YYY
+	reElection *reelection.ReElection
+	event      *event.TypeMux
 }
 
 func NewProcessManage(matrix Matrix) *ProcessManage {
 	return &ProcessManage{
-		curNumber:     0,
-		processMap:    make(map[uint64]*Process),
-		votePool:      votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
-		hd:            matrix.HD(),
-		signHelper:    matrix.SignHelper(),
-		bc:            matrix.BlockChain(),
-		txPool:        matrix.TxPool(),
-		reElection:    matrix.ReElection(),
-		topNode:       matrix.TopNode(),
-		event:         matrix.EventMux(),
+		curNumber:  0,
+		processMap: make(map[uint64]*Process),
+		votePool:   votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
+		hd:         matrix.HD(),
+		signHelper: matrix.SignHelper(),
+		bc:         matrix.BlockChain(),
+		txPool:     matrix.TxPool(),
+		reElection: matrix.ReElection(),
+		event:      matrix.EventMux(),
 	}
 }
 
@@ -99,7 +96,7 @@ func (pm *ProcessManage) fixProcessMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
-		if key < pm.curNumber-1 {
+		if key < pm.curNumber {
 			process.Close()
 			delKeys = append(delKeys, key)
 		}

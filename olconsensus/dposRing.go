@@ -106,7 +106,6 @@ func (ring *DPosVoteRing) getVotes(hash common.Hash) (interface{}, []voteInfo) {
 func (ring *DPosVoteRing) addProposal(hash common.Hash, proposal interface{}) bool {
 	ds, have := ring.findProposal(hash)
 	add := ds.addProposal(proposal)
-	log.Debug("TopnodeOnline", "have", have, "add", add, "hash", hash, "ds.proposal", ds.Proposal, "proposal", proposal)
 	return !(have && add)
 }
 func (ring *DPosVoteRing) addVote(hash common.Hash, vote *mc.HD_ConsensusVote) (interface{}, []voteInfo) {

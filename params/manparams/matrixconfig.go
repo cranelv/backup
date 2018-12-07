@@ -38,6 +38,8 @@ const (
 	MinerResultSendInterval = 3
 
 	MinerPickTimeout = 20
+
+	OnlineConsensusValidityTime = 5
 )
 
 var (

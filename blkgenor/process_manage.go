@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -11,9 +11,9 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/olconsensus"
 )
 
 type ProcessManage struct {
@@ -43,7 +43,7 @@ func NewProcessManage(matrix Backend) *ProcessManage {
 		reElection:    matrix.ReElection(),
 		engine:        matrix.BlockChain().Engine(),
 		dposEngine:    matrix.BlockChain().DPOSEngine(),
-		olConsensus:   matrix.TopNode(),
+		olConsensus: matrix.OLConsensus(),
 	}
 }
 
@@ -57,7 +57,6 @@ func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	}else{
 		pm.fixProcessMap()
 	}
-
 }
 
 func (pm *ProcessManage) GetCurNumber() uint64 {
@@ -110,7 +109,7 @@ func (pm *ProcessManage) fixProcessMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
-		if  key < pm.curNumber-1 {
+		if key < pm.curNumber-1 {
 			process.Close()
 			delKeys = append(delKeys, key)
 		}
@@ -146,7 +145,6 @@ func (pm *ProcessManage) clearProcessMap() {
 
 	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
 }
-
 func (pm *ProcessManage) isLegalNumber(number uint64) error {
 	var minNumber uint64
 	if pm.curNumber < 1 {
