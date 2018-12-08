@@ -10,6 +10,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[MSPTopologyGraph] = new(TopologyGraphCodec)
 	self.codecMap[MSPElectGraph] = new(ElectGraphCodec)
 	self.codecMap[MSPElectOnlineState] = new(ElectOnlineStateCodec)
+
 }
 
 type codec interface {

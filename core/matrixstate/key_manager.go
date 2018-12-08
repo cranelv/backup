@@ -8,11 +8,15 @@ import (
 )
 
 const (
-	MSPBroadcastInterval = "broad_interval" // 广播区块周期
+
 	MSPBroadcastTx       = "broad_txs"      // 广播交易
 	MSPTopologyGraph     = "topology_graph" // 拓扑图
 	MSPElectGraph        = "elect_graph"    // 选举图
 	MSPElectOnlineState  = "elect_state"    // 选举节点在线消息
+
+	//通用
+	MSPBroadcastInterval = "broad_interval" // 广播区块周期
+	ElectGenTime ="elect_gen_time"
 )
 
 func GetKeyHash(key string) common.Hash {
