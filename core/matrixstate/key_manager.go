@@ -27,8 +27,34 @@ func GetDataByState(key string, state StateDB) (interface{}, error) {
 	}
 
 	bytes := state.GetMatrixData(hash)
+	if len(bytes) == 0 {
+		return nil, errors.Errorf("no data in state of key(%s)", key)
+	}
 
 	return codec.decodeFn(bytes)
+}
+
+func SetDataToState(key string, data interface{}, state StateDB) error {
+	hash := GetKeyHash(key)
+	if (hash == common.Hash{}) {
+		return errors.Errorf("key(%s) not find", key)
+	}
+	codec, exist := km.codecMap[key]
+	if !exist {
+		return errors.Errorf("codec of key(%s) not find", key)
+	}
+
+	bytes, err := codec.encodeFn(data)
+	if err != nil {
+		return errors.Errorf("encode data of key(%s) err: %v", key, err)
+	}
+
+	if len(bytes) == 0 {
+		return errors.Errorf("the encoded data of key(%s) is empty", key)
+	}
+
+	state.SetMatrixData(hash, bytes)
+	return nil
 }
 
 const (

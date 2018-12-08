@@ -3,6 +3,7 @@ package mc
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/p2p/discover"
 	"math/big"
 )
 
@@ -37,10 +38,16 @@ type ElectGenTimeStruct struct {
 	VoteBeforeTime     uint16
 }
 
-type MatrixSpecilNode struct {
-	BoradcastNode  []common.Address
-	InnerMinerNode []common.Address
+type NodeInfo struct {
+	NodeID  discover.NodeID
+	Address common.Address
 }
+
+type MatrixSpecialNode struct {
+	BroadcastNode  NodeInfo
+	InnerMinerNode []NodeInfo
+}
+
 type ElectConfigInfo struct {
 	MinerNum           uint16
 	ValidatorNum       uint16

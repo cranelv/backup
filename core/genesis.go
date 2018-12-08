@@ -15,13 +15,11 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/pkg/errors"
@@ -52,6 +50,7 @@ type Genesis struct {
 	Mixhash    common.Hash    `json:"mixHash"`
 	Coinbase   common.Address `json:"coinbase"`
 	Alloc      GenesisAlloc   `json:"alloc"      gencodec:"required"`
+	MState     GenesisMState  `json:"mstate"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -462,104 +461,4 @@ func decodePrealloc(data string) GenesisAlloc {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
 	}
 	return ga
-}
-
-func (g *Genesis) setMatrixState(state *state.StateDB) error {
-	if err := g.setTopologyToState(state); err != nil {
-		return err
-	}
-
-	if err := g.setElectToState(state); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g *Genesis) setTopologyToState(state *state.StateDB) error {
-	if g.NetTopology.Type != common.NetTopoTypeAll {
-		return nil
-	}
-	if len(g.NetTopology.NetTopologyData) == 0 {
-		return errors.New("genesis net topology is empty！")
-	}
-
-	var newGraph *mc.TopologyGraph = nil
-	var err error
-	if g.Number == 0 {
-		newGraph, err = mc.NewGenesisTopologyGraph(g.Number, g.NetTopology)
-		if err != nil {
-			return err
-		}
-	} else {
-		data := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyTopologyGraph))
-		preGraph := new(mc.TopologyGraph)
-		if err := json.Unmarshal(data, &preGraph); err != nil {
-			return errors.Errorf("Invalid pre topology graph json data: %v", err)
-		}
-		if preGraph == nil {
-			return errors.New("pre topology graph is nil")
-		}
-		newGraph, err = preGraph.Transfer2NextGraph(g.Number, &g.NetTopology)
-		if err != nil {
-			return err
-		}
-	}
-
-	if newGraph == nil {
-		return errors.New("topology graph is nil")
-	}
-
-	newData, err := json.Marshal(newGraph)
-	if err != nil {
-		return errors.Errorf("Failed to encode topology graph: %v", err)
-	}
-	state.SetMatrixData(matrixstate.GetKeyHash(mc.MSKeyTopologyGraph), newData)
-	return nil
-}
-
-func (g *Genesis) setElectToState(state *state.StateDB) error {
-	if len(g.Elect) == 0 {
-		return nil
-	}
-
-	elect := &mc.ElectGraph{
-		Number:    g.Number,
-		ElectList: make([]mc.ElectNodeInfo, 0),
-		NextElect: make([]mc.ElectNodeInfo, 0),
-	}
-
-	minerIndex, backUpMinerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0), uint16(0)
-	for _, item := range g.Elect {
-		nodeInfo := mc.ElectNodeInfo{
-			Account: item.Account,
-			Stock:   item.Stock,
-			Type:    item.Type.Transfer2CommonRole(),
-		}
-		switch item.Type {
-		case common.ElectRoleMiner:
-			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
-			minerIndex++
-		case common.ElectRoleMinerBackUp:
-			nodeInfo.Position = common.GeneratePosition(backUpMinerIndex, item.Type)
-			backUpMinerIndex++
-		case common.ElectRoleValidator:
-			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
-			validatorIndex++
-		case common.ElectRoleValidatorBackUp:
-			nodeInfo.Position = common.GeneratePosition(backUpValidatorIndex, item.Type)
-			backUpValidatorIndex++
-		default:
-			nodeInfo.Position = 0
-		}
-		elect.ElectList = append(elect.ElectList, nodeInfo)
-	}
-
-	newData, err := json.Marshal(elect)
-	if err != nil {
-		return errors.Errorf("Failed to encode elect graph: %v", err)
-	}
-	state.SetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph), newData)
-	return nil
-
 }

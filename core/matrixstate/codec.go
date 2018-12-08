@@ -153,7 +153,7 @@ func (MatrixNodeCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MatrixNodeCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.MatrixSpecilNode)
+	msg := new(mc.MatrixSpecialNode)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

@@ -2,7 +2,6 @@ package matrixstate
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
@@ -45,7 +44,7 @@ func (ms *MatrixState) RegisterProducer(key string, producer ProduceMatrixStateD
 	return nil
 }
 
-func (ms *MatrixState) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
+func (ms *MatrixState) ProcessMatrixState(block *types.Block, state StateDB) error {
 	if block == nil || state == nil {
 		return errors.New("param is nil")
 	}
@@ -79,9 +78,11 @@ func (ms *MatrixState) ProcessMatrixState(block *types.Block, state *state.State
 		if err != nil {
 			return errors.Errorf("encode data of key(%s) err: %v", key, err)
 		}
-		if data != nil {
-			dataMap[info.keyHash] = bytes
+		if len(bytes) == 0 {
+			return errors.Errorf("the encoded data of key(%s) is empty", key)
 		}
+
+		dataMap[info.keyHash] = bytes
 	}
 
 	for keyHash, data := range dataMap {
