@@ -1677,7 +1677,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs,err error){
 }
 // SendTransaction creates a transaction for the given argument, sign it and submit it to the
 // transaction pool.
-func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
+func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
 	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
 	var args SendTxArgs
 	args,err := StrArgsToByteArgs(args1)
@@ -1723,7 +1723,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
 	}
-	signed, err := wallet.SignTx(account, tx, chainID)
+	signed, err := wallet.SignTxWithPasswd(account,passwd, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}

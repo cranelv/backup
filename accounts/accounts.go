@@ -102,7 +102,7 @@ type Wallet interface {
 	// the needed details via SignTxWithPassphrase, or by other means (e.g. unlock
 	// the account in a keystore).
 	SignTx(account Account, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error)
-
+	SignTxWithPasswd(account Account,passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error)
 	// SignHashWithPassphrase requests the wallet to sign the given hash with the
 	// given passphrase as extra authentication information.
 	//

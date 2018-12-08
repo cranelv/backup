@@ -5426,8 +5426,8 @@ var methods = function () {
     var sendTransaction = new Method({
         name: 'sendTransaction',
         call: 'eth_sendTransaction',
-        params: 1,
-        inputFormatter: [formatters.inputTransactionFormatter]
+        params: 2,
+        inputFormatter: [formatters.inputTransactionFormatter, null]
     });
 
     var signTransaction = new Method({
