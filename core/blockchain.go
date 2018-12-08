@@ -178,7 +178,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.dposEngine = mtxdpos.NewMtxDPOS()
 
 	var err error
-	err = bc.RegisterMatrixStateDataProducer(matrixstate.MSPTopologyGraph, bc.graphStore.ProduceTopologyStateData)
+	err = bc.RegisterMatrixStateDataProducer(mc.MSPTopologyGraph, bc.graphStore.ProduceTopologyStateData)
 	if err != nil {
 		return nil, err
 	}
@@ -1994,11 +1994,11 @@ func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.E
 }
 
 func (bc *BlockChain) GetGraphByState(state *state.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
-	topologyGraph, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
+	topologyGraph, err := matrixstate.GetDataByState(mc.MSPTopologyGraph, state)
 	if err != nil {
 		return nil, nil, err
 	}
-	electGraph, err := matrixstate.GetDataByState(matrixstate.MSPElectGraph, state)
+	electGraph, err := matrixstate.GetDataByState(mc.MSPElectGraph, state)
 	if err != nil {
 		return nil, nil, err
 	}

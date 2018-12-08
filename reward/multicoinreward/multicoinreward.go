@@ -3,6 +3,8 @@ package multicoinreward
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/reward"
@@ -37,7 +39,7 @@ type MultiCoinReward struct {
 
 func New(chain util.ChainReader) *MultiCoinReward {
 
-	RewardMount := &cfg.RewardMountCfg{
+	RewardMount := &mc.RewardRateCfg{
 		MinersRate:     MinerTxsRewardRate,
 		ValidatorsRate: ValidatorsTxsRewardRate,
 
