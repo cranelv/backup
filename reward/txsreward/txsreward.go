@@ -2,6 +2,7 @@ package txsreward
 
 import (
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reward/rewardexec"
 
 	"github.com/matrix/go-matrix/reward/util"
@@ -36,19 +37,19 @@ type TxsReward struct {
 
 func New(chain util.ChainReader) reward.Reward {
 
-	RewardMount := &cfg.RewardMountCfg{
+	RewardMount := &mc.RewardRateCfg{
 		MinersRate:     MinerTxsRewardRate,
 		ValidatorsRate: ValidatorsTxsRewardRate,
 
-		MinerOutRate:     MinerOutRewardRate,
-		ElectedMinerRate: ElectedMinerRewardRate,
+		MinerOutRate:        MinerOutRewardRate,
+		ElectedMinerRate:    ElectedMinerRewardRate,
 		FoundationMinerRate: FoundationTxsRewardRate,
 
-		LeaderRate:            LeaderRewardRate,
-		ElectedValidatorsRate: ElectedValidatorsRewardRate,
-		FoundationValidatorRate:FoundationTxsRewardRate,
-		OriginElectOfflineRate: OriginElectOfflineRewardRate,
-		BackupRewardRate:       BackupRate,
+		LeaderRate:              LeaderRewardRate,
+		ElectedValidatorsRate:   ElectedValidatorsRewardRate,
+		FoundationValidatorRate: FoundationTxsRewardRate,
+		OriginElectOfflineRate:  OriginElectOfflineRewardRate,
+		BackupRewardRate:        BackupRate,
 	}
 	rewardCfg := cfg.New(RewardMount, nil)
 	if util.RewardFullRate != rewardCfg.RewardMount.MinersRate+rewardCfg.RewardMount.ValidatorsRate {

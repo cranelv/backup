@@ -2,6 +2,7 @@ package matrixstate
 
 import (
 	"encoding/json"
+
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
@@ -97,9 +98,6 @@ func (ElectOnlineStateCodec) decodeFn(data []byte) (interface{}, error) {
 	}
 	return msg, nil
 }
-
-////////////////////////////////////////////////////////////////////////
-// key = MSPElectGenTime
 type ElectGenTimeCodec struct {
 }
 
@@ -213,6 +211,119 @@ func (MSPreBroadcastStateDBCodec) encodeFn(msg interface{}) ([]byte, error) {
 
 func (MSPreBroadcastStateDBCodec) decodeFn(data []byte) (interface{}, error) {
 	msg := new(mc.PreBroadStateDB)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+type RewardRateCfgCodec struct {
+}
+func (RewardRateCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (RewardRateCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectOnlineStatus)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type TxsRewardCfgCodec struct {
+}
+
+func (TxsRewardCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (TxsRewardCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectOnlineStatus)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type LotteryCfgCodec struct {
+}
+
+func (LotteryCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (LotteryCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectOnlineStatus)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type InterestCfgCodec struct {
+}
+
+func (InterestCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (InterestCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectOnlineStatus)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type SlashCfgCodec struct {
+}
+
+func (SlashCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (SlashCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectOnlineStatus)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
