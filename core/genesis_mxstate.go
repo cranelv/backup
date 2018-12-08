@@ -13,14 +13,15 @@ const (
 )
 
 type GenesisMState struct {
-	BroadcastNode mc.NodeInfo           `json:"Broadcast" `
-	InnerMiner    []mc.NodeInfo         `json:"InnerMiner" `
-	VIPCfg        []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
-	BlkRewardCfg  mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg  mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg    mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg   mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
-	SlashCfg      mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
+	Broadcast    mc.NodeInfo           `json:"Broadcast"`
+	Foundation   mc.NodeInfo           `json:"Foundation"`
+	InnerMiners  []mc.NodeInfo         `json:"InnerMiners"`
+	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
+	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
 }
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {
@@ -135,21 +136,23 @@ func (g *Genesis) setElectToState(state *state.StateDB) error {
 func (g *Genesis) setSpecialNodeToState(state *state.StateDB) error {
 	var specialNodes *mc.MatrixSpecialAccounts
 	if g.Number == 0 {
-		if (g.MState.BroadcastNode.Address == common.Address{}) {
+		if (g.MState.Broadcast.Address == common.Address{}) {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		}
 
 		specialNodes = &mc.MatrixSpecialAccounts{}
-		specialNodes.BroadcastAccount = g.MState.BroadcastNode
-		if len(g.MState.InnerMiner) == 0 {
+		specialNodes.BroadcastAccount = g.MState.Broadcast
+		specialNodes.FoundationAccount = g.MState.Foundation
+		if len(g.MState.InnerMiners) == 0 {
 			specialNodes.InnerMinerAccounts = make([]mc.NodeInfo, 0)
 		} else {
-			specialNodes.InnerMinerAccounts = g.MState.InnerMiner
+			specialNodes.InnerMinerAccounts = g.MState.InnerMiners
 		}
 	} else {
-		modifyBroad := g.MState.BroadcastNode.Address != common.Address{}
-		modifyInner := len(g.MState.InnerMiner) != 0
-		if modifyBroad || modifyInner {
+		modifyBroad := g.MState.Broadcast.Address != common.Address{}
+		modifyFounda := g.MState.Foundation.Address != common.Address{}
+		modifyInner := len(g.MState.InnerMiners) != 0
+		if modifyBroad || modifyFounda || modifyInner {
 			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
 			if err != nil {
 				return errors.Errorf("get pre special node err: %v", err)
@@ -160,10 +163,13 @@ func (g *Genesis) setSpecialNodeToState(state *state.StateDB) error {
 			}
 
 			if modifyBroad {
-				specialNodes.BroadcastAccount = g.MState.BroadcastNode
+				specialNodes.BroadcastAccount = g.MState.Broadcast
+			}
+			if modifyFounda {
+				specialNodes.BroadcastAccount = g.MState.Foundation
 			}
 			if modifyInner {
-				specialNodes.InnerMinerAccounts = g.MState.InnerMiner
+				specialNodes.InnerMinerAccounts = g.MState.InnerMiners
 			}
 		}
 	}
