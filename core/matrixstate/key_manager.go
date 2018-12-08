@@ -19,9 +19,10 @@ const (
 	MinerRewardCfg     = "miner_reward"
 	ValidatorRewardCfg = "validator_reward"
 	TxsRewardCfg       = "txs_reward"
-	InterestCalcState  = "interest_state" //利息状态
-	LotteryCfg         = "lottery_cfg"
-	SlashCfg           = "slash_cfg"
+	InterestCfg        = "interest_reward" //利息状态
+	LotteryCfg         = "lottery_reward"
+	SlashCfg           = "slash_reward"
+	MultiCoin          = "coin_reward"
 )
 
 func GetKeyHash(key string) common.Hash {
@@ -71,6 +72,13 @@ func newKeyManager() *keyManager {
 			MSPTopologyGraph:     types.RlpHash(matrixStatePrefix + MSPTopologyGraph),
 			MSPElectGraph:        types.RlpHash(matrixStatePrefix + MSPElectGraph),
 			MSPElectOnlineState:  types.RlpHash(matrixStatePrefix + MSPElectOnlineState),
+			MinerRewardCfg:       types.RlpHash(matrixStatePrefix + MinerRewardCfg),
+			ValidatorRewardCfg:   types.RlpHash(matrixStatePrefix + ValidatorRewardCfg),
+			TxsRewardCfg:         types.RlpHash(matrixStatePrefix + TxsRewardCfg),
+			InterestCfg:          types.RlpHash(matrixStatePrefix + InterestCfg),
+			LotteryCfg:           types.RlpHash(matrixStatePrefix + LotteryCfg),
+			SlashCfg:             types.RlpHash(matrixStatePrefix + SlashCfg),
+			MultiCoin:            types.RlpHash(matrixStatePrefix + MultiCoin),
 		},
 		codecMap: make(map[string]codec),
 	}
