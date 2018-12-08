@@ -8,6 +8,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reward/util"
 )
 
@@ -65,7 +66,7 @@ func abs(n int64) int64 {
 
 func (tlr *TxsLottery) LotteryCalc(state util.StateDB, num uint64) map[string]map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
-	if !common.IsReElectionNumber(num + 1) {
+	if !manparams.IsReElectionNumber(num+1, num) {
 		return nil
 	}
 

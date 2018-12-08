@@ -2021,7 +2021,44 @@ func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
 }
 
-func (bc *BlockChain) GetMatrixStateData(key string, state *state.StateDB) (interface{}, error) {
+func (bc *BlockChain) GetMatrixStateData(key string) (interface{}, error) {
+	state, err := bc.State()
+	if err != nil {
+		return nil, errors.Errorf("get cur state err(%v)", err)
+	}
+	if state == nil {
+		return nil, errors.New("cur state is nil")
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error) {
+	header := bc.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by hash(%s)", hash.Hex())
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error) {
+	header := bc.GetHeaderByNumber(number)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by number(%d)", number)
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
 	return matrixstate.GetDataByState(key, state)
 }
 

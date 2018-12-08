@@ -141,7 +141,8 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 		return md.CheckSuperBlock(header)
 	}
 
-	if common.IsBroadcastNumber(header.Number.Uint64()) {
+	number := header.Number.Uint64()
+	if manparams.IsBroadcastNumber(number, number-1) {
 		return md.verifyBroadcastBlock(header)
 	}
 
