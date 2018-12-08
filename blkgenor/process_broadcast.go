@@ -1,10 +1,11 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
@@ -53,20 +54,29 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			continue
 		}
 
-
 		//执行交易
-
-
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,nil)
-		retTxs:=work.GetTxs()
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc, nil)
+		retTxs := work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))
 		for _, tx := range retTxs {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
-		_, err = p.blockChain().Engine().Finalize(p.blockChain(), result.Header, work.State, retTxs, nil, work.Receipts)
 
+		// 运行matrix状态树
+		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts)
+		if err := p.blockChain().ProcessMatrixState(block, work.State); err != nil {
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, matrix 状态树运行错误", err)
+			continue
+		}
+
+		localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
+			continue
+		}
+
+		if localBlock.Root() != result.Header.Root {
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", localBlock.Root().TerminalString(), "remote root", result.Header.Root.TerminalString())
 			continue
 		}
 
@@ -80,6 +90,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 
 		readyMsg := &mc.NewBlockReadyMsg{
 			Header: result.Header,
+			State:  work.State,
 		}
 		log.INFO(p.logExtraInfo(), "广播区块验证完成", "发送新区块准备完毕消息", "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)

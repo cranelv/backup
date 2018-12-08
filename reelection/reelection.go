@@ -420,7 +420,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	}
 	electStates.Number = block.Header().Number.Uint64()
 
-	currentHash := block.Hash()
+	currentHash := block.ParentHash()
 	topState, err := self.HandleTopGen(currentHash)
 	if self.IsMinerTopGenTiming(currentHash) {
 		//electStates.NextElect = []mc.ElectNodeInfo{}

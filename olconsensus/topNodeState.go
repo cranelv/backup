@@ -41,8 +41,8 @@ func newTopNodeState(capacity int, info string) *topNodeState {
 	}
 }
 
-func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.TopologyGraph, electNodeStates *mc.ElectGraph) {
-	if topologyGroup == nil || electNodeStates == nil {
+func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.TopologyGraph, electStates *mc.ElectOnlineStatus) {
+	if topologyGroup == nil || electStates == nil {
 		log.Error(ts.extraInfo, "拓扑或者选举节点在线信息异常", "为nil")
 		return
 	}
@@ -60,8 +60,8 @@ func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.Topolog
 		ts.curTopologyNodes = append(ts.curTopologyNodes, &node)
 	}
 
-	for i := 0; i < len(electNodeStates.ElectList); i++ {
-		electState := electNodeStates.ElectList[i]
+	for i := 0; i < len(electStates.ElectOnline); i++ {
+		electState := electStates.ElectOnline[i]
 		if electState.Type != common.RoleValidator && electState.Type != common.RoleBackupValidator {
 			// 只关注验证者和备选验证者
 			continue

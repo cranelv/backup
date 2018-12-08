@@ -60,12 +60,14 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
+		log.ERROR(Module, "height", height, "err", err)
 		return false
 	}
 	now := height % common.GetReElectionInterval()
-	if now == MinerTopGenTiming {
+	if now+1 == common.GetReElectionInterval()-manparams.MinerNetChangeUpTime {
 		return true
 	}
+	log.ERROR(Module, "height", height, "err", false, "interval", common.GetReElectionInterval(), "MinerTopGenTiming", MinerTopGenTiming, "now", now)
 	return false
 }
 
@@ -74,12 +76,14 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
+		log.ERROR(Module, "height", height, "err", err)
 		return false
 	}
 
 	now := height % common.GetReElectionInterval()
-	if now == ValidatorTopGenTiming {
+	if now+1 == common.GetReElectionInterval()-manparams.VerifyNetChangeUpTime {
 		return true
 	}
+	log.ERROR(Module, "height", height, "err", false)
 	return false
 }

@@ -161,7 +161,7 @@ func (serv *TopNodeService) update() {
 				}
 
 				log.Debug(serv.extraInfo, "处理CA通知消息", "", "块高", data.BlockNum)
-				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectGraph))
+				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectOnlineStatus))
 				go serv.LeaderChangeNotifyHandler(serv.msgCheck.GetCurLeader())
 			}
 		case data := <-serv.leaderChangeCh:

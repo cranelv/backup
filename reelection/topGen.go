@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 //得到随机种子
@@ -25,7 +26,7 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-
+	height = common.GetNextReElectionNumber(height) - manparams.MinerTopologyGenerateUpTime
 	minerDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleMiner) //
 	if err != nil {
 		log.ERROR(Module, "获取矿工抵押列表失败 err", err)
@@ -51,7 +52,7 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-
+	height = common.GetNextReElectionNumber(height) - manparams.VerifyTopologyGenerateUpTime
 	validatoeDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleValidator)
 	if err != nil {
 		log.ERROR(Module, "获取验证者列表失败 err", err)
