@@ -3,10 +3,9 @@ package interest
 import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/reward/util"
 	"math/big"
 	"sort"
 )
@@ -16,7 +15,6 @@ const (
 )
 
 type interest struct {
-	chain util.ChainReader
 }
 
 type DepositInterestRate struct {
@@ -29,16 +27,18 @@ func (p DepositInterestRateList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p DepositInterestRateList) Len() int           { return len(p) }
 func (p DepositInterestRateList) Less(i, j int) bool { return p[i].Deposit.Cmp(p[j].Deposit)<0  }
 
-func New(chain util.ChainReader) *interest {
+func New() *interest {
 
-	return &interest{
-		chain: chain,
-	}
+	return &interest{}
 }
 func (tlr *interest)calcNodeInterest(deposit *big.Int,depositInterestRate []*DepositInterestRate)*big.Int{
 
 	var blockInterest *big.Rat = nil
 	for i,depositInteres:= range depositInterestRate{
+		if deposit.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "抵押获取错误", deposit)
+			return big.NewInt(0)
+		}
 		if deposit.Cmp(depositInteres.Deposit)<0{
 			blockInterest = depositInterestRate[i-1].Interst
 			break
@@ -56,14 +56,22 @@ func (tlr *interest)calcNodeInterest(deposit *big.Int,depositInterestRate []*Dep
 	return  result
 }
 
-func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
+func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 	//todo:状态树读取利息计算的周期、支付的周期、利率
 	if num<common.GetBroadcastInterval(){
+		return
+	}
+	if nil == state {
+		log.ERROR(PackageName, "状态树是空", state)
 		return
 	}
 	calcInterestPeriod:=common.GetBroadcastInterval()
 	payInterestPeriod:=3*common.GetBroadcastInterval()
 
+	if payInterestPeriod < calcInterestPeriod {
+		log.ERROR(PackageName, "配置的发放周期小于计息周期", "")
+		return
+	}
 	depositInterestRateList := DepositInterestRateList{
 		&DepositInterestRate{big.NewInt(0),big.NewRat(5,Denominator)},
 		&DepositInterestRate{new(big.Int).Exp(big.NewInt(10), big.NewInt(21), big.NewInt(0)),big.NewRat(10,Denominator)},
@@ -78,11 +86,23 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 	}
 
 	if calcInterestPeriod==1||0==(num-1)%uint64(calcInterestPeriod){
-		depositNodes, _ := ca.GetElectedByHeight(new(big.Int).SetUint64(num-1))
+		depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
+		if nil != err {
+			log.ERROR(PackageName, "获取的抵押列表错误", err)
+			return
+		}
+		if 0 == len(depositNodes) {
+			log.ERROR(PackageName, "获取的抵押列表为空", "")
+			return
+		}
 		log.INFO(PackageName, "计算利息,高度", num)
 		for _, v := range depositNodes {
 
 			result:=ic.calcNodeInterest(v.Deposit,depositInterestRateList)
+			if result.Cmp(big.NewInt(0)) <= 0 {
+				log.ERROR(PackageName, "计算的利息非法", result)
+				continue
+			}
 			depoistInfo.AddInterest(state,v.Address,result)
 			log.INFO(PackageName, "账户", v.Address.String(), "deposit",v.Deposit.String(),  "利息", result.String())
 		}
@@ -95,9 +115,17 @@ func (ic *interest) InterestCalc(state *state.StateDB,num uint64){
 
 		AllInterestMap := depoistInfo.GetAllInterest(state)
 		Deposit := depoistInfo.GetDeposit(state)
-		log.INFO(PackageName,"设置利息前的合约抵押账户余额",Deposit)
+		if Deposit.Cmp(big.NewInt(0)) < 0 {
+			log.WARN(PackageName, "利息合约账户余额非法", Deposit)
+		}
+
+		log.INFO(PackageName, "设置利息前的合约抵押账户余额", Deposit)
 		for account, interest := range AllInterestMap {
 			log.INFO(PackageName,"账户",account,"利息",interest.String())
+			if interest.Cmp(big.NewInt(0)) <= 0 {
+				log.ERROR(PackageName, "获取的利息非法", interest)
+				continue
+			}
 			Deposit = new(big.Int).Add(Deposit, interest)
 			depoistInfo.ResetInterest(state,account)
 		}

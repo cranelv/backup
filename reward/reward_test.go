@@ -1,18 +1,16 @@
 package reward
 
 import (
-
 	"fmt"
-	"github.com/matrix/go-matrix/reward/txsreward"
 	"math/big"
+
+	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/reward/txsreward"
 
 	"sync"
 	"testing"
 
 	"github.com/matrix/go-matrix/reward/util"
-
-
-
 
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
@@ -41,7 +39,7 @@ func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 func fakeEthNew(n int) *FakeEth {
 	eth := &FakeEth{once: new(sync.Once)}
 	eth.once.Do(func() {
-		_, blockchain, err := core.NewCanonical(ethash.NewFaker(), n, true)
+		_, blockchain, err := core.NewCanonical(manash.NewFaker(), n, true)
 		if err != nil {
 			fmt.Println("failed to create pristine chain: ", err)
 			return
@@ -156,7 +154,7 @@ func fakeEthNew(n int) *FakeEth {
 //		reward.setSelectedBlockRewards(reward.electedValidatorsReward, rewards, common.RoleValidator|common.RoleBackupValidator, newheader, BackupRewardRate)
 //		//So(rewards[common.HexToAddress(testAddress)], ShouldEqual, reward.leaderBlkReward)
 //	})
-}
+//}
 
 func TestBlockReward_calcTxsFees(t *testing.T) {
 	Convey("计算交易费", t, func() {
@@ -172,8 +170,7 @@ func TestBlockReward_calcTxsFees(t *testing.T) {
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Position: 8194})
 		newheader.NetTopology.NetTopologyData = append(newheader.NetTopology.NetTopologyData, common.NetTopologyData{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
 		txsReward := txsreward.New(eth.BlockChain())
-		txsReward.CalcBlockRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), header)
-
+		txsReward.CalcNodesRewards(util.ByzantiumTxsRewardDen, common.HexToAddress(testAddress), 1)
 
 	})
 }
