@@ -22,8 +22,6 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"runtime"
-	"fmt"
-	"github.com/matrix/go-matrix/base58"
 )
 
 //YY
@@ -81,6 +79,7 @@ var (
 	ErrTXPoolFull      = errors.New("txpool is full")
 	ErrTXNonceSame     = errors.New("the same Nonce transaction exists")
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
+	ErrWithoutAuth  = errors.New("not be set entrust gas")
 )
 
 var (
@@ -1330,20 +1329,38 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if tx.IsEntrustTx(){
 		//通过from获得的数据为授权人marsha1过的数据
-		//from := tx.From()
-		//entrustFrom := nPool.currentState.GetGasAuthFrom(from,nPool.chain.CurrentBlock().NumberU64())
-		//if !entrustFrom.Equal(common.Address{}){
-		//	tx.Setentrustfrom(entrustFrom)
-		//	tx.IsEntrustGas = true
-		//}
+		from := tx.From()
+		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
+		entrustFrom := nPool.currentState.GetGasAuthFrom(from,nPool.chain.CurrentBlock().NumberU64()+1)//当前块高加1，因为该笔交易要上到下一个区块
+		if !entrustFrom.Equal(common.Address{}){
+			tx.Setentrustfrom(entrustFrom)
+			tx.IsEntrustGas = true
+		}else{
+			entrustFrom := nPool.currentState.GetGasAuthFromByTime(from,uint64(time.Now().Unix()))
+			if !entrustFrom.Equal(common.Address{}){
+				tx.Setentrustfrom(entrustFrom)
+				tx.IsEntrustGas = true
+				tx.IsEntrustByTime = true
+			}else{
+				log.Error("该用户没有被授权过委托Gas")
+				return false,ErrWithoutAuth
+			}
+		}
 
 		//======测试===================//
-		tmpfrom := common.HexToAddress("0x53f36c0cd8e4889b6d87681e0deab030b23cfb7e")
-		entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
-		fmt.Println("===委托列表",entrustlist)
-		addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
-		fmt.Println("授权人",entrustfrom)
+		//tmpfrom := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
+		//entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
+		//fmt.Println("===委托列表",entrustlist)
+		//addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
+		//entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
+		//fmt.Println("授权人",entrustfrom)
+		//
+		//tmpfrom1 := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
+		//entrustlist1 := nPool.currentState.GetEntrustFrom(tmpfrom1,60)
+		//fmt.Println("===委托列表",entrustlist1)
+		//addr1 := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
+		//entrustfrom1 := nPool.currentState.GetGasAuthFrom(addr1,60)
+		//fmt.Println("授权人",entrustfrom1)
 		//========2222222=============//
 	}
 

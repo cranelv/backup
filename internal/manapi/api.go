@@ -1731,66 +1731,6 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	signed.SetTxCurrency(Currency)
 	return submitTransaction(ctx, s.b, signed)
 }
-//hezi 修改账户编码
-func (s *PublicTransactionPoolAPI) ManSendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
-	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
-	var args SendTxArgs
-	args,err := StrArgsToByteArgs(args1)
-	if err != nil{
-		return common.Hash{},err
-	}
-
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	} else { //YY add else
-		nc1 := params.NonceAddOne
-		nc := uint64(*args.Nonce)
-		if nc < nc1 {
-			err = errors.New("Nonce Wrongful")
-			return common.Hash{}, err
-		}
-	}
-	//YY
-	if len(args.ExtraTo) > 0 { //扩展交易中的to和input属性不填写则删掉这个扩展交易
-		extra := make([]*ExtraTo_Mx, 0)
-		for _, ar := range args.ExtraTo {
-			if ar.To2 != nil || ar.Input2 != nil {
-				extra = append(extra, ar)
-			}
-		}
-		args.ExtraTo = extra
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainId
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	Currency := strings.Split(args1.From,".")[0]	//币种
-	signed.SetTxCurrency(Currency)
-	return submitTransaction(ctx, s.b, signed)
-}
 
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.

@@ -579,7 +579,11 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 		if len(tmpAuthMarsha1Data) != 0{
 			//AuthData := new(common.AuthType)
 			AuthDataList := make([]common.AuthType,0)
-			err = json.Unmarshal(tmpAuthMarsha1Data,AuthDataList)
+			err = json.Unmarshal(tmpAuthMarsha1Data,&AuthDataList)
+			if err != nil{
+				log.Error("CallAuthTx AuthDataList Unmarshal err")
+				return nil, 0, false, err
+			}
 			for _,AuthData := range AuthDataList{
 				if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
 					log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
@@ -587,14 +591,14 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 				}
 				//如果是同一个人委托，委托的高度不能重合
 				if AuthData.AuthAddres.Equal(Authfrom){
-					if EntrustData.EnstrustSetType == 0{
+					if EntrustData.EnstrustSetType == params.EntrustByHeight{
 						//按高度委托
 						if EntrustData.StartHeight <= AuthData.EndHeight{
-							log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
+							log.Error("同一个授权人的委托高度不能重合","from",tx.From(),"Nonce",tx.Nonce())
 							return nil, 0, false, ErrRepeatEntrust
 						}
 						HeightAuthDataList = append(HeightAuthDataList,AuthData)
-					}else if EntrustData.EnstrustSetType == 1{
+					}else if EntrustData.EnstrustSetType == params.EntrustByTime{
 						//按时间委托
 						if EntrustData.StartTime <= AuthData.EndTime{
 							log.Error("同一个授权人的委托时间不能重合","from",tx.From(),"Nonce",tx.Nonce())
@@ -610,9 +614,10 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 		}
 		entrustOK = true
 		//反向存储AuthType结构，用来通过被委托人from和高度查找授权人from
-		if EntrustData.EnstrustSetType == 0{
+		if EntrustData.EnstrustSetType == params.EntrustByHeight{
 			//按块高存
 			t_authData := new(common.AuthType)
+			t_authData.EnstrustSetType = EntrustData.EnstrustSetType
 			t_authData.StartHeight = EntrustData.StartHeight
 			t_authData.EndHeight = EntrustData.EndHeight
 			t_authData.IsEntrustSign = EntrustData.IsEntrustSign
@@ -628,9 +633,10 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 			st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),marshalAuthData)
 		}
 
-		if EntrustData.EnstrustSetType == 1{
+		if EntrustData.EnstrustSetType == params.EntrustByTime{
 			//按时间存
 			t_authData := new(common.AuthType)
+			t_authData.EnstrustSetType = EntrustData.EnstrustSetType
 			t_authData.StartTime = EntrustData.StartTime
 			t_authData.EndTime = EntrustData.EndTime
 			t_authData.IsEntrustSign = EntrustData.IsEntrustSign
@@ -761,7 +767,7 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 					return nil, 0, false, err
 				}
 				for _,oldAuthData := range oldAuthDataList{
-					//只要起始高度能对应上，就是要删除的切片
+					//只要起始高度或时间能对应上，就是要删除的切片
 					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime{
 						oldAuthData.IsEntrustGas = false
 						oldAuthData.IsEntrustSign = false
@@ -784,59 +790,6 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 		log.Error("CallAuthTx Marshal err")
 	}
 	st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newEntrustList)
-
-
-	//newEntrustlist := make([]common.EntrustType,0)
-	//for _,EntrustData := range EntrustList {
-	//	str_addres := EntrustData.EntrustAddres //被委托人地址
-	//	addres := base58.Base58DecodeToAddress(str_addres)
-	//	marshaldata := st.state.GetStateByteArray(addres,common.BytesToHash(addres[:]))//获取之前的委托数据,marshal编码过的
-	//	if len(marshaldata) > 0{
-	//		oldEntrustData := new(common.AuthType)   //oldEntrustData的地址为0x地址
-	//		err = json.Unmarshal(marshaldata,oldEntrustData)	//oldEntrustData的地址为0x地址
-	//		if err != nil{
-	//			return nil, 0, false, err
-	//		}
-	//		if !EntrustData.IsEntrustGas && !EntrustData.IsEntrustSign{
-	//			log.Error("未设置取消委托条件")
-	//			return nil, 0, false, errors.New("without set cancel entrust type")
-	//		}
-	//		//取消委托gas
-	//		if EntrustData.IsEntrustGas{
-	//			if oldEntrustData.IsEntrustGas == true{
-	//				oldEntrustData.IsEntrustGas = false
-	//			}
-	//			entrustlist := st.state.GetAllEntrustGasFrom(Authfrom)
-	//			for _,entrustFrom := range entrustlist{
-	//				if entrustFrom.Equal(addres){
-	//					EntrustData.IsEntrustGas = false
-	//				}
-	//			}
-	//		}
-	//		if EntrustData.IsEntrustSign{
-	//			if oldEntrustData.IsEntrustSign == true{
-	//				oldEntrustData.IsEntrustSign = false
-	//			}
-	//			entrustlist := st.state.GetAllEntrustSignFrom(Authfrom)
-	//			for _,entrustFrom := range entrustlist{
-	//				if entrustFrom.Equal(addres){
-	//					EntrustData.IsEntrustSign = false
-	//				}
-	//			}
-	//		}
-	//		newEntrustlist = append(newEntrustlist,EntrustData)
-	//		newEntrustData,err := json.Marshal(oldEntrustData)
-	//		if err != nil{
-	//			return nil, 0, false, err
-	//		}
-	//		st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newEntrustData)
-	//	}
-	//}
-	//newMarshalEntrustlist,err := json.Marshal(newEntrustlist)
-	//if err != nil{
-	//	return nil, 0, false,err
-	//}
-	//st.state.SetStateByteArray(Authfrom,common.BytesToHash(Authfrom[:]),newMarshalEntrustlist)
 
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()

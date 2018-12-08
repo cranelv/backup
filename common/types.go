@@ -490,6 +490,7 @@ type EntrustType struct {
 
 type AuthType struct {
 	AuthAddres Address	//授权人from
+	EnstrustSetType byte    //0-按高度委托,1-按时间委托
 	IsEntrustGas    bool	//委托gas
 	IsEntrustSign   bool	//委托签名
 	StartHeight     uint64   //委托起始高度
