@@ -13,6 +13,13 @@ const (
 	MSPTopologyGraph     = "topology_graph" // 拓扑图
 	MSPElectGraph        = "elect_graph"    // 选举图
 	MSPElectOnlineState  = "elect_state"    // 选举节点在线消息
+
+	MinerRewardCfg     = "miner_reward"
+	ValidatorRewardCfg = "validator_reward"
+	TxsRewardCfg       = "txs_reward"
+	InterestCalcState  = "interest_state" //利息状态
+	LotteryCfg         = "lottery_cfg"
+	SlashCfg           = "slash_cfg"
 )
 
 func GetKeyHash(key string) common.Hash {
