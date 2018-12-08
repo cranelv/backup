@@ -22,7 +22,9 @@ const (
 )
 
 type interest struct {
-	InterestCfg mc.InterestCfgStruct
+	VIPConfig    []mc.VIPConfig
+	CalcInterval uint64
+	PayInterval  uint64
 }
 
 type DepositInterestRate struct {
@@ -42,16 +44,23 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
 		return nil
 	}
-	if 0 == len(StateCfg.(mc.InterestCfgStruct).VIPConfig) {
-		log.ERROR(PackageName, "利率表为空", "")
-		return nil
-	}
+
 	if StateCfg.(mc.InterestCfgStruct).PayInterval < StateCfg.(mc.InterestCfgStruct).CalcInterval {
 		log.ERROR(PackageName, "配置的发放周期小于计息周期", "")
 		return nil
 	}
 
-	return &interest{StateCfg.(mc.InterestCfgStruct)}
+	VipCfg, err := matrixstate.GetDataByState(mc.MSKeyVIPConfig, st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误", "")
+		return nil
+	}
+	Vip := VipCfg.([]mc.VIPConfig)
+	if 0 == len(Vip) {
+		log.ERROR(PackageName, "利率表为空", "")
+		return nil
+	}
+	return &interest{Vip, StateCfg.(mc.InterestCfgStruct).CalcInterval, StateCfg.(mc.InterestCfgStruct).PayInterval}
 }
 func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*DepositInterestRate) *big.Int {
 
@@ -87,16 +96,17 @@ func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 		log.ERROR(PackageName, "状态树是空", state)
 		return
 	}
-	calcInterestPeriod := ic.InterestCfg.CalcInterval
-	payInterestPeriod := ic.InterestCfg.PayInterval
+	calcInterestPeriod := ic.CalcInterval
+	payInterestPeriod := ic.PayInterval
 
 	depositInterestRateList := make(DepositInterestRateList, 0)
-	for _, v := range ic.InterestCfg.VIPConfig {
-		if v.MinMoney.Cmp(big.NewInt(0)) < 0 {
+	for _, v := range ic.VIPConfig {
+		if v.MinMoney < 0 {
 			log.ERROR(PackageName, "最小金额设置非法", "")
 			return
 		}
-		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{v.MinMoney, big.NewRat(int64(v.InterestRate), Denominator)})
+		deposit := new(big.Int).Mul(new(big.Int).SetUint64(v.MinMoney), util.ManPrice)
+		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{deposit, big.NewRat(int64(v.InterestRate), Denominator)})
 	}
 	sort.Sort(depositInterestRateList)
 	//sort.Search()

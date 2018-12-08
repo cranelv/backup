@@ -1,8 +1,6 @@
 package core
 
 import (
-	"math/big"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
@@ -17,6 +15,7 @@ const (
 type GenesisMState struct {
 	BroadcastNode mc.NodeInfo           `json:"Broadcast" `
 	InnerMiner    []mc.NodeInfo         `json:"InnerMiner" `
+	VIPCfg        []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
 	BlkRewardCfg  mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg  mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
 	LotteryCfg    mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
@@ -49,6 +48,10 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 	if err := g.setSlashCfgToState(state); err != nil {
 		return err
 	}
+	if err := g.setVIPCfgToState(state); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -221,23 +224,26 @@ func (g *Genesis) setLotteryCfgToState(state *state.StateDB) error {
 
 func (g *Genesis) setInterestCfgToState(state *state.StateDB) error {
 	StateCfg := g.MState.InterestCfg
-	if 0 == len(StateCfg.VIPConfig) {
 
-		return errors.Errorf("利率表为空")
-	}
 	if StateCfg.PayInterval < StateCfg.CalcInterval {
 
 		return errors.Errorf("配置的发放周期小于计息周期")
 	}
-	for _, v := range StateCfg.VIPConfig {
-		if v.MinMoney.Cmp(big.NewInt(0)) < 0 {
 
-			return errors.Errorf("最小金额设置非法")
-		}
-	}
 	return matrixstate.SetDataToState(mc.MSKeyInterestCfg, g.MState.InterestCfg, state)
 }
 
 func (g *Genesis) setSlashCfgToState(state *state.StateDB) error {
 	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.MState.SlashCfg, state)
+}
+
+func (g *Genesis) setVIPCfgToState(state *state.StateDB) error {
+	VIPCfg := g.MState.VIPCfg
+
+	if 0 == len(VIPCfg) {
+
+		return errors.Errorf("vip 配置为nil")
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.MState.VIPCfg, state)
 }

@@ -257,7 +257,7 @@ func (MSPRewardRateCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPRewardRateCfgCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectOnlineStatus)
+	msg := new(mc.BlkRewardCfg)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -280,7 +280,33 @@ func (MSPTxsRewardCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPTxsRewardCfgCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectOnlineStatus)
+	msg := new(mc.TxsRewardCfgStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSPLotteryInfoCodec struct {
+	PrizeLevel uint8  //奖励级别
+	PrizeNum   uint64 //奖励名额
+	PrizeMoney uint64 //奖励金额 单位man
+}
+
+func (MSPLotteryInfoCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSPLotteryInfoCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.LotteryInfo)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -303,7 +329,7 @@ func (MSPLotteryCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPLotteryCfgCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectOnlineStatus)
+	msg := new(mc.LotteryCfgStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -326,7 +352,7 @@ func (MSPInterestCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPInterestCfgCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectOnlineStatus)
+	msg := new(mc.InterestCfgStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -349,7 +375,7 @@ func (MSPSlashCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPSlashCfgCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectOnlineStatus)
+	msg := new(mc.SlashCfgStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
