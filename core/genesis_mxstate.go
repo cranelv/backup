@@ -8,9 +8,19 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	RewardFullRate = uint64(10000)
+)
+
 type GenesisMState struct {
-	BroadcastNode mc.NodeInfo   `json:"Broadcast"`
-	InnerMiner    []mc.NodeInfo `json:"InnerMiner"`
+	BroadcastNode mc.NodeInfo           `json:"Broadcast" `
+	InnerMiner    []mc.NodeInfo         `json:"InnerMiner" `
+	VIPCfg        []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BlkRewardCfg  mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg  mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg    mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg   mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
+	SlashCfg      mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
 }
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {
@@ -23,6 +33,25 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 	if err := g.setSpecialNodeToState(state); err != nil {
 		return err
 	}
+	if err := g.setBlkRewardCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setTxsRewardCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setLotteryCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setInterestCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setSlashCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setVIPCfgToState(state); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -144,4 +173,77 @@ func (g *Genesis) setSpecialNodeToState(state *state.StateDB) error {
 	} else {
 		return nil
 	}
+}
+
+func (g *Genesis) setBlkRewardCfgToState(state *state.StateDB) error {
+	rateCfg := g.MState.BlkRewardCfg.RewardRate
+
+	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
+
+		return errors.Errorf("矿工固定区块奖励比例配置错误")
+	}
+	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
+
+		return errors.Errorf("验证者固定区块奖励比例配置错误")
+	}
+
+	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
+
+		return errors.Errorf("替补固定区块奖励比例配置错误")
+	}
+	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.MState.BlkRewardCfg, state)
+}
+
+func (g *Genesis) setTxsRewardCfgToState(state *state.StateDB) error {
+	rateCfg := g.MState.TxsRewardCfg.RewardRate
+
+	if RewardFullRate != g.MState.TxsRewardCfg.ValidatorsRate+g.MState.TxsRewardCfg.MinersRate {
+
+		return errors.Errorf("交易奖励比例配置错误")
+	}
+
+	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
+
+		return errors.Errorf("矿工固定区块奖励比例配置错误")
+	}
+	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
+
+		return errors.Errorf("验证者固定区块奖励比例配置错误")
+	}
+
+	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
+
+		return errors.Errorf("替补固定区块奖励比例配置错误")
+	}
+	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.MState.TxsRewardCfg, state)
+}
+
+func (g *Genesis) setLotteryCfgToState(state *state.StateDB) error {
+	return matrixstate.SetDataToState(mc.MSKeyLotteryCfg, g.MState.LotteryCfg, state)
+}
+
+func (g *Genesis) setInterestCfgToState(state *state.StateDB) error {
+	StateCfg := g.MState.InterestCfg
+
+	if StateCfg.PayInterval < StateCfg.CalcInterval {
+
+		return errors.Errorf("配置的发放周期小于计息周期")
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeyInterestCfg, g.MState.InterestCfg, state)
+}
+
+func (g *Genesis) setSlashCfgToState(state *state.StateDB) error {
+	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.MState.SlashCfg, state)
+}
+
+func (g *Genesis) setVIPCfgToState(state *state.StateDB) error {
+	VIPCfg := g.MState.VIPCfg
+
+	if 0 == len(VIPCfg) {
+
+		return errors.Errorf("vip 配置为nil")
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.MState.VIPCfg, state)
 }

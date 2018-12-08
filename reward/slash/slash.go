@@ -60,8 +60,6 @@ func New(chain ChainReader, st util.StateDB) *BlockSlash {
 
 	if StateCfg.(mc.SlashCfgStruct).SlashRate > 100 {
 		SlashRate = 100
-	} else if StateCfg.(mc.SlashCfgStruct).SlashRate < 0 {
-		SlashRate = 0
 	} else {
 		SlashRate = StateCfg.(mc.SlashCfgStruct).SlashRate
 	}

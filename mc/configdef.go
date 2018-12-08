@@ -4,7 +4,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"math/big"
 )
 
 const (
@@ -58,7 +57,7 @@ type ElectConfigInfo struct {
 	BlockList          []common.Address
 }
 type VIPConfig struct {
-	MinMoney     *big.Int
+	MinMoney     uint64
 	InterestRate uint64 //(分母待定为1000w)
 	ElectUserNum uint8
 	StockScale   uint16 //千分比
@@ -110,7 +109,6 @@ type LotteryCfgStruct struct {
 type InterestCfgStruct struct {
 	CalcInterval uint64
 	PayInterval  uint64
-	VIPConfig    []VIPConfig
 }
 
 type SlashCfgStruct struct {
