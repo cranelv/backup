@@ -92,7 +92,10 @@ func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.InterestCfg.VIPConfig {
-
+		if v.MinMoney.Cmp(big.NewInt(0)) < 0 {
+			log.ERROR(PackageName, "最小金额设置非法", "")
+			return
+		}
 		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{v.MinMoney, big.NewRat(int64(v.InterestRate), Denominator)})
 	}
 	sort.Sort(depositInterestRateList)

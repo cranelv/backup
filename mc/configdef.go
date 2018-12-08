@@ -1,10 +1,11 @@
 package mc
 
 import (
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"math/big"
 )
 
 const (
@@ -45,6 +46,7 @@ type NodeInfo struct {
 type MatrixSpecialNode struct {
 	BroadcastNode  NodeInfo
 	InnerMinerNode []NodeInfo
+	BlkRewardCfg
 }
 
 type ElectConfigInfo struct {
