@@ -8,26 +8,26 @@ import (
 )
 
 const (
-	MSPBroadcastTx      = "broad_txs"      // 广播交易
-	MSPTopologyGraph    = "topology_graph" // 拓扑图
-	MSPElectGraph       = "elect_graph"    // 选举图
-	MSPElectOnlineState = "elect_state"    // 选举节点在线消息
+	MSKeyBroadcastTx      = "broad_txs"      // 广播交易
+	MSKeyTopologyGraph    = "topology_graph" // 拓扑图
+	MSKeyElectGraph       = "elect_graph"    // 选举图
+	MSKeyElectOnlineState = "elect_state"    // 选举节点在线消息
 
 	//通用
-	MSPBroadcastInterval  = "broad_interval" // 广播区块周期
-	MSPElectGenTime       = "elect_gen_time"
-	MSPMatrixNode         = "matrix_specific_node"
-	MSPElectConfigInfo    = "elect_details_info"
-	MSPVIPConfig          = "vip_config"
-	MSPreBroadcastStateDB = "pre broadcat state db"
+	MSKeyBroadcastInterval = "broad_interval" // 广播区块周期
+	MSKeyElectGenTime      = "elect_gen_time"
+	MSKeyMatrixNode        = "matrix_specific_node"
+	MSKeyElectConfigInfo   = "elect_details_info"
+	MSKeyVIPConfig         = "vip_config"
+	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 
-	MinerRewardCfg     = "miner_reward"
-	ValidatorRewardCfg = "validator_reward"
-	TxsRewardCfg       = "txs_reward"
-	InterestCfg        = "interest_reward" //利息状态
-	LotteryCfg         = "lottery_reward"
-	SlashCfg           = "slash_reward"
-	MultiCoin          = "coin_reward"
+	MSKeyMinerRewardCfg     = "miner_reward"
+	MSKeyValidatorRewardCfg = "validator_reward"
+	MSKeyTxsRewardCfg       = "txs_reward"
+	MSKeyInterestCfg        = "interest_reward" //利息状态
+	MSKeyLotteryCfg         = "lottery_reward"
+	MSKeySlashCfg           = "slash_reward"
+	MSKeyMultiCoin          = "coin_reward"
 )
 
 type ElectGenTimeStruct struct {

@@ -24,5 +24,9 @@ type stateReader interface {
 	GetMatrixStateData(key string, state *state.StateDB) ([]byte, error)
 }
 
+type StateDB interface {
+	GetMatrixData(hash common.Hash) (val []byte)
+}
+
 type PreStateReadFn func(key string) (interface{}, error)
 type ProduceMatrixStateDataFn func(block *types.Block, readFn PreStateReadFn) (interface{}, error)
