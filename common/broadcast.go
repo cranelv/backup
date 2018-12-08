@@ -1,11 +1,11 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-package manparams
+package common
 
-import (
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mc"
+var (
+	broadcastInterval  = uint64(100)
+	reelectionInterval = uint64(300)
 )
 
 func IsBroadcastNumber(number uint64) bool {
@@ -55,17 +55,17 @@ func GetNextReElectionNumber(number uint64) uint64 {
 }
 
 func GetBroadcastInterval() uint64 {
-	interval, err := mtxCfg.getStateData(mc.MSPBroadcastInterval)
-	if err != nil {
-		log.Crit("config", "get broadcast interval from state err", err)
-	}
-	return interval.(uint64)
+	return broadcastInterval
 }
 
 func GetReElectionInterval() uint64 {
-	interval, err := mtxCfg.getStateData(mc.MSPBroadcastInterval)
-	if err != nil {
-		log.Crit("config", "get broadcast interval from state err", err)
-	}
-	return interval.(uint64) * 3
+	return reelectionInterval
+}
+
+func SetBroadcastInterval(interval uint64) {
+	broadcastInterval = interval
+}
+
+func SetReElectionInterval(interval uint64) {
+	reelectionInterval = interval
 }

@@ -3,19 +3,21 @@ package matrixstate
 import (
 	"encoding/json"
 
+	"encoding/binary"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
 
 func (self *keyManager) initCodec() {
-	self.codecMap[mc.MSPTopologyGraph] = new(TopologyGraphCodec)
-	self.codecMap[mc.MSPElectGraph] = new(ElectGraphCodec)
-	self.codecMap[mc.MSPElectOnlineState] = new(ElectOnlineStateCodec)
-	self.codecMap[mc.MSPElectGenTime] = new(ElectGenTimeCodec)
-	self.codecMap[mc.MSPMatrixNode] = new(MatrixNodeCodec)
-	self.codecMap[mc.MSPElectConfigInfo] = new(ElectConfigInfoCodec)
-	self.codecMap[mc.MSPVIPConfig] = new(MSPVIPConfigCodec)
-	self.codecMap[mc.MSPreBroadcastStateDB] = new(MSPreBroadcastStateDBCodec)
+	self.codecMap[mc.MSKeyTopologyGraph] = new(TopologyGraphCodec)
+	self.codecMap[mc.MSKeyElectGraph] = new(ElectGraphCodec)
+	self.codecMap[mc.MSKeyElectOnlineState] = new(ElectOnlineStateCodec)
+	self.codecMap[mc.MSKeyBroadcastInterval] = new(BroadcastIntervalCodec)
+	self.codecMap[mc.MSKeyElectGenTime] = new(ElectGenTimeCodec)
+	self.codecMap[mc.MSKeyMatrixNode] = new(MatrixNodeCodec)
+	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
+	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
+	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
 
 }
 
@@ -30,23 +32,13 @@ type BroadcastIntervalCodec struct {
 }
 
 func (BroadcastIntervalCodec) encodeFn(msg interface{}) ([]byte, error) {
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
-	}
-	return data, nil
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, msg.(uint64))
+	return b, nil
 }
 
 func (BroadcastIntervalCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.TopologyGraph)
-	err := json.Unmarshal(data, msg)
-	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
-	}
-	if msg == nil {
-		return nil, errors.New("msg is nil")
-	}
-	return msg, nil
+	return binary.BigEndian.Uint64(data), nil
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -123,6 +115,7 @@ func (ElectOnlineStateCodec) decodeFn(data []byte) (interface{}, error) {
 	}
 	return msg, nil
 }
+
 type ElectGenTimeCodec struct {
 }
 
@@ -245,8 +238,10 @@ func (MSPreBroadcastStateDBCodec) decodeFn(data []byte) (interface{}, error) {
 	}
 	return msg, nil
 }
+
 type RewardRateCfgCodec struct {
 }
+
 func (RewardRateCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 	data, err := json.Marshal(msg)
 	if err != nil {

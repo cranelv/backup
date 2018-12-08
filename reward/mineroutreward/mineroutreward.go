@@ -44,9 +44,9 @@ type ChainReader interface {
 	State() (*state.StateDB, error)
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num uint64)  map[common.Address]*big.Int {
+func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num uint64) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
-	if num< uint64(2) || common.IsBroadcastNumber(num) {
+	if num < uint64(2) || common.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "挖坑奖励高度错误：", num)
 		return nil
 	}
@@ -55,9 +55,9 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader,
 		return nil
 	}
 	var coinBase common.Address
-	if common.IsBroadcastNumber(num-1){
+	if common.IsBroadcastNumber(num - 1) {
 		coinBase = chain.GetHeaderByNumber(num - 2).Coinbase
-	}else{
+	} else {
 		coinBase = chain.GetHeaderByNumber(num - 1).Coinbase
 	}
 	if coinBase.Equal(common.Address{}) {

@@ -21,7 +21,6 @@ type stateReader interface {
 	GetHeaderByHash(hash common.Hash) *types.Header
 	State() (*state.StateDB, error)
 	StateAt(root common.Hash) (*state.StateDB, error)
-	GetMatrixStateData(key string, state *state.StateDB) ([]byte, error)
 }
 
 type StateDB interface {

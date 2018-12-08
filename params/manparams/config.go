@@ -2,15 +2,12 @@ package manparams
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
-	"github.com/pkg/errors"
 )
 
 type stateReader interface {
-	State() (*state.StateDB, error)
-	StateAt(root common.Hash) (*state.StateDB, error)
-	GetStateByHash(hash common.Hash) (*state.StateDB, error)
-	GetMatrixStateData(key string, state *state.StateDB) (interface{}, error)
+	GetMatrixStateData(key string) (interface{}, error)
+	GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error)
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 type matrixConfig struct {
@@ -30,17 +27,13 @@ func SetStateReader(stReader stateReader) {
 }
 
 func (mcfg *matrixConfig) getStateData(key string) (interface{}, error) {
-	state, err := mcfg.stReader.State()
-	if err != nil {
-		return nil, errors.Errorf("获取state失败(%v)", err)
-	}
-	return mcfg.stReader.GetMatrixStateData(key, state)
+	return mcfg.stReader.GetMatrixStateData(key)
 }
 
 func (mcfg *matrixConfig) getStateDataByHash(key string, hash common.Hash) (interface{}, error) {
-	state, err := mcfg.stReader.State()
-	if err != nil {
-		return nil, errors.Errorf("获取state失败(%v)", err)
-	}
-	return mcfg.stReader.GetMatrixStateData(key, state)
+	return mcfg.stReader.GetMatrixStateDataByHash(key, hash)
+}
+
+func (mcfg *matrixConfig) getStateDataByNumber(key string, number uint64) (interface{}, error) {
+	return mcfg.stReader.GetMatrixStateDataByNumber(key, number)
 }

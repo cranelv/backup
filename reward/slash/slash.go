@@ -47,7 +47,7 @@ type BlockSlash struct {
 }
 
 func New(chain ChainReader) *BlockSlash {
-	return &BlockSlash{chain: chain, eleMaxOnlineTime: 97 * common.GetReElectionInterval() / common.GetBroadcastInterval()}
+	return &BlockSlash{chain: chain, eleMaxOnlineTime: 97 * 3} //todo 周期固定3倍关系
 }
 
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {

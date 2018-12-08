@@ -122,35 +122,24 @@ func Config_Init(Config_PATH string) {
 	log.INFO("RandomConfig", "data", RandomConfig)
 	ElectPlugs = v.ElectPlugs
 	log.INFO("ElectPlugs", "data", ElectPlugs)
-	if v.BroadcastInterval <= 0 || v.ReelectionInterval <= 0 || v.BroadcastInterval >= v.ReelectionInterval {
-		log.Error("广播区块高度和选举区块高度不正确或者尚未配置，将使用默认值", "BroadcastInterval", common.GetBroadcastInterval(), "ReelectionInterval", common.GetReElectionInterval())
-		//os.Exit(-1)
-	} else {
-		common.SetBroadcastInterval(uint64(v.BroadcastInterval))
-		common.SetReElectionInterval(uint64(v.ReelectionInterval))
-		log.INFO("BroadcastInterval", "BroadcastInterval", common.GetBroadcastInterval())
-		log.INFO("ReelectionInterval", "ReelectionInterval", common.GetReElectionInterval())
-	}
 	//fmt.Println("echeloc",v.Echelon)
-	if len(v.Echelon)>0{
+	if len(v.Echelon) > 0 {
 
-		common.EchelonArrary=v.Echelon
+		common.EchelonArrary = v.Echelon
 	}
-	log.INFO("EchelonArrary","EchelonArrary",common.EchelonArrary)
+	log.INFO("EchelonArrary", "EchelonArrary", common.EchelonArrary)
 }
 
 type Config struct {
-	BootNode           []string
-	BroadNode          []NodeInfo
-	InnerMinerNode     []NodeInfo
-	FoundationNode     []NodeInfo
-	SuperVersion       []NodeInfo
-	SuperRollback      []NodeInfo
-	RandomConfig       map[string]string
-	ElectPlugs         string
-	ReelectionInterval int
-	BroadcastInterval int
-	Echelon []common.Echelon
+	BootNode       []string
+	BroadNode      []NodeInfo
+	InnerMinerNode []NodeInfo
+	FoundationNode []NodeInfo
+	SuperVersion   []NodeInfo
+	SuperRollback  []NodeInfo
+	RandomConfig   map[string]string
+	ElectPlugs     string
+	Echelon        []common.Echelon
 }
 
 type JsonStruct struct {

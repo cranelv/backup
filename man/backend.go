@@ -234,9 +234,9 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPElectGraph, man.reelection.ProduceElectGraphData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPElectOnlineState, man.reelection.ProduceElectOnlineStateData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPreBroadcastStateDB, man.reelection.ProducePreBroadcastStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
