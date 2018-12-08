@@ -3,8 +3,11 @@ package slash
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/reward/util"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 
@@ -44,13 +47,28 @@ type ChainReader interface {
 type BlockSlash struct {
 	chain            ChainReader
 	eleMaxOnlineTime uint64
+	SlashRate        uint64
 }
 
-func New(chain ChainReader) *BlockSlash {
-	return &BlockSlash{chain: chain, eleMaxOnlineTime: 97 * 3} //todo 周期固定3倍关系
+func New(chain ChainReader, st util.StateDB) *BlockSlash {
+	StateCfg, err := matrixstate.GetDataByState(mc.MSKeySlashCfg, st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误", "")
+		return nil
+	}
+	var SlashRate uint64
+
+	if StateCfg.(mc.SlashCfgStruct).SlashRate > 100 {
+		SlashRate = 100
+	} else if StateCfg.(mc.SlashCfgStruct).SlashRate < 0 {
+		SlashRate = 0
+	} else {
+		SlashRate = StateCfg.(mc.SlashCfgStruct).SlashRate
+	}
+	return &BlockSlash{chain: chain, eleMaxOnlineTime: (common.GetBroadcastInterval() - 3) * 3, SlashRate: SlashRate} //todo 周期固定3倍关系
 }
 
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64) {
 	var eleNum uint64
 
 	if num < common.GetBroadcastInterval() {
@@ -102,19 +120,14 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {
 			log.WARN(PackageName, "获取利息非法，账户", v.Account)
 			continue
 		}
-		preOnlineTime, err := depoistInfo.GetOnlineTime(preState, v.Account)
-		if nil != err {
-			log.WARN(PackageName, "获取起始uptime错误，账户", v.Account)
+
+		upTime, ok := upTimeMap[v.Account]
+		if !ok {
+			log.WARN(PackageName, "获取uptime错误，账户", v.Account)
 			continue
 		}
 
-		currentOnlineTime, err := depoistInfo.GetOnlineTime(currentState, v.Account)
-		if nil != err {
-			log.WARN(PackageName, "获取结束uptime错误，账户", v.Account)
-			continue
-		}
-
-		slash := bp.getSlash(currentOnlineTime, preOnlineTime, accountReward)
+		slash := bp.getSlash(upTime, accountReward)
 		if slash.Cmp(big.NewInt(0)) < 0 {
 			log.ERROR(PackageName, "惩罚比例为负数", "")
 			continue
@@ -123,11 +136,12 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {
 	}
 }
 
-func (bp *BlockSlash) getSlash(currentOnlineTime *big.Int, preOnlineTime *big.Int, accountReward *big.Int) *big.Int {
-	temp := 1 - float64(currentOnlineTime.Uint64()-preOnlineTime.Uint64())/float64(bp.eleMaxOnlineTime)
-	if temp >= 0.75 {
-		temp = 0.75
+func (bp *BlockSlash) getSlash(upTime uint64, accountReward *big.Int) *big.Int {
+	rate := 1 - float64(upTime)/float64(bp.eleMaxOnlineTime)
+	maxRate := float64(bp.SlashRate) / float64(100)
+	if rate >= maxRate {
+		rate = maxRate
 	}
-	slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * temp))
+	slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * rate))
 	return slash
 }

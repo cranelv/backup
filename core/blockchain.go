@@ -8,14 +8,15 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/slash"
 	"io"
 	"math/big"
 	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/slash"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -136,6 +137,7 @@ type BlockChain struct {
 	//matrix state
 	matrixState *matrixstate.MatrixState
 	graphStore  *matrixstate.GraphStore
+	upTime      map[common.Address]uint64
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -1244,6 +1246,7 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 			}
 		}
 		// todo: add
+		bc.upTime[account] = upTime
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
 		read, err := depoistInfo.GetOnlineTime(state, account)
 		if nil == err {
@@ -1462,12 +1465,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-			interestReward := interest.New()
+			interestReward := interest.New(state)
 			interestReward.InterestCalc(state, block.Number().Uint64())
 			//todo 惩罚
 
-			slash := slash.New(bc)
-			slash.CalcSlash(state, block.Number().Uint64())
+			slash := slash.New(bc, state)
+			slash.CalcSlash(state, block.Number().Uint64(), bc.upTime)
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {

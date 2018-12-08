@@ -37,9 +37,27 @@ const (
 	BackupRate                   = uint64(5000) //当前替补验证者奖励50%
 )
 
+type RewardStateCfg struct {
+	MinersRate     uint64 //矿工网络奖励
+	ValidatorsRate uint64 //验证者网络奖励
+
+	MinerOutRate        uint64 //出块矿工奖励
+	ElectedMinerRate    uint64 //当选矿工奖励
+	FoundationMinerRate uint64 //基金会网络奖励
+
+	LeaderRate              uint64 //出块验证者（leader）奖励
+	ElectedValidatorsRate   uint64 //当选验证者奖励
+	FoundationValidatorRate uint64 //基金会网络奖励
+
+	OriginElectOfflineRate uint64 //初选下线验证者奖励
+	BackupRewardRate       uint64 //当前替补验证者奖励
+}
+
 type RewardCfg struct {
-	RewardMount *mc.RewardRateCfg
-	SetReward   SetRewardsExec
+	MinersRate     uint64 //矿工网络奖励
+	ValidatorsRate uint64 //验证者网络奖励
+	RewardMount    mc.BlkRewardCfg
+	SetReward      SetRewardsExec
 }
 type ChainReader interface {
 	// Config retrieves the blockchain's chain configuration.
@@ -105,27 +123,10 @@ func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainRea
 	return str.miner.SetMinerOutRewards(reward, chain, num)
 }
 
-func New(RewardMount *mc.RewardRateCfg, SetReward SetRewardsExec) *RewardCfg {
+func New(RewardMount mc.BlkRewardCfg, SetReward SetRewardsExec) *RewardCfg {
 
 	//默认配置
-	if nil == RewardMount {
-		RewardMount = &mc.RewardRateCfg{
-			MinersRate:     MinersBlockRewardRate,
-			ValidatorsRate: ValidatorsBlockRewardRate,
 
-			MinerOutRate:        MinerOutRewardRate,
-			ElectedMinerRate:    ElectedMinerRewardRate,
-			FoundationMinerRate: FoundationMinerRewardRate,
-
-			LeaderRate:              LeaderRewardRate,
-			ElectedValidatorsRate:   ElectedValidatorsRewardRate,
-			FoundationValidatorRate: FoundationValidatorsRewardRate,
-
-			OriginElectOfflineRate: OriginElectOfflineRewardRate,
-			BackupRewardRate:       BackupRate,
-		}
-
-	}
 	//默认配置
 	if nil == SetReward {
 

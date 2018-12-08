@@ -21,13 +21,12 @@ const (
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 
-	MSKeyMinerRewardCfg     = "miner_reward"
-	MSKeyValidatorRewardCfg = "validator_reward"
-	MSKeyTxsRewardCfg       = "txs_reward"
-	MSKeyInterestCfg        = "interest_reward" //利息状态
-	MSKeyLotteryCfg         = "lottery_reward"
-	MSKeySlashCfg           = "slash_reward"
-	MSKeyMultiCoin          = "coin_reward"
+	MSKeyBlkRewardCfg = "blk_reward"
+	MSKeyTxsRewardCfg = "txs_reward"
+	MSKeyInterestCfg  = "interest_reward" //利息状态
+	MSKeyLotteryCfg   = "lottery_reward"
+	MSKeySlashCfg     = "slash_reward"
+	MSKeyMultiCoin    = "coin_reward"
 )
 
 type ElectGenTimeStruct struct {
@@ -59,6 +58,7 @@ type ElectConfigInfo struct {
 }
 type VIPConfig struct {
 	MinMoney     *big.Int
+	InterestRate uint64 //(分母待定为1000w)
 	ElectUserNum uint8
 	StockScale   uint16 //千分比
 }
@@ -69,9 +69,6 @@ type PreBroadStateDB struct {
 }
 
 type RewardRateCfg struct {
-	MinersRate     uint64 //矿工网络奖励
-	ValidatorsRate uint64 //验证者网络奖励
-
 	MinerOutRate        uint64 //出块矿工奖励
 	ElectedMinerRate    uint64 //当选矿工奖励
 	FoundationMinerRate uint64 //基金会网络奖励
@@ -86,20 +83,21 @@ type RewardRateCfg struct {
 
 type BlkRewardCfg struct {
 	MinerMount     uint64 //矿工奖励单位man
+	MinerHalf      uint64 //矿工折半周期
 	ValidatorMount uint64 //验证者奖励 单位man
+	ValidatorHalf  uint64 //验证者折半周期
 	RewardRate     RewardRateCfg
 }
 
 type TxsRewardCfgStruct struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
-
-	RewardRate RewardRateCfg
+	RewardRate     RewardRateCfg
 }
 
 type LotteryInfo struct {
-	PrizeLevel uint8
-	PrizeNum   uint64
+	PrizeLevel uint8  //奖励级别
+	PrizeNum   uint64 //奖励名额
 	PrizeMoney uint64 //奖励金额 单位man
 }
 
@@ -108,15 +106,10 @@ type LotteryCfgStruct struct {
 	LotteryInfo []LotteryInfo
 }
 
-type InterestRate struct {
-	VIPLevel uint8
-	Rate     uint64 //(分母待定为1000w)
-}
-
 type InterestCfgStruct struct {
 	CalcInterval uint64
 	PayInterval  uint64
-	InterestRate []InterestRate
+	VIPConfig    []VIPConfig
 }
 
 type SlashCfgStruct struct {
