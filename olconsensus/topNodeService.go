@@ -156,12 +156,12 @@ func (serv *TopNodeService) update() {
 					continue
 				}
 
-				topology, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
+				topology, err := matrixstate.GetDataByState(mc.MSPTopologyGraph, state)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
 					continue
 				}
-				electOline, err := matrixstate.GetDataByState(matrixstate.MSPElectOnlineState, state)
+				electOline, err := matrixstate.GetDataByState(mc.MSPElectOnlineState, state)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
 					continue

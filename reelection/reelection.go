@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -237,13 +238,13 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 	headerPos := self.bc.GetHeaderByHash(hash)
 	stateDB, err := self.bc.StateAt(headerPos.Root)
 
-	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectGraph))
+	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
 		return []mc.Alternative{}, err
 	}
-	ElectOnlineBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectOnlineState))
+	ElectOnlineBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectOnlineState))
 	var electOnlineState mc.ElectOnlineStatus
 	if err := json.Unmarshal(ElectOnlineBytes, &electOnlineState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -266,7 +267,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 
 func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
 	// todo 从状态树中获取elect
-	preElectGraphBytes := state.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectGraph))
+	preElectGraphBytes := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(preElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -335,7 +336,7 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 	}
 	headerPos := self.bc.GetHeaderByHash(hashPos)
 	stateDB, err := self.bc.StateAt(headerPos.Root)
-	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectGraph))
+	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -407,9 +408,9 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return nil, err
 	}
-	data, err := readFn(matrixstate.MSPTopologyGraph)
+	data, err := readFn(mc.MSPTopologyGraph)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", matrixstate.MSPTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSPTopologyGraph, "err", err)
 		return nil, err
 	}
 	electStates, OK := data.(*mc.ElectGraph)
@@ -491,9 +492,9 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 	}
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
-	data, err := readFn(matrixstate.MSPElectOnlineState)
+	data, err := readFn(mc.MSPElectOnlineState)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", matrixstate.MSPTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSPTopologyGraph, "err", err)
 		return []byte{}, err
 	}
 	electStates, OK := data.(*mc.ElectOnlineStatus)
@@ -518,4 +519,39 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 	}
 
 	return SloveOnlineStatus(electStates)
+}
+
+func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+	if err := CheckBlock(block); err != nil {
+		log.ERROR(Module, "ProducePreBroadcastStateData CheckBlock err ", err)
+		return []byte{}, err
+	}
+	height := block.Header().Number.Uint64()
+	if common.IsBroadcastNumber(height-1) == false {
+		return nil, nil
+	}
+	data, err := readFn(mc.MSPreBroadcastStateDB)
+	if err != nil {
+		log.ERROR(Module, "readFn 失败 key", mc.MSPreBroadcastStateDB, "err", err)
+		return nil, err
+	}
+	preBroadcast, OK := data.(*mc.PreBroadStateDB)
+	if OK == false || preBroadcast == nil {
+		log.ERROR(Module, "PreBroadStateDB 非法", "反射失败")
+		return nil, err
+	}
+	header := self.bc.GetHeaderByHash(block.ParentHash())
+	if header == nil {
+		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
+		return nil, errors.New("header is nil")
+	}
+	stateDB, err := self.bc.StateAt(header.Root)
+	if err != nil {
+		log.ERROR(Module, "根据高度获取state失败", header.Number.Uint64())
+		return nil, nil
+	}
+	preBroadcast.BeforeLastStateDb = preBroadcast.LastStateDB
+	preBroadcast.LastStateDB = stateDB
+	return preBroadcast, nil
+
 }

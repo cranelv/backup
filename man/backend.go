@@ -52,7 +52,7 @@ import (
 	"sync"
 
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/core/matrixstate"
+	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/trie"
@@ -234,8 +234,9 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.blockchain.RegisterMatrixStateDataProducer(matrixstate.MSPElectGraph, man.reelection.ProduceElectGraphData)
-	man.blockchain.RegisterMatrixStateDataProducer(matrixstate.MSPElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPElectGraph, man.reelection.ProduceElectGraphData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSPreBroadcastStateDB, man.reelection.ProducePreBroadcastStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
