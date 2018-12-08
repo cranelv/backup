@@ -8,12 +8,14 @@ import (
 )
 
 const (
+	MSPBroadcastTx      = "broad_txs"      // 广播交易
+	MSPTopologyGraph    = "topology_graph" // 拓扑图
+	MSPElectGraph       = "elect_graph"    // 选举图
+	MSPElectOnlineState = "elect_state"    // 选举节点在线消息
+	//通用
 	MSPBroadcastInterval = "broad_interval" // 广播区块周期
-	MSPBroadcastTx       = "broad_txs"      // 广播交易
-	MSPTopologyGraph     = "topology_graph" // 拓扑图
-	MSPElectGraph        = "elect_graph"    // 选举图
-	MSPElectOnlineState  = "elect_state"    // 选举节点在线消息
-
+	ElectGenTime         = "elect_gen_time"
+	//奖励
 	MinerRewardCfg     = "miner_reward"
 	ValidatorRewardCfg = "validator_reward"
 	TxsRewardCfg       = "txs_reward"
