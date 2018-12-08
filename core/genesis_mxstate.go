@@ -130,7 +130,21 @@ func (g *Genesis) setElectToState(state *state.StateDB) error {
 		elect.ElectList = append(elect.ElectList, nodeInfo)
 	}
 
-	return matrixstate.SetDataToState(mc.MSKeyElectGraph, elect, state)
+	err := matrixstate.SetDataToState(mc.MSKeyElectGraph, elect, state)
+	if err != nil {
+		return err
+	}
+
+	electOnlineData := &mc.ElectOnlineStatus{
+		Number: elect.Number,
+	}
+	for _, v := range elect.ElectList {
+		tt := v
+		tt.Position = common.PosOnline
+		electOnlineData.ElectOnline = append(electOnlineData.ElectOnline, tt)
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
 }
 
 func (g *Genesis) setSpecialNodeToState(state *state.StateDB) error {
