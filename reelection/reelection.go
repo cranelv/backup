@@ -176,6 +176,46 @@ func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnl
 	}
 	return native
 }
+func GetOnlineAlter(offline []common.Address, online []common.Address, electonline mc.ElectOnlineStatus) []mc.Alternative {
+	ans := []mc.Alternative{}
+	mappOnlineStatus := make(map[common.Address]uint16)
+	for _, v := range electonline.ElectOnline {
+		mappOnlineStatus[v.Account] = v.Position
+	}
+	for _, v := range offline {
+		if _, ok := mappOnlineStatus[v]; ok == false {
+			log.ERROR(Module, "计算下线节点的alter时 下线节点不在初选列表中 账户", v.String())
+			continue
+		}
+		if mappOnlineStatus[v] == common.PosOffline {
+			log.ERROR(Module, "该节点已处于下线阶段 不需要上块 账户", v.String())
+			continue
+		}
+		temp := mc.Alternative{
+			A:        v,
+			Position: common.PosOffline,
+		}
+		ans = append(ans, temp)
+	}
+
+	for _, v := range online {
+		if _, ok := mappOnlineStatus[v]; ok == false {
+			log.ERROR(Module, "计算上线节点的alter时 上线节点不在初选列表中 账户", v.String())
+			continue
+		}
+		if mappOnlineStatus[v] == common.PosOnline {
+			log.ERROR(Module, "该节点已处于上线阶段，不需要上块 账户", v.String())
+			continue
+		}
+		temp := mc.Alternative{
+			A:        v,
+			Position: common.PosOnline,
+		}
+		ans = append(ans, temp)
+	}
+	log.INFO(Module, "计算上下线节点结果 online", online, "offline", offline, "ans", ans)
+	return ans
+}
 func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address, online []common.Address) ([]mc.Alternative, error) {
 	//todo 从hash获取state， 得更换信息
 
@@ -217,47 +257,11 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 	}
 	antive := GetAllNativeDataForUpdate(electState, electOnlineState, TopoGrap)
 	DiffValidatot := self.TopoUpdate(antive, TopoGrap)
+
+	olineStatus := GetOnlineAlter(offline, online, electOnlineState)
+	DiffValidatot = append(DiffValidatot, olineStatus...)
 	log.INFO(Module, "获取拓扑改变 end ", DiffValidatot)
-
-	return []mc.Alternative{}, nil
-
-	//height, err := self.GetNumberByHash(hash)
-	//if err != nil {
-	//	return []mc.Alternative{}, errors.New("根据hash获取高度失败")
-	//}
-	//height = height + 1
-	//self.lock.Lock()
-	//defer self.lock.Unlock()
-	//if common.IsReElectionNumber(height) {
-	//	log.INFO(Module, "是换届区块", "无差值")
-	//	return []mc.Alternative{}, nil
-	//}
-	//
-	//log.INFO(Module, "获取拓扑改变 start height", height, "offline", offline)
-	//lastHash, err := self.GetHeaderHashByNumber(hash, height-1)
-	//if err != nil {
-	//	log.Error(Module, "根据hash获取高度失败 err", err)
-	//	return []mc.Alternative{}, err
-	//}
-	//self.checkUpdateStatus(lastHash)
-	//antive, err := self.readNativeData(lastHash)
-	//if err != nil {
-	//	log.Error(Module, "获取上一个高度的初选列表失败 height-1", height-1)
-	//	return []mc.Alternative{}, err
-	//}
-	//
-	////aim := 0x04 + 0x08
-	//TopoGrap, err := GetCurrentTopology(lastHash, common.RoleBackupValidator|common.RoleValidator)
-	//if err != nil {
-	//	log.Error(Module, "获取CA当前拓扑图失败 err", err)
-	//	return []mc.Alternative{}, err
-	//}
-	//
-	//log.Info(Module, "获取拓扑变化 start 上一个高度缓存allNative-M", antive.MasterQ, "B", antive.BackUpQ, "Can", antive.CandidateQ)
-	//DiffValidatot := self.TopoUpdate(offline, antive, TopoGrap)
-	//log.INFO(Module, "获取拓扑改变 end ", DiffValidatot)
-	//return DiffValidatot, nil
-
+	return DiffValidatot, nil
 }
 
 func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
@@ -398,20 +402,6 @@ func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, e
 	return result, nil
 }
 
-/*
-type ElectGraph struct {
-	Number        uint64
-	ElectList     []ElectNodeInfo
-	CandidateList []ElectNodeInfo
-	NextElect     []ElectNodeInfo
-}
-type ElectOnlineStatus struct {
-	Number  uint64
-	MasterV []common.Address
-	BackV   []common.Address
-	CandV   []common.Address
-}
-*/
 func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)

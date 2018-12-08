@@ -4,7 +4,6 @@
 package reelection
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 
@@ -76,92 +75,9 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 	return TopRsp.MasterValidator, TopRsp.BackUpValidator, TopRsp.CandidateValidator, nil
 
 }
-func (self *ReElection) writeElectData(aim common.RoleType, hash common.Hash, minerData ElectMiner, validatorData ElectValidator) error {
-
-	switch {
-	case aim == common.RoleMiner:
-		data, err := json.Marshal(minerData)
-		if err != nil {
-			log.INFO(Module, "Marshal 礦工數據失敗 err", err, "data", data)
-			return err
-		}
-		key := MakeElectDBKey(hash, common.RoleMiner)
-
-		err = self.ldb.Put([]byte(key), data, nil)
-		if err != nil {
-			log.ERROR(Module, "礦工 寫入數據庫失敗 err", err)
-			return err
-		}
-		log.INFO(Module, "数据库矿工拓扑生成 err", err, "高度对应的hash", hash, "key", key)
-		return nil
-
-	case aim == common.RoleValidator:
-		data, err := json.Marshal(validatorData)
-		if err != nil {
-			log.INFO(Module, "Marshal 驗證者數據失敗 err", err, "data", data)
-			return err
-		}
-		key := MakeElectDBKey(hash, common.RoleValidator)
-		err = self.ldb.Put([]byte(key), data, nil)
-		if err != nil {
-			log.ERROR(Module, "驗證者數據寫入數據庫失敗 err", err)
-			return err
-		}
-		log.INFO(Module, "数据库 验证者拓扑生成 err", err, "高度对应的hash", hash, "key", key)
-		return nil
-	}
-	return nil
-}
-
-func (self *ReElection) readElectData(aim common.RoleType, hash common.Hash) (ElectMiner, ElectValidator, error) {
-	key := MakeElectDBKey(hash, aim)
-	ans, err := self.ldb.Get([]byte(key), nil)
-	if err != nil {
-		log.ERROR(Module, "获取选举信息失败 err", err, "key", key)
-		return ElectMiner{}, ElectValidator{}, err
-	}
-
-	switch {
-	case aim == common.RoleMiner:
-		var realAns ElectMiner
-		err = json.Unmarshal(ans, &realAns)
-		if err != nil {
-			log.ERROR(Module, "db里的礦工選舉信息Unmarshal失敗", err, "data", ans)
-			return ElectMiner{}, ElectValidator{}, err
-		}
-		return realAns, ElectValidator{}, nil
-
-	case aim == common.RoleValidator:
-		var realAns ElectValidator
-		err = json.Unmarshal(ans, &realAns)
-		if err != nil {
-			log.INFO(Module, "db里的驗證者選舉信息Unmarshal失敗", err, "data", ans)
-			return ElectMiner{}, ElectValidator{}, err
-		}
-		return ElectMiner{}, realAns, nil
-	default:
-		log.ERROR(Module, "讀選舉信息，請使用礦工或者驗證者，暫時不支持其他模式", "nil")
-		return ElectMiner{}, ElectValidator{}, errors.New("選舉角色一定是礦工或者驗證者")
-	}
-
-}
-func MakeElectDBKey(hash common.Hash, role common.RoleType) string {
-	switch {
-	case role == common.RoleMiner:
-		key := hash.String() + "---" + "Miner---Elect"
-		return key
-	case role == common.RoleValidator:
-		key := hash.String() + "---" + "Validator---Elect"
-		return key
-	default:
-		log.ERROR("MakeElectDBKey failed role is not mathch role", role)
-	}
-	return ""
-}
 func GetFound() []vm.DepositDetail {
 	return []vm.DepositDetail{}
 }
-
 func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDetail, error) {
 
 	switch tp {
