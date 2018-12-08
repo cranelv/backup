@@ -492,7 +492,7 @@ func (g *Genesis) setTopologyToState(state *state.StateDB) error {
 			return err
 		}
 	} else {
-		data := state.GetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPTopologyGraph))
+		data := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSPTopologyGraph))
 		preGraph := new(mc.TopologyGraph)
 		if err := json.Unmarshal(data, &preGraph); err != nil {
 			return errors.Errorf("Invalid pre topology graph json data: %v", err)
@@ -514,7 +514,7 @@ func (g *Genesis) setTopologyToState(state *state.StateDB) error {
 	if err != nil {
 		return errors.Errorf("Failed to encode topology graph: %v", err)
 	}
-	state.SetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPTopologyGraph), newData)
+	state.SetMatrixData(matrixstate.GetKeyHash(mc.MSPTopologyGraph), newData)
 	return nil
 }
 
@@ -559,7 +559,7 @@ func (g *Genesis) setElectToState(state *state.StateDB) error {
 	if err != nil {
 		return errors.Errorf("Failed to encode elect graph: %v", err)
 	}
-	state.SetMatrixData(matrixstate.GetKeyHash(matrixstate.MSPElectGraph), newData)
+	state.SetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph), newData)
 	return nil
 
 }

@@ -47,7 +47,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		return nil, nil
 	}
 
-	topoData, err := matrixstate.GetDataByState(matrixstate.MSPTopologyGraph, state)
+	topoData, err := matrixstate.GetDataByState(mc.MSPTopologyGraph, state)
 	if err != nil {
 		log.Warn(p.logExtraInfo(), "生成拓扑变化", "状态树获取拓扑图失败", "err", err)
 		return nil, nil
@@ -58,7 +58,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		return nil, nil
 	}
 
-	electStateData, err := matrixstate.GetDataByState(matrixstate.MSPElectOnlineState, state)
+	electStateData, err := matrixstate.GetDataByState(mc.MSPElectOnlineState, state)
 	if err != nil {
 		log.Warn(p.logExtraInfo(), "生成拓扑变化", "状态树获取elect在线状态失败", "err", err)
 		return nil, nil

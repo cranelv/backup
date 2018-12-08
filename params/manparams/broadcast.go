@@ -1,12 +1,7 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-package common
-
-var (
-	broadcastInterval  = uint64(100)
-	reelectionInterval = uint64(300)
-)
+package manparams
 
 func IsBroadcastNumber(number uint64) bool {
 	if number%broadcastInterval == 0 {
@@ -55,17 +50,10 @@ func GetNextReElectionNumber(number uint64) uint64 {
 }
 
 func GetBroadcastInterval() uint64 {
+
 	return broadcastInterval
 }
 
 func GetReElectionInterval() uint64 {
 	return reelectionInterval
-}
-
-func SetBroadcastInterval(interval uint64) {
-	broadcastInterval = interval
-}
-
-func SetReElectionInterval(interval uint64) {
-	reelectionInterval = interval
 }

@@ -40,7 +40,7 @@ func (gs GraphStore) ProduceTopologyStateData(block *types.Block, readFn PreStat
 	header := block.Header()
 	number := header.Number.Uint64()
 
-	preData, err := readFn(MSPTopologyGraph)
+	preData, err := readFn(mc.MSPTopologyGraph)
 	if err != nil {
 		return nil, errors.Errorf("read pre data err(%v)", err)
 	}
@@ -69,7 +69,7 @@ func (gs GraphStore) GetTopologyGraphByHash(blockHash common.Hash) (*mc.Topology
 		return nil, err
 	}
 
-	graphData, err := GetDataByState(MSPTopologyGraph, state)
+	graphData, err := GetDataByState(mc.MSPTopologyGraph, state)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (gs GraphStore) GetElectGraphByHash(blockHash common.Hash) (*mc.ElectGraph,
 		return nil, err
 	}
 
-	electData, err := GetDataByState(MSPElectGraph, state)
+	electData, err := GetDataByState(mc.MSPElectGraph, state)
 	if err != nil {
 		return nil, err
 	}
