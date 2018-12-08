@@ -7,6 +7,7 @@ import (
 )
 
 func (self *keyManager) initCodec() {
+	self.codecMap[MSPBroadcastInterval] = new(BroadcastIntervalCodec)
 	self.codecMap[MSPTopologyGraph] = new(TopologyGraphCodec)
 	self.codecMap[MSPElectGraph] = new(ElectGraphCodec)
 	self.codecMap[MSPElectOnlineState] = new(ElectOnlineStateCodec)
@@ -15,6 +16,31 @@ func (self *keyManager) initCodec() {
 type codec interface {
 	encodeFn(msg interface{}) ([]byte, error)
 	decodeFn(data []byte) (interface{}, error)
+}
+
+////////////////////////////////////////////////////////////////////////
+// key = MSPBroadcastInterval
+type BroadcastIntervalCodec struct {
+}
+
+func (BroadcastIntervalCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (BroadcastIntervalCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.TopologyGraph)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
 }
 
 ////////////////////////////////////////////////////////////////////////

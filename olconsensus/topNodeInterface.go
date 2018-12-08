@@ -41,6 +41,7 @@ type MessageCenterInterface interface {
 
 type StateReaderInterface interface {
 	GetStateByHash(hash common.Hash) (*state.StateDB, error)
+	GetMatrixStateData(key string, state *state.StateDB) (interface{}, error)
 }
 
 ////////////////////////////////////////////////////////////////////

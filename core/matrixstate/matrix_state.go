@@ -91,20 +91,6 @@ func (ms *MatrixState) ProcessMatrixState(block *types.Block, state *state.State
 	return nil
 }
 
-func (ms *MatrixState) GetMatrixStateData(key string, state *state.StateDB) ([]byte, error) {
-	if state == nil {
-		return nil, errors.New("state is nil")
-	}
-
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-	info, err := ms.findKeyInfo(key)
-	if err != nil {
-		return nil, err
-	}
-	return state.GetMatrixData(info.keyHash), nil
-}
-
 func (ms *MatrixState) findKeyInfo(key string) (*keyInfo, error) {
 	info, OK := ms.keyMap[key]
 	if !OK {

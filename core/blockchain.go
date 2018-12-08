@@ -1462,7 +1462,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		interestReward:=interest.New()
+			interestReward := interest.New()
 			interestReward.InterestCalc(state, block.Number().Uint64())
 			//todo 惩罚
 
@@ -2021,8 +2021,8 @@ func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
 }
 
-func (bc *BlockChain) GetMatrixStateData(key string, state *state.StateDB) ([]byte, error) {
-	return bc.matrixState.GetMatrixStateData(key, state)
+func (bc *BlockChain) GetMatrixStateData(key string, state *state.StateDB) (interface{}, error) {
+	return matrixstate.GetDataByState(key, state)
 }
 
 func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
