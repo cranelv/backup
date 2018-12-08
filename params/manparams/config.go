@@ -37,7 +37,7 @@ func (mcfg *matrixConfig) getStateData(key string) (interface{}, error) {
 	return mcfg.stReader.GetMatrixStateData(key, state)
 }
 
-func (mcfg *matrixConfig) getStateDataByHash(key string) (interface{}, error) {
+func (mcfg *matrixConfig) getStateDataByHash(key string, hash common.Hash) (interface{}, error) {
 	state, err := mcfg.stReader.State()
 	if err != nil {
 		return nil, errors.Errorf("获取state失败(%v)", err)

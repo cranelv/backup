@@ -3,6 +3,11 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package manparams
 
+import (
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
+)
+
 func IsBroadcastNumber(number uint64) bool {
 	if number%broadcastInterval == 0 {
 		return true
@@ -50,10 +55,17 @@ func GetNextReElectionNumber(number uint64) uint64 {
 }
 
 func GetBroadcastInterval() uint64 {
-
-	return broadcastInterval
+	interval, err := mtxCfg.getStateData(mc.MSPBroadcastInterval)
+	if err != nil {
+		log.Crit("config", "get broadcast interval from state err", err)
+	}
+	return interval.(uint64)
 }
 
 func GetReElectionInterval() uint64 {
-	return reelectionInterval
+	interval, err := mtxCfg.getStateData(mc.MSPBroadcastInterval)
+	if err != nil {
+		log.Crit("config", "get broadcast interval from state err", err)
+	}
+	return interval.(uint64) * 3
 }
