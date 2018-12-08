@@ -18,7 +18,9 @@ type RewardRateCfg struct {
 
 type BlkRewardCfg struct {
 	MinerMount     uint64 //矿工奖励单位man
+	MinerHalf      uint64 //矿工折半周期
 	ValidatorMount uint64 //验证者奖励 单位man
+	ValidatoHalf   uint64 //验证者折半周期
 	RewardRate     RewardRateCfg
 }
 
@@ -30,8 +32,8 @@ type TxsRewardCfg struct {
 }
 
 type LotteryInfo struct {
-	PrizeLevel uint8
-	PrizeNum   uint64
+	PrizeLevel uint8  //奖励级别
+	PrizeNum   uint64 //奖励名额
 	PrizeMoney uint64 //奖励金额 单位man
 }
 

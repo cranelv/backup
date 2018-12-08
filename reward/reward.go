@@ -15,7 +15,7 @@ import (
 type Reward interface {
 	CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
 	CalcValidatorRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
-	CalcMinerRewards(blockReward *big.Int, num uint64) map[common.Address]*big.Int
+	CalcMinerRewards(num uint64) map[common.Address]*big.Int
 	CalcRewardMountByNumber(state util.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int
 }
 

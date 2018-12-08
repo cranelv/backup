@@ -19,6 +19,7 @@ const (
 
 type BlockReward struct {
 	chain     util.ChainReader
+	st        util.StateDB
 	rewardCfg *cfg.RewardCfg
 }
 
@@ -80,8 +81,11 @@ func (br *BlockReward) CalcValidatorRewards(blockReward *big.Int, Leader common.
 	return rewards
 }
 
-func (br *BlockReward) CalcMinerRewards(blockReward *big.Int, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) CalcMinerRewards(st util.StateDB, blockReward *big.Int, num uint64) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
+
+	blockReward := br.CalcRewardMountByNumber(st, num-1, util.MinersBlockReward, 1000000, common.BlkMinerRewardAddress)
+
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放矿工奖励", "")
 		return nil
@@ -187,7 +191,7 @@ func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB, blockRewar
 
 }
 
-func (br *BlockReward) CalcRewardMountByNumber(st util.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int {
+func (br *BlockReward) CalcRewardMountByNumber(num uint64, halfNum uint64, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
 	if blockReward.Cmp(big.NewInt(0)) < 0 {
 		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
