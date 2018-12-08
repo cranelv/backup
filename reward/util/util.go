@@ -6,8 +6,6 @@ import (
 	"sort"
 
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/mc"
-
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/params"
 
@@ -54,7 +52,6 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 	Genesis() *types.Block
 }
 
