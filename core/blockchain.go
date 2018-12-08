@@ -2115,6 +2115,8 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			stateDB.SetState(addr, key, value)
 		}
 	}
+
+	// todo 修改state树
 	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash: block.Hash(), Seq: block.Header().SuperBlockSeq()})
 	return nil
 }
