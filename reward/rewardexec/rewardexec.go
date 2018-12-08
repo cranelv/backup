@@ -4,13 +4,13 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/params/manparams"
-
 	"github.com/matrix/go-matrix/reward/cfg"
 	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 )
 
 const (
@@ -18,12 +18,13 @@ const (
 )
 
 type BlockReward struct {
-	chain     util.ChainReader
-	st        util.StateDB
-	rewardCfg *cfg.RewardCfg
+	chain           util.ChainReader
+	st              util.StateDB
+	rewardCfg       *cfg.RewardCfg
+	specialAccounts *mc.MatrixSpecialAccounts
 }
 
-func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
+func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *BlockReward {
 
 	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.MinerOutRate+rewardCfg.RewardMount.RewardRate.ElectedMinerRate+rewardCfg.RewardMount.RewardRate.FoundationMinerRate {
 		log.ERROR(PackageName, "矿工固定区块奖励比例配置错误", "")
@@ -38,9 +39,24 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
 		log.ERROR(PackageName, "替补固定区块奖励比例配置错误", "")
 		return nil
 	}
+
+	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, st)
+	if err != nil {
+		log.ERROR(PackageName, "获取特殊账户消息失败", err)
+		return nil
+	}
+
+	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || accounts == nil {
+		log.ERROR(PackageName, "获取特殊账户消息失败", "结构反射失败")
+		return nil
+	}
+
 	return &BlockReward{
-		chain:     chain,
-		rewardCfg: rewardCfg,
+		chain:           chain,
+		rewardCfg:       rewardCfg,
+		st:              st,
+		specialAccounts: accounts,
 	}
 }
 func (br *BlockReward) calcValidatorRateMount(blockReward *big.Int) (*big.Int, *big.Int, *big.Int) {
@@ -123,11 +139,6 @@ func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64
 	if common.IsBroadcastNumber(num) {
 		return false
 	}
-	foundationNum := int64(len(manparams.FoundationNodes))
-	if foundationNum != 1 {
-		log.ERROR(PackageName, "基金会节点数目不正常", foundationNum)
-		return false
-	}
 
 	if blockReward.Cmp(big.NewInt(0)) <= 0 {
 		log.ERROR(PackageName, "奖励金额错误", blockReward)
@@ -142,7 +153,7 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 		return nil
 	}
 	accountRewards := make(map[common.Address]*big.Int)
-	accountRewards[manparams.FoundationNodes[0].Address] = blockReward
+	accountRewards[br.specialAccounts.FoundationAccount.Address] = blockReward
 	return accountRewards
 }
 

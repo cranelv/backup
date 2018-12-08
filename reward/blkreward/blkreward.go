@@ -55,7 +55,7 @@ func New(chain ChainReader, st util.StateDB) reward.Reward {
 	}
 
 	rewardCfg := cfg.New(Rewardcfg.(mc.BlkRewardCfg), nil)
-	return rewardexec.New(chain, rewardCfg)
+	return rewardexec.New(chain, rewardCfg, st)
 }
 
 //func (tr *blkreward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {

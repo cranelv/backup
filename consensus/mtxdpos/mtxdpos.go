@@ -62,7 +62,7 @@ type MtxDPOS struct {
 func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
-func (md *MtxDPOS) VerifyVersion(reader consensus.ValidatorReader, header *types.Header) error {
+func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Header) error {
 	targetCount := md.calcSuperNodeTarget(len(manparams.SuperVersionNodes))
 
 	if len(header.Version) < targetCount {
@@ -128,7 +128,7 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 	}
 	return verifiedSigh
 }
-func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.Header) error {
+func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Header) error {
 	if nil == header {
 		return errors.New("header is nil")
 	}
@@ -143,7 +143,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 
 	number := header.Number.Uint64()
 	if common.IsBroadcastNumber(number) {
-		return md.verifyBroadcastBlock(header)
+		return md.verifyBroadcastBlock(reader, header)
 	}
 
 	stocks, err := md.getValidatorStocks(reader, header.ParentHash)
@@ -158,11 +158,11 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 	return err
 }
 
-func (md *MtxDPOS) VerifyHash(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHash(reader consensus.StateReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
 	return md.VerifyHashWithBlock(reader, signHash, signs, reader.GetCurrentHash())
 }
 
-func (md *MtxDPOS) VerifyHashWithBlock(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithBlock(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error) {
 	stocks, err := md.getValidatorStocks(reader, blockHash)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (md *MtxDPOS) VerifyHashWithBlock(reader consensus.ValidatorReader, signHas
 	return md.VerifyHashWithStocks(reader, signHash, signs, stocks)
 }
 
-func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error) {
 	if len(signHash) != 32 {
 		return nil, errSignHashLenErr
 	}
@@ -196,11 +196,11 @@ func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.ValidatorReader, signHa
 	return md.verifyDPOS(verifiedSigns, target)
 }
 
-func (md *MtxDPOS) VerifyHashWithVerifiedSigns(reader consensus.ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithVerifiedSigns(reader consensus.StateReader, signs []*common.VerifiedSign) ([]common.Signature, error) {
 	return md.VerifyHashWithVerifiedSignsAndBlock(reader, signs, reader.GetCurrentHash())
 }
 
-func (md *MtxDPOS) VerifyHashWithVerifiedSignsAndBlock(reader consensus.ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithVerifiedSignsAndBlock(reader consensus.StateReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error) {
 	stocks, err := md.getValidatorStocks(reader, blockHash)
 	if err != nil {
 		return nil, err
@@ -346,7 +346,7 @@ func (md *MtxDPOS) verifyDPOS(verifiedSigns map[common.Address]*common.VerifiedS
 	return rightSigns, nil
 }
 
-func (md *MtxDPOS) verifyBroadcastBlock(header *types.Header) error {
+func (md *MtxDPOS) verifyBroadcastBlock(reader consensus.StateReader, header *types.Header) error {
 	if len(header.Signatures) != 1 {
 		return errBroadcastSignCount
 	}
@@ -357,7 +357,12 @@ func (md *MtxDPOS) verifyBroadcastBlock(header *types.Header) error {
 	if from != header.Leader {
 		return errors.Errorf("broadcast block's sign account(%s) is not block leader(%s)", from.Hex(), header.Leader.Hex())
 	}
-	if md.isBroadcastRole(from) == false {
+
+	accounts, err := reader.GetSpecialAccounts(header.ParentHash)
+	if err != nil || accounts == nil {
+		return errors.Errorf("get broadcast account from state err(%s)", err)
+	}
+	if accounts.BroadcastAccount.Address != from {
 		return errBroadcastVerifySign
 	}
 	if result == false {
@@ -366,7 +371,7 @@ func (md *MtxDPOS) verifyBroadcastBlock(header *types.Header) error {
 	return nil
 }
 
-func (md *MtxDPOS) getValidatorStocks(reader consensus.ValidatorReader, hash common.Hash) (map[common.Address]uint16, error) {
+func (md *MtxDPOS) getValidatorStocks(reader consensus.StateReader, hash common.Hash) (map[common.Address]uint16, error) {
 	topologyInfo, electInfo, err := reader.GetGraphByHash(hash)
 	if err != nil {
 		return nil, err
@@ -396,13 +401,4 @@ func (md *MtxDPOS) findStockInElect(node common.Address, electInfo *mc.ElectGrap
 		}
 	}
 	return DPOSDefStock
-}
-
-func (md *MtxDPOS) isBroadcastRole(address common.Address) bool {
-	for _, b := range manparams.BroadCastNodes {
-		if b.Address == address {
-			return true
-		}
-	}
-	return false
 }

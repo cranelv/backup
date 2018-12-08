@@ -16,7 +16,7 @@ const (
 	//通用
 	MSKeyBroadcastInterval = "broad_interval" // 广播区块周期
 	MSKeyElectGenTime      = "elect_gen_time"
-	MSKeyMatrixNode        = "matrix_specific_node"
+	MSKeyMatrixAccount     = "matrix_specific_account"
 	MSKeyElectConfigInfo   = "elect_details_info"
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
@@ -42,9 +42,10 @@ type NodeInfo struct {
 	Address common.Address
 }
 
-type MatrixSpecialNode struct {
-	BroadcastNode  NodeInfo
-	InnerMinerNode []NodeInfo
+type MatrixSpecialAccounts struct {
+	BroadcastAccount   NodeInfo
+	FoundationAccount  NodeInfo
+	InnerMinerAccounts []NodeInfo
 }
 
 type ElectConfigInfo struct {

@@ -15,7 +15,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyElectOnlineState] = new(ElectOnlineStateCodec)
 	self.codecMap[mc.MSKeyBroadcastInterval] = new(BroadcastIntervalCodec)
 	self.codecMap[mc.MSKeyElectGenTime] = new(ElectGenTimeCodec)
-	self.codecMap[mc.MSKeyMatrixNode] = new(MatrixNodeCodec)
+	self.codecMap[mc.MSKeyMatrixAccount] = new(MatrixNodeCodec)
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
@@ -159,7 +159,7 @@ func (MatrixNodeCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MatrixNodeCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.MatrixSpecialNode)
+	msg := new(mc.MatrixSpecialAccounts)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

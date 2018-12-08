@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
@@ -57,7 +58,17 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	if err != nil {
 		return err
 	}
-	if err := dc.leaderCal.SetValidators(preHash, preIsSupper, preLeader, validators); err != nil {
+
+	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, parentState)
+	if err != nil {
+		return err
+	}
+	specials, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || specials == nil {
+		return errors.New("反射MatrixSpecialAccounts失败")
+	}
+
+	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials); err != nil {
 		return err
 	}
 
@@ -189,4 +200,14 @@ func (dc *cdc) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGra
 		return dc.chain.GetGraphByState(dc.parentState)
 	}
 	return dc.chain.GetGraphByHash(hash)
+}
+
+func (dc *cdc) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	if (blockHash == common.Hash{}) {
+		return nil, errors.New("输入hash为空")
+	}
+	if blockHash == dc.leaderCal.preHash {
+		return dc.leaderCal.specials, nil
+	}
+	return dc.chain.GetSpecialAccounts(blockHash)
 }

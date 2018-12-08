@@ -2065,6 +2065,20 @@ func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (int
 	return matrixstate.GetDataByState(key, state)
 }
 
+func (bc *BlockChain) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || accounts == nil {
+		return nil, errors.New("反射结构体MatrixSpecialAccounts失败")
+	}
+
+	return accounts, nil
+}
+
 func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
 	if nil == superBlockGen {
 		return nil, errors.New("super block is nil")

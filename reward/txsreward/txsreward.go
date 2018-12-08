@@ -48,6 +48,6 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		return nil
 	}
 
-	return rewardexec.New(chain, rewardCfg)
+	return rewardexec.New(chain, rewardCfg, st)
 
 }

@@ -17,6 +17,7 @@ import (
 var (
 	ErrMsgAccountIsNull  = errors.New("不合法的账户：空账户")
 	ErrValidatorsIsNil   = errors.New("验证者列表为空")
+	ErrSepcialsIsNil     = errors.New("特殊账户为空")
 	ErrValidatorNotFound = errors.New("验证者未找到")
 	ErrMsgExistInCache   = errors.New("缓存中已存在消息")
 	ErrNoMsgInCache      = errors.New("缓存中没有目标消息")

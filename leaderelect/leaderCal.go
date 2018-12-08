@@ -9,7 +9,6 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -19,6 +18,7 @@ type leaderCalculator struct {
 	preIsSupper bool
 	leaderList  map[uint32]common.Address
 	validators  []mc.TopologyNodeInfo
+	specials    *mc.MatrixSpecialAccounts
 	chain       *core.BlockChain
 	cdc         *cdc
 }
@@ -30,13 +30,14 @@ func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
 		preIsSupper: false,
 		leaderList:  make(map[uint32]common.Address),
 		validators:  nil,
+		specials:    nil,
 		chain:       chain,
 		cdc:         cdc,
 	}
 }
 
-func (self *leaderCalculator) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
-	if validators == nil {
+func (self *leaderCalculator) SetValidatorsAndSpecials(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo, specials *mc.MatrixSpecialAccounts) error {
+	if validators == nil || specials == nil {
 		return ErrValidatorsIsNil
 	}
 
@@ -59,6 +60,7 @@ func (self *leaderCalculator) SetValidators(preHash common.Hash, preIsSupper boo
 	self.preHash.Set(preHash)
 	self.validators = validators
 	self.preIsSupper = preIsSupper
+	self.specials = specials
 
 	return nil
 }
@@ -79,24 +81,27 @@ func (self *leaderCalculator) GetLeader(turn uint32) (*leaderData, error) {
 	if leaderCount == 0 {
 		return nil, ErrValidatorsIsNil
 	}
+	if self.specials == nil {
+		return nil, ErrSepcialsIsNil
+	}
 
 	leaders := &leaderData{}
 	number := self.cdc.number
 	if common.IsReElectionNumber(number) {
-		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
+		leaders.leader.Set(self.specials.BroadcastAccount.Address)
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])
 		return leaders, nil
 	}
 
 	if common.IsBroadcastNumber(number) {
-		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
+		leaders.leader.Set(self.specials.BroadcastAccount.Address)
 		leaders.nextLeader.Set(self.leaderList[(turn)%leaderCount])
 		return leaders, nil
 	}
 
 	leaders.leader.Set(self.leaderList[turn%leaderCount])
 	if common.IsBroadcastNumber(number + 1) {
-		leaders.nextLeader.Set(manparams.BroadCastNodes[0].Address)
+		leaders.nextLeader.Set(self.specials.BroadcastAccount.Address)
 	} else {
 		leaders.nextLeader.Set(self.leaderList[(turn+1)%leaderCount])
 	}

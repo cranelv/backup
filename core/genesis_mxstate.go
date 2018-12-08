@@ -104,43 +104,43 @@ func (g *Genesis) setElectToState(state *state.StateDB) error {
 }
 
 func (g *Genesis) setSpecialNodeToState(state *state.StateDB) error {
-	var specialNodes *mc.MatrixSpecialNode
+	var specialNodes *mc.MatrixSpecialAccounts
 	if g.Number == 0 {
 		if (g.MState.BroadcastNode.Address == common.Address{}) {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		}
 
-		specialNodes = &mc.MatrixSpecialNode{}
-		specialNodes.BroadcastNode = g.MState.BroadcastNode
+		specialNodes = &mc.MatrixSpecialAccounts{}
+		specialNodes.BroadcastAccount = g.MState.BroadcastNode
 		if len(g.MState.InnerMiner) == 0 {
-			specialNodes.InnerMinerNode = make([]mc.NodeInfo, 0)
+			specialNodes.InnerMinerAccounts = make([]mc.NodeInfo, 0)
 		} else {
-			specialNodes.InnerMinerNode = g.MState.InnerMiner
+			specialNodes.InnerMinerAccounts = g.MState.InnerMiner
 		}
 	} else {
 		modifyBroad := g.MState.BroadcastNode.Address != common.Address{}
 		modifyInner := len(g.MState.InnerMiner) != 0
 		if modifyBroad || modifyInner {
-			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixNode, state)
+			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
 			if err != nil {
 				return errors.Errorf("get pre special node err: %v", err)
 			}
-			specialNodes, _ = data.(*mc.MatrixSpecialNode)
+			specialNodes, _ = data.(*mc.MatrixSpecialAccounts)
 			if specialNodes == nil {
 				return errors.New("pre special node reflect err")
 			}
 
 			if modifyBroad {
-				specialNodes.BroadcastNode = g.MState.BroadcastNode
+				specialNodes.BroadcastAccount = g.MState.BroadcastNode
 			}
 			if modifyInner {
-				specialNodes.InnerMinerNode = g.MState.InnerMiner
+				specialNodes.InnerMinerAccounts = g.MState.InnerMiner
 			}
 		}
 	}
 
 	if specialNodes != nil {
-		return matrixstate.SetDataToState(mc.MSKeyMatrixNode, specialNodes, state)
+		return matrixstate.SetDataToState(mc.MSKeyMatrixAccount, specialNodes, state)
 	} else {
 		return nil
 	}

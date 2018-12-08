@@ -7,7 +7,6 @@ package matrixstate
 import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
@@ -64,18 +63,12 @@ func (gs GraphStore) GetTopologyGraphByHash(blockHash common.Hash) (*mc.Topology
 		return graph.(*mc.TopologyGraph), nil
 	}
 
-	state, err := gs.getStateByBlock(blockHash)
+	graphData, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyTopologyGraph, blockHash)
 	if err != nil {
 		return nil, err
 	}
-
-	graphData, err := GetDataByState(mc.MSKeyTopologyGraph, state)
-	if err != nil {
-		return nil, err
-	}
-
-	graph, _ := graphData.(*mc.TopologyGraph)
-	if graph == nil {
+	graph, OK := graphData.(*mc.TopologyGraph)
+	if OK == false || graph == nil {
 		return nil, errors.New("topology data reflect err, msg is nil")
 	}
 	gs.topologyCache.Add(blockHash, graph)
@@ -87,17 +80,12 @@ func (gs GraphStore) GetElectGraphByHash(blockHash common.Hash) (*mc.ElectGraph,
 		return elect.(*mc.ElectGraph), nil
 	}
 
-	state, err := gs.getStateByBlock(blockHash)
+	electData, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyElectGraph, blockHash)
 	if err != nil {
 		return nil, err
 	}
-
-	electData, err := GetDataByState(mc.MSKeyElectGraph, state)
-	if err != nil {
-		return nil, err
-	}
-	elect, _ := electData.(*mc.ElectGraph)
-	if elect == nil {
+	elect, OK := electData.(*mc.ElectGraph)
+	if OK == false || elect == nil {
 		return nil, errors.New("elect data reflect err, msg is nil")
 	}
 	gs.electCache.Add(blockHash, elect)
@@ -126,21 +114,16 @@ func (gs *GraphStore) GetNextElectByHash(blockHash common.Hash) ([]common.Elect,
 	return elect.TransferNextElect2CommonElect(), nil
 }
 
-func (gs *GraphStore) NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error) {
-	return nil, nil
-}
-
-func (gs *GraphStore) getStateByBlock(blockHash common.Hash) (*state.StateDB, error) {
-	header := gs.reader.GetHeaderByHash(blockHash)
-	if header == nil {
-		return nil, errors.Errorf("can't find header by hash(%s)", blockHash.Hex())
-	}
-	state, err := gs.reader.StateAt(header.Root)
+func (gs *GraphStore) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
 	if err != nil {
-		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+		return nil, err
 	}
-	if state == nil {
-		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || accounts == nil {
+		return nil, errors.New("special accounts reflect err")
 	}
-	return state, nil
+
+	return accounts, nil
+
 }

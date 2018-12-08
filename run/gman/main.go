@@ -315,7 +315,6 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 		utils.Fatalf("Matrix service not running :%v", err)
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
-	log.INFO("BoradCastNode", "data", manparams.BroadCastNodes)
 	log.Info("main", "nodeid", stack.Server().Self().ID.String())
 	log.INFO("创世文件选举信息", "data", matrix.BlockChain().GetBlockByNumber(0).Header().Elect)
 	log.INFO("创世文件拓扑图", "data", matrix.BlockChain().GetBlockByNumber(0).Header().NetTopology)

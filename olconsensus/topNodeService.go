@@ -25,7 +25,7 @@ type TopNodeService struct {
 	msgCheck *messageCheck
 	dposRing *DPosVoteRing
 
-	validatorReader consensus.ValidatorReader
+	validatorReader consensus.StateReader
 	topNodeState    TopNodeStateInterface
 	validatorSign   ValidatorAccountInterface
 	msgSender       MessageSendInterface
@@ -68,7 +68,7 @@ func NewTopNodeService(cd consensus.DPOSEngine) *TopNodeService {
 	return t
 }
 
-func (serv *TopNodeService) SetValidatorReader(reader consensus.ValidatorReader) {
+func (serv *TopNodeService) SetValidatorReader(reader consensus.StateReader) {
 	serv.validatorReader = reader
 }
 

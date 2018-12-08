@@ -70,9 +70,6 @@ type NodeInfo struct {
 	Address common.Address
 }
 
-var BroadCastNodes = []NodeInfo{}
-var InnerMinerNodes = []NodeInfo{}
-var FoundationNodes = []NodeInfo{}
 var SuperVersionNodes = []NodeInfo{}
 var SuperRollbackNodes = []NodeInfo{}
 
@@ -89,23 +86,6 @@ func Config_Init(Config_PATH string) {
 		os.Exit(-1)
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
-
-	BroadCastNodes = v.BroadNode
-	if len(BroadCastNodes) <= 0 {
-		fmt.Println("无广播节点")
-		os.Exit(-1)
-	}
-	log.INFO("BroadCastNode", "data", BroadCastNodes)
-
-	InnerMinerNodes = v.InnerMinerNode
-	if len(InnerMinerNodes) == 0 {
-		log.Error("内部矿工节点个数为0", "读取man.json失败", "内部矿工节点个数为0")
-	}
-	log.INFO("InnerMinerNode:", "data", InnerMinerNodes)
-	FoundationNodes = v.FoundationNode
-	if len(FoundationNodes) == 0 {
-		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
-	}
 
 	SuperVersionNodes = v.SuperVersion
 	if len(SuperVersionNodes) <= 0 {

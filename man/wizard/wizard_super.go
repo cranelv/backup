@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/params/manparams"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -70,7 +69,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		ParentHash:        parentHeader.Hash(),
 		Leader:            common.HexToAddress("0x8111111111111111111111111111111111111111"),
 		Mixhash:           parentHeader.MixDigest,
-		Coinbase:          manparams.InnerMinerNodes[0].Address,
+		Coinbase:          common.HexToAddress("0x8111111111111111111111111111111111111111"),
 		Signatures:        make([]common.Signature, 0),
 		Timestamp:         uint64(time.Now().Unix()),
 		GasLimit:          parentHeader.GasLimit,

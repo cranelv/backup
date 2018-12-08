@@ -6,7 +6,6 @@ package matrixstate
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/pkg/errors"
 )
@@ -19,8 +18,9 @@ var (
 type stateReader interface {
 	GetHashByNumber(number uint64) common.Hash
 	GetHeaderByHash(hash common.Hash) *types.Header
-	State() (*state.StateDB, error)
-	StateAt(root common.Hash) (*state.StateDB, error)
+	GetMatrixStateData(key string) (interface{}, error)
+	GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error)
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 type StateDB interface {
