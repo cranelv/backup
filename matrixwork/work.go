@@ -417,17 +417,17 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if common.IsBroadcastNumber(env.header.Number.Uint64()) {
 		return nil
 	}
-	blkreward := blkreward.New(bc)
+	blkReward := blkreward.New(bc)
 	rewardList := make([]common.RewarTx, 0)
 	//todo: read half number from state
-	minerReward := blkreward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.MinersBlockReward, 1000000, common.BlkMinerRewardAddress)
-	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header.Number.Uint64())
+	minerReward := blkReward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.MinersBlockReward, 1000000, common.BlkMinerRewardAddress)
+	minersRewardMap := blkReward.CalcMinerRewards(minerReward, env.header.Number.Uint64())
 	if nil != minersRewardMap {
 		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 	}
 
-	validatorReward := blkreward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.ValidatorsBlockReward, 300, common.BlkValidatorRewardAddress)
-	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward, env.header.Leader, env.header.Number.Uint64())
+	validatorReward := blkReward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.ValidatorsBlockReward, 300, common.BlkValidatorRewardAddress)
+	validatorsRewardMap := blkReward.CalcValidatorRewards(validatorReward, env.header.Leader, env.header.Number.Uint64())
 	if nil != validatorsRewardMap {
 		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 	}
@@ -473,6 +473,12 @@ func (env *Work) getGas() *big.Int {
 	allGas := new(big.Int).Mul(new(big.Int).SetUint64(gas), price)
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
 	balance := env.State.GetBalance(common.TxGasRewardAddress)
+
+	if len(balance) == 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法", "")
+		return big.NewInt(0)
+	}
+
 	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
 		return big.NewInt(0)

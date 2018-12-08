@@ -198,6 +198,10 @@ func (br *BlockReward) CalcRewardMountByNumber(st util.StateDB, num uint64, bloc
 		return big.NewInt(0)
 	}
 	balance := st.GetBalance(address)
+	if len(balance) == 0 {
+		log.ERROR(PackageName, "账户余额获取不到", "")
+		return nil
+	}
 	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
 		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
 		return big.NewInt(0)
