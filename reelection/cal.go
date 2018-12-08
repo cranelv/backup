@@ -13,48 +13,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 )
 
-func checkInDiff(diff common.NetTopology, add common.Address) bool {
-	for _, v := range diff.NetTopologyData {
-		if v.Account == add {
-			return true
-		}
-	}
-	return false
-}
-func checkInGraph(top *mc.TopologyGraph, pos uint16) common.Address {
-	for _, v := range top.NodeList {
-		if v.Position == pos {
-			return v.Account
-		}
-	}
-	return common.Address{}
-}
-func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prevTopology *mc.TopologyGraph) []common.Address {
-	if topologyChg.Type != common.NetTopoTypeChange {
-		return nil
-	}
-
-	offline := make([]common.Address, 0)
-
-	for _, v := range topologyChg.NetTopologyData {
-
-		if v.Position == common.PosOffline || v.Position == common.PosOnline {
-			continue
-		}
-
-		account := checkInGraph(prevTopology, v.Position)
-		if account.Equal(common.Address{}) {
-			//前拓扑中暂缺该position
-			continue
-		}
-		if checkInDiff(topologyChg, account) == false {
-			offline = append(offline, account)
-		}
-
-	}
-	return offline
-}
-
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
 	result := make([]common.Elect, 0)
 
@@ -124,39 +82,6 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative) 
 
 	return result
 }
-
-//
-//func (self *ReElection) paraseNetTopology(topo *common.NetTopology) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, error) {
-//	if topo.Type != common.NetTopoTypeAll {
-//		return nil, nil, nil, nil, errors.New("Net Topology is not all data")
-//	}
-//
-//	MasterMiner := make([]mc.TopologyNodeInfo, 0)
-//	BackUpMiner := make([]mc.TopologyNodeInfo, 0)
-//	MasterValidator := make([]mc.TopologyNodeInfo, 0)
-//	BackUpValidator := make([]mc.TopologyNodeInfo, 0)
-//
-//	for _, data := range topo.NetTopologyData {
-//		node := mc.TopologyNodeInfo{
-//			Account:  data.Account,
-//			Position: data.Position,
-//			Type:     common.GetRoleTypeFromPosition(data.Position),
-//			Stock:    0,
-//		}
-//
-//		switch node.Type {
-//		case common.RoleMiner:
-//			MasterMiner = append(MasterMiner, node)
-//		case common.RoleBackupMiner:
-//			BackUpMiner = append(BackUpMiner, node)
-//		case common.RoleValidator:
-//			MasterValidator = append(MasterValidator, node)
-//		case common.RoleBackupValidator:
-//			BackUpValidator = append(BackUpValidator, node)
-//		}
-//	}
-//	return MasterMiner, BackUpMiner, MasterValidator, BackUpValidator, nil
-//}
 
 func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
 	tHeader := self.bc.GetHeaderByHash(hash)

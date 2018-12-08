@@ -318,9 +318,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	//	fmt.Println(v.Position,v.Account.String())
 	//}
 	for _, v := range topoG.NodeList {
-		if findAddr(v.Account, []common.Address{}) {
-			continue //删除节点
-		}
+
 		//fmt.Println("v.Pos",v.Position,"v.addr",v.Account.String())
 		types := common.GetRoleTypeFromPosition(v.Position)
 		if types == common.RoleValidator {
