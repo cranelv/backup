@@ -63,6 +63,7 @@ func newKeyManager() *keyManager {
 			MSPElectGraph:        types.RlpHash(matrixStatePrefix + MSPElectGraph),
 			MSPElectOnlineState:  types.RlpHash(matrixStatePrefix + MSPElectOnlineState),
 		},
+		codecMap: make(map[string]codec),
 	}
 	km.initCodec()
 	return km
