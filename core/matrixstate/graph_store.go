@@ -75,6 +75,9 @@ func (gs GraphStore) GetTopologyGraphByHash(blockHash common.Hash) (*mc.Topology
 	}
 
 	graph, _ := graphData.(*mc.TopologyGraph)
+	if graph == nil {
+		return nil, errors.New("topology data reflect err, msg is nil")
+	}
 	gs.topologyCache.Add(blockHash, graph)
 	return graph, nil
 }
@@ -94,6 +97,9 @@ func (gs GraphStore) GetElectGraphByHash(blockHash common.Hash) (*mc.ElectGraph,
 		return nil, err
 	}
 	elect, _ := electData.(*mc.ElectGraph)
+	if elect == nil {
+		return nil, errors.New("elect data reflect err, msg is nil")
+	}
 	gs.electCache.Add(blockHash, elect)
 	return elect, nil
 }
@@ -102,10 +108,6 @@ func (gs *GraphStore) GetOriginalElectByHash(blockHash common.Hash) ([]common.El
 	elect, err := gs.GetElectGraphByHash(blockHash)
 	if err != nil {
 		return nil, err
-	}
-
-	if elect == nil {
-		return nil, errors.New("elect data is illegal")
 	}
 
 	return elect.TransferElect2CommonElect(), nil
