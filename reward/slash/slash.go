@@ -58,10 +58,10 @@ func New(chain ChainReader, st util.StateDB) *BlockSlash {
 	}
 	var SlashRate uint64
 
-	if StateCfg.(mc.SlashCfgStruct).SlashRate > 100 {
+	if StateCfg.(*mc.SlashCfgStruct).SlashRate > 100 {
 		SlashRate = 100
 	} else {
-		SlashRate = StateCfg.(mc.SlashCfgStruct).SlashRate
+		SlashRate = StateCfg.(*mc.SlashCfgStruct).SlashRate
 	}
 	return &BlockSlash{chain: chain, eleMaxOnlineTime: (common.GetBroadcastInterval() - 3) * 3, SlashRate: SlashRate} //todo 周期固定3倍关系
 }

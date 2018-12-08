@@ -56,7 +56,7 @@ type RewardStateCfg struct {
 type RewardCfg struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
-	RewardMount    mc.BlkRewardCfg
+	RewardMount    *mc.BlkRewardCfg
 	SetReward      SetRewardsExec
 }
 type ChainReader interface {
@@ -123,7 +123,7 @@ func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainRea
 	return str.miner.SetMinerOutRewards(reward, chain, num)
 }
 
-func New(RewardMount mc.BlkRewardCfg, SetReward SetRewardsExec) *RewardCfg {
+func New(RewardMount *mc.BlkRewardCfg, SetReward SetRewardsExec) *RewardCfg {
 
 	//默认配置
 

@@ -21,8 +21,8 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
 	self.codecMap[mc.MSKeyBlkRewardCfg] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeyTxsRewardCfg] = new(MSPTxsRewardCfgCodec)
-	self.codecMap[mc.MSKeyInterestCfg] = new(MSPLotteryCfgCodec)
-	self.codecMap[mc.MSKeyLotteryCfg] = new(MSPInterestCfgCodec)
+	self.codecMap[mc.MSKeyInterestCfg] = new(MSPInterestCfgCodec)
+	self.codecMap[mc.MSKeyLotteryCfg] = new(MSPLotteryCfgCodec)
 	self.codecMap[mc.MSKeySlashCfg] = new(MSPSlashCfgCodec)
 	self.codecMap[mc.MSKeyMultiCoin] = new(MSPRewardRateCfgCodec)
 }

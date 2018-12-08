@@ -49,7 +49,7 @@ type TxsLottery struct {
 	chain      ChainReader
 	seed       LotterySeed
 	state      util.StateDB
-	lotteryCfg mc.LotteryCfgStruct
+	lotteryCfg *mc.LotteryCfgStruct
 }
 
 type LotterySeed interface {
@@ -63,7 +63,7 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 		return nil
 	}
 
-	cfg := lotteryCfg.(mc.LotteryCfgStruct)
+	cfg := lotteryCfg.(*mc.LotteryCfgStruct)
 	if cfg.LotteryCalc == Stop {
 		log.ERROR(PackageName, "停止发放彩票奖励", "")
 		return nil
@@ -77,7 +77,7 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 		chain:      chain,
 		seed:       seed,
 		state:      st,
-		lotteryCfg: lotteryCfg.(mc.LotteryCfgStruct),
+		lotteryCfg: cfg,
 	}
 
 	return tlr

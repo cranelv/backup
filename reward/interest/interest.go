@@ -45,7 +45,7 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
-	if StateCfg.(mc.InterestCfgStruct).PayInterval < StateCfg.(mc.InterestCfgStruct).CalcInterval {
+	if StateCfg.(*mc.InterestCfgStruct).PayInterval < StateCfg.(*mc.InterestCfgStruct).CalcInterval {
 		log.ERROR(PackageName, "配置的发放周期小于计息周期", "")
 		return nil
 	}
@@ -60,7 +60,7 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利率表为空", "")
 		return nil
 	}
-	return &interest{Vip, StateCfg.(mc.InterestCfgStruct).CalcInterval, StateCfg.(mc.InterestCfgStruct).PayInterval}
+	return &interest{Vip, StateCfg.(*mc.InterestCfgStruct).CalcInterval, StateCfg.(*mc.InterestCfgStruct).PayInterval}
 }
 func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*DepositInterestRate) *big.Int {
 
