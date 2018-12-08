@@ -5,7 +5,6 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -17,7 +16,7 @@ type LeaderReward struct {
 
 func (lr *LeaderReward) SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
 	//广播区块不给验证者发钱
-	if manparams.IsBroadcastNumber(num) {
+	if common.IsBroadcastNumber(num) {
 		return nil
 	}
 	if reward.Cmp(big.NewInt(0)) <= 0 {

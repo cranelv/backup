@@ -13,7 +13,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const PackageName = "惩罚"
@@ -54,22 +53,16 @@ func New(chain ChainReader) *BlockSlash {
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64) {
 	var eleNum uint64
 
-	period, err := manparams.NewPeriodInterval(num - 1)
-	if err != nil {
-		log.Error("BlockSlash", "广播周期获取失败")
-		return
-	}
-
-	if num < manparams.GetBroadcastInterval() {
+	if num < common.GetBroadcastInterval() {
 		return
 	}
 	//选举周期的最后时刻分配
-	if !manparams.IsReElectionNumber(num-1, num) {
+	if !common.IsReElectionNumber(num - 1) {
 		log.INFO(PackageName, "当前高度非法", num)
 		return
 	}
 	//计算选举的拓扑图的高度
-	if num < manparams.GetReElectionInterval()+2 {
+	if num < common.GetReElectionInterval()+2 {
 		eleNum = 0
 	} else {
 		eleNum = common.GetLastReElectionNumber(num-2) - 1

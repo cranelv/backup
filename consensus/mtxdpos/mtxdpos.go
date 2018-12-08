@@ -142,7 +142,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.ValidatorReader, header *types.H
 	}
 
 	number := header.Number.Uint64()
-	if manparams.IsBroadcastNumber(number, number-1) {
+	if common.IsBroadcastNumber(number) {
 		return md.verifyBroadcastBlock(header)
 	}
 

@@ -9,7 +9,6 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -150,18 +149,12 @@ func (serv *TopNodeService) update() {
 		select {
 		case data := <-serv.roleUpdateCh:
 			if serv.msgCheck.CheckRoleUpdateMsg(data) {
-				state, err := serv.stateReader.GetStateByHash(data.BlockHash)
-				if err != nil || state == nil {
-					log.Error(serv.extraInfo, "处理CA通知消息", "获取状态错误", "err", err)
-					continue
-				}
-
-				topology, err := serv.stateReader.GetMatrixStateData(matrixstate.MSPTopologyGraph, state)
+				topology, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyTopologyGraph, data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
 					continue
 				}
-				electOline, err := serv.stateReader.GetMatrixStateData(matrixstate.MSPElectOnlineState, state)
+				electOline, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyElectOnlineState, data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
 					continue

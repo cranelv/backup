@@ -11,7 +11,6 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type MinerOutReward struct {
@@ -47,7 +46,7 @@ type ChainReader interface {
 
 func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num uint64) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
-	if num < uint64(2) || manparams.IsBroadcastNumber(num) {
+	if num < uint64(2) || common.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "挖坑奖励高度错误：", num)
 		return nil
 	}

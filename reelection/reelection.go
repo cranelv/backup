@@ -238,13 +238,13 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 	headerPos := self.bc.GetHeaderByHash(hash)
 	stateDB, err := self.bc.StateAt(headerPos.Root)
 
-	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
+	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
 		return []mc.Alternative{}, err
 	}
-	ElectOnlineBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectOnlineState))
+	ElectOnlineBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectOnlineState))
 	var electOnlineState mc.ElectOnlineStatus
 	if err := json.Unmarshal(ElectOnlineBytes, &electOnlineState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -267,7 +267,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 
 func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
 	// todo 从状态树中获取elect
-	preElectGraphBytes := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
+	preElectGraphBytes := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(preElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -336,7 +336,7 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 	}
 	headerPos := self.bc.GetHeaderByHash(hashPos)
 	stateDB, err := self.bc.StateAt(headerPos.Root)
-	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSPElectGraph))
+	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {
 		log.ERROR(Module, "GetElection Unmarshal err", err)
@@ -408,9 +408,9 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return nil, err
 	}
-	data, err := readFn(mc.MSPTopologyGraph)
+	data, err := readFn(mc.MSKeyTopologyGraph)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSPTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSKeyTopologyGraph, "err", err)
 		return nil, err
 	}
 	electStates, OK := data.(*mc.ElectGraph)
@@ -492,9 +492,9 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 	}
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
-	data, err := readFn(mc.MSPElectOnlineState)
+	data, err := readFn(mc.MSKeyElectOnlineState)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSPTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSKeyTopologyGraph, "err", err)
 		return []byte{}, err
 	}
 	electStates, OK := data.(*mc.ElectOnlineStatus)
@@ -530,9 +530,9 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 	if common.IsBroadcastNumber(height-1) == false {
 		return nil, nil
 	}
-	data, err := readFn(mc.MSPreBroadcastStateDB)
+	data, err := readFn(mc.MSKeyPreBroadcastRoot)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSPreBroadcastStateDB, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSKeyPreBroadcastRoot, "err", err)
 		return nil, err
 	}
 	preBroadcast, OK := data.(*mc.PreBroadStateDB)
