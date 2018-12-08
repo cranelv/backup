@@ -3,8 +3,6 @@ package reward
 import (
 	"math/big"
 
-	"github.com/matrix/go-matrix/reward/util"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 )
@@ -14,9 +12,8 @@ import (
 // gas分段计价 第二笔gas，0x80001垫付，写入创世配置文件，初始金额，网络组判断  ，多币种和子链需要考虑，配置超级节点上链。
 type Reward interface {
 	CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
-	CalcValidatorRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
+	CalcValidatorRewards(Leader common.Address, num uint64) map[common.Address]*big.Int
 	CalcMinerRewards(num uint64) map[common.Address]*big.Int
-	CalcRewardMountByNumber(state util.StateDB, num uint64, blockReward *big.Int, halfNum uint64, address common.Address) *big.Int
 }
 
 type Lottery interface {

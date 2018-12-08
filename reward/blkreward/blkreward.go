@@ -6,6 +6,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/cfg"
@@ -46,14 +47,14 @@ type blkreward struct {
 
 func New(chain ChainReader, st util.StateDB) reward.Reward {
 	//todo:从状态树读取配置.
-	var Rewardcfg cfg.RewardStateCfg
-	Rewardcfg, err := matrixstate.GetDataByState(matrixstate.MinerRewardCfg, st)
+
+	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyBlkRewardCfg, st)
 	if nil != err {
 		log.ERROR("固定区块奖励", "获取状态树配置错误")
 		return nil
 	}
-	Rewardcfg.
-	rewardCfg := cfg.New(nil, nil)
+
+	rewardCfg := cfg.New(Rewardcfg.(mc.BlkRewardCfg), nil)
 	return rewardexec.New(chain, rewardCfg)
 }
 

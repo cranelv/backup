@@ -21,13 +21,12 @@ const (
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 
-	MSKeyMinerRewardCfg     = "miner_reward"
-	MSKeyValidatorRewardCfg = "validator_reward"
-	MSKeyTxsRewardCfg       = "txs_reward"
-	MSKeyInterestCfg        = "interest_reward" //利息状态
-	MSKeyLotteryCfg         = "lottery_reward"
-	MSKeySlashCfg           = "slash_reward"
-	MSKeyMultiCoin          = "coin_reward"
+	MSKeyBlkRewardCfg = "blk_reward"
+	MSKeyTxsRewardCfg = "txs_reward"
+	MSKeyInterestCfg  = "interest_reward" //利息状态
+	MSKeyLotteryCfg   = "lottery_reward"
+	MSKeySlashCfg     = "slash_reward"
+	MSKeyMultiCoin    = "coin_reward"
 )
 
 type ElectGenTimeStruct struct {
@@ -53,6 +52,7 @@ type ElectConfigInfo struct {
 }
 type VIPConfig struct {
 	MinMoney     *big.Int
+	InterestRate uint64 //(分母待定为1000w)
 	ElectUserNum uint8
 	StockScale   uint16 //千分比
 }
@@ -86,8 +86,7 @@ type BlkRewardCfg struct {
 type TxsRewardCfgStruct struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
-
-	RewardRate RewardRateCfg
+	RewardRate     RewardRateCfg
 }
 
 type LotteryInfo struct {
@@ -101,15 +100,10 @@ type LotteryCfgStruct struct {
 	LotteryInfo []LotteryInfo
 }
 
-type InterestRate struct {
-	VIPLevel uint8
-	Rate     uint64 //(分母待定为1000w)
-}
-
 type InterestCfgStruct struct {
 	CalcInterval uint64
 	PayInterval  uint64
-	InterestRate []InterestRate
+	VIPConfig    []VIPConfig
 }
 
 type SlashCfgStruct struct {

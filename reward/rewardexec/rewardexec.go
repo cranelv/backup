@@ -18,22 +18,23 @@ const (
 )
 
 type BlockReward struct {
+	chain     util.ChainReader
 	st        util.StateDB
 	rewardCfg *cfg.RewardCfg
 }
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
 
-	if util.RewardFullRate != rewardCfg.RewardMount.MinerOutRate+rewardCfg.RewardMount.ElectedMinerRate+rewardCfg.RewardMount.FoundationMinerRate {
+	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.MinerOutRate+rewardCfg.RewardMount.RewardRate.ElectedMinerRate+rewardCfg.RewardMount.RewardRate.FoundationMinerRate {
 		log.ERROR(PackageName, "矿工固定区块奖励比例配置错误", "")
 		return nil
 	}
-	if util.RewardFullRate != rewardCfg.RewardMount.LeaderRate+rewardCfg.RewardMount.ElectedValidatorsRate+rewardCfg.RewardMount.FoundationValidatorRate {
+	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.LeaderRate+rewardCfg.RewardMount.RewardRate.ElectedValidatorsRate+rewardCfg.RewardMount.RewardRate.FoundationValidatorRate {
 		log.ERROR(PackageName, "验证者固定区块奖励比例配置错误", "")
 		return nil
 	}
 
-	if util.RewardFullRate != rewardCfg.RewardMount.OriginElectOfflineRate+rewardCfg.RewardMount.BackupRewardRate {
+	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.OriginElectOfflineRate+rewardCfg.RewardMount.RewardRate.BackupRewardRate {
 		log.ERROR(PackageName, "替补固定区块奖励比例配置错误", "")
 		return nil
 	}
@@ -44,35 +45,44 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg) *BlockReward {
 }
 func (br *BlockReward) calcValidatorRateMount(blockReward *big.Int) (*big.Int, *big.Int, *big.Int) {
 
-	leaderBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.LeaderRate)
-	electedReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.ElectedValidatorsRate)
-	FoundationsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.FoundationValidatorRate)
+	leaderBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.LeaderRate)
+	electedReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.ElectedValidatorsRate)
+	FoundationsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.FoundationValidatorRate)
 	return leaderBlkReward, electedReward, FoundationsBlkReward
 }
 
 func (br *BlockReward) calcMinerRateMount(blockReward *big.Int) (*big.Int, *big.Int, *big.Int) {
 
-	minerOutReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.MinerOutRate)
-	electedReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.ElectedMinerRate)
-	FoundationsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.FoundationMinerRate)
+	minerOutReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.MinerOutRate)
+	electedReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.ElectedMinerRate)
+	FoundationsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.RewardRate.FoundationMinerRate)
 	return minerOutReward, electedReward, FoundationsBlkReward
 }
 
-func (br *BlockReward) CalcValidatorRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) CalcValidatorRewards(Leader common.Address, num uint64) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
-
+	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.ValidatorMount), util.ManPrice)
+	halfNum := br.rewardCfg.RewardMount.ValidatorHalf
+	blockReward := br.calcRewardMountByNumber(RewardMan, num-1, halfNum, common.BlkValidatorRewardAddress)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放验证者奖励", "")
 		return nil
 	}
-	rewards := make(map[common.Address]*big.Int, 0)
+
 	if nil == br.rewardCfg {
 		log.Error(PackageName, "奖励配置为空", "")
 		return nil
 	}
+
+	return br.getValidatorRewards(blockReward, Leader, num)
+}
+
+func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
+	//广播区块不给矿工发钱
+	rewards := make(map[common.Address]*big.Int, 0)
 	leaderBlkMount, electedMount, FoundationsMount := br.calcValidatorRateMount(blockReward)
 	leaderReward := br.rewardCfg.SetReward.SetLeaderRewards(leaderBlkMount, Leader, num)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.BackupRewardRate)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, leaderReward)
 	util.MergeReward(rewards, electReward)
@@ -80,11 +90,24 @@ func (br *BlockReward) CalcValidatorRewards(blockReward *big.Int, Leader common.
 	return rewards
 }
 
-func (br *BlockReward) CalcMinerRewards(st util.StateDB, blockReward *big.Int, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64) map[common.Address]*big.Int {
+	rewards := make(map[common.Address]*big.Int, 0)
+
+	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
+	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.chain, num)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
+	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
+	util.MergeReward(rewards, minerOutReward)
+	util.MergeReward(rewards, electReward)
+	util.MergeReward(rewards, foundationReward)
+	return rewards
+}
+
+func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
-
-	blockReward := br.CalcRewardMountByNumber(st, num-1, util.MinersBlockReward, 1000000, common.BlkMinerRewardAddress)
-
+	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.MinerMount), util.ManPrice)
+	halfNum := br.rewardCfg.RewardMount.MinerHalf
+	blockReward := br.calcRewardMountByNumber(RewardMan, num-1, halfNum, common.BlkMinerRewardAddress)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放矿工奖励", "")
 		return nil
@@ -93,16 +116,8 @@ func (br *BlockReward) CalcMinerRewards(st util.StateDB, blockReward *big.Int, n
 		log.Error(PackageName, "奖励配置为空", "")
 		return nil
 	}
-	rewards := make(map[common.Address]*big.Int, 0)
 
-	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
-	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.chain, num)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.BackupRewardRate)
-	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
-	util.MergeReward(rewards, minerOutReward)
-	util.MergeReward(rewards, electReward)
-	util.MergeReward(rewards, foundationReward)
-	return rewards
+	return br.getMinerRewards(blockReward, num)
 }
 func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64) bool {
 	if common.IsBroadcastNumber(num) {
@@ -146,10 +161,10 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 
 	rewards := make(map[common.Address]*big.Int, 0)
 
-	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.ValidatorsRate)
-	validatorReward := br.CalcValidatorRewards(validatorsBlkReward, Leader, num)
-	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.RewardMount.MinersRate)
-	minerRewards := br.CalcMinerRewards(minersBlkReward, num)
+	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.ValidatorsRate)
+	validatorReward := br.getValidatorRewards(validatorsBlkReward, Leader, num)
+	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
+	minerRewards := br.getMinerRewards(minersBlkReward, num)
 
 	util.MergeReward(rewards, validatorReward)
 	util.MergeReward(rewards, minerRewards)
@@ -190,17 +205,18 @@ func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB, blockRewar
 
 }
 
-func (br *BlockReward) CalcRewardMountByNumber(num uint64, halfNum uint64, address common.Address) *big.Int {
+func (br *BlockReward) calcRewardMountByNumber(blockReward *big.Int, num uint64, halfNum uint64, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
+
 	if blockReward.Cmp(big.NewInt(0)) < 0 {
 		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
 		return big.NewInt(0)
 	}
-	if nil == st {
+	if nil == br.st {
 		log.ERROR(PackageName, "状态树是空", "")
 		return big.NewInt(0)
 	}
-	balance := st.GetBalance(address)
+	balance := br.st.GetBalance(address)
 	if len(balance) == 0 {
 		log.ERROR(PackageName, "账户余额获取不到", "")
 		return nil
