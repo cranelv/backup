@@ -285,8 +285,8 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 		resultM := &ElectReturnInfo{}
 		nextElect := electState.NextElect
 		for _, v := range nextElect {
-			types := common.GetRoleTypeFromPosition(v.Position)
-			switch types {
+
+			switch v.Type {
 			case common.RoleMiner:
 				resultM.MasterMiner = append(resultM.MasterMiner, v)
 			}
@@ -295,9 +295,10 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	} else if common.IsReElectionNumber(height + 1 + manparams.VerifyNetChangeUpTime) {
 		log.Error(Module, "是验证者网络切换时间点 height", height)
 		resultV := &ElectReturnInfo{}
-		for _, v := range electState.NextElect {
-			types := common.GetRoleTypeFromPosition(v.Position)
-			switch types {
+		for i, v := range electState.NextElect {
+			log.Error(Module, "state中的下届选举图", i, "node", v.Account, "type", v.Type.String(), "POS", v.Position)
+
+			switch v.Type {
 			case common.RoleValidator:
 				resultV.MasterValidator = append(resultV.MasterValidator, v)
 			case common.RoleBackupValidator:
@@ -408,9 +409,9 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return nil, err
 	}
-	data, err := readFn(mc.MSKeyTopologyGraph)
+	data, err := readFn(mc.MSKeyElectGraph)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectGraph, "err", err)
 		return nil, err
 	}
 	electStates, OK := data.(*mc.ElectGraph)
@@ -437,8 +438,8 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		nextElect := electStates.NextElect
 		electList := []mc.ElectNodeInfo{}
 		for _, v := range nextElect {
-			types := common.GetRoleTypeFromPosition(v.Position)
-			switch types {
+
+			switch v.Type {
 			case common.RoleBackupValidator:
 				electList = append(electList, v)
 			case common.RoleValidator:
@@ -494,7 +495,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
 	data, err := readFn(mc.MSKeyElectOnlineState)
 	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyTopologyGraph, "err", err)
+		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectOnlineState, "err", err)
 		return []byte{}, err
 	}
 	electStates, OK := data.(*mc.ElectOnlineStatus)
