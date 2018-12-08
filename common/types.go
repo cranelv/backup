@@ -454,38 +454,48 @@ type RecorbleTx struct {
 	Tim  uint32
 }
 
+//地址为matrix地址
 type EntrustType struct {
 	//委托地址
 	EntrustAddres string	//被委托人from
 	//委托权限
 	IsEntrustGas    bool	//委托gas
 	IsEntrustSign   bool	//委托签名
+	EnstrustSetType byte    //0-按高度委托,1-按时间委托
 
 	//委托限制
-	StartHeight     uint64   //委托起始时间
-	EndHeight       uint64   //委托结束时间
+	StartHeight     uint64   //委托起始高度
+	EndHeight       uint64   //委托结束高度
+	StartTime       uint64
+	EndTime         uint64
 }
 
-type EntrustType1 struct {
-	//委托地址
-	EntrustAddres Address	//被委托人from
-	//委托权限
-	IsEntrustGas    bool	//委托gas
-	IsEntrustSign   bool	//委托签名
-	//IsEntrustTx     bool	//委托交易（取消）
-	//委托限制
-	//PeerMaxAmount   *big.Int //单笔金额(取消)
-	//TotalAmount     *big.Int //总额(取消)
-	StartHeight     uint64   //委托起始时间
-	EndHeight       uint64   //委托结束时间
-	//EntrustCount    uint32   //委托次数(取消)
-}
+//地址为0x地址
+//type EntrustType1 struct {
+//	//委托地址
+//	EntrustAddres Address	//被委托人from
+//	//委托权限
+//	IsEntrustGas    bool	//委托gas
+//	IsEntrustSign   bool	//委托签名
+//	EnstrustSetType byte    //0-按高度委托,1-按时间委托
+//	//委托限制
+//	//PeerMaxAmount   *big.Int //单笔金额(取消)
+//	//TotalAmount     *big.Int //总额(取消)
+//	StartHeight     uint64   //委托起始高度
+//	EndHeight       uint64   //委托结束高度
+//	//EntrustCount    uint32   //委托次数(取消)
+//	StartTime       uint64
+//	EndTime         uint64
+//}
 
 type AuthType struct {
 	AuthAddres Address	//授权人from
+	EnstrustSetType byte    //0-按高度委托,1-按时间委托
 	IsEntrustGas    bool	//委托gas
 	IsEntrustSign   bool	//委托签名
-	StartHeight     uint64   //委托起始时间
-	EndHeight       uint64   //委托结束时间
+	StartHeight     uint64   //委托起始高度
+	EndHeight       uint64   //委托结束高度
+	StartTime       uint64
+	EndTime         uint64
 }
 
