@@ -31,7 +31,7 @@ func (TopologyGraphCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (TopologyGraphCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.ElectGraph)
+	msg := new(mc.TopologyGraph)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
