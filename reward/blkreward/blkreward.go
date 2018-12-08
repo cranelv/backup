@@ -54,7 +54,7 @@ func New(chain ChainReader, st util.StateDB) reward.Reward {
 		return nil
 	}
 
-	rewardCfg := cfg.New(Rewardcfg.(mc.BlkRewardCfg), nil)
+	rewardCfg := cfg.New(Rewardcfg.(*mc.BlkRewardCfg), nil)
 	return rewardexec.New(chain, rewardCfg, st)
 }
 

@@ -42,12 +42,14 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		log.ERROR(PackageName, "获取状态树配置错误")
 		return nil
 	}
-	rewardCfg := cfg.New(Rewardcfg.(mc.BlkRewardCfg), nil)
-	if util.RewardFullRate != rewardCfg.ValidatorsRate+rewardCfg.MinersRate {
+	rate := Rewardcfg.(*mc.TxsRewardCfgStruct).RewardRate
+
+	cfg := cfg.New(&mc.BlkRewardCfg{RewardRate: rate}, nil)
+	if util.RewardFullRate != Rewardcfg.(*mc.TxsRewardCfgStruct).ValidatorsRate+Rewardcfg.(*mc.TxsRewardCfgStruct).MinersRate {
 		log.ERROR(PackageName, "交易费奖励比例配置错误", "")
 		return nil
 	}
 
-	return rewardexec.New(chain, rewardCfg, st)
+	return rewardexec.New(chain, cfg, st)
 
 }
