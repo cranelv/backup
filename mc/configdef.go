@@ -1,9 +1,10 @@
 package mc
 
 import (
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
-	"math/big"
 )
 
 const (
@@ -62,9 +63,6 @@ type PreBroadStateDB struct {
 }
 
 type RewardRateCfg struct {
-	MinersRate     uint64 //矿工网络奖励
-	ValidatorsRate uint64 //验证者网络奖励
-
 	MinerOutRate        uint64 //出块矿工奖励
 	ElectedMinerRate    uint64 //当选矿工奖励
 	FoundationMinerRate uint64 //基金会网络奖励
@@ -81,7 +79,7 @@ type BlkRewardCfg struct {
 	MinerMount     uint64 //矿工奖励单位man
 	MinerHalf      uint64 //矿工折半周期
 	ValidatorMount uint64 //验证者奖励 单位man
-	ValidatoHalf   uint64 //验证者折半周期
+	ValidatorHalf  uint64 //验证者折半周期
 	RewardRate     RewardRateCfg
 }
 

@@ -1,9 +1,10 @@
 package util
 
 import (
-	"github.com/matrix/go-matrix/log"
 	"math/big"
 	"sort"
+
+	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -21,13 +22,13 @@ const (
 
 var (
 	//ValidatorBlockReward  *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block
-	MultilCoinBlockReward *big.Int =  new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
+	MultilCoinBlockReward *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
 	//分母10000
 	ByzantiumTxsRewardDen *big.Int = big.NewInt(10000) // Block reward in wei for successfully mining a block upward from Byzantium
-	ValidatorsBlockReward  *big.Int = big.NewInt(5e+18)
-	MinersBlockReward *big.Int = big.NewInt(5e+18)
+	ValidatorsBlockReward *big.Int = big.NewInt(5e+18)
+	MinersBlockReward     *big.Int = big.NewInt(5e+18)
 
-	ManPrice *big.Int =big.NewInt(1e18)
+	ManPrice *big.Int = big.NewInt(1e18)
 )
 
 type ChainReader interface {
@@ -57,6 +58,7 @@ type ChainReader interface {
 
 type StateDB interface {
 	GetBalance(common.Address) common.BalanceType
+	GetMatrixData(hash common.Hash) (val []byte)
 }
 
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {
@@ -64,7 +66,7 @@ func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Addre
 	if 0 == reward.Cmp(big.NewInt(0)) {
 		return
 	}
-	if nil==rewards{
+	if nil == rewards {
 		return
 	}
 	if account.Equal(common.Address{}) {
@@ -83,19 +85,18 @@ func CalcRateReward(rewardAmount *big.Int, rate uint64) *big.Int {
 	return new(big.Int).Div(temp, new(big.Int).SetUint64(RewardFullRate))
 }
 
+func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]*big.Int) map[common.Address]*big.Int {
 
-func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int )map[common.Address ]*big.Int  {
-
-	if 0==len(depositNodes){
-		log.ERROR(PackageName,"抵押列表为空","")
+	if 0 == len(depositNodes) {
+		log.ERROR(PackageName, "抵押列表为空", "")
 		return nil
 	}
 	totalDeposit := new(big.Int)
 
-	depositNodesFix := make(map[common.Address ]*big.Int)
+	depositNodesFix := make(map[common.Address]*big.Int)
 
 	for k, v := range depositNodes {
-		depositTemp := new(big.Int).Div(v,big.NewInt(1e18))
+		depositTemp := new(big.Int).Div(v, big.NewInt(1e18))
 		if depositTemp.Cmp(big.NewInt(0)) <= 0 {
 			log.ERROR(PackageName, "定点化的抵押值错误", depositTemp)
 			return nil
@@ -107,9 +108,9 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 		log.ERROR(PackageName, "定点化抵押值为非法", totalDeposit)
 		return nil
 	}
-	log.INFO(PackageName,"计算抵押总额,账户总抵押",totalDeposit,"定点化抵押", totalDeposit)
+	log.INFO(PackageName, "计算抵押总额,账户总抵押", totalDeposit, "定点化抵押", totalDeposit)
 
-	rewardFixed :=new(big.Int).Div(reward,big.NewInt(1e8))
+	rewardFixed := new(big.Int).Div(reward, big.NewInt(1e8))
 
 	if 0 == rewardFixed.Cmp(big.NewInt(0)) {
 		log.ERROR(PackageName, "定点化奖励金额为0", "")
@@ -122,37 +123,36 @@ func CalcDepositRate(reward *big.Int, depositNodes map  [common.Address]*big.Int
 	}
 	sort.Strings(sortedKeys)
 	rewards := make(map[common.Address]*big.Int)
-	for _,k:=range sortedKeys {
-		rateTemp := new(big.Int).Mul(depositNodesFix[common.HexToAddress(k)],big.NewInt(1e10))
-		rate:=new(big.Int).Div(rateTemp,totalDeposit)
+	for _, k := range sortedKeys {
+		rateTemp := new(big.Int).Mul(depositNodesFix[common.HexToAddress(k)], big.NewInt(1e10))
+		rate := new(big.Int).Div(rateTemp, totalDeposit)
 		if rate.Cmp(big.NewInt(0)) < 0 {
 			log.ERROR(PackageName, "定点化比例非法", rate)
 			continue
 		}
-		log.INFO(PackageName,"计算比例,账户",k,"定点化比例", rate)
+		log.INFO(PackageName, "计算比例,账户", k, "定点化比例", rate)
 
-		rewardTemp:= new(big.Int).Mul(rewardFixed,rate)
-		rewardTemp1:= new(big.Int).Div(rewardTemp,big.NewInt(1e10))
-		oneNodeReward :=  new(big.Int).Mul(rewardTemp1,big.NewInt(1e8))
-		rewards[common.HexToAddress(k)]=oneNodeReward
-		log.INFO(PackageName,"计算奖励金额,账户",k,"定点化金额", rewards[common.HexToAddress(k)] )
-		log.INFO(PackageName,"","" )
+		rewardTemp := new(big.Int).Mul(rewardFixed, rate)
+		rewardTemp1 := new(big.Int).Div(rewardTemp, big.NewInt(1e10))
+		oneNodeReward := new(big.Int).Mul(rewardTemp1, big.NewInt(1e8))
+		rewards[common.HexToAddress(k)] = oneNodeReward
+		log.INFO(PackageName, "计算奖励金额,账户", k, "定点化金额", rewards[common.HexToAddress(k)])
+		log.INFO(PackageName, "", "")
 	}
-	return  rewards
+	return rewards
 }
 
-
-func MergeReward(dst map[common.Address]*big.Int,src map[common.Address]*big.Int){
-	if 0==len(src){
+func MergeReward(dst map[common.Address]*big.Int, src map[common.Address]*big.Int) {
+	if 0 == len(src) {
 		return
 	}
-	if nil==dst{
-		log.ERROR(PackageName,"dst is nil",dst)
+	if nil == dst {
+		log.ERROR(PackageName, "dst is nil", dst)
 		return
 	}
-	for account,reward :=range src{
+	for account, reward := range src {
 
-		SetAccountRewards(dst,account,reward)
+		SetAccountRewards(dst, account, reward)
 	}
 
 }

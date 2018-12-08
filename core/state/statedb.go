@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package state provides a caching layer atop the Matrix state trie.
 package state
@@ -270,25 +269,25 @@ func (self *StateDB) HasSuicided(addr common.Address) bool {
  */
 
 // AddBalance adds amount to the account associated with addr.
-func (self *StateDB) AddBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) AddBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.AddBalance(accountType,amount)
+		stateObject.AddBalance(accountType, amount)
 	}
 }
 
 // SubBalance subtracts amount from the account associated with addr.
-func (self *StateDB) SubBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) SubBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SubBalance(accountType,amount)
+		stateObject.SubBalance(accountType, amount)
 	}
 }
 
-func (self *StateDB) SetBalance(accountType uint32,addr common.Address, amount *big.Int) {
+func (self *StateDB) SetBalance(accountType uint32, addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetBalance(accountType,amount)
+		stateObject.SetBalance(accountType, amount)
 	}
 }
 
@@ -324,14 +323,14 @@ func (self *StateDB) Suicide(addr common.Address) bool {
 		return false
 	}
 	self.journal.append(suicideChange{
-		account:     &addr,
-		prev:        stateObject.suicided,
+		account: &addr,
+		prev:    stateObject.suicided,
 		//prevbalance: new(big.Int).Set(stateObject.Balance()),
 		prevbalance: stateObject.Balance(),
 	})
 	stateObject.markSuicided()
 	//stateObject.data.Balance = new(big.Int)
-	stateObject.data.Balance = make(common.BalanceType,0)
+	stateObject.data.Balance = make(common.BalanceType, 0)
 
 	return true
 }
@@ -389,11 +388,11 @@ func (self *StateDB) setStateObject(object *stateObject) {
 }
 
 /************************11************************************************/
-func (self *StateDB) updateMatrixData(hash common.Hash,val []byte) {
+func (self *StateDB) updateMatrixData(hash common.Hash, val []byte) {
 	self.setError(self.trie.TryUpdate(hash[:], val))
 }
 
-func (self *StateDB) deleteMatrixData(hash common.Hash,val []byte) {
+func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
 	self.setError(self.trie.TryDelete(hash[:]))
 }
 
@@ -413,13 +412,14 @@ func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 	return
 }
 
-func (self *StateDB) SetMatrixData(hash common.Hash,val []byte) {
+func (self *StateDB) SetMatrixData(hash common.Hash, val []byte) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	self.journal.append(addMatrixDataChange{hash: hash})
 	self.matrixData[hash] = val
 	self.matrixDataDirty[hash] = val
 }
+
 /**************************22***********************************************/
 
 // Retrieve a state object or create a new state object if nil.
@@ -460,8 +460,8 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {
 		//new.setBalance(prev.data.Balance)
-		for _,tAccount := range prev.data.Balance{
-			new.setBalance(tAccount.AccountType,tAccount.Balance)
+		for _, tAccount := range prev.data.Balance {
+			new.setBalance(tAccount.AccountType, tAccount.Balance)
 		}
 	}
 }
@@ -602,12 +602,12 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		s.stateObjectsDirty[addr] = struct{}{}
 	}
 
-	for hash,val := range s.matrixData{
+	for hash, val := range s.matrixData {
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty{
-			s.updateMatrixData(hash,val)
+		if isDirty {
+			s.updateMatrixData(hash, val)
 		}
-		delete(s.matrixDataDirty,hash)
+		delete(s.matrixDataDirty, hash)
 	}
 
 	// Invalidate journal because reverting across transactions is not allowed.
@@ -667,12 +667,12 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		delete(s.stateObjectsDirty, addr)
 	}
 
-	for hash,val := range s.matrixData{
+	for hash, val := range s.matrixData {
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty{
-			s.updateMatrixData(hash,val)
+		if isDirty {
+			s.updateMatrixData(hash, val)
 		}
-		delete(s.matrixDataDirty,hash)
+		delete(s.matrixDataDirty, hash)
 	}
 
 	// Write trie changes.

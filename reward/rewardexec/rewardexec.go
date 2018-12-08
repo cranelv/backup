@@ -18,7 +18,6 @@ const (
 )
 
 type BlockReward struct {
-	chain     util.ChainReader
 	st        util.StateDB
 	rewardCfg *cfg.RewardCfg
 }

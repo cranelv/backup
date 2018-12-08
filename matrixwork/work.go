@@ -417,7 +417,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if common.IsBroadcastNumber(env.header.Number.Uint64()) {
 		return nil
 	}
-	blkReward := blkreward.New(bc)
+	blkReward := blkreward.New(bc, env.State)
 	rewardList := make([]common.RewarTx, 0)
 	//todo: read half number from state
 	minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())

@@ -2,12 +2,15 @@ package blkreward
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/cfg"
 	"github.com/matrix/go-matrix/reward/rewardexec"
+	"github.com/matrix/go-matrix/reward/util"
 )
 
 type ChainReader interface {
@@ -38,10 +41,18 @@ type ChainReader interface {
 type blkreward struct {
 	blockReward *rewardexec.BlockReward
 	chain       ChainReader
+	state       util.StateDB
 }
 
-func New(chain ChainReader) reward.Reward {
-	//todo:从状态树读取配置
+func New(chain ChainReader, st util.StateDB) reward.Reward {
+	//todo:从状态树读取配置.
+	var Rewardcfg cfg.RewardStateCfg
+	Rewardcfg, err := matrixstate.GetDataByState(matrixstate.MinerRewardCfg, st)
+	if nil != err {
+		log.ERROR("固定区块奖励", "获取状态树配置错误")
+		return nil
+	}
+	Rewardcfg.
 	rewardCfg := cfg.New(nil, nil)
 	return rewardexec.New(chain, rewardCfg)
 }
