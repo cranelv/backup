@@ -152,6 +152,7 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
 	gensis.MState.SlashCfg = gensis1.MState.SlashCfg
 	gensis.MState.VIPCfg = gensis1.MState.VIPCfg
+	gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
 }
 
 //**********************************************************//

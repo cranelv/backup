@@ -29,6 +29,7 @@ type GenesisMState1 struct {
 	Foundation   mc.NodeInfo1          `json:"Foundation"`
 	InnerMiners  []mc.NodeInfo1        `json:"InnerMiners"`
 	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	LeaderCfg    mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
 	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
