@@ -453,6 +453,8 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	localHeader = localBlock.Header()
 	localHash := localHeader.HashNoSignsAndNonce()
 
+	root, _ := work.State.Commit(p.pm.bc.Config().IsEIP158(localBlock.Number()))
+	log.INFO(p.logExtraInfo(), "区块验证 tx hash", localBlock.TxHash(), "root hash", localBlock.Header().Root.Hex(), "commit root", root)
 	if localHash != p.curProcessReq.hash {
 		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),

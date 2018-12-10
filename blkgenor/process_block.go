@@ -94,7 +94,7 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	fullHash := rsp.Header.Hash()
 	headerHash := rsp.Header.HashNoSignsAndNonce()
-	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "full hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "高度", p.number)
+	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "full hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Root.Hex(), "高度", p.number)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -120,7 +120,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
-
+	log.Info(p.logExtraInfo(), "执行交易root", rsp.Header.Root.Hex())
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:    rsp.Header,
 		BlockHash: rsp.Header.HashNoSignsAndNonce(),
@@ -387,10 +387,16 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 		insertHeader = header
 	}
 
+	log.Info(p.logExtraInfo(), "++++++NewBlockWithTxs++++++++++,root", blockData.block.Header.Root.Hex())
+
 	txs := blockData.block.Txs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
 	block := types.NewBlockWithTxs(insertHeader, txs)
+
+	root, err := state.Commit(p.pm.bc.Config().IsEIP158(blockData.block.Header.Number))
+
+	log.Info(p.logExtraInfo(), "++++++NewBlockWithTxs++++++++++,commit root", root.Hex())
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

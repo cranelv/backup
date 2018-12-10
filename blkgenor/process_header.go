@@ -212,7 +212,8 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block := types.NewBlock(header, Txs, nil, work.Receipts)
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
+		root, _ := work.State.Commit(p.pm.bc.Config().IsEIP158(block.Number()))
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash(), "root hash", block.Header().Root.Hex(), "commit root", root)
 		return block, txsCode, work.State, work.Receipts, nil
 	}
 }
