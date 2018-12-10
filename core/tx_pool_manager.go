@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
-
 	"github.com/matrix/go-matrix/p2p"
-
 	"time"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -60,6 +57,31 @@ func (b3 *byteNumber) catNumber() uint32 {
 var byte3Number = &byteNumber{maxNum: 0x1ffff, num: 0}
 var byte4Number = &byteNumber{maxNum: 0x1ffffff, num: 0}
 
+type Blacklist struct {
+	Bmap map[common.Address]bool
+	mu sync.RWMutex
+}
+
+func NewInitblacklist()*Blacklist  {
+	b := &Blacklist{}
+	b.Bmap = make(map[common.Address]bool)
+	b.Bmap[common.HexToAddress("0x7097f41F1C1847D52407C629d0E0ae0fDD24fd58")] = true
+	return b
+}
+var SelfBlackList *Blacklist
+func (b *Blacklist)FindBlackAddress(addr common.Address) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	_,ok := b.Bmap[addr]
+	return ok
+}
+func (b *Blacklist)AddBlackAddress(addr common.Address)  {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.Bmap[addr] = true
+}
+
+
 // TxPoolManager
 type TxPoolManager struct {
 	txPoolsMutex sync.RWMutex
@@ -70,6 +92,9 @@ type TxPoolManager struct {
 	quit         chan struct{}
 	addPool      chan TxPool
 	delPool      chan TxPool
+	sendTxCh     chan NewTxsEvent
+	txFeed       event.Feed
+	scope        event.SubscriptionScope
 }
 
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
@@ -80,7 +105,9 @@ func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chai
 		roleChan:     make(chan common.RoleType),
 		addPool:      make(chan TxPool),
 		delPool:      make(chan TxPool),
+		sendTxCh:     make(chan NewTxsEvent),
 	}
+	SelfBlackList = NewInitblacklist()
 	go txPoolManager.loop(config, chainconfig, chain, path)
 	return txPoolManager
 }
@@ -139,7 +166,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 		return
 	}
 
-	normalTxPool := NewTxPool(config, chainconfig, chain)
+	normalTxPool := NewTxPool(config, chainconfig, chain,pm.sendTxCh)
 	pm.Subscribe(normalTxPool)
 
 	for {
@@ -162,6 +189,8 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 				log.Error("txpool manager unsubscribe", "error", err)
 				continue
 			}
+		case txevent:= <- pm.sendTxCh:
+			pm.txFeed.Send(txevent)
 		case <-pm.quit:
 			return
 		}
@@ -172,7 +201,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 func (pm *TxPoolManager) Stop() {
 	pm.txPoolsMutex.Lock()
 	defer pm.txPoolsMutex.Unlock()
-
+	pm.scope.Close()
 	for _, pool := range pm.txPools {
 		pool.Stop()
 	}
@@ -189,11 +218,13 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 		txmap, _ := txpool.Pending()
 		for addr, txs := range txmap {
 			txs = pm.filter(txs)
-			if txlist, ok := txser[addr]; ok {
-				txlist = append(txlist, txs...)
-				txser[addr] = txlist
-			} else {
-				txser[addr] = txs
+			if len(txs) > 0{
+				if txlist, ok := txser[addr]; ok {
+					txlist = append(txlist, txs...)
+					txser[addr] = txlist
+				} else {
+					txser[addr] = txs
+				}
 			}
 		}
 	}
@@ -202,9 +233,13 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction){
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
 	for _,txer := range txser{
-		ct := txer.CoinType()
+		ct := txer.GetTxCurrency()
 		if ct == ""{
 
+		}
+		//黑账户过滤
+		if SelfBlackList.FindBlackAddress(*txer.To()){
+			continue
 		}
 		txerlist = append(txerlist,txer)
 	}
@@ -224,14 +259,12 @@ func (pm *TxPoolManager) AddRemotes(txs []types.SelfTransaction) []error {
 }
 
 func (pm *TxPoolManager) SubscribeNewTxsEvent(ch chan NewTxsEvent) (ev event.Subscription) {
-	//if len(ch) <= 0{
-	//	return nil
-	//}
-	//t := <-ch
-	//TODO
-	pm.txPoolsMutex.RLock()
-	defer pm.txPoolsMutex.RUnlock()
-	return pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
+	return pm.scope.Track(pm.txFeed.Subscribe(ch))
+	////TODO 消息订阅这块需要重构用来支持多个交易池，目前只支持一个交易池
+	//pm.txPoolsMutex.RLock()
+	//defer pm.txPoolsMutex.RUnlock()
+	//ev = pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
+	//return
 }
 
 // ProcessMsg

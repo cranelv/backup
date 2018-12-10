@@ -8,9 +8,7 @@ import (
 	"context"
 	"math/big"
 	"time"
-
 	"encoding/json"
-	"fmt"
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -19,7 +17,6 @@ import (
 	"github.com/matrix/go-matrix/core/bloombits"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/event"
@@ -29,8 +26,9 @@ import (
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
-	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/core/txinterface"
 	"os"
+	"github.com/pkg/errors"
 )
 
 // ManAPIBackend implements manapi.Backend for full nodes
@@ -96,7 +94,9 @@ func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 func (b *ManAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.man.blockchain.GetBlockByHash(hash), nil
 }
-
+func (b *ManAPIBackend) GetState() (*state.StateDB, error) {
+	return b.man.BlockChain().State()
+}
 func (b *ManAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.man.chainDb, hash); number != nil {
 		return rawdb.ReadReceipts(b.man.chainDb, hash, *number), nil
@@ -182,8 +182,6 @@ func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (
 
 //TODO 调用该方法的时候应该返回错误的切片
 func (b *ManAPIBackend) SendTx(ctx context.Context, signedTx types.SelfTransaction) error {
-	//txs := make(types.SelfTransactions, 0)
-	//txs = append(txs, signedTx)
 	return b.man.txPool.AddRemote(signedTx)
 }
 
@@ -253,6 +251,8 @@ func (b *ManAPIBackend) Stats() (pending int, queued int) {
 
 //TODO 应该将返回值加入切片中否则以后多一种交易就要添加一个返回值
 func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTransactions, btxs map[common.Address]types.SelfTransactions) {
+	ntxs = make(map[common.Address]types.SelfTransactions)
+	btxs = make(map[common.Address]types.SelfTransactions)
 	bpooler, err := b.man.TxPool().GetTxPoolByType(types.BroadCastTxIndex)
 	if err == nil {
 		_, ok := bpooler.(*core.BroadCastTxPool)
@@ -266,9 +266,17 @@ func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTrans
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			//ntxs, _ = npool.Content()
-			ntxs = nil         //YYY TODO npool.Content()
-			fmt.Println(npool) //TODO 删除
+			txlist := npool.Content()
+			for k,vlist := range txlist{
+				txser := make([]types.SelfTransaction,0)
+				for _,v := range vlist{
+					txser = append(txser,v)
+				}
+				if vs,ok := ntxs[k]; !ok{
+					txser = append(txser,vs...)
+				}
+				ntxs[k] = txser
+			}
 		} else {
 			ntxs = nil
 		}

@@ -100,6 +100,11 @@ type (
 		account       *common.Address
 		key, prevalue common.Hash
 	}
+	storageByteArrayChange struct {
+		account  *common.Address
+		key      common.Hash
+		prevalue []byte
+	}
 	codeChange struct {
 		account            *common.Address
 		prevcode, prevhash []byte
@@ -114,6 +119,14 @@ type (
 	}
 	addPreimageChange struct {
 		hash common.Hash
+	}
+	addMatrixDataChange struct {
+		hash common.Hash
+	}
+	addBtreeChange struct {
+		typ string
+		key uint32
+		//hash common.Hash
 	}
 	touchChange struct {
 		account   *common.Address
@@ -198,6 +211,14 @@ func (ch storageChange) dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch storageByteArrayChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch storageByteArrayChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setStateByteArray(ch.key, ch.prevalue)
+}
+
 func (ch refundChange) revert(s *StateDB) {
 	s.refund = ch.prev
 }
@@ -225,5 +246,28 @@ func (ch addPreimageChange) revert(s *StateDB) {
 }
 
 func (ch addPreimageChange) dirtied() *common.Address {
+	return nil
+}
+
+func (ch addMatrixDataChange) revert(s *StateDB) {
+	delete(s.matrixData, ch.hash)
+}
+
+func (ch addMatrixDataChange) dirtied() *common.Address {
+	return nil
+}
+
+func (ch addBtreeChange) revert(s *StateDB) {
+	tm := make([]BtreeDietyStruct,0)
+	for _,bt := range s.btreeMap{
+		if bt.Key == ch.key && bt.Typ == ch.typ{
+			continue
+		}
+		tm = append(tm,BtreeDietyStruct{bt.Key,bt.Data,bt.Typ})
+	}
+	s.btreeMap = tm
+}
+
+func (ch addBtreeChange) dirtied() *common.Address {
 	return nil
 }

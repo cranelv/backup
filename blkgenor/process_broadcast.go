@@ -52,12 +52,8 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
 			continue
 		}
-
-
 		//执行交易
-
-
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc,nil)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
 		retTxs:=work.GetTxs()
 		log.INFO("*********************", "len(result.Txs)", len(retTxs))
 		for _, tx := range retTxs {

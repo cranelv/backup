@@ -535,7 +535,9 @@ func (w *wallet) SignTx(account accounts.Account, tx types.SelfTransaction, chai
 	}
 	return signed, nil
 }
-
+func (ks *wallet) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
+	return nil, nil
+}
 // SignHashWithPassphrase implements accounts.Wallet, however signing arbitrary
 // data is not supported for Ledger wallets, so this method will always return
 // an error.

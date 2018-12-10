@@ -5,7 +5,6 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/p2p/discover"
 )
 
@@ -28,7 +27,6 @@ type TxPool interface {
 	Stop()
 	AddTxPool(tx types.SelfTransaction) error
 	Pending() (map[common.Address][]types.SelfTransaction, error)
-	SubscribeNewTxsEvent(chan<- NewTxsEvent) event.Subscription
 	ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool)
 }
 

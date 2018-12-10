@@ -259,7 +259,7 @@ func newTxList(strict bool,str string) *txList {
 // Overlaps returns whether the transaction specified has the same nonce as one
 // already contained within the list.
 func (l *txList) Overlaps(tx *types.Transaction) bool {
-	sm ,ok:= l.txs[tx.CoinType()]
+	sm ,ok:= l.txs[tx.GetTxCurrency()]
 	if !ok {
 		return false
 	}
@@ -285,10 +285,10 @@ func (l *txList) Add(tx *types.Transaction, priceBump uint64) (bool, *types.Tran
 	//	}
 	//}
 	// Otherwise overwrite the old transaction with the current one
-	sm ,ok := l.txs[tx.CoinType()]
+	sm ,ok := l.txs[tx.GetTxCurrency()]
 	if !ok {
-		l.txs[tx.CoinType()] = newTxSortedMap()
-		sm = l.txs[tx.CoinType()]
+		l.txs[tx.GetTxCurrency()] = newTxSortedMap()
+		sm = l.txs[tx.GetTxCurrency()]
 	}
 	sm.Put(tx)
 	if cost := tx.Cost(); l.costcap.Cmp(cost) < 0 {
@@ -358,7 +358,7 @@ func (l *txList) Filter(costLimit *big.Int, gasLimit uint64,typ string) ([]*type
 func (l *txList) Remove(tx *types.Transaction) (bool, []*types.Transaction) {
 	// Remove the transaction from the set
 	nonce := tx.Nonce()
-	sm,ok:= l.txs[tx.CoinType()]
+	sm,ok:= l.txs[tx.GetTxCurrency()]
 	if !ok{
 		return false ,nil
 	}

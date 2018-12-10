@@ -14,7 +14,10 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
+	"sync"
+	"runtime"
 	"errors"
+	"github.com/matrix/go-matrix/log"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -56,22 +59,39 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 	// Iterate over and process the individual transactions
-
+	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
+	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
 	stxs := make([]types.SelfTransaction,0)
 	var txcount int
-	for i, tx := range block.Transactions() {
+	txs := block.Transactions()
+	var waitG = &sync.WaitGroup{}
+	maxProcs := runtime.NumCPU()   //获取cpu个数
+	if maxProcs >= 2{
+		runtime.GOMAXPROCS(maxProcs-1)  //限制同时运行的goroutines数量
+	}
+	normalTxindex := 0
+	for _,tx:=range txs{
+		if tx.GetMatrixType() == common.ExtraUnGasTxType{
+			tmpstxs := make([]types.SelfTransaction,0)
+			tmpstxs = append(tmpstxs,tx)
+			tmpstxs = append(tmpstxs,stxs...)
+			stxs = tmpstxs
+			normalTxindex++
+			continue
+		}
+		sig := types.NewEIP155Signer(tx.ChainId())
+		waitG.Add(1)
+		ttx := tx
+		go types.Sender_self(sig,ttx,waitG)
+	}
+	waitG.Wait()
+	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType{
 			tmpstxs := make([]types.SelfTransaction,0)
 			tmpstxs = append(tmpstxs,tx)
 			tmpstxs = append(tmpstxs,stxs...)
 			stxs = tmpstxs
 			continue
-		}
-		from,addrerr := tx.GetTxFrom()
-		var tf common.Address
-		if addrerr == nil && from != tf{
-			//err is nil means from not nil
-			return nil, nil, 0, errors.New("This tx from must is nil")
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
@@ -97,6 +117,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		tmpl = append(tmpl,allLogs...)
 		allLogs = tmpl
 	}
+
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
@@ -108,7 +129,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
-
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
@@ -129,6 +149,14 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
 		if err != nil {
 			return nil, 0, err
+		}
+	}
+	//如果是委托gas并且是按时间委托
+	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime(){
+		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
+		if !statedb.GetIsEntrustByTime(from,header.Time.Uint64()){
+			log.Error("按时间委托gas的交易失效")
+			return nil, 0, errors.New("entrustTx is invalid")
 		}
 	}
 	// Update the state with pending changes
