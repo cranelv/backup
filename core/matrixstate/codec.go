@@ -210,8 +210,8 @@ func (MSPVIPConfigCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPVIPConfigCodec) decodeFn(data []byte) (interface{}, error) {
-//	msg := new([]mc.VIPConfig)
-	msg:=[]mc.VIPConfig{}
+msg := new([]mc.VIPConfig)
+	//msg:=[]mc.VIPConfig{}
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
