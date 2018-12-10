@@ -17,6 +17,7 @@ type GenesisMState struct {
 	Foundation   mc.NodeInfo           `json:"Foundation"`
 	InnerMiners  []mc.NodeInfo         `json:"InnerMiners"`
 	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	LeaderCfg    mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
 	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
@@ -50,6 +51,9 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 		return err
 	}
 	if err := g.setVIPCfgToState(state); err != nil {
+		return err
+	}
+	if err := g.setLeaderCfgToState(state); err != nil {
 		return err
 	}
 
@@ -266,4 +270,22 @@ func (g *Genesis) setVIPCfgToState(state *state.StateDB) error {
 	}
 
 	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.MState.VIPCfg, state)
+}
+
+func (g *Genesis) setLeaderCfgToState(state *state.StateDB) error {
+	cfg := g.MState.LeaderCfg
+	if cfg.ParentMiningTime <= 0 {
+		return errors.Errorf("`ParentMiningTime`(%d) of leader config illegal", cfg.ParentMiningTime)
+	}
+	if cfg.PosOutTime <= 0 {
+		return errors.Errorf("`PosOutTime`(%d) of leader config illegal", cfg.PosOutTime)
+	}
+	if cfg.ReelectOutTime <= 0 {
+		return errors.Errorf("`ReelectOutTime`(%d) of leader config illegal", cfg.ReelectOutTime)
+	}
+	if cfg.ReelectHandleInterval <= 0 {
+		return errors.Errorf("`ReelectHandleInterval`(%d) of leader config illegal", cfg.ReelectHandleInterval)
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeyLeaderConfig, g.MState.LeaderCfg, state)
 }

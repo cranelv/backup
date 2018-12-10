@@ -19,6 +19,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
+	self.codecMap[mc.MSKeyLeaderConfig] = new(MSKeyLeaderConfigCodec)
 	self.codecMap[mc.MSKeyBlkRewardCfg] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeyTxsRewardCfg] = new(MSPTxsRewardCfgCodec)
 	self.codecMap[mc.MSKeyInterestCfg] = new(MSPInterestCfgCodec)
@@ -245,6 +246,33 @@ func (MSPreBroadcastStateDBCodec) decodeFn(data []byte) (interface{}, error) {
 	return msg, nil
 }
 
+////////////////////////////////////////////////////////////////////////
+// key = MSKeyLeaderConfig
+type MSKeyLeaderConfigCodec struct {
+}
+
+func (MSKeyLeaderConfigCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSKeyLeaderConfigCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.LeaderConfig)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+////////////////////////////////////////////////////////////////////////
+// key = MSPRewardRateCfgCodec
 type MSPRewardRateCfgCodec struct {
 }
 

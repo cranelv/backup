@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
@@ -58,14 +59,13 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	if err != nil {
 		return err
 	}
-
-	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, parentState)
+	specials, err := dc.readSpecialAccountsFromState(parentState)
 	if err != nil {
 		return err
 	}
-	specials, OK := data.(*mc.MatrixSpecialAccounts)
-	if OK == false || specials == nil {
-		return errors.New("反射MatrixSpecialAccounts失败")
+	config, err := dc.readLeaderConfigFromState(parentState)
+	if err != nil {
+		return err
 	}
 
 	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials); err != nil {
@@ -85,41 +85,13 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	} else {
 		dc.reelectMaster.Set(common.Address{})
 	}
+	if err := dc.turnTime.SetTimeConfig(config); err != nil {
+		log.Error(dc.logInfo, "设置时间配置参数失败", err)
+	}
 	dc.consensusLeader.Set(consensusLeader)
 	dc.parentState = parentState
 	dc.role = role
 	return nil
-}
-
-func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
-	topology, _, err := dc.chain.GetGraphByState(state)
-	if err != nil {
-		return nil, common.RoleNil, err
-	}
-
-	if topology.Number+1 != dc.number {
-		return nil, common.RoleNil, errors.Errorf("state中的拓扑图高度不匹配，state number（%d） + 1 != local number(%d)", topology.Number, dc.number)
-	}
-
-	role := dc.getRoleFromTopology(topology)
-
-	validators := make([]mc.TopologyNodeInfo, 0)
-	for _, node := range topology.NodeList {
-		if node.Type == common.RoleValidator {
-			validators = append(validators, node)
-		}
-	}
-	return validators, role, nil
-}
-
-func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
-	selfAccount := ca.GetAddress()
-	for _, v := range TopologyGraph.NodeList {
-		if v.Account == selfAccount {
-			return v.Type
-		}
-	}
-	return common.RoleNil
 }
 
 func (dc *cdc) SetConsensusTurn(consensusTurn uint32) error {
@@ -210,4 +182,65 @@ func (dc *cdc) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccou
 		return dc.leaderCal.specials, nil
 	}
 	return dc.chain.GetSpecialAccounts(blockHash)
+}
+
+func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
+	topology, _, err := dc.chain.GetGraphByState(state)
+	if err != nil {
+		return nil, common.RoleNil, err
+	}
+
+	if topology.Number+1 != dc.number {
+		return nil, common.RoleNil, errors.Errorf("state中的拓扑图高度不匹配，state number（%d） + 1 != local number(%d)", topology.Number, dc.number)
+	}
+
+	role := dc.getRoleFromTopology(topology)
+
+	validators := make([]mc.TopologyNodeInfo, 0)
+	for _, node := range topology.NodeList {
+		if node.Type == common.RoleValidator {
+			validators = append(validators, node)
+		}
+	}
+	return validators, role, nil
+}
+
+func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
+	selfAccount := ca.GetAddress()
+	for _, v := range TopologyGraph.NodeList {
+		if v.Account == selfAccount {
+			return v.Type
+		}
+	}
+	return common.RoleNil
+}
+
+func (dc *cdc) readSpecialAccountsFromState(state *state.StateDB) (*mc.MatrixSpecialAccounts, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
+	if err != nil {
+		return nil, err
+	}
+	specials, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false {
+		return nil, errors.New("反射MatrixSpecialAccounts失败")
+	}
+	if specials == nil {
+		return nil, errors.New("MatrixSpecialAccounts == nil")
+	}
+	return specials, nil
+}
+
+func (dc *cdc) readLeaderConfigFromState(state *state.StateDB) (*mc.LeaderConfig, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyLeaderConfig, state)
+	if err != nil {
+		return nil, err
+	}
+	config, OK := data.(*mc.LeaderConfig)
+	if OK == false {
+		return nil, errors.New("反射LeaderConfig失败")
+	}
+	if config == nil {
+		return nil, errors.New("LeaderConfig == nil")
+	}
+	return config, nil
 }

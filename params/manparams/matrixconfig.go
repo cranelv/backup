@@ -21,11 +21,6 @@ const (
 
 	RandomVoteTime = 5
 
-	LRSParentMiningTime = int64(20)
-	LRSPOSOutTime       = int64(20)
-	LRSReelectOutTime   = int64(40)
-	LRSReelectInterval  = 5
-
 	VotePoolTimeout    = 55 * 1000
 	VotePoolCountLimit = 5
 

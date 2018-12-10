@@ -134,7 +134,7 @@ func (self *LeaderIdentity) run() {
 
 func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 	if msg == nil || msg.Header == nil {
-		log.ERROR(self.extraInfo, "NewBlockReady处理错误", ErrMsgIsNil)
+		log.ERROR(self.extraInfo, "NewBlockReady处理错误", ErrParamsIsNil)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 
 func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 	if msg == nil {
-		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", ErrMsgIsNil)
+		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", ErrParamsIsNil)
 		return
 	}
 	if (msg.Leader == common.Address{}) {
@@ -185,7 +185,7 @@ func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 
 func (self *LeaderIdentity) blockPOSFinishedMsgHandle(msg *mc.BlockPOSFinishedNotify) {
 	if msg == nil {
-		log.Error(self.extraInfo, "区块POS完成消息处理", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "区块POS完成消息处理", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	if (msg.Header.Leader == common.Address{}) {
@@ -202,7 +202,7 @@ func (self *LeaderIdentity) blockPOSFinishedMsgHandle(msg *mc.BlockPOSFinishedNo
 
 func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) {
 	if req == nil {
-		log.Error(self.extraInfo, "重选询问消息", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选询问消息", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	self.ctrlManager.ReceiveMsgByCur(req)
@@ -210,7 +210,7 @@ func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) 
 
 func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) {
 	if rsp == nil {
-		log.Error(self.extraInfo, "重选询问响应", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选询问响应", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	err := self.ctrlManager.ReceiveMsg(rsp.Number, rsp)
@@ -221,7 +221,7 @@ func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) 
 
 func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 	if req == nil {
-		log.Error(self.extraInfo, "leader重选请求", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "leader重选请求", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	err := self.ctrlManager.ReceiveMsg(req.InquiryReq.Number, req)
@@ -232,7 +232,7 @@ func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 
 func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 	if req == nil {
-		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到leader重选投票", "开始", "高度", req.Number)
@@ -245,7 +245,7 @@ func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 
 func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroadcastMsg) {
 	if msg == nil {
-		log.Error(self.extraInfo, "重选结果广播", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选结果广播", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到重选结果广播", "开始", "高度", msg.Number, "结果类型", msg.Type, "from", msg.From.Hex())
@@ -258,7 +258,7 @@ func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroa
 
 func (self *LeaderIdentity) rlResultRspHandle(rsp *mc.HD_ReelectResultRspMsg) {
 	if rsp == nil {
-		log.Error(self.extraInfo, "重选结果响应", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选结果响应", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到重选结果响应", "开始", "高度", rsp.Number)

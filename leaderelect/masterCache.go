@@ -9,7 +9,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -46,8 +45,8 @@ func newMasterCache(number uint64) *masterCache {
 	}
 }
 
-func (self *masterCache) CanSendInquiryReq(time int64) bool {
-	if time-self.lastInquiryTime <= manparams.LRSReelectInterval {
+func (self *masterCache) CanSendInquiryReq(time int64, interval int64) bool {
+	if time-self.lastInquiryTime <= interval {
 		return false
 	}
 	self.lastInquiryTime = time
@@ -88,7 +87,7 @@ func (self *masterCache) ClearSelfInquiryMsg() {
 
 func (self *masterCache) CheckInquiryRspMsg(rsp *mc.HD_ReelectInquiryRspMsg) error {
 	if nil == rsp {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 	if (self.inquiryHash == common.Hash{}) {
 		return ErrSelfReqIsNil
