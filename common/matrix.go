@@ -114,7 +114,7 @@ func GetRoleVipGrade(aim uint64) int {
 type Echelon struct {
 	MinMoney *big.Int
 	MaxNum   int
-	Ratio    float64
+	Ratio    uint16
 }
 
 var (
@@ -125,12 +125,12 @@ var (
 		Echelon{
 			MinMoney: vip1,
 			MaxNum:   5,
-			Ratio:    2.0,
+			Ratio:   1000,
 		},
 		Echelon{
 			MinMoney: vip2,
 			MaxNum:   3,
-			Ratio:    1.0,
+			Ratio:    500,
 		},
 	}
 )
