@@ -119,8 +119,8 @@ type Echelon struct {
 
 var (
 	ManValue      = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	vip1          = new(big.Int).Mul(big.NewInt(100000), ManValue)
-	vip2          = new(big.Int).Mul(big.NewInt(40000), ManValue)
+	vip1          = new(big.Int).Mul(big.NewInt(10000000), ManValue)
+	vip2          = new(big.Int).Mul(big.NewInt(1000000), ManValue)
 	EchelonArrary = []Echelon{
 		Echelon{
 			MinMoney: vip1,
