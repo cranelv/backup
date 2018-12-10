@@ -23,6 +23,8 @@ type GenesisMState struct {
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
 	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
 	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
+	EleInfoCfg mc.ElectConfigInfo  `json:"EleInfo" gencodec:"required"`
 }
 type GenesisMState1 struct {
 	Broadcast    mc.NodeInfo1          `json:"Broadcast"`
@@ -38,6 +40,12 @@ type GenesisMState1 struct {
 }
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {
+	if err:=g.setElectTime(state);err!=nil{
+		return err
+	}
+	if err:=g.setElectInfo(state);err!=nil{
+		return err
+	}
 	if err := g.setTopologyToState(state); err != nil {
 		return err
 	}
@@ -70,6 +78,19 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 	}
 
 	return nil
+}
+
+func (g *Genesis)setElectTime(state *state.StateDB)error{
+	if g.MState.EleTimeCfg.ValidatorGen>g.MState.EleTimeCfg.ValidatorNetChange{
+		return errors.New("验证者切换点小于验证者生成点")
+	}
+	if g.MState.EleTimeCfg.MinerGen>g.MState.EleTimeCfg.MinerNetChange{
+		return errors.New("矿工切换点小于矿工生效时间点")
+	}
+	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.MState.EleTimeCfg, state)
+}
+func (g *Genesis)setElectInfo(state *state.StateDB)error{
+	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo,g.MState.EleInfoCfg,state)
 }
 
 func (g *Genesis) setTopologyToState(state *state.StateDB) error {
