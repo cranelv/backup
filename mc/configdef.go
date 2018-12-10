@@ -20,13 +20,24 @@ const (
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 	MSKeyLeaderConfig      = "leader_config"
-
+	//奖励配置
 	MSKeyBlkRewardCfg = "blk_reward"
 	MSKeyTxsRewardCfg = "txs_reward"
 	MSKeyInterestCfg  = "interest_reward" //利息状态
 	MSKeyLotteryCfg   = "lottery_reward"
 	MSKeySlashCfg     = "slash_reward"
 	MSKeyMultiCoin    = "coin_reward"
+	//upTime状态
+	MSKeyUpTimeNum = "upTime_num"
+	//矿工状态
+	MSKEYMinerPayNum = "miner_num"
+	//彩票状态
+	MSKEYLotteryNum = "lottery_num"
+	//利息状态
+	MSInterestCalcNum = "interest_calc_num"
+	MSInterestPayNum  = "interest_pay_num"
+	//惩罚状态
+	MSKeySlashNum = "slash_num"
 )
 
 type ElectGenTimeStruct struct {
@@ -59,7 +70,6 @@ type ElectConfigInfo struct {
 	WhiteList          []common.Address
 	BlackList          []common.Address
 }
-
 type VIPConfig struct {
 	MinMoney     uint64
 	InterestRate uint64 //(分母待定为1000w)

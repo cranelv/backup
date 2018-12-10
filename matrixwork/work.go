@@ -35,6 +35,11 @@ import (
 
 var packagename string = "matrixwork"
 
+type ChainReader interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
+	GetBlockByHash(hash common.Hash) *types.Block
+}
+
 // Work is the workers current environment and holds
 // all of the current state information
 type Work struct {
@@ -105,7 +110,7 @@ func (cu *coingasUse) clearmap() {
 	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
 }
-func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
@@ -489,6 +494,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	return env.Reverse(rewardList)
 }
+
 func (env *Work) getGas() *big.Int {
 
 	price := mapcoingasUse.getCoinGasPrice("MAN")
@@ -508,16 +514,16 @@ func (env *Work) getGas() *big.Int {
 	}
 	return allGas
 }
-func (env *Work) GetUpTimeAccounts(num uint64,bc *core.BlockChain) ([]common.Address, error) {
-	originData,err:=bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,num-1)
-	if err!=nil{
-		log.ERROR("blockchain","获取选举生成点配置失败 err",err)
-		return nil,err
+func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain) ([]common.Address, error) {
+	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
+	if err != nil {
+		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
+		return nil, err
 	}
-	electGenConf,Ok:=originData.(*mc.ElectGenTimeStruct)
-	if Ok==false{
-		log.ERROR("blockchain","选举生成点信息失败 err",err)
-		return nil,err
+	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
+	if Ok == false {
+		log.ERROR("blockchain", "选举生成点信息失败 err", err)
+		return nil, err
 	}
 
 	log.INFO(packagename, "获取所有参与uptime点名高度", num)
@@ -535,7 +541,7 @@ func (env *Work) GetUpTimeAccounts(num uint64,bc *core.BlockChain) ([]common.Add
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
 	}
-	validatorNum := num - (num % common.GetBroadcastInterval()) -uint64(electGenConf.ValidatorGen)
+	validatorNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
 	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {
@@ -661,4 +667,38 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	return nil
+}
+
+func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64) error {
+	broadcastInterval := common.GetBroadcastInterval()
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
+	for _, account := range accounts {
+
+		upTime := broadcastInterval - 3
+		log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
+
+		// todo: add
+		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		env.uptime[account] = upTime
+		if nil == err {
+			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
+		}
+
+	}
+	return nil
+
 }

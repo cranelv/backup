@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
@@ -23,22 +25,43 @@ import (
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
 
-	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(),p.blockChain())
-		if err != nil {
-			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-		}
+	if p.number == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
+	if nil != err {
+		return err
+	}
+	if p.number < common.GetBroadcastInterval() {
+		return nil
+	}
+	sbh := p.blockChain().GetSuperBlockHash()
+	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()
 
-		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
+	if latestNum < common.GetLastBroadcastNumber(p.number)+1 {
+		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain())
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
+		}
+		//在上一个广播周期中插入超级区块
+		if sbn < common.GetLastBroadcastNumber(header.Number.Uint64()) &&
+			sbn >= common.GetLastBroadcastNumber(header.Number.Uint64())-common.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number)
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
+			if err != nil {
+				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+			}
+
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+			if nil != err {
+				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
+				return err
+			}
 		}
 	}
 
@@ -212,8 +235,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block := types.NewBlock(header, Txs, nil, work.Receipts)
-		root, _ := work.State.Commit(p.pm.bc.Config().IsEIP158(block.Number()))
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash(), "root hash", block.Header().Root.Hex(), "commit root", root)
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
 		return block, txsCode, work.State, work.Receipts, nil
 	}
 }

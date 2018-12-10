@@ -3,9 +3,10 @@ package slash
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/reward/util"
+
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
@@ -69,14 +70,23 @@ func New(chain ChainReader, st util.StateDB) *BlockSlash {
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64) {
 	var eleNum uint64
 
-	if num < common.GetBroadcastInterval() {
+	if num == 1 {
+		matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
+		log.INFO(PackageName, "初始化惩罚状态树高度", num)
 		return
 	}
-	//选举周期的最后时刻分配
-	if !common.IsReElectionNumber(num - 1) {
-		log.INFO(PackageName, "当前高度非法", num)
+	//选举周期的开始分配
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeySlashNum, currentState)
+	if nil != err {
+		log.ERROR(PackageName, "状态树获取前一发放惩罚高度错误", err)
 		return
 	}
+	if latestNum >= common.GetLastReElectionNumber(num-1)+1 {
+		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+		return
+	}
+
+	matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
 	//计算选举的拓扑图的高度
 	if num < common.GetReElectionInterval()+2 {
 		eleNum = 0

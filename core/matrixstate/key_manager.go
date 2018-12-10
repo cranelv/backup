@@ -1,6 +1,8 @@
 package matrixstate
 
 import (
+	"encoding/binary"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
@@ -32,6 +34,22 @@ func GetDataByState(key string, state StateDB) (interface{}, error) {
 	}
 
 	return codec.decodeFn(bytes)
+}
+
+func GetNumByState(key string, state StateDB) (uint64, error) {
+	bytes := state.GetMatrixData(common.BytesToHash([]byte(key)))
+	if len(bytes) <= 0 {
+		return 0, errors.Errorf("no data in state of key(%s)", key)
+	}
+
+	return uint64(binary.BigEndian.Uint64(bytes[:8])), nil
+}
+
+func SetNumByState(key string, state StateDB, num uint64) error {
+	data := make([]byte, 0)
+	binary.BigEndian.PutUint64(data, num)
+	state.SetMatrixData(common.BytesToHash([]byte(key)), data)
+	return nil
 }
 
 func SetDataToState(key string, data interface{}, state StateDB) error {

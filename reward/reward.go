@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 )
 
 //todo:多个币种reward，超级节点
@@ -14,12 +13,4 @@ type Reward interface {
 	CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
 	CalcValidatorRewards(Leader common.Address, num uint64) map[common.Address]*big.Int
 	CalcMinerRewards(num uint64) map[common.Address]*big.Int
-}
-
-type Lottery interface {
-	LotteryCalc(num uint64) map[string]map[common.Address]*big.Int
-}
-
-type Slash interface {
-	CalcSlash(state *state.StateDB, num uint64) map[common.Address]*big.Int
 }

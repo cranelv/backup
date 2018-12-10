@@ -37,6 +37,7 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
 	Genesis() *types.Block
+	GetSuperBlockHash() common.Hash
 	GetMatrixStateData(key string) (interface{}, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }

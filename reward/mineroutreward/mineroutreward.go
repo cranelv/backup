@@ -3,6 +3,9 @@ package mineroutreward
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/params"
@@ -44,9 +47,16 @@ type ChainReader interface {
 	State() (*state.StateDB, error)
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader, num uint64) map[common.Address]*big.Int {
+func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
-	if num < uint64(2) || common.IsBroadcastNumber(num) {
+
+	if num == 1 {
+		log.WARN(PackageName, "初始化矿工状态：", num)
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, num)
+		return nil
+	}
+
+	if common.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "挖坑奖励高度错误：", num)
 		return nil
 	}
@@ -55,17 +65,31 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, chain ChainReader,
 		return nil
 	}
 	var coinBase common.Address
-	if common.IsBroadcastNumber(num - 1) {
-		coinBase = chain.GetHeaderByNumber(num - 2).Coinbase
-	} else {
-		coinBase = chain.GetHeaderByNumber(num - 1).Coinbase
+	latestNum, err := matrixstate.GetNumByState(mc.MSKEYMinerPayNum, state)
+	if nil != err {
+		log.WARN(PackageName, "获取状态树错误", err)
+		return nil
 	}
-	if coinBase.Equal(common.Address{}) {
-		log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
+	if latestNum >= num {
+		log.WARN(PackageName, "奖励已发放", "")
 		return nil
 	}
 	rewards := make(map[common.Address]*big.Int)
-	util.SetAccountRewards(rewards, coinBase, reward)
-	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
+	for i := latestNum + 1; i < num+1; i++ {
+		if common.IsBroadcastNumber(i - 1) {
+			coinBase = chain.GetHeaderByNumber(i - 2).Coinbase
+		} else {
+			coinBase = chain.GetHeaderByNumber(i - 1).Coinbase
+		}
+		if coinBase.Equal(common.Address{}) {
+			log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
+			return nil
+		}
+
+		util.SetAccountRewards(rewards, coinBase, reward)
+		log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", i, "奖励金额", reward)
+	}
+	matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
+
 	return rewards
 }

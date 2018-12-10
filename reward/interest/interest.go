@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 
 	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
@@ -89,7 +88,10 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*D
 
 func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 	//todo:状态树读取利息计算的周期、支付的周期、利率
-	if num < common.GetBroadcastInterval() {
+	if num == 1 {
+		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
+		matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
+		log.INFO(PackageName, "初始化利息状态树高度", num)
 		return
 	}
 	if nil == state {
@@ -98,6 +100,74 @@ func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 	}
 	calcInterestPeriod := ic.CalcInterval
 	payInterestPeriod := ic.PayInterval
+
+	if calcInterestPeriod == 0 || 0 == payInterestPeriod {
+		log.ERROR(PackageName, "InterestPeriod is  error", "")
+		return
+	}
+	ic.calcInterest(calcInterestPeriod, num, state)
+
+	ic.payInterest(payInterestPeriod, num, state)
+}
+
+func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.StateDB) {
+	latestNum, err := matrixstate.GetNumByState(mc.MSInterestPayNum, state)
+	if nil != err {
+		log.ERROR(PackageName, "状态树获取前一计算利息高度错误", err)
+		return
+	}
+
+	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod+1) {
+		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+		return
+	}
+	matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
+
+	//1.获取所有利息转到抵押账户 2.清除所有利息
+	log.INFO(PackageName, "将利息转到合约抵押账户,高度", num)
+
+	AllInterestMap := depoistInfo.GetAllInterest(state)
+	Deposit := depoistInfo.GetDeposit(state)
+	if Deposit.Cmp(big.NewInt(0)) < 0 {
+		log.WARN(PackageName, "利息合约账户余额非法", Deposit)
+	}
+
+	log.INFO(PackageName, "设置利息前的合约抵押账户余额", Deposit)
+	for account, interest := range AllInterestMap {
+		log.INFO(PackageName, "账户", account, "利息", interest.String())
+		if interest.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "获取的利息非法", interest)
+			continue
+		}
+		Deposit = new(big.Int).Add(Deposit, interest)
+		depoistInfo.ResetInterest(state, account)
+	}
+	depoistInfo.SetDeposit(state, Deposit)
+	readDeposit := depoistInfo.GetDeposit(state)
+	log.INFO(PackageName, "设置利息后的合约抵押账户余额", readDeposit)
+
+}
+
+func (ic *interest) getLastInterestNumber(number uint64, InterestInterval uint64) uint64 {
+	if number%InterestInterval == 0 {
+		return number
+	}
+	ans := (number / InterestInterval) * InterestInterval
+	return ans
+}
+
+func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state vm.StateDB) {
+	latestNum, err := matrixstate.GetNumByState(mc.MSInterestCalcNum, state)
+	if nil != err {
+		log.ERROR(PackageName, "状态树获取前一计算利息高度错误", err)
+		return
+	}
+
+	if latestNum >= ic.getLastInterestNumber(num-1, calcInterestInterval+1) {
+		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+		return
+	}
+	matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
 
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
@@ -109,58 +179,27 @@ func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{deposit, big.NewRat(int64(v.InterestRate), Denominator)})
 	}
 	sort.Sort(depositInterestRateList)
-	//sort.Search()
-	if calcInterestPeriod == 0 || 0 == payInterestPeriod {
-		log.ERROR(PackageName, "InterestPeriod is  error", "")
+
+	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
+	if nil != err {
+		log.ERROR(PackageName, "获取的抵押列表错误", err)
 		return
 	}
-
-	if calcInterestPeriod == 1 || 0 == (num-1)%uint64(calcInterestPeriod) {
-		depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
-		if nil != err {
-			log.ERROR(PackageName, "获取的抵押列表错误", err)
-			return
-		}
-		if 0 == len(depositNodes) {
-			log.ERROR(PackageName, "获取的抵押列表为空", "")
-			return
-		}
-		log.INFO(PackageName, "计算利息,高度", num)
-		for _, v := range depositNodes {
-
-			result := ic.calcNodeInterest(v.Deposit, depositInterestRateList)
-			if result.Cmp(big.NewInt(0)) <= 0 {
-				log.ERROR(PackageName, "计算的利息非法", result)
-				continue
-			}
-			depoistInfo.AddInterest(state, v.Address, result)
-			log.INFO(PackageName, "账户", v.Address.String(), "deposit", v.Deposit.String(), "利息", result.String())
-		}
-		log.INFO(PackageName, "计算利息后", "")
+	if 0 == len(depositNodes) {
+		log.ERROR(PackageName, "获取的抵押列表为空", "")
+		return
 	}
+	log.INFO(PackageName, "计算利息,高度", num)
+	for _, v := range depositNodes {
 
-	if payInterestPeriod == 1 || 0 == (num-1)%uint64(payInterestPeriod) {
-		//1.获取所有利息转到抵押账户 2.清除所有利息
-		log.INFO(PackageName, "将利息转到合约抵押账户,高度", num)
-
-		AllInterestMap := depoistInfo.GetAllInterest(state)
-		Deposit := depoistInfo.GetDeposit(state)
-		if Deposit.Cmp(big.NewInt(0)) < 0 {
-			log.WARN(PackageName, "利息合约账户余额非法", Deposit)
+		result := ic.calcNodeInterest(v.Deposit, depositInterestRateList)
+		if result.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "计算的利息非法", result)
+			continue
 		}
-
-		log.INFO(PackageName, "设置利息前的合约抵押账户余额", Deposit)
-		for account, interest := range AllInterestMap {
-			log.INFO(PackageName, "账户", account, "利息", interest.String())
-			if interest.Cmp(big.NewInt(0)) <= 0 {
-				log.ERROR(PackageName, "获取的利息非法", interest)
-				continue
-			}
-			Deposit = new(big.Int).Add(Deposit, interest)
-			depoistInfo.ResetInterest(state, account)
-		}
-		depoistInfo.SetDeposit(state, Deposit)
-		readDeposit := depoistInfo.GetDeposit(state)
-		log.INFO(PackageName, "设置利息后的合约抵押账户余额", readDeposit)
+		depoistInfo.AddInterest(state, v.Address, result)
+		log.INFO(PackageName, "账户", v.Address.String(), "deposit", v.Deposit.String(), "利息", result.String())
 	}
+	log.INFO(PackageName, "计算利息后", "")
+
 }
