@@ -515,6 +515,9 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
+	if msg.Header == nil {
+		return nil, errors.Errorf("'header' of the msg is nil")
+	}
 
 	sendMsg := &mc.HD_FullBlockRspMsg{
 		From:   from,
@@ -524,6 +527,9 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 	size := len(msg.Txs)
 	for i := 0; i < size; i++ {
 		tx := types.SetMxToTransaction(msg.Txs[i])
+		if nil == tx {
+			return nil, errors.Errorf("decode tx err: the (%d/%d) tx is nil", i, size)
+		}
 		sendMsg.Txs = append(sendMsg.Txs, tx)
 	}
 
