@@ -5325,7 +5325,34 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
-
+    var getAuthFrom = new Method({
+        name: 'getAuthFrom',
+        call: 'eth_getAuthFrom',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getEntrustFrom = new Method({
+        name: 'getEntrustFrom',
+        call: 'eth_getEntrustFrom',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getAuthFromByTime = new Method({
+        name: 'getAuthFromByTime',
+        call: 'eth_getAuthFromByTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getEntrustFromByTime = new Method({
+        name: 'getEntrustFromByTime',
+        call: 'eth_getEntrustFromByTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'eth_getStorageAt',
@@ -5513,6 +5540,10 @@ var methods = function () {
     return [
         getBalance,
         getEntrustList,
+        getAuthFrom,
+        getEntrustFrom,
+        getAuthFromByTime,
+        getEntrustFromByTime,
         getStorageAt,
         getCode,
         getBlock,

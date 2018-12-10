@@ -569,6 +569,62 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
 	return state.GetAllEntrustList(authFrom)
 }
+func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string,height uint64) string {
+	state,err := s.b.GetState()
+	if state == nil || err != nil {
+		return ""
+	}
+	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
+	addr := state.GetAuthFrom(entrustFrom,height)
+	if addr.Equal(common.Address{}){
+		return ""
+	}
+	return base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+}
+func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,height uint64) []string {
+	state,err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	addrList := state.GetEntrustFrom(entrustFrom,height)
+	var strAddrList []string
+	for _,addr := range addrList{
+		if !addr.Equal(common.Address{}){
+			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+			strAddrList = append(strAddrList,strAddr)
+		}
+	}
+	return strAddrList
+}
+func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string,time uint64) string {
+	state,err := s.b.GetState()
+	if state == nil || err != nil {
+		return ""
+	}
+	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
+	addr := state.GetAuthFrom(entrustFrom,time)
+	if addr.Equal(common.Address{}){
+		return ""
+	}
+	return base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+}
+func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,time uint64) []string {
+	state,err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	addrList := state.GetEntrustFrom(entrustFrom,time)
+	var strAddrList []string
+	for _,addr := range addrList{
+		if !addr.Equal(common.Address{}){
+			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+			strAddrList = append(strAddrList,strAddr)
+		}
+	}
+	return strAddrList
+}
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {

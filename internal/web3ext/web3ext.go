@@ -433,6 +433,26 @@ web3._extend({
 			params: 1,
 		}),
 		new web3._extend.Method({
+			name: 'getAuthFrom',
+			call: 'man_getAuthFrom',
+			params: 2,
+		}),
+		new web3._extend.Method({
+			name: 'getEntrustFrom',
+			call: 'man_getEntrustFrom',
+			params: 2,
+		}),
+		new web3._extend.Method({
+			name: 'getAuthFromByTime',
+			call: 'man_getAuthFromByTime',
+			params: 2,
+		}),
+		new web3._extend.Method({
+			name: 'getEntrustFromByTime',
+			call: 'man_getEntrustFromByTime',
+			params: 2,
+		}),
+		new web3._extend.Method({
 			name: 'getTopology',
 			call: 'man_getTopology',
 			params: 2,
