@@ -37,6 +37,7 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
 	Genesis() *types.Block
+	GetSuperBlockHash() common.Hash
 }
 
 type blkreward struct {

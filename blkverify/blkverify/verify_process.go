@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/blkverify/votepool"
 	"github.com/matrix/go-matrix/common"
@@ -525,23 +527,41 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 }
 
 func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
-
-	if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+	sbh := p.blockChain().GetSuperBlockHash()
+	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()
+	if p.number == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
+	if nil != err {
+		return err
+	}
+	if p.number < common.GetBroadcastInterval() {
+		return nil
+	}
+	if latestNum < common.GetLastBroadcastNumber(p.number-1)+1 {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime", "高度", p.number)
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", p.number)
 			return err
 		}
-		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
-		}
+		if sbn < common.GetLastBroadcastNumber(p.number) &&
+			sbn >= common.GetLastBroadcastNumber(p.number)-common.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number)
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
+			if err != nil {
+				log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
+			}
 
-		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
-			return err
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+			if nil != err {
+				log.ERROR("core", "处理uptime错误", err)
+				return err
+			}
 		}
 	}
 

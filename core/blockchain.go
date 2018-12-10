@@ -1264,25 +1264,80 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	return nil
 }
 
+func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64) error {
+	broadcastInterval := common.GetBroadcastInterval()
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
+	for _, account := range accounts {
+
+		upTime := broadcastInterval - 3
+		log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
+
+		// todo: add
+		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		bc.upTime[account] = upTime
+		if nil == err {
+			log.INFO("blockchain", "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO("blockchain", "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
+		}
+
+	}
+	return nil
+
+}
+
 func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
 	header := block.Header()
-	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
+	if header.Number.Uint64() == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
+	if nil != err {
+		return err
+	}
+	if header.Number.Uint64() < common.GetBroadcastInterval() {
+		return nil
+	}
+	sbh := bc.GetSuperBlockHash()
+	sbn := bc.GetBlockByHash(sbh).Number().Uint64()
+	if latestNum < common.GetLastBroadcastNumber(header.Number.Uint64())+1 {
+		log.INFO("blockchain", "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
 		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64())
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
 		}
-		calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+		if sbn < common.GetLastBroadcastNumber(header.Number.Uint64()) &&
+			sbn >= common.GetLastBroadcastNumber(header.Number.Uint64())-common.GetBroadcastInterval() {
+			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64())
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
+			if err != nil {
+				log.WARN("co"+
+					"re", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+			}
+
+			err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64())
+			if nil != err {
+				log.ERROR("core", "处理uptime错误", err)
+				return err
+			}
 		}
 
-		err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
-			return err
-		}
 	}
 
 	return nil

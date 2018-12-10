@@ -89,13 +89,26 @@ func abs(n int64) int64 {
 
 func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
-	if !common.IsReElectionNumber(num + 1) {
+
+	if num == 1 {
+		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
+	if nil != err {
+		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
 		return nil
 	}
 
+	if latestNum >= common.GetLastReElectionNumber(num-1)+1 {
+		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
+		return nil
+	}
+
+	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
 	balance := tlr.state.GetBalance(common.LotteryRewardAddress)
 	if len(balance) == 0 {
-		log.ERROR(PackageName, "彩票账户余额获取不到", "")
+		log.ERROR(PackageName, "状态树获取彩票账户余额错误", "")
 		return nil
 	}
 	var allPrice uint64

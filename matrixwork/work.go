@@ -36,6 +36,11 @@ import (
 
 var packagename string = "matrixwork"
 
+type ChainReader interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
+	GetBlockByHash(hash common.Hash) *types.Block
+}
+
 // Work is the workers current environment and holds
 // all of the current state information
 type Work struct {
@@ -99,7 +104,7 @@ func (cu *coingasUse) getCoinGasUse(typ string) uint64 {
 	gas, _ := cu.mapcoin[typ]
 	return gas
 }
-func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
@@ -552,13 +557,14 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
-	blockNumRem := blockNum % common.GetBroadcastInterval()
+	broadcastInterval := common.GetBroadcastInterval()
+	blockNumRem := blockNum % broadcastInterval
 
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal := blockNum - blockNumRem
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal = subVal
-	if blockNum < common.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
+	if blockNum < broadcastInterval { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
 		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
 	} else {
 		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
@@ -566,11 +572,11 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	// todo: remove
 	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
 	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % ((common.GetBroadcastInterval()) - 1)
+	val := broadcastBlock.Uint64() % (broadcastInterval - 1)
 
 	for _, v := range accounts {
 		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
-		ret := currentAcc.Uint64() % (common.GetBroadcastInterval() - 1)
+		ret := currentAcc.Uint64() % (broadcastInterval - 1)
 		if ret == val {
 			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
 			if _, ok := heatBeatAccounts[v]; ok {
@@ -584,7 +590,7 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	var upTime uint64
-	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
 	if err != nil {
@@ -603,14 +609,14 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 3
+					upTime = broadcastInterval - 3
 					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 3
+				upTime = broadcastInterval - 3
 				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
@@ -631,4 +637,38 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	return nil
+}
+
+func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64) error {
+	broadcastInterval := common.GetBroadcastInterval()
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
+	for _, account := range accounts {
+
+		upTime := broadcastInterval - 3
+		log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
+
+		// todo: add
+		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		env.uptime[account] = upTime
+		if nil == err {
+			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
+		}
+
+	}
+	return nil
+
 }
