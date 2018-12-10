@@ -2,13 +2,16 @@ package blkreward
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/cfg"
 	"github.com/matrix/go-matrix/reward/rewardexec"
+	"github.com/matrix/go-matrix/reward/util"
 )
 
 type ChainReader interface {
@@ -33,22 +36,28 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 	Genesis() *types.Block
 }
 
 type blkreward struct {
 	blockReward *rewardexec.BlockReward
-	chain ChainReader
+	chain       ChainReader
+	state       util.StateDB
 }
 
-func New(chain ChainReader) reward.Reward {
-     //todo:从状态树读取配置
-	rewardCfg := cfg.New(nil, nil)
-	return rewardexec.New(chain, rewardCfg)
+func New(chain ChainReader, st util.StateDB) reward.Reward {
+	//todo:从状态树读取配置.
+
+	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyBlkRewardCfg, st)
+	if nil != err {
+		log.ERROR("固定区块奖励", "获取状态树配置错误")
+		return nil
+	}
+
+	rewardCfg := cfg.New(Rewardcfg.(*mc.BlkRewardCfg), nil)
+	return rewardexec.New(chain, rewardCfg, st)
 }
 
 //func (tr *blkreward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
 //	return tr.blockReward.CalcNodesRewards(blockReward, Leader, header)
 //}
-

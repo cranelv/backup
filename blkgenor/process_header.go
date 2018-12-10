@@ -11,6 +11,7 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
@@ -64,12 +65,6 @@ func (p *Process) processHeaderGen() error {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 
-	Elect := p.genElection(parentHash)
-	if Elect == nil {
-		return errors.New("生成elect信息失败")
-	}
-
-	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
 	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
 
 	tstamp := tstart.Unix()
@@ -94,7 +89,6 @@ func (p *Process) processHeaderGen() error {
 		GasLimit:          core.CalcGasLimit(parent),
 		Extra:             make([]byte, 0),
 		Time:              big.NewInt(tstamp),
-		Elect:             Elect,
 		NetTopology:       *NetTopology,
 		Signatures:        make([]common.Signature, 0),
 		Version:           parent.Header().Version, //param
@@ -107,35 +101,36 @@ func (p *Process) processHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
 		return err
 	}
-	//broadcast txs deal,remove no validators txs
-	if common.IsBroadcastNumber(header.Number.Uint64()) {
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return err
-		}
-		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
 
-		Txs := make([]types.SelfTransaction, 0)
-		for _, txs := range mapTxs {
-			for _, tx := range txs {
-				log.INFO(p.logExtraInfo(), "交易数据 t", tx)
-			}
-			Txs = append(Txs, txs...)
-		}
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
-		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
-		retTxs := work.GetTxs()
-		for _, tx := range retTxs {
-			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
-		}
+	tsBlock, txsCode, stateDB, receipts, err := p.genHeaderTxs(header)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "运行交易失败", err)
+		return err
+	}
 
-		//send to local block mining module
-		block, err := p.engine().Finalize(p.blockChain(), header, work.State, retTxs, nil, work.Receipts)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
-			return err
-		}
+	err = p.blockChain().ProcessMatrixState(tsBlock, stateDB)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "运行matrix状态树失败", err)
+		return err
+	}
+
+	// 运行完状态树后，才能获取elect
+	Elect := p.genElection(stateDB)
+	if Elect == nil {
+		return errors.New("生成elect信息错误!")
+	}
+	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
+	header = tsBlock.Header()
+	header.Elect = Elect
+	//运行完matrix状态树后，生成root
+	txs := tsBlock.Transactions()
+	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, txs, nil, receipts)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "最终finalize错误", err)
+		return err
+	}
+
+	if block.IsBroadcastBlock() {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
 		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true)
@@ -146,33 +141,10 @@ func (p *Process) processHeaderGen() error {
 
 		header.Signatures = make([]common.Signature, 0, 1)
 		header.Signatures = append(header.Signatures, sign)
-		sendMsg := &mc.BlockData{Header: header, Txs: Txs}
+		sendMsg := &mc.BlockData{Header: header, Txs: txs}
 		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
 		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
-
 	} else {
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return err
-		}
-
-		//work.commitTransactions(self.mux, Txs, self.chain)
-		// todo： update uptime
-		p.processUpTime(work, header)
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
-		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
-		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
-		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
-			return err
-		}
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash", block.TxHash())
 		header = block.Header()
 		p2pBlock := &mc.HD_BlkConsensusReqMsg{
 			Header:                 header,
@@ -181,17 +153,9 @@ func (p *Process) processHeaderGen() error {
 			OnlineConsensusResults: onlineConsensusResults,
 			From: ca.GetAddress()}
 		//send to local block verify module
-		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
-		if len(Txs) > 0 {
-			txlist := make([]types.SelfTransaction,0)
-			for _,tx := range Txs{
-				if tx.GetMatrixType() != common.ExtraUnGasTxType{
-					txlist = append(txlist,tx)
-				}
-			}
-			if len(txlist) > 0{
-				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
-			}
+		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
+		if len(txs[2:]) > 0 {
+			txpoolCache.MakeStruck(txs[2:], header.HashNoSignsAndNonce(), p.number)
 		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
@@ -200,9 +164,59 @@ func (p *Process) processHeaderGen() error {
 
 	return nil
 }
-func (p *Process) makeReward(ct string ,from common.Address,val map[common.Address]*big.Int) (rew common.RewarTx){
-	return common.RewarTx{CoinType:ct,Fromaddr:from,To_Amont:val}
+
+func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
+	//broadcast txs deal,remove no validators txs
+	if common.IsBroadcastNumber(header.Number.Uint64()) {
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
+			return nil, nil, nil, nil, err
+		}
+		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
+
+		Txs := make([]types.SelfTransaction, 0)
+		for _, txs := range mapTxs {
+			for _, tx := range txs {
+				log.INFO(p.logExtraInfo(), "交易数据 t", tx)
+			}
+			Txs = append(Txs, txs...)
+		}
+		// todo: add rewward and run
+		//rewardList:=p.calcRewardAndSlash(work.State, header)
+
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+		retTxs := work.GetTxs()
+		for _, tx := range retTxs {
+			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
+		}
+
+		block := types.NewBlock(header, retTxs, nil, work.Receipts)
+		return block, nil, work.State, work.Receipts, nil
+
+	} else {
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
+			return nil, nil, nil, nil, err
+		}
+
+		//work.commitTransactions(self.mux, Txs, self.chain)
+		// todo： update uptime
+		p.processUpTime(work, header)
+
+		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
+		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
+		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
+		block := types.NewBlock(header, Txs, nil, work.Receipts)
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
+		return block, txsCode, work.State, work.Receipts, nil
+	}
 }
+
 func (p *Process) getParentBlock() (*types.Block, error) {
 	if p.number == 1 { // 第一个块直接返回创世区块作为父区块
 		return p.blockChain().Genesis(), nil

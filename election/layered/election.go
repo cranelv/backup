@@ -69,8 +69,8 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	}
 
 	QuotaArray := CalEchelonNum(mvrerm.ValidatorList)
-	for k,v:=range QuotaArray{
-		log.ERROR("quotaarray","等级",k,"长度",len(v),"data",v)
+	for k, v := range QuotaArray {
+		log.ERROR("quotaarray", "等级", k, "长度", len(v), "data", v)
 	}
 	//fmt.Println(len(FirstQuota), len(SecondQuota))
 	//fmt.Println("QuotaArray", len(QuotaArray[0]))
@@ -80,10 +80,10 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	for k, v := range QuotaArray {
 		sumCount += common.EchelonArrary[k].Quota
 		if len(v) > common.EchelonArrary[k].Quota {
-			v = sortByDepositAndUptime(v,mvrerm.RandSeed)
+			v = sortByDepositAndUptime(v, mvrerm.RandSeed)
 		}
 		for _, vv := range v {
-			tempNodeInfo := mc.TopologyNodeInfo{
+			tempNodeInfo := mc.ElectNodeInfo{
 				Account:  vv.Address,
 				Position: uint16(len(ValidatorTopGen.MasterValidator)),
 				Stock:    DefauleStock,
@@ -114,7 +114,7 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 	//fmt.Println(len(a), len(b), len(c))
 	for _, v := range a {
-		tempNodeInfo := mc.TopologyNodeInfo{
+		tempNodeInfo := mc.ElectNodeInfo{
 			Account:  InitMapList[v.Nodeid].Address,
 			Position: uint16(len(ValidatorTopGen.MasterValidator)),
 			Stock:    DefauleStock,
@@ -123,7 +123,7 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		ValidatorTopGen.MasterValidator = append(ValidatorTopGen.MasterValidator, tempNodeInfo)
 	}
 	for _, v := range b {
-		tempNodeInfo := mc.TopologyNodeInfo{
+		tempNodeInfo := mc.ElectNodeInfo{
 			Account:  InitMapList[v.Nodeid].Address,
 			Position: uint16(len(ValidatorTopGen.BackUpValidator)),
 			Stock:    DefauleStock,
@@ -132,7 +132,7 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		ValidatorTopGen.BackUpValidator = append(ValidatorTopGen.BackUpValidator, tempNodeInfo)
 	}
 	for _, v := range c {
-		tempNodeInfo := mc.TopologyNodeInfo{
+		tempNodeInfo := mc.ElectNodeInfo{
 			Account:  InitMapList[v.Nodeid].Address,
 			Position: uint16(len(ValidatorTopGen.CandidateValidator)),
 			Stock:    DefauleStock,
@@ -145,8 +145,8 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 }
 
-func (self *layered) ToPoUpdate(offline []common.Address, allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
-	return support.ToPoUpdate(offline, allNative, topoG)
+func (self *layered) ToPoUpdate(allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
+	return support.ToPoUpdate(allNative, topoG)
 }
 
 func (self *layered) PrimarylistUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {

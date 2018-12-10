@@ -8,14 +8,15 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/slash"
 	"io"
 	"math/big"
 	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/slash"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -25,6 +26,7 @@ import (
 	"github.com/matrix/go-matrix/common/mclock"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -131,6 +133,11 @@ type BlockChain struct {
 	//lb ipfs
 	bBlockSendIpfs bool
 	qBlockQueue    *prque.Prque
+
+	//matrix state
+	matrixState *matrixstate.MatrixState
+	graphStore  *matrixstate.GraphStore
+	upTime      map[common.Address]uint64
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -163,13 +170,21 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:       engine,
 		vmConfig:     vmConfig,
 		badBlocks:    badBlocks,
+		matrixState:  matrixstate.NewMatrixState(),
 	}
+	bc.graphStore = matrixstate.NewGraphStore(bc)
+
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
 	bc.dposEngine = mtxdpos.NewMtxDPOS()
 
 	var err error
+	err = bc.RegisterMatrixStateDataProducer(mc.MSKeyTopologyGraph, bc.graphStore.ProduceTopologyStateData)
+	if err != nil {
+		return nil, err
+	}
+
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.dposEngine, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
@@ -420,6 +435,14 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 	return state.New(root, bc.stateCache)
 }
 
+func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDB, error) {
+	block := bc.GetBlockByHash(hash)
+	if block == nil {
+		return nil, errors.New("can't find block by hash")
+	}
+	return bc.StateAt(block.Root())
+}
+
 // Reset purges the entire blockchain, restoring it to its genesis state.
 func (bc *BlockChain) Reset() error {
 	return bc.ResetWithGenesisBlock(bc.genesisBlock)
@@ -447,11 +470,6 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 	bc.currentFastBlock.Store(bc.genesisBlock)
-
-	//save topology
-	if err := bc.hc.topologyStore.WriteTopologyGraph(bc.genesisBlock.Header()); err != nil {
-		log.ERROR("block chain", "ResetWithGenesisBlock 缓存拓扑信息错误", err)
-	}
 
 	return nil
 }
@@ -512,11 +530,11 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 func (bc *BlockChain) insert(block *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	var updateHeads bool
-	if block.IsSuperBlock(){
+	if block.IsSuperBlock() {
 		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
 
-		if currentblock.NumberU64()>block.NumberU64(){
-			log.INFO("blockchain","rewind to",block.NumberU64()-1)
+		if currentblock.NumberU64() > block.NumberU64() {
+			log.INFO("blockchain", "rewind to", block.NumberU64()-1)
 			bc.bodyCache.Purge()
 			bc.bodyRLPCache.Purge()
 			bc.blockCache.Purge()
@@ -527,11 +545,10 @@ func (bc *BlockChain) insert(block *types.Block) {
 			bc.hc.SetHead(block.NumberU64()-1, delFn)
 		}
 
-		updateHeads =true
-	}else{
+		updateHeads = true
+	} else {
 		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
 	}
-
 
 	// Add the block to the canonical chain number scheme and mark as the head
 	rawdb.WriteCanonicalHash(bc.db, block.Hash(), block.NumberU64())
@@ -546,7 +563,7 @@ func (bc *BlockChain) insert(block *types.Block) {
 
 		bc.currentFastBlock.Store(block)
 	}
-	if common.IsBroadcastNumber(block.NumberU64())&&!block.Header().IsSuperHeader() {
+	if common.IsBroadcastNumber(block.NumberU64()) && !block.Header().IsSuperHeader() {
 		SetBroadcastTxs(block, bc.chainConfig.ChainId)
 	}
 }
@@ -797,7 +814,7 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 
 // SetReceiptsData computes all the non-consensus fields of the receipts
 func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts types.Receipts) error {
-	if block.IsSuperBlock(){
+	if block.IsSuperBlock() {
 		return nil
 	}
 	signer := types.MakeSigner(config, block.Number())
@@ -1051,9 +1068,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
-	if block.IsSuperBlock(){
+	if block.IsSuperBlock() {
 		status = CanonStatTy
-	}else{
+	} else {
 		if !reorg && externTd.Cmp(localTd) == 0 {
 			// Split same-difficulty blocks by number, then at random
 			reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
@@ -1075,7 +1092,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		}
 	}
 
-
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
@@ -1085,10 +1101,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 	}
 
-	//save topology
-	if err := bc.hc.topologyStore.WriteTopologyGraph(block.Header()); err != nil {
-		log.ERROR("block chain", "缓存拓扑信息错误", err)
-	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
 }
@@ -1234,6 +1246,7 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 			}
 		}
 		// todo: add
+		bc.upTime[account] = upTime
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
 		read, err := depoistInfo.GetOnlineTime(state, account)
 		if nil == err {
@@ -1315,11 +1328,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			seals[i] = true
 		}
-	}
-	err := bc.dposEngine.VerifyBlocks(bc, headers)
-	if err != nil {
-		log.Error("block chain", "insertChain DPOS共识错误", err)
-		return 0, nil, nil, fmt.Errorf("insert block dpos error")
 	}
 	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
 	defer close(abort)
@@ -1405,6 +1413,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
+
+		// verify pos
+		err = bc.dposEngine.VerifyBlock(bc, headers[i])
+		if err != nil {
+			log.Error("block chain", "insertChain DPOS共识错误", err)
+			return 0, nil, nil, fmt.Errorf("insert block dpos error")
+		}
+
 		// Create a new statedb using the parent block and report an
 		// error if it fails.
 		var parent *types.Block
@@ -1413,19 +1429,19 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			parent = chain[i-1]
 		}
+		// Process block using the parent state as reference point.
 		state, err := state.New(parent.Root(), bc.stateCache)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		// Process block using the parent state as reference point.
 		var (
 			receipts types.Receipts = nil
 			logs                    = make([]*types.Log, 0)
 			usedGas  uint64         = 0
 		)
 		if block.IsSuperBlock() {
-			if block.Header().SuperBlockSeq()<=bc.GetSuperBlockSeq(){
-				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)",block.Header().SuperBlockSeq(), bc.GetSuperBlockSeq())
+			if block.Header().SuperBlockSeq() <= bc.GetSuperBlockSeq() {
+				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)", block.Header().SuperBlockSeq(), bc.GetSuperBlockSeq())
 			}
 			err = bc.processSuperBlockState(block, state)
 			if err != nil {
@@ -1437,19 +1453,24 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			if root != block.Root() {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
 			}
-
 		} else {
+			// Process matrix state
+			err = bc.matrixState.ProcessMatrixState(block, state)
+			if err != nil {
+				return i, events, coalescedLogs, err
+			}
+
 			err = bc.ProcessUpTime(state, block)
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		interestReward:=interest.New()
-		interestReward.InterestCalc(state,block.Number().Uint64())
-		//todo 惩罚
+			interestReward := interest.New(state)
+			interestReward.InterestCalc(state, block.Number().Uint64())
+			//todo 惩罚
 
-		slash := slash.New(bc)
-		slash.CalcSlash(state, block.Number().Uint64())
+			slash := slash.New(bc, state)
+			slash.CalcSlash(state, block.Number().Uint64(), bc.upTime)
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {
@@ -1862,11 +1883,11 @@ func (bc *BlockChain) GetSuperBlockHash() common.Hash {
 	return bc.hc.GetSuperBlockHash()
 }
 
-func (bc *BlockChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData{
-	return  bc.hc.GetSuperBlockInfo()
+func (bc *BlockChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
+	return bc.hc.GetSuperBlockInfo()
 }
 
-func (bc *BlockChain) SetSuperBlockInfo(sbi *rawdb.SuperBlockIndexData){
+func (bc *BlockChain) SetSuperBlockInfo(sbi *rawdb.SuperBlockIndexData) {
 	bc.hc.SetSuperBlockInfo(sbi)
 }
 
@@ -1948,27 +1969,11 @@ func (bc *BlockChain) SetDposEngine(dposEngine consensus.DPOSEngine) {
 }
 
 func (bc *BlockChain) GetHashByNumber(number uint64) common.Hash {
-	return bc.hc.GetHashByNumber(number)
-}
-
-func (bc *BlockChain) GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error) {
-	return bc.hc.GetTopologyGraphByHash(blockHash)
-}
-
-func (bc *BlockChain) GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return bc.hc.GetOriginalElectByHash(blockHash)
-}
-
-func (bc *BlockChain) GetNextElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return bc.hc.GetNextElectByHash(blockHash)
-}
-
-func (bc *BlockChain) NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error) {
-	return bc.hc.NewTopologyGraph(header)
-}
-
-func (bc *BlockChain) TopologyStore() *TopologyStore {
-	return bc.hc.topologyStore
+	block := bc.GetBlockByNumber(number)
+	if block == nil {
+		return common.Hash{}
+	}
+	return block.Hash()
 }
 
 func (bc *BlockChain) GetCurrentHash() common.Hash {
@@ -1979,12 +1984,99 @@ func (bc *BlockChain) GetCurrentHash() common.Hash {
 	return block.Hash()
 }
 
-func (bc *BlockChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error) {
-	return bc.hc.GetValidatorByHash(hash)
+func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+	topologyGraph, err := bc.graphStore.GetTopologyGraphByHash(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	electGraph, err := bc.graphStore.GetElectGraphByHash(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	return topologyGraph, electGraph, nil
+}
+
+func (bc *BlockChain) GetGraphByState(state *state.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+	if err != nil {
+		return nil, nil, err
+	}
+	electGraph, err := matrixstate.GetDataByState(mc.MSKeyElectGraph, state)
+	if err != nil {
+		return nil, nil, err
+	}
+	return topologyGraph.(*mc.TopologyGraph), electGraph.(*mc.ElectGraph), nil
+}
+
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
+	return bc.matrixState.ProcessMatrixState(block, state)
+}
+
+func (bc *BlockChain) GetGraphStore() *matrixstate.GraphStore {
+	return bc.graphStore
+}
+
+func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer matrixstate.ProduceMatrixStateDataFn) error {
+	return bc.matrixState.RegisterProducer(key, producer)
 }
 
 func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
+}
+
+func (bc *BlockChain) GetMatrixStateData(key string) (interface{}, error) {
+	state, err := bc.State()
+	if err != nil {
+		return nil, errors.Errorf("get cur state err(%v)", err)
+	}
+	if state == nil {
+		return nil, errors.New("cur state is nil")
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error) {
+	header := bc.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by hash(%s)", hash.Hex())
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error) {
+	header := bc.GetHeaderByNumber(number)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by number(%d)", number)
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || accounts == nil {
+		return nil, errors.New("反射结构体MatrixSpecialAccounts失败")
+	}
+
+	return accounts, nil
 }
 
 func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
@@ -2017,20 +2109,18 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
 	}
 
-	if block.Hash()==bc.GetSuperBlockHash(){
-		log.WARN("blockchain","eth same super block","")
+	if block.Hash() == bc.GetSuperBlockHash() {
+		log.WARN("blockchain", "eth same super block", "")
 		return block, nil
 	}
 
-	if block.Header().SuperBlockSeq()<=bc.GetSuperBlockSeq(){
+	if block.Header().SuperBlockSeq() <= bc.GetSuperBlockSeq() {
 		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) < genesis block(%v)", bc.GetSuperBlockSeq(), block.Header().SuperBlockSeq())
 	}
 
 	if err := bc.DPOSEngine().VerifyBlock(bc, block.Header()); err != nil {
 		return nil, errors.Errorf("verify super block err(%v)", err)
 	}
-
-
 	//todo 应该在InsertChain时确定权威链，从而进行回滚
 	//if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
 	//	return nil, errors.Errorf("rollback chain err(%v)", err)
@@ -2078,6 +2168,8 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			stateDB.SetState(addr, key, value)
 		}
 	}
-	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash:block.Hash(),Seq:block.Header().SuperBlockSeq()})
+
+	// todo 修改state树
+	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash: block.Hash(), Seq: block.Header().SuperBlockSeq()})
 	return nil
 }

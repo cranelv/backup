@@ -38,6 +38,10 @@ type MessageCenterInterface interface {
 	PublishEvent(aim mc.EventCode, data interface{}) error
 }
 
+type StateReaderInterface interface {
+	GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error)
+}
+
 ////////////////////////////////////////////////////////////////////
 type TopNodeInstance struct {
 	signHelper *signhelper.SignHelper

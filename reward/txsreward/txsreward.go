@@ -1,14 +1,15 @@
 package txsreward
 
 import (
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/reward"
 	"github.com/matrix/go-matrix/reward/rewardexec"
 
 	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/reward/cfg"
-
-	"github.com/matrix/go-matrix/reward"
 )
 
 const (
@@ -34,30 +35,21 @@ type TxsReward struct {
 	blockReward *rewardexec.BlockReward
 }
 
-func New(chain util.ChainReader) reward.Reward {
+func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 
-	RewardMount := &cfg.RewardMountCfg{
-		MinersRate:     MinerTxsRewardRate,
-		ValidatorsRate: ValidatorsTxsRewardRate,
-
-		MinerOutRate:     MinerOutRewardRate,
-		ElectedMinerRate: ElectedMinerRewardRate,
-		FoundationMinerRate: FoundationTxsRewardRate,
-
-		LeaderRate:            LeaderRewardRate,
-		ElectedValidatorsRate: ElectedValidatorsRewardRate,
-		FoundationValidatorRate:FoundationTxsRewardRate,
-		OriginElectOfflineRate: OriginElectOfflineRewardRate,
-		BackupRewardRate:       BackupRate,
+	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyTxsRewardCfg, st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误")
+		return nil
 	}
-	rewardCfg := cfg.New(RewardMount, nil)
-	if util.RewardFullRate != rewardCfg.RewardMount.MinersRate+rewardCfg.RewardMount.ValidatorsRate {
+	rate := Rewardcfg.(*mc.TxsRewardCfgStruct).RewardRate
+
+	cfg := cfg.New(&mc.BlkRewardCfg{RewardRate: rate}, nil)
+	if util.RewardFullRate != Rewardcfg.(*mc.TxsRewardCfgStruct).ValidatorsRate+Rewardcfg.(*mc.TxsRewardCfgStruct).MinersRate {
 		log.ERROR(PackageName, "交易费奖励比例配置错误", "")
 		return nil
 	}
-	return rewardexec.New(chain, rewardCfg)
-}
 
-//func (tr *TxsReward) CalcBlockRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
-//	return tr.blockReward.CalcBlockRewards(blockReward, Leader, header)
-//}
+	return rewardexec.New(chain, cfg, st)
+
+}

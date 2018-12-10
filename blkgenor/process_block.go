@@ -130,6 +130,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: rsp.Header,
+		State:  stateDB,
 	}
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
@@ -265,6 +266,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	p.stopMinerPikerTimer()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
+		State:  blockData.block.State,
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)

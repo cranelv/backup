@@ -1,21 +1,26 @@
 package lottery
 
 import (
+	"math/big"
+	"math/rand"
+	"sort"
+
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/reward/util"
-	"math/big"
-	"math/rand"
-	"sort"
 )
 
 const (
-	N      = 6
-	FIRST  = 1 //一等奖数目
+	N           = 6
+	FIRST       = 1 //一等奖数目
 	SECOND      = 0 //二等奖数目
 	THIRD       = 0 //三等奖数目
 	PackageName = "彩票奖励"
+	Stop        = "0"
 )
 
 var (
@@ -41,18 +46,38 @@ type ChainReader interface {
 }
 
 type TxsLottery struct {
-	chain ChainReader
-	seed  LotterySeed
+	chain      ChainReader
+	seed       LotterySeed
+	state      util.StateDB
+	lotteryCfg *mc.LotteryCfgStruct
 }
 
 type LotterySeed interface {
 	GetSeed(num uint64) *big.Int
 }
 
-func New(chain ChainReader, seed LotterySeed) *TxsLottery {
+func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
+	lotteryCfg, err := matrixstate.GetDataByState(mc.MSKeyLotteryCfg, st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误", "")
+		return nil
+	}
+
+	cfg := lotteryCfg.(*mc.LotteryCfgStruct)
+	if cfg.LotteryCalc == Stop {
+		log.ERROR(PackageName, "停止发放彩票奖励", "")
+		return nil
+	}
+
+	if len(cfg.LotteryInfo) == 0 {
+		log.ERROR(PackageName, "没有配置彩票名额", "")
+		return nil
+	}
 	tlr := &TxsLottery{
-		chain: chain,
-		seed:  seed,
+		chain:      chain,
+		seed:       seed,
+		state:      st,
+		lotteryCfg: cfg,
 	}
 
 	return tlr
@@ -62,30 +87,47 @@ func abs(n int64) int64 {
 	return (n ^ y) - y
 }
 
-func (tlr *TxsLottery) LotteryCalc(state util.StateDB, num uint64) map[string]map[common.Address]*big.Int {
+func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 	if !common.IsReElectionNumber(num + 1) {
 		return nil
 	}
 
-	balance := state.GetBalance(common.LotteryRewardAddress)
-	if balance[common.MainAccount].Balance.Cmp(FIRSTPRIZE) < 0 {
-		log.ERROR(PackageName, "彩票账户余额不足，余额为", balance[common.MainAccount].Balance.String())
+	balance := tlr.state.GetBalance(common.LotteryRewardAddress)
+	if len(balance) == 0 {
+		log.ERROR(PackageName, "彩票账户余额获取不到", "")
 		return nil
 	}
-	LotteryAccount := make(map[string]map[common.Address]*big.Int, 0)
-	txsCmpResultList := tlr.getLotteryList(num, N )
+	var allPrice uint64
+
+	for _, v := range tlr.lotteryCfg.LotteryInfo {
+		if v.PrizeMoney < 0 {
+			log.ERROR(PackageName, "彩票奖励配置错误，金额", v.PrizeMoney, "奖项", v.PrizeLevel)
+			return nil
+		}
+		allPrice = allPrice + v.PrizeMoney*v.PrizeNum
+	}
+	if allPrice <= 0 {
+		log.ERROR(PackageName, "总奖励不合法", allPrice)
+		return nil
+	}
+	if balance[common.MainAccount].Balance.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(allPrice), util.ManPrice)) < 0 {
+		log.ERROR(PackageName, "彩票账户余额不足，余额为", balance[common.MainAccount].Balance.String(), "总奖励", util.ManPrice)
+		return nil
+	}
+	LotteryAccount := make(map[common.Address]*big.Int, 0)
+	txsCmpResultList := tlr.getLotteryList(num, len(tlr.lotteryCfg.LotteryInfo))
 	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
 
 	return LotteryAccount
 }
 
 func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultList {
-	originBlockNum := common.GetLastReElectionNumber(num)-1
+	originBlockNum := common.GetLastReElectionNumber(num) - 1
 
-	if num<common.GetReElectionInterval(){
-    	originBlockNum=0
-    }
+	if num < common.GetReElectionInterval() {
+		originBlockNum = 0
+	}
 	randSeed := tlr.seed.GetSeed(num)
 	rand.Seed(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
@@ -93,7 +135,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
 		for _, tx := range txs {
 			extx := tx.GetMatrix_EX()
-			if (extx != nil) && len(extx) > 0 && extx[0].TxType == common.ExtraNormalTxType||extx == nil {
+			if (extx != nil) && len(extx) > 0 && extx[0].TxType == common.ExtraNormalTxType || extx == nil {
 				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
 			}
@@ -101,71 +143,47 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 		}
 		originBlockNum++
 	}
-	if 0==len(txsCmpResultList){
-		return  nil
+	if 0 == len(txsCmpResultList) {
+		return nil
 	}
 	sort.Sort(txsCmpResultList)
-	chooseResultList := make(TxCmpResultList,0)
-	for i:=0;i<lotteryNum&&i<len(txsCmpResultList);i++{
-		randUint64:=rand.Uint64()
-		index:=randUint64%(uint64(len(txsCmpResultList)))
-		log.INFO(PackageName,"交易序号",index)
-		chooseResultList =append(chooseResultList,txsCmpResultList[index])
+	chooseResultList := make(TxCmpResultList, 0)
+	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {
+		randUint64 := rand.Uint64()
+		index := randUint64 % (uint64(len(txsCmpResultList)))
+		log.INFO(PackageName, "交易序号", index)
+		chooseResultList = append(chooseResultList, txsCmpResultList[index])
 	}
 
 	return chooseResultList
 }
 
-func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryAccountMap map[string]map[common.Address]*big.Int) {
-	firstLottery := make(map[common.Address]*big.Int, FIRST)
-	secondLottery := make(map[common.Address]*big.Int, SECOND)
-	thirdLottery := make(map[common.Address]*big.Int, THIRD)
-	for _, v := range txsCmpResultList {
-		from :=v.Tx.From()
-		if from.Equal(common.Address{}){
-			log.ERROR(PackageName,"交易地址为空",nil)
+func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryMap map[common.Address]*big.Int) {
+
+	RecordMap := make(map[uint8]uint64)
+	for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
+		RecordMap[uint8(i)] = 0
+	}
+	for _, txs := range txsCmpResultList {
+		from := txs.Tx.From()
+		if from.Equal(common.Address{}) {
+			log.ERROR(PackageName, "交易地址为空", nil)
 			continue
 		}
 		//抽取一等奖
-		LotteryAccount, _ := LotteryAccountMap["First"]
-		if len(LotteryAccount) < FIRST {
 
-			util.SetAccountRewards(firstLottery,from,FIRSTPRIZE)
-			LotteryAccountMap["First"] = firstLottery
-			log.INFO(PackageName,"一等奖",from.String(),"金额",FIRSTPRIZE)
-			continue
-		}
-		//抽取过的账户跳过
-		//if nil != tlr.chooseIn(LotteryAccount, from) {
-		//	continue
-		//}
-		//抽取二等奖
-		LotteryAccount, _ = LotteryAccountMap["Second"]
-		if len(LotteryAccount) < SECOND {
+		for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 
-			util.SetAccountRewards(secondLottery,from,SENCONDPRIZE)
-			LotteryAccountMap["Second"] = secondLottery
-			log.INFO(PackageName,"二等奖",from.String(),"金额",SENCONDPRIZE)
+			if RecordMap[tlr.lotteryCfg.LotteryInfo[i].PrizeLevel] < tlr.lotteryCfg.LotteryInfo[i].PrizeNum {
+				util.SetAccountRewards(LotteryMap, from, new(big.Int).Div(new(big.Int).SetUint64(tlr.lotteryCfg.LotteryInfo[i].PrizeMoney), util.ManPrice))
+				RecordMap[tlr.lotteryCfg.LotteryInfo[i].PrizeLevel]++
+				break
+			}
 
-			continue
 		}
 
-		//抽取过的账户跳过
-		//if nil != tlr.chooseIn(LotteryAccount, from) {
-		//	continue
-		//}
-		//抽取三等奖
-		LotteryAccount, _ = LotteryAccountMap["Third"]
-		if len(LotteryAccount) < THIRD {
-			util.SetAccountRewards(thirdLottery,from,THIRDPRIZE)
-			LotteryAccountMap["third"] = thirdLottery
-			log.INFO(PackageName, "三等奖", from.Hex())
-			continue
-		}
 		break
 
 	}
-
-
 
 }

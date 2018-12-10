@@ -99,7 +99,7 @@ type worker struct {
 	mineResultSender      *common.ResendMsgCtrl
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.ValidatorReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.StateReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
 	worker := &worker{
 		config: config,
 		engine: engine,

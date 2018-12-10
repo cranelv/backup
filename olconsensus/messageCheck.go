@@ -29,8 +29,8 @@ func newMessageCheck(capacity int) *messageCheck {
 	}
 }
 
-func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg, topology *mc.TopologyGraph) bool {
-	if nil == msg || nil == topology {
+func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg) bool {
+	if nil == msg {
 		return false
 	}
 

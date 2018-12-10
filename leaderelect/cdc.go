@@ -4,21 +4,26 @@
 package leaderelect
 
 import (
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
 
 type cdc struct {
-	state            state
+	state            stateDef
 	number           uint64
+	role             common.RoleType
 	curConsensusTurn uint32
 	consensusLeader  common.Address
 	curReelectTurn   uint32
 	reelectMaster    common.Address
 	isMaster         bool
 	leaderCal        *leaderCalculator
+	parentState      *state.StateDB
 	turnTime         *turnTimes
 	chain            *core.BlockChain
 	logInfo          string
@@ -28,11 +33,13 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	dc := &cdc{
 		state:            stIdle,
 		number:           number,
+		role:             common.RoleNil,
 		curConsensusTurn: 0,
 		consensusLeader:  common.Address{},
 		curReelectTurn:   0,
 		reelectMaster:    common.Address{},
 		isMaster:         false,
+		parentState:      nil,
 		turnTime:         newTurnTimes(),
 		chain:            chain,
 		logInfo:          logInfo,
@@ -42,8 +49,26 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	return dc
 }
 
-func (dc *cdc) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
-	if err := dc.leaderCal.SetValidators(preHash, preIsSupper, preLeader, validators); err != nil {
+func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState *state.StateDB) error {
+	if parentState == nil {
+		return errors.New("parent state is nil")
+	}
+
+	validators, role, err := dc.readValidatorsAndRoleFromState(parentState)
+	if err != nil {
+		return err
+	}
+
+	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, parentState)
+	if err != nil {
+		return err
+	}
+	specials, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || specials == nil {
+		return errors.New("反射MatrixSpecialAccounts失败")
+	}
+
+	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials); err != nil {
 		return err
 	}
 
@@ -61,7 +86,40 @@ func (dc *cdc) SetValidators(preHash common.Hash, preIsSupper bool, preLeader co
 		dc.reelectMaster.Set(common.Address{})
 	}
 	dc.consensusLeader.Set(consensusLeader)
+	dc.parentState = parentState
+	dc.role = role
 	return nil
+}
+
+func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
+	topology, _, err := dc.chain.GetGraphByState(state)
+	if err != nil {
+		return nil, common.RoleNil, err
+	}
+
+	if topology.Number+1 != dc.number {
+		return nil, common.RoleNil, errors.Errorf("state中的拓扑图高度不匹配，state number（%d） + 1 != local number(%d)", topology.Number, dc.number)
+	}
+
+	role := dc.getRoleFromTopology(topology)
+
+	validators := make([]mc.TopologyNodeInfo, 0)
+	for _, node := range topology.NodeList {
+		if node.Type == common.RoleValidator {
+			validators = append(validators, node)
+		}
+	}
+	return validators, role, nil
+}
+
+func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
+	selfAccount := ca.GetAddress()
+	for _, v := range TopologyGraph.NodeList {
+		if v.Account == selfAccount {
+			return v.Type
+		}
+	}
+	return common.RoleNil
 }
 
 func (dc *cdc) SetConsensusTurn(consensusTurn uint32) error {
@@ -133,12 +191,23 @@ func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 func (dc *cdc) GetCurrentHash() common.Hash {
 	return dc.leaderCal.preHash
 }
-func (dc *cdc) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error) {
+
+func (dc *cdc) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error) {
 	if (hash == common.Hash{}) {
-		return nil, errors.New("输入hash为空")
+		return nil, nil, errors.New("输入hash为空")
 	}
 	if hash == dc.leaderCal.preHash {
-		return dc.leaderCal.GetValidators()
+		return dc.chain.GetGraphByState(dc.parentState)
 	}
-	return dc.chain.GetValidatorByHash(hash)
+	return dc.chain.GetGraphByHash(hash)
+}
+
+func (dc *cdc) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	if (blockHash == common.Hash{}) {
+		return nil, errors.New("输入hash为空")
+	}
+	if blockHash == dc.leaderCal.preHash {
+		return dc.leaderCal.specials, nil
+	}
+	return dc.chain.GetSpecialAccounts(blockHash)
 }

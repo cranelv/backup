@@ -4,7 +4,6 @@
 package baseinterface
 
 import (
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
@@ -20,7 +19,7 @@ var (
 )
 
 func RegElectPlug(name string, value func() ElectionInterface) {
-//	fmt.Println("选举服务 注册函数", "name", name)
+	//	fmt.Println("选举服务 注册函数", "name", name)
 	electionPlugs[name] = value
 }
 
@@ -35,6 +34,6 @@ func NewElect() ElectionInterface {
 type ElectionInterface interface {
 	MinerTopGen(*mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp
 	ValidatorTopGen(*mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq
-	ToPoUpdate([]common.Address, support.AllNative, *mc.TopologyGraph) []mc.Alternative
+	ToPoUpdate(support.AllNative, *mc.TopologyGraph) []mc.Alternative
 	PrimarylistUpdate([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, mc.TopologyNodeInfo, int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo)
 }

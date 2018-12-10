@@ -61,5 +61,13 @@ var (
 				"修改顶点在线共识请求消息结构",
 			},
 		},
+		CommitContext{
+			Version:   "Alg_1207_0.0.2",
+			Submitter: "胡源凯",
+			Commit: []string{
+				"matrix状态树低层接口添加",
+				"选举及拓扑信息上matrix状态树",
+			},
+		},
 	}
 )

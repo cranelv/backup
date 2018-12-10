@@ -293,13 +293,6 @@ func (p *Process) processReqOnce() {
 		return
 	}
 
-	// verify election info
-	if err := p.verifyElection(p.curProcessReq.req.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
 	// verify net topology info
 	if err := p.verifyNetTopology(p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		log.ERROR(p.logExtraInfo(), "验证拓扑信息失败", err, "高度", p.number)
@@ -352,7 +345,7 @@ func (p *Process) processTxsAcquire(txsAcquireCh <-chan *core.RetChan, seq int) 
 	select {
 	case txsResult := <-txsAcquireCh:
 
-		go p.VerifyTxs(txsResult)
+		go p.VerifyTxsAndState(txsResult)
 	case <-outTime.C:
 		log.INFO(p.logExtraInfo(), "交易获取协程", "获取交易超时", "高度", p.number, "seq", seq)
 		go p.ProcessTxsAcquireTimeOut(seq)
@@ -380,7 +373,7 @@ func (p *Process) ProcessTxsAcquireTimeOut(seq int) {
 	p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 }
 
-func (p *Process) VerifyTxs(result *core.RetChan) {
+func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -432,12 +425,36 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
+
+	// process matrix state
+	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "运行matrix状态出错", "err", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
+	// 运行完matrix state后，生成root
+	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
+	// verify election info
+	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
+		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
 	//localBlock check
 	localHeader = localBlock.Header()
 	localHash := localHeader.HashNoSignsAndNonce()
 
 	if localHash != p.curProcessReq.hash {
-		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
+		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
 			"local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(),
 			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),

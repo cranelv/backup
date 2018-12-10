@@ -15,7 +15,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/depoistInfo"
@@ -53,6 +52,7 @@ type Work struct {
 	Block *types.Block // the new block
 
 	header   *types.Header
+	uptime   map[common.Address]uint64
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
 
@@ -113,6 +113,7 @@ func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasP
 		signer:  types.NewEIP155Signer(config.ChainId),
 		gasPool: gasPool,
 		header:  header,
+		uptime:  make(map[common.Address]uint64, 0),
 	}
 	var err error
 
@@ -433,35 +434,35 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if common.IsBroadcastNumber(env.header.Number.Uint64()) {
 		return nil
 	}
-	blkreward := blkreward.New(bc)
+	blkReward := blkreward.New(bc, env.State)
 	rewardList := make([]common.RewarTx, 0)
-	//todo: read half number from state
-	minerReward := blkreward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.MinersBlockReward, 1000000, common.BlkMinerRewardAddress)
-	minersRewardMap := blkreward.CalcMinerRewards(minerReward, env.header.Number.Uint64())
-	if nil != minersRewardMap {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
-	}
+	if nil != blkReward {
+		//todo: read half number from state
+		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
+		if nil != minersRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+		}
 
-	validatorReward := blkreward.CalcRewardMountByNumber(env.State, env.header.Number.Uint64()-1, util.ValidatorsBlockReward, 300, common.BlkValidatorRewardAddress)
-	validatorsRewardMap := blkreward.CalcValidatorRewards(validatorReward, env.header.Leader, env.header.Number.Uint64())
-	if nil != validatorsRewardMap {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+		validatorsRewardMap := blkReward.CalcValidatorRewards(env.header.Leader, env.header.Number.Uint64())
+		if nil != validatorsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+		}
 	}
 
 	allGas := env.getGas()
-	txsReward := txsreward.New(bc)
-
-	txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
-	if nil != txsRewardMap {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
-	}
-
-	lottery := lottery.New(bc, &randSeed{bc})
-	lotteryRewardMap := lottery.LotteryCalc(env.State, env.header.Number.Uint64())
-	for _, v := range lotteryRewardMap {
-		if nil != v {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: v})
+	txsReward := txsreward.New(bc, env.State)
+	if nil != txsReward {
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
+		if nil != txsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
+	}
+	lottery := lottery.New(bc, env.State, &randSeed{bc})
+	if nil != lottery {
+		lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+
 	}
 
 	// //todo:其它币种
@@ -472,12 +473,14 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	////  }
 	//
 	////todo 利息
-	interestReward := interest.New()
-	interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+	interestReward := interest.New(env.State)
+	if nil != interestReward {
+		interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+	}
 	//todo 惩罚
 
-	slash := slash.New(bc)
-	slash.CalcSlash(env.State, env.header.Number.Uint64())
+	slash := slash.New(bc, env.State)
+	slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime)
 
 	return env.Reverse(rewardList)
 }
@@ -488,6 +491,12 @@ func (env *Work) getGas() *big.Int {
 	allGas := new(big.Int).Mul(gas, price)
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
 	balance := env.State.GetBalance(common.TxGasRewardAddress)
+
+	if len(balance) == 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法", "")
+		return big.NewInt(0)
+	}
+
 	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
 		return big.NewInt(0)
@@ -624,6 +633,7 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
 		read, err := depoistInfo.GetOnlineTime(state, account)
+		env.uptime[account] = upTime
 		if nil == err {
 			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
 			if _, ok := originTopologyMap[account]; ok {

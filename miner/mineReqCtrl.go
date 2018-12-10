@@ -58,12 +58,12 @@ type mineReqCtrl struct {
 	currentMineReq  *mineReqData
 	role            common.RoleType
 	posEngine       consensus.DPOSEngine
-	validatorReader consensus.ValidatorReader
+	validatorReader consensus.StateReader
 	reqCache        map[common.Hash]*mineReqData
 	futureReq       map[uint64][]*mineReqData //todo 考虑作恶，可以加入限长
 }
 
-func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.ValidatorReader) *mineReqCtrl {
+func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.StateReader) *mineReqCtrl {
 	return &mineReqCtrl{
 		curNumber:       0,
 		currentMineReq:  nil,

@@ -95,27 +95,26 @@ type PoW interface {
 	Hashrate() float64
 }
 
-type ValidatorReader interface {
+type StateReader interface {
 	GetCurrentHash() common.Hash
-	GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error)
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
 }
 
 type DPOSEngine interface {
-	VerifyVersion(reader ValidatorReader, header *types.Header) error
+	VerifyVersion(reader StateReader, header *types.Header) error
 
 	CheckSuperBlock(header *types.Header) error
 
-	VerifyBlock(reader ValidatorReader, header *types.Header) error
-
-	VerifyBlocks(reader ValidatorReader, headers []*types.Header) error
+	VerifyBlock(reader StateReader, header *types.Header) error
 
 	//verify hash in current block
-	VerifyHash(reader ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)
+	VerifyHash(reader StateReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error)
 
 	//verify hash in given block
-	VerifyHashWithBlock(reader ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error)
+	VerifyHashWithBlock(reader StateReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error)
 
-	VerifyHashWithVerifiedSigns(reader ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error)
+	VerifyHashWithVerifiedSigns(reader StateReader, signs []*common.VerifiedSign) ([]common.Signature, error)
 
-	VerifyHashWithVerifiedSignsAndBlock(reader ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error)
+	VerifyHashWithVerifiedSignsAndBlock(reader StateReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error)
 }
