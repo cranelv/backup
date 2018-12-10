@@ -1410,7 +1410,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		}else{
 			log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
 		}
-	} else if selfRole == common.RoleDefault {
+	} else if selfRole == common.RoleDefault || selfRole == common.RoleBucket{
 		promoted := make([]types.SelfTransaction, 0)
 		promoted = append(promoted, tx)
 		nPool.sendTxCh <- NewTxsEvent{promoted, types.NormalTxIndex}

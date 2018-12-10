@@ -290,7 +290,6 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		S:            new(big.Int),
 		TxEnterType: NormalTxIndex,
 		IsEntrustTx:  isEntrustTx,
-		CommitTime: uint64(0),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -317,6 +316,13 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 			txto.Payload = input
 			arrayTx = append(arrayTx, *txto)
 		}
+	}
+	if txType == common.ExtraRevocable{
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(600)
+	}else if txType == common.ExtraTimeTxType{
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(300)
+	}else {
+		d.CommitTime = uint64(0)
 	}
 	matrixEx.TxType = txType
 	matrixEx.LockHeight = localtime
