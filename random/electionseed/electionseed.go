@@ -18,7 +18,7 @@ var (
 
 type ElectSeedPlugs interface {
 	CalcSeed(common.Hash, baseinterface.RandomChainSupport) (*big.Int, error)
-	Prepare(uint64) error
+	Prepare(uint64,baseinterface.RandomChainSupport) error
 }
 
 func init() {
@@ -50,6 +50,6 @@ func (self *ElectionSeed) CalcData(calcData common.Hash) (*big.Int, error) {
 
 func (self *ElectionSeed) Prepare(height uint64) error {
 	log.INFO(ModuleElectSeed, "准备阶段", "", "高度", height, "使用的插件", self.plug)
-	err := mapElectSeedPlugs[self.plug].Prepare(height)
+	err := mapElectSeedPlugs[self.plug].Prepare(height,self.support)
 	return err
 }

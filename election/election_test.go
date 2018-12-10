@@ -21,6 +21,7 @@ import (
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
 	//"encoding/json"
+	"github.com/matrix/go-matrix/log"
 )
 
 func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
@@ -30,10 +31,10 @@ func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
 		temp.Address = common.BigToAddress(big.NewInt(int64(i)))
 
 		if m > 0 {
-			temp.Deposit = big.NewInt(int64(12000000))
+			temp.Deposit =new(big.Int).Mul(big.NewInt(10000000), common.ManValue)
 			m--
 		} else if n > 0 {
-			temp.Deposit = big.NewInt(int64(2000000))
+			temp.Deposit =new(big.Int).Mul(big.NewInt(1000000), common.ManValue)
 			n--
 		} else {
 			temp.Deposit = big.NewInt(int64(i))
@@ -67,7 +68,7 @@ func MakeMinerTopReq(num int, Seed uint64) *mc.MasterMinerReElectionReqMsg {
 }
 
 func MakeValidatorTopReq(num int, Seed uint64) *mc.MasterValidatorReElectionReqMsg {
-	mList := GetDepositDetatil(num, 0, 0)
+	mList := GetDepositDetatil(num, 3, 2)
 
 	ans := &mc.MasterValidatorReElectionReqMsg{
 		SeqNum:                  Seed,
@@ -75,6 +76,28 @@ func MakeValidatorTopReq(num int, Seed uint64) *mc.MasterValidatorReElectionReqM
 		ValidatorList:           mList,
 	//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
+	ans.ElectConfig=mc.ElectConfigInfo{
+		ValidatorNum:11,
+		BackValidator:5,
+
+	}
+	ans.VIPList=[]mc.VIPConfig{
+
+		mc.VIPConfig{
+			MinMoney:10000000,
+			InterestRate:100,
+			ElectUserNum:3,
+			StockScale:1000,
+		},
+		mc.VIPConfig{
+			MinMoney:1000000,
+			InterestRate:100,
+			ElectUserNum:3,
+			StockScale:1000,
+		},
+	}
+	ans.ElectConfig.WhiteList=append(ans.ElectConfig.WhiteList,common.BigToAddress(big.NewInt(4)))
+	ans.ElectConfig.BlackList=append(ans.ElectConfig.BlackList,common.BigToAddress(big.NewInt(5)))
 	return ans
 
 }
@@ -129,7 +152,7 @@ func TestUnit1(t *testing.T) {
 		for Key := 101; Key <= 105; Key++ {
 			req := MakeMinerTopReq(Num, uint64(Key))
 			fmt.Println("矿工备选列表个数", len(req.MinerList), "随机数", req.RandSeed)
-			rspMiner := baseinterface.NewElect().MinerTopGen(req)
+			rspMiner := baseinterface.NewElect("layered").MinerTopGen(req)
 			PrintMiner(rspMiner)
 		}
 	}
@@ -140,11 +163,13 @@ func TestUnit2(t *testing.T) {
 	//验证者拓扑生成
 
 	//股权方案-（10-12）
-	for Num := 10; Num <= 10; Num++ {
+	log.InitLog(3)
+	for Num := 20; Num <= 20; Num++ {
 		for Key := 101; Key <= 101; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key))
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := baseinterface.NewElect().ValidatorTopGen(req)
+
+			rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
 			PrintValidator(rspValidator)
 		}
 	}
@@ -158,7 +183,7 @@ func TestUnit3(t *testing.T) {
 		for Key := 101; Key <= 101; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key))
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := baseinterface.NewElect().ValidatorTopGen(req)
+			rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
 			PrintValidator(rspValidator)
 		}
 	}

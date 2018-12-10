@@ -25,7 +25,7 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 
 	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
 		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64())
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(),p.blockChain())
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err

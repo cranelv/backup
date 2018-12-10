@@ -52,10 +52,9 @@ type ElectConfigInfo struct {
 	MinerNum           uint16
 	ValidatorNum       uint16
 	BackValidator      uint16
-	MinerElectPlug     string
-	ValidatorElectPlug string
+	ElectPlug     string
 	WhiteList          []common.Address
-	BlockList          []common.Address
+	BlackList          []common.Address
 }
 
 type VIPConfig struct {

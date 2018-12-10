@@ -148,6 +148,7 @@ func getKeyTransInfo(hash common.Hash, Height uint64, types string, support base
 	return ans
 }
 func GetCurrentKeys(hash common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error) {
+	//preHash:=support.BlockChain().GetMatrixStateDataByNumber(mc.MSKeyPreBroadcastRoot)
 
 	height, err := GetNumberByHash(hash, support)
 	if err != nil {

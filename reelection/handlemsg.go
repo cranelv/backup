@@ -7,7 +7,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type TopGenStatus struct {
@@ -56,6 +55,7 @@ func (self *ReElection) HandleTopGen(hash common.Hash) (TopGenStatus, error) {
 
 }
 
+
 //是不是矿工拓扑生成时间段
 func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 
@@ -65,10 +65,15 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 		return false
 	}
 	now := height % common.GetReElectionInterval()
-	if now+1 == common.GetReElectionInterval()-manparams.MinerNetChangeUpTime {
+	genData,err:=self.GetElectGenTimes(height)
+	if err!=nil{
+		log.ERROR(Module,"获取配置错误 高度",height)
+		return false
+	}
+	if now+1 == common.GetReElectionInterval()-uint64(genData.MinerNetChange){
 		return true
 	}
-	log.ERROR(Module, "height", height, "err", false, "interval", common.GetReElectionInterval(), "MinerTopGenTiming", MinerTopGenTiming, "now", now)
+	log.ERROR(Module, "height", height, "err", false, "interval", common.GetReElectionInterval(), "MinerTopGenTiming", uint64(genData.MinerNetChange), "now", now)
 	return false
 }
 
@@ -82,7 +87,12 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 	}
 
 	now := height % common.GetReElectionInterval()
-	if now+1 == common.GetReElectionInterval()-manparams.VerifyNetChangeUpTime {
+	genData,err:=self.GetElectGenTimes(height)
+	if err!=nil{
+		log.ERROR(Module,"获取配置错误 高度",height)
+		return false
+	}
+	if now+1 == common.GetReElectionInterval()-uint64(genData.ValidatorNetChange) {
 		return true
 	}
 	log.ERROR(Module, "height", height, "err", false)
