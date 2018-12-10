@@ -6,6 +6,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/log"
 )
 
 const (
@@ -87,9 +88,11 @@ func (g *Genesis)setElectTime(state *state.StateDB)error{
 	if g.MState.EleTimeCfg.MinerGen>g.MState.EleTimeCfg.MinerNetChange{
 		return errors.New("矿工切换点小于矿工生效时间点")
 	}
+	log.Info("Geneiss","electime",g.MState.EleTimeCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.MState.EleTimeCfg, state)
 }
 func (g *Genesis)setElectInfo(state *state.StateDB)error{
+	log.Info("Geneiss","electconfig",g.MState.EleInfoCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo,g.MState.EleInfoCfg,state)
 }
 
