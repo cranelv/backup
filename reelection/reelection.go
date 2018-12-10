@@ -128,11 +128,36 @@ func (self *ReElection) update() {
 		select {
 		case roleData := <-self.roleUpdateCh:
 			log.INFO(Module, "roleData", roleData)
-			//go self.roleUpdateProcess(roleData)
+			go self.PrintData(roleData.BlockNum)
 		}
 	}
 }
 
+func (self *ReElection)PrintData(height uint64){
+	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo,height)
+	if err!=nil{
+		log.ERROR(Module,"获取选举配置失败 err",err)
+		return
+	}
+	electCOnfig,OK:=data.(*mc.ElectConfigInfo)
+	if OK==false || electCOnfig==nil{
+		log.ERROR(Module,"反射选举配置失败 err",err)
+	}
+	log.ERROR(Module,"data",electCOnfig)
+
+	data1,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,height)
+	if err!=nil{
+		log.ERROR(Module,"获取选举时间点失败 err",err)
+		return
+	}
+	electTime,OK:=data1.(*mc.ElectGenTimeStruct)
+	if OK==false || electTime==nil{
+		log.ERROR(Module,"反射选举事件败 err",err)
+	}
+	log.ERROR(Module,"data",electTime)
+
+
+}
 func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnlineStatus, top *mc.TopologyGraph) support.AllNative {
 	mapTopStatus := make(map[common.Address]common.RoleType, 0)
 	for _, v := range top.NodeList {

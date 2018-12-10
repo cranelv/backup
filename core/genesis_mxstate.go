@@ -82,10 +82,10 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 }
 
 func (g *Genesis)setElectTime(state *state.StateDB)error{
-	if g.MState.EleTimeCfg.ValidatorGen>g.MState.EleTimeCfg.ValidatorNetChange{
+	if g.MState.EleTimeCfg.ValidatorGen<g.MState.EleTimeCfg.ValidatorNetChange{
 		return errors.New("验证者切换点小于验证者生成点")
 	}
-	if g.MState.EleTimeCfg.MinerGen>g.MState.EleTimeCfg.MinerNetChange{
+	if g.MState.EleTimeCfg.MinerGen<g.MState.EleTimeCfg.MinerNetChange{
 		return errors.New("矿工切换点小于矿工生效时间点")
 	}
 	log.Info("Geneiss","electime",g.MState.EleTimeCfg)
