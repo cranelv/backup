@@ -563,11 +563,24 @@ func BtreeSaveHash(node *bnode, db *Database,typ byte) common.Hash{
 	for _,it := range node.items {
 		switch typ {
 		case common.ExtraTimeTxType:
-			_,ok := it.(SpcialTxData)
+			keyItem,ok := it.(SpcialTxData)
 			if !ok{
 				log.Error("file btree","func BtreeSaveHash","Assert SpcialTxData fail.Serious error.Serious error.Serious error.")
 				return common.Hash{}
 			}
+			sorted_keys := make([]string, 0)
+			for k, _ := range keyItem.Value_Tx {
+				sorted_keys = append(sorted_keys, k.String())
+			}
+			sort.Strings(sorted_keys)
+			tmpmaps := make([]map[common.Hash][]byte,0)
+			for _,strhash := range sorted_keys{
+				hash := common.HexToHash(strhash)
+				tmap := make(map[common.Hash][]byte)
+				tmap[hash] = keyItem.Value_Tx[hash]
+				tmpmaps = append(tmpmaps,tmap)
+			}
+			tmpnode.Key = append(tmpnode.Key, TransferTxData{Key_Time:keyItem.Key_Time,Value_Tx:tmpmaps})
 		case common.ExtraRevocable:
 			keyItem,ok := it.(SpcialTxData)
 			if !ok{
@@ -654,7 +667,7 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Datab
 		case common.ExtraRevocable:
 			itemNode.items.insertAt(indexItem, SpcialTxData{it.Key_Time,tm})
 		case common.ExtraTimeTxType:
-
+			itemNode.items.insertAt(indexItem, SpcialTxData{it.Key_Time,tm})
 		}
 	}
 	for _, c := range tmpNodeSave.Child {

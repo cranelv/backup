@@ -484,23 +484,34 @@ func (self *StateDB)CommitSaveTx(){
 		var hash common.Hash
 		var str string
 		log.Info("file statedb","func CommitSaveTx:Key",btree.Key,"mapData",btree.Data)
-		self.revocablebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key,btree.Data})
-		tmproot := self.revocablebtrie.Root()
+
 		switch btree.Typ {
 		case common.StateDBRevocableBtree:
+			self.revocablebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key,btree.Data})
+			tmproot := self.revocablebtrie.Root()
 			typ = common.ExtraRevocable
+			hash = trie.BtreeSaveHash(tmproot,self.db.TrieDB(),typ)
+			str = common.StateDBRevocableBtree
+			b := []byte(str)
+			err:=self.trie.TryUpdate(b,hash.Bytes())
+			if err != nil {
+				log.Error("file statedb", "func CommitSaveTx:err1",err)
+			}
 		case common.StateDBTimeBtree:
+			self.timebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key,btree.Data})
+			tmproot := self.timebtrie.Root()
 			typ = common.ExtraTimeTxType
+			hash = trie.BtreeSaveHash(tmproot,self.db.TrieDB(),typ)
+			str = common.StateDBRevocableBtree
+			b := []byte(str)
+			err:=self.trie.TryUpdate(b,hash.Bytes())
+			if err != nil {
+				log.Error("file statedb", "func CommitSaveTx:err2",err)
+			}
 		default:
 
 		}
-		hash = trie.BtreeSaveHash(tmproot,self.db.TrieDB(),typ)
-		str = common.StateDBRevocableBtree
-		b := []byte(str)
-		err:=self.trie.TryUpdate(b,hash.Bytes())
-		if err != nil {
-			log.Error("file statedb", "func CommitSaveTx:err",err)
-		}
+
 	}
 	self.btreeMap = make([]BtreeDietyStruct,0)
 	self.btreeMapDirty = make([]BtreeDietyStruct,0)
