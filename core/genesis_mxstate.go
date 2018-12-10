@@ -38,6 +38,8 @@ type GenesisMState1 struct {
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
 	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
 	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
+	EleInfoCfg mc.ElectConfigInfo  `json:"EleInfo" gencodec:"required"`
 }
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {

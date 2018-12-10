@@ -153,6 +153,8 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.MState.SlashCfg = gensis1.MState.SlashCfg
 	gensis.MState.VIPCfg = gensis1.MState.VIPCfg
 	gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
+	gensis.MState.EleTimeCfg=gensis1.MState.EleTimeCfg
+	gensis.MState.EleInfoCfg=gensis1.MState.EleInfoCfg
 }
 
 //**********************************************************//
