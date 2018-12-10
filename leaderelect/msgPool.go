@@ -25,7 +25,7 @@ func newMsgPool() *msgPool {
 
 func (mp *msgPool) SavePOSNotifyMsg(msg *mc.BlockPOSFinishedNotify) error {
 	if nil == msg || (msg.Header.Leader == common.Address{}) {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 
 	for _, oldMsg := range mp.posNotifyCache {

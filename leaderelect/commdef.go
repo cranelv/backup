@@ -21,7 +21,7 @@ var (
 	ErrValidatorNotFound = errors.New("验证者未找到")
 	ErrMsgExistInCache   = errors.New("缓存中已存在消息")
 	ErrNoMsgInCache      = errors.New("缓存中没有目标消息")
-	ErrMsgIsNil          = errors.New("消息为nil")
+	ErrParamsIsNil       = errors.New("参数为nil")
 	ErrSelfReqIsNil      = errors.New("self请求不在缓存中")
 	ErrBroadcastIsNil    = errors.New("缓存没有广播消息")
 	ErrPOSResultIsNil    = errors.New("POS结果为nil/header为nil")

@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -36,7 +35,7 @@ func (self *controller) startReelect(reelectTurn uint32) {
 		log.INFO(self.logInfo, ">>>>开启重选流程(master)", master.Hex(), "轮次", self.curTurnInfo(),
 			"轮次开始时间", time.Unix(beginTime, 0).String(), "轮次结束时间", time.Unix(endTime, 0).String(), "高度", self.dc.number)
 		self.dc.isMaster = true
-		self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
+		self.setTimer(self.dc.turnTime.reelectHandleInterval, self.reelectTimer)
 		self.sendInquiryReq()
 	} else {
 		log.INFO(self.logInfo, ">>>>开启重选流程(follower)", master.Hex(), "轮次", self.curTurnInfo(),
@@ -107,7 +106,7 @@ func (self *controller) reelectTimeOutHandle() {
 	default:
 		self.sendInquiryReq()
 	}
-	self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
+	self.setTimer(self.dc.turnTime.reelectHandleInterval, self.reelectTimer)
 }
 
 func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
@@ -357,7 +356,7 @@ func (self *controller) handleResultRsp(rsp *mc.HD_ReelectResultRspMsg) {
 
 func (self *controller) processResultBroadcastMsg(msg *mc.HD_ReelectResultBroadcastMsg) error {
 	if msg == nil {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 	switch msg.Type {
 	case mc.ReelectRSPTypePOS:
@@ -411,7 +410,7 @@ func (self *controller) sendInquiryReq() {
 
 func (self *controller) sendInquiryReqToSingle(target common.Address) {
 	curTime := time.Now().Unix()
-	if false == self.selfCache.CanSendInquiryReq(curTime) {
+	if false == self.selfCache.CanSendInquiryReq(curTime, self.dc.turnTime.reelectHandleInterval) {
 		log.WARN(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
 		return
 	}
@@ -567,7 +566,7 @@ func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectResultBroadcast
 
 func (self *controller) checkRLReqMsg(req *mc.HD_ReelectLeaderReqMsg) error {
 	if nil == req || nil == req.InquiryReq {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 	if req.InquiryReq.ConsensusTurn != self.dc.curConsensusTurn {
 		return errors.Errorf("共识轮次不匹配, 消息(%d) != 本地(%d)", req.InquiryReq.ConsensusTurn, self.dc.curConsensusTurn)

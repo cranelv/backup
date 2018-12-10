@@ -19,6 +19,7 @@ const (
 	MSKeyElectConfigInfo   = "elect_details_info"
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
+	MSKeyLeaderConfig      = "leader_config"
 
 	MSKeyBlkRewardCfg = "blk_reward"
 	MSKeyTxsRewardCfg = "txs_reward"
@@ -59,11 +60,19 @@ type ElectConfigInfo struct {
 	WhiteList          []common.Address
 	BlockList          []common.Address
 }
+
 type VIPConfig struct {
 	MinMoney     uint64
 	InterestRate uint64 //(分母待定为1000w)
 	ElectUserNum uint8
 	StockScale   uint16 //千分比
+}
+
+type LeaderConfig struct {
+	ParentMiningTime      int64 // 预留父区块挖矿时间
+	PosOutTime            int64 // 区块POS共识超时时间
+	ReelectOutTime        int64 // 重选超时时间
+	ReelectHandleInterval int64 // 重选处理间隔时间
 }
 
 type PreBroadStateDB struct {

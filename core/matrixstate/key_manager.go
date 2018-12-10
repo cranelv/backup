@@ -85,6 +85,7 @@ func newKeyManager() *keyManager {
 			mc.MSKeyElectConfigInfo:   types.RlpHash(matrixStatePrefix + mc.MSKeyElectConfigInfo),
 			mc.MSKeyVIPConfig:         types.RlpHash(matrixStatePrefix + mc.MSKeyVIPConfig),
 			mc.MSKeyPreBroadcastRoot:  types.RlpHash(matrixStatePrefix + mc.MSKeyPreBroadcastRoot),
+			mc.MSKeyLeaderConfig:      types.RlpHash(matrixStatePrefix + mc.MSKeyLeaderConfig),
 			mc.MSKeyBlkRewardCfg:      types.RlpHash(matrixStatePrefix + mc.MSKeyBlkRewardCfg),
 			mc.MSKeyTxsRewardCfg:      types.RlpHash(matrixStatePrefix + mc.MSKeyTxsRewardCfg),
 			mc.MSKeyInterestCfg:       types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCfg),

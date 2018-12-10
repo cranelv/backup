@@ -1010,6 +1010,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
+	log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+
 	triedb := bc.stateCache.TrieDB()
 
 	// If we're running an archive node, always flush

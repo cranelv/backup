@@ -4,21 +4,42 @@
 package leaderelect
 
 import (
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"time"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type turnTimes struct {
-	beginTimes map[uint32]int64
+	beginTimes            map[uint32]int64
+	parentMiningTime      int64 // 预留父区块挖矿时间
+	posOutTime            int64 // 区块POS共识超时时间
+	reelectOutTime        int64 // 重选超时时间
+	reelectHandleInterval int64 // 重选处理间隔时间
 }
 
 func newTurnTimes() *turnTimes {
 	tt := &turnTimes{
-		beginTimes: make(map[uint32]int64),
+		beginTimes:            make(map[uint32]int64),
+		parentMiningTime:      0,
+		posOutTime:            0,
+		reelectOutTime:        0,
+		reelectHandleInterval: 0,
 	}
 
 	return tt
+}
+
+func (tt *turnTimes) SetTimeConfig(config *mc.LeaderConfig) error {
+	if config == nil {
+		return ErrParamsIsNil
+	}
+
+	tt.parentMiningTime = config.ParentMiningTime
+	tt.posOutTime = config.PosOutTime
+	tt.reelectOutTime = config.ReelectOutTime
+	tt.reelectHandleInterval = config.ReelectHandleInterval
+	return nil
 }
 
 func (tt *turnTimes) SetBeginTime(consensusTurn uint32, time int64) bool {
@@ -43,18 +64,22 @@ func (tt *turnTimes) GetPosEndTime(consensusTurn uint32) int64 {
 	_, endTime := tt.CalTurnTime(consensusTurn, 0)
 	return endTime
 
-	posTime := manparams.LRSPOSOutTime
+	posTime := tt.posOutTime
 	if consensusTurn == 0 {
-		posTime += manparams.LRSParentMiningTime
+		posTime += tt.parentMiningTime
 	}
 
 	return tt.GetBeginTime(consensusTurn) + posTime
 }
 
 func (tt *turnTimes) CalState(consensusTurn uint32, time int64) (st stateDef, remainTime int64, reelectTurn uint32) {
-	posTime := manparams.LRSPOSOutTime
+	if tt.reelectOutTime == 0 {
+		log.Error("critical", "turnTimes", "reelectOutTime == 0")
+		return stReelect, 0, 0
+	}
+	posTime := tt.posOutTime
 	if consensusTurn == 0 {
-		posTime += manparams.LRSParentMiningTime
+		posTime += tt.parentMiningTime
 	}
 
 	passTime := time - tt.GetBeginTime(consensusTurn)
@@ -63,7 +88,7 @@ func (tt *turnTimes) CalState(consensusTurn uint32, time int64) (st stateDef, re
 	}
 
 	st = stReelect
-	reelectTurn = uint32((passTime-posTime)/manparams.LRSReelectOutTime) + 1
+	reelectTurn = uint32((passTime-posTime)/tt.reelectOutTime) + 1
 	_, endTime := tt.CalTurnTime(consensusTurn, reelectTurn)
 	remainTime = endTime - time
 	return
@@ -75,17 +100,17 @@ func (tt *turnTimes) CalRemainTime(consensusTurn uint32, reelectTurn uint32, tim
 }
 
 func (tt *turnTimes) CalTurnTime(consensusTurn uint32, reelectTurn uint32) (beginTime int64, endTime int64) {
-	posTime := manparams.LRSPOSOutTime
+	posTime := tt.posOutTime
 	if consensusTurn == 0 {
-		posTime += manparams.LRSParentMiningTime
+		posTime += tt.parentMiningTime
 	}
 
 	if reelectTurn == 0 {
 		beginTime = tt.GetBeginTime(consensusTurn)
 		endTime = beginTime + posTime
 	} else {
-		beginTime = tt.GetBeginTime(consensusTurn) + posTime + int64(reelectTurn-1)*manparams.LRSReelectOutTime
-		endTime = beginTime + manparams.LRSReelectOutTime
+		beginTime = tt.GetBeginTime(consensusTurn) + posTime + int64(reelectTurn-1)*tt.reelectOutTime
+		endTime = beginTime + tt.reelectOutTime
 	}
 	return
 }
