@@ -16,6 +16,7 @@ var (
 )
 
 type stateReader interface {
+	GetCurrentHash() common.Hash
 	GetHashByNumber(number uint64) common.Hash
 	GetHeaderByHash(hash common.Hash) *types.Header
 	GetMatrixStateData(key string) (interface{}, error)

@@ -23,6 +23,17 @@ type GenesisMState struct {
 	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
 	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
 }
+type GenesisMState1 struct {
+	Broadcast    mc.NodeInfo1          `json:"Broadcast"`
+	Foundation   mc.NodeInfo1          `json:"Foundation"`
+	InnerMiners  []mc.NodeInfo1        `json:"InnerMiners"`
+	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
+	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
+}
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {
 	if err := g.setTopologyToState(state); err != nil {

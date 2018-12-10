@@ -170,6 +170,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:       engine,
 		vmConfig:     vmConfig,
 		badBlocks:    badBlocks,
+		upTime:       make(map[common.Address]uint64),
 		matrixState:  matrixstate.NewMatrixState(),
 	}
 	bc.graphStore = matrixstate.NewGraphStore(bc)
@@ -1466,11 +1467,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 			interestReward := interest.New(state)
-			interestReward.InterestCalc(state, block.Number().Uint64())
+			if nil != interestReward {
+				interestReward.InterestCalc(state, block.Number().Uint64())
+			}
+
 			//todo 惩罚
 
 			slash := slash.New(bc, state)
-			slash.CalcSlash(state, block.Number().Uint64(), bc.upTime)
+			if nil != slash {
+				slash.CalcSlash(state, block.Number().Uint64(), bc.upTime)
+			}
+
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {
@@ -1733,7 +1740,7 @@ func (bc *BlockChain) sendBroadTx() {
 			}
 		}
 		log.Info("===========YYY============2", "blockChian:sendBroadTx()", subVal)
-		currentAcc := ca.GetAddress().Big()  //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))

@@ -6,6 +6,8 @@ package blkgenor
 import (
 	"math/big"
 
+	"time"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
@@ -16,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -113,7 +114,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	//运行交易
-	log.Info("file process_block","func ProcessFullBlockRsp:YYYYYYYY:txs",rsp.Txs)
+	log.Info("file process_block", "func ProcessFullBlockRsp:YYYYYYYY:txs", rsp.Txs)
 	receipts, stateDB, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
@@ -152,7 +153,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
 	// 跑交易不能添加奖励，增加新接口或map为空
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, false)
 	if err != nil {
 		return nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}

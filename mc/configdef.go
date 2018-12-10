@@ -40,7 +40,10 @@ type NodeInfo struct {
 	NodeID  discover.NodeID
 	Address common.Address
 }
-
+type NodeInfo1 struct {
+	NodeID  discover.NodeID
+	Address string
+}
 type MatrixSpecialAccounts struct {
 	BroadcastAccount   NodeInfo
 	FoundationAccount  NodeInfo

@@ -58,6 +58,10 @@ func (gs GraphStore) GetHashByNumber(number uint64) common.Hash {
 	return gs.reader.GetHashByNumber(number)
 }
 
+func (gs GraphStore) GetCurrentHash() common.Hash {
+	return gs.reader.GetCurrentHash()
+}
+
 func (gs GraphStore) GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error) {
 	if graph, ok := gs.topologyCache.Get(blockHash); ok {
 		return graph.(*mc.TopologyGraph), nil

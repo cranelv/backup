@@ -19,6 +19,7 @@ import (
 )
 
 type TopologyGraphReader interface {
+	GetCurrentHash() common.Hash
 	GetHashByNumber(number uint64) common.Hash
 	GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error)
 	GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error)
@@ -572,6 +573,17 @@ func ConvertNodeIdToAddress(id discover.NodeID) (addr common.Address, err error)
 			return node.Address, nil
 		}
 	}
+	hash := ide.topologyReader.GetCurrentHash()
+	if (hash == common.Hash{}) {
+		return common.Address{0}, errors.New("get current hash err")
+	}
+
+	account, err := ide.topologyReader.GetSpecialAccounts(hash)
+	if nil != err {
+		return common.Address{0}, errors.New("get special account err")
+	}
+
+	ide.specialAccounts = account
 
 	if ide.specialAccounts.BroadcastAccount.NodeID == id {
 		return ide.specialAccounts.BroadcastAccount.Address, nil
@@ -594,6 +606,17 @@ func ConvertAddressToNodeId(address common.Address) (id discover.NodeID, err err
 		}
 	}
 
+	hash := ide.topologyReader.GetCurrentHash()
+	if (hash == common.Hash{}) {
+		return discover.NodeID{0}, errors.New("get current hash err")
+	}
+
+	account, err := ide.topologyReader.GetSpecialAccounts(hash)
+	if nil != err {
+		return discover.NodeID{0}, errors.New("get special account err")
+	}
+
+	ide.specialAccounts = account
 	if ide.specialAccounts.BroadcastAccount.Address == address {
 		return ide.specialAccounts.BroadcastAccount.NodeID, nil
 	}

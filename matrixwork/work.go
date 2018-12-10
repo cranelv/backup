@@ -360,7 +360,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, rewardFlag bool) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
@@ -386,7 +386,11 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-	rewart := env.CalcRewardAndSlash(bc)
+	var rewart []common.RewarTx
+	if rewardFlag {
+		rewart = env.CalcRewardAndSlash(bc)
+	}
+
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -480,7 +484,9 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	//todo 惩罚
 
 	slash := slash.New(bc, env.State)
-	slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime)
+	if nil != slash {
+		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime)
+	}
 
 	return env.Reverse(rewardList)
 }

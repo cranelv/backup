@@ -13,6 +13,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
@@ -83,6 +85,7 @@ type Genesis1 struct {
 	Mixhash           common.Hash         `json:"mixHash"`
 	Coinbase          string              `json:"coinbase"`
 	Alloc             GenesisAlloc1       `json:"alloc"      gencodec:"required"`
+	MState            GenesisMState1      `json:"mstate"`
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
@@ -131,6 +134,24 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		tmpk := base58.Base58DecodeToAddress(kString)
 		gensis.Alloc[tmpk] = vGenesisAccount
 	}
+
+	gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
+	gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+
+	gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
+	gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+
+	for _, v := range gensis1.MState.InnerMiners {
+
+		gensis.MState.InnerMiners = append(gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+	}
+
+	gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
+	gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
+	gensis.MState.InterestCfg = gensis1.MState.InterestCfg
+	gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
+	gensis.MState.SlashCfg = gensis1.MState.SlashCfg
+	gensis.MState.VIPCfg = gensis1.MState.VIPCfg
 }
 
 //**********************************************************//
@@ -423,6 +444,9 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db mandb.Database) (*types.Block, error) {
 	block := g.ToBlock(db)
+	if nil == block {
+		return nil, fmt.Errorf("can't create genesis block")
+	}
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}

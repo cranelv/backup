@@ -410,7 +410,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, true)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
