@@ -3,7 +3,6 @@ package selectedreward
 import (
 	"errors"
 	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -49,7 +48,7 @@ type ChainReader interface {
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
-func (sr *SelectedReward)getTopAndDeposit(currentNum uint64,roleType common.RoleType)( *mc.TopologyGraph,  *mc.TopologyGraph,  []vm.DepositDetail, error){
+func (sr *SelectedReward)getTopAndDeposit(chain util.ChainReader,currentNum uint64,roleType common.RoleType)( *mc.TopologyGraph,  *mc.TopologyGraph,  []vm.DepositDetail, error){
 
 	var eleNum uint64
 
@@ -84,13 +83,19 @@ func (sr *SelectedReward)getTopAndDeposit(currentNum uint64,roleType common.Role
 
 
 	var depositNum uint64
+	chain.GetMatrixStateData(mc.MSKeyElectGenTime)
+	originInfo,err:=chain.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, currentNum-1)
+
+	if nil!=err{
+		return nil,nil,nil,errors.New("获取选举信息的出错")
+	}
 	if currentNum < common.GetReElectionInterval(){
 		depositNum = 0
 	}else{
 		if common.RoleValidator == common.RoleValidator&roleType {
-			depositNum = common.GetLastReElectionNumber(currentNum) - manparams.VerifyTopologyGenerateUpTime
+			depositNum = common.GetLastReElectionNumber(currentNum) - uint64(originInfo.(*mc.ElectGenTimeStruct).ValidatorGen)
 		}else{
-			depositNum = common.GetLastReElectionNumber(currentNum) - manparams.MinerTopologyGenerateUpTime
+			depositNum = common.GetLastReElectionNumber(currentNum) - uint64(originInfo.(*mc.ElectGenTimeStruct).MinerGen)
 		}
 	}
 
@@ -106,7 +111,7 @@ func (sr *SelectedReward)getTopAndDeposit(currentNum uint64,roleType common.Role
 	return  currentTop,originElectNodes,depositNodes,nil
 }
 
-func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, roleType common.RoleType, currentNum uint64, rate uint64) map[common.Address]*big.Int{
+func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, chain util.ChainReader,roleType common.RoleType, currentNum uint64, rate uint64) map[common.Address]*big.Int{
 
 	//计算选举的拓扑图的高度
 	if reward.Cmp(big.NewInt(0)) <= 0 {
@@ -115,7 +120,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, roleType common.Ro
 	}
 	log.INFO(PackageName, "参与奖励大家共发放", reward)
 
-	currentTop,originElectNodes,depositNodes,err:=sr.getTopAndDeposit(currentNum,roleType)
+	currentTop,originElectNodes,depositNodes,err:=sr.getTopAndDeposit(chain,currentNum,roleType)
 	if nil!=err{
 	        return nil
 	}

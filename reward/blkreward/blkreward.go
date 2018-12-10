@@ -37,6 +37,8 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
 	Genesis() *types.Block
+	GetMatrixStateData(key string) (interface{}, error)
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 type blkreward struct {

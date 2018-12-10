@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"github.com/matrix/go-matrix/election/support"
 	"fmt"
+	"github.com/matrix/go-matrix/mc"
 )
 
 const (
@@ -29,25 +30,38 @@ type vip_node struct{
 	Ratio uint16
 	vipLevel int
 	index int
+	Usable bool
 }
 
 type VIP_Electoion struct{
 	randSeed * big.Int
 	MaxLevelNum int
-	VipLevelCfg []common.Echelon
+	VipLevelCfg []mc.VIPConfig
 	VipNodeInfo []vip_node
-	EleCfg  support.Eletion_cfg
+	EleCfg  mc.ElectConfigInfo
+	LastMasterNum int
+	WhiteNodeInfo []vip_node
+
+}
+func (node *vip_node)SetUsable(status bool){
+	//fmt.Println("-----",node.Address.String(),"flag",status)
+	node.Usable=status
 }
 
 func (node * vip_node)SetIndex(index int){
 	node.index = index
 }
-func (node * vip_node)SetVipLevelInfo(VipLevelCfg []common.Echelon){
+func (node * vip_node)SetVipLevelInfo(VipLevelCfg []mc.VIPConfig){
 
-	for vipLevel, vipConfigInfo := range VipLevelCfg {
-		if node.Deposit.Cmp(vipConfigInfo.MinMoney) >= 0 {
-			node.vipLevel = vipLevel
-			node.Ratio=vipConfigInfo.Ratio
+
+	for index:=0;index<len(VipLevelCfg);index++ {
+		temp:=big.NewInt(0).Set(node.Deposit)
+		deposMan:=temp.Div(temp,common.ManValue).Uint64()
+
+		if deposMan >= VipLevelCfg[index].MinMoney {
+
+			node.vipLevel = index
+			node.Ratio=VipLevelCfg[index].StockScale
 			return
 		}
 	}
@@ -74,32 +88,60 @@ func (node  * vip_node)SetDepositInfo(depsit vm.DepositDetail){
 	}
 }
 
-func NewVipElelection(VipLevelCfg []common.Echelon, vm []vm.DepositDetail, EleCfg  support.Eletion_cfg, randseed * big.Int) * VIP_Electoion{
+
+func NewVipElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg  mc.ElectConfigInfo, randseed * big.Int) * VIP_Electoion{
 	var vip VIP_Electoion
 
 	vip.randSeed = randseed
 	vip.MaxLevelNum = len(VipLevelCfg) + 1
 	vip.EleCfg = EleCfg
 	vip.VipLevelCfg = VipLevelCfg
-
+	vip.LastMasterNum=int(EleCfg.ValidatorNum)
+	vip.WhiteNodeInfo=make([]vip_node,0)
 	for i:=0;i<len(vm);i++{
 		vip.VipNodeInfo=append(vip.VipNodeInfo,vip_node{})
 	}
-
 	for i := 0; i < len(vm); i++{
-
 		vip.VipNodeInfo[i].SetDepositInfo(vm[i])
 		vip.VipNodeInfo[i].SetVipLevelInfo(VipLevelCfg)
 		vip.VipNodeInfo[i].SetIndex(i)
-	}
+		vip.VipNodeInfo[i].SetUsable(true)
 
+	}
 	return &vip
 }
 
 
+func FindAddress(addr common.Address,addrList []common.Address)bool{
+	for _,v:=range addrList{
+		if v.Equal(addr)==true{
+			return true
+		}
+	}
+	return false
+}
 func (vip *VIP_Electoion)DisPlayNode(){
 	for _,v:=range vip.VipNodeInfo{
-		fmt.Println(v.Address,v.Deposit,v.WithdrawH,v.OnlineTime,v.vipLevel,v.index,v.Ratio)
+		fmt.Println(v.Address,v.Deposit,v.WithdrawH,v.OnlineTime,v.vipLevel,v.index,"Ratio",v.Ratio)
+	}
+}
+func (vip *VIP_Electoion)ProcessBlackNode(){
+	for k,v:=range vip.VipNodeInfo{
+		if FindAddress(v.Address,vip.EleCfg.BlackList){
+			vip.VipNodeInfo[k].SetUsable(false)
+		}
+	}
+}
+func (vip *VIP_Electoion)ProcessWhiteNode(){
+	for k,v:=range vip.VipNodeInfo{
+		if v.Usable==false{
+			continue
+		}
+		if FindAddress(v.Address,vip.EleCfg.WhiteList){
+			vip.LastMasterNum--
+			vip.WhiteNodeInfo=append(vip.WhiteNodeInfo,v)
+			vip.VipNodeInfo[k].SetUsable(false)
+		}
 	}
 }
 func (vip * VIP_Electoion)GetNodeByLevel(level int) []vip_node{
@@ -107,6 +149,9 @@ func (vip * VIP_Electoion)GetNodeByLevel(level int) []vip_node{
 	specialNode := make([]vip_node,0)
 
 	for i:=0; i < len(vip.VipNodeInfo);i++{
+		if vip.VipNodeInfo[i].Usable==false{
+			continue
+		}
 		if level == vip.VipNodeInfo[i].vipLevel{
 			specialNode = append(specialNode, vip.VipNodeInfo[i])
 		}
@@ -128,27 +173,19 @@ func (vip * VIP_Electoion)GetNodeIndexByLevel(level int) []int{
 }
 
 func (vip * VIP_Electoion)GetLastNode(nodelist []vip_node) []vip_node{
-	var originIdx = make([]int , len(vip.VipNodeInfo))
-	for i:= 0; i < len(vip.VipNodeInfo); i++{
-		originIdx[i] = i
-	}
 
-	for i:=0; i < len(nodelist); i++{
-		originIdx[nodelist[i].index] = -1
-	}
 
 	var remainNodeList = make([]vip_node, 0)
-//	fmt.Println("len",len(vip.VipNodeInfo) - len(nodelist))
 	for i := 0; i < len(vip.VipNodeInfo); i++{
-		//fmt.Println("i",i,"vip",vip.VipNodeInfo[i])
-		if originIdx[i] == -1{
+
+		if vip.VipNodeInfo[i].Usable ==false{
 			continue
 		}
-		//fmt.Println("vip.VipNodeInfo[originIdx[i]]",vip.VipNodeInfo[originIdx[i]])
-		remainNodeList = append(remainNodeList, vip.VipNodeInfo[originIdx[i]])
-		//fmt.Println("len",len(remainNodeList),remainNodeList)
+
+
+		remainNodeList = append(remainNodeList, vip.VipNodeInfo[i])
 	}
-	//fmt.Println("remainBodeList",remainNodeList)
+
 	return remainNodeList
 }
 
@@ -158,7 +195,8 @@ func (vip *VIP_Electoion)GetWeight(lastnode []vip_node)[]support.Stf{
 	for _, item := range lastnode {
 		self := support.SelfNodeInfo{Address: item.Address, Stk: float64(item.Deposit.Uint64()), Uptime: int(item.OnlineTime.Uint64()), Tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
 		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.Deposit_stake()*self.Coef_stk)
-		value=value*float64(item.Ratio/DefaultRatioDenominator)
+
+		value=value*(float64(item.Ratio)/float64(DefaultRatioDenominator))
 		CapitalMap = append(CapitalMap, support.Stf{Addr: self.Address, Flot: float64(value)})
 	}
 	return CapitalMap
@@ -193,17 +231,34 @@ func Knuth_Fisher_Yates_Algorithm( nodeList []vip_node, randSeed *big.Int) []vip
 	}
 	return nodeList
 }
-func vipElection( nodeList []vip_node, random *big.Int, maxNum int) []vip_node{
-
-	nodeList = Knuth_Fisher_Yates_Algorithm(nodeList, random)
+func (vip *VIP_Electoion)GetIndex(addr common.Address)(int,bool){
+	for k,v:=range vip.VipNodeInfo{
+		if v.Address.Equal(addr){
+			return k,true
+		}
+	}
+	return 0,false
+}
+func ( vip *VIP_Electoion)vipElection( nodeList []vip_node,  maxNum int) []vip_node{
+	if maxNum>vip.LastMasterNum{
+		maxNum=vip.LastMasterNum
+	}
+	nodeList = Knuth_Fisher_Yates_Algorithm(nodeList, vip.randSeed)
 
 	sort.Sort(VipNodeList(nodeList))
-
 	var vipElected = make([]vip_node, 0)
-	if len(nodeList) <= maxNum{
-		copy(vipElected, nodeList)
-	}else{
-		copy(vipElected, nodeList[:maxNum-1])
+	for _,v:=range nodeList{
+		//fmt.Println("maxNum",v)
+		vipElected=append(vipElected,v)
+		index,flag:=vip.GetIndex(v.Address)
+		if flag==false{
+			continue
+		}
+		vip.VipNodeInfo[index].SetUsable(false)
+		//fmt.Println("index",vip.VipNodeInfo[index].Address.String())
+		if len(vipElected)>=maxNum{
+			return vipElected
+		}
 	}
 
 	return vipElected
