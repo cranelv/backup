@@ -16,6 +16,8 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"sync"
 	"runtime"
+	"errors"
+	"github.com/matrix/go-matrix/log"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -147,6 +149,14 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
 		if err != nil {
 			return nil, 0, err
+		}
+	}
+	//如果是委托gas并且是按时间委托
+	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime(){
+		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
+		if !statedb.GetIsEntrustByTime(from,header.Time.Uint64()){
+			log.Error("按时间委托gas的交易失效")
+			return nil, 0, errors.New("entrustTx is invalid")
 		}
 	}
 	// Update the state with pending changes

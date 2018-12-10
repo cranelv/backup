@@ -58,7 +58,7 @@ type Transaction struct {
 	// by hezi
 	N []uint32
 	IsEntrustGas bool
-	//IsEntrustSign bool
+	IsEntrustByTime bool //是否是按时间委托（不是按时间就是按高度，二选一）
 }
 
 //YY
@@ -587,6 +587,12 @@ func (tx *Transaction) CostALL() *big.Int {
 }
 func (tx *Transaction)GetTxNLen()int{
 	return len(tx.N)
+}
+func (tx *Transaction)GetIsEntrustGas() bool {
+	return tx.IsEntrustGas
+}
+func (tx *Transaction)GetIsEntrustByTime() bool {
+	return tx.IsEntrustByTime
 }
 //YY
 func (tx *Transaction) GetTxV() *big.Int { return tx.data.V }

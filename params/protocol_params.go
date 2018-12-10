@@ -80,6 +80,8 @@ const (
 	FloodMaxTransactions int    = 200                //洪泛交易数量阈值
 	TxSize               uint64 = 32 * 1024          //交易的大小
 	TxGasPrice           uint64 = 18000000000        //交易费
+	EntrustByHeight      byte = 0                    //按块高委托
+	EntrustByTime        byte = 1                    //按时间委托
 
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64
