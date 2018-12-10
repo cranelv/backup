@@ -585,6 +585,9 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 				return nil, 0, false, err
 			}
 			for _,AuthData := range AuthDataList{
+				if AuthData.IsEntrustGas == false && AuthData.IsEntrustSign == false{
+					continue
+				}
 				if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
 					log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
 					return nil, 0, false, ErrRepeatEntrust //如果一个不满足就返回，不continue
@@ -766,18 +769,20 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 				if err != nil{
 					return nil, 0, false, err
 				}
+				newDelAuthDataList := make([]common.AuthType,0)
 				for _,oldAuthData := range oldAuthDataList{
 					//只要起始高度或时间能对应上，就是要删除的切片
 					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime{
 						oldAuthData.IsEntrustGas = false
 						oldAuthData.IsEntrustSign = false
-						newAuthData,err := json.Marshal(oldAuthData)
+						newDelAuthDataList = append(newDelAuthDataList,oldAuthData)
+					}
+				}
+				newAuthDatalist,err := json.Marshal(newDelAuthDataList)
 						if err != nil{
 							return nil, 0, false, err
 						}
-						st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newAuthData)
-					}
-				}
+				st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newAuthDatalist)
 			}
 		}else{
 			//新的切片数据
