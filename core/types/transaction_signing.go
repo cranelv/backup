@@ -177,9 +177,9 @@ func (s EIP155Signer) Sender(tx SelfTransaction) (common.Address, error) {
 	}
 	//YY=====begin======
 	V := new(big.Int).Set(tx.GetTxV())
-	if V.Cmp(big.NewInt(128)) > 0 {
-		V.Sub(V, big.NewInt(128))
-	}
+	//if V.Cmp(big.NewInt(128)) > 0 {
+	//	V.Sub(V, big.NewInt(128))
+	//}
 	V.Sub(V, s.chainIdMul)
 	//=======end========
 	V.Sub(V, big8)
@@ -369,10 +369,10 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 //YY 将原来的deriveChainId方法改为deriveChainId1，然后重写deriveChainId方法
 func deriveChainId(v *big.Int) *big.Int {
 	v1 := new(big.Int).Set(v)
-	tmp := big.NewInt(128)
-	if v1.Cmp(tmp) > 0 {
-		v1.Sub(v1, tmp)
-	}
+	//tmp := big.NewInt(128)
+	//if v1.Cmp(tmp) > 0 {
+	//	v1.Sub(v1, tmp)
+	//}
 	return deriveChainId1(v1)
 }
 

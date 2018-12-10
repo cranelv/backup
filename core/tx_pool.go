@@ -1242,9 +1242,9 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return addrerr
 	}
 	//YY 验证当V值大于128时，如果扩展交易为空则直接丢弃该交易并返回交易不合法
-	if tx.GetTxV().Cmp(big.NewInt(128)) > 0 && len(txEx) <= 0 {
-		return ErrTXWrongful
-	}
+	//if tx.GetTxV().Cmp(big.NewInt(128)) > 0 && len(txEx) <= 0 {
+	//	return ErrTXWrongful
+	//}
 	// Drop non-local transactions under our own minimal accepted gas price
 	if nPool.gasPrice.Cmp(tx.GasPrice()) > 0 {
 		return ErrUnderpriced

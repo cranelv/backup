@@ -162,10 +162,10 @@ func (tx *TransactionBroad) WithSignature(signer Signer, sig []byte) (SelfTransa
 	}
 	cpy := &TransactionBroad{data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	//YY
-	if len(cpy.data.Extra) > 0 {
-		cpy.data.V.Add(cpy.data.V, big.NewInt(128))
-	}
+	////YY
+	//if len(cpy.data.Extra) > 0 {
+	//	cpy.data.V.Add(cpy.data.V, big.NewInt(128))
+	//}
 	return cpy, nil
 }
 // Hash hashes the RLP encoding of tx.

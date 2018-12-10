@@ -973,6 +973,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
+		log.Info("file blockchain","gcmode modify archive","")
 		if err := triedb.Commit(root, false); err != nil {
 			return NonStatTy, err
 		}

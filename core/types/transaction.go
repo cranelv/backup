@@ -766,10 +766,10 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (SelfTransaction
 	}
 	cpy := &Transaction{data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	//YY
-	if len(cpy.data.Extra) > 0 {
-		cpy.data.V.Add(cpy.data.V, big.NewInt(128))
-	}
+	////YY
+	//if len(cpy.data.Extra) > 0 {
+	//	cpy.data.V.Add(cpy.data.V, big.NewInt(128))
+	//}
 	return cpy, nil
 }
 
