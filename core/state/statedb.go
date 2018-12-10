@@ -302,6 +302,9 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 //根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名)
 func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []common.Address {
 	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	if len(EntrustMarsha1Data) == 0 {
+		return nil
+	}
 	entrustDataList := make([]common.EntrustType, 0)
 	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
 	if err != nil {
@@ -309,7 +312,7 @@ func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []co
 	}
 	addressList := make([]common.Address, 0)
 	for _, entrustData := range entrustDataList {
-		if entrustData.IsEntrustSign == true && entrustData.StartHeight <= height && entrustData.EndHeight >= height {
+		if entrustData.EnstrustSetType == params.EntrustByHeight && entrustData.IsEntrustSign == true && entrustData.StartHeight <= height && entrustData.EndHeight >= height {
 			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
 			addressList = append(addressList, entrustFrom)
 		}
@@ -320,65 +323,91 @@ func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []co
 //根据委托人from和高度获取授权人的from,返回授权人地址(算法组调用,仅适用委托签名)
 func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
-	AuthData := new(common.AuthType) //授权数据是单个结构
-	err := json.Unmarshal(AuthMarsha1Data, AuthData)
+	if len(AuthMarsha1Data) == 0 {
+		return common.Address{}
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
 	if err != nil {
 		return common.Address{}
 	}
-	if AuthData.IsEntrustSign == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
-		return AuthData.AuthAddres
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustSign == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
+			return AuthData.AuthAddres
+		}
 	}
 	return common.Address{}
-}
-
-//根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
-func (self *StateDB) GetAllEntrustSignFrom(authFrom common.Address) []common.Address {
-	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
-	entrustDataList := make([]common.EntrustType, 0)
-	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
-	if err != nil {
-		return nil
-	}
-	addressList := make([]common.Address, 0)
-	for _, entrustData := range entrustDataList {
-		if entrustData.IsEntrustSign == true {
-			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
-			addressList = append(addressList, entrustFrom)
-		}
-	}
-	return addressList
-}
-
-//根据授权人获取所有委托gas列表,(该方法用于取消委托时调用)
-func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Address {
-	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
-	entrustDataList := make([]common.EntrustType, 0)
-	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
-	if err != nil {
-		return nil
-	}
-	addressList := make([]common.Address, 0)
-	for _, entrustData := range entrustDataList {
-		if entrustData.IsEntrustGas == true {
-			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
-			addressList = append(addressList, entrustFrom)
-		}
-	}
-	return addressList
 }
 
 //根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
-	AuthData := new(common.AuthType) //授权数据是单个结构
-	err := json.Unmarshal(AuthMarsha1Data, AuthData)
+	if len(AuthMarsha1Data) > 0 {
+		AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+		err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+		if err != nil {
+			return common.Address{}
+		}
+		for _, AuthData := range AuthDataList {
+			if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
+				return AuthData.AuthAddres
+			}
+		}
+	}
+	return common.Address{}
+}
+
+//根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
+	if len(AuthMarsha1Data) == 0 {
+		return common.Address{}
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
 	if err != nil {
 		return common.Address{}
 	}
-	if AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
-		return AuthData.AuthAddres
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByTime && AuthData.IsEntrustGas == true && AuthData.StartTime <= time && AuthData.EndTime >= time {
+			return AuthData.AuthAddres
+		}
 	}
 	return common.Address{}
+}
+
+//判断根据时间委托是否满足条件，用于执行按时间委托的交易(跑交易),此处time应该为header里的时间戳
+func (self *StateDB) GetIsEntrustByTime(entrustFrom common.Address, time uint64) bool {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
+	if len(AuthMarsha1Data) == 0 {
+		return false
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	if err != nil {
+		return false
+	}
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByTime && AuthData.IsEntrustGas == true && AuthData.StartTime <= time && AuthData.EndTime >= time {
+			return true
+		}
+	}
+	return false
+}
+
+//钱包调用显示
+func (self *StateDB) GetAllEntrustList(authFrom common.Address) []common.EntrustType {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	if len(EntrustMarsha1Data) == 0 {
+		return nil
+	}
+	entrustDataList := make([]common.EntrustType, 0)
+	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	if err != nil {
+		return nil
+	}
+
+	return entrustDataList
 }
 
 // Database retrieves the low level database supporting the lower level trie ops.
@@ -455,7 +484,7 @@ func (self *StateDB) SaveTx(typ byte, key uint32, data map[common.Hash][]byte) {
 }
 func (self *StateDB) CommitSaveTx() {
 	var typ byte
-	log.Info("file statedb", "func CommitSaveTx:len(self.btreeMap)", self.btreeMap)
+	//log.Info("file statedb","func CommitSaveTx:len(self.btreeMap)",self.btreeMap)
 	for _, btree := range self.btreeMap {
 		var hash common.Hash
 		var str string
@@ -477,7 +506,6 @@ func (self *StateDB) CommitSaveTx() {
 		if err != nil {
 			log.Error("file statedb", "func CommitSaveTx:err", err)
 		}
-		log.Info("file statedb", "func CommitSaveTx", "ooooooooooooooooooooooooooo")
 	}
 	self.btreeMap = make([]BtreeDietyStruct, 0)
 	self.btreeMapDirty = make([]BtreeDietyStruct, 0)

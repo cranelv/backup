@@ -99,6 +99,21 @@ func (w *keystoreWallet) SignTx(account accounts.Account, tx types.SelfTransacti
 	return w.keystore.SignTx(account, tx, chainID)
 }
 
+//func (ks *keystoreWallet) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
+//	// Look up the key to sign with and abort if it cannot be found
+//	return nil, nil
+//}
+func (w *keystoreWallet) SignTxWithPasswd(account accounts.Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
+	if account.Address != w.account.Address {
+		return nil, accounts.ErrUnknownAccount
+	}
+	if account.URL != (accounts.URL{}) && account.URL != w.account.URL {
+		return nil, accounts.ErrUnknownAccount
+	}
+	// Account seems valid, request the keystore to sign
+	return w.keystore.SignTxWithPasswd(account, passwd, tx, chainID)
+}
+
 // SignHashWithPassphrase implements accounts.Wallet, attempting to sign the
 // given hash with the given account using passphrase as extra authentication.
 func (w *keystoreWallet) SignHashWithPassphrase(account accounts.Account, passphrase string, hash []byte) ([]byte, error) {

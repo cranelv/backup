@@ -94,7 +94,9 @@ func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 func (b *ManAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.man.blockchain.GetBlockByHash(hash), nil
 }
-
+func (b *ManAPIBackend) GetState() (*state.StateDB, error) {
+	return b.man.BlockChain().State()
+}
 func (b *ManAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.man.chainDb, hash); number != nil {
 		return rawdb.ReadReceipts(b.man.chainDb, hash, *number), nil

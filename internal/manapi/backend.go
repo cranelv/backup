@@ -47,6 +47,7 @@ type Backend interface {
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription
 	ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error)
+	GetState() (*state.StateDB, error)
 
 	// TxPool API
 	SendTx(ctx context.Context, signedTx types.SelfTransaction) error

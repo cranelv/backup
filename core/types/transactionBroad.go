@@ -156,6 +156,14 @@ func (tx *TransactionBroad) SetNonce(nc uint64) {
 	tx.data.AccountNonce = nc
 }
 
+func (tx *TransactionBroad) GetIsEntrustGas() bool {
+	return false
+}
+
+func (tx *TransactionBroad) GetIsEntrustByTime() bool {
+	return false
+}
+
 //hezi
 func (tx *TransactionBroad) SetTxS(S *big.Int) { tx.data.S = S }
 func (tx *TransactionBroad) To() *common.Address {

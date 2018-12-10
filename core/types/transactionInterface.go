@@ -50,6 +50,8 @@ type SelfTransaction interface {
 	GetTxCurrency() string
 	GetCreateTime() uint32
 	GetLocalHeight() uint32
+	GetIsEntrustGas() bool
+	GetIsEntrustByTime() bool
 }
 
 func SetTransactionToMx(txer SelfTransaction) (txm *Transaction_Mx) {

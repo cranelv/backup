@@ -427,6 +427,11 @@ web3._extend({
 		}),
 		//hezi
 		new web3._extend.Method({
+			name: 'getEntrustList',
+			call: 'man_getEntrustList',
+			params: 1,
+		}),
+		new web3._extend.Method({
 			name: 'getTopology',
 			call: 'man_getTopology',
 			params: 2,

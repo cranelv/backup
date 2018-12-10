@@ -560,6 +560,16 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 	return b, state.Error()
 }
 
+//钱包调用
+func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	return state.GetAllEntrustList(authFrom)
+}
+
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
@@ -1580,9 +1590,9 @@ func submitTransaction(ctx context.Context, b Backend, tx types.SelfTransaction)
 		addr := crypto.CreateAddress(from, tx.Nonce())
 		log.Info("Submitted contract creation", "fullhash", tx.Hash().Hex(), "contract", addr.Hex())
 	} else {
-		log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
+		//log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
 	}
-	log.Info("file api", "func submitTransaction", tx.Hash().String())
+	//log.Info("file api","func submitTransaction",tx.Hash().String())
 	return tx.Hash(), nil
 }
 
@@ -1671,7 +1681,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 
 // SendTransaction creates a transaction for the given argument, sign it and submit it to the
 // transaction pool.
-func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
+func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
 	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
 	var args SendTxArgs
 	args, err := StrArgsToByteArgs(args1)
@@ -1717,68 +1727,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
 	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	Currency := strings.Split(args1.From, ".")[0] //币种
-	signed.SetTxCurrency(Currency)
-	return submitTransaction(ctx, s.b, signed)
-}
-
-//hezi 修改账户编码
-func (s *PublicTransactionPoolAPI) ManSendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
-	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
-	var args SendTxArgs
-	args, err := StrArgsToByteArgs(args1)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	} else { //YY add else
-		nc1 := params.NonceAddOne
-		nc := uint64(*args.Nonce)
-		if nc < nc1 {
-			err = errors.New("Nonce Wrongful")
-			return common.Hash{}, err
-		}
-	}
-	//YY
-	if len(args.ExtraTo) > 0 { //扩展交易中的to和input属性不填写则删掉这个扩展交易
-		extra := make([]*ExtraTo_Mx, 0)
-		for _, ar := range args.ExtraTo {
-			if ar.To2 != nil || ar.Input2 != nil {
-				extra = append(extra, ar)
-			}
-		}
-		args.ExtraTo = extra
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainId
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
+	signed, err := wallet.SignTxWithPasswd(account, passwd, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
