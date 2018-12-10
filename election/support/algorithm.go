@@ -6,6 +6,7 @@ package support
 import (
 	"github.com/matrix/go-matrix/election/support/mt19937"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/mc"
 )
 
 //func (Ele *Elector) ValNodesSelected(probVal []Stf, seed int64) ([]Strallyint, []Strallyint, []Strallyint) {
@@ -34,11 +35,11 @@ func ValNodesSelected(probVal []Stf, seed int64, M int, P int, J int) ([]Strally
 	return PricipalValNodes, BakValNodes, RemainingValNodes
 }
 
-func MinerNodesSelected(probVal []Stf, seed int64, Ms int) ([]Strallyint, []Strallyint) {
+func MinerNodesSelected(probVal []Stf, seed int64, electConfig mc.ElectConfigInfo) ([]Strallyint, []Strallyint) {
 	probnormalized := Normalize(probVal)
 
 	//fmt.Println(probnormalized)
-	PricipalMinerNodes, BakMinerNodes := SampleMinerNodes(probnormalized, seed, Ms)
+	PricipalMinerNodes, BakMinerNodes := SampleMinerNodes(probnormalized, seed, electConfig)
 
 	//计算所有剩余节点的股权
 	BakMinerNodes = CalcRemainingNodesVotes(BakMinerNodes)
@@ -168,7 +169,8 @@ func updownlimit(a float64, ratiouplimit float64, ratiodnlimit float64) float64 
 	return a
 }
 
-func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Strallyint, []Strallyint) {
+func SampleMinerNodes(probnormalized []pnormalized, seed int64, electConfig mc.ElectConfigInfo) ([]Strallyint, []Strallyint) {
+	Ms:=int(electConfig.MinerNum)
 
 	var PricipalMinerNodes []Strallyint
 	var BakMinerNodes []Strallyint
@@ -204,7 +206,7 @@ func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Stral
 	// 如果当选节点不到N个,其他列表为空
 	dict := make(map[common.Address]int)
 	//Ele.N = Ms
-	if len(probnormalized) <= GetElectCfg().MaxMinerNum { //加判断 定义为func
+	if len(probnormalized) <= Ms { //加判断 定义为func
 		for _, item := range probnormalized {
 			//			probnormalized[index].value = 100 * iterm.value
 			temp := Strallyint{Value: int(100 * item.Value), Addr: item.Addr}
@@ -225,7 +227,7 @@ func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Stral
 		} else {
 			dict[node] = 1
 		}
-		if len(dict) == GetElectCfg().MaxMinerNum {
+		if len(dict) == int(electConfig.MinerNum) {
 			break
 		}
 	}
@@ -244,9 +246,9 @@ func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Stral
 		}
 	}
 	lenPM := len(PricipalMinerNodes)
-	if GetElectCfg().MaxMinerNum  > lenPM {
-		PricipalMinerNodes = append(PricipalMinerNodes, BakMinerNodes[:GetElectCfg().MaxMinerNum -lenPM]...)
-		BakMinerNodes = BakMinerNodes[GetElectCfg().MaxMinerNum -lenPM:]
+	if Ms > lenPM {
+		PricipalMinerNodes = append(PricipalMinerNodes, BakMinerNodes[:Ms -lenPM]...)
+		BakMinerNodes = BakMinerNodes[Ms -lenPM:]
 	}
 	return PricipalMinerNodes, BakMinerNodes
 	///return sort(probnormalized, PricipalMinerNodes, BakMinerNodes)

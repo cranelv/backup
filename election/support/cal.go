@@ -25,7 +25,7 @@ func MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElecti
 	}
 
 	value := CalcAllValueFunction(mmrerm.MinerList)
-	Master, _ := MinerNodesSelected(value, mmrerm.RandSeed.Int64(), GetElectCfg().MaxMinerNum ) //Ele.Engine(value, mmrerm.RandSeed.Int64()) //0x12217)
+	Master, _ := MinerNodesSelected(value, mmrerm.RandSeed.Int64(), mmrerm.ElectConfig ) //Ele.Engine(value, mmrerm.RandSeed.Int64()) //0x12217)
 
 
 	MinerEleRs:=&mc.MasterMinerReElectionRsp{
@@ -37,14 +37,6 @@ func MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElecti
 	}
 
 	return MinerEleRs
-}
-func GetElectCfg()Eletion_cfg{
-	return Eletion_cfg{
-		MaxMinerNum:21,
-		MaxValidatorNum:11,
-		MaxBackUpValidatorNum:5,
-		MaxCadidatorValidatorNum:31,
-	}
 }
 
 func CalcAllValueFunction(nodelist []vm.DepositDetail) []Stf { //nodelist []Mynode) map[string]float32 {

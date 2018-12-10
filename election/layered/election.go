@@ -8,7 +8,8 @@ import (
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/common"
+
+	"fmt"
 )
 
 type layered struct {
@@ -30,32 +31,44 @@ func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Mas
 
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("分层方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	eleCfg:=support.GetElectCfg()
-	vipEle := NewVipElelection(common.EchelonArrary, mvrerm.ValidatorList, eleCfg, mvrerm.RandSeed)
+	eleCfg:=mvrerm.ElectConfig
+	vipEle := NewVipElelection(mvrerm.VIPList, mvrerm.ValidatorList, eleCfg, mvrerm.RandSeed)
 	//vipEle.DisPlayNode()
+	vipEle.ProcessBlackNode()
+	vipEle.ProcessWhiteNode()
 
-	//VIP特殊选举的层数
 	var maxVipEleLevelNum = MaxVipEleLevelNum
 	if maxVipEleLevelNum > len(vipEle.VipLevelCfg){
 		maxVipEleLevelNum = len(vipEle.VipLevelCfg)
 	}
-
-	var dispatchedList = make([]vip_node, 0)
+	var MasterList = make([]vip_node, 0)
 	for vipEleLoop := 0; vipEleLoop < maxVipEleLevelNum; vipEleLoop++{
-		if vipEle.VipLevelCfg[vipEleLoop].MaxNum <= 0{
+		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0{
 			continue
 		}
 		nodeList := vipEle.GetNodeByLevel(vipEleLoop)
-		electedNode := vipElection(nodeList, vipEle.randSeed, vipEle.VipLevelCfg[vipEleLoop].MaxNum)
-		dispatchedList = append(dispatchedList, electedNode ...)
-	}
-	//fmt.Println("dispatch",dispatchedList)
-	lastNode := vipEle.GetLastNode(dispatchedList)
-//	fmt.Println("lastNode",lastNode)
-	weight:=vipEle.GetWeight(lastNode)
-	Master,Backup,Candidate := support.ValNodesSelected(weight, mvrerm.RandSeed.Int64(), int(eleCfg.MaxValidatorNum)-len(dispatchedList), int(eleCfg.MaxBackUpValidatorNum), 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
 
-	vipNode:=TransVIPNode(dispatchedList)
+		electedNode := vipEle.vipElection(nodeList, int(vipEle.VipLevelCfg[vipEleLoop].ElectUserNum))
+
+
+		MasterList = append(MasterList, electedNode ...)
+		vipEle.LastMasterNum-=len(electedNode)
+	}
+
+	//MasterList=append(MasterList,vipEle.WhiteNodeInfo...)
+	MasterAll:=make([]vip_node,0)
+	MasterAll=append(MasterAll,vipEle.WhiteNodeInfo...)
+	MasterAll=append(MasterAll,MasterList...)
+	//fmt.Println("MasterALl",len(MasterAll),MasterAll)
+	lastNode := vipEle.GetLastNode(MasterAll)
+	//fmt.Println("len lastNode",len(lastNode),lastNode)
+	weight:=vipEle.GetWeight(lastNode)
+
+	//fmt.Println("weight len",len(weight),weight)
+	fmt.Println("vlast",vipEle.LastMasterNum)
+	Master,Backup,Candidate := support.ValNodesSelected(weight, mvrerm.RandSeed.Int64(), vipEle.LastMasterNum, int(eleCfg.BackValidator), 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
+
+	vipNode:=TransVIPNode(MasterAll)
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum,vipNode,Master,Backup,Candidate)
 
 }

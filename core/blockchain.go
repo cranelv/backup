@@ -39,7 +39,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
+	//"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
@@ -1121,12 +1121,23 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 }
 
 func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
-
+	originData,err:=bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,num-1)
+	if err!=nil{
+		log.ERROR("blockchain","获取选举生成点配置失败 err",err)
+		return nil,err
+	}
+	electGenConf,Ok:=originData.(*mc.ElectGenTimeStruct)
+	if Ok==false{
+		log.ERROR("blockchain","选举生成点信息失败 err",err)
+		return nil,err
+	}
+	
 	log.INFO("blockchain", "获取所有参与uptime点名高度", num)
 
 	upTimeAccounts := make([]common.Address, 0)
+	
 
-	minerNum := num - (num % common.GetBroadcastInterval()) - manparams.MinerTopologyGenerateUpTime
+	minerNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
 	log.INFO("blockchain", "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
@@ -1138,7 +1149,7 @@ func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	validatorNum := num - (num % common.GetBroadcastInterval()) - manparams.VerifyTopologyGenerateUpTime
+	validatorNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
 	log.INFO("blockchain", "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {

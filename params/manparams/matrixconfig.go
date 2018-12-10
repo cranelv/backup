@@ -13,13 +13,18 @@ import (
 )
 
 const (
-	VerifyNetChangeUpTime = 6
-	MinerNetChangeUpTime  = 4
+//	VerifyNetChangeUpTime = 6
+//MinerNetChangeUpTime  = 4
+//
+//VerifyTopologyGenerateUpTime = 8
+//MinerTopologyGenerateUpTime  = 8
 
-	VerifyTopologyGenerateUpTime = 8
-	MinerTopologyGenerateUpTime  = 8
+//	RandomVoteTime = 5
 
-	RandomVoteTime = 5
+	LRSParentMiningTime = int64(20)
+	LRSPOSOutTime       = int64(20)
+	LRSReelectOutTime   = int64(40)
+	LRSReelectInterval  = 5
 
 	VotePoolTimeout    = 55 * 1000
 	VotePoolCountLimit = 5
@@ -45,15 +50,15 @@ var (
 	RandomServiceDefaultPlugs = make(map[string]string, 0)
 
 	//选举相关
-	ElectPlugs string
+	//ElectPlugs string
 )
 
 func init() {
 	RandomServiceName = []string{"electionseed", "everyblockseed", "everybroadcastseed"}
 	//RandomServiceName = []string{"electionseed", "everyblockseed"}
-	RandomServicePlugs[RandomServiceName[0]] = []string{"Minhash&Key", "plug2"}
-	RandomServicePlugs[RandomServiceName[1]] = []string{"Nonce&Address&Coinbase", "plug2"}
-	RandomServicePlugs[RandomServiceName[2]] = []string{"MaxNonce&Key", "plug2"}
+	RandomServicePlugs[RandomServiceName[0]] = []string{"Minhash&Key"}
+	RandomServicePlugs[RandomServiceName[1]] = []string{"Nonce&Address&Coinbase"}
+	RandomServicePlugs[RandomServiceName[2]] = []string{"MaxNonce&Key"}
 
 	RandomServiceDefaultPlugs[RandomServiceName[0]] = RandomServicePlugs[RandomServiceName[0]][0]
 	RandomServiceDefaultPlugs[RandomServiceName[1]] = RandomServicePlugs[RandomServiceName[1]][0]
@@ -95,14 +100,14 @@ func Config_Init(Config_PATH string) {
 	}
 	RandomConfig = v.RandomConfig
 	log.INFO("RandomConfig", "data", RandomConfig)
-	ElectPlugs = v.ElectPlugs
-	log.INFO("ElectPlugs", "data", ElectPlugs)
+	//ElectPlugs = v.ElectPlugs
+	//log.INFO("ElectPlugs", "data", ElectPlugs)
 	//fmt.Println("echeloc",v.Echelon)
-	if len(v.Echelon) > 0 {
-
-		common.EchelonArrary = v.Echelon
-	}
-	log.INFO("EchelonArrary", "EchelonArrary", common.EchelonArrary)
+	//if len(v.Echelon) > 0 {
+	//
+	//	common.EchelonArrary = v.Echelon
+	//}
+	//log.INFO("EchelonArrary", "EchelonArrary", common.EchelonArrary)
 }
 
 type Config struct {

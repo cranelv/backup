@@ -29,10 +29,10 @@ func RegInit() baseinterface.ElectionInterface {
 func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("直接选举方案", "矿工拓扑生成", len(mmrerm.MinerList))
 	MinerTopGenAns := mc.MasterMinerReElectionRsp{}
-	eleCfg:=support.GetElectCfg()
+	eleCfg:=mmrerm.ElectConfig
 	for index, v := range mmrerm.MinerList {
 		MinerTopGenAns.MasterMiner = append(MinerTopGenAns.MasterMiner, support.MakeElectNode(v.Address,index,DefauleStock,common.RoleMiner))
-		if index >=int(eleCfg.MaxMinerNum) {
+		if index >=int(eleCfg.MinerNum) {
 			break
 		}
 	}
@@ -47,12 +47,12 @@ func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg
 	BackupNum := 0
 
 	for index, v := range mvrerm.ValidatorList {
-		if MasterNum < support.GetElectCfg().MaxValidatorNum  {
+		if MasterNum < int(mvrerm.ElectConfig.ValidatorNum)  {
 			ValidatorTop.MasterValidator = append(ValidatorTop.MasterValidator, support.MakeElectNode(v.Address,index,DefauleStock,common.RoleValidator))
 			MasterNum++
 			continue
 		}
-		if BackupNum < support.GetElectCfg().MaxBackUpValidatorNum  {
+		if BackupNum < int(mvrerm.ElectConfig.BackValidator) {
 			ValidatorTop.BackUpValidator = append(ValidatorTop.BackUpValidator, support.MakeElectNode(v.Address,index,DefauleStock,common.RoleBackupValidator))
 			BackupNum++
 			continue
