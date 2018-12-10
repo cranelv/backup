@@ -48,12 +48,12 @@ func (self *ReElection)GetViPList(height uint64)([]mc.VIPConfig,error){
 		log.ERROR("GetElectInfo","获取选举基础信息失败 err",err)
 		return nil,err
 	}
-	vipList,OK:=data.([]mc.VIPConfig)
+	vipList,OK:=data.(*[]mc.VIPConfig)
 	if OK==false||vipList==nil{
 		log.ERROR("GetElectInfo","GetElectInfo ","反射失败","高度",height)
 		return nil,errors.New("反射失败")
 	}
-	return vipList,nil
+	return *vipList,nil
 }
 
 func (self *ReElection)GetElectPlug(height uint64)(baseinterface.ElectionInterface,error){
