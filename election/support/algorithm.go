@@ -4,8 +4,8 @@
 package support
 
 import (
-	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/election/support/mt19937"
+	"github.com/matrix/go-matrix/common"
 )
 
 //func (Ele *Elector) ValNodesSelected(probVal []Stf, seed int64) ([]Strallyint, []Strallyint, []Strallyint) {
@@ -46,33 +46,20 @@ func MinerNodesSelected(probVal []Stf, seed int64, Ms int) ([]Strallyint, []Stra
 }
 
 type Stf struct {
-	Str  string
+	Addr  common.Address
 	Flot float64
 }
 
 type pnormalized struct {
 	Value  float64
-	Nodeid string
+	Addr  common.Address
 }
 
 type Strallyint struct {
 	Value  int
-	Nodeid string
+	Addr  common.Address
 }
 
-func CalcAllValueFunction(nodelist []vm.DepositDetail) []Stf { //nodelist []Mynode) map[string]float32 {
-	//	CapitalMap := make(map[string]float64)
-	//	CapitalMap := make(map[string]float32)
-	var CapitalMap []Stf
-
-	for _, item := range nodelist {
-		self := SelfNodeInfo{nodeid: item.NodeID.String(), stk: float64(item.Deposit.Uint64()), uptime: int(item.OnlineTime.Uint64()), tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
-		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.deposit_stake()*self.Coef_stk)
-		//		//		CapitalMap[self.nodeid] = float32(value)
-		CapitalMap = append(CapitalMap, Stf{Str: self.nodeid, Flot: float64(value)})
-	}
-	return CapitalMap
-}
 
 func Normalize(probVal []Stf) []pnormalized {
 
@@ -85,22 +72,22 @@ func Normalize(probVal []Stf) []pnormalized {
 	for _, item := range probVal {
 		var tmp pnormalized
 		tmp.Value = item.Flot / total
-		tmp.Nodeid = item.Str
+		tmp.Addr = item.Addr
 		pnormalizedlist = append(pnormalizedlist, tmp)
 		//		fmt.Println("There are", views, "views for", key)
 	}
 	return pnormalizedlist
 }
 
-func Sample1NodesInValNodes(probnormalized []pnormalized, rand01 float64) string {
+func Sample1NodesInValNodes(probnormalized []pnormalized, rand01 float64) common.Address {
 
 	for _, iterm := range probnormalized {
 		rand01 -= iterm.Value
 		if rand01 < 0 {
-			return iterm.Nodeid
+			return iterm.Addr
 		}
 	}
-	return probnormalized[0].Nodeid
+	return probnormalized[0].Addr
 }
 
 func CommbineFundNodesAndPricipal(probVal []Stf, probFund []Stf, PricipalValNodes []Strallyint, ratiodnlimit float64, ratiouplimit float64) []Strallyint {
@@ -119,7 +106,7 @@ func CommbineFundNodesAndPricipal(probVal []Stf, probFund []Stf, PricipalValNode
 		for _, item := range temp {
 			var elem *Strallyint
 			elem = new(Strallyint)
-			elem.Nodeid = item.Nodeid
+			elem.Addr = item.Addr
 			elem.Value = int(item.Value * 100)
 			probFundnormalized = append(probFundnormalized, *elem)
 		}
@@ -137,15 +124,15 @@ func CommbineFundNodesAndPricipal(probVal []Stf, probFund []Stf, PricipalValNode
 	}
 
 	//	var pricipalkeys []string
-	var probValMap map[string]float64
-	probValMap = make(map[string]float64)
+	var probValMap map[common.Address]float64
+	probValMap = make(map[common.Address]float64)
 	for _, item := range probVal {
-		probValMap[item.Str] = item.Flot
+		probValMap[item.Addr] = item.Flot
 	}
 
 	//根据主验证节点找到对应的价值 计算选举出的主验证价值和
 	for _, item := range PricipalValNodes {
-		v := probValMap[item.Nodeid]
+		v := probValMap[item.Addr]
 		probPricipalSum += v
 	}
 
@@ -161,7 +148,7 @@ func CommbineFundNodesAndPricipal(probVal []Stf, probFund []Stf, PricipalValNode
 	var temp *Strallyint
 	temp = new(Strallyint)
 	for _, item := range probFund {
-		temp.Nodeid = item.Str
+		temp.Addr = item.Addr
 		//基金会节点价值 / 基金会总价值 * 比率 * 竞选到的主验证节点的投票总数
 		temp.Value = int(item.Flot / probFundSum * ratio * float64(PricipalVoteSum))
 		FundValNodes = append(FundValNodes, *temp)
@@ -215,12 +202,12 @@ func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Stral
 		}
 	*/
 	// 如果当选节点不到N个,其他列表为空
-	dict := make(map[string]int)
+	dict := make(map[common.Address]int)
 	//Ele.N = Ms
-	if len(probnormalized) <= N { //加判断 定义为func
+	if len(probnormalized) <= GetElectCfg().MaxMinerNum { //加判断 定义为func
 		for _, item := range probnormalized {
 			//			probnormalized[index].value = 100 * iterm.value
-			temp := Strallyint{Value: int(100 * item.Value), Nodeid: item.Nodeid}
+			temp := Strallyint{Value: int(100 * item.Value), Addr: item.Addr}
 			PricipalMinerNodes = append(PricipalMinerNodes, temp)
 		}
 		//		return [(e[0],int(100*e[1])) for e in probnormalized],[],[]
@@ -238,28 +225,28 @@ func SampleMinerNodes(probnormalized []pnormalized, seed int64, Ms int) ([]Stral
 		} else {
 			dict[node] = 1
 		}
-		if len(dict) == N {
+		if len(dict) == GetElectCfg().MaxMinerNum {
 			break
 		}
 	}
 
 	// 如果没有选够N个
 	for _, item := range probnormalized {
-		vint, ok := dict[item.Nodeid]
+		vint, ok := dict[item.Addr]
 
 		if ok == true {
 			var tmp Strallyint
-			tmp.Nodeid = item.Nodeid
+			tmp.Addr = item.Addr
 			tmp.Value = vint
 			PricipalMinerNodes = append(PricipalMinerNodes, tmp)
 		} else {
-			BakMinerNodes = append(BakMinerNodes, Strallyint{Value: int(item.Value), Nodeid: item.Nodeid})
+			BakMinerNodes = append(BakMinerNodes, Strallyint{Value: int(item.Value), Addr: item.Addr})
 		}
 	}
 	lenPM := len(PricipalMinerNodes)
-	if N > lenPM {
-		PricipalMinerNodes = append(PricipalMinerNodes, BakMinerNodes[:N-lenPM]...)
-		BakMinerNodes = BakMinerNodes[N-lenPM:]
+	if GetElectCfg().MaxMinerNum  > lenPM {
+		PricipalMinerNodes = append(PricipalMinerNodes, BakMinerNodes[:GetElectCfg().MaxMinerNum -lenPM]...)
+		BakMinerNodes = BakMinerNodes[GetElectCfg().MaxMinerNum -lenPM:]
 	}
 	return PricipalMinerNodes, BakMinerNodes
 	///return sort(probnormalized, PricipalMinerNodes, BakMinerNodes)
@@ -279,10 +266,10 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 	var BakValNodes []Strallyint
 
 	// 如果当选节点不到M-J个(加上基金会节点不足M个),则全部当选,其他列表为空
-	dict := make(map[string]int)
+	dict := make(map[common.Address]int)
 	if len(probnormalized) <= M-J { //加判断 定义为func
 		for _, item := range probnormalized {
-			temp := Strallyint{Value: int(100 * item.Value), Nodeid: item.Nodeid}
+			temp := Strallyint{Value: int(100 * item.Value), Addr: item.Addr}
 			PricipalValNodes = append(PricipalValNodes, temp)
 		}
 		//		return sortfunc(probnormalized, PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes)
@@ -307,36 +294,36 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 		}
 	}
 	for _, item := range probnormalized {
-		_, ok := dict[item.Nodeid]
+		_, ok := dict[item.Addr]
 		if ok == false {
-			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Strallyint{Nodeid: item.Nodeid, Value: dict[item.Nodeid]})
+			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
 		} else {
-			PricipalValNodes = append(PricipalValNodes, Strallyint{Nodeid: item.Nodeid, Value: dict[item.Nodeid]})
+			PricipalValNodes = append(PricipalValNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
 		}
 	}
 	return PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes
 }
 
 type SelfNodeInfo struct {
-	nodeid   string
-	stk      float64
-	uptime   int
-	tps      int
+	Address   common.Address
+	Stk      float64
+	Uptime   int
+	Tps      int
 	Coef_tps float64
 	Coef_stk float64
 }
 
 func (self *SelfNodeInfo) TPS_POWER() float64 {
 	tps_weight := 1.0
-	if self.tps >= 16000 {
+	if self.Tps >= 16000 {
 		tps_weight = 5.0
-	} else if self.tps >= 8000 {
+	} else if self.Tps >= 8000 {
 		tps_weight = 4.0
-	} else if self.tps >= 4000 {
+	} else if self.Tps >= 4000 {
 		tps_weight = 3.0
-	} else if self.tps >= 2000 {
+	} else if self.Tps >= 2000 {
 		tps_weight = 2.0
-	} else if self.tps >= 1000 {
+	} else if self.Tps >= 1000 {
 		tps_weight = 1.0
 	} else {
 		tps_weight = 0.0
@@ -346,13 +333,13 @@ func (self *SelfNodeInfo) TPS_POWER() float64 {
 
 func (self *SelfNodeInfo) Last_Time() float64 {
 	CandidateTime_weight := 4.0
-	if self.uptime <= 64 {
+	if self.Uptime <= 64 {
 		CandidateTime_weight = 0.25
-	} else if self.uptime <= 128 {
+	} else if self.Uptime <= 128 {
 		CandidateTime_weight = 0.5
-	} else if self.uptime <= 256 {
+	} else if self.Uptime <= 256 {
 		CandidateTime_weight = 1
-	} else if self.uptime <= 512 {
+	} else if self.Uptime <= 512 {
 		CandidateTime_weight = 2
 	} else {
 		CandidateTime_weight = 4
@@ -360,13 +347,13 @@ func (self *SelfNodeInfo) Last_Time() float64 {
 	return CandidateTime_weight
 }
 
-func (self *SelfNodeInfo) deposit_stake() float64 {
+func (self *SelfNodeInfo) Deposit_stake() float64 {
 	stake_weight := 1.0
-	if self.stk >= 40000 {
+	if self.Stk >= 40000 {
 		stake_weight = 4.5
-	} else if self.stk >= 20000 {
+	} else if self.Stk >= 20000 {
 		stake_weight = 2.15
-	} else if self.stk >= 10000 {
+	} else if self.Stk >= 10000 {
 		stake_weight = 1.0
 	} else {
 		stake_weight = 0.0

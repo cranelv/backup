@@ -68,13 +68,13 @@ const (
 	BackupValidatorNum = 3
 )
 
-
 type VrfMsg struct {
 	VrfValue []byte
 	VrfProof []byte
-	Hash Hash
+	Hash     Hash
 }
-func GetHeaderVrf(account []byte,vrfvalue []byte,vrfproof []byte)[]byte{
+
+func GetHeaderVrf(account []byte, vrfvalue []byte, vrfproof []byte) []byte {
 	var buf bytes.Buffer
 	buf.Write(account)
 	buf.Write(vrfvalue)
@@ -84,53 +84,52 @@ func GetHeaderVrf(account []byte,vrfvalue []byte,vrfproof []byte)[]byte{
 
 }
 
-func GetVrfInfoFromHeader(headerVrf []byte)([]byte,[]byte,[]byte){
-	var account,vrfvalue,vrfproof []byte
-	if len(headerVrf)>=33{
-		account=headerVrf[0:33]
+func GetVrfInfoFromHeader(headerVrf []byte) ([]byte, []byte, []byte) {
+	var account, vrfvalue, vrfproof []byte
+	if len(headerVrf) >= 33 {
+		account = headerVrf[0:33]
 	}
-	if (len(headerVrf)>=33+65){
-		vrfvalue=headerVrf[33:33+65]
+	if len(headerVrf) >= 33+65 {
+		vrfvalue = headerVrf[33 : 33+65]
 	}
-	if (len(headerVrf)>=33+65+64){
-		vrfproof=headerVrf[33+65:33+65+64]
+	if len(headerVrf) >= 33+65+64 {
+		vrfproof = headerVrf[33+65 : 33+65+64]
 	}
 
-	return account,vrfvalue,vrfproof
+	return account, vrfvalue, vrfproof
 }
 
-
-func GetRoleVipGrade(aim uint64)int{
-	switch  {
-	case aim>=10000000:
+func GetRoleVipGrade(aim uint64) int {
+	switch {
+	case aim >= 10000000:
 		return 1
-	case aim> 1000000&&aim<10000000:
+	case aim > 1000000 && aim < 10000000:
 		return 2
 	default:
 		return 0
 
-
 	}
 }
+
 type Echelon struct {
 	MinMoney *big.Int
-	Quota    int
+	MaxNum   int
 	Ratio    float64
 }
 
 var (
-	ManValue                = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	vip1     = new(big.Int).Mul(big.NewInt(100000), ManValue)
-	vip2     = new(big.Int).Mul(big.NewInt(40000), ManValue)
+	ManValue      = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	vip1          = new(big.Int).Mul(big.NewInt(100000), ManValue)
+	vip2          = new(big.Int).Mul(big.NewInt(40000), ManValue)
 	EchelonArrary = []Echelon{
 		Echelon{
 			MinMoney: vip1,
-			Quota:    5,
+			MaxNum:   5,
 			Ratio:    2.0,
 		},
 		Echelon{
 			MinMoney: vip2,
-			Quota:    3,
+			MaxNum:   3,
 			Ratio:    1.0,
 		},
 	}

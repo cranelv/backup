@@ -13,14 +13,14 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/log"
+	//"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/baseinterface"
 	_ "github.com/matrix/go-matrix/election/layered"
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
-	"encoding/json"
+	//"encoding/json"
 )
 
 func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
@@ -73,7 +73,7 @@ func MakeValidatorTopReq(num int, Seed uint64) *mc.MasterValidatorReElectionReqM
 		SeqNum:                  Seed,
 		RandSeed:                big.NewInt(int64(Seed)),
 		ValidatorList:           mList,
-		FoundationValidatoeList: []vm.DepositDetail{},
+	//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
 	return ans
 
@@ -84,7 +84,7 @@ func GetFencengValidatorList(num int, Seed uint64, m int, n int) *mc.MasterValid
 		SeqNum:                  Seed,
 		RandSeed:                big.NewInt(int64(Seed)),
 		ValidatorList:           mList,
-		FoundationValidatoeList: []vm.DepositDetail{},
+	//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
 	return ans
 }
@@ -121,7 +121,7 @@ func PrintValidator(validator *mc.MasterValidatorReElectionRsq) {
 	fmt.Println("\n\n\n\n")
 }
 
-/*
+
 func TestUnit1(t *testing.T) {
 	//矿工生成单元测试
 
@@ -129,7 +129,7 @@ func TestUnit1(t *testing.T) {
 		for Key := 101; Key <= 105; Key++ {
 			req := MakeMinerTopReq(Num, uint64(Key))
 			fmt.Println("矿工备选列表个数", len(req.MinerList), "随机数", req.RandSeed)
-			rspMiner := MinerTopGen(req)
+			rspMiner := baseinterface.NewElect().MinerTopGen(req)
 			PrintMiner(rspMiner)
 		}
 	}
@@ -140,11 +140,11 @@ func TestUnit2(t *testing.T) {
 	//验证者拓扑生成
 
 	//股权方案-（10-12）
-	for Num := 10; Num <= 12; Num++ {
-		for Key := 101; Key <= 105; Key++ {
+	for Num := 10; Num <= 10; Num++ {
+		for Key := 101; Key <= 101; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key))
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := ValidatorTopGen(req)
+			rspValidator := baseinterface.NewElect().ValidatorTopGen(req)
 			PrintValidator(rspValidator)
 		}
 	}
@@ -155,136 +155,136 @@ func TestUnit3(t *testing.T) {
 
 	//股权方案-（15-18）
 	for Num := 20; Num <= 20; Num++ {
-		for Key := 101; Key <= 105; Key++ {
+		for Key := 101; Key <= 101; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key))
 			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := ValidatorTopGen(req)
+			rspValidator := baseinterface.NewElect().ValidatorTopGen(req)
 			PrintValidator(rspValidator)
 		}
 	}
 }
-
-func TestUnit4(t *testing.T) {
-	//验证者拓扑生成
-	//不选方案-（10-12）
-	log.InitLog(3)
-	DefaultPlug = "nochoice"
-
-	for Num := 10; Num <= 12; Num++ {
-		for Key := 101; Key <= 105; Key++ {
-			req := MakeValidatorTopReq(Num, uint64(Key))
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := ValidatorTopGen(req)
-			PrintValidator(rspValidator)
-		}
-	}
-}
-func TestUnit5(t *testing.T) {
-	//验证者拓扑生成
-	//不选方案-（15-18）
-	log.InitLog(3)
-	DefaultPlug = "nochoice"
-
-	for Num := 15; Num <= 18; Num++ {
-		for Key := 101; Key <= 105; Key++ {
-			req := MakeValidatorTopReq(Num, uint64(Key))
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
-			rspValidator := ValidatorTopGen(req)
-			PrintValidator(rspValidator)
-		}
-	}
-}
-
-func TestUnit6(t *testing.T) {
-	//验证者拓扑生成
-	//分层方案-（1000W 3个
-	// 			100W-1000W 3个）
-	log.InitLog(3)
-	DefaultPlug = "layered"
-	for Num := 10; Num <= 12; Num++ {
-		for key := 101; key <= 105; key++ {
-			req := GetFengcengValidatorList(Num, uint64(key), 3, 3)
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
-			rsq := ValidatorTopGen(req)
-			PrintValidator(rsq)
-		}
-
-	}
-}
-
-func TestUnit7(t *testing.T) {
-	//验证者拓扑生成
-	//分层方案-（1000W 3个
-	// 			100W-1000W 3个）
-	log.InitLog(3)
-	DefaultPlug = "layered"
-	for Num := 15; Num <= 18; Num++ {
-		for key := 101; key <= 115; key++ {
-			req := GetFengcengValidatorList(Num, uint64(key), 3, 3)
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
-			rsq := ValidatorTopGen(req)
-			PrintValidator(rsq)
-		}
-
-	}
-}
-
-func TestUnit8(t *testing.T) {
-	//验证者拓扑生成
-	//分层方案-（1000W 2个
-	// 			100W-1000W 2个）
-	log.InitLog(3)
-	DefaultPlug = "layered"
-	for Num := 10; Num <= 12; Num++ {
-		for key := 101; key <= 105; key++ {
-			req := GetFengcengValidatorList(Num, uint64(key), 2, 2)
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
-			rsq := ValidatorTopGen(req)
-			PrintValidator(rsq)
-		}
-
-	}
-}
-
-func TestUnit9(t *testing.T) {
-	//验证者拓扑生成
-	//分层方案-（1000W 2个
-	// 			100W-1000W 2个）
-	log.InitLog(3)
-	DefaultPlug = "layered"
-	for Num := 15; Num <= 18; Num++ {
-		for key := 101; key <= 105; key++ {
-			req := GetFengcengValidatorList(Num, uint64(key), 2, 2)
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
-			rsq := ValidatorTopGen(req)
-			PrintValidator(rsq)
-		}
-
-	}
-}
-*/
-func TestUnit10(t *testing.T) {
-	//验证者拓扑生成
-	//分层方案-（1000W 4个
-	// 			100W-1000W 4个）
-	tt := baseinterface.NewElect()
-	log.InitLog(3)
-	for Num := 13; Num <= 13; Num++ {
-		for key := 101; key <= 101; key++ {
-			req := GetFencengValidatorList(Num, uint64(key), 4, 4)
-			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 4, "100W", 4)
-			for k,v:=range req.ValidatorList{
-				fmt.Println("k",k,"v",v)
-			}
-			rsq := tt.ValidatorTopGen(req)
-			PrintValidator(rsq)
-		}
-
-	}
-}
-
-
-func TestAAA(t *testing.T){
-	data,err:=json.Marshal(common.EchelonArrary)
-	fmt.Println("str data",string(data),"err",err)
-}
+//
+//func TestUnit4(t *testing.T) {
+//	//验证者拓扑生成
+//	//不选方案-（10-12）
+//	log.InitLog(3)
+//	DefaultPlug = "nochoice"
+//
+//	for Num := 10; Num <= 12; Num++ {
+//		for Key := 101; Key <= 105; Key++ {
+//			req := MakeValidatorTopReq(Num, uint64(Key))
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
+//			rspValidator := baseinterface.NewElect().ValidatorTopGen(req)
+//			PrintValidator(rspValidator)
+//		}
+//	}
+//}
+//func TestUnit5(t *testing.T) {
+//	//验证者拓扑生成
+//	//不选方案-（15-18）
+//	log.InitLog(3)
+//	DefaultPlug = "nochoice"
+//
+//	for Num := 15; Num <= 18; Num++ {
+//		for Key := 101; Key <= 105; Key++ {
+//			req := MakeValidatorTopReq(Num, uint64(Key))
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed)
+//			rspValidator := ValidatorTopGen(req)
+//			PrintValidator(rspValidator)
+//		}
+//	}
+//}
+//
+//func TestUnit6(t *testing.T) {
+//	//验证者拓扑生成
+//	//分层方案-（1000W 3个
+//	// 			100W-1000W 3个）
+//	log.InitLog(3)
+//	DefaultPlug = "layered"
+//	for Num := 10; Num <= 12; Num++ {
+//		for key := 101; key <= 105; key++ {
+//			req := GetFengcengValidatorList(Num, uint64(key), 3, 3)
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
+//			rsq := ValidatorTopGen(req)
+//			PrintValidator(rsq)
+//		}
+//
+//	}
+//}
+//
+//func TestUnit7(t *testing.T) {
+//	//验证者拓扑生成
+//	//分层方案-（1000W 3个
+//	// 			100W-1000W 3个）
+//	log.InitLog(3)
+//	DefaultPlug = "layered"
+//	for Num := 15; Num <= 18; Num++ {
+//		for key := 101; key <= 115; key++ {
+//			req := GetFengcengValidatorList(Num, uint64(key), 3, 3)
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
+//			rsq := ValidatorTopGen(req)
+//			PrintValidator(rsq)
+//		}
+//
+//	}
+//}
+//
+//func TestUnit8(t *testing.T) {
+//	//验证者拓扑生成
+//	//分层方案-（1000W 2个
+//	// 			100W-1000W 2个）
+//	log.InitLog(3)
+//	DefaultPlug = "layered"
+//	for Num := 10; Num <= 12; Num++ {
+//		for key := 101; key <= 105; key++ {
+//			req := GetFengcengValidatorList(Num, uint64(key), 2, 2)
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
+//			rsq := ValidatorTopGen(req)
+//			PrintValidator(rsq)
+//		}
+//
+//	}
+//}
+//
+//func TestUnit9(t *testing.T) {
+//	//验证者拓扑生成
+//	//分层方案-（1000W 2个
+//	// 			100W-1000W 2个）
+//	log.InitLog(3)
+//	DefaultPlug = "layered"
+//	for Num := 15; Num <= 18; Num++ {
+//		for key := 101; key <= 105; key++ {
+//			req := GetFengcengValidatorList(Num, uint64(key), 2, 2)
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 3, "100W", 3)
+//			rsq := ValidatorTopGen(req)
+//			PrintValidator(rsq)
+//		}
+//
+//	}
+//}
+//*/
+//func TestUnit10(t *testing.T) {
+//	//验证者拓扑生成
+//	//分层方案-（1000W 4个
+//	// 			100W-1000W 4个）
+//	tt := baseinterface.NewElect()
+//	log.InitLog(3)
+//	for Num := 13; Num <= 13; Num++ {
+//		for key := 101; key <= 101; key++ {
+//			req := GetFencengValidatorList(Num, uint64(key), 4, 4)
+//			fmt.Println("验证者备选列表个数", len(req.ValidatorList), "随机数", req.RandSeed, "1000W", 4, "100W", 4)
+//			for k,v:=range req.ValidatorList{
+//				fmt.Println("k",k,"v",v)
+//			}
+//			rsq := tt.ValidatorTopGen(req)
+//			PrintValidator(rsq)
+//		}
+//
+//	}
+//}
+//
+//
+//func TestAAA(t *testing.T){
+//	data,err:=json.Marshal(common.EchelonArrary)
+//	fmt.Println("str data",string(data),"err",err)
+//}
