@@ -573,7 +573,6 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 				HeartBeatMap[v] = true
 			} else {
 				HeartBeatMap[v] = false
-
 			}
 			log.Info(packagename, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
 		}
