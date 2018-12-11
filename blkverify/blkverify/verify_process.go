@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/core/matrixstate"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
@@ -445,6 +447,11 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
+	root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
+	if root1 != p.curProcessReq.req.Header.Root {
+		log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
+	}
+
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
 		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
@@ -455,9 +462,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	//localBlock check
 	localHeader = localBlock.Header()
 	localHash := localHeader.HashNoSignsAndNonce()
-	root, err := work.State.Commit(p.pm.bc.Config().IsEIP158(localBlock.Header().Number))
 
-	log.INFO(p.logExtraInfo(), "local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(), "commit root", root.String())
 	if localHash != p.curProcessReq.hash {
 		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
@@ -534,33 +539,37 @@ func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		return nil
 	}
-
-	if p.number < common.GetBroadcastInterval() || common.IsBroadcastNumber(p.number) {
-		return nil
-	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
 	if nil != err {
 		return err
 	}
+	bcInterval, err := manparams.NewBCIntervalByHash(hash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
+		return err
+	}
 
-	if latestNum < common.GetLastBroadcastNumber(p.number-1)+1 {
+	if p.number < bcInterval.GetBroadcastInterval() {
+		return nil
+	}
+	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime", "高度", p.number)
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
-		upTimeAccounts, err := work.GetUpTimeAccounts(p.number, p.blockChain())
+		upTimeAccounts, err := work.GetUpTimeAccounts(p.number, p.blockChain(), bcInterval)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", p.number)
 			return err
 		}
-		if sbn < common.GetLastBroadcastNumber(p.number) &&
-			sbn >= common.GetLastBroadcastNumber(p.number)-common.GetBroadcastInterval() {
-			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number)
+		if sbn < bcInterval.GetLastBroadcastNumber() &&
+			sbn >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
 		} else {
 			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
 			if err != nil {
 				log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
 			}
 
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
 			if nil != err {
 				log.ERROR("core", "处理uptime错误", err)
 				return err

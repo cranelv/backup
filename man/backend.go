@@ -55,6 +55,7 @@ import (
 	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/trie"
 )
 
@@ -192,6 +193,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
+	manparams.SetStateReader(man.blockchain)
 	err = man.blockchain.DPOSEngine().VerifyVersion(man.blockchain, man.blockchain.Genesis().Header())
 	if err != nil {
 		return nil, err
@@ -236,7 +238,10 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash,man.reelection.ProduceMinHashData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop,man.reelection.ProducePreAllTopData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner,man.reelection.ProducePreMinerData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO

@@ -64,8 +64,13 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	log.INFO(self.logInfo, "处理开始消息", "start", "高度", self.dc.number, "preLeader", msg.parentHeader.Leader, "header time", msg.parentHeader.Time.Int64())
 	preIsSupper := msg.parentHeader.IsSuperHeader()
 	if err := self.dc.AnalysisState(msg.parentHeader.Hash(), preIsSupper, msg.parentHeader.Leader, msg.parentStateDB); err != nil {
-		log.ERROR(self.logInfo, "处理开始消息", "分状态树信息错误", "err", err)
+		log.ERROR(self.logInfo, "处理开始消息", "分析状态树信息错误", "err", err)
 		return
+	}
+
+	root2, _ := msg.parentStateDB.Commit(self.dc.chain.Config().IsEIP158(msg.parentHeader.Number))
+	if root2 != msg.parentHeader.Root {
+		log.Error("hyk_miss_trie_5", "root", msg.parentHeader.Root.TerminalString(), "state root", root2.TerminalString())
 	}
 
 	if self.dc.role != common.RoleValidator {
@@ -74,7 +79,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		return
 	}
 
-	if common.IsBroadcastNumber(self.dc.number) {
+	if self.dc.bcInterval.IsBroadcastNumber(self.dc.number) {
 		log.INFO(self.logInfo, "处理开始消息", "区块为广播区块，不开启定时器")
 		self.dc.state = stIdle
 		self.sendLeaderMsg()

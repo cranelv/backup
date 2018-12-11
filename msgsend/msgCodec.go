@@ -524,6 +524,7 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 		Header: msg.Header,
 		Txs:    make(types.SelfTransactions, 0),
 	}
+
 	size := len(msg.Txs)
 	for i := 0; i < size; i++ {
 		tx := types.SetMxToTransaction(msg.Txs[i])

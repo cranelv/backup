@@ -57,6 +57,7 @@ type mineReqCtrl struct {
 	curNumber       uint64
 	currentMineReq  *mineReqData
 	role            common.RoleType
+	bcInterval      *manparams.BCInterval
 	posEngine       consensus.DPOSEngine
 	validatorReader consensus.StateReader
 	reqCache        map[common.Hash]*mineReqData
@@ -68,6 +69,7 @@ func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.Sta
 		curNumber:       0,
 		currentMineReq:  nil,
 		role:            common.RoleNil,
+		bcInterval:      nil,
 		validatorReader: validatorReader,
 		posEngine:       posEngine,
 		reqCache:        make(map[common.Hash]*mineReqData),
@@ -78,6 +80,7 @@ func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.Sta
 func (ctrl *mineReqCtrl) Clear() {
 	ctrl.curNumber = 0
 	ctrl.role = common.RoleNil
+	ctrl.bcInterval = nil
 	ctrl.currentMineReq = nil
 	ctrl.reqCache = make(map[common.Hash]*mineReqData)
 	ctrl.futureReq = make(map[uint64][]*mineReqData)
@@ -87,15 +90,21 @@ func (ctrl *mineReqCtrl) Clear() {
 func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
 	if ctrl.curNumber > number {
 		return
-	} else if ctrl.curNumber == number {
-		ctrl.role = role
-		return
-	} else {
-		ctrl.curNumber = number
-		ctrl.role = role
-		ctrl.fixMap()
-		return
 	}
+
+	ctrl.role = role
+	bcInterval, err := manparams.NewBCIntervalByNumber(number - 1)
+	if err != nil {
+		log.ERROR("miner ctrl", "获取广播周期失败", err)
+	} else {
+		ctrl.bcInterval = bcInterval
+	}
+
+	if ctrl.curNumber < number {
+		ctrl.curNumber = number
+		ctrl.fixMap()
+	}
+	return
 }
 
 func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, txs types.SelfTransactions, isBroadcastReq bool) (*mineReqData, error) {
@@ -227,7 +236,11 @@ func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
 }
 
 func (ctrl *mineReqCtrl) roleCanMine(role common.RoleType, number uint64) bool {
-	if common.IsBroadcastNumber(number) {
+	if ctrl.bcInterval == nil {
+		return false
+	}
+
+	if ctrl.bcInterval.IsBroadcastNumber(number) {
 		return role == common.RoleBroadcast
 	} else {
 		return role == common.RoleMiner || role == common.RoleInnerMiner

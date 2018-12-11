@@ -2,7 +2,6 @@ package mc
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/p2p/discover"
 )
 
@@ -20,6 +19,9 @@ const (
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 	MSKeyLeaderConfig      = "leader_config"
+	MSKeyMinHash           = "pre_100_min_hash"
+	MSKeyPerAllTop         = "pre_all_top_timing"
+	MSKeyPreMiner          = "pre_miner"
 	MSKeySuperBlockCfg     = "super_block_config"
 	//奖励配置
 	MSKeyBlkRewardCfg = "blk_reward"
@@ -41,6 +43,14 @@ const (
 	MSKeySlashNum = "slash_num"
 )
 
+type BCIntervalInfo struct {
+	LastBCNumber       uint64 // 最后的广播区块高度
+	LastReelectNumber  uint64 // 最后的选举区块高度
+	BCInterval         uint64 // 广播周期
+	BackupEnableNumber uint64 // 预备广播周期启用高度
+	BackupBCInterval   uint64 // 预备广播周期
+}
+
 type ElectGenTimeStruct struct {
 	MinerGen           uint16
 	MinerNetChange     uint16
@@ -53,10 +63,12 @@ type NodeInfo struct {
 	NodeID  discover.NodeID
 	Address common.Address
 }
+
 type NodeInfo1 struct {
 	NodeID  discover.NodeID
 	Address string
 }
+
 type MatrixSpecialAccounts struct {
 	BroadcastAccount   NodeInfo
 	FoundationAccount  NodeInfo
@@ -71,6 +83,7 @@ type ElectConfigInfo struct {
 	WhiteList     []common.Address
 	BlackList     []common.Address
 }
+
 type VIPConfig struct {
 	MinMoney     uint64
 	InterestRate uint64 //(分母待定为1000w)
@@ -85,9 +98,9 @@ type LeaderConfig struct {
 	ReelectHandleInterval int64 // 重选处理间隔时间
 }
 
-type PreBroadStateDB struct {
-	LastStateDB       *state.StateDB
-	BeforeLastStateDb *state.StateDB
+type PreBroadStateRoot struct {
+	LastStateRoot       common.Hash
+	BeforeLastStateRoot common.Hash
 }
 
 type RewardRateCfg struct {
@@ -140,4 +153,14 @@ type SlashCfgStruct struct {
 type SuperBlkCfg struct {
 	Seq uint64
 	Num uint64
+}
+
+type MinHashStruct struct {
+	MinHash common.Hash
+}
+type PreAllTopStruct struct {
+	PreAllTopRoot common.Hash
+}
+type PreMinerStruct struct {
+	PreMiner common.Address
 }

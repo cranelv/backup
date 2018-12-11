@@ -11,6 +11,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -24,6 +25,7 @@ type cdc struct {
 	reelectMaster    common.Address
 	isMaster         bool
 	leaderCal        *leaderCalculator
+	bcInterval       *manparams.BCInterval
 	parentState      *state.StateDB
 	turnTime         *turnTimes
 	chain            *core.BlockChain
@@ -40,6 +42,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		curReelectTurn:   0,
 		reelectMaster:    common.Address{},
 		isMaster:         false,
+		bcInterval:       nil,
 		parentState:      nil,
 		turnTime:         newTurnTimes(),
 		chain:            chain,
@@ -67,17 +70,21 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	if err != nil {
 		return err
 	}
-
-	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials); err != nil {
+	bcInterval, err := dc.readBroadCastIntervalFromState(parentState)
+	if err != nil {
 		return err
 	}
 
-	consensusLeader, err := dc.GetLeader(dc.curConsensusTurn)
+	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials, bcInterval); err != nil {
+		return err
+	}
+
+	consensusLeader, err := dc.GetLeader(dc.curConsensusTurn, bcInterval)
 	if err != nil {
 		return err
 	}
 	if dc.curReelectTurn != 0 {
-		reelectLeader, err := dc.GetLeader(dc.curConsensusTurn + dc.curReelectTurn)
+		reelectLeader, err := dc.GetLeader(dc.curConsensusTurn+dc.curReelectTurn, bcInterval)
 		if err != nil {
 			return err
 		}
@@ -88,6 +95,7 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	if err := dc.turnTime.SetTimeConfig(config); err != nil {
 		log.Error(dc.logInfo, "设置时间配置参数失败", err)
 	}
+	dc.bcInterval = bcInterval
 	dc.consensusLeader.Set(consensusLeader)
 	dc.parentState = parentState
 	dc.role = role
@@ -95,7 +103,7 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 }
 
 func (dc *cdc) SetConsensusTurn(consensusTurn uint32) error {
-	consensusLeader, err := dc.GetLeader(consensusTurn)
+	consensusLeader, err := dc.GetLeader(consensusTurn, dc.bcInterval)
 	if err != nil {
 		return errors.Errorf("获取共识leader错误(%v), 共识轮次(%d)", err, consensusTurn)
 	}
@@ -116,7 +124,7 @@ func (dc *cdc) SetReelectTurn(reelectTurn uint32) error {
 		dc.curReelectTurn = 0
 		return nil
 	}
-	master, err := dc.GetLeader(dc.curConsensusTurn + reelectTurn)
+	master, err := dc.GetLeader(dc.curConsensusTurn+reelectTurn, dc.bcInterval)
 	if err != nil {
 		return errors.Errorf("获取master错误(%v), 重选轮次(%d), 共识轮次(%d)", err, reelectTurn, dc.curConsensusTurn)
 	}
@@ -125,8 +133,8 @@ func (dc *cdc) SetReelectTurn(reelectTurn uint32) error {
 	return nil
 }
 
-func (dc *cdc) GetLeader(turn uint32) (common.Address, error) {
-	leaders, err := dc.leaderCal.GetLeader(turn)
+func (dc *cdc) GetLeader(turn uint32, bcInterval *manparams.BCInterval) (common.Address, error) {
+	leaders, err := dc.leaderCal.GetLeader(turn, bcInterval)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -142,7 +150,7 @@ func (dc *cdc) GetReelectMaster() common.Address {
 }
 
 func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
-	leaders, err := dc.leaderCal.GetLeader(dc.curConsensusTurn + dc.curReelectTurn)
+	leaders, err := dc.leaderCal.GetLeader(dc.curConsensusTurn+dc.curReelectTurn, dc.bcInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +190,19 @@ func (dc *cdc) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccou
 		return dc.leaderCal.specials, nil
 	}
 	return dc.chain.GetSpecialAccounts(blockHash)
+}
+
+func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error) {
+	if (blockHash == common.Hash{}) {
+		return nil, errors.New("输入hash为空")
+	}
+	if blockHash == dc.leaderCal.preHash {
+		if dc.bcInterval == nil {
+			return nil, errors.New("缓存中不存在广播周期信息")
+		}
+		return dc.bcInterval.ToInfoStu(), nil
+	}
+	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
 func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
@@ -243,4 +264,12 @@ func (dc *cdc) readLeaderConfigFromState(state *state.StateDB) (*mc.LeaderConfig
 		return nil, errors.New("LeaderConfig == nil")
 	}
 	return config, nil
+}
+
+func (dc *cdc) readBroadCastIntervalFromState(state *state.StateDB) (*manparams.BCInterval, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
 }

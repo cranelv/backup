@@ -8,11 +8,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/matrix/go-matrix/core/matrixstate"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -30,35 +29,40 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 		return nil
 	}
 
-	if p.number < common.GetBroadcastInterval() || common.IsBroadcastNumber(p.number) {
-		return nil
-	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
 	if nil != err {
 		return err
 	}
+	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
+		return err
+	}
+	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
+		return nil
+	}
 	sbh := p.blockChain().GetSuperBlockHash()
 	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()
 
-	if latestNum < common.GetLastBroadcastNumber(p.number)+1 {
+	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain())
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain(), bcInterval)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
 		}
 		//在上一个广播周期中插入超级区块
-		if sbn < common.GetLastBroadcastNumber(header.Number.Uint64()) &&
-			sbn >= common.GetLastBroadcastNumber(header.Number.Uint64())-common.GetBroadcastInterval() {
-			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number)
+		if sbn < bcInterval.GetLastBroadcastNumber() &&
+			sbn >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
 		} else {
 			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
 			if err != nil {
 				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 			}
 
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
 			if nil != err {
 				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
 				return err
@@ -73,6 +77,11 @@ func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
 	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
 
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
+		return errors.New("广播周期信息为空")
+	}
+
 	tstart := time.Now()
 	parent, err := p.getParentBlock()
 	if err != nil {
@@ -80,7 +89,7 @@ func (p *Process) processHeaderGen() error {
 	}
 	parentHash := parent.Hash()
 
-	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash)
+	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash, p.bcInterval)
 	if nil == NetTopology {
 		log.Error(p.logExtraInfo(), "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
@@ -154,7 +163,7 @@ func (p *Process) processHeaderGen() error {
 		return err
 	}
 
-	if block.IsBroadcastBlock() {
+	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
 		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true)
@@ -191,7 +200,7 @@ func (p *Process) processHeaderGen() error {
 
 func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
 	//broadcast txs deal,remove no validators txs
-	if common.IsBroadcastNumber(header.Number.Uint64()) {
+	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)

@@ -5,9 +5,9 @@ import (
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/log"
 )
 
 const (
@@ -19,6 +19,7 @@ type GenesisMState struct {
 	Foundation   *mc.NodeInfo           `json:"Foundation"`
 	InnerMiners  *[]mc.NodeInfo         `json:"InnerMiners"`
 	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
 	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
 	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
@@ -32,6 +33,7 @@ type GenesisMState1 struct {
 	Broadcast    *mc.NodeInfo1          `json:"Broadcast,omitempty"`
 	Foundation   *mc.NodeInfo1          `json:"Foundation,omitempty"`
 	InnerMiners  *[]mc.NodeInfo1        `json:"InnerMiners,omitempty"`
+	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
 	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" ,omitempty"`
 	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" ,omitempty"`
 	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" ,omitempty"`
@@ -472,3 +474,27 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, header *types.H
 	//return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, g.MState.SuperBlkCfg, state)
 	return nil
 }
+func (g *Genesis) setBCIntervalToState(state *state.StateDB) error {
+	var interval *mc.BCIntervalInfo = nil
+	if g.Number == 0 {
+		if g.MState.BCICfg.BCInterval < 20 {
+			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.MState.BCICfg.BCInterval)
+		}
+
+		interval = &mc.BCIntervalInfo{
+			LastBCNumber:       0,
+			LastReelectNumber:  0,
+			BCInterval:         g.MState.BCICfg.BCInterval,
+			BackupEnableNumber: 0,
+			BackupBCInterval:   0,
+		}
+	} else {
+		// todo 超级区块改广播周期
+	}
+
+	if interval != nil {
+		return matrixstate.SetDataToState(mc.MSKeyBroadcastInterval, interval, state)
+	}
+	return nil
+}
+

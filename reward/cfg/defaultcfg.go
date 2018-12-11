@@ -3,7 +3,6 @@ package cfg
 import (
 	"math/big"
 
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -12,11 +11,11 @@ import (
 	"github.com/matrix/go-matrix/reward/leaderreward"
 	"github.com/matrix/go-matrix/reward/mineroutreward"
 	"github.com/matrix/go-matrix/reward/selectedreward"
-	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/core/types"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/reward/util"
 )
 
 const (
@@ -104,23 +103,15 @@ func DefaultSetRewardNew() *DefaultSetRewards {
 }
 
 func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
-	if common.IsBroadcastNumber(num) {
-		log.WARN(PackageName, "leader奖励高度错误", num)
-		return nil
-	}
+
 	return str.leader.SetLeaderRewards(reward, Leader, num)
 }
 func (str *DefaultSetRewards) GetSelectedRewards(reward *big.Int, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int {
-	if common.IsBroadcastNumber(number) {
-		return nil
-	}
+
 	return str.selected.GetSelectedRewards(reward, chain, roleType, number, rate)
 }
 func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int {
-	if common.IsBroadcastNumber(num) {
-		log.WARN(PackageName, "矿工奖励高度错误", num)
-		return nil
-	}
+
 	return str.miner.SetMinerOutRewards(reward, state, chain, num)
 }
 

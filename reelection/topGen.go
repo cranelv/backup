@@ -19,21 +19,26 @@ func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
 	return self.random.GetRandom(hash, "electionseed")
 }
 
-
 func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	data,err:=self.GetElectGenTimes(height)
-	if err!=nil{
+	data, err := self.GetElectGenTimes(height)
+	if err != nil {
 		log.ERROR(Module, "获取选举信息失败 高度", height, "err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	minerGen:=uint64(data.MinerGen)
+	minerGen := uint64(data.MinerGen)
 
-	height = common.GetNextReElectionNumber(height) - minerGen
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "get broadcast interval err", err)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+
+	height = bcInterval.GetNextReElectionNumber(height) - minerGen
 	minerDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleMiner) //
 	if err != nil {
 		log.ERROR(Module, "获取矿工抵押列表失败 err", err)
@@ -48,17 +53,17 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	}
 	log.Info(Module, "矿工选举种子", seed)
 
-	elect,err:=self.GetElectPlug(height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举插件失败 err",err,"高度",height)
+	elect, err := self.GetElectPlug(height)
+	if err != nil {
+		log.ERROR(Module, "获取选举插件失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	electConf,err:=self.GetElectConfig(height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举信息失败 err",err,"高度",height)
+	electConf, err := self.GetElectConfig(height)
+	if err != nil {
+		log.ERROR(Module, "获取选举信息失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	TopRsp := elect.MinerTopGen(&mc.MasterMinerReElectionReqMsg{SeqNum: height, RandSeed: seed, MinerList: minerDeposit,ElectConfig:*electConf})
+	TopRsp := elect.MinerTopGen(&mc.MasterMinerReElectionReqMsg{SeqNum: height, RandSeed: seed, MinerList: minerDeposit, ElectConfig: *electConf})
 
 	return TopRsp.MasterMiner, TopRsp.BackUpMiner, []mc.ElectNodeInfo{}, nil
 }
@@ -69,13 +74,18 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	data,err:=self.GetElectGenTimes(height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举信息失败 err",err)
+	data, err := self.GetElectGenTimes(height)
+	if err != nil {
+		log.ERROR(Module, "获取选举信息失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	verifyGenTime:=uint64(data.ValidatorGen)
-	height = common.GetNextReElectionNumber(height) - verifyGenTime
+	verifyGenTime := uint64(data.ValidatorGen)
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "根据hash获取广播周期信息 err", err)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+	height = bcInterval.GetNextReElectionNumber(height) - verifyGenTime
 	validatoeDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleValidator)
 	if err != nil {
 		log.ERROR(Module, "获取验证者列表失败 err", err)
@@ -91,22 +101,22 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 	}
 	log.INFO(Module, "验证者随机种子", seed)
 
-	elect,err:=self.GetElectPlug(height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举插件失败 err",err,"高度",height)
+	elect, err := self.GetElectPlug(height)
+	if err != nil {
+		log.ERROR(Module, "获取选举插件失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	electConf,err:=self.GetElectConfig(height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举信息失败 err",err,"高度",height)
+	electConf, err := self.GetElectConfig(height)
+	if err != nil {
+		log.ERROR(Module, "获取选举信息失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	vipList,err:=self.GetViPList(height)
-	if err!=nil{
-		log.ERROR(Module,"获取viplist为空 err",err,"高度",height)
+	vipList, err := self.GetViPList(height)
+	if err != nil {
+		log.ERROR(Module, "获取viplist为空 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	TopRsp := elect.ValidatorTopGen(&mc.MasterValidatorReElectionReqMsg{SeqNum: height, RandSeed: seed, ValidatorList: validatoeDeposit, FoundationValidatorList: foundDeposit,ElectConfig:*electConf,VIPList:vipList})
+	TopRsp := elect.ValidatorTopGen(&mc.MasterValidatorReElectionReqMsg{SeqNum: height, RandSeed: seed, ValidatorList: validatoeDeposit, FoundationValidatorList: foundDeposit, ElectConfig: *electConf, VIPList: vipList})
 
 	return TopRsp.MasterValidator, TopRsp.BackUpValidator, TopRsp.CandidateValidator, nil
 

@@ -128,6 +128,15 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 	}
 	return verifiedSigh
 }
+
+func (md *MtxDPOS) getBroadcastInterval(reader consensus.StateReader, blockHash common.Hash) (*manparams.BCInterval, error) {
+	data, err := reader.GetBroadcastInterval(blockHash)
+	if err != nil {
+		return nil, errors.Errorf("get broadcast interval from reader err(%v)", err)
+	}
+	return manparams.NewBCIntervalWithInterval(data)
+}
+
 func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Header) error {
 	if nil == header {
 		return errors.New("header is nil")
@@ -141,8 +150,13 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 		return md.CheckSuperBlock(header)
 	}
 
+	bcInterval, err := md.getBroadcastInterval(reader, header.ParentHash)
+	if err != nil {
+		return err
+	}
+
 	number := header.Number.Uint64()
-	if common.IsBroadcastNumber(number) {
+	if bcInterval.IsBroadcastNumber(number) {
 		return md.verifyBroadcastBlock(reader, header)
 	}
 

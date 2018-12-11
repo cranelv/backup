@@ -158,7 +158,7 @@ func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
 		self.sendInquiryReqToSingle(req.From)
 		return
 	} else {
-		master, err := self.dc.GetLeader(req.ConsensusTurn + req.ReelectTurn)
+		master, err := self.dc.GetLeader(req.ConsensusTurn+req.ReelectTurn, self.dc.bcInterval)
 		if err != nil {
 			log.ERROR(self.logInfo, "处理重选询问请求", "验证消息合法性错误", "计算master失败", err)
 			return

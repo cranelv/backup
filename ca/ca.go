@@ -15,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -133,6 +134,15 @@ func Start(id discover.NodeID, path string) {
 			// get self address from deposit
 			ide.addr = GetAddress()
 
+			// get broadcast interval
+			bcInterval, err := manparams.GetBCIntervalInfoByHash(hash)
+			if err != nil {
+				ide.log.Error("get broadcast interval", "error", err)
+				continue
+			}
+
+			log.INFO("CA", "broadcast interval", bcInterval)
+
 			// do topology
 			tg, err := ide.topologyReader.GetTopologyGraphByHash(hash)
 			if err != nil {
@@ -170,7 +180,7 @@ func Start(id discover.NodeID, path string) {
 			// get nodes in buckets and send to buckets
 			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
-			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, Role: ide.currentRole})
+			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, BroadCastInterval: bcInterval, Role: ide.currentRole})
 			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
 			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
 		case <-ide.quit:
