@@ -29,12 +29,13 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		return nil
 	}
+
+	if p.number < common.GetBroadcastInterval() || common.IsBroadcastNumber(p.number) {
+		return nil
+	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
 	if nil != err {
 		return err
-	}
-	if p.number < common.GetBroadcastInterval() {
-		return nil
 	}
 	sbh := p.blockChain().GetSuperBlockHash()
 	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()

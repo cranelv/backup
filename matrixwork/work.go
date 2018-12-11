@@ -433,6 +433,10 @@ type randSeed struct {
 
 func (r *randSeed) GetSeed(num uint64) *big.Int {
 	parent := r.bc.GetBlockByNumber(num - 1)
+	if parent == nil {
+		log.Error(packagename, "获取父区块错误,高度", (num - 1))
+		return big.NewInt(0)
+	}
 	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
 	seed := common.BytesToHash(preVrfValue).Big()
 	return seed
@@ -473,13 +477,6 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	}
 
-	// //todo:其它币种
-	////multiCoin:=multicoinreward.New(p.blockChain())
-	////multiCoinMap := multiCoin.CalcNodesRewards(util.MultilCoinBlockReward, header.Leader, header)
-	////if nil!=multiCoinMap{
-	////  rewardList = append(rewardList,common.RewarTx{CoinType:"other",Fromaddr:common.MinersRewardAddress,To_Amont:multiCoinMap})
-	////  }
-	//
 	////todo 利息
 	interestReward := interest.New(env.State)
 	if nil != interestReward {

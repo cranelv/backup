@@ -52,16 +52,12 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 
 	if num == 1 {
 		log.WARN(PackageName, "初始化矿工状态：", num)
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, num)
+		matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
 		return nil
 	}
 
 	if common.IsBroadcastNumber(num) {
-		log.WARN(PackageName, "挖坑奖励高度错误：", num)
-		return nil
-	}
-	if reward.Cmp(big.NewInt(0)) <= 0 {
-		log.WARN(PackageName, "奖励金额不合法", reward)
+		log.WARN(PackageName, "挖矿奖励高度错误：", num)
 		return nil
 	}
 	var coinBase common.Address
@@ -70,10 +66,18 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 		log.WARN(PackageName, "获取状态树错误", err)
 		return nil
 	}
+
 	if latestNum >= num {
 		log.WARN(PackageName, "奖励已发放", "")
 		return nil
 	}
+	matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
+
+	if reward.Cmp(big.NewInt(0)) <= 0 {
+		log.WARN(PackageName, "奖励金额不合法", reward)
+		return nil
+	}
+
 	rewards := make(map[common.Address]*big.Int)
 	for i := latestNum + 1; i < num+1; i++ {
 		if common.IsBroadcastNumber(i - 1) {
@@ -89,7 +93,6 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 		util.SetAccountRewards(rewards, coinBase, reward)
 		log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", i, "奖励金额", reward)
 	}
-	matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
 
 	return rewards
 }

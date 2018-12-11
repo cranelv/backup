@@ -15,8 +15,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/matrix/go-matrix/reward/blkreward"
 	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -39,6 +42,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
+
 	//"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
@@ -1121,21 +1125,20 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 }
 
 func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
-	originData,err:=bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,num-1)
-	if err!=nil{
-		log.ERROR("blockchain","获取选举生成点配置失败 err",err)
-		return nil,err
+	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
+	if err != nil {
+		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
+		return nil, err
 	}
-	electGenConf,Ok:=originData.(*mc.ElectGenTimeStruct)
-	if Ok==false{
-		log.ERROR("blockchain","选举生成点信息失败 err",err)
-		return nil,err
+	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
+	if Ok == false {
+		log.ERROR("blockchain", "选举生成点信息失败 err", err)
+		return nil, err
 	}
-	
+
 	log.INFO("blockchain", "获取所有参与uptime点名高度", num)
 
 	upTimeAccounts := make([]common.Address, 0)
-	
 
 	minerNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
 	log.INFO("blockchain", "参选矿工节点uptime高度", minerNum)
@@ -1323,6 +1326,9 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 	if header.Number.Uint64() < common.GetBroadcastInterval() {
 		return nil
 	}
+	if common.IsBroadcastNumber(header.Number.Uint64()) {
+		return nil
+	}
 	sbh := bc.GetSuperBlockHash()
 	sbn := bc.GetBlockByHash(sbh).Number().Uint64()
 	if latestNum < common.GetLastBroadcastNumber(header.Number.Uint64())+1 {
@@ -1350,6 +1356,71 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 			}
 		}
 
+	}
+
+	return nil
+}
+
+type randSeed struct {
+	bc *BlockChain
+}
+
+func (r *randSeed) GetSeed(num uint64) *big.Int {
+	parent := r.bc.GetBlockByNumber(num - 1)
+	if parent == nil {
+		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
+		return big.NewInt(0)
+	}
+	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	seed := common.BytesToHash(preVrfValue).Big()
+	return seed
+}
+
+func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header) error {
+
+	num := header.Number.Uint64()
+	if common.IsBroadcastNumber(num) {
+		return nil
+	}
+	blkReward := blkreward.New(bc, state)
+	rewardList := make([]common.RewarTx, 0)
+	if nil != blkReward {
+		//todo: read half number from state
+		minersRewardMap := blkReward.CalcMinerRewards(num)
+		if nil != minersRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+		}
+
+		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
+		if nil != validatorsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+		}
+	}
+
+	txsReward := txsreward.New(bc, state)
+	if nil != txsReward {
+		txsRewardMap := txsReward.CalcNodesRewards(big.NewInt(0), header.Leader, header.Number.Uint64())
+		if nil != txsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+		}
+	}
+	lottery := lottery.New(bc, state, &randSeed{bc})
+	if nil != lottery {
+		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
+
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+
+	}
+	interestReward := interest.New(state)
+	if nil != interestReward {
+		interestReward.InterestCalc(state, num)
+	}
+
+	//todo 惩罚
+
+	slash := slash.New(bc, state)
+	if nil != slash {
+		slash.CalcSlash(state, num, bc.upTime)
 	}
 
 	return nil
@@ -1534,18 +1605,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-			interestReward := interest.New(state)
-			if nil != interestReward {
-				interestReward.InterestCalc(state, block.Number().Uint64())
+
+			err = bc.ProcessReward(state, block.Header())
+			if err != nil {
+				bc.reportBlock(block, nil, err)
+				return i, events, coalescedLogs, err
 			}
-
-			//todo 惩罚
-
-			slash := slash.New(bc, state)
-			if nil != slash {
-				slash.CalcSlash(state, block.Number().Uint64(), bc.upTime)
-			}
-
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {

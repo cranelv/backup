@@ -455,7 +455,9 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	//localBlock check
 	localHeader = localBlock.Header()
 	localHash := localHeader.HashNoSignsAndNonce()
+	root, err := work.State.Commit(p.pm.bc.Config().IsEIP158(localBlock.Header().Number))
 
+	log.INFO(p.logExtraInfo(), "local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(), "commit root", root.String())
 	if localHash != p.curProcessReq.hash {
 		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
@@ -532,13 +534,15 @@ func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		return nil
 	}
+
+	if p.number < common.GetBroadcastInterval() || common.IsBroadcastNumber(p.number) {
+		return nil
+	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
 	if nil != err {
 		return err
 	}
-	if p.number < common.GetBroadcastInterval() {
-		return nil
-	}
+
 	if latestNum < common.GetLastBroadcastNumber(p.number-1)+1 {
 		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime", "高度", p.number)
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)

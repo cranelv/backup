@@ -46,7 +46,7 @@ func GetNumByState(key string, state StateDB) (uint64, error) {
 }
 
 func SetNumByState(key string, state StateDB, num uint64) error {
-	data := make([]byte, 0)
+	data := make([]byte, 8)
 	binary.BigEndian.PutUint64(data, num)
 	state.SetMatrixData(common.BytesToHash([]byte(key)), data)
 	return nil
