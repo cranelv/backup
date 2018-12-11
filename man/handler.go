@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	softResponseLimit = 2 * 1024 * 1024 // Target maximum size of returned blocks, headers or node data.
+	softResponseLimit = 10 * 1024 * 1024 // Target maximum size of returned blocks, headers or node data.
 	estHeaderRlpSize  = 500             // Approximate size of an RLP encoded block header
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
@@ -714,22 +714,19 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
 			p.MarkTransaction(tx.Hash())
-			//YY ====begin======
 			if nc := tx.Nonce(); nc < params.NonceAddOne {
 				nc = nc | params.NonceAddOne
 				tx.SetNonce(nc)
 			}
-			//=========end======
 		}
 		pm.txpool.AddRemotes(txs)
 	case msg.Code == common.NetworkMsg:
 		var m []*core.MsgStruct
-		log.Info("====xiangzi====NetworkMsg")
 		if err := msg.Decode(&m); err != nil {
-			log.Info("====", "err", err)
+			log.Info("file handler", "mag NetworkMsg err", err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		log.Info("=====xiangzi==", "ProcessMsg", m)
+		log.Info("file handler", "msg NetworkMsg ","ProcessMsg")
 		go pm.txpool.ProcessMsg(core.NetworkMsgData{NodeId: p.ID(), Data: m})
 
 	case msg.Code == common.AlgorithmMsg:

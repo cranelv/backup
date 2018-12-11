@@ -1668,7 +1668,6 @@ func (bc *BlockChain) sendBroadTx() {
 	blockNumRem := new(big.Int).Rem(block.Number(), big.NewInt(int64(common.GetBroadcastInterval())))
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal := new(big.Int).Sub(blockNum, blockNumRem)
-	log.Info("===========YYY============1", "blockChian:sendBroadTx()", subVal)
 	//没验证过心跳交易
 	if !viSendHeartTx {
 		viSendHeartTx = true
@@ -1680,7 +1679,6 @@ func (bc *BlockChain) sendBroadTx() {
 				saveBroacCastblockHash = bc.GetBlockByNumber(subVal.Uint64()).Hash() //获取最近的广播区块的hash
 			}
 		}
-		log.Info("===========YYY============2", "blockChian:sendBroadTx()", subVal)
 		currentAcc := ca.GetAddress().Big()  //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
@@ -1689,17 +1687,14 @@ func (bc *BlockChain) sendBroadTx() {
 			height := new(big.Int).Add(subVal, big.NewInt(int64(common.GetBroadcastInterval()))) //下一广播区块的高度
 			data := new([]byte)
 			mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{mc.Heartbeat, height, *data})
-			log.Info("===========YYY============2.5", "blockChian:sendBroadTx()", ret, "val", val)
+			log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 		}
-		log.Info("===========YYY============3", "blockChian:sendBroadTx()", ret, "val", val)
+		log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 	}
 	if blockNumRem.Int64() == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易
 		saveBroacCastblockHash = block.Hash()
 		viSendHeartTx = false
-		log.Info("===========YYY============4", "blockChian:sendBroadTx()", subVal)
 	}
-	log.Info("===========YYY============5", "blockChian:sendBroadTx()", subVal)
-	//=============end=============
 }
 
 func (bc *BlockChain) update() {
