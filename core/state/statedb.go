@@ -373,6 +373,25 @@ func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint6
 	}
 	return common.Address{}
 }
+func (self *StateDB) GetEntrustFromByTime(authFrom common.Address, time uint64) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	if len(EntrustMarsha1Data) == 0{
+		return nil
+	}
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.EnstrustSetType == params.EntrustByTime && entrustData.IsEntrustGas == true && entrustData.StartHeight <= time && entrustData.EndHeight >= time {
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
+		}
+	}
+	return addressList
+}
 //判断根据时间委托是否满足条件，用于执行按时间委托的交易(跑交易),此处time应该为header里的时间戳
 func (self *StateDB) GetIsEntrustByTime(entrustFrom common.Address, time uint64) bool{
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
@@ -804,9 +823,9 @@ func (self *StateDB) deleteMatrixData(hash common.Hash,val []byte) {
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	//if val = self.matrixData[hash]; val != nil{
-	//	return val
-	//}
+	if val = self.matrixData[hash]; val != nil{
+		return val
+	}
 
 	// Load the data from the database.
 	val, err := self.trie.TryGet(hash[:])
@@ -1014,9 +1033,10 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 
 	for hash,val := range s.matrixData{
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty{
-			s.updateMatrixData(hash,val)
+		if !isDirty{
+			continue
 		}
+		s.updateMatrixData(hash,val)
 		delete(s.matrixDataDirty,hash)
 	}
 	s.CommitSaveTx()

@@ -2235,7 +2235,7 @@ var toTwosComplement = function (number) {
  * @return {Boolean}
 */
 var isStrictAddress = function (address) {
-    return /^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/i.test(address);
+    return /^[A-Z]{2,8}\.[0-9a-zA-Z]{28,29}$/i.test(address);
 };
 
 /**
@@ -2246,10 +2246,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!(/^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/.test(address))) {
+    if (!(/^[A-Z]{2,8}\.[0-9a-zA-Z]{28,29}$/.test(address))) {
         // check if it has the basic requirements of an address
         return false;
-    } else if ((/^[A-Z]{2,8}\.[0-9a-zA-Z]{56}$/.test(address))) {
+    } else if ((/^[A-Z]{2,8}\.[0-9a-zA-Z]{28,29}$/.test(address))) {
         // If it's all small caps or all all caps, return true
         return true;
     } else {
@@ -5325,7 +5325,34 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
-
+    var getAuthFrom = new Method({
+        name: 'getAuthFrom',
+        call: 'eth_getAuthFrom',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getEntrustFrom = new Method({
+        name: 'getEntrustFrom',
+        call: 'eth_getEntrustFrom',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getAuthFromByTime = new Method({
+        name: 'getAuthFromByTime',
+        call: 'eth_getAuthFromByTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getEntrustFromByTime = new Method({
+        name: 'getEntrustFromByTime',
+        call: 'eth_getEntrustFromByTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'eth_getStorageAt',
@@ -5513,6 +5540,10 @@ var methods = function () {
     return [
         getBalance,
         getEntrustList,
+        getAuthFrom,
+        getEntrustFrom,
+        getAuthFromByTime,
+        getEntrustFromByTime,
         getStorageAt,
         getCode,
         getBlock,
