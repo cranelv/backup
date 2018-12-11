@@ -20,6 +20,7 @@ const (
 	MSKeyVIPConfig         = "vip_config"
 	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
 	MSKeyLeaderConfig      = "leader_config"
+	MSKeySuperBlockCfg     = "super_block_config"
 	//奖励配置
 	MSKeyBlkRewardCfg = "blk_reward"
 	MSKeyTxsRewardCfg = "txs_reward"
@@ -63,12 +64,12 @@ type MatrixSpecialAccounts struct {
 }
 
 type ElectConfigInfo struct {
-	MinerNum           uint16
-	ValidatorNum       uint16
-	BackValidator      uint16
+	MinerNum      uint16
+	ValidatorNum  uint16
+	BackValidator uint16
 	ElectPlug     string
-	WhiteList          []common.Address
-	BlackList          []common.Address
+	WhiteList     []common.Address
+	BlackList     []common.Address
 }
 type VIPConfig struct {
 	MinMoney     uint64
@@ -134,4 +135,9 @@ type InterestCfgStruct struct {
 
 type SlashCfgStruct struct {
 	SlashRate uint64
+}
+
+type SuperBlkCfg struct {
+	Seq uint64
+	Num uint64
 }

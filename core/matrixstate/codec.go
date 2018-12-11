@@ -210,7 +210,7 @@ func (MSPVIPConfigCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPVIPConfigCodec) decodeFn(data []byte) (interface{}, error) {
-msg := new([]mc.VIPConfig)
+	msg := new([]mc.VIPConfig)
 	//msg:=[]mc.VIPConfig{}
 	err := json.Unmarshal(data, msg)
 	if err != nil {
@@ -405,6 +405,29 @@ func (MSPSlashCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 
 func (MSPSlashCfgCodec) decodeFn(data []byte) (interface{}, error) {
 	msg := new(mc.SlashCfgStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSPSuperBlkCfgCodec struct {
+}
+
+func (MSPSuperBlkCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSPSuperBlkCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.SuperBlkCfg)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

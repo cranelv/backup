@@ -36,7 +36,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Mixhash           common.Hash                       `json:"mixHash"`
 		Coinbase          common.Address                    `json:"coinbase"`
 		Alloc             map[common.Address]GenesisAccount `json:"alloc"      gencodec:"required"`
-		MState            GenesisMState                     `json:"mstate"`
+		MState            *GenesisMState                    `json:"mstate"`
 		Number            math.HexOrDecimal64               `json:"number"`
 		GasUsed           math.HexOrDecimal64               `json:"gasUsed"`
 		ParentHash        common.Hash                       `json:"parentHash"`
@@ -80,9 +80,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Nonce             *math.HexOrDecimal64                        `json:"nonce"`
 		Timestamp         *math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData         *hexutil.Bytes                              `json:"extraData"`
-		Version           string                                      `json:"version"`
+		Version           *string                                     `json:"version"`
 		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
-		VrfValue          string                                      `json:"vrfvalue"`
+		VrfValue          *string                                     `json:"vrfvalue"`
 		Leader            *common.Address                             `json:"leader"`
 		Elect             *[]common.Elect                             `json:"elect" gencodec:"required"`
 		NetTopology       *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
@@ -118,8 +118,13 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.VersionSignatures != nil {
 		g.VersionSignatures = *dec.VersionSignatures
 	}
-	g.Version = dec.Version
-	g.VrfValue = []byte(dec.VrfValue)
+	if dec.Version != nil {
+		g.Version = *dec.Version
+	}
+	if g.VrfValue != nil {
+		g.VrfValue = common.Hex2Bytes(*dec.VrfValue)
+	}
+
 	if dec.Leader != nil {
 		g.Leader = *dec.Leader
 	}
@@ -151,7 +156,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	g.Alloc = make(GenesisAlloc, len(dec.Alloc))
 	if dec.MState != nil {
-		g.MState = *dec.MState
+		g.MState = dec.MState
 	}
 	for k, v := range dec.Alloc {
 		g.Alloc[common.Address(k)] = v
@@ -175,14 +180,72 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 }
 
 //hezi
+
+func (g Genesis1) MarshalJSON() ([]byte, error) {
+	type Genesis struct {
+		Config            *params.ChainConfig       `json:"config,omitempty"`
+		Nonce             math.HexOrDecimal64       `json:"nonce"`
+		Timestamp         math.HexOrDecimal64       `json:"timestamp"`
+		ExtraData         hexutil.Bytes             `json:"extraData"`
+		Version           string                    `json:"version"`
+		VersionSignatures []common.Signature        `json:"versionSignatures"`
+		VrfValue          string                    `json:"vrfvalue"`
+		Leader            string                    `json:"leader"`
+		Elect             []common.Elect1           `json:"elect"        gencodec:"required"`
+		NetTopology       common.NetTopology1       `json:"nettopology"        gencodec:"required"`
+		Signatures        []common.Signature        `json:"signatures" gencodec:"required"`
+		GasLimit          math.HexOrDecimal64       `json:"gasLimit"   gencodec:"required"`
+		Difficulty        *math.HexOrDecimal256     `json:"difficulty" gencodec:"required"`
+		Mixhash           common.Hash               `json:"mixHash"`
+		Coinbase          string                    `json:"coinbase"`
+		Alloc             map[string]GenesisAccount `json:"alloc"      gencodec:"required"`
+		MState            *GenesisMState1           `json:"mstate,omitempty"`
+		Number            math.HexOrDecimal64       `json:"number"`
+		GasUsed           math.HexOrDecimal64       `json:"gasUsed"`
+		ParentHash        common.Hash               `json:"parentHash"`
+		Root              common.Hash               `json:"stateRoot,omitempty"`
+		TxHash            common.Hash               `json:"transactionsRoot,omitempty"`
+	}
+	var enc Genesis
+	enc.Config = g.Config
+	enc.Nonce = math.HexOrDecimal64(g.Nonce)
+	enc.Timestamp = math.HexOrDecimal64(g.Timestamp)
+	enc.ExtraData = g.ExtraData
+	enc.Version = g.Version
+	enc.VersionSignatures = g.VersionSignatures
+	enc.VrfValue = common.Bytes2Hex(g.VrfValue)
+	enc.Leader = g.Leader
+	enc.Elect = g.Elect
+	enc.NetTopology = g.NetTopology
+	enc.Signatures = g.Signatures
+	enc.GasLimit = math.HexOrDecimal64(g.GasLimit)
+	enc.Difficulty = (*math.HexOrDecimal256)(g.Difficulty)
+	enc.Mixhash = g.Mixhash
+	enc.Coinbase = g.Coinbase
+	if g.Alloc != nil {
+		enc.Alloc = make(map[string]GenesisAccount, len(g.Alloc))
+		for k, v := range g.Alloc {
+			enc.Alloc[k] = v
+		}
+	}
+	enc.MState = g.MState
+	enc.Number = math.HexOrDecimal64(g.Number)
+	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
+	enc.ParentHash = g.ParentHash
+	enc.Root = g.Root
+	enc.TxHash = g.TxHash
+	return json.Marshal(&enc)
+}
+
 func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config            *params.ChainConfig       `json:"config"`
 		Nonce             *math.HexOrDecimal64      `json:"nonce"`
 		Timestamp         *math.HexOrDecimal64      `json:"timestamp"`
 		ExtraData         *hexutil.Bytes            `json:"extraData"`
-		Version           string                    `json:"version"`
+		Version           *string                   `json:"version"`
 		VersionSignatures *[]common.Signature       `json:"versionSignatures"`
+		VrfValue          *string                   `json:"vrfvalue"`
 		Leader            *string                   `json:"leader"`
 		Elect             *[]common.Elect1          `json:"elect" gencodec:"required"`
 		NetTopology       *common.NetTopology1      `json:"nettopology"        gencodec:"required"`
@@ -196,6 +259,8 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		Number            *math.HexOrDecimal64      `json:"number"`
 		GasUsed           *math.HexOrDecimal64      `json:"gasUsed"`
 		ParentHash        *common.Hash              `json:"parentHash"`
+		Root              *common.Hash              `json:"stateRoot,omitempty"`
+		TxHash            *common.Hash              `json:"transactionsRoot,omitempty"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -213,7 +278,12 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	if dec.ExtraData != nil {
 		g.ExtraData = *dec.ExtraData
 	}
-	g.Version = dec.Version
+	if dec.Version != nil {
+		g.Version = *dec.Version
+	}
+	if dec.VrfValue != nil {
+		g.VrfValue = common.Hex2Bytes(*dec.VrfValue)
+	}
 	if dec.VersionSignatures != nil {
 		g.VersionSignatures = *dec.VersionSignatures
 	}
@@ -230,7 +300,7 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		g.Signatures = *dec.Signatures
 	}
 	if dec.MState != nil {
-		g.MState = *dec.MState
+		g.MState = dec.MState
 	}
 	if dec.GasLimit == nil {
 		return errors.New("missing required field 'gasLimit' for Genesis")
@@ -261,6 +331,12 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentHash != nil {
 		g.ParentHash = *dec.ParentHash
+	}
+	if dec.Root != nil {
+		g.Root = *dec.Root
+	}
+	if dec.TxHash != nil {
+		g.TxHash = *dec.TxHash
 	}
 	return nil
 }

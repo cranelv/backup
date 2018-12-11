@@ -6,9 +6,11 @@ package man
 
 import (
 	"context"
-	"math/big"
-	"time"
 	"encoding/json"
+	"math/big"
+	"os"
+	"time"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -17,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/core/bloombits"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/event"
@@ -26,8 +29,6 @@ import (
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
-	"github.com/matrix/go-matrix/core/txinterface"
-	"os"
 	"github.com/pkg/errors"
 )
 
@@ -168,14 +169,14 @@ func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (
 	}
 	file.Close()
 
-	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen)
+	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen, true)
 	if err != nil {
 		return common.Hash{}, err
 	}
-    for i:=0;i<3;i++{
-	    b.man.protocolManager.AllBroadcastBlock(superBlock,true)
-	    time.Sleep(100*time.Millisecond)
-    }
+	for i := 0; i < 3; i++ {
+		b.man.protocolManager.AllBroadcastBlock(superBlock, true)
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	return superBlock.Hash(), nil
 }
@@ -203,7 +204,7 @@ func (b *ManAPIBackend) GetPoolTransaction(hash common.Hash) types.SelfTransacti
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
 			tx := npool.Get(hash)
-			if tx == nil{
+			if tx == nil {
 				return nil
 			}
 			return tx
@@ -267,13 +268,13 @@ func (b *ManAPIBackend) TxPoolContent() (ntxs map[common.Address]types.SelfTrans
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
 			txlist := npool.Content()
-			for k,vlist := range txlist{
-				txser := make([]types.SelfTransaction,0)
-				for _,v := range vlist{
-					txser = append(txser,v)
+			for k, vlist := range txlist {
+				txser := make([]types.SelfTransaction, 0)
+				for _, v := range vlist {
+					txser = append(txser, v)
 				}
-				if vs,ok := ntxs[k]; !ok{
-					txser = append(txser,vs...)
+				if vs, ok := ntxs[k]; !ok {
+					txser = append(txser, vs...)
 				}
 				ntxs[k] = txser
 			}

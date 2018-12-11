@@ -1124,6 +1124,14 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	return n, err
 }
 
+func (bc *BlockChain) InsertChainNotify(chain types.Blocks, notify bool) (int, error) {
+	n, events, logs, err := bc.insertChain(chain)
+	if notify {
+		bc.PostChainEvents(events, logs)
+	}
+	return n, err
+}
+
 func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
 	if err != nil {
@@ -2219,7 +2227,7 @@ func (bc *BlockChain) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpeci
 	return accounts, nil
 }
 
-func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
+func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notifyBlock bool) (*types.Block, error) {
 	if nil == superBlockGen {
 		return nil, errors.New("super block is nil")
 	}
@@ -2266,7 +2274,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 	//	return nil, errors.Errorf("rollback chain err(%v)", err)
 	//}
 
-	if _, err := bc.InsertChain(types.Blocks{block}); err != nil {
+	if _, err := bc.InsertChainNotify(types.Blocks{block}, false); err != nil {
 		return nil, errors.Errorf("insert super block err(%v)", err)
 	}
 
@@ -2283,7 +2291,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	txs := block.Transactions()
-	if len(txs) != 1 {
+	if len(txs) > 2 || 0 == len(txs) {
 		return errors.Errorf("super block's txs count(%d) err", len(txs))
 	}
 
@@ -2307,6 +2315,16 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 		for key, value := range account.Storage {
 			stateDB.SetState(addr, key, value)
 		}
+	}
+	if 2 == len(txs) {
+		tx1 := txs[1]
+		mState := new(GenesisMState)
+
+		if err := json.Unmarshal(tx1.Data(), mState); err != nil {
+			return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
+		}
+		mState.setSuperBlockMState(stateDB, block.Header().NetTopology, block.Header().Elect, block.Header().Number.Uint64())
+
 	}
 
 	// todo 修改state树

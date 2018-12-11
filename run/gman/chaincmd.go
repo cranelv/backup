@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/man/wizard"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/matrix/go-matrix/accounts/keystore"
+	"github.com/matrix/go-matrix/man/wizard"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -227,7 +228,7 @@ participating.
 It expects the genesis file as argument.`,
 	}
 
-	sighCommand = cli.Command{
+	signCommand = cli.Command{
 		Action:    utils.MigrateFlags(signBlock),
 		Name:      "signblock",
 		Usage:     "Bootstrap and rollback a new super block",
@@ -245,7 +246,7 @@ participating.
 It expects the genesis file as argument.`,
 	}
 
-	sighVersionCommand = cli.Command{
+	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
 		Name:      "sighverison",
 		Usage:     "Bootstrap and rollback a new super block",
@@ -284,7 +285,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	//hezi
 	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(genesis1,genesis)
+	core.ManGenesisToEthGensis(genesis1, genesis)
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {
@@ -489,8 +490,7 @@ func copyDb(ctx *cli.Context) error {
 	// Synchronise with the simulated peer
 	start := time.Now()
 
-
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq() ,hc.GetSuperBlockHash(),syncmode); err != nil {
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), hc.GetSuperBlockHash(), syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {
@@ -575,6 +575,7 @@ func getCommit(ctx *cli.Context) error {
 	}
 	return nil
 }
+
 func importSupBlock(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
@@ -587,8 +588,8 @@ func importSupBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 		return err
 	}
@@ -599,8 +600,9 @@ func importSupBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 		return errors.New("make chain err")
 	}
-
-	if _, err := chain.InsertSuperBlock(genesis); err != nil {
+	genesis := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	if _, err := chain.InsertSuperBlock(genesis, false); err != nil {
 		utils.Fatalf("insert super block err(%v)", err)
 		return err
 	}
@@ -667,8 +669,8 @@ func signBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
@@ -678,10 +680,12 @@ func signBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 	}
 
-	parent := chain.GetHeaderByHash(genesis.ParentHash)
+	parent := chain.GetHeaderByHash(matrixGenesis.ParentHash)
 	if nil == parent {
 		utils.Fatalf("get parent header err")
 	}
+	genesis := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, genesis)
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
@@ -709,11 +713,11 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	genesis.Root = superBlock.Root()
-	genesis.TxHash = superBlock.TxHash()
-	genesis.Signatures = append(genesis.Signatures, sign)
+	matrixGenesis.Root = superBlock.Root()
+	matrixGenesis.TxHash = superBlock.TxHash()
+	matrixGenesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
-	out, _ := json.MarshalIndent(genesis, "", "  ")
+	out, _ := json.MarshalIndent(matrixGenesis, "", "  ")
 	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
 		utils.Fatalf("Failed to save genesis file, err = %v", err)
 	}
