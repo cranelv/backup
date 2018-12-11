@@ -362,6 +362,7 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
+	tx.Currency = args.Currency
 
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
@@ -389,7 +390,7 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args1 SendTxArg
 	if err != nil {
 		return common.Hash{}, err
 	}
-	Currency := strings.Split(args1.From,".")[0]	//币种
+	Currency := args.Currency	//币种
 	signed.SetTxCurrency(Currency)
 	return submitTransaction(ctx, s.b, signed)
 }
@@ -603,7 +604,7 @@ func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string,time uint6
 		return ""
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
-	addr := state.GetAuthFrom(entrustFrom,time)
+	addr := state.GetGasAuthFromByTime(entrustFrom,time)
 	if addr.Equal(common.Address{}){
 		return ""
 	}
@@ -615,7 +616,7 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,time uint6
 		return nil
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
-	addrList := state.GetEntrustFrom(entrustFrom,time)
+	addrList := state.GetEntrustFromByTime(entrustFrom,time)
 	var strAddrList []string
 	for _,addr := range addrList{
 		if !addr.Equal(common.Address{}){
@@ -1511,6 +1512,7 @@ type ExtraTo_Mx struct {
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
 type SendTxArgs struct {
 	From     common.Address  `json:"from"`
+	Currency string       `json:"currency"`
 	To       *common.Address `json:"to"`
 	Gas      *hexutil.Uint64 `json:"gas"`
 	GasPrice *hexutil.Big    `json:"gasPrice"`
@@ -1690,6 +1692,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs,err error){
 	if err != nil{
 		return SendTxArgs{}, err
 	}
+	args.Currency = strings.Split(args1.From,".")[0]
 	args.From = base58.Base58DecodeToAddress(from)
 	if args1.To != nil{
 		to := *args1.To
@@ -1779,11 +1782,12 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
 	}
+	tx.Currency = args.Currency
 	signed, err := wallet.SignTxWithPasswd(account,passwd, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	Currency := strings.Split(args1.From,".")[0]	//币种
+	Currency := args.Currency	//币种
 	signed.SetTxCurrency(Currency)
 	return submitTransaction(ctx, s.b, signed)
 }

@@ -3959,7 +3959,6 @@ var outputVerifiedSignFormatter = function (VerifiedSigns) {
 };
 var inputAddressFormatter = function (address) {
     var iban = new Iban(address);
-    console.log(address)
     if (iban.isValid() && iban.isDirect()) {
         return iban.address();
     } else if (utils.isStrictAddress(address)) {
