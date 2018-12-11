@@ -4,6 +4,8 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/core/vm"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -53,10 +55,16 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, currentNum ui
 
 	var eleNum uint64
 
-	if currentNum < common.GetReElectionInterval() {
+	bcInterval, err := manparams.NewBCIntervalByNumber(currentNum - 1)
+	if err != nil {
+		log.Error(PackageName, "获取广播周期失败", err)
+		return nil, nil, nil, errors.New("获取广播周期失败")
+	}
+
+	if currentNum < bcInterval.GetReElectionInterval() {
 		eleNum = 0
 	} else {
-		eleNum = common.GetLastReElectionNumber(currentNum) - 1
+		eleNum = bcInterval.GetLastReElectionNumber() - 1
 	}
 
 	originElectNodes, err := ca.GetTopologyByNumber(roleType, eleNum)
@@ -87,13 +95,13 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, currentNum ui
 	if nil != err {
 		return nil, nil, nil, errors.New("获取选举信息的出错")
 	}
-	if currentNum < common.GetReElectionInterval() {
+	if currentNum < bcInterval.GetReElectionInterval() {
 		depositNum = 0
 	} else {
 		if common.RoleValidator == common.RoleValidator&roleType {
-			depositNum = common.GetLastReElectionNumber(currentNum) - uint64(originInfo.(*mc.ElectGenTimeStruct).ValidatorGen)
+			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.(*mc.ElectGenTimeStruct).ValidatorGen)
 		} else {
-			depositNum = common.GetLastReElectionNumber(currentNum) - uint64(originInfo.(*mc.ElectGenTimeStruct).MinerGen)
+			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.(*mc.ElectGenTimeStruct).MinerGen)
 		}
 	}
 

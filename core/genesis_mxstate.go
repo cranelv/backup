@@ -4,9 +4,9 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/log"
 )
 
 const (
@@ -18,19 +18,21 @@ type GenesisMState struct {
 	Foundation   mc.NodeInfo           `json:"Foundation"`
 	InnerMiners  []mc.NodeInfo         `json:"InnerMiners"`
 	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BCICfg       mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
 	LeaderCfg    mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
 	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
 	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
 	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
-	EleInfoCfg mc.ElectConfigInfo  `json:"EleInfo" gencodec:"required"`
+	EleTimeCfg   mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
+	EleInfoCfg   mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
 }
 type GenesisMState1 struct {
 	Broadcast    mc.NodeInfo1          `json:"Broadcast"`
 	Foundation   mc.NodeInfo1          `json:"Foundation"`
 	InnerMiners  []mc.NodeInfo1        `json:"InnerMiners"`
+	BCICfg       mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
 	VIPCfg       []mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
 	LeaderCfg    mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
 	BlkRewardCfg mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
@@ -38,15 +40,15 @@ type GenesisMState1 struct {
 	LotteryCfg   mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
 	InterestCfg  mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
 	SlashCfg     mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
-	EleInfoCfg mc.ElectConfigInfo  `json:"EleInfo" gencodec:"required"`
+	EleTimeCfg   mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
+	EleInfoCfg   mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
 }
 
 func (g *Genesis) setMatrixState(state *state.StateDB) error {
-	if err:=g.setElectTime(state);err!=nil{
+	if err := g.setElectTime(state); err != nil {
 		return err
 	}
-	if err:=g.setElectInfo(state);err!=nil{
+	if err := g.setElectInfo(state); err != nil {
 		return err
 	}
 	if err := g.setTopologyToState(state); err != nil {
@@ -79,23 +81,26 @@ func (g *Genesis) setMatrixState(state *state.StateDB) error {
 	if err := g.setLeaderCfgToState(state); err != nil {
 		return err
 	}
+	if err := g.setBCIntervalToState(state); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (g *Genesis)setElectTime(state *state.StateDB)error{
-	if g.MState.EleTimeCfg.ValidatorGen<g.MState.EleTimeCfg.ValidatorNetChange{
+func (g *Genesis) setElectTime(state *state.StateDB) error {
+	if g.MState.EleTimeCfg.ValidatorGen < g.MState.EleTimeCfg.ValidatorNetChange {
 		return errors.New("验证者切换点小于验证者生成点")
 	}
-	if g.MState.EleTimeCfg.MinerGen<g.MState.EleTimeCfg.MinerNetChange{
+	if g.MState.EleTimeCfg.MinerGen < g.MState.EleTimeCfg.MinerNetChange {
 		return errors.New("矿工切换点小于矿工生效时间点")
 	}
-	log.Info("Geneiss","electime",g.MState.EleTimeCfg)
+	log.Info("Geneiss", "electime", g.MState.EleTimeCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.MState.EleTimeCfg, state)
 }
-func (g *Genesis)setElectInfo(state *state.StateDB)error{
-	log.Info("Geneiss","electconfig",g.MState.EleInfoCfg)
-	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo,g.MState.EleInfoCfg,state)
+func (g *Genesis) setElectInfo(state *state.StateDB) error {
+	log.Info("Geneiss", "electconfig", g.MState.EleInfoCfg)
+	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.MState.EleInfoCfg, state)
 }
 
 func (g *Genesis) setTopologyToState(state *state.StateDB) error {
@@ -326,4 +331,28 @@ func (g *Genesis) setLeaderCfgToState(state *state.StateDB) error {
 	}
 
 	return matrixstate.SetDataToState(mc.MSKeyLeaderConfig, g.MState.LeaderCfg, state)
+}
+
+func (g *Genesis) setBCIntervalToState(state *state.StateDB) error {
+	var interval *mc.BCIntervalInfo = nil
+	if g.Number == 0 {
+		if g.MState.BCICfg.BCInterval < 20 {
+			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.MState.BCICfg.BCInterval)
+		}
+
+		interval = &mc.BCIntervalInfo{
+			LastBCNumber:       0,
+			LastReelectNumber:  0,
+			BCInterval:         g.MState.BCICfg.BCInterval,
+			BackupEnableNumber: 0,
+			BackupBCInterval:   0,
+		}
+	} else {
+		// todo 超级区块改广播周期
+	}
+
+	if interval != nil {
+		return matrixstate.SetDataToState(mc.MSKeyBroadcastInterval, interval, state)
+	}
+	return nil
 }

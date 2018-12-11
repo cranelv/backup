@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package blkgenor
@@ -8,6 +8,7 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type BlockGenor struct {
@@ -142,14 +143,18 @@ func (self *BlockGenor) update() {
 }
 
 func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
-	log.INFO(self.logExtraInfo(), "CA身份消息处理", "开始", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String())
-	defer log.INFO(self.logExtraInfo(), "CA身份消息处理", "结束", "高度", roleMsg.BlockNum)
+	log.INFO(self.logExtraInfo(), "CA身份消息处理", "开始", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String(), "block hash", roleMsg.BlockHash.TerminalString())
+	bcInterval, err := manparams.NewBCIntervalByHash(roleMsg.BlockHash)
+	if err != nil {
+		log.Error(self.logExtraInfo(), "CA身份消息处理", "获取广播周期信息by hash 失败", "err", err)
+		return err
+	}
 
 	curNumber := roleMsg.BlockNum + 1
-	self.pm.SetCurNumber(curNumber,roleMsg.IsSuperBlock)
+	self.pm.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
 	if roleMsg.Role == common.RoleValidator || roleMsg.Role == common.RoleBroadcast {
 		curProcess := self.pm.GetCurrentProcess()
-		curProcess.StartRunning(roleMsg.Role)
+		curProcess.StartRunning(roleMsg.Role, bcInterval)
 	}
 
 	return nil
@@ -196,8 +201,8 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 }
 
 func (self *BlockGenor) minerResultHandle(minerResult *mc.HD_MiningRspMsg) {
-	log.INFO(self.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString())
-	defer log.INFO(self.logExtraInfo(), "矿工挖矿结果消息处理", "结束", "高度", minerResult.Number, "block hash", minerResult.BlockHash.TerminalString())
+	//log.INFO(self.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString())
+	//defer log.INFO(self.logExtraInfo(), "矿工挖矿结果消息处理", "结束", "高度", minerResult.Number, "block hash", minerResult.BlockHash.TerminalString())
 	process, err := self.pm.GetProcess(minerResult.Number)
 	if err != nil {
 		log.INFO(self.logExtraInfo(), "矿工挖矿结果消息 获取Process失败", err)

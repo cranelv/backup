@@ -13,61 +13,61 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	//"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
-
-func (self *ReElection)GetElectGenTimes (height uint64)(*mc.ElectGenTimeStruct,error){
-	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,height)
-	if err!=nil{
-		log.Error("GetElectGenTimes","获取选举时间点信息失败 err",err)
-		return nil,err
+func (self *ReElection) GetElectGenTimes(height uint64) (*mc.ElectGenTimeStruct, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, height)
+	if err != nil {
+		log.Error("GetElectGenTimes", "获取选举时间点信息失败 err", err)
+		return nil, err
 	}
 	electGenConfig, OK := data.(*mc.ElectGenTimeStruct)
 	if OK == false || electGenConfig == nil {
-		log.ERROR("GetElectGenTimes", "ElectGenTimeStruct 非法", "反射失败","高度",height)
-		return nil,errors.New("反射失败")
+		log.ERROR("GetElectGenTimes", "ElectGenTimeStruct 非法", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
-	return electGenConfig,nil
+	return electGenConfig, nil
 }
-func (self *ReElection)GetElectConfig(height uint64)(*mc.ElectConfigInfo,error){
-	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo,height)
-	if err!=nil{
-		log.ERROR("GetElectInfo","获取选举基础信息失败 err",err)
-		return nil,err
+func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
-	electInfo,OK:=data.(*mc.ElectConfigInfo)
-	if OK==false||electInfo==nil{
-		log.ERROR("GetElectInfo","GetElectInfo ","反射失败","高度",height)
-		return nil,errors.New("反射失败")
+	electInfo, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electInfo == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
-	return electInfo,nil
+	return electInfo, nil
 }
-func (self *ReElection)GetViPList(height uint64)([]mc.VIPConfig,error){
-	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyVIPConfig,height)
-	if err!=nil{
-		log.ERROR("GetElectInfo","获取选举基础信息失败 err",err)
-		return nil,err
+func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyVIPConfig, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
 	vipList,OK:=data.(*[]mc.VIPConfig)
-	if OK==false||vipList==nil{
-		log.ERROR("GetElectInfo","GetElectInfo ","反射失败","高度",height)
-		return nil,errors.New("反射失败")
+	if OK == false || vipList == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
 	return *vipList,nil
 }
 
-func (self *ReElection)GetElectPlug(height uint64)(baseinterface.ElectionInterface,error){
-	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo,height)
-	if err!=nil{
-		log.ERROR("GetElectInfo","获取选举基础信息失败 err",err)
-		return nil,err
+func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInterface, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
-	electInfo,OK:=data.(*mc.ElectConfigInfo)
-	if OK==false||electInfo==nil{
-		log.ERROR("GetElectInfo","GetElectInfo ","反射失败","高度",height)
-		return nil,errors.New("反射失败")
+	electInfo, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electInfo == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
-	return baseinterface.NewElect(electInfo.ElectPlug),nil
+	return baseinterface.NewElect(electInfo.ElectPlug), nil
 }
 
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
@@ -138,6 +138,14 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative) 
 	}
 
 	return result
+}
+
+func (self *ReElection) GetBroadcastIntervalByHash(hash common.Hash) (*manparams.BCInterval, error) {
+	data, err := self.bc.GetBroadcastInterval(hash)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
 }
 
 func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {

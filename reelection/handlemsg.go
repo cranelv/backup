@@ -55,7 +55,6 @@ func (self *ReElection) HandleTopGen(hash common.Hash) (TopGenStatus, error) {
 
 }
 
-
 //是不是矿工拓扑生成时间段
 func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 
@@ -64,16 +63,24 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 		log.ERROR(Module, "height", height, "err", err)
 		return false
 	}
-	now := height % common.GetReElectionInterval()
-	genData,err:=self.GetElectGenTimes(height)
-	if err!=nil{
-		log.ERROR(Module,"获取配置错误 高度",height)
+
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "get broadcast interval err", err)
 		return false
 	}
-	if now+1 == common.GetReElectionInterval()-uint64(genData.MinerNetChange){
+
+	genData, err := self.GetElectGenTimes(height)
+	if err != nil {
+		log.ERROR(Module, "获取配置错误 高度", height)
+		return false
+	}
+
+	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.MinerNetChange)) {
 		return true
 	}
-	log.ERROR(Module, "height", height, "err", false, "interval", common.GetReElectionInterval(), "MinerTopGenTiming", uint64(genData.MinerNetChange), "now", now)
+
+	log.ERROR(Module, "height", height, "err", false, "MinerTopGenTiming", uint64(genData.MinerNetChange), "height", height)
 	return false
 }
 
@@ -86,13 +93,18 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 		return false
 	}
 
-	now := height % common.GetReElectionInterval()
-	genData,err:=self.GetElectGenTimes(height)
-	if err!=nil{
-		log.ERROR(Module,"获取配置错误 高度",height)
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "get broadcast interval err", err)
 		return false
 	}
-	if now+1 == common.GetReElectionInterval()-uint64(genData.ValidatorNetChange) {
+
+	genData, err := self.GetElectGenTimes(height)
+	if err != nil {
+		log.ERROR(Module, "获取配置错误 高度", height)
+		return false
+	}
+	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.ValidatorNetChange)) {
 		return true
 	}
 	log.ERROR(Module, "height", height, "err", false)

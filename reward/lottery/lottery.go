@@ -11,6 +11,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reward/util"
 )
 
@@ -50,6 +51,7 @@ type TxsLottery struct {
 	seed       LotterySeed
 	state      util.StateDB
 	lotteryCfg *mc.LotteryCfgStruct
+	bcInterval *manparams.BCInterval
 }
 
 type LotterySeed interface {
@@ -57,6 +59,17 @@ type LotterySeed interface {
 }
 
 func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
+	intervalData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	if err != nil {
+		log.ERROR(PackageName, "获取广播周期失败", err)
+		return nil
+	}
+	bcInterval, err := manparams.NewBCIntervalWithInterval(intervalData)
+	if err != nil {
+		log.ERROR(PackageName, "创建广播周期数据结构失败", err)
+		return nil
+	}
+
 	lotteryCfg, err := matrixstate.GetDataByState(mc.MSKeyLotteryCfg, st)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
@@ -78,6 +91,7 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 		seed:       seed,
 		state:      st,
 		lotteryCfg: cfg,
+		bcInterval: bcInterval,
 	}
 
 	return tlr
@@ -94,13 +108,17 @@ func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
 		return nil
 	}
+	if tlr.bcInterval.IsBroadcastNumber(num) {
+		log.WARN(PackageName, "广播周期不处理", "")
+		return nil
+	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
 	if nil != err {
 		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
 		return nil
 	}
 
-	if latestNum >= common.GetLastReElectionNumber(num-1)+1 {
+	if latestNum > tlr.bcInterval.GetReElectionInterval() {
 		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
 		return nil
 	}
@@ -136,9 +154,9 @@ func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 }
 
 func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultList {
-	originBlockNum := common.GetLastReElectionNumber(num) - 1
+	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - 1
 
-	if num < common.GetReElectionInterval() {
+	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
 	}
 	randSeed := tlr.seed.GetSeed(num)

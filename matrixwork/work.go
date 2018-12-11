@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/reward/blkreward"
 	"github.com/matrix/go-matrix/reward/interest"
 	"github.com/matrix/go-matrix/reward/lottery"
@@ -443,7 +445,12 @@ func (r *randSeed) GetSeed(num uint64) *big.Int {
 }
 
 func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
-	if common.IsBroadcastNumber(env.header.Number.Uint64()) {
+	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
+	if err != nil {
+		log.Error("work", "获取广播周期失败", err)
+		return nil
+	}
+	if bcInterval.IsBroadcastNumber(env.header.Number.Uint64()) {
 		return nil
 	}
 	blkReward := blkreward.New(bc, env.State)
@@ -511,7 +518,7 @@ func (env *Work) getGas() *big.Int {
 	}
 	return allGas
 }
-func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain) ([]common.Address, error) {
+func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) ([]common.Address, error) {
 	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
 	if err != nil {
 		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
@@ -527,7 +534,7 @@ func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain) ([]common.Ad
 
 	upTimeAccounts := make([]common.Address, 0)
 
-	minerNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
+	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
 	log.INFO(packagename, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
@@ -538,7 +545,7 @@ func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain) ([]common.Ad
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
 	}
-	validatorNum := num - (num % common.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
+	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
 	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {
@@ -581,17 +588,18 @@ func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
 
-func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain) error {
+func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) error {
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
-	blockNumRem := blockNum % common.GetBroadcastInterval()
+	broadcastInterval := bcInterval.GetBroadcastInterval()
+	blockNumRem := blockNum % broadcastInterval
 
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal := blockNum - blockNumRem
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal = subVal
-	if blockNum < common.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
+	if blockNum < broadcastInterval { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
 		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
 	} else {
 		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
@@ -599,11 +607,11 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	// todo: remove
 	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
 	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % ((common.GetBroadcastInterval()) - 1)
+	val := broadcastBlock.Uint64() % (broadcastInterval - 1)
 
 	for _, v := range accounts {
-		currentAcc := v.Big()
-		ret := currentAcc.Uint64() % (common.GetBroadcastInterval() - 1)
+		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
+		ret := currentAcc.Uint64() % (broadcastInterval - 1)
 		if ret == val {
 			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
 			if _, ok := heatBeatAccounts[v]; ok {
@@ -617,7 +625,7 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	var upTime uint64
-	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
 	if err != nil {
@@ -636,14 +644,14 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 3
+					upTime = broadcastInterval - 3
 					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 3
+				upTime = broadcastInterval - 3
 				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
@@ -666,8 +674,8 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	return nil
 }
 
-func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64) error {
-	broadcastInterval := common.GetBroadcastInterval()
+func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
+	broadcastInterval := bcInterval.GetBroadcastInterval()
 	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
 	if err != nil {

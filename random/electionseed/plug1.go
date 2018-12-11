@@ -13,6 +13,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/random/commonsupport"
 	//"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 func init() {
@@ -25,16 +26,16 @@ type ElectSeedPlug1 struct {
 	privatekey *big.Int
 }
 
-func (self *ElectSeedPlug1) Prepare(height uint64,support  baseinterface.RandomChainSupport) error {
+func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
 
-	data,err:=commonsupport.GetElectGenTimes(support.BlockChain(),height)
-	if err!=nil{
-		log.ERROR(ModuleElectSeed,"获取通用配置失败 err",err)
+	data, err := commonsupport.GetElectGenTimes(support.BlockChain(), height)
+	if err != nil {
+		log.ERROR(ModuleElectSeed, "获取通用配置失败 err", err)
 		return err
 	}
-	voteBeforeTime:=uint64(data.VoteBeforeTime)
-
-	if (height+voteBeforeTime)%(common.GetBroadcastInterval()) != 0 {
+	voteBeforeTime := uint64(data.VoteBeforeTime)
+	bcInterval := manparams.NewBCInterval()
+	if bcInterval.IsBroadcastNumber(height+voteBeforeTime) == false {
 		log.INFO(ModuleElectSeed, "RoleUpdateMsgHandle", "当前不是投票点,忽略")
 		return nil
 	}

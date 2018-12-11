@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"math/big"
-	"encoding/json"
 )
 
 func getTestNodeList() (list []TopologyNodeInfo) {
@@ -109,29 +108,4 @@ func Test111(t *testing.T) {
 	a.A = a.B
 	a.B = big.NewInt(int64(300))
 	fmt.Println("a", a)
-}
-
-
-type AAA struct {
-	A int
-	B int
-}
-
-func Test1111(t *testing.T)  {
-	ans:=[]AAA{
-		AAA{
-			A:1,B:2,
-		},
-		AAA{
-			A:1,B:2,
-		},
-	}
-	data,err:=json.Marshal(ans)
-	fmt.Println("data",data,"err",err)
-
-
-	aaa:=new([]AAA)
-	err=json.Unmarshal(data,aaa)
-	fmt.Println(aaa,err)
-
 }
