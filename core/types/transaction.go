@@ -17,7 +17,6 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/params"
-	"fmt"
 	"github.com/matrix/go-matrix/base58"
 	"strings"
 	"time"
@@ -148,7 +147,7 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 	data1.CommitTime = data.CommitTime
 	data1.Recipient = new(string)
 	to := *data.Recipient
-	*data1.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",to)))
+	*data1.Recipient = base58.Base58EncodeToString(currency,to)
 	//data1.Extra1 = data.Extra
 	if len(data.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra1,0)
@@ -162,7 +161,7 @@ func TxdataAddresToString(currency string,data *txdata,data1 *txdata1){
 					if tto.Recipient != nil{
 						tmTo := new(Tx_to1)
 						tmTo.Recipient = new(string)
-						*tmTo.Recipient = base58.Base58EncodeToString(currency,[]byte(fmt.Sprintf("%x",*tto.Recipient)))
+						*tmTo.Recipient = base58.Base58EncodeToString(currency,*tto.Recipient)
 						tmTo.Payload = tto.Payload
 						tmTo.Amount = tto.Amount
 						exto = append(exto,*tmTo)

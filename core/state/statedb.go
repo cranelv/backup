@@ -754,9 +754,9 @@ func (self *StateDB) deleteMatrixData(hash common.Hash,val []byte) {
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	//if val = self.matrixData[hash]; val != nil{
-	//	return val
-	//}
+	if val = self.matrixData[hash]; val != nil{
+		return val
+	}
 
 	// Load the data from the database.
 	val, err := self.trie.TryGet(hash[:])
@@ -964,9 +964,10 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 
 	for hash,val := range s.matrixData{
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty{
-			s.updateMatrixData(hash,val)
+		if !isDirty{
+			continue
 		}
+		s.updateMatrixData(hash,val)
 		delete(s.matrixDataDirty,hash)
 	}
 	s.CommitSaveTx()

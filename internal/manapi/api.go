@@ -188,7 +188,7 @@ func (s *PublicAccountAPI) Accounts() []string {
 	var tmpstr string
 	for _, wallet := range s.am.Wallets() {
 		for _, account := range wallet.Accounts() {
-			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",account.Address)))
+			strAddr := base58.Base58EncodeToString("MAN",account.Address)
 			if tmpstr == strAddr{
 				continue
 			}
@@ -579,7 +579,7 @@ func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string,height uint64) s
 	if addr.Equal(common.Address{}){
 		return ""
 	}
-	return base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+	return base58.Base58EncodeToString("MAN",addr)
 }
 func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,height uint64) []string {
 	state,err := s.b.GetState()
@@ -591,7 +591,7 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,height uint64) [
 	var strAddrList []string
 	for _,addr := range addrList{
 		if !addr.Equal(common.Address{}){
-			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+			strAddr := base58.Base58EncodeToString("MAN",addr)
 			strAddrList = append(strAddrList,strAddr)
 		}
 	}
@@ -607,7 +607,7 @@ func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string,time uint6
 	if addr.Equal(common.Address{}){
 		return ""
 	}
-	return base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+	return base58.Base58EncodeToString("MAN",addr)
 }
 func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,time uint64) []string {
 	state,err := s.b.GetState()
@@ -619,7 +619,7 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,time uint6
 	var strAddrList []string
 	for _,addr := range addrList{
 		if !addr.Equal(common.Address{}){
-			strAddr := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr)))
+			strAddr := base58.Base58EncodeToString("MAN",addr)
 			strAddrList = append(strAddrList,strAddr)
 		}
 	}
@@ -883,7 +883,7 @@ func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, block
 	for _,tmpverSign := range verSignList{
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",tmpverSign.Account))),
+			Account:  base58.Base58EncodeToString("MAN",tmpverSign.Account),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -907,7 +907,7 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	for _,tmpverSign := range verSignList{
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",tmpverSign.Account))),
+			Account:  base58.Base58EncodeToString("MAN",tmpverSign.Account),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -1046,14 +1046,14 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 /************************************************************/
 func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
-	Coinbase1 := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",head.Coinbase)))
-	Leader1 := base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",head.Leader)))
+	Coinbase1 := base58.Base58EncodeToString("MAN",head.Coinbase)
+	Leader1 := base58.Base58EncodeToString("MAN",head.Leader)
 	//head.NetTopology
 	NetTopology1 := new(common.NetTopology1)
 	listNetTopolog := make([]common.NetTopologyData1,0)
 	for _,addr := range head.NetTopology.NetTopologyData{
 		tmpstruct := new(common.NetTopologyData1)
-		tmpstruct.Account = base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",addr.Account)))
+		tmpstruct.Account = base58.Base58EncodeToString("MAN",addr.Account)
 		tmpstruct.Position = addr.Position
 		listNetTopolog = append(listNetTopolog,*tmpstruct)
 	}
@@ -1065,7 +1065,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	for _,elect := range head.Elect{
 		tmpElect1 := new(common.Elect1)
 		tmpElect1.Type = elect.Type
-		tmpElect1.Account = base58.Base58EncodeToString("MAN",[]byte(fmt.Sprintf("%x",elect.Account)))
+		tmpElect1.Account = base58.Base58EncodeToString("MAN",elect.Account)
 		tmpElect1.Stock = elect.Stock
 		listElect1 = append(listElect1,*tmpElect1)
 	}
@@ -1178,9 +1178,9 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 	if data.Currency == ""{
 		data.Currency = "MAN"
 	}
-	result.From = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",data.From)))
+	result.From = base58.Base58EncodeToString(data.Currency,data.From)
 	result.To = new(string)
-	*result.To = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",*data.To)))
+	*result.To = base58.Base58EncodeToString(data.Currency,*data.To)
 
 	if len(data.ExtraTo) > 0 {
 		extra := make([]*ExtraTo_Mx1,0)
@@ -1188,7 +1188,7 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 			if ar.To2 != nil {
 				tmExtra := new(ExtraTo_Mx1)
 				tmExtra.To2 = new(string)
-				*tmExtra.To2 = base58.Base58EncodeToString(data.Currency,[]byte(fmt.Sprintf("%x",*ar.To2)))
+				*tmExtra.To2 = base58.Base58EncodeToString(data.Currency,*ar.To2)
 				tmExtra.Input2 = ar.Input2
 				tmExtra.Value2 = ar.Value2
 				extra = append(extra,tmExtra)
@@ -1921,7 +1921,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs1 SendTxA
 				sendArgs.Gas = gasLimit
 			}
 			Currency := strings.Split(sendArgs1.From,".")[0]	//币种
-			strFrom := base58.Base58EncodeToString(Currency,[]byte(fmt.Sprintf("%x",sendArgs.From)))
+			strFrom := base58.Base58EncodeToString(Currency,sendArgs.From)
 			signedTx, err := s.sign(strFrom, sendArgs.toTransaction())
 			if err != nil {
 				return common.Hash{}, err
