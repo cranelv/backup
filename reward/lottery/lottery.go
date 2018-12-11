@@ -147,8 +147,7 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 	for originBlockNum < num {
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
 		for _, tx := range txs {
-			extx := tx.GetMatrix_EX()
-			if (extx != nil) && len(extx) > 0 && extx[0].TxType == common.ExtraNormalTxType || extx == nil {
+			if tx.GetMatrixType() == common.ExtraNormalTxType {
 				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
 			}
