@@ -237,7 +237,7 @@ func (l *Linker) recordTopNodeActiveInfo() {
 		topNodes := ca.GetRolesByGroup(common.RoleType(i))
 
 		for _, tn := range topNodes {
-			if tn.String() == ServerP2p.ManPassword {
+			if tn == ServerP2p.ManAddress {
 				continue
 			}
 			if _, ok := l.topNode[common.RoleType(i)][tn]; !ok {

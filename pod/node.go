@@ -144,16 +144,6 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 }
 
 func (n *Node) Signature() (signature common.Signature) {
-	emptyAddress := common.Address{}
-	if n.config.P2P.ManPassword == "" && n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man address and password is empty. defalut role has no signature.")
-		return
-	}
-	if n.config.P2P.ManPassword == "" || n.config.P2P.ManAddress == emptyAddress {
-		n.log.Error("man address or password is empty. please ensure command and args.")
-		return
-	}
-
 	if common.FileExist(datadirManSignature) {
 		buf := make([]byte, 65)
 		fd, err := os.Open(datadirManSignature)
@@ -170,6 +160,23 @@ func (n *Node) Signature() (signature common.Signature) {
 
 		info, _ := os.Stat(datadirManSignature)
 		n.config.P2P.SignTime = info.ModTime()
+
+		addrByte, err := ioutil.ReadFile(datadirManAddress)
+		if err != nil {
+			n.log.Error("man address read file", "error", err)
+			return
+		}
+		n.config.P2P.ManAddress = common.BytesToAddress(addrByte)
+		return
+	}
+
+	emptyAddress := common.Address{}
+	if n.config.P2P.ManPassword == "" && n.config.P2P.ManAddress == emptyAddress {
+		n.log.Info("man address and password is empty. defalut role has no signature.")
+		return
+	}
+	if n.config.P2P.ManPassword == "" || n.config.P2P.ManAddress == emptyAddress {
+		n.log.Error("man address or password is empty. please ensure command and args.")
 		return
 	}
 
@@ -193,6 +200,11 @@ func (n *Node) Signature() (signature common.Signature) {
 		err = ioutil.WriteFile(datadirManSignature, sig, 0600)
 		if err != nil {
 			n.log.Error("signature write fail", "error", err)
+			return
+		}
+		err = ioutil.WriteFile(datadirManAddress, n.config.P2P.ManAddress.Bytes(), 0600)
+		if err != nil {
+			n.log.Error("man address write fail", "error", err)
 			return
 		}
 		signature = common.BytesToSignature(sig[:])
