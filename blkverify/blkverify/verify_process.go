@@ -447,6 +447,11 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
+	root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
+	if root1 != p.curProcessReq.req.Header.Root {
+		log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
+	}
+
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
 		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)

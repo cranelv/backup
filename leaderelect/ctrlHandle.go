@@ -68,6 +68,11 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		return
 	}
 
+	root2, _ := msg.parentStateDB.Commit(self.dc.chain.Config().IsEIP158(msg.parentHeader.Number))
+	if root2 != msg.parentHeader.Root {
+		log.Error("hyk_miss_trie_5", "root", msg.parentHeader.Root.TerminalString(), "state root", root2.TerminalString())
+	}
+
 	if self.dc.role != common.RoleValidator {
 		log.INFO(self.logInfo, "处理开始消息", "身份错误, 不是验证者", "role", self.dc.role, "高度", self.dc.number)
 		self.mp.SaveParentHeader(msg.parentHeader)

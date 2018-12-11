@@ -1018,7 +1018,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
-	log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+	if root != block.Root() {
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+		return NonStatTy, errors.New("root not match")
+	}
 
 	triedb := bc.stateCache.TrieDB()
 
