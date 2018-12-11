@@ -44,6 +44,10 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
+	if StateCfg.(*mc.InterestCfgStruct).PayInterval == 0 || 0 == StateCfg.(*mc.InterestCfgStruct).CalcInterval {
+		log.ERROR(PackageName, "利息周期配置错误", "")
+		return nil
+	}
 	if StateCfg.(*mc.InterestCfgStruct).PayInterval < StateCfg.(*mc.InterestCfgStruct).CalcInterval {
 		log.ERROR(PackageName, "配置的发放周期小于计息周期", "")
 		return nil
@@ -88,26 +92,21 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*D
 
 func (ic *interest) InterestCalc(state vm.StateDB, num uint64) {
 	//todo:状态树读取利息计算的周期、支付的周期、利率
+
+	if nil == state {
+		log.ERROR(PackageName, "状态树是空", state)
+		return
+	}
 	if num == 1 {
 		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
 		matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
 		log.INFO(PackageName, "初始化利息状态树高度", num)
 		return
 	}
-	if nil == state {
-		log.ERROR(PackageName, "状态树是空", state)
-		return
-	}
-	calcInterestPeriod := ic.CalcInterval
-	payInterestPeriod := ic.PayInterval
 
-	if calcInterestPeriod == 0 || 0 == payInterestPeriod {
-		log.ERROR(PackageName, "InterestPeriod is  error", "")
-		return
-	}
-	ic.calcInterest(calcInterestPeriod, num, state)
+	ic.calcInterest(ic.CalcInterval, num, state)
 
-	ic.payInterest(payInterestPeriod, num, state)
+	ic.payInterest(ic.PayInterval, num, state)
 }
 
 func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.StateDB) {
@@ -117,8 +116,8 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 		return
 	}
 
-	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod+1) {
-		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod)+1 {
+		log.Info(PackageName, "当前周期利息已处理无须再处理", "")
 		return
 	}
 	matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
@@ -163,8 +162,8 @@ func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state 
 		return
 	}
 
-	if latestNum >= ic.getLastInterestNumber(num-1, calcInterestInterval+1) {
-		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+	if latestNum >= ic.getLastInterestNumber(num-1, calcInterestInterval)+1 {
+		log.Info(PackageName, "当前利息已处理无须再处理", "")
 		return
 	}
 	matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)

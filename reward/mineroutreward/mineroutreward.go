@@ -80,6 +80,10 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 
 	rewards := make(map[common.Address]*big.Int)
 	for i := latestNum + 1; i < num+1; i++ {
+		if common.IsBroadcastNumber(i) {
+			log.WARN(PackageName, "广播区块不发钱：", i)
+			continue
+		}
 		if common.IsBroadcastNumber(i - 1) {
 			coinBase = chain.GetHeaderByNumber(i - 2).Coinbase
 		} else {

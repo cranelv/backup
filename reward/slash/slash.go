@@ -81,7 +81,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		log.ERROR(PackageName, "状态树获取前一发放惩罚高度错误", err)
 		return
 	}
-	if latestNum >= common.GetLastReElectionNumber(num-1)+1 {
+	if latestNum >= common.GetLastBroadcastNumber(num-1)+1 {
 		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
 		return
 	}
