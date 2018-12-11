@@ -318,9 +318,9 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		}
 	}
 	if txType == common.ExtraRevocable{
-		d.CommitTime = uint64(time.Now().Unix()) + uint64(600)
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(80)
 	}else if txType == common.ExtraTimeTxType{
-		d.CommitTime = uint64(time.Now().Unix()) + uint64(300)
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(60)
 	}else {
 		d.CommitTime = uint64(0)
 	}

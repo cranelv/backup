@@ -496,11 +496,9 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 		}
 	case GetTxbyN, RecvTxbyN, GetConsensusTxbyN, RecvConsensusTxbyN: //YY
 		//给固定的节点发送根据N获取Tx的请求
-		log.Info("===sendMSG ======YY====", "Msgtype", data.Msgtype)
 		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
 	case RecvErrTx: //YY 给全部验证者发送错误交易做共识
 		if selfRole == common.RoleValidator {
-			log.Info("===sendMsg ErrTx===YY===", "selfRole", selfRole)
 			p2p.SendToGroup(common.RoleValidator, common.NetworkMsg, []interface{}{data})
 		}
 	}
@@ -543,17 +541,13 @@ func (nPool *NormalTxPool) ListenUdp() {
 			log.Info("======hezi=====", "checklist: udptxs:", len(evtxs))
 			selfRole := ca.GetRole()
 			if selfRole == common.RoleValidator {
-				//nPool.selfmlk.Lock()
 				tmptxs := make([]*types.Transaction, 0)
 				for _, ftx := range evtxs {
 					tx := types.ConvMxtotx(ftx)
-					//log.Info("======YY====", "listenudp()", tx.Nonce())
-					//YY ====begin======
 					if nc := tx.Nonce(); nc < params.NonceAddOne {
 						nc = nc | params.NonceAddOne
 						tx.SetNonce(nc)
 					}
-					//=========end======
 					tmptxs = append(tmptxs, tx)
 				}
 				nPool.getFromByTx(tmptxs)
@@ -568,7 +562,6 @@ func (nPool *NormalTxPool) ListenUdp() {
 					}
 				}
 				nPool.mu.Unlock()
-				//nPool.selfmlk.Unlock()
 			}
 		case <-nPool.udptxsSub.Err():
 			return

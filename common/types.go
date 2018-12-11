@@ -452,6 +452,7 @@ type RecorbleTx struct {
 	From Address
 	Adam []AddrAmont
 	Tim  uint32
+	Typ  byte
 }
 
 //地址为matrix地址

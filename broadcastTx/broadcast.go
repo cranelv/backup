@@ -16,7 +16,6 @@ import (
 	"github.com/matrix/go-matrix/internal/manapi"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"time"
 )
 
 const (
@@ -72,16 +71,12 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		log.Info("===Send BroadCastTx===", "block height less than 100")
 		return errors.New("===Send BroadCastTx===,block height less than 100")
 	}
-	log.Info("=========YY=========", "sendBroadCastTransaction", data)
 	bType := false
 	if t == mc.CallTheRoll {
 		bType = true
 	}
-	log.Info("=========YY=========11111", "sendBroadCastTransaction:hhhhhhhh", h)
 	h.Quo(h, big.NewInt(int64(common.GetBroadcastInterval())))
-	log.Info("=========YY=========22222", "sendBroadCastTransaction:hhhhhhhh", h)
 	t += h.String()
-	log.Info("=========YY=========33333", "sendBroadCastTransaction:tttttttttt", t)
 	tmpData := make(map[string][]byte)
 	tmpData[t] = data
 	msData, _ := json.Marshal(tmpData)
@@ -92,16 +87,12 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 	if config := bc.manBackend.ChainConfig(); config.IsEIP155(currBlockHeight) {
 		chainID = config.ChainId
 	}
-	t1 := time.Now()
 	signed, err := bc.manBackend.SignTx(tx, chainID)
 	if err != nil {
-		log.Info("=========YY=========", "sendBroadCastTransaction:SignTx=", err)
+		log.Info("file broadcast", "sendBroadCastTransaction:SignTx=", err)
 		return err
 	}
-	t2:=time.Since(t1)
 	err1 := bc.manBackend.SendBroadTx(context.Background(), signed, bType)
-	t3:=time.Since(t1)
-	log.Info("File BroadCast","func sendBroadCastTransaction:t2",t2,"t3",t3)
-	log.Info("=========YY=========", "sendBroadCastTransaction:Return=", err1)
+	log.Info("file broadcast", "sendBroadCastTransaction:Return=", err1)
 	return nil
 }
