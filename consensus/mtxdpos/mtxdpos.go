@@ -168,7 +168,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 	hash := header.HashNoSignsAndNonce()
 	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash, "txhash:", header.TxHash.TerminalString())
 
-	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks, header.ParentHash)
+	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
 	return err
 }
 
@@ -182,10 +182,10 @@ func (md *MtxDPOS) VerifyHashWithBlock(reader consensus.StateReader, signHash co
 		return nil, err
 	}
 
-	return md.VerifyHashWithStocks(reader, signHash, signs, stocks, blockHash)
+	return md.VerifyHashWithStocks(reader, signHash, signs, stocks)
 }
 
-func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16, blkHash common.Hash) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error) {
 	if len(signHash) != 32 {
 		return nil, errSignHashLenErr
 	}
@@ -201,9 +201,9 @@ func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash c
 		return nil, errSignCountErr
 	}
 
-	verifiedSigns := md.verifySigns(reader, signHash, signs, stocks, blkHash)
+	verifiedSigns := md.verifySigns(signHash, signs, stocks)
 	if len(verifiedSigns) < target.targetCount {
-		log.ERROR("共识引擎", "验证后的签名数量不足 size", len(signs), "target", target.targetCount)
+		log.ERROR("共识引擎", "验证后的签名数量不足 size", len(verifiedSigns), "target", target.targetCount)
 		return nil, errSignCountErr
 	}
 
@@ -238,37 +238,6 @@ func (md *MtxDPOS) VerifyHashWithVerifiedSignsAndBlock(reader consensus.StateRea
 	return md.verifyDPOS(verifiedSigns, target)
 }
 
-func (md *MtxDPOS) VerifyStocksWithBlock(reader consensus.StateReader, validators []common.Address, blockHash common.Hash) bool {
-	stocks, err := md.getValidatorStocks(reader, blockHash)
-	if err != nil {
-		log.Error("Matrix Pos Consensus Error!", "Error", err)
-		return false
-	}
-	target, err := md.calculateDPOSTarget(stocks)
-	if err != nil {
-		log.Error("Matrix Pos Consensus Error!", "Error", err)
-		return false
-	}
-	if len(validators) < target.targetCount {
-		log.ERROR("共识引擎", "签名数量不足 size", len(validators), "target", target.targetCount)
-		return false
-	}
-	verifiedSigns := make(map[common.Address]*common.VerifiedSign)
-	for _, item := range validators {
-		stock, findStock := stocks[item]
-		if findStock == false {
-			// can't find in stock, discard
-			continue
-		}
-		verifiedSigns[item] = &common.VerifiedSign{Account: item, Validate: true, Stock: stock}
-	}
-	_, err = md.verifyDPOS(verifiedSigns, target)
-	if err != nil {
-		log.Error("Matrix Pos Consensus Error!", "Error", err)
-		return false
-	}
-	return true
-}
 func (md *MtxDPOS) calculateDPOSTarget(stocks map[common.Address]uint16) (*dposTarget, error) {
 	totalCount := len(stocks)
 	//check total count
@@ -302,11 +271,8 @@ func (md *MtxDPOS) parseVerifiedSigns(verifiedSigns []*common.VerifiedSign, stoc
 	for i := 0; i < signCount; i++ {
 		sign := verifiedSigns[i]
 		stock, findStock := stocks[sign.Account]
-		//	aimAddr, err := baseinterface.NewEntrust().TransSignAccontToDeposit(sign.Account, uint64(50))
-		log.ERROR("ddppooss", "stock", stock, "findStock", findStock, "signAccount", sign.Account.String())
 		if findStock == false {
 			// can't find in stock, discard
-			//log.ERROR("ddppooss", "signAccount", sign.Account.String())
 			continue
 		}
 
@@ -319,7 +285,6 @@ func (md *MtxDPOS) parseVerifiedSigns(verifiedSigns []*common.VerifiedSign, stoc
 				existData.Stock = stock
 			}
 		} else {
-			log.ERROR("ddppooss成功", "signAccount", sign.Account.String())
 			verifiedSign[sign.Account] = &common.VerifiedSign{Sign: sign.Sign, Account: sign.Account, Validate: sign.Validate, Stock: stock}
 		}
 	}
@@ -327,7 +292,7 @@ func (md *MtxDPOS) parseVerifiedSigns(verifiedSigns []*common.VerifiedSign, stoc
 	return verifiedSign
 }
 
-func (md *MtxDPOS) verifySigns(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16, blkHash common.Hash) map[common.Address]*common.VerifiedSign {
+func (md *MtxDPOS) verifySigns(signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) map[common.Address]*common.VerifiedSign {
 	verifiedSign := make(map[common.Address]*common.VerifiedSign)
 	signCount := len(signs)
 	for i := 0; i < signCount; i++ {
@@ -337,14 +302,6 @@ func (md *MtxDPOS) verifySigns(reader consensus.StateReader, signHash common.Has
 			log.ERROR("共识引擎", "验证签名 错误", err)
 			continue
 		}
-		AuthAddr, err := reader.GetAuthAccount(account, blkHash)
-		if err != nil {
-			log.ERROR("共识引擎", "获取真实账户失败 account ", account.String(), "err", err, "AuthAddr", AuthAddr)
-			continue
-		} else {
-			log.ERROR("共识引擎", "获取真实账户成功 account ", account.String(), "err", err, "AuthAddr", AuthAddr)
-		}
-		account = AuthAddr
 
 		stock, findStock := stocks[account]
 		if findStock == false {

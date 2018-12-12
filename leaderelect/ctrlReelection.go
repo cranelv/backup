@@ -276,7 +276,7 @@ func (self *controller) handleRLReq(req *mc.HD_ReelectLeaderReqMsg) {
 	}
 
 	hash := types.RlpHash(req)
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(hash.Bytes(), true,self.ParentHash())
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(hash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "leader重选请求处理", "签名错误", "err", err)
 		return
@@ -393,7 +393,7 @@ func (self *controller) sendInquiryReq() {
 		From:          ca.GetAddress(),
 	}
 	reqHash := self.selfCache.SetInquiryReq(req)
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "send<重选询问请求>", "自己的同意签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -448,7 +448,7 @@ func (self *controller) sendInquiryRspWithPOS(reqHash common.Hash, target common
 }
 
 func (self *controller) sendInquiryRspWithAgree(reqHash common.Hash, target common.Address, number uint64) {
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "send<询问响应(同意更换leader响应)>", "签名失败", "err", err, "高度", number,
 			"共识轮次", self.dc.curConsensusTurn, "重选轮次", self.dc.curReelectTurn)
@@ -516,7 +516,7 @@ func (self *controller) sendRLReq() {
 		return
 	}
 
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "send<leader重选请求>", "自己的签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -536,7 +536,7 @@ func (self *controller) sendResultBroadcastMsg() {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "获取广播消息失败", "err", err)
 		return
 	}
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(msgHash.Bytes(), true,self.ParentHash())
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(msgHash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "自己的响应签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -551,7 +551,7 @@ func (self *controller) sendResultBroadcastMsg() {
 
 func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectResultBroadcastMsg) {
 	resultHash := types.RlpHash(req)
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(resultHash.Bytes(), true,self.ParentHash())
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(resultHash.Bytes(), true)
 	if err != nil {
 		log.ERROR(self.logInfo, "响应结果广播消息", "签名失败", "err", err)
 		return
