@@ -25,7 +25,7 @@ type TopNodeStateInterface interface {
 }
 
 type ValidatorAccountInterface interface {
-	SignWithValidate(hash []byte, validate bool) (sig common.Signature, err error)
+	SignWithValidate(hash []byte, validate bool, blkhash common.Hash) (sig common.Signature, err error)
 	IsSelfAddress(addr common.Address) bool
 }
 
@@ -36,6 +36,10 @@ type MessageSendInterface interface {
 type MessageCenterInterface interface {
 	SubscribeEvent(aim mc.EventCode, ch interface{}) (event.Subscription, error)
 	PublishEvent(aim mc.EventCode, data interface{}) error
+}
+
+type StateReaderInterface interface {
+	GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error)
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -68,8 +72,8 @@ func (self *TopNodeInstance) GetTopNodeOnlineState() []NodeOnLineInfo {
 	return onlineStat
 }
 
-func (self *TopNodeInstance) SignWithValidate(hash []byte, validate bool) (sig common.Signature, err error) {
-	return self.signHelper.SignHashWithValidate(hash, validate)
+func (self *TopNodeInstance) SignWithValidate(hash []byte, validate bool, blkhash common.Hash) (sig common.Signature, err error) {
+	return self.signHelper.SignHashWithValidate(hash, validate, blkhash)
 }
 
 func (self *TopNodeInstance) IsSelfAddress(addr common.Address) bool {

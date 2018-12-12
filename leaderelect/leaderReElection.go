@@ -4,9 +4,7 @@
 package leaderelect
 
 import (
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -136,29 +134,16 @@ func (self *LeaderIdentity) run() {
 
 func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 	if msg == nil || msg.Header == nil {
-		log.ERROR(self.extraInfo, "NewBlockReady处理错误", ErrMsgIsNil)
+		log.ERROR(self.extraInfo, "NewBlockReady处理错误", ErrParamsIsNil)
 		return
 	}
 
-	validators, err := self.genValidatorList(msg.Header)
-	if err != nil {
-		log.ERROR(self.extraInfo, "NewBlockReady处理", "获取验证者列表错误", "err", err)
-		return
-	}
-
-	// 获取自己的身份
 	curNumber := msg.Header.Number.Uint64()
-	role := self.getRoleFromTopology(validators)
-	log.INFO(self.extraInfo, "NewBlockReady消息处理", "开始", "高度", curNumber, "身份", role.String())
-
-	for i, v := range validators.NodeList {
-		log.INFO(self.extraInfo, "NewBlockReady消息处理", "消息[验证者列表]", "index", i, "addr", v.Account.Hex(), "pos", v.Position, "身份", v.Type.String())
-	}
+	log.INFO(self.extraInfo, "NewBlockReady消息处理", "开始", "高度", curNumber)
 
 	startMsg := &startControllerMsg{
-		role:         role,
-		validators:   validators.NodeList,
-		parentHeader: msg.Header,
+		parentHeader:  msg.Header,
+		parentState: msg.State,
 	}
 	self.ctrlManager.StartController(curNumber+1, startMsg)
 	log.INFO(self.extraInfo, "NewBlockReady消息处理", "完成")
@@ -166,12 +151,16 @@ func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 
 func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 	if msg == nil {
-		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", ErrMsgIsNil)
+		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", ErrParamsIsNil)
 		return
 	}
 	if (msg.Leader == common.Address{}) {
 		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", ErrMsgAccountIsNull)
 		return
+	}
+
+	if msg.IsSuperBlock {
+		self.ctrlManager.ClearController()
 	}
 
 	header := self.matrix.BlockChain().GetHeaderByHash(msg.BlockHash)
@@ -180,30 +169,23 @@ func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 		return
 	}
 
-	//获取拓扑图
-	validators, err := ca.GetTopologyByHash(common.RoleValidator, msg.BlockHash)
+	//获取状态树
+	parentState, err := self.matrix.BlockChain().StateAt(header.Root)
 	if err != nil {
-		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", "获取验证者拓扑图错误", "err", err, "高度", msg.BlockNum)
+		log.ERROR(self.extraInfo, "CA身份通知消息处理错误", "获取区块状态树失败", "err", err, "高度", msg.BlockNum)
 		return
 	}
 
-	log.INFO(self.extraInfo, "CA身份通知消息处理", "开始", "高度", msg.BlockNum, "身份", msg.Role.String())
-	defer log.INFO(self.extraInfo, "CA身份通知消息处理", "结束", "高度", msg.BlockNum, "身份", msg.Role.String())
-	for i, v := range validators.NodeList {
-		log.INFO(self.extraInfo, "CA身份通知消息处理", "拓扑图[验证者列表]", "高度", msg.BlockNum, "index", i, "pos", v.Position, "addr", v.Account.Hex(), "股权", v.Stock, "node number", v.NodeNumber)
-	}
-
 	startMsg := &startControllerMsg{
-		role:         msg.Role,
-		validators:   validators.NodeList,
-		parentHeader: header,
+		parentHeader:  header,
+		parentState: parentState,
 	}
 	self.ctrlManager.StartController(msg.BlockNum+1, startMsg)
 }
 
 func (self *LeaderIdentity) blockPOSFinishedMsgHandle(msg *mc.BlockPOSFinishedNotify) {
 	if msg == nil {
-		log.Error(self.extraInfo, "区块POS完成消息处理", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "区块POS完成消息处理", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	if (msg.Header.Leader == common.Address{}) {
@@ -220,7 +202,7 @@ func (self *LeaderIdentity) blockPOSFinishedMsgHandle(msg *mc.BlockPOSFinishedNo
 
 func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) {
 	if req == nil {
-		log.Error(self.extraInfo, "重选询问消息", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选询问消息", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	self.ctrlManager.ReceiveMsgByCur(req)
@@ -228,7 +210,7 @@ func (self *LeaderIdentity) rlInquiryReqHandle(req *mc.HD_ReelectInquiryReqMsg) 
 
 func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) {
 	if rsp == nil {
-		log.Error(self.extraInfo, "重选询问响应", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选询问响应", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	err := self.ctrlManager.ReceiveMsg(rsp.Number, rsp)
@@ -239,7 +221,7 @@ func (self *LeaderIdentity) rlInquiryRspHandle(rsp *mc.HD_ReelectInquiryRspMsg) 
 
 func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 	if req == nil {
-		log.Error(self.extraInfo, "leader重选请求", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "leader重选请求", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	err := self.ctrlManager.ReceiveMsg(req.InquiryReq.Number, req)
@@ -250,7 +232,7 @@ func (self *LeaderIdentity) rlReqMsgHandle(req *mc.HD_ReelectLeaderReqMsg) {
 
 func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 	if req == nil {
-		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "leader重选投票", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到leader重选投票", "开始", "高度", req.Number)
@@ -263,7 +245,7 @@ func (self *LeaderIdentity) rlVoteMsgHandle(req *mc.HD_ConsensusVote) {
 
 func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroadcastMsg) {
 	if msg == nil {
-		log.Error(self.extraInfo, "重选结果广播", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选结果广播", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到重选结果广播", "开始", "高度", msg.Number, "结果类型", msg.Type, "from", msg.From.Hex())
@@ -276,7 +258,7 @@ func (self *LeaderIdentity) rlResultBroadcastHandle(msg *mc.HD_ReelectResultBroa
 
 func (self *LeaderIdentity) rlResultRspHandle(rsp *mc.HD_ReelectResultRspMsg) {
 	if rsp == nil {
-		log.Error(self.extraInfo, "重选结果响应", "错误", "消息不合法", ErrMsgIsNil)
+		log.Error(self.extraInfo, "重选结果响应", "错误", "消息不合法", ErrParamsIsNil)
 		return
 	}
 	log.INFO(self.extraInfo, "收到重选结果响应", "开始", "高度", rsp.Number)
@@ -285,33 +267,4 @@ func (self *LeaderIdentity) rlResultRspHandle(rsp *mc.HD_ReelectResultRspMsg) {
 	if err != nil {
 		log.ERROR(self.extraInfo, "重选结果响应处理", "controller接受消息失败", "err", err)
 	}
-}
-
-func (self *LeaderIdentity) genValidatorList(header *types.Header) (*mc.TopologyGraph, error) {
-	newGraph, err := self.matrix.BlockChain().NewTopologyGraph(header)
-	if err != nil {
-		return nil, errors.Errorf("创建新拓扑图失败:%v", err)
-	}
-
-	validators := &mc.TopologyGraph{
-		Number:   newGraph.Number,
-		NodeList: make([]mc.TopologyNodeInfo, 0),
-	}
-
-	for _, node := range newGraph.NodeList {
-		if node.Type == common.RoleValidator {
-			validators.NodeList = append(validators.NodeList, node)
-		}
-	}
-	return validators, nil
-}
-
-func (self *LeaderIdentity) getRoleFromTopology(validators *mc.TopologyGraph) common.RoleType {
-	selfAccount := ca.GetAddress()
-	for _, v := range validators.NodeList {
-		if v.Account == selfAccount {
-			return v.Type
-		}
-	}
-	return common.RoleNil
 }

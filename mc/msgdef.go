@@ -59,24 +59,41 @@ type DepositDetail struct {
 	WithdrawH  *big.Int
 	OnlineTime *big.Int
 }
-type TopologyNodeInfo struct {
-	Account    common.Address
-	Position   uint16
-	Type       common.RoleType
-	Stock      uint16
-	NodeNumber uint8 //0-99
-	//	OnlineState bool
-}
+
 type Alternative struct {
 	A        common.Address
 	Position uint16
 }
 
+type TopologyNodeInfo struct {
+	Account    common.Address
+	Position   uint16
+	Type       common.RoleType
+	NodeNumber uint8 //0-99
+}
+
 type TopologyGraph struct {
 	Number        uint64
 	NodeList      []TopologyNodeInfo
-	ElectList     []TopologyNodeInfo
 	CurNodeNumber uint8
+}
+
+type ElectNodeInfo struct {
+	Account  common.Address
+	Position uint16
+	Stock    uint16
+	Type     common.RoleType
+}
+
+type ElectGraph struct {
+	Number    uint64
+	ElectList []ElectNodeInfo
+	NextElect []ElectNodeInfo
+}
+
+type ElectOnlineStatus struct {
+	Number      uint64
+	ElectOnline []ElectNodeInfo
 }
 
 //矿工主节点生成请求
@@ -84,29 +101,33 @@ type MasterMinerReElectionReqMsg struct {
 	SeqNum    uint64
 	RandSeed  *big.Int
 	MinerList []vm.DepositDetail
+	ElectConfig ElectConfigInfo
 }
 
 //验证者主节点生成请求
 type MasterValidatorReElectionReqMsg struct {
+
 	SeqNum                  uint64
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
-	FoundationValidatoeList []vm.DepositDetail
+	FoundationValidatorList []vm.DepositDetail
+	ElectConfig ElectConfigInfo
+	VIPList []VIPConfig
 }
 
 //矿工主节点生成响应
 type MasterMinerReElectionRsp struct {
 	SeqNum      uint64
-	MasterMiner []TopologyNodeInfo
-	BackUpMiner []TopologyNodeInfo
+	MasterMiner []ElectNodeInfo
+	BackUpMiner []ElectNodeInfo
 }
 
 //验证者主节点生成响应
 type MasterValidatorReElectionRsq struct {
 	SeqNum             uint64
-	MasterValidator    []TopologyNodeInfo
-	BackUpValidator    []TopologyNodeInfo
-	CandidateValidator []TopologyNodeInfo
+	MasterValidator    []ElectNodeInfo
+	BackUpValidator    []ElectNodeInfo
+	CandidateValidator []ElectNodeInfo
 }
 
 type RoleUpdatedMsg struct {
@@ -114,6 +135,7 @@ type RoleUpdatedMsg struct {
 	BlockNum  uint64
 	BlockHash common.Hash
 	Leader    common.Address
+	IsSuperBlock bool
 }
 
 type LeaderChangeNotify struct {
@@ -167,6 +189,7 @@ type HD_BlockInsertNotify struct {
 
 type NewBlockReadyMsg struct {
 	Header *types.Header
+	State  *state.StateDB
 }
 
 //随机数生成请求

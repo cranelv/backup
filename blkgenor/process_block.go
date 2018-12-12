@@ -93,7 +93,7 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	fullHash := rsp.Header.Hash()
 	headerHash := rsp.Header.HashNoSignsAndNonce()
-	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "full hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "高度", p.number)
+	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "full hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Root.Hex(), "高度", p.number)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -113,13 +113,13 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	//运行交易
-	log.Info("file process_block","func ProcessFullBlockRsp:YYYYYYYY:txs",rsp.Txs)
+	log.Info("file process_block", "func ProcessFullBlockRsp:YYYYYYYY:txs", rsp.Txs)
 	receipts, stateDB, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
-
+	log.Info(p.logExtraInfo(), "执行交易root", rsp.Header.Root.Hex())
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:    rsp.Header,
 		BlockHash: rsp.Header.HashNoSignsAndNonce(),
@@ -130,6 +130,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: rsp.Header,
+		State:  stateDB,
 	}
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
@@ -151,7 +152,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
 	// 跑交易不能添加奖励，增加新接口或map为空
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, false)
 	if err != nil {
 		return nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
@@ -182,9 +183,10 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 	defer p.mu.Unlock()
 
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
-		log.ERROR(p.logExtraInfo(), "矿工挖矿结果入池失败", err, "高度", p.number)
+		//log.ERROR(p.logExtraInfo(), "矿工挖矿结果入池失败", err, "高度", p.number)
 		return
 	}
+	log.INFO(p.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString(), "from", minerResult.From.Hex())
 	p.processMinerResultVerify(p.curLeader, true)
 }
 
@@ -214,7 +216,12 @@ func (p *Process) processMinerResultVerify(leader common.Address, checkState boo
 		return
 	}
 
-	if common.IsBroadcastNumber(p.number) {
+	if p.bcInterval == nil {
+		log.INFO(p.logExtraInfo(), "准备进行挖矿结果验证", "广播周期信息为nil", "高度", p.number)
+		return
+	}
+
+	if p.bcInterval.IsBroadcastNumber(p.number) {
 		log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 		p.dealMinerResultVerifyBroadcast()
 	} else {
@@ -234,6 +241,11 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	if nil == blockData {
 		log.WARN(p.logExtraInfo(), "准备进行挖矿结果验证", "验证区块还未收到！等待验证区块", "高度", p.number, "身份", p.role, "leader", leader.Hex())
 		return
+	}
+
+	root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+	if root != blockData.block.Header.Root {
+		log.Error("hyk_miss_trie_2", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
 	}
 
 	if blockData.state == blockStateLocalVerified {
@@ -261,13 +273,24 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		}
 		blockData.block.Header = p.copyHeader(blockData.block.Header, satisfyResult)
 		blockData.state = blockStateReady
+
+		root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+		if root != blockData.block.Header.Root {
+			log.Error("hyk_miss_trie_3", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
+		}
 	}
 	p.stopMinerPikerTimer()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
+		State:  blockData.block.State,
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
+
+	root2, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+	if root2 != blockData.block.Header.Root {
+		log.Error("hyk_miss_trie_4", "root", blockData.block.Header.Root.TerminalString(), "state root", root2.TerminalString())
+	}
 
 	p.state = StateBlockInsert
 	p.processBlockInsert(p.curLeader)
@@ -279,7 +302,12 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		return
 	}
 
-	if common.IsBroadcastNumber(p.number + 1) {
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
+		return
+	}
+
+	if p.bcInterval.IsBroadcastNumber(p.number + 1) {
 		if p.role != common.RoleBroadcast {
 			log.WARN(p.logExtraInfo(), "准备进行区块插入，广播区块前一个区块，由广播节点插入", p.role.String(), "高度", p.number)
 			return
@@ -388,6 +416,11 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
 	block := types.NewBlockWithTxs(insertHeader, txs)
+
+	root, err := state.Commit(p.pm.bc.Config().IsEIP158(blockData.block.Header.Number))
+	if root != insertHeader.Root {
+		log.Error("hyk_miss_trie_6", "root", insertHeader.Root.TerminalString(), "state root", root.TerminalString())
+	}
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

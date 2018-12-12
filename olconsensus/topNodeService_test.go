@@ -35,38 +35,38 @@ var (
 
 type testDPOSEngine struct {
 	dops   *mtxdpos.MtxDPOS
-	reader consensus.ValidatorReader
+	reader consensus.StateReader
 }
 
-func (tsdpos *testDPOSEngine) VerifyBlock(reader consensus.ValidatorReader, header *types.Header) error {
+func (tsdpos *testDPOSEngine) VerifyBlock(reader consensus.StateReader, header *types.Header) error {
 	return tsdpos.dops.VerifyBlock(reader, header)
 }
 
-func (tsdpos *testDPOSEngine) VerifyBlocks(reader consensus.ValidatorReader, headers []*types.Header) error {
+func (tsdpos *testDPOSEngine) VerifyBlocks(reader consensus.StateReader, headers []*types.Header) error {
 	return nil
 }
 
 //verify hash in current block
-func (tsdpos *testDPOSEngine) VerifyHash(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
+func (tsdpos *testDPOSEngine) VerifyHash(reader consensus.StateReader, signHash common.Hash, signs []common.Signature) ([]common.Signature, error) {
 	return tsdpos.dops.VerifyHash(reader, signHash, signs)
 }
 
 //verify hash in given number block
-func (tsdpos *testDPOSEngine) VerifyHashWithBlock(reader consensus.ValidatorReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error) {
+func (tsdpos *testDPOSEngine) VerifyHashWithBlock(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, blockHash common.Hash) ([]common.Signature, error) {
 	return tsdpos.dops.VerifyHashWithBlock(reader, signHash, signs, blockHash)
 }
 
 //VerifyHashWithStocks(signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error)
 
-func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSigns(reader consensus.ValidatorReader, signs []*common.VerifiedSign) ([]common.Signature, error) {
+func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSigns(reader consensus.StateReader, signs []*common.VerifiedSign) ([]common.Signature, error) {
 	return tsdpos.dops.VerifyHashWithVerifiedSigns(reader, signs)
 }
 
-func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSignsAndBlock(reader consensus.ValidatorReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error) {
+func (tsdpos *testDPOSEngine) VerifyHashWithVerifiedSignsAndBlock(reader consensus.StateReader, signs []*common.VerifiedSign, blockHash common.Hash) ([]common.Signature, error) {
 	return tsdpos.dops.VerifyHashWithVerifiedSignsAndBlock(reader, signs, blockHash)
 }
 
-func (tsdpos *testDPOSEngine) VerifyStocksWithBlock(reader consensus.ValidatorReader, validators []common.Address, blockHash common.Hash) bool {
+func (tsdpos *testDPOSEngine) VerifyStocksWithBlock(reader consensus.StateReader, validators []common.Address, blockHash common.Hash) bool {
 	return true
 }
 

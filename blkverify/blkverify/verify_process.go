@@ -7,6 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
+	"github.com/matrix/go-matrix/core/matrixstate"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/blkverify/votepool"
 	"github.com/matrix/go-matrix/common"
@@ -293,13 +297,6 @@ func (p *Process) processReqOnce() {
 		return
 	}
 
-	// verify election info
-	if err := p.verifyElection(p.curProcessReq.req.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
 	// verify net topology info
 	if err := p.verifyNetTopology(p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		log.ERROR(p.logExtraInfo(), "验证拓扑信息失败", err, "高度", p.number)
@@ -352,7 +349,7 @@ func (p *Process) processTxsAcquire(txsAcquireCh <-chan *core.RetChan, seq int) 
 	select {
 	case txsResult := <-txsAcquireCh:
 
-		go p.VerifyTxs(txsResult)
+		go p.VerifyTxsAndState(txsResult)
 	case <-outTime.C:
 		log.INFO(p.logExtraInfo(), "交易获取协程", "获取交易超时", "高度", p.number, "seq", seq)
 		go p.ProcessTxsAcquireTimeOut(seq)
@@ -380,7 +377,7 @@ func (p *Process) ProcessTxsAcquireTimeOut(seq int) {
 	p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 }
 
-func (p *Process) VerifyTxs(result *core.RetChan) {
+func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -417,7 +414,8 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	p.processUpTime(work, localHeader.ParentHash)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc)
+
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, true)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
@@ -432,12 +430,41 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 		return
 	}
 	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
+
+	// process matrix state
+	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "运行matrix状态出错", "err", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
+	// 运行完matrix state后，生成root
+	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
+	root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
+	if root1 != p.curProcessReq.req.Header.Root {
+		log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
+	}
+
+	// verify election info
+	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
+		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+
 	//localBlock check
 	localHeader = localBlock.Header()
 	localHash := localHeader.HashNoSignsAndNonce()
 
 	if localHash != p.curProcessReq.hash {
-		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
+		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
 			"local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(),
 			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),
@@ -458,7 +485,7 @@ func (p *Process) VerifyTxs(result *core.RetChan) {
 
 func (p *Process) sendVote(validate bool) {
 	signHash := p.curProcessReq.hash
-	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate)
+	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate,p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "投票签名失败", err, "高度", p.number)
 		return
@@ -506,23 +533,46 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 }
 
 func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
+	sbh := p.blockChain().GetSuperBlockNum()
+	if p.number == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
+	if nil != err {
+		return err
+	}
+	bcInterval, err := manparams.NewBCIntervalByHash(hash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
+		return err
+	}
 
-	if common.IsBroadcastNumber(p.number-1) && p.number > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-		upTimeAccounts, err := work.GetUpTimeAccounts(p.number)
+	if p.number < bcInterval.GetBroadcastInterval() {
+		return nil
+	}
+	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
+		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime", "高度", p.number)
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
+		upTimeAccounts, err := work.GetUpTimeAccounts(p.number, p.blockChain(), bcInterval)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", p.number)
 			return err
 		}
-		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
-		}
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)
+			if err != nil {
+				log.WARN("core", "获取心跳交易错误!", err, "高度", p.number)
+			}
 
-		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
-			return err
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
+			if nil != err {
+				log.ERROR("core", "处理uptime错误", err)
+				return err
+			}
 		}
 	}
 

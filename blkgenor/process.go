@@ -17,6 +17,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reelection"
 	"time"
 )
@@ -68,6 +69,7 @@ type Process struct {
 	FullBlockReqCache  *common.ReuseMsgController
 	consensusReqSender *common.ResendMsgCtrl
 	minerPickTimer     *time.Timer
+	bcInterval         *manparams.BCInterval
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -92,10 +94,13 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	return p
 }
 
-func (p *Process) StartRunning(role common.RoleType) {
+func (p *Process) StartRunning(role common.RoleType, bcInterval *manparams.BCInterval) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.role = role
+	if p.bcInterval == nil {
+		p.bcInterval = bcInterval
+	}
 	p.changeState(StateBlockBroadcast)
 	p.startBcBlock()
 }
@@ -108,6 +113,7 @@ func (p *Process) Close() {
 	p.nextLeader = common.Address{}
 	p.consensusTurn = 0
 	p.preBlockHash = common.Hash{}
+	p.bcInterval = nil
 	p.closeConsensusReqSender()
 	p.stopMinerPikerTimer()
 }
@@ -175,6 +181,11 @@ func (p *Process) AddInsertBlockInfo(blockInsert *mc.HD_BlockInsertNotify) {
 }
 
 func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
+	if blkInsertMsg == nil || blkInsertMsg.Header == nil {
+		log.ERROR(p.logExtraInfo(), "区块插入", "消息为nil")
+		return
+	}
+
 	blockHash := blkInsertMsg.Header.Hash()
 	log.INFO(p.logExtraInfo(), "区块插入", "启动", "block hash", blockHash.TerminalString())
 
@@ -183,8 +194,21 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		return
 	}
 
+	parentBlock := p.blockChain().GetBlockByHash(blkInsertMsg.Header.ParentHash)
+	if parentBlock == nil {
+		log.ERROR(p.logExtraInfo(), "区块插入", "缺少父区块, 进行fetch", "parent hash", blkInsertMsg.Header.ParentHash.TerminalString())
+		p.backend().FetcherNotify(blkInsertMsg.Header.ParentHash, p.number)
+		return
+	}
+
+	bcInterval, err := manparams.NewBCIntervalByHash(blkInsertMsg.Header.ParentHash)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期by parent hash err", "err", err)
+		return
+	}
+
 	header := blkInsertMsg.Header
-	if common.IsBroadcastNumber(p.number) {
+	if bcInterval.IsBroadcastNumber(p.number) {
 		signAccount, _, err := crypto.VerifySignWithValidate(header.HashNoSignsAndNonce().Bytes(), header.Signatures[0].Bytes())
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法, 签名解析错误", err)
@@ -232,12 +256,23 @@ func (p *Process) startBcBlock() {
 		return
 	}
 
-	header := p.blockChain().GetHeaderByNumber(p.number - 1)
-	if p.number != 1 { //todo 不好理解
-		log.INFO(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "block hash", header.Hash())
-		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: header}, common.RoleValidator|common.RoleBroadcast, nil)
+	parentHeader := p.blockChain().GetHeaderByNumber(p.number - 1)
+	parentHash := parentHeader.Hash()
+
+	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "广播区块阶段", "获取广播周期by parent hash err", "err", err)
+		return
 	}
-	p.preBlockHash = header.Hash()
+
+	if p.number != 1 { //todo 不好理解
+		log.INFO(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "block hash", parentHash)
+		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
+	}
+
+	log.INFO("广播区块阶段", "重设广播周期信息, interval", bcInterval.GetBroadcastInterval())
+	p.bcInterval = bcInterval
+	p.preBlockHash = parentHash
 	p.state = StateHeaderGen
 	p.startHeaderGen()
 }
@@ -282,14 +317,14 @@ func (p *Process) startHeaderGen() {
 func (p *Process) canGenHeader() bool {
 	switch p.role {
 	case common.RoleBroadcast:
-		if false == common.IsBroadcastNumber(p.number) {
+		if false == p.bcInterval.IsBroadcastNumber(p.number) {
 			log.INFO(p.logExtraInfo(), "广播身份，当前不是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
 		}
 	case common.RoleValidator:
-		if common.IsBroadcastNumber(p.number) {
+		if p.bcInterval.IsBroadcastNumber(p.number) {
 			log.INFO(p.logExtraInfo(), "验证者身份，当前是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)

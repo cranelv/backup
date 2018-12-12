@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/random/commonsupport"
+	//"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/params/manparams"
 )
 
@@ -25,8 +26,16 @@ type ElectSeedPlug1 struct {
 	privatekey *big.Int
 }
 
-func (self *ElectSeedPlug1) Prepare(height uint64) error {
-	if (height+manparams.RandomVoteTime)%(common.GetBroadcastInterval()) != 0 {
+func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
+
+	data, err := commonsupport.GetElectGenTimes(support.BlockChain(), height)
+	if err != nil {
+		log.ERROR(ModuleElectSeed, "获取通用配置失败 err", err)
+		return err
+	}
+	voteBeforeTime := uint64(data.VoteBeforeTime)
+	bcInterval := manparams.NewBCInterval()
+	if bcInterval.IsBroadcastNumber(height+voteBeforeTime) == false {
 		log.INFO(ModuleElectSeed, "RoleUpdateMsgHandle", "当前不是投票点,忽略")
 		return nil
 	}
@@ -41,10 +50,10 @@ func (self *ElectSeedPlug1) Prepare(height uint64) error {
 		return err
 	}
 
-	log.INFO(ModuleElectSeed, "公钥 高度", (height + manparams.RandomVoteTime), "publickey", publickeySend)
-	log.INFO(ModuleElectSeed, "私钥 高度", (height + manparams.RandomVoteTime), "privatekey", common.BigToHash(privatekey).Bytes(), "privatekeySend", privatekeySend)
-	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + manparams.RandomVoteTime)), Data: publickeySend})
-	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + manparams.RandomVoteTime)), Data: privatekeySend})
+	log.INFO(ModuleElectSeed, "公钥 高度", (height + voteBeforeTime), "publickey", publickeySend)
+	log.INFO(ModuleElectSeed, "私钥 高度", (height +voteBeforeTime), "privatekey", common.BigToHash(privatekey).Bytes(), "privatekeySend", privatekeySend)
+	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height +voteBeforeTime)), Data: publickeySend})
+	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: privatekeySend})
 
 	self.privatekey = privatekey
 	return nil

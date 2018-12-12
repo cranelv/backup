@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
@@ -14,17 +13,19 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/matrix/go-matrix/mc"
+
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
-	"github.com/matrix/go-matrix/base58"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -35,23 +36,24 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config      *params.ChainConfig `json:"config,omitempty"`
-	Nonce       uint64              `json:"nonce"`
-	Timestamp   uint64              `json:"timestamp"    gencodec:"required"`
-	ExtraData   []byte              `json:"extraData"`
-	Version     string             `json:"version"    gencodec:"required"`
+	Config            *params.ChainConfig `json:"config,omitempty"`
+	Nonce             uint64              `json:"nonce"`
+	Timestamp         uint64              `json:"timestamp"    gencodec:"required"`
+	ExtraData         []byte              `json:"extraData"`
+	Version           string              `json:"version"    gencodec:"required"`
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
-	VrfValue    []byte              `json:"vrfvalue"`
-	Leader      common.Address      `json:"leader"`
-	Elect       []common.Elect      `json:"elect"    gencodec:"required"`
-	NetTopology common.NetTopology  `json:"nettopology"       gencodec:"required"`
-	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
+	VrfValue          []byte              `json:"vrfvalue"`
+	Leader            common.Address      `json:"leader"`
+	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
+	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
+	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 
 	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
 	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
 	Mixhash    common.Hash    `json:"mixHash"`
 	Coinbase   common.Address `json:"coinbase"`
 	Alloc      GenesisAlloc   `json:"alloc"      gencodec:"required"`
+	MState     *GenesisMState `json:"mstate"    gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -64,32 +66,37 @@ type Genesis struct {
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
+
 //**********************************************************//
 //hezi
 type Genesis1 struct {
-	Config      *params.ChainConfig `json:"config"`
-	Nonce       uint64              `json:"nonce"`
-	Timestamp   uint64              `json:"timestamp"`
-	ExtraData   []byte              `json:"extraData"`
-	Version     string             `json:"version"    gencodec:"required"`
+	Config            *params.ChainConfig `json:"config"`
+	Nonce             uint64              `json:"nonce"`
+	Timestamp         uint64              `json:"timestamp"`
+	ExtraData         []byte              `json:"extraData"`
+	Version           string              `json:"version"    gencodec:"required"`
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
-	Leader      string      `json:"leader"`
-	Elect       []common.Elect1      `json:"elect"    gencodec:"required"`
-	NetTopology common.NetTopology1  `json:"nettopology"       gencodec:"required"`
-	Signatures  []common.Signature  `json:"signatures" gencodec:"required"`
-	GasLimit   uint64         `json:"gasLimit"   gencodec:"required"`
-	Difficulty *big.Int       `json:"difficulty" gencodec:"required"`
-	Mixhash    common.Hash    `json:"mixHash"`
-	Coinbase   string 			`json:"coinbase"`
-	Alloc      GenesisAlloc1   `json:"alloc"      gencodec:"required"`
+	VrfValue          []byte              `json:"vrfvalue"`
+	Leader            string              `json:"leader"`
+	Elect             []common.Elect1     `json:"elect"    gencodec:"required"`
+	NetTopology       common.NetTopology1 `json:"nettopology"       gencodec:"required"`
+	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
+	GasLimit          uint64              `json:"gasLimit"   gencodec:"required"`
+	Difficulty        *big.Int            `json:"difficulty" gencodec:"required"`
+	Mixhash           common.Hash         `json:"mixHash"`
+	Coinbase          string              `json:"coinbase"`
+	Alloc             GenesisAlloc1       `json:"alloc"      gencodec:"required"`
+	MState            *GenesisMState1     `json:"mstate,omitempty"`
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	Root       common.Hash `json:"stateRoot,omitempty"`
+	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
-type GenesisAlloc1 map[string]GenesisAccount  //hezi
-func ManGenesisToEthGensis(gensis1 *Genesis1,gensis *Genesis)  {
+type GenesisAlloc1 map[string]GenesisAccount //hezi
+func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Config = gensis1.Config
 	gensis.Nonce = gensis1.Nonce
 	gensis.Timestamp = gensis1.Timestamp
@@ -104,33 +111,62 @@ func ManGenesisToEthGensis(gensis1 *Genesis1,gensis *Genesis)  {
 	gensis.ParentHash = gensis1.ParentHash
 	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
+	gensis.Root = gensis1.Root
+	gensis.TxHash = gensis1.TxHash
 	//Elect
-	sliceElect := make([]common.Elect,0)
-	for _,elec := range gensis1.Elect{
+	sliceElect := make([]common.Elect, 0)
+	for _, elec := range gensis1.Elect {
 		tmp := new(common.Elect)
 		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 		tmp.Stock = elec.Stock
 		tmp.Type = elec.Type
-		sliceElect = append(sliceElect,*tmp)
+		sliceElect = append(sliceElect, *tmp)
 	}
 	gensis.Elect = sliceElect
 	//NetTopology
-	sliceNetTopologyData := make([]common.NetTopologyData,0)
-	for _,netTopology := range gensis1.NetTopology.NetTopologyData{
+	sliceNetTopologyData := make([]common.NetTopologyData, 0)
+	for _, netTopology := range gensis1.NetTopology.NetTopologyData {
 		tmp := new(common.NetTopologyData)
 		tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
 		tmp.Position = netTopology.Position
-		sliceNetTopologyData = append(sliceNetTopologyData,*tmp)
+		sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
 	}
 	gensis.NetTopology.NetTopologyData = sliceNetTopologyData
 	gensis.NetTopology.Type = gensis1.NetTopology.Type
 	//Alloc
 	gensis.Alloc = make(GenesisAlloc)
-	for kString,vGenesisAccount := range gensis1.Alloc{
+	for kString, vGenesisAccount := range gensis1.Alloc {
 		tmpk := base58.Base58DecodeToAddress(kString)
 		gensis.Alloc[tmpk] = vGenesisAccount
 	}
+	if nil != gensis1.MState {
+		gensis.MState = new(GenesisMState)
+		gensis.MState.Broadcast = new(mc.NodeInfo)
+		gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
+		gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+		gensis.MState.Foundation = new(mc.NodeInfo)
+		gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
+		gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+		if nil != gensis1.MState.InnerMiners {
+
+			for _, v := range *gensis1.MState.InnerMiners {
+
+				*gensis.MState.InnerMiners = append(*gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+			}
+		}
+		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
+		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
+		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
+		gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
+		gensis.MState.SlashCfg = gensis1.MState.SlashCfg
+		gensis.MState.BCICfg = gensis1.MState.BCICfg
+		gensis.MState.VIPCfg = gensis1.MState.VIPCfg
+		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
+		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
+		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
+	}
 }
+
 //**********************************************************//
 
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
@@ -294,7 +330,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(common.MainAccount,addr, account.Balance)
+		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
@@ -307,26 +343,35 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 			statedb.SetState(addr, key, value)
 		}
 	}
+	if nil == g.MState {
+		log.Error("genesis", "设置matrix状态树错误", "")
+		return nil
+	}
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
+
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:      new(big.Int).SetUint64(g.Number),
-		Nonce:       types.EncodeNonce(g.Nonce),
-		Time:        new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:  g.ParentHash,
-		Extra:       g.ExtraData,
+		Number:            new(big.Int).SetUint64(g.Number),
+		Nonce:             types.EncodeNonce(g.Nonce),
+		Time:              new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:        g.ParentHash,
+		Extra:             g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		VrfValue:    g.VrfValue,
-		Elect:       g.Elect,
-		NetTopology: g.NetTopology,
-		Signatures:  g.Signatures,
-		Leader:      g.Leader,
-		GasLimit:    g.GasLimit,
-		GasUsed:     g.GasUsed,
-		Difficulty:  g.Difficulty,
-		MixDigest:   g.Mixhash,
-		Coinbase:    g.Coinbase,
-		Root:        root,
+		VrfValue:          g.VrfValue,
+		Elect:             g.Elect,
+		NetTopology:       g.NetTopology,
+		Signatures:        g.Signatures,
+		Leader:            g.Leader,
+		GasLimit:          g.GasLimit,
+		GasUsed:           g.GasUsed,
+		Difficulty:        g.Difficulty,
+		MixDigest:         g.Mixhash,
+		Coinbase:          g.Coinbase,
+		Root:              root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -362,6 +407,13 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 			stateDB.SetState(addr, key, value)
 		}
 	}
+	if nil != g.MState {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
+			log.Error("genesis super block", "设置matrix状态树错误", err)
+			return nil
+		}
+
+	}
 
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
@@ -392,24 +444,42 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 	}
 
 	// 创建超级区块交易
+	txs := make([]types.SelfTransaction, 0)
 	data, err := json.Marshal(g.Alloc)
 	if err != nil {
 		log.ERROR("genesis super block", "marshal alloc info err", err)
 		return nil
 	}
-	tx := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, common.ExtraSuperBlockTx,0)
-	if tx == nil {
+	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, common.ExtraSuperBlockTx, 0)
+	if tx0 == nil {
 		log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
 		return nil
 	}
+	txs = append(txs, tx0)
+	if nil != g.MState {
+		data, err = json.Marshal(g.MState)
+		if err != nil {
+			log.ERROR("genesis super block", "marshal alloc info err", err)
+			return nil
+		}
+		tx1 := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, data, common.ExtraSuperBlockTx, 0)
+		if tx1 == nil {
+			log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
+			return nil
+		}
+		txs = append(txs, tx1)
+	}
 
-	return types.NewBlock(head, []types.SelfTransaction{tx}, nil, nil)
+	return types.NewBlock(head, txs, nil, nil)
 }
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db mandb.Database) (*types.Block, error) {
 	block := g.ToBlock(db)
+	if nil == block {
+		return nil, fmt.Errorf("can't create genesis block")
+	}
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}

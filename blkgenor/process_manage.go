@@ -17,42 +17,46 @@ import (
 )
 
 type ProcessManage struct {
-	mu          sync.Mutex
-	curNumber   uint64
-	processMap  map[uint64]*Process
-	matrix      Backend
-	hd          *msgsend.HD
-	signHelper  *signhelper.SignHelper
-	bc          *core.BlockChain
-	txPool      *core.TxPoolManager //YYY
-	reElection  *reelection.ReElection
-	engine      consensus.Engine
-	dposEngine  consensus.DPOSEngine
-	olConsensus *olconsensus.TopNodeService
+	mu            sync.Mutex
+	curNumber     uint64
+	processMap    map[uint64]*Process
+	matrix        Backend
+	hd            *msgsend.HD
+	signHelper    *signhelper.SignHelper
+	bc            *core.BlockChain
+	txPool        *core.TxPoolManager //YYY
+	reElection    *reelection.ReElection
+	engine        consensus.Engine
+	dposEngine    consensus.DPOSEngine
+	olConsensus   *olconsensus.TopNodeService
 }
 
 func NewProcessManage(matrix Backend) *ProcessManage {
 	return &ProcessManage{
-		curNumber:   0,
-		processMap:  make(map[uint64]*Process),
-		matrix:      matrix,
-		hd:          matrix.HD(),
-		signHelper:  matrix.SignHelper(),
-		bc:          matrix.BlockChain(),
-		txPool:      matrix.TxPool(),
-		reElection:  matrix.ReElection(),
-		engine:      matrix.BlockChain().Engine(),
-		dposEngine:  matrix.BlockChain().DPOSEngine(),
+		curNumber:     0,
+		processMap:    make(map[uint64]*Process),
+		matrix:        matrix,
+		hd:            matrix.HD(),
+		signHelper:    matrix.SignHelper(),
+		bc:            matrix.BlockChain(),
+		txPool:        matrix.TxPool(),
+		reElection:    matrix.ReElection(),
+		engine:        matrix.BlockChain().Engine(),
+		dposEngine:    matrix.BlockChain().DPOSEngine(),
 		olConsensus: matrix.OLConsensus(),
 	}
 }
 
-func (pm *ProcessManage) SetCurNumber(number uint64) {
+func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
-	pm.fixProcessMap()
+	if preSuperBlock{
+		pm.clearProcessMap()
+	}else{
+		pm.fixProcessMap()
+	}
 }
 
 func (pm *ProcessManage) GetCurNumber() uint64 {
@@ -118,6 +122,29 @@ func (pm *ProcessManage) fixProcessMap() {
 	log.INFO(pm.logExtraInfo(), "PM 结束修正map, process数量", len(pm.processMap))
 }
 
+func (pm *ProcessManage) clearProcessMap() {
+	if pm.curNumber == 0 {
+		return
+	}
+
+	if len(pm.processMap) == 0 {
+		return
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 开始删除map, process数量", len(pm.processMap), "修复高度", pm.curNumber)
+
+	delKeys := make([]uint64, 0)
+	for key, process := range pm.processMap {
+			process.Close()
+			delKeys = append(delKeys, key)
+	}
+
+	for _, delKey := range delKeys {
+		delete(pm.processMap, delKey)
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
+}
 func (pm *ProcessManage) isLegalNumber(number uint64) error {
 	var minNumber uint64
 	if pm.curNumber < 1 {

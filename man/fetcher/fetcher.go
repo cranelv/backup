@@ -23,7 +23,7 @@ const (
 	gatherSlack   = 100 * time.Millisecond // Interval used to collate almost-expired announces with fetches
 	fetchTimeout  = 5 * time.Second        // Maximum allotted time to return an explicitly requested block
 	maxUncleDist  = 7                      // Maximum allowed backward distance from the chain head
-	maxQueueDist  = 32                     // Maximum allowed distance from the chain head to queue
+	maxQueueDist  = 10000                     // Maximum allowed distance from the chain head to queue
 	hashLimit     = 256                    // Maximum number of unique blocks a peer may have announced
 	blockLimit    = 64                     // Maximum number of unique blocks a peer may have delivered
 )
@@ -592,19 +592,19 @@ func (f *Fetcher) enqueue(peer string, block *types.Block) {
 
 	// Ensure the peer isn't DOSing us
 	count := f.queues[peer] + 1
-	if count > blockLimit {
-		log.Debug("Discarded propagated block, exceeded allowance", "peer", peer, "number", block.Number(), "hash", hash, "limit", blockLimit)
-		propBroadcastDOSMeter.Mark(1)
-		f.forgetHash(hash)
-		return
-	}
-	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
-		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
-		propBroadcastDropMeter.Mark(1)
-		f.forgetHash(hash)
-		return
-	}
+	//if count > blockLimit {
+	//	log.Debug("Discarded propagated block, exceeded allowance", "peer", peer, "number", block.Number(), "hash", hash, "limit", blockLimit)
+	//	propBroadcastDOSMeter.Mark(1)
+	//	f.forgetHash(hash)
+	//	return
+	//}
+	//// Discard any past or too distant blocks
+	//if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+	//	log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
+	//	propBroadcastDropMeter.Mark(1)
+	//	f.forgetHash(hash)
+	//	return
+	//}
 	// Schedule the block for future importing
 	if _, ok := f.queued[hash]; !ok {
 		op := &inject{

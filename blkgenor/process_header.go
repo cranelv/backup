@@ -11,6 +11,8 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
@@ -22,22 +24,48 @@ import (
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
 
-	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64())
-		if err != nil {
-			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-		}
+	if p.number == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
+		return nil
+	}
 
-		err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
+	if nil != err {
+		return err
+	}
+	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
+		return err
+	}
+	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
+		return nil
+	}
+	sbh := p.blockChain().GetSuperBlockNum()
+
+	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
+		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
+		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain(), bcInterval)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
+		}
+		//在上一个广播周期中插入超级区块
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
+			if err != nil {
+				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+			}
+
+			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
+			if nil != err {
+				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
+				return err
+			}
 		}
 	}
 
@@ -48,6 +76,11 @@ func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
 	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
 
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
+		return errors.New("广播周期信息为空")
+	}
+
 	tstart := time.Now()
 	parent, err := p.getParentBlock()
 	if err != nil {
@@ -55,7 +88,7 @@ func (p *Process) processHeaderGen() error {
 	}
 	parentHash := parent.Hash()
 
-	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash)
+	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash, p.bcInterval)
 	if nil == NetTopology {
 		log.Error(p.logExtraInfo(), "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
@@ -64,12 +97,6 @@ func (p *Process) processHeaderGen() error {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 
-	Elect := p.genElection(parentHash)
-	if Elect == nil {
-		return errors.New("生成elect信息失败")
-	}
-
-	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
 	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
 
 	tstamp := tstart.Unix()
@@ -94,7 +121,6 @@ func (p *Process) processHeaderGen() error {
 		GasLimit:          core.CalcGasLimit(parent),
 		Extra:             make([]byte, 0),
 		Time:              big.NewInt(tstamp),
-		Elect:             Elect,
 		NetTopology:       *NetTopology,
 		Signatures:        make([]common.Signature, 0),
 		Version:           parent.Header().Version, //param
@@ -107,12 +133,77 @@ func (p *Process) processHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
 		return err
 	}
+
+	tsBlock, txsCode, stateDB, receipts, err := p.genHeaderTxs(header)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "运行交易失败", err)
+		return err
+	}
+
+	err = p.blockChain().ProcessMatrixState(tsBlock, stateDB)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "运行matrix状态树失败", err)
+		return err
+	}
+
+	// 运行完状态树后，才能获取elect
+	Elect := p.genElection(stateDB)
+	if Elect == nil {
+		return errors.New("生成elect信息错误!")
+	}
+	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
+	header = tsBlock.Header()
+	header.Elect = Elect
+	//运行完matrix状态树后，生成root
+	txs := tsBlock.Transactions()
+	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, txs, nil, receipts)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "最终finalize错误", err)
+		return err
+	}
+
+	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
+		header = block.Header()
+		signHash := header.HashNoSignsAndNonce()
+		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true,p.preBlockHash)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
+			return err
+		}
+
+		header.Signatures = make([]common.Signature, 0, 1)
+		header.Signatures = append(header.Signatures, sign)
+		sendMsg := &mc.BlockData{Header: header, Txs: txs}
+		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
+		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
+	} else {
+		header = block.Header()
+		p2pBlock := &mc.HD_BlkConsensusReqMsg{
+			Header:                 header,
+			TxsCode:                txsCode,
+			ConsensusTurn:          p.consensusTurn,
+			OnlineConsensusResults: onlineConsensusResults,
+			From: ca.GetAddress()}
+		//send to local block verify module
+		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
+		if len(txs[2:]) > 0 {
+			txpoolCache.MakeStruck(txs[2:], header.HashNoSignsAndNonce(), p.number)
+		}
+		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
+		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
+		p.startConsensusReqSender(p2pBlock)
+	}
+
+	return nil
+}
+
+func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
 	//broadcast txs deal,remove no validators txs
-	if common.IsBroadcastNumber(header.Number.Uint64()) {
+	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return err
+			return nil, nil, nil, nil, err
 		}
 		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
 
@@ -123,6 +214,9 @@ func (p *Process) processHeaderGen() error {
 			}
 			Txs = append(Txs, txs...)
 		}
+		// todo: add rewward and run
+		//rewardList:=p.calcRewardAndSlash(work.State, header)
+
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs := work.GetTxs()
@@ -130,79 +224,31 @@ func (p *Process) processHeaderGen() error {
 			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
 		}
 
-		//send to local block mining module
-		block, err := p.engine().Finalize(p.blockChain(), header, work.State, retTxs, nil, work.Receipts)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
-			return err
-		}
-		header = block.Header()
-		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
-			return err
-		}
-
-		header.Signatures = make([]common.Signature, 0, 1)
-		header.Signatures = append(header.Signatures, sign)
-		sendMsg := &mc.BlockData{Header: header, Txs: Txs}
-		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
-		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
+		block := types.NewBlock(header, retTxs, nil, work.Receipts)
+		return block, nil, work.State, work.Receipts, nil
 
 	} else {
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return err
+			return nil, nil, nil, nil, err
 		}
 
 		//work.commitTransactions(self.mux, Txs, self.chain)
 		// todo： update uptime
 		p.processUpTime(work, header)
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，奖励部分", "执行奖励")
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成创建work, 开始执行交易")
+
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
-		block, err := p.engine().Finalize(p.blockChain(), header, work.State, Txs, nil, work.Receipts)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
-			return err
-		}
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成finaliz tx hash", block.TxHash())
-		header = block.Header()
-		p2pBlock := &mc.HD_BlkConsensusReqMsg{
-			Header:                 header,
-			TxsCode:                txsCode,
-			ConsensusTurn:          p.consensusTurn,
-			OnlineConsensusResults: onlineConsensusResults,
-			From: ca.GetAddress()}
-		//send to local block verify module
-		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: Txs, Receipts: work.Receipts, State: work.State}
-		if len(Txs) > 0 {
-			txlist := make([]types.SelfTransaction,0)
-			for _,tx := range Txs{
-				if tx.GetMatrixType() != common.ExtraUnGasTxType{
-					txlist = append(txlist,tx)
-				}
-			}
-			if len(txlist) > 0{
-				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
-			}
-		}
-		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
-		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
-		p.startConsensusReqSender(p2pBlock)
+		block := types.NewBlock(header, Txs, nil, work.Receipts)
+		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
+		return block, txsCode, work.State, work.Receipts, nil
 	}
+}
 
-	return nil
-}
-func (p *Process) makeReward(ct string ,from common.Address,val map[common.Address]*big.Int) (rew common.RewarTx){
-	return common.RewarTx{CoinType:ct,Fromaddr:from,To_Amont:val}
-}
 func (p *Process) getParentBlock() (*types.Block, error) {
 	if p.number == 1 { // 第一个块直接返回创世区块作为父区块
 		return p.blockChain().Genesis(), nil
@@ -269,5 +315,5 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	} else {
 		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
-	return p.signHelper().SignVrf(vrfmsg)
+	return p.signHelper().SignVrf(vrfmsg,p.preBlockHash)
 }

@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package miner
 
@@ -19,10 +18,10 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
-	"gopkg.in/fatih/set.v0"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
+	"gopkg.in/fatih/set.v0"
 )
 
 const (
@@ -100,7 +99,7 @@ type worker struct {
 	mineResultSender      *common.ResendMsgCtrl
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.ValidatorReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.StateReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
 	worker := &worker{
 		config: config,
 		engine: engine,
@@ -195,6 +194,12 @@ func (self *worker) update() {
 	}
 }
 func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
+	if data.IsSuperBlock {
+		self.StopAgent()
+		self.stopMineResultSender()
+		self.mineReqCtrl.Clear()
+	}
+
 	if data.BlockNum+1 > self.mineReqCtrl.curNumber {
 		self.stopMineResultSender()
 	}

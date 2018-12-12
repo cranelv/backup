@@ -1,3 +1,7 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 package manparams
 
 import (
@@ -13,13 +17,13 @@ import (
 )
 
 const (
-	VerifyNetChangeUpTime = 6
-	MinerNetChangeUpTime  = 4
+//	VerifyNetChangeUpTime = 6
+//MinerNetChangeUpTime  = 4
+//
+//VerifyTopologyGenerateUpTime = 8
+//MinerTopologyGenerateUpTime  = 8
 
-	VerifyTopologyGenerateUpTime = 8
-	MinerTopologyGenerateUpTime  = 8
-
-	RandomVoteTime = 5
+//	RandomVoteTime = 5
 
 	LRSParentMiningTime = int64(20)
 	LRSPOSOutTime       = int64(20)
@@ -43,6 +47,11 @@ const (
 )
 
 var (
+	EntrustValue = make(map[common.Address]string, 0) //委托交易的账户密码
+
+)
+
+var (
 	//随机数相关
 	RandomConfig              = make(map[string]string, 0)   //man.json配置中读的
 	RandomServiceName         = []string{}                   //子服务的名字
@@ -50,15 +59,15 @@ var (
 	RandomServiceDefaultPlugs = make(map[string]string, 0)
 
 	//选举相关
-	ElectPlugs string
+	//ElectPlugs string
 )
 
 func init() {
 	RandomServiceName = []string{"electionseed", "everyblockseed", "everybroadcastseed"}
 	//RandomServiceName = []string{"electionseed", "everyblockseed"}
-	RandomServicePlugs[RandomServiceName[0]] = []string{"Minhash&Key", "plug2"}
-	RandomServicePlugs[RandomServiceName[1]] = []string{"Nonce&Address&Coinbase", "plug2"}
-	RandomServicePlugs[RandomServiceName[2]] = []string{"MaxNonce&Key", "plug2"}
+	RandomServicePlugs[RandomServiceName[0]] = []string{"Minhash&Key"}
+	RandomServicePlugs[RandomServiceName[1]] = []string{"Nonce&Address&Coinbase"}
+	RandomServicePlugs[RandomServiceName[2]] = []string{"MaxNonce&Key"}
 
 	RandomServiceDefaultPlugs[RandomServiceName[0]] = RandomServicePlugs[RandomServiceName[0]][0]
 	RandomServiceDefaultPlugs[RandomServiceName[1]] = RandomServicePlugs[RandomServiceName[1]][0]
@@ -70,9 +79,6 @@ type NodeInfo struct {
 	Address common.Address
 }
 
-var BroadCastNodes = []NodeInfo{}
-var InnerMinerNodes = []NodeInfo{}
-var FoundationNodes = []NodeInfo{}
 var SuperVersionNodes = []NodeInfo{}
 var SuperRollbackNodes = []NodeInfo{}
 
@@ -90,23 +96,6 @@ func Config_Init(Config_PATH string) {
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
 
-	BroadCastNodes = v.BroadNode
-	if len(BroadCastNodes) <= 0 {
-		fmt.Println("无广播节点")
-		os.Exit(-1)
-	}
-	log.INFO("BroadCastNode", "data", BroadCastNodes)
-
-	InnerMinerNodes = v.InnerMinerNode
-	if len(InnerMinerNodes) == 0 {
-		log.Error("内部矿工节点个数为0", "读取man.json失败", "内部矿工节点个数为0")
-	}
-	log.INFO("InnerMinerNode:", "data", InnerMinerNodes)
-	FoundationNodes = v.FoundationNode
-	if len(FoundationNodes) == 0 {
-		log.Error("基金会节点个数为0", "读取man.json失败", "基金会节点个数为0")
-	}
-
 	SuperVersionNodes = v.SuperVersion
 	if len(SuperVersionNodes) <= 0 {
 		fmt.Println("无版本超级节点")
@@ -120,37 +109,26 @@ func Config_Init(Config_PATH string) {
 	}
 	RandomConfig = v.RandomConfig
 	log.INFO("RandomConfig", "data", RandomConfig)
-	ElectPlugs = v.ElectPlugs
-	log.INFO("ElectPlugs", "data", ElectPlugs)
-	if v.BroadcastInterval <= 0 || v.ReelectionInterval <= 0 || v.BroadcastInterval >= v.ReelectionInterval {
-		log.Error("广播区块高度和选举区块高度不正确或者尚未配置，将使用默认值 100 300")
-		//os.Exit(-1)
-	} else {
-		common.SetBroadcastInterval(uint64(v.BroadcastInterval))
-		common.SetReElectionInterval(uint64(v.ReelectionInterval))
-		log.INFO("BroadcastInterval", "BroadcastInterval", common.GetBroadcastInterval())
-		log.INFO("ReelectionInterval", "ReelectionInterval", common.GetReElectionInterval())
-	}
+	//ElectPlugs = v.ElectPlugs
+	//log.INFO("ElectPlugs", "data", ElectPlugs)
 	//fmt.Println("echeloc",v.Echelon)
-	if len(v.Echelon)>0{
-
-		common.EchelonArrary=v.Echelon
-	}
-	log.INFO("EchelonArrary","EchelonArrary",common.EchelonArrary)
+	//if len(v.Echelon) > 0 {
+	//
+	//	common.EchelonArrary = v.Echelon
+	//}
+	//log.INFO("EchelonArrary", "EchelonArrary", common.EchelonArrary)
 }
 
 type Config struct {
-	BootNode           []string
-	BroadNode          []NodeInfo
-	InnerMinerNode     []NodeInfo
-	FoundationNode     []NodeInfo
-	SuperVersion       []NodeInfo
-	SuperRollback      []NodeInfo
-	RandomConfig       map[string]string
-	ElectPlugs         string
-	ReelectionInterval int
-	BroadcastInterval int
-	Echelon []common.Echelon
+	BootNode       []string
+	BroadNode      []NodeInfo
+	InnerMinerNode []NodeInfo
+	FoundationNode []NodeInfo
+	SuperVersion   []NodeInfo
+	SuperRollback  []NodeInfo
+	RandomConfig   map[string]string
+	ElectPlugs     string
+	Echelon        []common.Echelon
 }
 
 type JsonStruct struct {

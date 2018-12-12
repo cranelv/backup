@@ -8,78 +8,72 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	//"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
-func checkInDiff(diff common.NetTopology, add common.Address) bool {
-	for _, v := range diff.NetTopologyData {
-		if v.Account == add {
-			return true
-		}
+func (self *ReElection) GetElectGenTimes(height uint64) (*mc.ElectGenTimeStruct, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, height)
+	if err != nil {
+		log.Error("GetElectGenTimes", "获取选举时间点信息失败 err", err)
+		return nil, err
 	}
-	return false
+	electGenConfig, OK := data.(*mc.ElectGenTimeStruct)
+	if OK == false || electGenConfig == nil {
+		log.ERROR("GetElectGenTimes", "ElectGenTimeStruct 非法", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
+	}
+	return electGenConfig, nil
 }
-func checkInGraph(top *mc.TopologyGraph, pos uint16) common.Address {
-	for _, v := range top.NodeList {
-		if v.Position == pos {
-			return v.Account
-		}
+func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
-	return common.Address{}
+	electInfo, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electInfo == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
+	}
+	return electInfo, nil
 }
-func (self *ReElection) ParseTopNodeOffline(topologyChg common.NetTopology, prevTopology *mc.TopologyGraph) []common.Address {
-	if topologyChg.Type != common.NetTopoTypeChange {
-		return nil
+func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyVIPConfig, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
-
-	offline := make([]common.Address, 0)
-
-	for _, v := range topologyChg.NetTopologyData {
-
-		if v.Position == common.PosOffline || v.Position == common.PosOnline {
-			continue
-		}
-
-		account := checkInGraph(prevTopology, v.Position)
-		if account.Equal(common.Address{}){
-			//前拓扑中暂缺该position
-			continue
-		}
-		if checkInDiff(topologyChg, account) == false {
-			offline = append(offline, account)
-		}
-
+	vipList,OK:=data.(*[]mc.VIPConfig)
+	if OK == false || vipList == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
-	return offline
+	return *vipList,nil
 }
 
-func (self *ReElection) ParseElectTopNodeState(topologyChg common.NetTopology) ([]common.Address, []common.Address) {
-	if topologyChg.Type != common.NetTopoTypeChange {
-		return nil, nil
+func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInterface, error) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
-
-	online := make([]common.Address, 0)
-	offline := make([]common.Address, 0)
-	for _, v := range topologyChg.NetTopologyData {
-
-		if v.Position == common.PosOffline {
-			offline = append(offline, v.Account)
-			continue
-		}
-		if v.Position == common.PosOnline {
-			online = append(online, v.Account)
-			continue
-		}
+	electInfo, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electInfo == nil {
+		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
 	}
-
-	return online, offline
+	return baseinterface.NewElect(electInfo.ElectPlug), nil
 }
 
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
 	result := make([]common.Elect, 0)
 
-	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
+	srcMap := make(map[common.ElectRoleType][]mc.ElectNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
 	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
@@ -108,7 +102,7 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 		NetTopologyData: make([]common.NetTopologyData, 0),
 	}
 
-	srcMap := make(map[common.ElectRoleType][]mc.TopologyNodeInfo)
+	srcMap := make(map[common.ElectRoleType][]mc.ElectNodeInfo)
 	srcMap[common.ElectRoleMiner] = info.MasterMiner
 	//srcMap[common.ElectRoleMinerBackUp] = info.BackUpMiner
 	srcMap[common.ElectRoleValidator] = info.MasterValidator
@@ -129,9 +123,7 @@ func (self *ReElection) TransferToNetTopologyAllStu(info *ElectReturnInfo) *comm
 	return result
 }
 
-func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
-	onlinePrimaryNods []common.Address,
-	offlinePrimaryNodes []common.Address) *common.NetTopology {
+func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative) *common.NetTopology {
 	result := &common.NetTopology{
 		Type:            common.NetTopoTypeChange,
 		NetTopologyData: make([]common.NetTopologyData, 0),
@@ -145,56 +137,16 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative,
 		result.NetTopologyData = append(result.NetTopologyData, data)
 	}
 
-	for _, onlineNode := range onlinePrimaryNods {
-		data := common.NetTopologyData{
-			Account:  onlineNode,
-			Position: common.PosOnline,
-		}
-		result.NetTopologyData = append(result.NetTopologyData, data)
-	}
-
-	for _, offlineNode := range offlinePrimaryNodes {
-		data := common.NetTopologyData{
-			Account:  offlineNode,
-			Position: common.PosOffline,
-		}
-		result.NetTopologyData = append(result.NetTopologyData, data)
-	}
 	return result
 }
 
-//
-//func (self *ReElection) paraseNetTopology(topo *common.NetTopology) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, error) {
-//	if topo.Type != common.NetTopoTypeAll {
-//		return nil, nil, nil, nil, errors.New("Net Topology is not all data")
-//	}
-//
-//	MasterMiner := make([]mc.TopologyNodeInfo, 0)
-//	BackUpMiner := make([]mc.TopologyNodeInfo, 0)
-//	MasterValidator := make([]mc.TopologyNodeInfo, 0)
-//	BackUpValidator := make([]mc.TopologyNodeInfo, 0)
-//
-//	for _, data := range topo.NetTopologyData {
-//		node := mc.TopologyNodeInfo{
-//			Account:  data.Account,
-//			Position: data.Position,
-//			Type:     common.GetRoleTypeFromPosition(data.Position),
-//			Stock:    0,
-//		}
-//
-//		switch node.Type {
-//		case common.RoleMiner:
-//			MasterMiner = append(MasterMiner, node)
-//		case common.RoleBackupMiner:
-//			BackUpMiner = append(BackUpMiner, node)
-//		case common.RoleValidator:
-//			MasterValidator = append(MasterValidator, node)
-//		case common.RoleBackupValidator:
-//			BackUpValidator = append(BackUpValidator, node)
-//		}
-//	}
-//	return MasterMiner, BackUpMiner, MasterValidator, BackUpValidator, nil
-//}
+func (self *ReElection) GetBroadcastIntervalByHash(hash common.Hash) (*manparams.BCInterval, error) {
+	data, err := self.bc.GetBroadcastInterval(hash)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
+}
 
 func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
 	tHeader := self.bc.GetHeaderByHash(hash)
@@ -221,4 +173,36 @@ func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (
 func GetCurrentTopology(hash common.Hash, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
 	return ca.GetTopologyByHash(reqtypes, hash)
 	//return ca.GetTopologyByNumber(reqtypes, height)
+}
+
+func CheckBlock(block *types.Block) error {
+	if block == nil {
+		return errors.New("block为空")
+	}
+	if block.Header() == nil {
+		return errors.New("block.Header()为空")
+	}
+	if block.Header().Number == nil {
+		return errors.New("block.Header.Number为空 ")
+	}
+	return nil
+}
+
+func SloveElectStatus(electStates *mc.ElectGraph) (interface{}, error) {
+
+	log.INFO("上树信息", "electStates 高度", electStates.Number)
+	for _, v := range electStates.ElectList {
+		log.INFO("上树信息", "当前拓扑图类型", v.Type, "账户", v.Account.String())
+	}
+	for _, v := range electStates.NextElect {
+		log.INFO("上树信息", "下届拓扑图 类型", v.Type, "账户", v.Account.String())
+	}
+	return electStates, nil
+}
+func SloveOnlineStatus(electonline *mc.ElectOnlineStatus) (interface{}, error) {
+	log.INFO("上树信息", "electonline 高度", electonline.Number)
+	for _, v := range electonline.ElectOnline {
+		log.INFO("上树信息", "当前上下线状态", v.Position, "账户", v.Account.String())
+	}
+	return electonline, nil
 }

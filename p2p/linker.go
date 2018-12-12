@@ -15,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type Linker struct {
@@ -76,7 +77,11 @@ func (l *Linker) Start() {
 		case r := <-l.roleChan:
 			{
 				height := r.Height.Uint64()
-
+				bcInterval, err := manparams.NewBCIntervalWithInterval(r.BroadCastInterval)
+				if err != nil {
+					log.Error("p2p link", "broadcast interval err", err)
+					continue
+				}
 				if r.Role <= common.RoleBucket {
 					l.role = common.RoleNil
 					break
@@ -92,12 +97,12 @@ func (l *Linker) Start() {
 
 				l.maintainPeer()
 
-				if common.IsReElectionNumber(height) {
+				if bcInterval.IsReElectionNumber(height) {
 					l.topNodeCache = l.topNode
 					l.topNode = make(map[common.RoleType]map[discover.NodeID][]uint8)
 					l.initTopNodeMap()
 				}
-				if common.IsReElectionNumber(height - 10) {
+				if bcInterval.IsReElectionNumber(height - 10) {
 					l.topNodeCache = make(map[common.RoleType]map[discover.NodeID][]uint8)
 					l.initTopNodeMapCache()
 				}
@@ -114,11 +119,11 @@ func (l *Linker) Start() {
 				}
 
 				switch {
-				case common.IsBroadcastNumber(height):
+				case bcInterval.IsBroadcastNumber(height):
 					l.ToLink()
 					l.broadcastActive = true
 
-				case common.IsBroadcastNumber(height + 2):
+				case bcInterval.IsBroadcastNumber(height + 2):
 					if len(l.linkMap) <= 0 {
 						break
 					}
@@ -128,7 +133,7 @@ func (l *Linker) Start() {
 						break
 					}
 					mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.CallTheRoll, Height: big.NewInt(r.Height.Int64() + 2), Data: bytes})
-				case common.IsBroadcastNumber(height + 1):
+				case bcInterval.IsBroadcastNumber(height + 1):
 					break
 				default:
 					l.sendToAllPeersPing()

@@ -33,7 +33,7 @@ func newController(matrix Matrix, logInfo string, number uint64) *controller {
 		matrix:       matrix,
 		dc:           newCDC(number, matrix.BlockChain(), logInfo),
 		mp:           newMsgPool(),
-		selfCache:    newMasterCache(number),
+		selfCache:    newMasterCache(number,matrix),
 		msgCh:        make(chan interface{}, 10),
 		quitCh:       make(chan struct{}),
 		logInfo:      logInfo,
@@ -55,7 +55,7 @@ func (self *controller) Number() uint64 {
 	return self.dc.number
 }
 
-func (self *controller) State() state {
+func (self *controller) State() stateDef {
 	return self.dc.state
 }
 

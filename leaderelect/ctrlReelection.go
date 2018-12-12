@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -36,7 +35,7 @@ func (self *controller) startReelect(reelectTurn uint32) {
 		log.INFO(self.logInfo, ">>>>开启重选流程(master)", master.Hex(), "轮次", self.curTurnInfo(),
 			"轮次开始时间", time.Unix(beginTime, 0).String(), "轮次结束时间", time.Unix(endTime, 0).String(), "高度", self.dc.number)
 		self.dc.isMaster = true
-		self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
+		self.setTimer(self.dc.turnTime.reelectHandleInterval, self.reelectTimer)
 		self.sendInquiryReq()
 	} else {
 		log.INFO(self.logInfo, ">>>>开启重选流程(follower)", master.Hex(), "轮次", self.curTurnInfo(),
@@ -107,7 +106,7 @@ func (self *controller) reelectTimeOutHandle() {
 	default:
 		self.sendInquiryReq()
 	}
-	self.setTimer(manparams.LRSReelectInterval, self.reelectTimer)
+	self.setTimer(self.dc.turnTime.reelectHandleInterval, self.reelectTimer)
 }
 
 func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
@@ -159,7 +158,7 @@ func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
 		self.sendInquiryReqToSingle(req.From)
 		return
 	} else {
-		master, err := self.dc.GetLeader(req.ConsensusTurn + req.ReelectTurn)
+		master, err := self.dc.GetLeader(req.ConsensusTurn+req.ReelectTurn, self.dc.bcInterval)
 		if err != nil {
 			log.ERROR(self.logInfo, "处理重选询问请求", "验证消息合法性错误", "计算master失败", err)
 			return
@@ -277,7 +276,7 @@ func (self *controller) handleRLReq(req *mc.HD_ReelectLeaderReqMsg) {
 	}
 
 	hash := types.RlpHash(req)
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(hash.Bytes(), true)
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(hash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "leader重选请求处理", "签名错误", "err", err)
 		return
@@ -357,7 +356,7 @@ func (self *controller) handleResultRsp(rsp *mc.HD_ReelectResultRspMsg) {
 
 func (self *controller) processResultBroadcastMsg(msg *mc.HD_ReelectResultBroadcastMsg) error {
 	if msg == nil {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 	switch msg.Type {
 	case mc.ReelectRSPTypePOS:
@@ -394,7 +393,7 @@ func (self *controller) sendInquiryReq() {
 		From:          ca.GetAddress(),
 	}
 	reqHash := self.selfCache.SetInquiryReq(req)
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "send<重选询问请求>", "自己的同意签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -411,7 +410,7 @@ func (self *controller) sendInquiryReq() {
 
 func (self *controller) sendInquiryReqToSingle(target common.Address) {
 	curTime := time.Now().Unix()
-	if false == self.selfCache.CanSendInquiryReq(curTime) {
+	if false == self.selfCache.CanSendInquiryReq(curTime, self.dc.turnTime.reelectHandleInterval) {
 		log.WARN(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
 		return
 	}
@@ -449,7 +448,7 @@ func (self *controller) sendInquiryRspWithPOS(reqHash common.Hash, target common
 }
 
 func (self *controller) sendInquiryRspWithAgree(reqHash common.Hash, target common.Address, number uint64) {
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "send<询问响应(同意更换leader响应)>", "签名失败", "err", err, "高度", number,
 			"共识轮次", self.dc.curConsensusTurn, "重选轮次", self.dc.curReelectTurn)
@@ -517,7 +516,7 @@ func (self *controller) sendRLReq() {
 		return
 	}
 
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true)
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(reqHash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "send<leader重选请求>", "自己的签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -537,7 +536,7 @@ func (self *controller) sendResultBroadcastMsg() {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "获取广播消息失败", "err", err)
 		return
 	}
-	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(msgHash.Bytes(), true)
+	selfSign, err := self.matrix.SignHelper().SignHashWithValidate(msgHash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "自己的响应签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
@@ -552,7 +551,7 @@ func (self *controller) sendResultBroadcastMsg() {
 
 func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectResultBroadcastMsg) {
 	resultHash := types.RlpHash(req)
-	sign, err := self.matrix.SignHelper().SignHashWithValidate(resultHash.Bytes(), true)
+	sign, err := self.matrix.SignHelper().SignHashWithValidate(resultHash.Bytes(), true,self.ParentHash())
 	if err != nil {
 		log.ERROR(self.logInfo, "响应结果广播消息", "签名失败", "err", err)
 		return
@@ -567,7 +566,7 @@ func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectResultBroadcast
 
 func (self *controller) checkRLReqMsg(req *mc.HD_ReelectLeaderReqMsg) error {
 	if nil == req || nil == req.InquiryReq {
-		return ErrMsgIsNil
+		return ErrParamsIsNil
 	}
 	if req.InquiryReq.ConsensusTurn != self.dc.curConsensusTurn {
 		return errors.Errorf("共识轮次不匹配, 消息(%d) != 本地(%d)", req.InquiryReq.ConsensusTurn, self.dc.curConsensusTurn)

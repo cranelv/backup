@@ -26,6 +26,17 @@ func NewControllerManager(matrix Matrix, logInfo string) *ControllerManager {
 	}
 }
 
+func (cm *ControllerManager) ClearController() {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	cm.curNumber = 0
+	for _, ctrl := range cm.ctrlMap {
+		ctrl.Close()
+	}
+	cm.ctrlMap = make(map[uint64]*controller)
+}
+
 func (cm *ControllerManager) StartController(number uint64, msg *startControllerMsg) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
