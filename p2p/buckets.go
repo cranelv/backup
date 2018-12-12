@@ -27,6 +27,8 @@ type Bucket struct {
 	rings *ring.Ring
 	lock  sync.RWMutex
 
+	self int64
+
 	ids []discover.NodeID
 
 	sub event.Subscription
@@ -46,6 +48,7 @@ var Buckets = &Bucket{
 }
 
 const MaxBucketContent = 2000
+const BucketLimit = 10
 
 var (
 	MaxLink = 3
@@ -118,12 +121,10 @@ func (b *Bucket) Start() {
 				b.rings = b.rings.Prev()
 			}
 
-			if len(b.ids) <= 64 {
+			if len(b.ids) <= BucketLimit {
 				b.maintainOuter()
 				break
 			}
-			// maintain inner
-			b.maintainInner()
 
 			// maintain outer
 			selfBucket, err := b.selfBucket()
@@ -131,6 +132,10 @@ func (b *Bucket) Start() {
 				b.log.Error("bucket number wrong", "error", err)
 				break
 			}
+			b.self = selfBucket
+
+			// maintain inner
+			b.maintainInner()
 			switch selfBucket {
 			case b.rings.Value.(int64):
 				b.maintainOuter()
@@ -159,6 +164,9 @@ func (b *Bucket) maintainNodes(elected []discover.NodeID) {
 	b.bucket = make(map[int64][]discover.NodeID)
 	for _, v := range elected {
 		b.bucketAdd(v)
+	}
+	for index, bkt := range b.bucket {
+		b.log.Info("bucket info", "index", index, "length", len(bkt))
 	}
 }
 
@@ -199,22 +207,23 @@ func (b *Bucket) disconnectOnePeer() {
 // MaintainInner maintain bucket inner.
 func (b *Bucket) maintainInner() {
 	count := 0
+	next := (b.self + 1) % 4
 	for _, peer := range ServerP2p.Peers() {
 		pid, err := b.peerBucket(peer.ID())
 		if err != nil {
 			b.log.Error("bucket number wrong", "error", err)
 			continue
 		}
-		if pid == b.rings.Next().Value {
+		if pid == next {
 			count++
 		}
 	}
 	if count < MaxLink {
-		if MaxLink < len(b.bucket[b.rings.Next().Value.(int64)]) {
-			b.inner(MaxLink-count, b.rings.Next().Value.(int64))
+		if MaxLink < len(b.bucket[next]) {
+			b.inner(MaxLink-count, next)
 			return
 		}
-		b.inner(len(b.bucket[b.rings.Next().Value.(int64)])-count, b.rings.Next().Value.(int64))
+		b.inner(len(b.bucket[next])-count, next)
 	}
 }
 
@@ -247,17 +256,19 @@ func (b *Bucket) selfBucket() (int64, error) {
 }
 
 func (b *Bucket) peerBucket(node discover.NodeID) (int64, error) {
-	addr, err := ca.ConvertNodeIdToAddress(node)
+	m := big.Int{}
+	if b.self < common.RoleBucket {
+		return m.Mod(common.BytesToHash(node.Bytes()).Big(), big.NewInt(4)).Int64(), nil
+	}
+	address, err := ca.ConvertNodeIdToAddress(node)
 	if err != nil {
-		b.log.Error("bucket add", "error:", err)
 		return 0, err
 	}
-	m := big.Int{}
-	return m.Mod(addr.Hash().Big(), big.NewInt(4)).Int64(), nil
+	return m.Mod(address.Hash().Big(), big.NewInt(4)).Int64(), nil
 }
 
 func (b *Bucket) linkBucketPeer() {
-	if len(b.ids) <= 64 {
+	if len(b.ids) <= BucketLimit {
 		b.maintainOuter()
 		return
 	}
@@ -280,10 +291,10 @@ func (b *Bucket) linkBucketPeer() {
 
 	if count < MaxLink {
 		if MaxLink < len(b.bucket[self]) {
-			b.inner(MaxLink-count, b.rings.Value.(int64))
+			b.inner(MaxLink-count, self)
 			return
 		}
-		b.inner(len(b.bucket[self])-count, b.rings.Value.(int64))
+		b.inner(len(b.bucket[self])-count, self)
 	}
 }
 
@@ -338,7 +349,7 @@ func (b *Bucket) outer(num int, ids []discover.NodeID) {
 
 // RandomPeers random peers from next buckets.
 func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []discover.NodeID) {
-	length := len(b.bucket[b.rings.Next().Value.(int64)])
+	length := len(b.bucket[bucket])
 
 	if length <= MaxLink {
 		return b.bucket[bucket]
@@ -352,6 +363,9 @@ func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []
 				break
 			}
 		}
+	}
+	if len(nodes) <= 0 {
+		return b.randomInnerPeersByBucketNumber(num, (bucket+1)%4)
 	}
 	return nodes
 }
