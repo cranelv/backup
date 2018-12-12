@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
@@ -73,7 +74,7 @@ type ReElection struct {
 
 	currentID common.RoleType //当前身份
 
-//	elect  baseinterface.ElectionInterface
+	//	elect  baseinterface.ElectionInterface
 	random *baseinterface.Random
 	lock   sync.Mutex
 }
@@ -130,29 +131,28 @@ func (self *ReElection) update() {
 	}
 }
 
-func (self *ReElection)PrintData(height uint64){
-	data,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo,height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举配置失败 err",err)
+func (self *ReElection) PrintData(height uint64) {
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR(Module, "获取选举配置失败 err", err)
 		return
 	}
-	electCOnfig,OK:=data.(*mc.ElectConfigInfo)
-	if OK==false || electCOnfig==nil{
-		log.ERROR(Module,"反射选举配置失败 err",err)
+	electCOnfig, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electCOnfig == nil {
+		log.ERROR(Module, "反射选举配置失败 err", err)
 	}
-	log.ERROR(Module,"data",electCOnfig)
+	log.ERROR(Module, "data", electCOnfig)
 
-	data1,err:=self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime,height)
-	if err!=nil{
-		log.ERROR(Module,"获取选举时间点失败 err",err)
+	data1, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, height)
+	if err != nil {
+		log.ERROR(Module, "获取选举时间点失败 err", err)
 		return
 	}
-	electTime,OK:=data1.(*mc.ElectGenTimeStruct)
-	if OK==false || electTime==nil{
-		log.ERROR(Module,"反射选举事件败 err",err)
+	electTime, OK := data1.(*mc.ElectGenTimeStruct)
+	if OK == false || electTime == nil {
+		log.ERROR(Module, "反射选举事件败 err", err)
 	}
-	log.ERROR(Module,"data",electTime)
-
+	log.ERROR(Module, "data", electTime)
 
 }
 func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnlineStatus, top *mc.TopologyGraph) support.AllNative {
@@ -279,7 +279,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 		return []mc.Alternative{}, err
 	}
 	antive := GetAllNativeDataForUpdate(electState, electOnlineState, TopoGrap)
-	DiffValidatot, err := self.TopoUpdate(antive, TopoGrap)
+	DiffValidatot, err := self.TopoUpdate(antive, TopoGrap, height-1)
 	if err != nil {
 		log.ERROR(Module, "拓扑更新失败 err", err, "高度", height)
 	}

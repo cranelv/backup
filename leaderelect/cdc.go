@@ -211,10 +211,6 @@ func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.Topolo
 		return nil, common.RoleNil, err
 	}
 
-	if topology.Number+1 != dc.number {
-		return nil, common.RoleNil, errors.Errorf("state中的拓扑图高度不匹配，state number（%d） + 1 != local number(%d)", topology.Number, dc.number)
-	}
-
 	role := dc.getRoleFromTopology(topology)
 
 	validators := make([]mc.TopologyNodeInfo, 0)

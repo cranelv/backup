@@ -515,7 +515,6 @@ func GetTopologyByHash(reqTypes common.RoleType, hash common.Hash) (*mc.Topology
 	}
 
 	rlt := &mc.TopologyGraph{
-		Number:        tg.Number,
 		CurNodeNumber: tg.CurNodeNumber,
 	}
 	for _, node := range tg.NodeList {

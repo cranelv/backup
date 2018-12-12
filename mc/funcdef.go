@@ -4,9 +4,10 @@
 package mc
 
 import (
+	"strconv"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 func NewGenesisTopologyGraph(number uint64, netTopology common.NetTopology) (*TopologyGraph, error) {
@@ -19,7 +20,6 @@ func NewGenesisTopologyGraph(number uint64, netTopology common.NetTopology) (*To
 	}
 
 	newGraph := &TopologyGraph{
-		Number:        0,
 		NodeList:      make([]TopologyNodeInfo, 0),
 		CurNodeNumber: 99,
 	}
@@ -47,12 +47,8 @@ func (self *TopologyGraph) AccountIsInGraph(account common.Address) bool {
 }
 
 func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *common.NetTopology) (*TopologyGraph, error) {
-	if self.Number+1 != number {
-		return nil, errors.Errorf("高度不匹配,current(%d) + 1 != target(%d)", self.Number, number)
-	}
 
 	newGraph := &TopologyGraph{
-		Number:        number,
 		NodeList:      make([]TopologyNodeInfo, 0),
 		CurNodeNumber: self.CurNodeNumber,
 	}

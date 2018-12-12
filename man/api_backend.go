@@ -161,13 +161,16 @@ func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (
 		return common.Hash{}, errors.Errorf("reader config file from \"%s\" err (%v)", filePath, err)
 	}
 
-	superGen := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(superGen); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		log.Error("ManAPIBackend", "超级区块插入", "文件数据解码错误", err)
 		file.Close()
 		return common.Hash{}, errors.Errorf("decode config file from \"%s\" err (%v)", filePath, err)
 	}
 	file.Close()
+
+	superGen := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, superGen)
 
 	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen, true)
 	if err != nil {

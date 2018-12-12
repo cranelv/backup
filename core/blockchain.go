@@ -2321,7 +2321,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	//	return nil, errors.Errorf("rollback chain err(%v)", err)
 	//}
 
-	if _, err := bc.InsertChainNotify(types.Blocks{block}, false); err != nil {
+	if _, err := bc.InsertChainNotify(types.Blocks{block}, notify); err != nil {
 		return nil, errors.Errorf("insert super block err(%v)", err)
 	}
 

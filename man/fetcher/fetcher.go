@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package fetcher contains the block announcement based synchronisation.
 package fetcher
@@ -23,7 +22,7 @@ const (
 	gatherSlack   = 100 * time.Millisecond // Interval used to collate almost-expired announces with fetches
 	fetchTimeout  = 5 * time.Second        // Maximum allotted time to return an explicitly requested block
 	maxUncleDist  = 7                      // Maximum allowed backward distance from the chain head
-	maxQueueDist  = 10000                     // Maximum allowed distance from the chain head to queue
+	maxQueueDist  = 10000                  // Maximum allowed distance from the chain head to queue
 	hashLimit     = 256                    // Maximum number of unique blocks a peer may have announced
 	blockLimit    = 64                     // Maximum number of unique blocks a peer may have delivered
 )
@@ -80,10 +79,10 @@ type headerFilterTask struct {
 // headerFilterTask represents a batch of block bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string                 // The source peer of block bodies
+	peer         string                    // The source peer of block bodies
 	transactions [][]types.SelfTransaction // Collection of transactions per block bodies
-	uncles       [][]*types.Header      // Collection of uncles per block bodies
-	time         time.Time              // Arrival time of the blocks' contents
+	uncles       [][]*types.Header         // Collection of uncles per block bodies
+	time         time.Time                 // Arrival time of the blocks' contents
 }
 
 // inject represents a schedules import operation.
@@ -319,11 +318,11 @@ func (f *Fetcher) loop() {
 			}
 			// If we have a valid block number, check that it's potentially useful
 			if notification.number > 0 {
-				if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
-					log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
-					propAnnounceDropMeter.Mark(1)
-					break
-				}
+				//if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+				//	log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
+				//	propAnnounceDropMeter.Mark(1)
+				//	break
+				//}
 			}
 			// All is well, schedule the announce if block's not yet downloading
 			if _, ok := f.fetching[notification.hash]; ok {

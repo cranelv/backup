@@ -73,7 +73,6 @@ type TopologyNodeInfo struct {
 }
 
 type TopologyGraph struct {
-	Number        uint64
 	NodeList      []TopologyNodeInfo
 	CurNodeNumber uint8
 }
@@ -98,21 +97,20 @@ type ElectOnlineStatus struct {
 
 //矿工主节点生成请求
 type MasterMinerReElectionReqMsg struct {
-	SeqNum    uint64
-	RandSeed  *big.Int
-	MinerList []vm.DepositDetail
+	SeqNum      uint64
+	RandSeed    *big.Int
+	MinerList   []vm.DepositDetail
 	ElectConfig ElectConfigInfo
 }
 
 //验证者主节点生成请求
 type MasterValidatorReElectionReqMsg struct {
-
 	SeqNum                  uint64
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
 	FoundationValidatorList []vm.DepositDetail
-	ElectConfig ElectConfigInfo
-	VIPList []VIPConfig
+	ElectConfig             ElectConfigInfo
+	VIPList                 []VIPConfig
 }
 
 //矿工主节点生成响应
@@ -131,10 +129,10 @@ type MasterValidatorReElectionRsq struct {
 }
 
 type RoleUpdatedMsg struct {
-	Role      common.RoleType
-	BlockNum  uint64
-	BlockHash common.Hash
-	Leader    common.Address
+	Role         common.RoleType
+	BlockNum     uint64
+	BlockHash    common.Hash
+	Leader       common.Address
 	IsSuperBlock bool
 }
 
