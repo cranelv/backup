@@ -1029,7 +1029,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
-		log.Info("file blockchain","gcmode modify archive","")
+		log.Info("file blockchain", "gcmode modify archive", "")
 		if err := triedb.Commit(root, false); err != nil {
 			return NonStatTy, err
 		}
@@ -2386,7 +2386,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	txs := block.Transactions()
-	if len(txs) != 1 {
+	if len(txs) < 1 || len(txs) < 2 {
 		return errors.Errorf("super block's txs count(%d) err", len(txs))
 	}
 
