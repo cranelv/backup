@@ -497,13 +497,6 @@ func (self *StateDB) GetSaveTx(typ byte, key uint32, hashlist []common.Hash, isd
 	tmpB.Typ = str
 	tmpB.Key = key
 	tmpB.Data = data
-	self.btreeMap = append(self.btreeMap, *tmpB)
-	tmpBD := new(BtreeDietyStruct)
-	tmpBD.Typ = str
-	tmpBD.Key = key
-	tmpBD.Data = data
-	self.btreeMapDirty = append(self.btreeMapDirty, *tmpBD)
-	self.journal.append(addBtreeChange{typ: str, key: key})
 	self.btreeMap = append(self.btreeMap, tmpB)
 	var tmpBD BtreeDietyStruct
 	tmpBD.Typ = str
