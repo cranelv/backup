@@ -1334,22 +1334,6 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 				return false,ErrWithoutAuth
 			}
 		}
-
-		//======测试===================//
-		//tmpfrom := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
-		//entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
-		//fmt.Println("===委托列表",entrustlist)
-		//addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		//entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
-		//fmt.Println("授权人",entrustfrom)
-		//
-		//tmpfrom1 := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
-		//entrustlist1 := nPool.currentState.GetEntrustFrom(tmpfrom1,60)
-		//fmt.Println("===委托列表",entrustlist1)
-		//addr1 := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		//entrustfrom1 := nPool.currentState.GetGasAuthFrom(addr1,60)
-		//fmt.Println("授权人",entrustfrom1)
-		//========2222222=============//
 	}
 
 	//普通交易

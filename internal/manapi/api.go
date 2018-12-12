@@ -395,31 +395,6 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args1 SendTxArg
 	return submitTransaction(ctx, s.b, signed)
 }
 
-func (s *PrivateAccountAPI) ManSendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
-	var args SendTxArgs
-	too := "Man.5yncy5jp8Q5xirTmEGuZzhpQBkrVP2odX8o5MA6pzYiuxRhqTBhiWjdL"
-	fm := "Man.5yncy5jp8Q5xirTmEGuZzhpQBkrVP2odX8o5MA6pzYiuxRhqTBhiWjdL"
-	args1.From = fm //测试用
-	*args1.To = too //测试用
-	*args1.ExtraTo[0].To2 = too
-	args,err := StrArgsToByteArgs(args1)
-	if err != nil{
-		return common.Hash{},err
-	}
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-	signed, err := s.signTransaction(ctx, args, passwd)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	Currency := strings.Split(args1.From,".")[0]	//币种
-	signed.SetTxCurrency(Currency)
-	return submitTransaction(ctx, s.b, signed)
-}
 // SignTransaction will create a transaction from the given arguments and
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails. The transaction is returned in RLP-form, not broadcast
