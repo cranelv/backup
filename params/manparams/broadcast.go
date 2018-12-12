@@ -111,7 +111,7 @@ func (period *BCInterval) IsReElectionNumber(number uint64) bool {
 		return false
 	}
 
-	bcCount := (number - period.lastBCNumber) / period.bcInterval
+	bcCount := (number - period.lastReelectNumber) / period.bcInterval
 	return bcCount%ReelectionTimes == 0
 }
 

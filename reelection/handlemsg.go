@@ -77,6 +77,7 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 	}
 
 	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.MinerNetChange)) {
+		log.ERROR(Module, "是矿工生成点", height, "err", genData.MinerNetChange)
 		return true
 	}
 
@@ -105,8 +106,9 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 		return false
 	}
 	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.ValidatorNetChange)) {
+		log.ERROR(Module, "是验证者生成点", height, "err", genData.ValidatorNetChange)
 		return true
 	}
-	log.ERROR(Module, "height", height, "err", false)
+	log.ERROR(Module, "height", height, "err", genData.ValidatorNetChange)
 	return false
 }
