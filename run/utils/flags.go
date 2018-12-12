@@ -20,7 +20,7 @@ import (
 
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/accounts/signhelper"
+	//"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/fdlimit"
 	"github.com/matrix/go-matrix/consensus"
@@ -176,6 +176,14 @@ var (
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	}
+	AesInputFlag = cli.StringFlag{
+		Name:  "aesinput",
+		Usage: "aes 输入",
+	}
+	AesOutputFlag = cli.StringFlag{
+		Name:  "aesoutput",
+		Usage: "aes 输出",
 	}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
@@ -802,22 +810,8 @@ type EntrustPassword struct {
 	Password map[common.Address]string
 }
 
-func MakeEntrustPassword(ctx *cli.Context) map[common.Address]string {
-	path := ctx.GlobalString(AccountPasswordFileFlag.Name)
-	fmt.Println("MakeEntrustPassword", "path", path)
 
-	JsonParse := NewJsonStruct()
-	v := EntrustPassword{}
-	JsonParse.Load(path, &v)
-	fmt.Println("MakeEntrustPassword", v.Password)
-	for k, _ := range v.Password {
-		fmt.Println(k, v.Password[k])
-	}
-	fmt.Println("MakeEntrustPassword len()", len(v.Password))
 
-	signhelper.EntrustValue = v.Password
-	return v.Password
-}
 
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {

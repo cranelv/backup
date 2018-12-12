@@ -14,13 +14,17 @@ import (
 	"unicode"
 
 	cli "gopkg.in/urfave/cli.v1"
-
+	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/dashboard"
 	"github.com/matrix/go-matrix/man"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/params"
 	"github.com/naoina/toml"
+	"io/ioutil"
+	"encoding/base64"
+	"encoding/json"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -127,7 +131,11 @@ func makeConfigNode(ctx *cli.Context) (*pod.Node, gmanConfig) {
 func makeFullNode(ctx *cli.Context) *pod.Node {
 	Init_Config_PATH(ctx)
 	stack, cfg := makeConfigNode(ctx)
-
+	err := CheckEntrust(ctx)
+	if err != nil {
+		fmt.Println("检查委托交易失败 err", err)
+		os.Exit(1)
+	}
 	utils.RegisterManService(stack, &cfg.Man)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
@@ -157,4 +165,72 @@ func dumpConfig(ctx *cli.Context) error {
 	io.WriteString(os.Stdout, comment)
 	os.Stdout.Write(out)
 	return nil
+}
+func CheckEntrust(ctx *cli.Context) error {
+	fmt.Println("CheckEntrust CheckEntrust CheckEntrust")
+	path := ctx.GlobalString(utils.AccountPasswordFileFlag.Name)
+
+	if path == "" {
+		return nil
+	}
+
+	password, err := ReadPassword1()
+	fmt.Println("password", password, "err", err)
+	f, err := os.Open(path)
+	if err != nil {
+		fmt.Println("文件失败", err, "path", path)
+		return err
+	}
+
+	b, err := ioutil.ReadAll(f)
+	fmt.Println("readAll", string(b), err)
+
+	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
+	if err != nil {
+		fmt.Println("解密失败", err)
+	}
+	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
+	if err != nil {
+		fmt.Println("AedDecrypt失败", bytesPass, password)
+		return err
+	}
+
+	var anss []EntrustInfo
+	err = json.Unmarshal(tpass, &anss)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Unmarashal err", err, "anss", anss)
+	fmt.Println("解密后的内容", string(tpass))
+
+	for _, v := range anss {
+		manparams.EntrustValue[v.Address] = v.Password
+	}
+
+	for k, v := range manparams.EntrustValue {
+		fmt.Println("账户", k.String(), "密码", v)
+	}
+	return nil
+}
+
+func ReadPassword1() (string, error) {
+	return "2222222222222222", nil
+	ans := ""
+	reader := bufio.NewReader(os.Stdin)
+
+	for true {
+		fmt.Println("请输入你的解压密码")
+		data, _, _ := reader.ReadLine()
+		if CheckPassword(string(data)) {
+			ans = string(data)
+			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
+			status, _, _ := reader.ReadLine()
+			if string(status) == "y" {
+				break
+			}
+
+		}
+	}
+
+	return ans, nil
 }

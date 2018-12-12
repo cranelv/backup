@@ -338,22 +338,22 @@ func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) comm
 	}
 	return common.Address{}
 }
-//根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
-func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
-	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
-	if len(AuthMarsha1Data) > 0 {
-		AuthDataList := make([]common.AuthType,0) //授权数据是结构体切片
-		err := json.Unmarshal(AuthMarsha1Data,&AuthDataList)
-		if err != nil{
-			return common.Address{}
-		}
-		for _,AuthData := range AuthDataList{
-			if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
-				return AuthData.AuthAddres
-			}
+//根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustSignFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.IsEntrustSign == true{
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
 		}
 	}
-	return common.Address{}
+	return addressList
 }
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint64) common.Address {
@@ -372,6 +372,40 @@ func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint6
 		}
 	}
 	return common.Address{}
+}
+//根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom,common.BytesToHash(entrustFrom[:]))
+	if len(AuthMarsha1Data) > 0 {
+		AuthDataList := make([]common.AuthType,0) //授权数据是结构体切片
+		err := json.Unmarshal(AuthMarsha1Data,&AuthDataList)
+		if err != nil{
+			return common.Address{}
+		}
+		for _,AuthData := range AuthDataList{
+			if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height{
+				return AuthData.AuthAddres
+			}
+		}
+	}
+	return common.Address{}
+}
+//根据授权人获取所有委托gas列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType,0)
+	err := json.Unmarshal(EntrustMarsha1Data,&entrustDataList)
+	if err != nil{
+		return nil
+	}
+	addressList := make([]common.Address,0)
+	for _,entrustData := range entrustDataList{
+		if entrustData.IsEntrustGas == true{
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres)//string地址转0x地址
+			addressList = append(addressList,entrustFrom)
+		}
+	}
+	return addressList
 }
 func (self *StateDB) GetEntrustFromByTime(authFrom common.Address, time uint64) []common.Address {
 	EntrustMarsha1Data := self.GetStateByteArray(authFrom,common.BytesToHash(authFrom[:]))
