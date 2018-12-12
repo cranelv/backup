@@ -204,6 +204,8 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.bloomIndexer.Start(man.blockchain)
 
+	man.signHelper.SetBc(man)
+
 	ca.SetTopologyReader(man.blockchain.GetGraphStore())
 
 	//if config.TxPool.Journal != "" {
