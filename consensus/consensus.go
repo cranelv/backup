@@ -100,11 +100,8 @@ type StateReader interface {
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
 	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-
 	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
-
 }
-
 
 type DPOSEngine interface {
 	//SetSignHelper(signHelper *signhelper.SignHelper) error

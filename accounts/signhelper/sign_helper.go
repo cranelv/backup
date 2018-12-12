@@ -53,6 +53,7 @@ func NewSignHelper() *SignHelper {
 		testMode: false,
 	}
 }
+
 func (sh *SignHelper) SetBc(eth MatrixEth) error {
 	if eth.BlockChain() == nil {
 		return ErrBlockChain
@@ -129,7 +130,7 @@ func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash c
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
 
-	signAccount, signPassword, err := sh.GetSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
 	log.ERROR("5555555 SignHashWithValidate", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
@@ -155,7 +156,7 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 	//}
 
 	// Sign the requested hash with the wallet
-	signAccount, signPassword, err := sh.GetSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
 	log.ERROR("5555555 SignTx", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
@@ -173,7 +174,7 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	//if nil==sh.signWallet{
 	//	return []byte{},[]byte{},[]byte{},ErrUnSetSignAccount
 	//}
-	signAccount, signPassword, err := sh.GetSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
 	log.ERROR("5555555 vrf", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return []byte{}, []byte{}, []byte{}, ErrGetAccountAndPassword
@@ -196,11 +197,8 @@ func (sh *SignHelper) GetStateDependBlkHash(blkHash common.Hash) (*state.StateDB
 	stateDb, err := sh.bc.StateAt(header.Root)
 	return stateDb, height, err
 }
-func (sh *SignHelper) GetSignAccountAndPassword(blkHash common.Hash) (accounts.Account, string, error) {
 
-	sh.mu.RLock()
-	defer sh.mu.RUnlock()
-
+func (sh *SignHelper) getSignAccountAndPassword(blkHash common.Hash) (accounts.Account, string, error) {
 	stateDb, height, err := sh.GetStateDependBlkHash(blkHash)
 	log.ERROR("55555", "GetSignAccountAndPassword 高度", height, "err", err, "blkHash", blkHash)
 	if err != nil {
@@ -212,6 +210,7 @@ func (sh *SignHelper) GetSignAccountAndPassword(blkHash common.Hash) (accounts.A
 	log.ERROR("555555", "returnaddr", account.Address, "password", password, "err", err)
 	return account, password, err
 }
+
 func (sh *SignHelper) VerifySignWithValidateDependHash(sighash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
 	addr, flag, err := crypto.VerifySignWithValidate(sighash, sig)
 	stateDb, height, err := sh.GetStateDependBlkHash(blkHash)
