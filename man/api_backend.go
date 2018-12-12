@@ -329,7 +329,7 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 
 //YY
 func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	return b.man.signHelper.SignTx(signedTx, chainID)
+	return b.man.signHelper.SignTx(signedTx, chainID,common.Hash{})
 }
 
 //YY
@@ -345,12 +345,8 @@ func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 	*/
 	return
 	ids := ca.GetRolesByGroup(common.RoleValidator)
-	log.Info("==========YY===========", "FetcherNotify()��Validator`s count", len(ids))
 	for _, id := range ids {
 		peer := b.man.protocolManager.Peers.Peer(id.String())
-		log.Info("==========YY===========", "FetcherNotify()��Validator`s NodeID", id)
-		log.Info("==========YY===========", "FetcherNotify()��get PeerID by Validator ID", peer.id)
 		b.man.protocolManager.fetcher.Notify(id.String(), hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
-		log.Info("==========YY===========", "FetcherNotify()��send Notify completed", 111111111111111)
 	}
 }

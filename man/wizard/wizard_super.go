@@ -69,9 +69,9 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	}
 	genesis := &core.Genesis1{
 		ParentHash:        parentHeader.Hash(),
-		Leader:            base58.Base58EncodeToString("MAN", []byte("8111111111111111111111111111111111111111")),
+		Leader:            base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
 		Mixhash:           parentHeader.MixDigest,
-		Coinbase:          base58.Base58EncodeToString("MAN", []byte("8111111111111111111111111111111111111111")),
+		Coinbase:          base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
 		Signatures:        make([]common.Signature, 0),
 		Timestamp:         uint64(time.Now().Unix()),
 		GasLimit:          parentHeader.GasLimit,
@@ -98,7 +98,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		sliceElect := make([]common.Elect1, 0)
 		for _, elec := range curHeader.Elect {
 			tmp := new(common.Elect1)
-			tmp.Account = base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", elec.Account)))
+			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
 			sliceElect = append(sliceElect, *tmp)
@@ -108,7 +108,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
 		for _, netTopology := range curHeader.NetTopology.NetTopologyData {
 			tmp := new(common.NetTopologyData1)
-			tmp.Account = base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", netTopology.Account)))
+			tmp.Account = base58.Base58EncodeToString("MAN", netTopology.Account)
 			tmp.Position = netTopology.Position
 			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
 		}
@@ -121,10 +121,10 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	}
 
 	// Figure out which consensus engine to choose
-	genesis.Alloc[base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", common.BlkMinerRewardAddress)))] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", common.BlkValidatorRewardAddress)))] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", common.TxGasRewardAddress)))] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", []byte(fmt.Sprintf("%x", common.LotteryRewardAddress)))] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkMinerRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkValidatorRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.TxGasRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.LotteryRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	// All done, store the genesis and flush to disk
 	log.Info("Configured new genesis block")
 

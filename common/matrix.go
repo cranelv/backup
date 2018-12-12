@@ -36,6 +36,15 @@ const (
 	ElectRoleNil                ElectRoleType = 0xff
 )
 
+const(
+	TopAccountA0="A0"
+	TopAccountA1="A1"
+
+)
+var (
+	SignLog = "SignLog"
+	TopAccountType=TopAccountA1
+)
 func (ert ElectRoleType) Transfer2CommonRole() RoleType {
 	switch ert {
 	case ElectRoleMiner:

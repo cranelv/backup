@@ -3,6 +3,7 @@ package types
 import (
 	"math/big"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
 )
 
 
@@ -64,10 +65,23 @@ func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){
 	return
 }
 func SetMxToTransaction(txm *Transaction_Mx)(txer SelfTransaction){
+	txer = nil
 	if txm.TxType_Mx == common.ExtraNormalTxType{
-		txer = ConvMxtotx(txm)
+		tx := ConvMxtotx(txm)
+		if tx != nil{
+			txer = tx
+		}else {
+			log.Info("file transactionInterface","func SetMxToTransaction1","tx is nil","Transaction_Mx",txm)
+		}
 	} else if txm.TxType_Mx == common.ExtraBroadTxType {
-		txer = SetTransactionMx(txm)
+		tx := SetTransactionMx(txm)
+		if tx != nil{
+			txer = tx
+		}else {
+			log.Info("file transactionInterface","func SetMxToTransaction2","tx is nil","Transaction_Mx",txm)
+		}
+	}else{
+		log.Info("file transactionInterface","func SetMxToTransaction","Transaction_Mx is nil",txm)
 	}
 	return
 }

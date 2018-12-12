@@ -242,6 +242,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	rt := new(common.RecorbleTx)
 	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
+	rt.Typ = tx.GetMatrixType()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
 	b,marshalerr:=json.Marshal(rt)
 	if marshalerr != nil{
@@ -250,8 +251,7 @@ func (st *StateTransition) CallTimeNormalTx()(ret []byte, usedGas uint64, failed
 	txHash := tx.Hash()
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
-	ut := rt.Tim
-	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
+	st.state.SaveTx(tx.GetMatrixType(),rt.Tim,mapHashamont)
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
@@ -307,6 +307,7 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 	}
 	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
+	delval:=make(map[uint32][]common.Hash)
 	for _,tmphash := range hashlist{
 		if common.EmptyHash(tmphash){
 			continue
@@ -322,15 +323,28 @@ func (st *StateTransition) CallRevertNormalTx()(ret []byte, usedGas uint64, fail
 			log.Error("file state_transition","func CallRevertNormalTx,Unmarshal err",errRT)
 			continue
 		}
+		if rt.Typ != common.ExtraRevocable{
+			log.Info("file state_transition","func CallRevertNormalTx:err:type is ",rt.Typ,"Revert tx type should ",common.ExtraRevocable)
+			continue
+		}
 		for _,vv := range rt.Adam{ //一对多交易
-			log.Info("file statedb","func UpdateTxForBtree:vv.Addr",vv.Addr,"vv.Amont",vv.Amont)
-			log.Info("file statedb","func UpdateTxForBtree:from",rt.From,"vv.Amont",vv.Amont)
+			log.Info("file state_transition","func CallRevertNormalTx:vv.Addr",vv.Addr,"vv.Amont",vv.Amont)
+			log.Info("file state_transition","func CallRevertNormalTx:from",rt.From,"vv.Amont",vv.Amont)
 			st.state.AddBalance(common.MainAccount,rt.From,vv.Amont)
 			st.state.SubBalance(common.WithdrawAccount,rt.From,vv.Amont)
 		}
-		st.state.GetSaveTx(tx.GetMatrixType(),rt.Tim,tmphash,true)
+		if val,ok := delval[rt.Tim];ok{
+			val = append(val,hash)
+			delval[rt.Tim] = val
+		}else {
+			delhashs := make([]common.Hash,0)
+			delhashs = append(delhashs,hash)
+			delval[rt.Tim] = delhashs
+		}
 		st.state.DeleteMxData(tmphash,b)
-
+	}
+	for k,v:=range delval{
+		st.state.GetSaveTx(tx.GetMatrixType(),k,v,true)
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
@@ -398,20 +412,20 @@ func (st *StateTransition) CallRevocableNormalTx()(ret []byte, usedGas uint64, f
 			return nil, 0, false, vmerr
 		}
 	}
-	rt := new(common.RecorbleTx)
+	var rt common.RecorbleTx
 	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
+	rt.Typ = tx.GetMatrixType()
 	rt.Adam = append(rt.Adam,mapTOAmonts...)
-	b,marshalerr:=json.Marshal(rt)
+	b,marshalerr:=json.Marshal(&rt)
 	if marshalerr != nil{
 		return nil, 0, false,marshalerr
 	}
 	txHash := tx.Hash()
+	//log.Info("file state_transition","func CallRevocableNormalTx:txHash",txHash)
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
-	ut := rt.Tim
-	//buf := []byte(strconv.Itoa(int(ut)))
-	st.state.SaveTx(tx.GetMatrixType(),ut,mapHashamont)
+	st.state.SaveTx(tx.GetMatrixType(),rt.Tim,mapHashamont)
 	st.state.SetMatrixData(txHash,b)
 	st.state.AddBalance(common.MainAccount,common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
@@ -585,6 +599,9 @@ func (st *StateTransition) CallAuthTx()(ret []byte, usedGas uint64, failed bool,
 				return nil, 0, false, err
 			}
 			for _,AuthData := range AuthDataList{
+				if AuthData.IsEntrustGas == false && AuthData.IsEntrustSign == false{
+					continue
+				}
 				if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)){
 					log.Error("该委托人已经被委托过了，不能重复委托","from",tx.From(),"Nonce",tx.Nonce())
 					return nil, 0, false, ErrRepeatEntrust //如果一个不满足就返回，不continue
@@ -766,18 +783,20 @@ func (st *StateTransition) CallCancelAuthTx()(ret []byte, usedGas uint64, failed
 				if err != nil{
 					return nil, 0, false, err
 				}
+				newDelAuthDataList := make([]common.AuthType,0)
 				for _,oldAuthData := range oldAuthDataList{
 					//只要起始高度或时间能对应上，就是要删除的切片
 					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime{
 						oldAuthData.IsEntrustGas = false
 						oldAuthData.IsEntrustSign = false
-						newAuthData,err := json.Marshal(oldAuthData)
-						if err != nil{
-							return nil, 0, false, err
-						}
-						st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newAuthData)
+						newDelAuthDataList = append(newDelAuthDataList,oldAuthData)
 					}
 				}
+				newAuthDatalist,err := json.Marshal(newDelAuthDataList)
+				if err != nil{
+					return nil, 0, false, err
+				}
+				st.state.SetStateByteArray(addres,common.BytesToHash(addres[:]),newAuthDatalist)
 			}
 		}else{
 			//新的切片数据

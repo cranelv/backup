@@ -496,11 +496,9 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 		}
 	case GetTxbyN, RecvTxbyN, GetConsensusTxbyN, RecvConsensusTxbyN: //YY
 		//给固定的节点发送根据N获取Tx的请求
-		log.Info("===sendMSG ======YY====", "Msgtype", data.Msgtype)
 		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
 	case RecvErrTx: //YY 给全部验证者发送错误交易做共识
 		if selfRole == common.RoleValidator {
-			log.Info("===sendMsg ErrTx===YY===", "selfRole", selfRole)
 			p2p.SendToGroup(common.RoleValidator, common.NetworkMsg, []interface{}{data})
 		}
 	}
@@ -543,17 +541,13 @@ func (nPool *NormalTxPool) ListenUdp() {
 			log.Info("======hezi=====", "checklist: udptxs:", len(evtxs))
 			selfRole := ca.GetRole()
 			if selfRole == common.RoleValidator {
-				//nPool.selfmlk.Lock()
 				tmptxs := make([]*types.Transaction, 0)
 				for _, ftx := range evtxs {
 					tx := types.ConvMxtotx(ftx)
-					//log.Info("======YY====", "listenudp()", tx.Nonce())
-					//YY ====begin======
 					if nc := tx.Nonce(); nc < params.NonceAddOne {
 						nc = nc | params.NonceAddOne
 						tx.SetNonce(nc)
 					}
-					//=========end======
 					tmptxs = append(tmptxs, tx)
 				}
 				nPool.getFromByTx(tmptxs)
@@ -568,7 +562,6 @@ func (nPool *NormalTxPool) ListenUdp() {
 					}
 				}
 				nPool.mu.Unlock()
-				//nPool.selfmlk.Unlock()
 			}
 		case <-nPool.udptxsSub.Err():
 			return
@@ -716,14 +709,12 @@ func (nPool *NormalTxPool) getPendingTx() {
 
 //YY 检查当前map中是否存在洪泛过来的交易
 func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeID) {
-	log.Info("**************msg_CheckTx IN")
-	defer log.Info("**************msg_CheckTx OUT")
-	log.Info("========YY===1", "msg_CheckTx:len(mapSN)", len(mapSN))
+	log.Info("msg_CheckTx IN","len(mapSN)",len(mapSN))
+	defer log.Info("msg_CheckTx OUT")
 	listN := make([]uint32, 0)
 	nPool.mu.Lock()
 	for n, s := range mapSN {
 		if s == nil || n == 0 { //如果S或者N 不合法则直接跳过
-			log.Info("========YY===:continue", "s", s, "n", n)
 			continue
 		}
 		nPool.mapNs.Store(n, s)
@@ -753,7 +744,7 @@ func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeI
 
 //YY 接收到Leader打包的交易共识消息时根据N获取tx (调用本方法需要启动协程)
 func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
-	log.Info("========YY===1", "ReturnAllTxsByN:len(listN)", len(listN))
+	log.Info("file txpool", "ReturnAllTxsByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		retch <- &RetChan_txpool{nil, nil, resqe}
 		return
@@ -771,19 +762,19 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 		}
 	}
 	nPool.mu.Unlock()
-	log.Info("========YY===3", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
+	log.Trace("file txpool", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
 	if len(ns) > 0 {
 		txs = make([]types.SelfTransaction, 0)
 		nid, err1 := ca.ConvertAddressToNodeId(addr)
 		log.Info("leader node", "addr::", addr, "id::", nid.String())
 		if err1 != nil {
-			log.Info("========YY===5", "ReturnAllTxsByN:discover=err", err1)
+			log.Error("file txpool", "ReturnAllTxsByN:discover=err", err1)
 			retch <- &RetChan_txpool{nil, err1, resqe}
 			return
 		}
 		msData, err2 := json.Marshal(ns)
 		if err2 != nil {
-			log.Info("========YY===6", "ReturnAllTxsByN:Marshal=err", err2)
+			log.Error("file txpool", "ReturnAllTxsByN:Marshal=err", err2)
 			retch <- &RetChan_txpool{nil, err2, resqe}
 			return
 		}
@@ -807,7 +798,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 				}
 				ns = tmpns
 				if len(ns) == 0 {
-					log.Info("========YY===", "ReturnAllTxsByN:recvTx Over=", 0)
+					log.Trace("file txpool", "ReturnAllTxsByN:recvTx Over=", 0)
 					break forBreak
 				}
 			}
@@ -830,16 +821,16 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 			nPool.mu.Unlock()
 		}
 		retch <- &RetChan_txpool{txs, txerr, resqe}
-		log.Info("========YY===end if", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
+		log.Trace("file txpool end if", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
 	} else {
 		retch <- &RetChan_txpool{txs, nil, resqe}
-		log.Info("========YY===end else", "ReturnAllTxsByN", "return success")
+		log.Trace("file txpool end else", "ReturnAllTxsByN", "return success")
 	}
 }
 
 // (共识要交易)根据N值获取对应的交易(modi hezi)
 func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID) {
-	log.Info("==========YY", "msg_GetConsensusTxByN:len(listN)", len(listN))
+	log.Trace("file txpool ", "msg_GetConsensusTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
 	}
@@ -851,7 +842,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 			ntx := &ConsensusNTx{n,tx}
 			mapNtx = append(mapNtx,ntx)
 		} else {
-			log.Info("=======msg_GetConsensusTxByN====YY==tx is nil")
+			log.Info("file txpool","func msg_GetConsensusTxByN","tx is nil")
 		}
 	}
 	if len(mapNtx) != len(listN){
@@ -864,7 +855,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 					mapNtx = append(mapNtx,ntx)
 				}
 			}else{
-				log.Info("txpool","11111msg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
+				log.Info("txpool","Amsg_GetConsensusTxByNlen(mapNtx)",len(mapNtx))
 				for _, n := range listN {
 					tx := nPool.getTxbyN(n, false)
 					if tx != nil {
@@ -877,7 +868,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 						}
 					}
 				}
-				log.Info("txpool", "22222msg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
+				log.Info("txpool", "Bmsg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
 			}
 		}
 	}
@@ -886,15 +877,15 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 	msData, err := rlp.EncodeToBytes(mapNtx)
 	if err == nil{
 		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
-		log.Info("========YY===2", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
+		log.Trace("file txpool", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 	}else {
-		log.Info("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
+		log.Trace("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
 	}
 }
 
 //YY 根据N值获取对应的交易(洪泛)
 func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
-	log.Info("==========YY", "msg_GetTxByN:len(listN)", len(listN))
+	log.Trace("file txpool", "msg_GetTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
 	}
@@ -906,13 +897,12 @@ func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
 			ftx := types.GetFloodData(tx)
 			mapNtx[n] = ftx
 		} else {
-			log.Info("=====msg_GetTxByN======YY==tx is nil")
+			log.Info("file txpool","func msg_GetTxByN","tx is nil")
 		}
 	}
 	nPool.mu.Unlock()
 	msData, _ := json.Marshal(mapNtx)
 	nPool.SendMsg(MsgStruct{Msgtype: RecvTxbyN, NodeId: nid, MsgData: msData})
-	log.Info("========YY===2", "msg_GetTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 }
 
 //此接口传的交易带s(modi hezi)
@@ -1017,7 +1007,6 @@ func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid
 		tmpNtx[n] = tx
 	}
 	nPool.getFromByTx(txs)
-	log.Info("=======YY===", "msg_RecvFloodTx: len(mapNtx)=", len(tmpNtx))
 	nPool.mu.Lock()
 	for n, tx := range tmpNtx {
 		ts, ok := nPool.mapNs.Load(n)
@@ -1026,7 +1015,6 @@ func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid
 		}
 		s := ts.(*big.Int)
 		if s == nil || n == 0 { //如果S或者N 不合法则直接跳过
-			log.Info("======YY====2222", "msg_RecvFloodTx()1:ssssssssssssss", s, "nnnnnnnnnnnnnn:", n)
 			continue
 		}
 		isExist := true
@@ -1049,7 +1037,7 @@ func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid
 		}
 		_, err := nPool.add(tx, false)
 		if err != nil && err != ErrKnownTransaction {
-			log.Info("========YY===3", "msg_RecvFloodTx::Error=", err)
+			log.Error("file txpool", "msg_RecvFloodTx::Error=", err)
 			if _, ok := nPool.mapErrorTxs[s]; !ok {
 				errorTxs = append(errorTxs, s)
 				nPool.mapErrorTxs[s] = tx
@@ -1243,9 +1231,9 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return addrerr
 	}
 	//YY 验证当V值大于128时，如果扩展交易为空则直接丢弃该交易并返回交易不合法
-	if tx.GetTxV().Cmp(big.NewInt(128)) > 0 && len(txEx) <= 0 {
-		return ErrTXWrongful
-	}
+	//if tx.GetTxV().Cmp(big.NewInt(128)) > 0 && len(txEx) <= 0 {
+	//	return ErrTXWrongful
+	//}
 	// Drop non-local transactions under our own minimal accepted gas price
 	if nPool.gasPrice.Cmp(tx.GasPrice()) > 0 {
 		return ErrUnderpriced
@@ -1346,22 +1334,6 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 				return false,ErrWithoutAuth
 			}
 		}
-
-		//======测试===================//
-		//tmpfrom := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
-		//entrustlist := nPool.currentState.GetEntrustFrom(tmpfrom,60)
-		//fmt.Println("===委托列表",entrustlist)
-		//addr := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		//entrustfrom := nPool.currentState.GetAuthFrom(addr,60)
-		//fmt.Println("授权人",entrustfrom)
-		//
-		//tmpfrom1 := common.HexToAddress("0x992fcd5f39a298e58776a87441f5ee3319a101a0")
-		//entrustlist1 := nPool.currentState.GetEntrustFrom(tmpfrom1,60)
-		//fmt.Println("===委托列表",entrustlist1)
-		//addr1 := base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2")
-		//entrustfrom1 := nPool.currentState.GetGasAuthFrom(addr1,60)
-		//fmt.Println("授权人",entrustfrom1)
-		//========2222222=============//
 	}
 
 	//普通交易
@@ -1410,7 +1382,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		}else{
 			log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
 		}
-	} else if selfRole == common.RoleDefault {
+	} else if selfRole == common.RoleDefault || selfRole == common.RoleBucket{
 		promoted := make([]types.SelfTransaction, 0)
 		promoted = append(promoted, tx)
 		nPool.sendTxCh <- NewTxsEvent{promoted, types.NormalTxIndex}
@@ -1485,12 +1457,10 @@ func (nPool *NormalTxPool) Get(hash common.Hash) *types.Transaction {
 // transactions back to the future queue.
 func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 	// Fetch the transaction we wish to delete
-	log.Info("========YY=======1", "removeTx", 0)
 	tx := nPool.all.Get(hash)
 	if tx == nil {
 		return
 	}
-	log.Info("========YY=======2", "removeTx", 0)
 	//YY 如果交易中已经有了from就不需要在做解签
 	addr, _ := nPool.checkTxFrom(tx)
 

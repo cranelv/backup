@@ -205,6 +205,24 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
+func (dc *cdc) GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error) {
+	if hash.Equal(common.Hash{}) {
+		log.Error("cdc", "GetSignAccount", "输入hash为空")
+		return common.Address{}, errors.New("输入hash为空")
+	}
+	if hash == dc.leaderCal.preHash {
+		if nil == dc.parentState {
+			log.Error(dc.logInfo, "GetSignAccount", "parentStateDB为空")
+			return common.Address{}, errors.New("cdc state can't find")
+		}
+		preHeight := dc.number - 1
+		authAddr, err := dc.chain.GetAuthAddr(addr, preHeight, dc.parentState)
+		log.Info("cdc", "preHeight", preHeight, "addr", addr, "signAddr", authAddr, "err", err)
+		return authAddr, err
+	}
+	return dc.chain.GetAuthAccount(addr, hash)
+}
+
 func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
 	topology, _, err := dc.chain.GetGraphByState(state)
 	if err != nil {

@@ -169,7 +169,7 @@ func (p *Process) processHeaderGen() error {
 	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true)
+		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true,p.preBlockHash)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -319,5 +319,5 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	} else {
 		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
-	return p.signHelper().SignVrf(vrfmsg)
+	return p.signHelper().SignVrf(vrfmsg,p.preBlockHash)
 }

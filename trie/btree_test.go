@@ -3,7 +3,7 @@ package trie
 import (
 	"testing"
 	"github.com/matrix/go-matrix/mandb"
-	"math/rand"
+	_"math/rand"
 	"os"
 	"github.com/matrix/go-matrix/common"
 	"strconv"
@@ -11,16 +11,16 @@ import (
 )
 
 func perm(n int) (out []Item) {
-	for _, v := range rand.Perm(n) {
-		out = append(out, Int(v))
-	}
+	//for _, _ := range rand.Perm(n) {
+	//	//out = append(out, Int(v))
+	//}
 	return
 }
 
 func rang(n int) (out []Item) {
-	for i := 0; i < n; i++ {
-		out = append(out, Int(i))
-	}
+	//for i := 0; i < n; i++ {
+	//	out = append(out, Int(i))
+	//}
 	return
 }
 
@@ -72,9 +72,11 @@ func TestBTree(t *testing.T) {
 
 	tr1.root.print(os.Stdout,2)
 	fmt.Println("============================================================================================")
-	treeRoot := BtreeSaveHash(tr1.root, triedb)
+	treeRoot := BtreeSaveHash(tr1.root, triedb,0)
 
-	RestoreBtree(tr2, nil, treeRoot, triedb)
+	RestoreBtree(tr2, nil, treeRoot, triedb,0)
 
 	tr2.root.print(os.Stdout,2)
+	tr1.Delete(SpcialTxData{Key_Time:5})
+	tr1.root.print(os.Stdout,2)
 }

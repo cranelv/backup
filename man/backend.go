@@ -204,6 +204,8 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.bloomIndexer.Start(man.blockchain)
 
+	man.signHelper.SetBc(man)
+
 	ca.SetTopologyReader(man.blockchain.GetGraphStore())
 
 	//if config.TxPool.Journal != "" {
@@ -535,7 +537,6 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
 		}
 		peer := s.protocolManager.Peers.Peer(id.String()[:16])
 		if peer == nil {
-			log.Info("==========YY===========", "get PeerID is nil by Validator ID:id", id.String()[:16])
 			continue
 		}
 		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package broadcastTx
@@ -72,17 +72,13 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		log.Info("===Send BroadCastTx===", "block height less than 100")
 		return errors.New("===Send BroadCastTx===,block height less than 100")
 	}
-	log.Info("=========YY=========", "sendBroadCastTransaction", data)
 	bType := false
 	if t == mc.CallTheRoll {
 		bType = true
 	}
-	log.Info("=========YY=========11111", "sendBroadCastTransaction:hhhhhhhh", h)
 	bcInterval := manparams.NewBCInterval()
 	h.Quo(h, big.NewInt(int64(bcInterval.GetBroadcastInterval())))
-	log.Info("=========YY=========22222", "sendBroadCastTransaction:hhhhhhhh", h)
 	t += h.String()
-	log.Info("=========YY=========33333", "sendBroadCastTransaction:tttttttttt", t)
 	tmpData := make(map[string][]byte)
 	tmpData[t] = data
 	msData, _ := json.Marshal(tmpData)
@@ -96,7 +92,7 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 	t1 := time.Now()
 	signed, err := bc.manBackend.SignTx(tx, chainID)
 	if err != nil {
-		log.Info("=========YY=========", "sendBroadCastTransaction:SignTx=", err)
+		log.Info("file broadcast", "sendBroadCastTransaction:SignTx=", err)
 		return err
 	}
 	t2 := time.Since(t1)

@@ -286,7 +286,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
-	log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY", "len(listTx)", len(listTx))
 	listret, retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	tmps := make([]types.SelfTransaction, 0)
 	rewart := env.CalcRewardAndSlash(bc)
