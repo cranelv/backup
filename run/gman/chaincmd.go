@@ -505,7 +505,7 @@ func copyDb(ctx *cli.Context) error {
 	// Synchronise with the simulated peer
 	start := time.Now()
 
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), hc.GetSuperBlockHash(), syncmode); err != nil {
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), hc.GetSuperBlockNum(), syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {
