@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
@@ -18,6 +19,8 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"runtime"
+	"sync"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning

@@ -139,8 +139,8 @@ func EncodeInt(data uint8) string {
 	return string(alphabet[data])
 }
 
-func Base58EncodeToString(currency string, b []byte) string {
-	str := Encode(b)
+func Base58EncodeToString(currency string, b common.Address) string {
+	str := Encode(b[:])
 	strAddr := currency + "." + str
 	crc := crc8.CalCRC8([]byte(strAddr))
 	strCrc := EncodeInt(crc % 58)
@@ -156,6 +156,6 @@ func Base58DecodeToAddress(strData string) common.Address {
 	}
 	tmpaddres := strings.Split(strData, ".")[1]
 	addres := Decode(tmpaddres[0 : len(tmpaddres)-1]) //最后一位为crc%58
-	//return common.BytesToAddress(addres)
-	return common.HexToAddress(string(addres))
+	return common.BytesToAddress(addres)
+	//return common.HexToAddress(string(addres))
 }

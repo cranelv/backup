@@ -176,9 +176,9 @@ func (s EIP155Signer) Sender(tx SelfTransaction) (common.Address, error) {
 	}
 	//YY=====begin======
 	V := new(big.Int).Set(tx.GetTxV())
-	if V.Cmp(big.NewInt(128)) > 0 {
-		V.Sub(V, big.NewInt(128))
-	}
+	//if V.Cmp(big.NewInt(128)) > 0 {
+	//	V.Sub(V, big.NewInt(128))
+	//}
 	V.Sub(V, s.chainIdMul)
 	//=======end========
 	V.Sub(V, big8)
@@ -230,38 +230,36 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 		if !ok {
 			return common.Hash{}
 		}
-		if tx.Mtype == true {
-			var data1 txdata1
-			TxdataAddresToString(tx.Currency, &tx.data, &data1)
-			return rlpHash([]interface{}{
-				data1.AccountNonce,
-				data1.Price,
-				data1.GasLimit,
-				data1.Recipient,
-				data1.Amount,
-				data1.Payload,
-				s.chainId, uint(0), uint(0),
-				data1.TxEnterType,
-				data1.IsEntrustTx,
-				data1.CommitTime,
-				data1.Extra,
-			})
-
-		} else {
-			return rlpHash([]interface{}{
-				tx.data.AccountNonce,
-				tx.data.Price,
-				tx.data.GasLimit,
-				tx.data.Recipient,
-				tx.data.Amount,
-				tx.data.Payload,
-				s.chainId, uint(0), uint(0),
-				tx.data.TxEnterType,
-				tx.data.IsEntrustTx,
-				tx.data.CommitTime,
-				tx.data.Extra,
-			})
-		}
+		var data1 txdata1
+		TxdataAddresToString(tx.Currency, &tx.data, &data1)
+		return rlpHash([]interface{}{
+			data1.AccountNonce,
+			data1.Price,
+			data1.GasLimit,
+			data1.Recipient,
+			data1.Amount,
+			data1.Payload,
+			s.chainId, uint(0), uint(0),
+			data1.TxEnterType,
+			data1.IsEntrustTx,
+			data1.CommitTime,
+			data1.Extra,
+		})
+		//}else{
+		//		return rlpHash([]interface{}{
+		//			tx.data.AccountNonce,
+		//			tx.data.Price,
+		//			tx.data.GasLimit,
+		//			tx.data.Recipient,
+		//			tx.data.Amount,
+		//			tx.data.Payload,
+		//			s.chainId, uint(0), uint(0),
+		//			tx.data.TxEnterType,
+		//			tx.data.IsEntrustTx,
+		//			tx.data.CommitTime,
+		//			tx.data.Extra,
+		//		})
+		//}
 	case BroadCastTxIndex:
 		tx, ok := txer.(*TransactionBroad)
 		if !ok {
@@ -368,10 +366,10 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 //YY 将原来的deriveChainId方法改为deriveChainId1，然后重写deriveChainId方法
 func deriveChainId(v *big.Int) *big.Int {
 	v1 := new(big.Int).Set(v)
-	tmp := big.NewInt(128)
-	if v1.Cmp(tmp) > 0 {
-		v1.Sub(v1, tmp)
-	}
+	//tmp := big.NewInt(128)
+	//if v1.Cmp(tmp) > 0 {
+	//	v1.Sub(v1, tmp)
+	//}
 	return deriveChainId1(v1)
 }
 

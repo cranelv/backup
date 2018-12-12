@@ -7,19 +7,18 @@ package types
 import (
 	"container/heap"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -149,7 +148,7 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 	data1.CommitTime = data.CommitTime
 	data1.Recipient = new(string)
 	to := *data.Recipient
-	*data1.Recipient = base58.Base58EncodeToString(currency, []byte(fmt.Sprintf("%x", to)))
+	*data1.Recipient = base58.Base58EncodeToString(currency, to)
 	//data1.Extra1 = data.Extra
 	if len(data.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra1, 0)
@@ -163,7 +162,7 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 					if tto.Recipient != nil {
 						tmTo := new(Tx_to1)
 						tmTo.Recipient = new(string)
-						*tmTo.Recipient = base58.Base58EncodeToString(currency, []byte(fmt.Sprintf("%x", *tto.Recipient)))
+						*tmTo.Recipient = base58.Base58EncodeToString(currency, *tto.Recipient)
 						tmTo.Payload = tto.Payload
 						tmTo.Amount = tto.Amount
 						exto = append(exto, *tmTo)
@@ -293,7 +292,6 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 		S:            new(big.Int),
 		TxEnterType:  NormalTxIndex,
 		IsEntrustTx:  isEntrustTx,
-		CommitTime:   uint64(0),
 		Extra:        make([]Matrix_Extra, 0),
 	}
 	if amount != nil {
@@ -320,6 +318,13 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 			txto.Payload = input
 			arrayTx = append(arrayTx, *txto)
 		}
+	}
+	if txType == common.ExtraRevocable {
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(300)
+	} else if txType == common.ExtraTimeTxType {
+		d.CommitTime = uint64(time.Now().Unix()) + uint64(600)
+	} else {
+		d.CommitTime = uint64(0)
 	}
 	matrixEx.TxType = txType
 	matrixEx.LockHeight = localtime
@@ -789,10 +794,10 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (SelfTransaction
 	}
 	cpy := &Transaction{data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	//YY
-	if len(cpy.data.Extra) > 0 {
-		cpy.data.V.Add(cpy.data.V, big.NewInt(128))
-	}
+	////YY
+	//if len(cpy.data.Extra) > 0 {
+	//	cpy.data.V.Add(cpy.data.V, big.NewInt(128))
+	//}
 	return cpy, nil
 }
 

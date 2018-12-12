@@ -261,11 +261,6 @@ func (pm *TxPoolManager) AddRemotes(txs []types.SelfTransaction) []error {
 
 func (pm *TxPoolManager) SubscribeNewTxsEvent(ch chan NewTxsEvent) (ev event.Subscription) {
 	return pm.scope.Track(pm.txFeed.Subscribe(ch))
-	////TODO 消息订阅这块需要重构用来支持多个交易池，目前只支持一个交易池
-	//pm.txPoolsMutex.RLock()
-	//defer pm.txPoolsMutex.RUnlock()
-	//ev = pm.txPools[types.NormalTxIndex].SubscribeNewTxsEvent(ch)
-	//return
 }
 
 // ProcessMsg
