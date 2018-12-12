@@ -33,7 +33,7 @@ func newController(matrix Matrix, logInfo string, number uint64) *controller {
 		matrix:       matrix,
 		dc:           newCDC(number, matrix.BlockChain(), logInfo),
 		mp:           newMsgPool(),
-		selfCache:    newMasterCache(number),
+		selfCache:    newMasterCache(number,matrix),
 		msgCh:        make(chan interface{}, 10),
 		quitCh:       make(chan struct{}),
 		logInfo:      logInfo,

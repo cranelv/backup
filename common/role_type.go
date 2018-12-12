@@ -60,8 +60,6 @@ func (rt RoleType) Transfer2ElectRole() ElectRoleType {
 		return ElectRoleValidator
 	case RoleBackupValidator:
 		return ElectRoleValidatorBackUp
-	case RoleCandidateValidator:
-		return ElectRoleCandidateValidator
 	}
 	return ElectRoleNil
 }

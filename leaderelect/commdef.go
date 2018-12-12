@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/msgsend"
+	"github.com/matrix/go-matrix/mc"
 )
 
 var (
@@ -78,6 +79,8 @@ func (self *leaderData) copyData() *leaderData {
 }
 
 type startControllerMsg struct {
-	parentHeader  *types.Header
-	parentStateDB *state.StateDB
+	role         common.RoleType
+	validators   []mc.TopologyNodeInfo
+	parentHeader *types.Header
+	parentState  *state.StateDB
 }

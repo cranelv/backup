@@ -63,12 +63,12 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 
 	log.INFO(self.logInfo, "处理开始消息", "start", "高度", self.dc.number, "preLeader", msg.parentHeader.Leader, "header time", msg.parentHeader.Time.Int64())
 	preIsSupper := msg.parentHeader.IsSuperHeader()
-	if err := self.dc.AnalysisState(msg.parentHeader.Hash(), preIsSupper, msg.parentHeader.Leader, msg.parentStateDB); err != nil {
+	if err := self.dc.AnalysisState(msg.parentHeader.Hash(), preIsSupper, msg.parentHeader.Leader, msg.parentState); err != nil {
 		log.ERROR(self.logInfo, "处理开始消息", "分析状态树信息错误", "err", err)
 		return
 	}
 
-	root2, _ := msg.parentStateDB.Commit(self.dc.chain.Config().IsEIP158(msg.parentHeader.Number))
+	root2, _ := msg.parentState.Commit(self.dc.chain.Config().IsEIP158(msg.parentHeader.Number))
 	if root2 != msg.parentHeader.Root {
 		log.Error("hyk_miss_trie_5", "root", msg.parentHeader.Root.TerminalString(), "state root", root2.TerminalString())
 	}

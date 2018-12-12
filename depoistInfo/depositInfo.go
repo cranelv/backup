@@ -98,6 +98,7 @@ func getDepositInfo(tm *big.Int) (db vm.StateDB, err error) {
 		return nil, err
 	}
 	db, _, err = depositInfo.manApi.StateAndHeaderByNumber(c, h)
+
 	return db, err
 }
 

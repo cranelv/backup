@@ -148,7 +148,24 @@ func (dc *cdc) GetConsensusLeader() common.Address {
 func (dc *cdc) GetReelectMaster() common.Address {
 	return dc.reelectMaster
 }
-
+func (dc *cdc) GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error) {
+	if hash.Equal(common.Hash{}) {
+		log.Error("cdc", "GetSignAccount", "输入hash为空")
+		return common.Address{}, errors.New("输入hash为空")
+	}
+	if hash == dc.leaderCal.preHash {
+		preHeight := dc.number - 1
+		stateDB := dc.leaderCal.GetParentState()
+		if nil == stateDB {
+			log.Error("cdc", "GetSignAccount", "stateDB为空")
+			return common.Address{}, errors.New("cdc state can't find")
+		}
+		authAddr, err := dc.chain.GetAuthAddr(addr, preHeight, stateDB)
+		log.ERROR("cdc", "preHeight", preHeight, "addr", addr, "signAddr", authAddr, "err", err)
+		return authAddr, err
+	}
+	return dc.chain.GetAuthAccount(addr, hash)
+}
 func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 	leaders, err := dc.leaderCal.GetLeader(dc.curConsensusTurn+dc.curReelectTurn, dc.bcInterval)
 	if err != nil {

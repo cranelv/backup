@@ -485,7 +485,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) sendVote(validate bool) {
 	signHash := p.curProcessReq.hash
-	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate)
+	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate,p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "投票签名失败", err, "高度", p.number)
 		return

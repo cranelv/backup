@@ -143,7 +143,7 @@ func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 
 	startMsg := &startControllerMsg{
 		parentHeader:  msg.Header,
-		parentStateDB: msg.State,
+		parentState: msg.State,
 	}
 	self.ctrlManager.StartController(curNumber+1, startMsg)
 	log.INFO(self.extraInfo, "NewBlockReady消息处理", "完成")
@@ -178,7 +178,7 @@ func (self *LeaderIdentity) roleUpdateMsgHandle(msg *mc.RoleUpdatedMsg) {
 
 	startMsg := &startControllerMsg{
 		parentHeader:  header,
-		parentStateDB: parentState,
+		parentState: parentState,
 	}
 	self.ctrlManager.StartController(msg.BlockNum+1, startMsg)
 }

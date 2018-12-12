@@ -34,6 +34,18 @@ const (
 	ElectRoleValidatorBackUp    ElectRoleType = 0x03
 	ElectRoleCandidateValidator ElectRoleType = 0x10
 	ElectRoleNil                ElectRoleType = 0xff
+
+
+)
+
+const(
+	TopAccountA0="A0"
+	TopAccountA1="A1"
+
+)
+var (
+	SignLog = "SignLog"
+	TopAccountType=TopAccountA1
 )
 
 func (ert ElectRoleType) Transfer2CommonRole() RoleType {
@@ -46,8 +58,6 @@ func (ert ElectRoleType) Transfer2CommonRole() RoleType {
 		return RoleValidator
 	case ElectRoleValidatorBackUp:
 		return RoleBackupValidator
-	case ElectRoleCandidateValidator:
-		return RoleCandidateValidator
 	}
 	return RoleNil
 }
@@ -57,9 +67,6 @@ func GetRoleTypeFromPosition(position uint16) RoleType {
 }
 
 func GeneratePosition(index uint16, electRole ElectRoleType) uint16 {
-	if electRole >= ElectRoleValidatorBackUp {
-		return 0xffff
-	}
 	return uint16(electRole)<<12 + index
 }
 

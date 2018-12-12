@@ -2144,6 +2144,26 @@ func (bc *BlockChain) GetHashByNumber(number uint64) common.Hash {
 	}
 	return block.Hash()
 }
+func (bc *BlockChain) GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error) {
+	header := bc.GetHeaderByHash(hash)
+	if header == nil {
+		log.ERROR("blockChain", "header为空 hash", hash)
+		return common.Address{}, errors.New("header为空")
+	}
+	if header.Number == nil {
+		log.ERROR("blockChain", "header内的高度为空", "")
+		return common.Address{}, errors.New("header内的高度为空")
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		log.ERROR("blockChain", "获取state错误 err", err, "高度", header.Number.Uint64())
+		return common.Address{}, errors.New("获取state失败")
+	}
+
+	authAddr, err := bc.GetAuthAddr(addr, header.Number.Uint64(), state)
+	return authAddr, err
+
+}
 
 func (bc *BlockChain) GetCurrentHash() common.Hash {
 	block := bc.CurrentBlock()
@@ -2419,4 +2439,62 @@ func ProduceBroadcastIntervalData(block *types.Block, readFn matrixstate.PreStat
 	} else {
 		return nil, nil
 	}
+}
+
+
+
+func (self *BlockChain) GetEntrustSignInfo(height uint64, authFrom common.Address, state *state.StateDB) (common.Address, string, error) {
+	if common.TopAccountType == common.TopAccountA0 {
+		//TODO 暂定根据ca提供的接口获取委托账户，
+	}
+
+	ans := []common.Address{}
+	log.ERROR("5555555555555", "开始调用 authFrom", authFrom, "height", height)
+	ans = state.GetEntrustFrom(authFrom, height)
+	log.ERROR("5555555555555", "结束调用", "", "ans", ans)
+	if len(ans) == 0 {
+		ans = append(ans, authFrom)
+	} else {
+		log.ERROR("55555555", "开始检查反射", ans[0].String(), "height", height)
+		aa := state.GetAuthFrom(ans[0], height)
+		log.ERROR("55555555", "检查反射结果", aa.String())
+	}
+
+	log.ERROR("签名助手", "ans", ans, "entrustvalue", manparams.EntrustValue)
+	for _, v := range ans {
+		for kk, vv := range manparams.EntrustValue {
+			if v.Equal(kk) == false {
+				continue
+			}
+			if _, ok := manparams.EntrustValue[kk]; ok {
+				log.Info("签名助手", "获取到的账户", v.String(), "高度", height)
+				log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				return kk, manparams.EntrustValue[kk], nil
+			}
+			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
+			log.ERROR("签名助手", "无该密码", kk.String())
+			return kk, vv, errors.New("无该密码")
+
+		}
+	}
+	log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	return common.Address{}, "", errors.New("ans为空")
+}
+
+//TransSignAccontToDeposit(signAccount common.Address, height uint64) (common.Address, error) {
+func (self *BlockChain) GetAuthAddr(signAccount common.Address, height uint64, state *state.StateDB) (common.Address, error) {
+	addr := state.GetAuthFrom(signAccount, height)
+	if addr.Equal(common.Address{}) {
+		log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", signAccount)
+		//return signAccount, nil
+		addr = signAccount
+	} else {
+		log.ERROR("存在委托", "signAccount", signAccount, "height", height, "addr", addr)
+	}
+	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
+	if common.TopAccountType == common.TopAccountA0 {
+		//TODO 利用CA接口将A1转换为A0
+	}
+	return addr, nil
+
 }
