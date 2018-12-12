@@ -11,12 +11,9 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/core/state"
 )
 
 type leaderCalculator struct {
-	parentState *state.StateDB
-
 	preLeader   common.Address
 	preHash     common.Hash
 	preIsSupper bool
@@ -141,8 +138,4 @@ func findLeaderIndex(preLeader common.Address, validators []mc.TopologyNodeInfo)
 		}
 	}
 	return 0, ErrValidatorNotFound
-}
-
-func (self *leaderCalculator) GetParentState() *state.StateDB {
-	return self.parentState
 }
