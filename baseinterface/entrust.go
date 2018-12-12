@@ -5,15 +5,15 @@ package baseinterface
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/state"
 )
+
 var (
 	mapEntrust         = make(map[string]func() EntrustInterface)
 	DefaultEntrustPlug = "secondKey"
 )
 
 type EntrustInterface interface {
-	GetEntrustSignInfo(uint64, common.Address, *state.StateDB) (common.Address, string, error)
+	GetEntrustSignInfo(uint64) (common.Address, string, error)
 	TransSignAccontToDeposit(common.Address, uint64) (common.Address, error)
 }
 

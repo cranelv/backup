@@ -69,8 +69,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LightServFlag,
 			utils.LightPeersFlag,
 			utils.LightKDFFlag,
-			utils.AesInputFlag,
-			utils.AesOutputFlag,
 		},
 	},
 	{Name: "DEVELOPER CHAIN",

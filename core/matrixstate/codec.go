@@ -27,6 +27,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyLotteryCfg] = new(MSPLotteryCfgCodec)
 	self.codecMap[mc.MSKeySlashCfg] = new(MSPSlashCfgCodec)
 	self.codecMap[mc.MSKeyMultiCoin] = new(MSPRewardRateCfgCodec)
+	self.codecMap[mc.MSKeySuperBlockCfg] = new(MSPSuperBlkCfgCodec)
 }
 
 type codec interface {

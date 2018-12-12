@@ -291,7 +291,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 
 	sbi, err := pm.blockchain.GetSuperBlockInfo()
 	if nil != err {
-		errors.New("get super seq error")
+		return errors.New("get super seq error")
 	}
 	// Execute the Matrix handshake
 	var (
