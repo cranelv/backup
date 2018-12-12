@@ -289,6 +289,10 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 	p.Log().Debug("Matrix peer connected", "name", p.Name())
 
+	sbi, err := pm.blockchain.GetSuperBlockInfo()
+	if nil != err {
+		errors.New("get super seq error")
+	}
 	// Execute the Matrix handshake
 	var (
 		genesis = pm.blockchain.Genesis()
@@ -296,8 +300,8 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		hash    = head.Hash()
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
-		sbs     = pm.blockchain.GetSuperBlockSeq()
-		sbHash  = pm.blockchain.GetSuperBlockNum()
+		sbs     = sbi.Seq
+		sbHash  = sbi.Num
 	)
 	if err := p.Handshake(pm.networkId, td, hash, sbs, genesis.Hash(), sbHash); err != nil {
 		p.Log().Debug("Matrix handshake failed", "err", err)
@@ -468,9 +472,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// the peer's ahead of this, it too must have a reply to the DAO check
 			if daoHeader := pm.blockchain.GetHeaderByNumber(pm.chainconfig.DAOForkBlock.Uint64()); daoHeader != nil {
 				_, td, sbs, _ := p.Head()
-				if sbs > pm.blockchain.GetSuperBlockSeq() {
+				sbs, err := pm.blockchain.GetSuperBlockSeq()
+				if nil != err {
+					p.Log().Error("get super seq error")
+					return nil
+				}
+				if sbs > sbs {
 					verifyDAO = false
-				} else if sbs == pm.blockchain.GetSuperBlockSeq() {
+				} else if sbs == sbs {
 					if td.Cmp(pm.blockchain.GetTd(daoHeader.Hash(), daoHeader.Number.Uint64())) >= 0 {
 						verifyDAO = false
 					}
@@ -780,7 +789,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 // will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
-	sbi := pm.blockchain.GetSuperBlockInfo()
+	sbi, err := pm.blockchain.GetSuperBlockInfo()
+	if nil != err {
+		log.ERROR("get super seq error")
+		return
+	}
 
 	//	peers := pm.peers.PeersWithoutBlock(hash)
 	peers := pm.Peers.PeersWithoutBlock(hash)
@@ -814,8 +827,11 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 
 func (pm *ProtocolManager) AllBroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
-	sbi := pm.blockchain.GetSuperBlockInfo()
-
+	sbi, err := pm.blockchain.GetSuperBlockInfo()
+	if nil != err {
+		log.ERROR("get super seq error")
+		return
+	}
 	//	peers := pm.peers.PeersWithoutBlock(hash)
 	peers := pm.Peers.PeersWithoutBlock(hash)
 

@@ -41,9 +41,13 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
 		return nil
 	}
-	sbh := p.blockChain().GetSuperBlockNum()
 
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
+		sbh, err := p.blockChain().GetSuperBlockNum()
+		if nil != err {
+			log.Error(p.logExtraInfo(), "获取超级区块高度错误", err)
+			return err
+		}
 		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
 		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain(), bcInterval)
@@ -165,7 +169,7 @@ func (p *Process) processHeaderGen() error {
 	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true,p.preBlockHash)
+		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -315,5 +319,5 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	} else {
 		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
-	return p.signHelper().SignVrf(vrfmsg,p.preBlockHash)
+	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
 }

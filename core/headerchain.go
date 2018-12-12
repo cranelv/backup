@@ -314,46 +314,6 @@ func (hc *HeaderChain) GetBlockHashesFromHash(hash common.Hash, max uint64) []co
 	return chain
 }
 
-// GetTd retrieves a block's total difficulty in the canonical chain from the
-// database by hash and number, caching it if found.
-func (hc *HeaderChain) GetSuperBlockSeq() uint64 {
-	// Short circuit if the td's already in the cache, retrieve otherwise
-	//todo:暂时从区块的extra信息读取,后续从状态树读取
-	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
-	if nil == sbi {
-		return 0
-	}
-	return sbi.Seq
-}
-
-func (hc *HeaderChain) GetSuperBlockNum() uint64 {
-	// Short circuit if the td's already in the cache, retrieve otherwise
-	//todo:暂时从区块10  读取超级区块hash
-	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
-	if nil == sbi {
-		return 0
-	}
-
-	return sbi.Num
-}
-
-func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
-	// Short circuit if the td's already in the cache, retrieve otherwise
-	//todo:暂时从区块10  读取超级区块hash
-	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
-	if nil == sbi {
-		return &rawdb.SuperBlockIndexData{0, 0}
-	}
-
-	return sbi
-}
-
-func (hc *HeaderChain) SetSuperBlockInfo(sbi *rawdb.SuperBlockIndexData) {
-	// Short circuit if the td's already in the cache, retrieve otherwise
-	//todo:暂时从区块10  读取超级区块hash
-	rawdb.WriteSuperBlockIndex(hc.chainDb, sbi)
-}
-
 func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	if cached, ok := hc.tdCache.Get(hash); ok {

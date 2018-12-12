@@ -485,7 +485,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) sendVote(validate bool) {
 	signHash := p.curProcessReq.hash
-	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate,p.curProcessReq.req.Header.ParentHash)
+	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate, p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "投票签名失败", err, "高度", p.number)
 		return
@@ -533,7 +533,7 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 }
 
 func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
-	sbh := p.blockChain().GetSuperBlockNum()
+
 	if p.number == 1 {
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		return nil
@@ -551,7 +551,13 @@ func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
 	if p.number < bcInterval.GetBroadcastInterval() {
 		return nil
 	}
+
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
+		sbh, err := p.blockChain().GetSuperBlockNum()
+		if nil != err {
+			log.Error(p.logExtraInfo(), "获取超级区块高度错误", err)
+			return err
+		}
 		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime", "高度", p.number)
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		upTimeAccounts, err := work.GetUpTimeAccounts(p.number, p.blockChain(), bcInterval)

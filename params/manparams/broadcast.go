@@ -159,6 +159,11 @@ func (period *BCInterval) SetLastReelectNumber(number uint64) {
 	period.lastReelectNumber = number
 }
 
+func (period *BCInterval) SetBackupBCInterval(interval uint64, enableNumber uint64) {
+	period.backupEnableNumber = enableNumber
+	period.backupBCInterval = interval
+}
+
 func (period *BCInterval) ToInfoStu() *mc.BCIntervalInfo {
 	return &mc.BCIntervalInfo{
 		LastBCNumber:       period.lastBCNumber,

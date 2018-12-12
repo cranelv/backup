@@ -1,10 +1,14 @@
 package core
 
 import (
+	"bytes"
+	"encoding/binary"
+
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
@@ -45,7 +49,7 @@ type GenesisMState1 struct {
 	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, extra []byte, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -86,6 +90,9 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setBCIntervalToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.SetSuperBlkToState(state, extra, num); err != nil {
 		return err
 	}
 	return nil
@@ -425,13 +432,24 @@ func (g *GenesisMState) setLeaderCfgToState(state *state.StateDB, num uint64) er
 	return matrixstate.SetDataToState(mc.MSKeyLeaderConfig, g.LeaderCfg, state)
 }
 
-func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, header *types.Header) error {
-	//g.MState.SuperBlkCfg = new(mc.SuperBlkCfg)
-	//g.MState.SuperBlkCfg.Hash = header.Hash()
-	//g.MState.SuperBlkCfg.Num = num
-	//return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, g.MState.SuperBlkCfg, state)
-	return nil
+func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, num uint64) error {
+	var superBlkCfg *mc.SuperBlkCfg
+	if num == 0 {
+		superBlkCfg = &mc.SuperBlkCfg{Seq: 0, Num: 0}
+	} else {
+		if len(extra) == 0 {
+			return errors.New("没有配置超级区块配置信息")
+		}
+		var seq uint64
+		buf := bytes.NewBuffer(extra)
+		binary.Read(buf, binary.BigEndian, seq)
+		log.INFO("Geneis", "超级区块序号", seq)
+		superBlkCfg = &mc.SuperBlkCfg{Seq: seq, Num: num}
+	}
+
+	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
 }
+
 func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
@@ -457,13 +475,32 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) e
 		if g.BCICfg.BCInterval < 20 {
 			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.BCICfg.BCInterval)
 		}
-		interval = &mc.BCIntervalInfo{
-			LastBCNumber:       0,
-			LastReelectNumber:  0,
-			BCInterval:         g.BCICfg.BCInterval,
-			BackupEnableNumber: 0,
-			BackupBCInterval:   0,
+		if g.BCICfg.BackupEnableNumber < num {
+			return errors.Errorf("广播周期生效高度(%d)非法, < 当前高度(%d)", g.BCICfg.BackupEnableNumber, num)
 		}
+
+		preData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
+		if err != nil {
+			return errors.Errorf("获取前广播周期数据失败(%v)", err)
+		}
+
+		bcInterval, err := manparams.NewBCIntervalWithInterval(preData)
+		if err != nil {
+			return errors.Errorf("前广播周期数据异常(%v)", err)
+		}
+
+		if bcInterval.GetBroadcastInterval() == g.BCICfg.BackupBCInterval {
+			log.INFO("GenesisMState", "广播周期一致，不配置", g.BCICfg.BackupBCInterval)
+			return nil
+		}
+
+		if bcInterval.IsReElectionNumber(g.BCICfg.BackupBCInterval) {
+			return errors.Errorf("生效高度(%d)必须是选举周期, 上个选举高度(%d), 原广播周期(%d)",
+				g.BCICfg.BackupBCInterval, bcInterval.GetLastReElectionNumber(), bcInterval.GetBroadcastInterval())
+		}
+
+		bcInterval.SetBackupBCInterval(g.BCICfg.BackupBCInterval, g.BCICfg.BackupEnableNumber)
+		interval = bcInterval.ToInfoStu()
 	}
 
 	if interval != nil {

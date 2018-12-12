@@ -17,8 +17,11 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/man/wizard"
 	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/man/wizard"
+
+	"bufio"
+	"encoding/base64"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -35,8 +38,6 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"encoding/base64"
-	"bufio"
 )
 
 var (
@@ -504,8 +505,11 @@ func copyDb(ctx *cli.Context) error {
 	}
 	// Synchronise with the simulated peer
 	start := time.Now()
-
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), hc.GetSuperBlockNum(), syncmode); err != nil {
+	sbs, err := chain.GetSuperBlockNum()
+	if nil != err {
+		return err
+	}
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), sbs, syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {

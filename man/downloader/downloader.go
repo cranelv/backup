@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/consensus"
 
 	"github.com/matrix/go-matrix"
@@ -202,9 +204,9 @@ type BlockChain interface {
 	SetbSendIpfsFlg(bool)
 	GetStoreBlockInfo() *prque.Prque //types.Blocks //(storeBlock types.Blocks)
 
-	GetSuperBlockSeq() uint64
-	GetSuperBlockNum() uint64
-	GetSuperBlockInfo() *rawdb.SuperBlockIndexData
+	GetSuperBlockSeq() (uint64, error)
+	GetSuperBlockNum() (uint64, error)
+	GetSuperBlockInfo() (*mc.SuperBlkCfg, error)
 	DPOSEngine() consensus.DPOSEngine
 
 	GetCurrentHash() common.Hash
@@ -453,8 +455,12 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	}(time.Now())
 
 	// Look up the sync boundaries: the common ancestor and the target block
+	sbs, err := d.blockchain.GetSuperBlockSeq()
+	if nil != err {
+		log.Error("获取超级区块序号错误")
+		return err
+	}
 
-	sbs := d.blockchain.GetSuperBlockSeq()
 	if sbs > pSbs {
 		log.Error("初步验证超级区块序号错误")
 		return errBadPeer
@@ -1387,7 +1393,11 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int, pS
 				// R: Nothing to give
 				if d.mode != LightSync {
 					head := d.blockchain.CurrentBlock()
-					sbs := d.blockchain.GetSuperBlockSeq()
+					sbs, err := d.blockchain.GetSuperBlockSeq()
+					if nil != err {
+						log.Error("获取超级区块序号错误")
+						return err
+					}
 					//if pSbs>sbs{
 					//	log.Error("download blockchain","get superblock err,psBs",pSbs)
 					//	return errStallingPeer
@@ -1407,7 +1417,11 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int, pS
 				// peer gave us something useful, we're already happy/progressed (above check).
 				if d.mode == FastSync || d.mode == LightSync {
 					head := d.lightchain.CurrentHeader()
-					sbs := d.blockchain.GetSuperBlockSeq()
+					sbs, err := d.blockchain.GetSuperBlockSeq()
+					if nil != err {
+						log.Error("获取超级区块序号错误")
+						return err
+					}
 					//if pSbs>sbs{
 					//	log.Error("download lightchain","get superblock err,psBs",pSbs)
 					//	return errStallingPeer

@@ -56,7 +56,7 @@ type ChainReader interface {
 	Genesis() *types.Block
 	GetMatrixStateData(key string) (interface{}, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
-	GetSuperBlockNum() uint64
+	GetSuperBlockNum() (uint64, error)
 }
 
 type StateDB interface {
