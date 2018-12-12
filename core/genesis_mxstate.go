@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"github.com/matrix/go-matrix/params/manparams"
@@ -49,7 +48,7 @@ type GenesisMState1 struct {
 	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, extra []byte, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -92,9 +91,7 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
-	if err := ms.SetSuperBlkToState(state, extra, num); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -437,19 +434,17 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, n
 	if num == 0 {
 		superBlkCfg = &mc.SuperBlkCfg{Seq: 0, Num: 0}
 	} else {
-		if len(extra) == 0 {
+		if len(extra) < 8 {
 			return errors.New("没有配置超级区块配置信息")
 		}
-		var seq uint64
-		buf := bytes.NewBuffer(extra)
-		binary.Read(buf, binary.BigEndian, seq)
+
+		seq := uint64(binary.BigEndian.Uint64(extra[:8]))
 		log.INFO("Geneis", "超级区块序号", seq)
 		superBlkCfg = &mc.SuperBlkCfg{Seq: seq, Num: num}
 	}
 
 	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
 }
-
 func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {

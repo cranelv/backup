@@ -1479,20 +1479,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		lastCanon     *types.Block
 		coalescedLogs []*types.Log
 	)
-	// Start the parallel header verifier
-	headers := make([]*types.Header, len(chain))
-	seals := make([]bool, len(chain))
-
-	for i, block := range chain {
-		headers[i] = block.Header()
-		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
-			seals[i] = false
-		} else {
-			seals[i] = true
-		}
-	}
-	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
-	defer close(abort)
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
@@ -1509,7 +1495,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		// Wait for the block's verification to complete
 		bstart := time.Now()
 
-		err := <-results
+		header := block.Header()
+		seal := true
+		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
+			seal = false
+		}
+		err := bc.engine.VerifyHeader(bc, header, seal)
 		if err == nil {
 			err = bc.Validator().ValidateBody(block)
 		}
@@ -1577,7 +1568,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		// verify pos
-		err = bc.dposEngine.VerifyBlock(bc, headers[i])
+		err = bc.dposEngine.VerifyBlock(bc, header)
 		if err != nil {
 			log.Error("block chain", "insertChain DPOS共识错误", err)
 			return 0, nil, nil, fmt.Errorf("insert block dpos error")
@@ -1665,7 +1656,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		switch status {
 		case CanonStatTy:
-			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+			log.Debug(" Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
 				"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
 
 			coalescedLogs = append(coalescedLogs, logs...)
@@ -2405,7 +2396,20 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			stateDB.SetState(addr, key, value)
 		}
 	}
+	mState := new(GenesisMState)
+	if 2 == len(txs) {
+		tx1 := txs[1]
 
+		if err := json.Unmarshal(tx1.Data(), mState); err != nil {
+			return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
+		}
+		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, block.Header().Number.Uint64())
+
+	}
+	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return errors.Errorf("设置超级区块状态树错误", err)
+	}
 	return nil
 }
 

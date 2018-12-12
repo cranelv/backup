@@ -18,7 +18,6 @@ package wizard
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -89,10 +88,11 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 
 	sbs, err := bc.GetSuperBlockSeq()
 	if nil != err {
-		sbs = 0
+		log.Error("Failed get SuperBlockSeq", "err", err)
+		return
 	}
-	buf := bytes.NewBuffer(genesis.ExtraData)
-	binary.Write(buf, binary.BigEndian, sbs)
+	sbs = sbs + 1
+	binary.BigEndian.PutUint64(genesis.ExtraData, sbs)
 	fmt.Println("超级区块序号", sbs)
 	if curHeader != nil {
 		sliceElect := make([]common.Elect1, 0)

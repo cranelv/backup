@@ -347,11 +347,15 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 		log.Error("genesis", "设置matrix状态树错误", "")
 		return nil
 	}
-	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.ExtraData, g.Number); err != nil {
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)
 		return nil
 	}
 
+	if err := g.MState.SetSuperBlkToState(statedb, g.ExtraData, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
@@ -408,13 +412,16 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		}
 	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.ExtraData, g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
 
 	}
-
+	if err := g.MState.SetSuperBlkToState(stateDB, g.ExtraData, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
 		Nonce:             types.EncodeNonce(g.Nonce),
