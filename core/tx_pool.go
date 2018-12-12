@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"errors"
+	"github.com/matrix/go-matrix/p2p/discover"
 	"math/big"
 	"sync"
 	"time"

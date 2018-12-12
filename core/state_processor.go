@@ -6,10 +6,6 @@ package core
 
 import (
 	"errors"
-	"runtime"
-	"sync"
-
-	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
