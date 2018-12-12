@@ -18,6 +18,7 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -98,7 +99,8 @@ func GetMinHash(hash common.Hash, support baseinterface.RandomChainSupport) comm
 		return common.Hash{}
 	}
 	minhash := hash
-	BroadcastInterval := common.GetBroadcastInterval()
+	bcInterval := manparams.NewBCInterval()
+	BroadcastInterval := bcInterval.GetBroadcastInterval()
 	for i := height - 1; i > height-BroadcastInterval; i-- {
 		TempHash, err := GetHeaderHashByNumber(hash, i, support)
 		if err != nil {
@@ -159,9 +161,10 @@ func GetCurrentKeys(hash common.Hash, support baseinterface.RandomChainSupport) 
 		return nil, errors.New("请求的高度不是广播高度")
 	}
 
-	broadcastInterval := common.GetBroadcastInterval()
+	bcInterval := manparams.NewBCInterval()
+	broadcastInterval := bcInterval.GetBroadcastInterval()
 	height_1 := height / broadcastInterval * broadcastInterval //上一个广播区块
-	height_2 := height_1 - common.GetBroadcastInterval()
+	height_2 := height_1 - bcInterval.GetBroadcastInterval()
 
 	PrivateMap := getKeyTransInfo(hash, height_1, mc.Privatekey, support)
 	PublicMap := getKeyTransInfo(hash, height_2, mc.Publickey, support)

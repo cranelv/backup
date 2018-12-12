@@ -110,6 +110,7 @@ func newKeyManager() *keyManager {
 			mc.MSKeyLotteryCfg:        types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCfg),
 			mc.MSKeySlashCfg:          types.RlpHash(matrixStatePrefix + mc.MSKeySlashCfg),
 			mc.MSKeyMultiCoin:         types.RlpHash(matrixStatePrefix + mc.MSKeyMultiCoin),
+			mc.MSKeySuperBlockCfg:     types.RlpHash(matrixStatePrefix + mc.MSKeySuperBlockCfg),
 		},
 		codecMap: make(map[string]codec),
 	}

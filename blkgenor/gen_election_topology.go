@@ -22,8 +22,8 @@ func (p *Process) genElection(state *state.StateDB) []common.Elect {
 	return p.reElection().TransferToElectionStu(info)
 }
 
-func (p *Process) getNetTopology(num uint64, parentHash common.Hash) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg) {
-	if common.IsReElectionNumber(num + 1) {
+func (p *Process) getNetTopology(num uint64, parentHash common.Hash, bcInterval *manparams.BCInterval) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg) {
+	if bcInterval.IsReElectionNumber(num + 1) {
 		return p.genAllNetTopology(parentHash)
 	}
 

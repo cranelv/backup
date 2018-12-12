@@ -6,8 +6,6 @@ package blkgenor
 import (
 	"math/big"
 
-	"time"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
@@ -18,6 +16,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
+	"time"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -184,9 +183,10 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 	defer p.mu.Unlock()
 
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
-		log.ERROR(p.logExtraInfo(), "矿工挖矿结果入池失败", err, "高度", p.number)
+		//log.ERROR(p.logExtraInfo(), "矿工挖矿结果入池失败", err, "高度", p.number)
 		return
 	}
+	log.INFO(p.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString(), "from", minerResult.From.Hex())
 	p.processMinerResultVerify(p.curLeader, true)
 }
 
@@ -216,7 +216,12 @@ func (p *Process) processMinerResultVerify(leader common.Address, checkState boo
 		return
 	}
 
-	if common.IsBroadcastNumber(p.number) {
+	if p.bcInterval == nil {
+		log.INFO(p.logExtraInfo(), "准备进行挖矿结果验证", "广播周期信息为nil", "高度", p.number)
+		return
+	}
+
+	if p.bcInterval.IsBroadcastNumber(p.number) {
 		log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 		p.dealMinerResultVerifyBroadcast()
 	} else {
@@ -236,6 +241,11 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	if nil == blockData {
 		log.WARN(p.logExtraInfo(), "准备进行挖矿结果验证", "验证区块还未收到！等待验证区块", "高度", p.number, "身份", p.role, "leader", leader.Hex())
 		return
+	}
+
+	root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+	if root != blockData.block.Header.Root {
+		log.Error("hyk_miss_trie_2", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
 	}
 
 	if blockData.state == blockStateLocalVerified {
@@ -263,6 +273,11 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		}
 		blockData.block.Header = p.copyHeader(blockData.block.Header, satisfyResult)
 		blockData.state = blockStateReady
+
+		root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+		if root != blockData.block.Header.Root {
+			log.Error("hyk_miss_trie_3", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
+		}
 	}
 	p.stopMinerPikerTimer()
 	readyMsg := &mc.NewBlockReadyMsg{
@@ -271,6 +286,11 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
+
+	root2, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
+	if root2 != blockData.block.Header.Root {
+		log.Error("hyk_miss_trie_4", "root", blockData.block.Header.Root.TerminalString(), "state root", root2.TerminalString())
+	}
 
 	p.state = StateBlockInsert
 	p.processBlockInsert(p.curLeader)
@@ -282,7 +302,12 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		return
 	}
 
-	if common.IsBroadcastNumber(p.number + 1) {
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
+		return
+	}
+
+	if p.bcInterval.IsBroadcastNumber(p.number + 1) {
 		if p.role != common.RoleBroadcast {
 			log.WARN(p.logExtraInfo(), "准备进行区块插入，广播区块前一个区块，由广播节点插入", p.role.String(), "高度", p.number)
 			return
@@ -387,16 +412,15 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 		insertHeader = header
 	}
 
-	log.Info(p.logExtraInfo(), "++++++NewBlockWithTxs++++++++++,root", blockData.block.Header.Root.Hex())
-
 	txs := blockData.block.Txs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
 	block := types.NewBlockWithTxs(insertHeader, txs)
 
 	root, err := state.Commit(p.pm.bc.Config().IsEIP158(blockData.block.Header.Number))
-
-	log.Info(p.logExtraInfo(), "++++++NewBlockWithTxs++++++++++,commit root", root.Hex())
+	if root != insertHeader.Root {
+		log.Error("hyk_miss_trie_6", "root", insertHeader.Root.TerminalString(), "state root", root.TerminalString())
+	}
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

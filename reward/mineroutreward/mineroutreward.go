@@ -3,6 +3,8 @@ package mineroutreward
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
 
@@ -55,8 +57,12 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 		matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
 		return nil
 	}
-
-	if common.IsBroadcastNumber(num) {
+	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)
+	if err != nil {
+		log.Error(PackageName, "获取广播周期失败", err)
+		return nil
+	}
+	if bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "挖矿奖励高度错误：", num)
 		return nil
 	}
@@ -80,11 +86,11 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 
 	rewards := make(map[common.Address]*big.Int)
 	for i := latestNum + 1; i < num+1; i++ {
-		if common.IsBroadcastNumber(i) {
+		if bcInterval.IsBroadcastNumber(i) {
 			log.WARN(PackageName, "广播区块不发钱：", i)
 			continue
 		}
-		if common.IsBroadcastNumber(i - 1) {
+		if bcInterval.IsBroadcastNumber(i - 1) {
 			coinBase = chain.GetHeaderByNumber(i - 2).Coinbase
 		} else {
 			coinBase = chain.GetHeaderByNumber(i - 1).Coinbase

@@ -3,8 +3,6 @@ package matrixstate
 import (
 	"encoding/json"
 
-	"encoding/binary"
-
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 )
@@ -19,6 +17,9 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
+	self.codecMap[mc.MSKeyMinHash] = new(MSKeyMinHashCodec)
+	self.codecMap[mc.MSKeyPerAllTop] = new(MSKeyPerAllTopCodec)
+	self.codecMap[mc.MSKeyPreMiner] = new(MSKeyPreMinerCodec)
 	self.codecMap[mc.MSKeyLeaderConfig] = new(MSKeyLeaderConfigCodec)
 	self.codecMap[mc.MSKeyBlkRewardCfg] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeyTxsRewardCfg] = new(MSPTxsRewardCfgCodec)
@@ -39,13 +40,23 @@ type BroadcastIntervalCodec struct {
 }
 
 func (BroadcastIntervalCodec) encodeFn(msg interface{}) ([]byte, error) {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, msg.(uint64))
-	return b, nil
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("broadcast interval json.Marshal failed: %s", err)
+	}
+	return data, nil
 }
 
 func (BroadcastIntervalCodec) decodeFn(data []byte) (interface{}, error) {
-	return binary.BigEndian.Uint64(data), nil
+	msg := new(mc.BCIntervalInfo)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("broadcast interval json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("broadcast interval msg is nil")
+	}
+	return msg, nil
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -210,7 +221,7 @@ func (MSPVIPConfigCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPVIPConfigCodec) decodeFn(data []byte) (interface{}, error) {
-msg := new([]mc.VIPConfig)
+	msg := new([]mc.VIPConfig)
 	//msg:=[]mc.VIPConfig{}
 	err := json.Unmarshal(data, msg)
 	if err != nil {
@@ -236,7 +247,7 @@ func (MSPreBroadcastStateDBCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSPreBroadcastStateDBCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.PreBroadStateDB)
+	msg := new(mc.PreBroadStateRoot)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -392,6 +403,52 @@ func (MSPInterestCfgCodec) decodeFn(data []byte) (interface{}, error) {
 	return msg, nil
 }
 
+type MSKeyMinHashCodec struct {
+}
+
+func (MSKeyMinHashCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSKeyMinHashCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.MinHashStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSKeyPerAllTopCodec struct {
+}
+
+func (MSKeyPerAllTopCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSKeyPerAllTopCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.PreAllTopStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
 type MSPSlashCfgCodec struct {
 }
 
@@ -405,6 +462,52 @@ func (MSPSlashCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 
 func (MSPSlashCfgCodec) decodeFn(data []byte) (interface{}, error) {
 	msg := new(mc.SlashCfgStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSPSuperBlkCfgCodec struct {
+}
+
+func (MSPSuperBlkCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSPSuperBlkCfgCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.SuperBlkCfg)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSKeyPreMinerCodec struct {
+}
+
+func (MSKeyPreMinerCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSKeyPreMinerCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.PreMinerStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

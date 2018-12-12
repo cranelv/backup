@@ -200,14 +200,6 @@ func (h *Header) SignAccounts() []common.VerifiedSign {
 	return accounts
 }
 
-func (h *Header) IsBroadcastHeader() bool {
-	return common.IsBroadcastNumber(h.Number.Uint64())
-}
-
-func (h *Header) IsReElectionHeader() bool {
-	return common.IsReElectionNumber(h.Number.Uint64())
-}
-
 func (h *Header) IsSuperHeader() bool {
 	return h.Leader == common.HexToAddress("0x8111111111111111111111111111111111111111")
 }
@@ -430,14 +422,6 @@ func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
 
 func (b *Block) SignAccounts() []common.VerifiedSign {
 	return b.header.SignAccounts()
-}
-
-func (b *Block) IsBroadcastBlock() bool {
-	return b.header.IsBroadcastHeader()
-}
-
-func (b *Block) IsReElectionBlock() bool {
-	return b.header.IsReElectionHeader()
 }
 
 func (b *Block) IsSuperBlock() bool {

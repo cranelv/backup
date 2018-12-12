@@ -99,6 +99,7 @@ type StateReader interface {
 	GetCurrentHash() common.Hash
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
+	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
 }
 
 type DPOSEngine interface {

@@ -14,20 +14,17 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
-
-	Time_Out_Limit        = 2 * time.Second
-	ChanSize              = 10
+	Time_Out_Limit = 2 * time.Second
+	ChanSize       = 10
 )
 
 const (
@@ -245,7 +242,12 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 		log.ERROR(Module, "根据hash获取高度失败 err", err)
 		return []mc.Alternative{}, err
 	}
-	if common.IsReElectionNumber(height + 1) {
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "根据hash获取广播周期信息 err", err)
+		return []mc.Alternative{}, err
+	}
+	if bcInterval.IsReElectionNumber(height + 1) {
 		log.ERROR(Module, "当前是广播区块 无差值", "height", height+1)
 		return []mc.Alternative{}, err
 	}
@@ -277,9 +279,9 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 		return []mc.Alternative{}, err
 	}
 	antive := GetAllNativeDataForUpdate(electState, electOnlineState, TopoGrap)
-	DiffValidatot,err := self.TopoUpdate(antive, TopoGrap)
-	if err!=nil{
-		log.ERROR(Module,"拓扑更新失败 err",err,"高度",height)
+	DiffValidatot, err := self.TopoUpdate(antive, TopoGrap)
+	if err != nil {
+		log.ERROR(Module, "拓扑更新失败 err", err, "高度", height)
 	}
 
 	olineStatus := GetOnlineAlter(offline, online, electOnlineState)
@@ -329,21 +331,26 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	return data, nil
 }
 
-func (self *ReElection)LastMinerGenTimeStamp(height uint64, types common.RoleType) (uint64,error) {
+func (self *ReElection) LastMinerGenTimeStamp(height uint64, types common.RoleType, hash common.Hash) (uint64, error) {
 
-	data,err:=self.GetElectGenTimes(height)
-	if err!=nil{
-		log.ERROR(Module,"获取配置文件失败 err",err)
-		return 0,err
+	data, err := self.GetElectGenTimes(height)
+	if err != nil {
+		log.ERROR(Module, "获取配置文件失败 err", err)
+		return 0, err
 	}
-	minerGenTime:=uint64(data.MinerNetChange)
-	validatorGenTime:=uint64(data.ValidatorNetChange)
+	minerGenTime := uint64(data.MinerNetChange)
+	validatorGenTime := uint64(data.ValidatorNetChange)
 
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "根据hash获取广播周期信息 err", err)
+		return 0, err
+	}
 	switch types {
 	case common.RoleMiner:
-		return common.GetNextReElectionNumber(height) - minerGenTime,nil
+		return bcInterval.GetNextReElectionNumber(height) - minerGenTime, nil
 	default:
-		return common.GetNextReElectionNumber(height) - validatorGenTime,nil
+		return bcInterval.GetNextReElectionNumber(height) - validatorGenTime, nil
 	}
 
 }
@@ -353,9 +360,9 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 		log.ERROR(Module, "根据hash获取高度失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	heightPos,err := self.LastMinerGenTimeStamp(height, types)
-	if err!=nil{
-		log.ERROR(Module,"根据生成点高度失败",height,"types",types)
+	heightPos, err := self.LastMinerGenTimeStamp(height, types, hash)
+	if err != nil {
+		log.ERROR(Module, "根据生成点高度失败", height, "types", types)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
 
@@ -411,7 +418,12 @@ func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, e
 		log.ERROR(Module, "根据hash获取高度失败 err", err)
 		return nil, err
 	}
-	if common.IsReElectionNumber(height + 2) {
+	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
+	if err != nil {
+		log.ERROR(Module, "根据hash获取广播周期信息 err", err)
+		return nil, err
+	}
+	if bcInterval.IsReElectionNumber(height + 2) {
 		masterV, backupV, _, err := self.GetTopNodeInfo(hash, common.RoleValidator)
 		if err != nil {
 			log.ERROR(Module, "获取验证者全拓扑图失败 err", err)
@@ -435,163 +447,4 @@ func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, e
 	}
 	log.Info(Module, "不是广播区间前一块 不处理 height", height)
 	return result, nil
-}
-
-func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	log.INFO(Module, "ProduceElectGraphData", "start", "height", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProduceElectGraphData", "end", "height", block.Header().Number.Uint64())
-	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
-		return nil, err
-	}
-	data, err := readFn(mc.MSKeyElectGraph)
-	log.INFO(Module, "data", data, "err", err)
-	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectGraph, "err", err)
-		return nil, err
-	}
-	electStates, OK := data.(*mc.ElectGraph)
-	if OK == false || electStates == nil {
-		log.ERROR(Module, "ElectStates 非法", "反射失败")
-		return nil, err
-	}
-	electStates.Number = block.Header().Number.Uint64()
-
-	currentHash := block.ParentHash()
-	topState, err := self.HandleTopGen(currentHash)
-	if self.IsMinerTopGenTiming(currentHash) {
-		//electStates.NextElect = []mc.ElectNodeInfo{}
-		electStates.NextElect = append(electStates.NextElect, topState.MastM...)
-		electStates.NextElect = append(electStates.NextElect, topState.BackM...)
-		electStates.NextElect = append(electStates.NextElect, topState.CandM...)
-	}
-	if self.IsValidatorTopGenTiming(currentHash) {
-		electStates.NextElect = append(electStates.NextElect, topState.MastV...)
-		electStates.NextElect = append(electStates.NextElect, topState.BackV...)
-		electStates.NextElect = append(electStates.NextElect, topState.CandV...)
-	}
-	if common.IsReElectionNumber(block.Header().Number.Uint64() + 1) {
-		nextElect := electStates.NextElect
-		electList := []mc.ElectNodeInfo{}
-		for _, v := range nextElect {
-
-			switch v.Type {
-			case common.RoleBackupValidator:
-				electList = append(electList, v)
-			case common.RoleValidator:
-				electList = append(electList, v)
-			case common.RoleMiner:
-				electList = append(electList, v)
-			case common.RoleCandidateValidator:
-				electList = append(electList, v)
-			}
-		}
-		electStates.ElectList = []mc.ElectNodeInfo{}
-		electStates.ElectList = append(electStates.ElectList, electList...)
-		electStates.NextElect = []mc.ElectNodeInfo{}
-	}
-
-	return SloveElectStatus(electStates)
-}
-
-func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
-	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
-		return []byte{}, err
-	}
-	height := block.Header().Number.Uint64()
-
-	if common.IsReElectionNumber(height + 1) {
-		electOnline := mc.ElectOnlineStatus{
-			Number: height,
-		}
-		masterV, backupV, CandV, err := self.GetTopNodeInfo(block.Header().ParentHash, common.RoleValidator)
-		if err != nil {
-			log.ERROR(Module, "获取验证者全拓扑图失败 err", err)
-			return nil, err
-		}
-		for _, v := range masterV {
-			tt := v
-			tt.Position = common.PosOnline
-			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
-		}
-		for _, v := range backupV {
-			tt := v
-			tt.Position = common.PosOnline
-			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
-		}
-		for _, v := range CandV {
-			tt := v
-			tt.Position = common.PosOnline
-			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
-		}
-		return SloveOnlineStatus(&electOnline)
-	}
-
-	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
-	data, err := readFn(mc.MSKeyElectOnlineState)
-	log.INFO(Module, "data", data, "err", err)
-	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectOnlineState, "err", err)
-		return []byte{}, err
-	}
-	electStates, OK := data.(*mc.ElectOnlineStatus)
-	if OK == false || electStates == nil {
-		log.ERROR(Module, "ElectStates 非法", "反射失败")
-		return []byte{}, err
-	}
-	mappStatus := make(map[common.Address]uint16)
-	for _, v := range header.NetTopology.NetTopologyData {
-		switch v.Position {
-		case common.PosOnline:
-			mappStatus[v.Account] = common.PosOnline
-		case common.PosOffline:
-			mappStatus[v.Account] = common.PosOffline
-		}
-	}
-	for k, v := range electStates.ElectOnline {
-		if _, ok := mappStatus[v.Account]; ok == false {
-			continue
-		}
-		electStates.ElectOnline[k].Position = mappStatus[v.Account]
-	}
-
-	return SloveOnlineStatus(electStates)
-}
-
-func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProducePreBroadcastStateData CheckBlock err ", err)
-		return []byte{}, err
-	}
-	height := block.Header().Number.Uint64()
-	if common.IsBroadcastNumber(height-1) == false {
-		return nil, nil
-	}
-	data, err := readFn(mc.MSKeyPreBroadcastRoot)
-	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyPreBroadcastRoot, "err", err)
-		return nil, err
-	}
-	preBroadcast, OK := data.(*mc.PreBroadStateDB)
-	if OK == false || preBroadcast == nil {
-		log.ERROR(Module, "PreBroadStateDB 非法", "反射失败")
-		return nil, err
-	}
-	header := self.bc.GetHeaderByHash(block.ParentHash())
-	if header == nil {
-		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
-		return nil, errors.New("header is nil")
-	}
-	stateDB, err := self.bc.StateAt(header.Root)
-	if err != nil {
-		log.ERROR(Module, "根据高度获取state失败", header.Number.Uint64())
-		return nil, nil
-	}
-	preBroadcast.BeforeLastStateDb = preBroadcast.LastStateDB
-	preBroadcast.LastStateDB = stateDB
-	return preBroadcast, nil
-
 }

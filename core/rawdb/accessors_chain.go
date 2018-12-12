@@ -408,7 +408,7 @@ func ReadSuperBlockIndex(db DatabaseReader) *SuperBlockIndexData {
 
 	data, err := db.Get([]byte("SBLK"))
 	if err != nil {
-		log.Error("ReadSuperBlockIndex ", "err", err)
+		//log.Error("ReadSuperBlockIndex ", "err", err)
 		return nil
 	}
 	if len(data) == 0 {

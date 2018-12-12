@@ -28,7 +28,11 @@ func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
 }
 
 func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
-	if false == common.IsBroadcastNumber(result.Header.Number.Uint64()) {
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "验证广播挖矿结果", "广播周期信息为nil")
+		return false
+	}
+	if false == p.bcInterval.IsBroadcastNumber(result.Header.Number.Uint64()) {
 		log.ERROR(p.logExtraInfo(), "验证广播挖矿结果", "高度不是广播区块高度", "高度", result.Header.Number.Uint64())
 		return false
 	}

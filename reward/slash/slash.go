@@ -3,6 +3,8 @@ package slash
 import (
 	"math/big"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/reward/util"
 
 	"github.com/matrix/go-matrix/mc"
@@ -49,12 +51,25 @@ type BlockSlash struct {
 	chain            ChainReader
 	eleMaxOnlineTime uint64
 	SlashRate        uint64
+	bcInterval       *manparams.BCInterval
+	preElectRoot     common.Hash
+	preElectList     []mc.ElectNodeInfo
 }
 
 func New(chain ChainReader, st util.StateDB) *BlockSlash {
 	StateCfg, err := matrixstate.GetDataByState(mc.MSKeySlashCfg, st)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
+		return nil
+	}
+	intervalData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	if err != nil {
+		log.ERROR(PackageName, "获取广播周期失败", err)
+		return nil
+	}
+	bcInterval, err := manparams.NewBCIntervalWithInterval(intervalData)
+	if err != nil {
+		log.ERROR(PackageName, "创建广播周期数据结构失败", err)
 		return nil
 	}
 	var SlashRate uint64
@@ -64,7 +79,7 @@ func New(chain ChainReader, st util.StateDB) *BlockSlash {
 	} else {
 		SlashRate = StateCfg.(*mc.SlashCfgStruct).SlashRate
 	}
-	return &BlockSlash{chain: chain, eleMaxOnlineTime: (common.GetBroadcastInterval() - 3) * 3, SlashRate: SlashRate} //todo 周期固定3倍关系
+	return &BlockSlash{chain: chain, eleMaxOnlineTime: (bcInterval.GetBroadcastInterval() - 3) * 3, SlashRate: SlashRate, bcInterval: bcInterval} //todo 周期固定3倍关系
 }
 
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64) {
@@ -75,23 +90,33 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		log.INFO(PackageName, "初始化惩罚状态树高度", num)
 		return
 	}
+	if bp.bcInterval.IsBroadcastNumber(num) {
+		log.WARN(PackageName, "广播周期不处理", "")
+		return
+	}
 	//选举周期的开始分配
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeySlashNum, currentState)
 	if nil != err {
 		log.ERROR(PackageName, "状态树获取前一发放惩罚高度错误", err)
 		return
 	}
-	if latestNum >= common.GetLastBroadcastNumber(num-1)+1 {
+	if latestNum > bp.bcInterval.GetLastBroadcastNumber() {
 		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
 		return
 	}
 
 	matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
 	//计算选举的拓扑图的高度
-	if num < common.GetReElectionInterval()+2 {
+	if num < bp.bcInterval.GetReElectionInterval()+2 {
 		eleNum = 0
 	} else {
-		eleNum = common.GetLastReElectionNumber(num-2) - 1
+		// 下一个选举+1
+		if num == bp.bcInterval.GetLastReElectionNumber()+1 {
+			eleNum = bp.bcInterval.GetLastReElectionNumber() - bp.bcInterval.GetReElectionInterval() - 1
+		} else {
+			eleNum = bp.bcInterval.GetLastReElectionNumber()
+		}
+
 	}
 
 	currentElectNodes, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator, eleNum)

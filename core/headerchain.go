@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -217,14 +218,15 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 		if index >= len(seals) {
 			index = len(seals) - 1
 		}
-		if common.IsBroadcastNumber(chain[index].Number.Uint64()) || chain[index].IsSuperHeader() {
+
+		if manparams.IsBroadcastNumberByHash(chain[index].Number.Uint64(), chain[index].ParentHash) || chain[index].IsSuperHeader() {
 			seals[index] = false
 		} else {
 			seals[index] = true
 		}
 	}
 	//todo:状态树
-	if common.IsBroadcastNumber(chain[len(seals)-1].Number.Uint64()) {
+	if manparams.IsBroadcastNumberByHash(chain[len(seals)-1].Number.Uint64(), chain[len(seals)-1].ParentHash) {
 		seals[len(seals)-1] = false
 	} else {
 		seals[len(seals)-1] = true

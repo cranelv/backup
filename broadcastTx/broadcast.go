@@ -10,12 +10,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/internal/manapi"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"time"
 )
 
@@ -78,7 +78,8 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		bType = true
 	}
 	log.Info("=========YY=========11111", "sendBroadCastTransaction:hhhhhhhh", h)
-	h.Quo(h, big.NewInt(int64(common.GetBroadcastInterval())))
+	bcInterval := manparams.NewBCInterval()
+	h.Quo(h, big.NewInt(int64(bcInterval.GetBroadcastInterval())))
 	log.Info("=========YY=========22222", "sendBroadCastTransaction:hhhhhhhh", h)
 	t += h.String()
 	log.Info("=========YY=========33333", "sendBroadCastTransaction:tttttttttt", t)
@@ -98,10 +99,10 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		log.Info("=========YY=========", "sendBroadCastTransaction:SignTx=", err)
 		return err
 	}
-	t2:=time.Since(t1)
+	t2 := time.Since(t1)
 	err1 := bc.manBackend.SendBroadTx(context.Background(), signed, bType)
-	t3:=time.Since(t1)
-	log.Info("File BroadCast","func sendBroadCastTransaction:t2",t2,"t3",t3)
+	t3 := time.Since(t1)
+	log.Info("File BroadCast", "func sendBroadCastTransaction:t2", t2, "t3", t3)
 	log.Info("=========YY=========", "sendBroadCastTransaction:Return=", err1)
 	return nil
 }

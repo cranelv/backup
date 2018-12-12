@@ -159,8 +159,8 @@ func init() {
 		rollbackCommand,
 		genBlockCommand,
 		importSupBlockCommand,
-		sighCommand,
-		sighVersionCommand,
+		signCommand,
+		signVersionCommand,
 		// See monitorcmd.go:
 		monitorCommand,
 		// See accountcmd.go:
