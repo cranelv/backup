@@ -5,9 +5,9 @@ import (
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/log"
 )
 
 const (
@@ -85,51 +85,9 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setLeaderCfgToState(state, num); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (ms *GenesisMState) setSuperBlockMState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
-
-	if err := ms.setElectTime(state, num); err != nil {
+	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
-
-	if err := ms.setElectInfo(state, num); err != nil {
-		return err
-	}
-
-	if err := ms.setTopologyToState(state, netTopology, num); err != nil {
-		return err
-	}
-
-	if err := ms.setElectToState(state, elect, num); err != nil {
-		return err
-	}
-	if err := ms.setSpecialNodeToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setBlkRewardCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setTxsRewardCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setLotteryCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setInterestCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setSlashCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setVIPCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setLeaderCfgToState(state, num); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -474,22 +432,38 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, header *types.H
 	//return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, g.MState.SuperBlkCfg, state)
 	return nil
 }
-func (g *Genesis) setBCIntervalToState(state *state.StateDB) error {
+func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
-	if g.Number == 0 {
-		if g.MState.BCICfg.BCInterval < 20 {
-			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.MState.BCICfg.BCInterval)
+	if num == 0 {
+		if nil == g.BCICfg {
+			return errors.New("广播周期配置信息为nil")
+		}
+		if g.BCICfg.BCInterval < 20 {
+			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.BCICfg.BCInterval)
 		}
 
 		interval = &mc.BCIntervalInfo{
 			LastBCNumber:       0,
 			LastReelectNumber:  0,
-			BCInterval:         g.MState.BCICfg.BCInterval,
+			BCInterval:         g.BCICfg.BCInterval,
 			BackupEnableNumber: 0,
 			BackupBCInterval:   0,
 		}
 	} else {
-		// todo 超级区块改广播周期
+		if nil == g.BCICfg {
+			log.INFO("Geneis", "没有配置广播周期配置信息", "")
+			return nil
+		}
+		if g.BCICfg.BCInterval < 20 {
+			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.BCICfg.BCInterval)
+		}
+		interval = &mc.BCIntervalInfo{
+			LastBCNumber:       0,
+			LastReelectNumber:  0,
+			BCInterval:         g.BCICfg.BCInterval,
+			BackupEnableNumber: 0,
+			BackupBCInterval:   0,
+		}
 	}
 
 	if interval != nil {
@@ -497,4 +471,3 @@ func (g *Genesis) setBCIntervalToState(state *state.StateDB) error {
 	}
 	return nil
 }
-

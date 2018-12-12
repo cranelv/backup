@@ -408,7 +408,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		}
 	}
 	if nil != g.MState {
-		if err := g.MState.setSuperBlockMState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
