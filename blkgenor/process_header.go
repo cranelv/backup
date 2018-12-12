@@ -41,8 +41,7 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
 		return nil
 	}
-	sbh := p.blockChain().GetSuperBlockHash()
-	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()
+	sbh := p.blockChain().GetSuperBlockNum()
 
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
@@ -53,8 +52,8 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 			return err
 		}
 		//在上一个广播周期中插入超级区块
-		if sbn < bcInterval.GetLastBroadcastNumber() &&
-			sbn >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
 			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
 		} else {
 			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)

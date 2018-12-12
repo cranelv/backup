@@ -297,7 +297,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 		sbs     = pm.blockchain.GetSuperBlockSeq()
-		sbHash  = pm.blockchain.GetSuperBlockHash()
+		sbHash  = pm.blockchain.GetSuperBlockNum()
 	)
 	if err := p.Handshake(pm.networkId, td, hash, sbs, genesis.Hash(), sbHash); err != nil {
 		p.Log().Debug("Matrix handshake failed", "err", err)
@@ -798,7 +798,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		// Send the block to a subset of our peers
 		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
 		for _, peer := range transfer {
-			peer.AsyncSendNewBlock(block, td, sbi.BlockHash, sbi.Seq)
+			peer.AsyncSendNewBlock(block, td, sbi.Num, sbi.Seq)
 		}
 		log.Trace("Propagated block", "hash", hash, "recipients", len(transfer), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 		return
@@ -831,7 +831,7 @@ func (pm *ProtocolManager) AllBroadcastBlock(block *types.Block, propagate bool)
 		}
 		// Send the block to a subset of our peers
 		for _, peer := range peers {
-			peer.AsyncSendNewBlock(block, td, sbi.BlockHash, sbi.Seq)
+			peer.AsyncSendNewBlock(block, td, sbi.Num, sbi.Seq)
 		}
 		log.Trace("Propagated block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 		return

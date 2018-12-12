@@ -238,6 +238,8 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		log.ERROR("BlockChain", "订阅CA请求当前区块事件失败", err)
 	}
 
+	manparams.SetStateReader(bc)
+
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
@@ -1347,8 +1349,7 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
 		return nil
 	}
-	sbh := bc.GetSuperBlockHash()
-	sbn := bc.GetBlockByHash(sbh).Number().Uint64()
+	sbh := bc.GetSuperBlockNum()
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		log.INFO("blockchain", "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
@@ -1357,8 +1358,8 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) er
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
 		}
-		if sbn < bcInterval.GetLastBroadcastNumber() &&
-			sbn >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
 			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
 		} else {
 			calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
@@ -2048,8 +2049,8 @@ func (bc *BlockChain) GetSuperBlockSeq() uint64 {
 	return bc.hc.GetSuperBlockSeq()
 }
 
-func (bc *BlockChain) GetSuperBlockHash() common.Hash {
-	return bc.hc.GetSuperBlockHash()
+func (bc *BlockChain) GetSuperBlockNum() uint64 {
+	return bc.hc.GetSuperBlockNum()
 }
 
 func (bc *BlockChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
@@ -2299,10 +2300,13 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
 	}
-
-	if block.Hash() == bc.GetSuperBlockHash() {
-		log.WARN("blockchain", "eth same super block", "")
-		return block, nil
+	sbh := bc.GetSuperBlockNum()
+	superBlock := bc.GetBlockByNumber(sbh)
+	if nil != superBlock {
+		if block.Hash() == superBlock.Hash() {
+			log.WARN("blockchain", "has the same super block", "")
+			return block, nil
+		}
 	}
 
 	if block.Header().SuperBlockSeq() <= bc.GetSuperBlockSeq() {
@@ -2361,10 +2365,10 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	// todo 修改state树
-	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash: block.Hash(), Seq: block.Header().SuperBlockSeq()})
+	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{Num: block.NumberU64(), Seq: block.Header().SuperBlockSeq()})
 	return nil
 	// todo 修改state树
-	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{BlockHash: block.Hash(), Seq: block.Header().SuperBlockSeq()})
+	bc.SetSuperBlockInfo(&rawdb.SuperBlockIndexData{Num: block.NumberU64(), Seq: block.Header().SuperBlockSeq()})
 	return nil
 }
 

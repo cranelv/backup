@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package rawdb contains a collection of low level database accessors.
 package rawdb
@@ -75,6 +74,6 @@ func encodeBlockNumber(number uint64) []byte {
 }
 
 type SuperBlockIndexData struct {
-	BlockHash common.Hash
+	Num uint64
 	Seq uint64
 }

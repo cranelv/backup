@@ -533,8 +533,7 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 }
 
 func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
-	sbh := p.blockChain().GetSuperBlockHash()
-	sbn := p.blockChain().GetBlockByHash(sbh).Number().Uint64()
+	sbh := p.blockChain().GetSuperBlockNum()
 	if p.number == 1 {
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
 		return nil
@@ -560,8 +559,8 @@ func (p *Process) processUpTime(work *matrixwork.Work, hash common.Hash) error {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", p.number)
 			return err
 		}
-		if sbn < bcInterval.GetLastBroadcastNumber() &&
-			sbn >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
 			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
 		} else {
 			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(hash)

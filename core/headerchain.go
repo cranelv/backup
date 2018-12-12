@@ -21,7 +21,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -212,28 +211,29 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 		return 0, err
 	}*/
 	// Generate the list of seal verification requests, and start the parallel verifier
-	seals := make([]bool, len(chain))
-	for i := 0; i < len(seals)/checkFreq; i++ {
-		index := i*checkFreq + hc.rand.Intn(checkFreq)
-		if index >= len(seals) {
-			index = len(seals) - 1
-		}
-
-		if manparams.IsBroadcastNumberByHash(chain[index].Number.Uint64(), chain[index].ParentHash) || chain[index].IsSuperHeader() {
-			seals[index] = false
-		} else {
-			seals[index] = true
-		}
-	}
-	//todo:状态树
-	if manparams.IsBroadcastNumberByHash(chain[len(seals)-1].Number.Uint64(), chain[len(seals)-1].ParentHash) {
-		seals[len(seals)-1] = false
-	} else {
-		seals[len(seals)-1] = true
-	}
-	//seals[len(seals)-1] = true // Last should always be verified to avoid junk
-	abort, results := hc.engine.VerifyHeaders(hc, chain, seals)
-	defer close(abort)
+	//todo 目前头链无法验证POW，广播周期在状态树中
+	//seals := make([]bool, len(chain))
+	//for i := 0; i < len(seals)/checkFreq; i++ {
+	//	index := i*checkFreq + hc.rand.Intn(checkFreq)
+	//	if index >= len(seals) {
+	//		index = len(seals) - 1
+	//	}
+	//
+	//	if manparams.IsBroadcastNumberByHash(chain[index].Number.Uint64(), chain[index].ParentHash) || chain[index].IsSuperHeader() {
+	//		seals[index] = false
+	//	} else {
+	//		seals[index] = true
+	//	}
+	//}
+	////todo:状态树
+	//if manparams.IsBroadcastNumberByHash(chain[len(seals)-1].Number.Uint64(), chain[len(seals)-1].ParentHash) {
+	//	seals[len(seals)-1] = false
+	//} else {
+	//	seals[len(seals)-1] = true
+	//}
+	////seals[len(seals)-1] = true // Last should always be verified to avoid junk
+	//abort, results := hc.engine.VerifyHeaders(hc, chain, seals)
+	//defer close(abort)
 
 	// Iterate over the headers and ensure they all check out
 	for i, header := range chain {
@@ -247,9 +247,9 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 			return i, ErrBlacklistedHash
 		}
 		// Otherwise wait for headers checks and ensure they pass
-		if err := <-results; err != nil {
-			return i, err
-		}
+		//if err := <-results; err != nil {
+		//	return i, err
+		//}
 	}
 
 	return 0, nil
@@ -326,15 +326,15 @@ func (hc *HeaderChain) GetSuperBlockSeq() uint64 {
 	return sbi.Seq
 }
 
-func (hc *HeaderChain) GetSuperBlockHash() common.Hash {
+func (hc *HeaderChain) GetSuperBlockNum() uint64 {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	//todo:暂时从区块10  读取超级区块hash
 	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
 	if nil == sbi {
-		return hc.genesisHeader.Hash()
+		return 0
 	}
 
-	return sbi.BlockHash
+	return sbi.Num
 }
 
 func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
@@ -342,7 +342,7 @@ func (hc *HeaderChain) GetSuperBlockInfo() *rawdb.SuperBlockIndexData {
 	//todo:暂时从区块10  读取超级区块hash
 	sbi := rawdb.ReadSuperBlockIndex(hc.chainDb)
 	if nil == sbi {
-		return &rawdb.SuperBlockIndexData{hc.genesisHeader.Hash(), 0}
+		return &rawdb.SuperBlockIndexData{0, 0}
 	}
 
 	return sbi
