@@ -20,7 +20,9 @@ func ValNodesSelected(probVal []Stf, seed int64, M int, P int, J int) ([]Strally
 	// 计算所有剩余节点的股权RemainingProbNormalizedNodes
 	//fmt.Println("PricipalValNodes", len(PricipalValNodes))
 	RemainingValNodes := CalcRemainingNodesVotes(RemainingProbNormalizedNodes)
-
+	//fmt.Println("111",PricipalValNodes)
+	//fmt.Println("222",BakValNodes)
+	//fmt.Println("333",RemainingProbNormalizedNodes)
 	// 基金会节点加入验证主节点列表
 	// 如果验证主节点不足N个,使用剩余节点列表补足M-J个
 	for len(PricipalValNodes) < M-J && len(RemainingValNodes) > 0 {
@@ -280,7 +282,7 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 
 	// 如果当选节点超过M-J,最多连续进行1000次采样或者选出M+P-J个节点
 	rand := mt19937.RandUniformInit(seed)
-
+	
 	for i := 0; i < MaxSample; i++ {
 		node := Sample1NodesInValNodes(probnormalized, float64(rand.Uniform(0.0, 1.0)))
 
@@ -288,6 +290,7 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
+		//	fmt.Println("node",node.Big().Uint64())
 			dict[node] = 1
 		}
 
@@ -295,9 +298,11 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 			break
 		}
 	}
+	//fmt.Println("dict",dict)
 	for _, item := range probnormalized {
 		_, ok := dict[item.Addr]
 		if ok == false {
+		//	fmt.Println("---------------")
 			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
 		} else {
 			PricipalValNodes = append(PricipalValNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
