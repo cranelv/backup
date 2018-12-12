@@ -136,9 +136,9 @@ func (period *BCInterval) GetNextReElectionNumber(number uint64) uint64 {
 		return period.lastReelectNumber
 	}
 
-	bcCountAfterReelect := (number - period.lastBCNumber) / period.bcInterval
+	bcCountAfterReelect := (number - period.lastReelectNumber) / period.bcInterval
 	NextReelectCount := bcCountAfterReelect/ReelectionTimes + 1
-	return (NextReelectCount*ReelectionTimes)*period.bcInterval + period.lastBCNumber
+	return (NextReelectCount*ReelectionTimes)*period.bcInterval + period.lastReelectNumber
 }
 
 func (period *BCInterval) GetBackupEnableNumber() uint64 {
