@@ -34,7 +34,7 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 	return &ProcessManage{
 		curNumber:  0,
 		processMap: make(map[uint64]*Process),
-		votePool:   votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
+		votePool:   votepool.NewVotePool(matrix.SignHelper(),common.RoleValidator, "区块验证服务票池"),
 		hd:         matrix.HD(),
 		signHelper: matrix.SignHelper(),
 		bc:         matrix.BlockChain(),

@@ -18,6 +18,7 @@ import (
 
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/man/wizard"
+	"github.com/matrix/go-matrix/crypto/aes"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -34,6 +35,8 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
+	"encoding/base64"
+	"bufio"
 )
 
 var (
@@ -262,6 +265,18 @@ This is a destructive action and changes the network in which you will be
 participating.
 
 It expects the genesis file as argument.`,
+	}
+	AesEncryptCommand = cli.Command{
+		Action:    utils.MigrateFlags(aesEncrypt),
+		Name:      "aes",
+		Usage:     "encrypt  a file",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.AesInputFlag,
+			utils.AesOutputFlag,
+		},
+		Category:    "aes commands",
+		Description: "aes commit",
 	}
 )
 
@@ -772,4 +787,94 @@ func signVersion(ctx *cli.Context) error {
 	}
 	fmt.Println("Exported sign  version to ", pathSplit[0]+"VersionSigned.json")
 	return nil
+}
+
+func aesEncrypt(ctx *cli.Context) error {
+	fmt.Println(ctx.Args())
+	var path string
+	path = ctx.GlobalString(utils.AesInputFlag.Name)
+	fmt.Println("AesInputFlag", path)
+	JsonParse := NewJsonStruct()
+	fileValue := []EntrustInfo{}
+	JsonParse.Load(path, &fileValue)
+
+	dataV, err := json.Marshal(fileValue)
+	if err != nil {
+		return errors.New("对文本内容进行Marshal失败")
+	}
+	entrustPassword, err := ReadPassword()
+	if err != nil {
+		return err
+	}
+	fmt.Println("密码是", entrustPassword)
+	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
+	if err != nil {
+		return errors.New("加密失败")
+	}
+	pass64 := base64.StdEncoding.EncodeToString(xpass)
+	fmt.Println("加密后", pass64)
+
+	path = ctx.GlobalString(utils.AesOutputFlag.Name)
+	//写入文件
+	err = ioutil.WriteFile(path, []byte(pass64), 0666)
+	fmt.Println("写文件状态", err)
+
+	//fmt.Println("AesOutputFlag", path)
+
+	return nil
+}
+
+func CheckPassword(password string) bool {
+	if len(password) == 16 {
+		return true
+	}
+	fmt.Println("你的密码不符合规则 请重新输入", "密码", password, "密码长度", len(password))
+	return false
+}
+func ReadPassword() (string, error) {
+	ans := ""
+	reader := bufio.NewReader(os.Stdin)
+
+	for true {
+		fmt.Println("请输入你的委托交易密码 密码暂定需要16位")
+		data, _, _ := reader.ReadLine()
+		if CheckPassword(string(data)) {
+			ans = string(data)
+			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
+			status, _, _ := reader.ReadLine()
+			if string(status) == "y" {
+				break
+			}
+
+		}
+	}
+
+	return ans, nil
+}
+
+type EntrustInfo struct {
+	Address  common.Address
+	Password string
+}
+
+type JsonStruct struct {
+}
+
+func NewJsonStruct() *JsonStruct {
+	return &JsonStruct{}
+}
+
+func (jst *JsonStruct) Load(filename string, v interface{}) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("读取通用配置文件失败 err", err, "file", filename)
+		os.Exit(-1)
+		return
+	}
+	err = json.Unmarshal(data, v)
+	if err != nil {
+		fmt.Println("通用配置文件数据获取失败 err", err)
+		os.Exit(-1)
+		return
+	}
 }

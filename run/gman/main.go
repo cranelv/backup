@@ -57,6 +57,8 @@ var (
 		utils.BootnodesV4Flag,
 		utils.BootnodesV5Flag,
 		utils.DataDirFlag,
+		utils.AesInputFlag,
+		utils.AesOutputFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
 		utils.DashboardEnabledFlag,
@@ -179,6 +181,7 @@ func init() {
 		// See config.go
 		dumpConfigCommand,
 		CommitCommand,
+		AesEncryptCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -238,8 +241,7 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 
 	// Start up the node itself
 	utils.StartNode(stack)
-	mapp := utils.MakeEntrustPassword(ctx)
-	fmt.Println("委托交易mapp", mapp, "len", len(mapp))
+	//utils.SetEntrustPassword(ctx) //设置委托交易账户
 
 	// Unlock any account specifically requested
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -315,6 +317,7 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 		utils.Fatalf("Matrix service not running :%v", err)
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
+	//log.INFO("BoradCastNode", "data", manparams.BroadCastNodes)
 	log.Info("main", "nodeid", stack.Server().Self().ID.String())
 	log.INFO("创世文件选举信息", "data", matrix.BlockChain().GetBlockByNumber(0).Header().Elect)
 	log.INFO("创世文件拓扑图", "data", matrix.BlockChain().GetBlockByNumber(0).Header().NetTopology)

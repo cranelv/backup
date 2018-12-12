@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/crypto"
+	//"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
 
-	"sync"
+	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/params/manparams"
+	"sync"
 )
 
 type voteInfo struct {
@@ -33,9 +34,10 @@ type VotePool struct {
 	legalRole             common.RoleType                              // 合法的角色
 	logInfo               string
 	mu                    sync.RWMutex
+	signhelper            *signhelper.SignHelper
 }
 
-func NewVotePool(legalRole common.RoleType, logInfo string) *VotePool {
+func NewVotePool(signHelper *signhelper.SignHelper, legalRole common.RoleType, logInfo string) *VotePool {
 	return &VotePool{
 		voteMap:               make(map[common.Address]map[common.Hash]*voteInfo),
 		timeIndex:             list.New(),
@@ -43,11 +45,13 @@ func NewVotePool(legalRole common.RoleType, logInfo string) *VotePool {
 		AccountVoteCountLimit: manparams.VotePoolCountLimit,
 		legalRole:             legalRole,
 		logInfo:               logInfo,
+		signhelper:            signHelper,
 	}
 }
 
 func (vp *VotePool) AddVote(signHash common.Hash, sign common.Signature, fromAccount common.Address, height uint64, verifyFrom bool) error {
-	signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
+	//signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
+	signAccount, validate, err := vp.signhelper.VerifySignWithValidateDependNumber(signHash.Bytes(), sign.Bytes(), height-1)
 	if err != nil {
 		return err
 	}

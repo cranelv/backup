@@ -101,7 +101,12 @@ func (p *Process) verifyVrf(header *types.Header) error {
 	}
 
 	ans := crypto.PubkeyToAddress(*pk1_1)
-	if ans.Equal(header.Leader) {
+
+	PreHeader := p.blockChain().GetHeaderByHash(header.ParentHash)
+	stateDb, err := p.blockChain().StateAt(PreHeader.Root)
+	SignAddr, _, err := p.blockChain().GetEntrustSignInfo(header.Number.Uint64()-1, header.Leader, stateDb)
+	log.ERROR("5555555", "高度", header.Number.Uint64()-1, "header.Leader", header.Leader.String(), "SignAddr", SignAddr)
+	if ans.Equal(SignAddr) {
 		log.Error("vrf leader comparre", "与leader不匹配", "nil")
 		return nil
 	}
