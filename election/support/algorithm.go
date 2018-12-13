@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/election/support/mt19937"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
+	"math"
 )
 
 //func (Ele *Elector) ValNodesSelected(probVal []Stf, seed int64) ([]Strallyint, []Strallyint, []Strallyint) {
@@ -55,10 +56,6 @@ type pnormalized struct {
 	Addr  common.Address
 }
 
-type Strallyint struct {
-	Value  int
-	Addr  common.Address
-}
 
 
 func Normalize(probVal []Stf) []pnormalized {
