@@ -82,7 +82,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 			Leader:         common.Address{},
 			NextLeader:     common.Address{},
 			Number:         number,
-			ConsensusTurn:  0,
+			ConsensusTurn:  mc.ConsensusTurnInfo{},
 			ReelectTurn:    0,
 			TurnBeginTime:  0,
 			TurnEndTime:    0,
@@ -165,7 +165,7 @@ func (p *Process) stopProcess() {
 	p.closeMineReqMsgSender()
 	p.leaderCache.Leader.Set(common.Address{})
 	p.leaderCache.NextLeader.Set(common.Address{})
-	p.leaderCache.ConsensusTurn = 0
+	p.leaderCache.ConsensusTurn = mc.ConsensusTurnInfo{}
 	p.leaderCache.ReelectTurn = 0
 	p.leaderCache.TurnBeginTime = 0
 	p.leaderCache.TurnEndTime = 0

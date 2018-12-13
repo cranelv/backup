@@ -78,7 +78,7 @@ func (cm *ControllerManager) fixCtrlMap() {
 
 	delKeys := make([]uint64, 0)
 	for key, ctrl := range cm.ctrlMap {
-		if key < cm.curNumber {
+		if err := cm.isLegalNumber(key); err != nil {
 			ctrl.Close()
 			delKeys = append(delKeys, key)
 		}
@@ -95,7 +95,7 @@ func (cm *ControllerManager) isLegalNumber(number uint64) error {
 	if number < cm.curNumber {
 		return errors.Errorf("number(%d) is less than current number(%d)", number, cm.curNumber)
 	}
-	if number > cm.curNumber+2 {
+	if number > cm.curNumber+mangerCacheMax {
 		return errors.Errorf("number(%d) is too big than current number(%d)", number, cm.curNumber)
 	}
 	return nil

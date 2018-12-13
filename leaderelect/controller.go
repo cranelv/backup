@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"strconv"
-	"sync"
 )
 
 type controller struct {
@@ -22,18 +21,21 @@ type controller struct {
 	selfCache    *masterCache
 	msgCh        chan interface{}
 	quitCh       chan struct{}
-	mu           sync.Mutex
 	logInfo      string
 }
 
 func newController(matrix Matrix, logInfo string, number uint64) *controller {
+	if number < 1 {
+		log.ERROR(logInfo, "创建controller失败", "number < 1", "number", number)
+		return nil
+	}
 	ctrller := &controller{
 		timer:        time.NewTimer(time.Minute),
 		reelectTimer: time.NewTimer(time.Minute),
 		matrix:       matrix,
 		dc:           newCDC(number, matrix.BlockChain(), logInfo),
 		mp:           newMsgPool(),
-		selfCache:    newMasterCache(number,matrix),
+		selfCache:    newMasterCache(number),
 		msgCh:        make(chan interface{}, 10),
 		quitCh:       make(chan struct{}),
 		logInfo:      logInfo,
@@ -59,7 +61,7 @@ func (self *controller) State() stateDef {
 	return self.dc.state
 }
 
-func (self *controller) ConsensusTurn() uint32 {
+func (self *controller) ConsensusTurn() mc.ConsensusTurnInfo {
 	return self.dc.curConsensusTurn
 }
 
@@ -121,5 +123,5 @@ func (self *controller) setTimer(outTime int64, timer *time.Timer) {
 }
 
 func (self *controller) curTurnInfo() string {
-	return "共识轮次(" + strconv.Itoa(int(self.dc.curConsensusTurn)) + ")&重选轮次(" + strconv.Itoa(int(self.dc.curReelectTurn)) + ")"
+	return "共识轮次(" + self.dc.curConsensusTurn.String() + ")&重选轮次(" + strconv.Itoa(int(self.dc.curReelectTurn)) + ")"
 }

@@ -190,7 +190,7 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 		// 提前设置下个process的leader
 		nextProcess, err := self.pm.GetProcess(number + 1)
 		if err == nil {
-			nextProcess.SetCurLeader(leaderMsg.NextLeader, 0)
+			nextProcess.SetCurLeader(leaderMsg.NextLeader, mc.ConsensusTurnInfo{})
 		}
 	} else {
 		process.ReInit()

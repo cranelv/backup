@@ -17,7 +17,7 @@ type messageCheck struct {
 	leaderCache   []*mc.LeaderChangeNotify
 	capacity      int
 	last          int
-	blockHash common.Hash
+	blockHash     common.Hash
 }
 
 func newMessageCheck(capacity int) *messageCheck {
@@ -50,7 +50,7 @@ func (chk *messageCheck) CheckAndSaveLeaderChangeNotify(msg *mc.LeaderChangeNoti
 
 	chk.mu.Lock()
 	defer chk.mu.Unlock()
-	switch cmpRound(chk.curNumber, chk.curLeaderTurn, msg.Number, msg.ConsensusTurn) {
+	switch cmpRound(chk.curNumber, chk.curLeaderTurn, msg.Number, msg.ConsensusTurn.TotalTurns()) {
 	case 1: // cur > msg
 		return false
 	case -1: // cur < msg
@@ -127,7 +127,7 @@ func (chk *messageCheck) getLeader(number uint64, turn uint32) common.Address {
 		if msg == nil {
 			continue
 		}
-		if msg.Number == number && msg.ConsensusTurn == turn {
+		if msg.Number == number && msg.ConsensusTurn.TotalTurns() == turn {
 			return msg.Leader
 		}
 	}

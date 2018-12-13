@@ -169,3 +169,33 @@ func (os OnlineState) String() string {
 		return strconv.Itoa(int(os))
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+func (info *ConsensusTurnInfo) String() string {
+	return "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
+}
+
+func (info *ConsensusTurnInfo) TotalTurns() uint32 {
+	return info.PreConsensusTurn + info.UsedReelectTurn
+}
+
+// if < target, return -1
+// if == target, return 0
+// if > target, return 1
+func (info *ConsensusTurnInfo) Cmp(target ConsensusTurnInfo) int64 {
+	if *info == target {
+		return 0
+	}
+
+	if info.TotalTurns() < target.TotalTurns() {
+		return -1
+	} else if info.TotalTurns() > target.TotalTurns() {
+		return 1
+	} else {
+		if info.PreConsensusTurn < target.PreConsensusTurn {
+			return -1
+		} else {
+			return 1
+		}
+	}
+}
