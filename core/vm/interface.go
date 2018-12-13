@@ -18,6 +18,7 @@ type StateDB interface {
 	SubBalance(uint32, common.Address, *big.Int)
 	AddBalance(uint32, common.Address, *big.Int)
 	GetBalance(common.Address) common.BalanceType
+	GetBalanceByType(addr common.Address,accType uint32) *big.Int
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
