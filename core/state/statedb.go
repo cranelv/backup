@@ -1133,9 +1133,10 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 
 	for hash,val := range s.matrixData{
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty{
-			s.updateMatrixData(hash,val)
+		if !isDirty{
+			continue
 		}
+		s.updateMatrixData(hash,val)
 		delete(s.matrixDataDirty,hash)
 	}
 	s.CommitSaveTx()
