@@ -8,10 +8,10 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	//"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"time"
-	"github.com/matrix/go-matrix/accounts/signhelper"
 )
 
 type masterCache struct {
@@ -27,7 +27,7 @@ type masterCache struct {
 	resultBroadcastHash   common.Hash
 	resultBroadcastMsg    *mc.HD_ReelectResultBroadcastMsg
 	resultRspCache        map[common.Address]*common.VerifiedSign
-	SignHelper *signhelper.SignHelper
+	SignHelper            *signhelper.SignHelper
 }
 
 func newMasterCache(number uint64, matrix Matrix) *masterCache {
@@ -101,13 +101,16 @@ func (self *masterCache) CheckInquiryRspMsg(rsp *mc.HD_ReelectInquiryRspMsg) err
 	return nil
 }
 
-func (self *masterCache) SaveInquiryAgreeSign(reqHash common.Hash, sign common.Signature, from common.Address) error {
+func (self *masterCache) SaveInquiryAgreeSign(reqHash common.Hash, sign common.Signature, from common.Address, cdc *cdc) error {
+	if cdc == nil || cdc.leaderCal == nil {
+		return ErrCDCisNil
+	}
 	if _, exist := self.inquiryAgreeSignCache[from]; exist {
 		return errors.Errorf("来自(%s)的签名已存在!", from.Hex())
 	}
-	//signAccount, validate, err := crypto.VerifySignWithValidate(reqHash.Bytes(), sign.Bytes())
 
-	signAccount, validate, err := self.SignHelper.VerifySignWithValidateDependNumber(reqHash.Bytes(), sign.Bytes(), self.number-1)
+	//signAccount, validate, err := crypto.VerifySignWithValidate(reqHash.Bytes(), sign.Bytes())
+	signAccount, validate, err := self.SignHelper.VerifySignWithValidateByReader(cdc, reqHash.Bytes(), sign.Bytes(), cdc.leaderCal.preHash)
 	if err != nil {
 		return errors.Errorf("签名解析错误(%v)", err)
 	}
@@ -203,7 +206,10 @@ func (self *masterCache) GetRLReqMsg() (*mc.HD_ReelectLeaderReqMsg, common.Hash,
 	return self.rlReqMsg, self.rlReqHash, nil
 }
 
-func (self *masterCache) SaveRLVote(signHash common.Hash, sign common.Signature, from common.Address) error {
+func (self *masterCache) SaveRLVote(signHash common.Hash, sign common.Signature, from common.Address, cdc *cdc) error {
+	if cdc == nil || cdc.leaderCal == nil {
+		return ErrCDCisNil
+	}
 	if (self.rlReqHash == common.Hash{}) {
 		return ErrSelfReqIsNil
 	}
@@ -214,7 +220,7 @@ func (self *masterCache) SaveRLVote(signHash common.Hash, sign common.Signature,
 		return errors.Errorf("来自(%s)的签名已存在", from.Hex())
 	}
 	//signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
-	signAccount, validate, err := self.SignHelper.VerifySignWithValidateDependNumber(signHash.Bytes(), sign.Bytes(), self.number-1)
+	signAccount, validate, err := self.SignHelper.VerifySignWithValidateByReader(cdc, signHash.Bytes(), sign.Bytes(), cdc.leaderCal.preHash)
 	if err != nil {
 		return errors.Errorf("签名解析错误(%v)", err)
 	}
@@ -254,7 +260,11 @@ func (self *masterCache) GetLocalResultMsg() (*mc.HD_ReelectResultBroadcastMsg, 
 	return self.resultBroadcastMsg, nil
 }
 
-func (self *masterCache) SaveResultRsp(resultHash common.Hash, sign common.Signature, from common.Address) error {
+func (self *masterCache) SaveResultRsp(resultHash common.Hash, sign common.Signature, from common.Address, cdc *cdc) error {
+	if cdc == nil || cdc.leaderCal == nil {
+		return ErrCDCisNil
+	}
+
 	if (self.resultBroadcastHash == common.Hash{}) {
 		return ErrBroadcastIsNil
 	}
@@ -265,7 +275,7 @@ func (self *masterCache) SaveResultRsp(resultHash common.Hash, sign common.Signa
 		return errors.Errorf("响应已存在, from[%v]", from)
 	}
 	//signAccount, validate, err := crypto.VerifySignWithValidate(resultHash.Bytes(), sign.Bytes())
-	signAccount, validate, err := self.SignHelper.VerifySignWithValidateDependNumber(resultHash.Bytes(), sign.Bytes(), self.number-1)
+	signAccount, validate, err := self.SignHelper.VerifySignWithValidateByReader(cdc, resultHash.Bytes(), sign.Bytes(), cdc.leaderCal.preHash)
 	if err != nil {
 		return errors.Errorf("签名解析错误(%v)", err)
 	}

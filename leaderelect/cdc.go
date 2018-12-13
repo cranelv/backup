@@ -205,7 +205,51 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
-func (dc *cdc) GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error) {
+func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+	if blockHash.Equal(common.Hash{}) {
+		log.Error(dc.logInfo, "GetEntrustSignInfo", "输入hash为空")
+		return common.Address{}, "", errors.New("输入hash为空")
+	}
+
+	if blockHash != dc.leaderCal.preHash {
+		return dc.chain.GetEntrustSignInfo(authFrom, blockHash)
+	}
+
+	if common.TopAccountType == common.TopAccountA0 {
+		//TODO 暂定根据ca提供的接口获取委托账户，
+	}
+
+	if nil == dc.parentState {
+		log.Error(dc.logInfo, "GetEntrustSignInfo", "parentStateDB为空")
+		return common.Address{}, "", errors.New("cdc state can't find")
+	}
+
+	height := dc.number - 1
+	ans := dc.parentState.GetEntrustFrom(authFrom, height)
+	if len(ans) == 0 {
+		ans = append(ans, authFrom)
+	}
+	for _, v := range ans {
+		for kk, vv := range manparams.EntrustValue {
+			if v.Equal(kk) == false {
+				continue
+			}
+			if _, ok := manparams.EntrustValue[kk]; ok {
+				//log.Info("签名助手", "获取到的账户", v.String(), "高度", height)
+				//log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				return kk, manparams.EntrustValue[kk], nil
+			}
+			//log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
+			//log.ERROR("签名助手", "无该密码", kk.String())
+			return kk, vv, errors.New("无该密码")
+
+		}
+	}
+	log.Info(dc.logInfo, "GetEntrustSignInfo", "失败", "高度", height, "真实账户", authFrom.String())
+	return common.Address{}, "", errors.New("ans为空")
+}
+
+func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
 	if hash.Equal(common.Hash{}) {
 		log.Error("cdc", "GetSignAccount", "输入hash为空")
 		return common.Address{}, errors.New("输入hash为空")
@@ -215,12 +259,25 @@ func (dc *cdc) GetAuthAccount(addr common.Address, hash common.Hash) (common.Add
 			log.Error(dc.logInfo, "GetSignAccount", "parentStateDB为空")
 			return common.Address{}, errors.New("cdc state can't find")
 		}
+
 		preHeight := dc.number - 1
-		authAddr, err := dc.chain.GetAuthAddr(addr, preHeight, dc.parentState)
-		log.Info("cdc", "preHeight", preHeight, "addr", addr, "signAddr", authAddr, "err", err)
-		return authAddr, err
+		addr := dc.parentState.GetAuthFrom(signAccount, preHeight)
+		if addr.Equal(common.Address{}) {
+			log.ERROR(dc.logInfo, "GetSignAccount", "state.GetAuthFrom,真实账户为空,不存在委托", "高度", preHeight, "签名账户", addr)
+			//return signAccount, nil
+			addr = signAccount
+		} else {
+			log.ERROR(dc.logInfo, "GetSignAccount", "存在委托", "signAccount", signAccount, "height", preHeight, "addr", addr)
+		}
+		log.ERROR(common.SignLog, "解签阶段", "", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
+		if common.TopAccountType == common.TopAccountA0 {
+			//TODO 利用CA接口将A1转换为A0
+		}
+
+		log.Info("cdc", "preHeight", preHeight, "signAccount", signAccount, "addr", addr)
+		return addr, nil
 	}
-	return dc.chain.GetAuthAccount(addr, hash)
+	return dc.chain.GetAuthAccount(signAccount, hash)
 }
 
 func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {

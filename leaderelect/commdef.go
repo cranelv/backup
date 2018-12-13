@@ -26,6 +26,7 @@ var (
 	ErrBroadcastIsNil    = errors.New("缓存没有广播消息")
 	ErrPOSResultIsNil    = errors.New("POS结果为nil/header为nil")
 	ErrLeaderResultIsNil = errors.New("leader共识结果为nil")
+	ErrCDCisNil          = errors.New("cdc is nil")
 )
 
 type Matrix interface {

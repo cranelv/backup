@@ -4,13 +4,11 @@
 package signhelper
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/pkg/errors"
@@ -25,11 +23,16 @@ type MatrixEth interface {
 	BlockChain() *core.BlockChain
 }
 
+type AuthReader interface {
+	GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error)
+	GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
+}
+
 var (
 	ErrNilAccountManager     = errors.New("account manager is nil")
 	ErrEmptySignAddress      = errors.New("sign address is empty")
 	ErrUnSetSignAccount      = errors.New("The sign account not set yet!")
-	ErrBlockChain            = errors.New("err blockchain is nil")
+	ErrReader                = errors.New("auth reader is nil")
 	ErrHeaderIsNil           = errors.New("header is nil")
 	ErrGetStateDB            = errors.New("error get state db")
 	ErrGetAccountAndPassword = errors.New("get account and password  error")
@@ -39,10 +42,7 @@ type SignHelper struct {
 	mu sync.RWMutex
 	am *accounts.Manager
 	//signWallet   accounts.Wallet
-	bc *core.BlockChain
-
-	testMode bool
-	testKey  *ecdsa.PrivateKey
+	authReader AuthReader
 }
 
 func NewSignHelper() *SignHelper {
@@ -50,15 +50,14 @@ func NewSignHelper() *SignHelper {
 		am: nil,
 		//signWallet:  nil,
 		//	signAccount: accounts.Account{},
-		testMode: false,
 	}
 }
 
-func (sh *SignHelper) SetBc(eth MatrixEth) error {
-	if eth.BlockChain() == nil {
-		return ErrBlockChain
+func (sh *SignHelper) SetAuthReader(reader AuthReader) error {
+	if reader == nil {
+		return ErrReader
 	}
-	sh.bc = eth.BlockChain()
+	sh.authReader = reader
 	return nil
 }
 
@@ -96,11 +95,6 @@ func (sh *SignHelper) SetAccountManager(am *accounts.Manager, signAddress common
 //	return sh.resetSignAccount(signAddress, signPassword)
 //}
 
-func (sh *SignHelper) SetTestMode(prvKey *ecdsa.PrivateKey) {
-	sh.testMode = true
-	sh.testKey = prvKey
-}
-
 //func (sh *SignHelper) resetSignAccount(signAddress common.Address, signPassword string) error {
 //	if signAddress == sh.signAccount.Address {
 //		sh.signPassword = signPassword
@@ -118,19 +112,11 @@ func (sh *SignHelper) SetTestMode(prvKey *ecdsa.PrivateKey) {
 //	return nil
 //}
 
-func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash common.Hash) (common.Signature, error) {
-	if sh.testMode {
-		sign, err := crypto.SignWithValidate(hash, validate, sh.testKey)
-		if err != nil {
-			return common.Signature{}, err
-		}
-		return common.BytesToSignature(sign), nil
-	}
-
+func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byte, validate bool, blkHash common.Hash) (common.Signature, error) {
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
 
-	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(reader, blkHash)
 	log.ERROR("5555555 SignHashWithValidate", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
@@ -147,6 +133,10 @@ func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash c
 	return common.BytesToSignature(sign), nil
 }
 
+func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash common.Hash) (common.Signature, error) {
+	return sh.SignHashWithValidateByReader(sh.authReader, hash, validate, blkHash)
+}
+
 func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash) (types.SelfTransaction, error) {
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
@@ -156,7 +146,7 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 	//}
 
 	// Sign the requested hash with the wallet
-	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
 	log.ERROR("5555555 SignTx", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
@@ -174,7 +164,7 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	//if nil==sh.signWallet{
 	//	return []byte{},[]byte{},[]byte{},ErrUnSetSignAccount
 	//}
-	signAccount, signPassword, err := sh.getSignAccountAndPassword(blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
 	log.ERROR("5555555 vrf", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return []byte{}, []byte{}, []byte{}, ErrGetAccountAndPassword
@@ -186,50 +176,29 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	return wallet.SignVrfWithPass(signAccount, signPassword, msg)
 }
 
-func (sh *SignHelper) GetStateDependBlkHash(blkHash common.Hash) (*state.StateDB, uint64, error) {
-	header := sh.bc.GetHeaderByHash(blkHash)
-	if header == nil {
-		log.Error("签名助手", "根据hash获取区块头失败 hash", blkHash)
-		return nil, 0, ErrHeaderIsNil
-	}
-	height := header.Number.Uint64()
-	log.ERROR("asdasd", "height", height)
-	stateDb, err := sh.bc.StateAt(header.Root)
-	return stateDb, height, err
-}
-
-func (sh *SignHelper) getSignAccountAndPassword(blkHash common.Hash) (accounts.Account, string, error) {
-	stateDb, height, err := sh.GetStateDependBlkHash(blkHash)
-	log.ERROR("55555", "GetSignAccountAndPassword 高度", height, "err", err, "blkHash", blkHash)
-	if err != nil {
-		return accounts.Account{}, "", ErrGetStateDB
-	}
-	addr, password, err := sh.bc.GetEntrustSignInfo(height, ca.GetAddress(), stateDb)
+func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {
+	addr, password, err := reader.GetEntrustSignInfo(ca.GetAddress(), blkHash)
 	account := accounts.Account{}
 	account.Address = addr
 	log.ERROR("555555", "returnaddr", account.Address, "password", password, "err", err)
 	return account, password, err
 }
 
-func (sh *SignHelper) VerifySignWithValidateDependHash(sighash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
-	addr, flag, err := crypto.VerifySignWithValidate(sighash, sig)
-	stateDb, height, err := sh.GetStateDependBlkHash(blkHash)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "height", height, "err", err, "blkHash", blkHash)
-	if err != nil {
-		log.ERROR("签名助手", "根据区块hash获取stateDB失败", "err")
-		return common.Address{}, false, ErrGetStateDB
-	}
-	authAddr, err := sh.bc.GetAuthAddr(addr, height, stateDb)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", height, "err", err, "authAddr", authAddr)
+func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
+	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
+
+	authAddr, err := sh.authReader.GetAuthAccount(addr, blkHash)
+	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
 	return authAddr, flag, err
-
 }
-func (sh *SignHelper) VerifySignWithValidateDependNumber(sighash []byte, sig []byte, number uint64) (common.Address, bool, error) {
-	header := sh.bc.GetHeaderByNumber(number)
-	if header == nil {
-		log.ERROR("5555-VerifySignWithValidateDependNumber", "number", number)
-		return common.Address{}, false, errors.New("header is nil")
-	}
-	return sh.VerifySignWithValidateDependHash(sighash, sig, header.Hash())
 
+func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
+	if reader == nil {
+		return common.Address{}, false, ErrReader
+	}
+	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
+
+	authAddr, err := reader.GetAuthAccount(addr, blkHash)
+	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
+	return authAddr, flag, err
 }

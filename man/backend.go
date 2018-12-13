@@ -204,7 +204,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.bloomIndexer.Start(man.blockchain)
 
-	man.signHelper.SetBc(man)
+	man.signHelper.SetAuthReader(man.blockchain)
 
 	ca.SetTopologyReader(man.blockchain.GetGraphStore())
 
