@@ -77,12 +77,12 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 }
 
 func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return []byte{}, err
 	}
+	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
+	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
 	height := block.Header().Number.Uint64()
 
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
@@ -248,10 +248,13 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 }
 
 func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProducePreAllTopData CheckBlock err ", err)
 		return []byte{}, err
 	}
+	log.INFO(Module,"ProducePreAllTopData ","开始","高度",block.Header().Number.Uint64())
+	defer 	log.INFO(Module,"ProducePreAllTopData ","结束","高度",block.Header().Number.Uint64())
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
 		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
@@ -282,7 +285,8 @@ func (self *ReElection) ProducePreMinerData(block *types.Block, readFn matrixsta
 		log.ERROR(Module, "ProducePreMinerData CheckBlock err ", err)
 		return nil, err
 	}
-
+	log.INFO(Module,"ProducePreMinerData ","开始","高度",block.Header().Number.Uint64())
+	defer 	log.INFO(Module,"ProducePreMinerData ","开始","高度",block.Header().Number.Uint64())
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
 		log.Error(Module, "ProducePreMinerData read broadcast interval err", err)

@@ -80,7 +80,7 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 		return true
 	}
 
-	log.ERROR(Module, "不是矿工生成点", "高度",height,uint64(genData.MinerNetChange), "换届周期", bcInterval.GetReElectionInterval())
+	log.ERROR(Module, "不是矿工生成点", "","高度",height,uint64(genData.MinerNetChange),"提前点",genData.MinerNetChange, "换届周期", bcInterval.GetReElectionInterval())
 	return false
 }
 
@@ -108,7 +108,7 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 		log.ERROR(Module, "是验证者生成点 height", height, "ValidatorNetChange", genData.ValidatorNetChange,"换届周期", bcInterval.GetReElectionInterval())
 		return true
 	}
-	log.ERROR(Module, "不是验证者生成点", height, "err", genData.ValidatorNetChange,"换届周期", bcInterval.GetReElectionInterval())
+	log.ERROR(Module, "不是验证者生成点 高度", height, "提前切换高度", genData.ValidatorNetChange,"换届周期", bcInterval.GetReElectionInterval())
 	return false
 }
 //得到随机种子

@@ -29,6 +29,7 @@ type AuthReader interface {
 }
 
 var (
+	ModeLog="签名助手"
 	ErrNilAccountManager     = errors.New("account manager is nil")
 	ErrEmptySignAddress      = errors.New("sign address is empty")
 	ErrUnSetSignAccount      = errors.New("The sign account not set yet!")
@@ -117,7 +118,7 @@ func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byt
 	defer sh.mu.RUnlock()
 
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(reader, blkHash)
-	log.ERROR("5555555 SignHashWithValidate", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
+	log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
 	}
@@ -147,7 +148,7 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 
 	// Sign the requested hash with the wallet
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
-	log.ERROR("5555555 SignTx", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
+	log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
 	}
@@ -165,7 +166,7 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	//	return []byte{},[]byte{},[]byte{},ErrUnSetSignAccount
 	//}
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
-	log.ERROR("5555555 vrf", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
+	log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return []byte{}, []byte{}, []byte{}, ErrGetAccountAndPassword
 	}
@@ -180,7 +181,7 @@ func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash commo
 	addr, password, err := reader.GetEntrustSignInfo(ca.GetAddress(), blkHash)
 	account := accounts.Account{}
 	account.Address = addr
-	log.ERROR("555555", "returnaddr", account.Address, "password", password, "err", err)
+	log.ERROR(ModeLog, "returnaddr", account.Address, "password", password, "err", err)
 	return account, password, err
 }
 
@@ -188,7 +189,7 @@ func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []by
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	authAddr, err := sh.authReader.GetAuthAccount(addr, blkHash)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
 	return authAddr, flag, err
 }
 
@@ -199,6 +200,6 @@ func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	authAddr, err := reader.GetAuthAccount(addr, blkHash)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
 	return authAddr, flag, err
 }
