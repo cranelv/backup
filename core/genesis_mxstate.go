@@ -439,10 +439,10 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, n
 		}
 
 		seq := uint64(binary.BigEndian.Uint64(extra[:8]))
-		log.INFO("Geneis", "超级区块序号", seq)
+
 		superBlkCfg = &mc.SuperBlkCfg{Seq: seq, Num: num}
 	}
-
+	log.INFO("Geneis", "超级区块配置", superBlkCfg)
 	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
 }
 func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
