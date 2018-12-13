@@ -167,7 +167,7 @@ func dumpConfig(ctx *cli.Context) error {
 	return nil
 }
 func CheckEntrust(ctx *cli.Context) error {
-	fmt.Println("CheckEntrust CheckEntrust CheckEntrust")
+	//fmt.Println("CheckEntrust CheckEntrust CheckEntrust")
 	path := ctx.GlobalString(utils.AccountPasswordFileFlag.Name)
 
 	if path == "" {
@@ -175,7 +175,7 @@ func CheckEntrust(ctx *cli.Context) error {
 	}
 
 	password, err := ReadPassword1()
-	fmt.Println("password", password, "err", err)
+	//fmt.Println("password", password, "err", err)
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)
@@ -183,7 +183,7 @@ func CheckEntrust(ctx *cli.Context) error {
 	}
 
 	b, err := ioutil.ReadAll(f)
-	fmt.Println("readAll", string(b), err)
+	//fmt.Println("readAll", string(b), err)
 
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
@@ -200,16 +200,16 @@ func CheckEntrust(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Unmarashal err", err, "anss", anss)
-	fmt.Println("解密后的内容", string(tpass))
+	//fmt.Println("Unmarashal err", err, "anss", anss)
+	//fmt.Println("解密后的内容", string(tpass))
 
 	for _, v := range anss {
 		manparams.EntrustValue[v.Address] = v.Password
 	}
 
-	for k, v := range manparams.EntrustValue {
-		fmt.Println("账户", k.String(), "密码", v)
-	}
+	//for k, v := range manparams.EntrustValue {
+	//	fmt.Println("账户", k.String(), "密码", v)
+	//}
 	return nil
 }
 

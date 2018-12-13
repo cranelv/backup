@@ -514,5 +514,5 @@ func (g *GenesisMState) setPreMinHashToStat(state *state.StateDB, num uint64) er
 	return  matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.MinHashStruct{}, state)
 }
 func (g *GenesisMState)setPreBroadcastRootToStat (state *state.StateDB, num uint64) error {
-	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot,&mc.PreBroadStateRoot{},nil)
+	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot,&mc.PreBroadStateRoot{},state)
 }
