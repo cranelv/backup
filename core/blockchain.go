@@ -2367,7 +2367,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	txs := block.Transactions()
-	if len(txs) < 1 || len(txs) < 2 {
+	if len(txs) == 0 || len(txs) > 2 {
 		return errors.Errorf("super block's txs count(%d) err", len(txs))
 	}
 
