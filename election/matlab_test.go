@@ -239,13 +239,7 @@ func Test_Main(t *testing.T){
 
 	testM:=NewTestM(infile,outfile)
 	testM.SetDepArrary()
-
-
 	testM.GetAns()
-
-
-
-
 }
 
 func SaveValue(){
@@ -278,4 +272,29 @@ func Round1(f float64,n int)float64{
 func Round(f float64,n int)float64{
 	n10:=math.Pow10(n)
 	return math.Trunc((f+0.5/n10)*n10)/10
+}
+
+func TestInt(t *testing.T){
+	a1:=0.04939491232403063
+	a2:=0.04939491232403063
+
+	a11:=strconv.FormatFloat(a1,'E',-1,64)
+	a22:=strconv.FormatFloat(a2,'E',-1,64)
+	fmt.Println("a11",a11,"a22",a22)
+	if a11==a22{
+		fmt.Println("111")
+	}else{
+		fmt.Println("12222")
+	}
+	fmt.Println(math.Max(a1,a2))
+	fmt.Println(math.Dim(a1,a2))
+}
+
+func TestInt11(t *testing.T){
+	a1:=0.04939491232403063
+	a2:=0.04939491232403061
+
+
+	fmt.Println(math.Max(a1,a2))
+	fmt.Println(math.Dim(a1,a2))
 }

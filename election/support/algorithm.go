@@ -14,15 +14,13 @@ func ValNodesSelected(probVal []Stf, seed int64, M int, P int, J int) ([]Strally
 
 	//归一化价值函数 成为 采样概率
 	probnormalized := Normalize(probVal)
-	//	fmt.Println(probnormalized)
+
 	// 选出M+P-J个节点 或者 进行1000次采样
 	PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes := SampleMPlusPNodes(probnormalized, seed, M, J) //SampleMPlusPNodes(probnormalized=probnormalized,seed=seed,M=M,J=J,P=5,MaxSample=MaxSample)
 	// 计算所有剩余节点的股权RemainingProbNormalizedNodes
-	//fmt.Println("PricipalValNodes", len(PricipalValNodes))
+
 	RemainingValNodes := CalcRemainingNodesVotes(RemainingProbNormalizedNodes)
-	//fmt.Println("111",PricipalValNodes)
-	//fmt.Println("222",BakValNodes)
-	//fmt.Println("333",RemainingProbNormalizedNodes)
+
 	// 基金会节点加入验证主节点列表
 	// 如果验证主节点不足N个,使用剩余节点列表补足M-J个
 	for len(PricipalValNodes) < M-J && len(RemainingValNodes) > 0 {
@@ -40,7 +38,6 @@ func ValNodesSelected(probVal []Stf, seed int64, M int, P int, J int) ([]Strally
 func MinerNodesSelected(probVal []Stf, seed int64, electConfig mc.ElectConfigInfo) ([]Strallyint, []Strallyint) {
 	probnormalized := Normalize(probVal)
 
-	//fmt.Println(probnormalized)
 	PricipalMinerNodes, BakMinerNodes := SampleMinerNodes(probnormalized, seed, electConfig)
 
 	//计算所有剩余节点的股权
@@ -66,7 +63,6 @@ type Strallyint struct {
 
 func Normalize(probVal []Stf) []pnormalized {
 
-	//fmt.Println(probVal)
 	var total float64
 	for _, item := range probVal {
 		total += item.Flot
@@ -77,7 +73,6 @@ func Normalize(probVal []Stf) []pnormalized {
 		tmp.Value = item.Flot / total
 		tmp.Addr = item.Addr
 		pnormalizedlist = append(pnormalizedlist, tmp)
-		//		fmt.Println("There are", views, "views for", key)
 	}
 	return pnormalizedlist
 }
@@ -263,6 +258,27 @@ func CalcRemainingNodesVotes(RemainingProbNormalizedNodes []Strallyint) []Strall
 	return RemainingProbNormalizedNodes
 }
 
+func IsEqual(a float64,b float64)bool{
+	//const MIN  =0.000000000000001
+	//fmt.Println(math.Dim(a,b))
+	return a==b
+}
+func SortList(data []pnormalized)[]pnormalized{
+	for indexI:=0;indexI<len(data)-1;indexI++{
+		for indexJ:=0;indexJ<len(data)-1-indexI;indexJ++{
+			if IsEqual(data[indexJ].Value,data[indexJ+1].Value){
+			//	fmt.Println("===",data[indexJ].Value,data[indexJ+1].Value)
+				continue
+			}
+			if math.Max(data[indexJ].Value,data[indexJ+1].Value)==data[indexJ+1].Value{
+					temp:=data[indexJ]
+					data[indexJ]=data[indexJ+1]
+					data[indexJ+1]=temp
+			}
+		}
+	}
+	return data
+}
 //做异常判断
 func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) ([]Strallyint, []Strallyint, []Strallyint) {
 	var PricipalValNodes []Strallyint
@@ -276,13 +292,12 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 			temp := Strallyint{Value: int(100 * item.Value), Addr: item.Addr}
 			PricipalValNodes = append(PricipalValNodes, temp)
 		}
-		//		return sortfunc(probnormalized, PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes)
 		return PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes
 	}
 
 	// 如果当选节点超过M-J,最多连续进行1000次采样或者选出M+P-J个节点
 	rand := mt19937.RandUniformInit(seed)
-	
+	NodeList:=[]common.Address{}
 	for i := 0; i < MaxSample; i++ {
 		node := Sample1NodesInValNodes(probnormalized, float64(rand.Uniform(0.0, 1.0)))
 
@@ -290,7 +305,7 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
-		//	fmt.Println("node",node.Big().Uint64())
+			NodeList=append(NodeList,node)
 			dict[node] = 1
 		}
 
@@ -298,16 +313,29 @@ func SampleMPlusPNodes(probnormalized []pnormalized, seed int64, M int, J int) (
 			break
 		}
 	}
-	//fmt.Println("dict",dict)
+
+	RemainProbnormalized:=[]pnormalized{}
 	for _, item := range probnormalized {
 		_, ok := dict[item.Addr]
 		if ok == false {
-		//	fmt.Println("---------------")
-			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
-		} else {
-			PricipalValNodes = append(PricipalValNodes, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
+			RemainProbnormalized=append(RemainProbnormalized,item)
 		}
 	}
+
+	RemainProbnormalized=SortList(RemainProbnormalized)
+	for _,item:=range RemainProbnormalized{
+		RemainingProbNormalizedNodes=append(RemainingProbNormalizedNodes,Strallyint{Addr:item.Addr,Value:DefaultStock})
+	}
+
+
+	for _,item:=range NodeList{
+		_,ok:=dict[item]
+		if ok==false{
+			continue
+		}
+		PricipalValNodes = append(PricipalValNodes, Strallyint{Addr: item, Value: dict[item]})
+	}
+
 	return PricipalValNodes, BakValNodes, RemainingProbNormalizedNodes
 }
 

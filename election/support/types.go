@@ -34,3 +34,8 @@ type Eletion_cfg struct{
 	MaxBackUpValidatorNum int
 	MaxCadidatorValidatorNum int
 }
+type Strallyint struct {
+	Value  int
+	Addr  common.Address
+}
+

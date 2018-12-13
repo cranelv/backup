@@ -37,7 +37,6 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 	var value []support.Stf
 	if len(mvrerm.FoundationValidatorList) == 0 {
 		value = support.CalcAllValueFunction(validatorList)
-		//fmt.Println("value",value)
 		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
 	} else {
 		value = support.CalcAllValueFunction(validatorList)
