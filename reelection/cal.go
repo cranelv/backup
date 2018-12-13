@@ -64,7 +64,7 @@ func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInter
 	}
 	electInfo, OK := data.(*mc.ElectConfigInfo)
 	if OK == false || electInfo == nil {
-		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		log.ERROR("ElectConfigInfo", "ElectConfigInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
 	return baseinterface.NewElect(electInfo.ElectPlug), nil

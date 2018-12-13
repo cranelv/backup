@@ -20,6 +20,8 @@ func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
 }
 
 func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
+	log.INFO(Module,"准备生成矿工拓扑图","start","hash",hash.String())
+	defer log.INFO(Module,"生成矿工拓扑图结束","end","hash",hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
@@ -69,6 +71,8 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 }
 
 func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
+	log.INFO(Module,"准备生成验证者拓扑图","start","hash",hash.String())
+	defer log.INFO(Module,"生成验证者拓扑图结束","end","hash",hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())

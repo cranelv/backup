@@ -20,7 +20,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -59,7 +58,7 @@ type ElectReturnInfo struct {
 }
 type ReElection struct {
 	bc  *core.BlockChain //eth实例：生成种子时获取一周期区块的最小hash
-	ldb *leveldb.DB      //本都db数据库
+	//ldb *leveldb.DB      //本都db数据库
 
 	roleUpdateCh    chan *mc.RoleUpdatedMsg //身份变更信息通道
 	roleUpdateSub   event.Subscription
@@ -91,8 +90,7 @@ func New(bc *core.BlockChain, dbDir string, random *baseinterface.Random) (*ReEl
 		currentID: common.RoleDefault,
 	}
 	var err error
-	dbDir = dbDir + "/reElection"
-	reelection.ldb, err = leveldb.OpenFile(dbDir, nil)
+
 	if err != nil {
 		return nil, err
 	}

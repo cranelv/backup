@@ -89,7 +89,7 @@ func (period *BCInterval) GetBroadcastInterval() uint64 {
 }
 
 func (period *BCInterval) GetReElectionInterval() uint64 {
-	return period.lastReelectNumber
+	return period.bcInterval*ReelectionTimes
 }
 
 func (period *BCInterval) IsBroadcastNumber(number uint64) bool {
