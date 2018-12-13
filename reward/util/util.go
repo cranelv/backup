@@ -4,6 +4,10 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -57,6 +61,7 @@ type ChainReader interface {
 	GetMatrixStateData(key string) (interface{}, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	GetSuperBlockNum() (uint64, error)
+	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 }
 
 type StateDB interface {

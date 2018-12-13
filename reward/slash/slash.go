@@ -7,48 +7,20 @@ import (
 
 	"github.com/matrix/go-matrix/reward/util"
 
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
-
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/types"
-
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 
 	"github.com/matrix/go-matrix/common"
 )
 
 const PackageName = "惩罚"
 
-type ChainReader interface {
-	// Config retrieves the blockchain's chain configuration.
-	Config() *params.ChainConfig
-
-	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
-
-	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
-
-	// GetHeaderByNumber retrieves a block header from the database by number.
-	GetHeaderByNumber(number uint64) *types.Header
-
-	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
-
-	GetBlockByNumber(number uint64) *types.Block
-
-	// GetBlock retrieves a block sfrom the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
-	State() (*state.StateDB, error)
-}
-
 type BlockSlash struct {
-	chain            ChainReader
+	chain            util.ChainReader
 	eleMaxOnlineTime uint64
 	SlashRate        uint64
 	bcInterval       *manparams.BCInterval
@@ -56,7 +28,7 @@ type BlockSlash struct {
 	preElectList     []mc.ElectNodeInfo
 }
 
-func New(chain ChainReader, st util.StateDB) *BlockSlash {
+func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 	StateCfg, err := matrixstate.GetDataByState(mc.MSKeySlashCfg, st)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
@@ -108,15 +80,21 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 	matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
 	//计算选举的拓扑图的高度
 	if num < bp.bcInterval.GetReElectionInterval()+2 {
-		eleNum = 0
+		eleNum = 1
 	} else {
 		// 下一个选举+1
-		if num == bp.bcInterval.GetLastReElectionNumber()+1 {
-			eleNum = bp.bcInterval.GetLastReElectionNumber() - bp.bcInterval.GetReElectionInterval() - 1
-		} else {
-			eleNum = bp.bcInterval.GetLastReElectionNumber()
-		}
+		eleNum = bp.bcInterval.GetLastReElectionNumber() - bp.bcInterval.GetReElectionInterval()
+	}
 
+	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
+	if err != nil {
+		log.Error(PackageName, "获取拓扑图错误", err)
+		return
+	}
+	originElectNodes := electGraph.(*mc.ElectGraph)
+	if 0 == len(originElectNodes.ElectList) {
+		log.Error(PackageName, "get获取初选列表为空", "")
+		return
 	}
 
 	currentElectNodes, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator, eleNum)

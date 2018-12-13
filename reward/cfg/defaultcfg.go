@@ -85,7 +85,7 @@ type ChainReader interface {
 type SetRewardsExec interface {
 	SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
 	SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int
-	GetSelectedRewards(reward *big.Int, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int //todo 金额
+	GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int //todo 金额
 }
 type DefaultSetRewards struct {
 	leader   leaderreward.LeaderReward
@@ -106,9 +106,9 @@ func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, Leader common.Ad
 
 	return str.leader.SetLeaderRewards(reward, Leader, num)
 }
-func (str *DefaultSetRewards) GetSelectedRewards(reward *big.Int, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int {
+func (str *DefaultSetRewards) GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int {
 
-	return str.selected.GetSelectedRewards(reward, chain, roleType, number, rate)
+	return str.selected.GetSelectedRewards(reward, state, chain, roleType, number, rate)
 }
 func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int {
 

@@ -2144,7 +2144,7 @@ func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.E
 	return topologyGraph, electGraph, nil
 }
 
-func (bc *BlockChain) GetGraphByState(state *state.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+func (bc *BlockChain) GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
 	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
 	if err != nil {
 		return nil, nil, err

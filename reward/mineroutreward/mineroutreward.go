@@ -52,9 +52,8 @@ type ChainReader interface {
 func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
 
-	if num == 1 {
-		log.WARN(PackageName, "初始化矿工状态：", num)
-		matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
+	if num < 2 {
+		log.INFO(PackageName, "高度为小于2 不发放奖励：", "")
 		return nil
 	}
 	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)
@@ -66,18 +65,6 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 		log.WARN(PackageName, "挖矿奖励高度错误：", num)
 		return nil
 	}
-	var coinBase common.Address
-	latestNum, err := matrixstate.GetNumByState(mc.MSKEYMinerPayNum, state)
-	if nil != err {
-		log.WARN(PackageName, "获取状态树错误", err)
-		return nil
-	}
-
-	if latestNum >= num {
-		log.WARN(PackageName, "奖励已发放", "")
-		return nil
-	}
-	matrixstate.SetNumByState(mc.MSKEYMinerPayNum, state, num)
 
 	if reward.Cmp(big.NewInt(0)) <= 0 {
 		log.WARN(PackageName, "奖励金额不合法", reward)
@@ -85,24 +72,28 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 	}
 
 	rewards := make(map[common.Address]*big.Int)
-	for i := latestNum + 1; i < num+1; i++ {
-		if bcInterval.IsBroadcastNumber(i) {
-			log.WARN(PackageName, "广播区块不发钱：", i)
-			continue
-		}
-		if bcInterval.IsBroadcastNumber(i - 1) {
-			coinBase = chain.GetHeaderByNumber(i - 2).Coinbase
-		} else {
-			coinBase = chain.GetHeaderByNumber(i - 1).Coinbase
-		}
-		if coinBase.Equal(common.Address{}) {
-			log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
-			return nil
-		}
 
-		util.SetAccountRewards(rewards, coinBase, reward)
-		log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", i, "奖励金额", reward)
+	if bcInterval.IsBroadcastNumber(num) {
+		log.WARN(PackageName, "广播区块不发钱：", num)
+		return nil
 	}
+	preMiner, err := matrixstate.GetDataByState(mc.MSKeyPreMiner, state)
+	if nil != err {
+		log.WARN(PackageName, "获取矿工地址错误", err)
+		return nil
+	}
+	if preMiner == nil {
+		log.WARN(PackageName, "反射失败", err)
+		return nil
+	}
+	coinBase := preMiner.(mc.PreMinerStruct).PreMiner
+	if coinBase.Equal(common.Address{}) {
+		log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
+		return nil
+	}
+
+	util.SetAccountRewards(rewards, coinBase, reward)
+	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
 
 	return rewards
 }

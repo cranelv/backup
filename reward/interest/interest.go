@@ -27,8 +27,8 @@ type interest struct {
 }
 
 type DepositInterestRate struct {
-	Deposit *big.Int
-	Interst *big.Rat
+	Deposit  *big.Int
+	Interest *big.Rat
 }
 
 type DepositInterestRateList []*DepositInterestRate
@@ -40,24 +40,32 @@ func (p DepositInterestRateList) Less(i, j int) bool { return p[i].Deposit.Cmp(p
 func New(st util.StateDB) *interest {
 	StateCfg, err := matrixstate.GetDataByState(mc.MSKeyInterestCfg, st)
 	if nil != err {
-		log.ERROR(PackageName, "获取状态树配置错误", "")
+		log.ERROR(PackageName, "获取利息状态树配置错误", "")
 		return nil
 	}
-
+	if StateCfg == nil {
+		log.ERROR(PackageName, "利息配置反射失败", "")
+		return nil
+	}
 	if StateCfg.(*mc.InterestCfgStruct).PayInterval == 0 || 0 == StateCfg.(*mc.InterestCfgStruct).CalcInterval {
-		log.ERROR(PackageName, "利息周期配置错误", "")
+		log.ERROR(PackageName, "利息周期配置错误，支付周期", StateCfg.(*mc.InterestCfgStruct).PayInterval, "计算周期", StateCfg.(*mc.InterestCfgStruct).CalcInterval)
 		return nil
 	}
 	if StateCfg.(*mc.InterestCfgStruct).PayInterval < StateCfg.(*mc.InterestCfgStruct).CalcInterval {
-		log.ERROR(PackageName, "配置的发放周期小于计息周期", "")
+		log.ERROR(PackageName, "配置的发放周期小于计息周期，支付周期", StateCfg.(*mc.InterestCfgStruct).PayInterval, "计算周期", StateCfg.(*mc.InterestCfgStruct).CalcInterval)
 		return nil
 	}
 
 	VipCfg, err := matrixstate.GetDataByState(mc.MSKeyVIPConfig, st)
 	if nil != err {
-		log.ERROR(PackageName, "获取状态树配置错误", "")
+		log.ERROR(PackageName, "获取VIP状态树配置错误", "")
 		return nil
 	}
+	if VipCfg == nil {
+		log.ERROR(PackageName, "VIP配置反射失败", "")
+		return nil
+	}
+
 	Vip := VipCfg.(*[]mc.VIPConfig)
 	if 0 == len(*Vip) {
 		log.ERROR(PackageName, "利率表为空", "")
@@ -74,19 +82,18 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*D
 			return big.NewInt(0)
 		}
 		if deposit.Cmp(depositIntere.Deposit) < 0 {
-			blockInterest = depositInterestRate[i-1].Interst
+			blockInterest = depositInterestRate[i-1].Interest
 			break
 		}
 	}
 	if blockInterest == nil {
-		blockInterest = depositInterestRate[len(depositInterestRate)-1].Interst
+		blockInterest = depositInterestRate[len(depositInterestRate)-1].Interest
 	}
 	interstReward, _ := new(big.Rat).Mul(new(big.Rat).SetInt(deposit), blockInterest).Float64()
 	bigval := new(big.Float)
 	bigval.SetFloat64(interstReward)
 	result := new(big.Int)
 	bigval.Int(result)
-	//log.INFO(PackageName, "calc interest reward  all reward", interstReward, "reward", result.String())
 	return result
 }
 
