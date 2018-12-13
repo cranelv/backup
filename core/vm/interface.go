@@ -68,6 +68,8 @@ type StateDB interface {
 	GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	Dump() []byte
+	Finalise(deleteEmptyObjects bool)
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM EVM

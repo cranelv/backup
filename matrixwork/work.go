@@ -148,22 +148,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			break
 		}
 		if txer.GetTxNLen() == 0 {
-			log.Info("===========tx.N is nil")
+			log.Info("file work func commitTransactions err: tx.N is nil")
 			continue
 		}
-		// Error may be ignored here. The error has already been checked
-		// during transaction acceptance is the transaction pool.
-		//
 		// We use the eip155 signer regardless of the current hf.
 		from, _ := txer.GetTxFrom()
 
-		// Check whether the tx is replay protected. If we're not in the EIP155 hf
-		// phase, start ignoring the sender until we do.
-		//YYY TODO 是否需要当前这个if
-		//if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
-		//	log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
-		//	continue
-		//}
 		// Start executing the transaction
 		env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
 		err, logs := env.commitTransaction(txer, bc, coinbase, env.gasPool)
@@ -226,10 +216,8 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
-
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		log.Info("file work","func commitTransaction",err)
 		env.State.RevertToSnapshot(snap)
 		return err, nil
 	}
@@ -307,6 +295,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 }
 
 func (env *Work)makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTransaction){
+	log.Info("makeTransactionIN")
+	defer log.Info("makeTransactionOUT")
 	for _,rewart := range rewarts{
 		sorted_keys := make([]string, 0)
 		for k, _ := range rewart.To_Amont {
