@@ -26,8 +26,7 @@ type controller struct {
 
 func newController(matrix Matrix, logInfo string, number uint64) *controller {
 	if number < 1 {
-		log.ERROR(logInfo, "创建controller失败", "number < 1", "number", number)
-		return nil
+		log.Crit(logInfo, "创建controller失败", "number < 1", "number", number)
 	}
 	ctrller := &controller{
 		timer:        time.NewTimer(time.Minute),
@@ -70,8 +69,8 @@ func (self *controller) ParentHash() common.Hash {
 }
 
 func (self *controller) run() {
-	log.INFO(self.logInfo, "控制服务", "启动", "高度", self.dc.number)
-	defer log.INFO(self.logInfo, "控制服务", "退出", "高度", self.dc.number)
+	log.Debug(self.logInfo, "controller", "begin run()", "高度", self.dc.number)
+	defer log.Debug(self.logInfo, "controller", "exit run()", "高度", self.dc.number)
 
 	self.setTimer(0, self.timer)
 	self.setTimer(0, self.reelectTimer)
@@ -92,14 +91,15 @@ func (self *controller) run() {
 	}
 }
 
-func (self *controller) sendLeaderMsg() {
+func (self *controller) publishLeaderMsg() {
 	msg, err := self.dc.PrepareLeaderMsg()
 	if err != nil {
-		log.ERROR(self.logInfo, "公布leader身份", "准备消息错误", "err", err)
+		log.ERROR(self.logInfo, "公布leader身份消息", "准备消息失败", "err", err)
 		return
 	}
-	log.INFO(self.logInfo, "公布leader身份, leader", msg.Leader.Hex(), "Next Leader", msg.NextLeader.Hex(), "高度", msg.Number,
-		"共识状态", msg.ConsensusState, "共识轮次", msg.ConsensusTurn, "重选轮次", msg.ReelectTurn)
+	log.INFO(self.logInfo, "公布leader身份消息, leader", msg.Leader.Hex(), "高度", msg.Number,
+		"共识状态", msg.ConsensusState, "共识轮次", msg.ConsensusTurn.String(), "重选轮次", msg.ReelectTurn,
+		"pre Leader", msg.PreLeader.Hex(), "Next Leader", msg.NextLeader.Hex())
 	mc.PublishEvent(mc.Leader_LeaderChangeNotify, msg)
 }
 
@@ -114,7 +114,7 @@ func (self *controller) setTimer(outTime int64, timer *time.Timer) {
 		for {
 			select {
 			case <-timer.C:
-				log.DEBUG(self.logInfo, "超时器处理", "释放无用超时")
+				log.Trace(self.logInfo, "超时器处理", "释放无用超时")
 			default:
 				return
 			}

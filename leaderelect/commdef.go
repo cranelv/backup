@@ -83,8 +83,9 @@ func (self *leaderData) copyData() *leaderData {
 }
 
 type startControllerMsg struct {
-	parentHeader  *types.Header
-	parentStateDB *state.StateDB
+	parentIsSupper bool
+	parentHeader   *types.Header
+	parentStateDB  *state.StateDB
 }
 
 func isFirstConsensusTurn(turnInfo mc.ConsensusTurnInfo) bool {

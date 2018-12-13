@@ -4,7 +4,6 @@
 package leaderelect
 
 import (
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 
@@ -89,6 +88,7 @@ func (pp *posPool) getVotes() []*common.VerifiedSign {
 
 type masterCache struct {
 	number                uint64
+	selfAddr              common.Address
 	lastSignalInquiryTime int64
 	inquiryResult         mc.ReelectRSPType
 	inquiryPool           *posPool
@@ -99,6 +99,7 @@ type masterCache struct {
 func newMasterCache(number uint64) *masterCache {
 	return &masterCache{
 		number:                number,
+		selfAddr:              common.Address{},
 		lastSignalInquiryTime: 0,
 		inquiryResult:         mc.ReelectRSPTypeNone,
 		inquiryPool:           newPosPool(),
@@ -193,12 +194,12 @@ func (self *masterCache) GenBroadcastMsgWithInquiryResult(result mc.ReelectRSPTy
 	self.inquiryResult = result
 	self.inquiryPool.clear()
 
-	broadcastMsg := &mc.HD_ReelectResultBroadcastMsg{
+	broadcastMsg := &mc.HD_ReelectBroadcastMsg{
 		Number:    self.number,
 		Type:      result,
 		POSResult: rsp.POSResult,
 		RLResult:  rsp.RLResult,
-		From:      ca.GetAddress(),
+		From:      self.selfAddr,
 	}
 	self.broadcastPool.saveReqMsg(broadcastMsg)
 	return nil
@@ -220,12 +221,12 @@ func (self *masterCache) GenBroadcastMsgWithRLSuccess(rlAgreeVotes []common.Sign
 		Req:   rlReq,
 		Votes: rlAgreeVotes,
 	}
-	broadcastMsg := &mc.HD_ReelectResultBroadcastMsg{
+	broadcastMsg := &mc.HD_ReelectBroadcastMsg{
 		Number:    self.number,
 		Type:      mc.ReelectRSPTypeAgree,
 		POSResult: nil,
 		RLResult:  rlResult,
-		From:      ca.GetAddress(),
+		From:      self.selfAddr,
 	}
 	self.broadcastPool.saveReqMsg(broadcastMsg)
 	self.rlReqPool.clear()
@@ -253,16 +254,16 @@ func (self *masterCache) GetRLVotes() []*common.VerifiedSign {
 	return self.rlReqPool.getVotes()
 }
 
-func (self *masterCache) GetBroadcastMsg() (*mc.HD_ReelectResultBroadcastMsg, common.Hash, error) {
-	broadcastMsg, OK := self.broadcastPool.getReqMsg().(*mc.HD_ReelectResultBroadcastMsg)
+func (self *masterCache) GetBroadcastMsg() (*mc.HD_ReelectBroadcastMsg, common.Hash, error) {
+	broadcastMsg, OK := self.broadcastPool.getReqMsg().(*mc.HD_ReelectBroadcastMsg)
 	if OK == false || broadcastMsg == nil {
 		return nil, common.Hash{}, errors.Errorf("缓存中没有重选结果广播消息")
 	}
 	return broadcastMsg, self.broadcastPool.saveReqMsgAndHash(broadcastMsg), nil
 }
 
-func (self *masterCache) GetLocalBroadcastMsg() (*mc.HD_ReelectResultBroadcastMsg, error) {
-	broadcastMsg, OK := self.broadcastPool.getReqMsg().(*mc.HD_ReelectResultBroadcastMsg)
+func (self *masterCache) GetLocalBroadcastMsg() (*mc.HD_ReelectBroadcastMsg, error) {
+	broadcastMsg, OK := self.broadcastPool.getReqMsg().(*mc.HD_ReelectBroadcastMsg)
 	if OK == false || broadcastMsg == nil {
 		return nil, errors.Errorf("缓存中没有重选结果广播消息")
 	}

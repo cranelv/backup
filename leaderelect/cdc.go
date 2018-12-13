@@ -4,7 +4,6 @@
 package leaderelect
 
 import (
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
@@ -18,6 +17,7 @@ import (
 type cdc struct {
 	state            stateDef
 	number           uint64
+	selfAddr         common.Address
 	role             common.RoleType
 	curConsensusTurn mc.ConsensusTurnInfo
 	consensusLeader  common.Address
@@ -36,6 +36,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	dc := &cdc{
 		state:            stIdle,
 		number:           number,
+		selfAddr:         common.Address{},
 		role:             common.RoleNil,
 		curConsensusTurn: mc.ConsensusTurnInfo{},
 		consensusLeader:  common.Address{},
@@ -51,6 +52,10 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 
 	dc.leaderCal = newLeaderCalculator(chain, dc.number, dc.logInfo)
 	return dc
+}
+
+func (dc *cdc) SetSelfAddress(addr common.Address) {
+	dc.selfAddr = addr
 }
 
 func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState *state.StateDB) error {
@@ -100,6 +105,7 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	dc.consensusLeader.Set(consensusLeader)
 	dc.parentState = parentState
 	dc.role = role
+
 	return nil
 }
 
@@ -299,9 +305,8 @@ func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.Topolo
 }
 
 func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
-	selfAccount := ca.GetAddress()
 	for _, v := range TopologyGraph.NodeList {
-		if v.Account == selfAccount {
+		if v.Account == dc.selfAddr {
 			return v.Type
 		}
 	}

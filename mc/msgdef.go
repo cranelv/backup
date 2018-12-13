@@ -297,7 +297,7 @@ type HD_ReelectLeaderConsensus struct {
 	Votes []common.Signature
 }
 
-type HD_ReelectResultBroadcastMsg struct {
+type HD_ReelectBroadcastMsg struct {
 	Number    uint64
 	Type      ReelectRSPType
 	POSResult *HD_BlkConsensusReqMsg
@@ -306,7 +306,7 @@ type HD_ReelectResultBroadcastMsg struct {
 	From      common.Address
 }
 
-type HD_ReelectResultRspMsg struct {
+type HD_ReelectBroadcastRspMsg struct {
 	Number     uint64
 	ResultHash common.Hash
 	Sign       common.Signature
