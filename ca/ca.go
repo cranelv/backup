@@ -140,7 +140,6 @@ func Start(id discover.NodeID, path string) {
 				ide.log.Error("get broadcast interval", "error", err)
 				continue
 			}
-
 			log.INFO("CA", "broadcast interval", bcInterval)
 
 			// do topology
@@ -158,6 +157,7 @@ func Start(id discover.NodeID, path string) {
 				return
 			}
 			ide.specialAccounts = accounts
+			log.INFO("CA", "special Accounts", bcInterval)
 
 			log.INFO("ca", "special accounts", accounts)
 

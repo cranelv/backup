@@ -42,7 +42,7 @@ func (cm *ControllerManager) StartController(number uint64, msg *startController
 	defer cm.mu.Unlock()
 
 	if cm.curNumber > number {
-		log.INFO(cm.logInfo, "处理start controller消息", "高度低于当前高度,不处理", "curNumber", cm.curNumber, "number", number)
+		log.Debug(cm.logInfo, "处理start controller消息", "高度低于当前高度,不处理", "curNumber", cm.curNumber, "number", number)
 		return
 	} else if cm.curNumber < number {
 		cm.curNumber = number
@@ -74,11 +74,11 @@ func (cm *ControllerManager) fixCtrlMap() {
 		return
 	}
 
-	log.INFO(cm.logInfo, "ctrlManager 开始修正map, controller数量", len(cm.ctrlMap), "修复高度", cm.curNumber)
+	log.Trace(cm.logInfo, "ctrlManager 开始修正map, controller数量", len(cm.ctrlMap), "修正高度", cm.curNumber)
 
 	delKeys := make([]uint64, 0)
 	for key, ctrl := range cm.ctrlMap {
-		if key < cm.curNumber {
+		if err := cm.isLegalNumber(key); err != nil {
 			ctrl.Close()
 			delKeys = append(delKeys, key)
 		}
@@ -88,14 +88,14 @@ func (cm *ControllerManager) fixCtrlMap() {
 		delete(cm.ctrlMap, delKey)
 	}
 
-	log.INFO(cm.logInfo, "PM 结束修正map, controller数量", len(cm.ctrlMap))
+	log.Trace(cm.logInfo, "ctrlManager 结束修正map, controller数量", len(cm.ctrlMap))
 }
 
 func (cm *ControllerManager) isLegalNumber(number uint64) error {
 	if number < cm.curNumber {
 		return errors.Errorf("number(%d) is less than current number(%d)", number, cm.curNumber)
 	}
-	if number > cm.curNumber+2 {
+	if number > cm.curNumber+mangerCacheMax {
 		return errors.Errorf("number(%d) is too big than current number(%d)", number, cm.curNumber)
 	}
 	return nil
@@ -104,7 +104,7 @@ func (cm *ControllerManager) isLegalNumber(number uint64) error {
 func (cm *ControllerManager) getController(number uint64) *controller {
 	ctrl, OK := cm.ctrlMap[number]
 	if OK == false {
-		log.INFO(cm.logInfo, "ctrlManager 创建controller，高度", number)
+		log.Trace(cm.logInfo, "ctrlManager 创建controller，高度", number)
 		ctrl = newController(cm.matrix, cm.logInfo, number)
 		cm.ctrlMap[number] = ctrl
 	}

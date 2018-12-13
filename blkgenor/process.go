@@ -57,7 +57,7 @@ type Process struct {
 	mu                 sync.Mutex
 	curLeader          common.Address
 	nextLeader         common.Address
-	consensusTurn      uint32
+	consensusTurn      mc.ConsensusTurnInfo
 	preBlockHash       common.Hash
 	number             uint64
 	role               common.RoleType
@@ -77,7 +77,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	p := &Process{
 		curLeader:          common.Address{},
 		nextLeader:         common.Address{},
-		consensusTurn:      0,
+		consensusTurn:      mc.ConsensusTurnInfo{},
 		preBlockHash:       common.Hash{},
 		insertBlockHash:    make([]common.Hash, 0),
 		number:             number,
@@ -112,7 +112,7 @@ func (p *Process) Close() {
 	p.state = StateIdle
 	p.curLeader = common.Address{}
 	p.nextLeader = common.Address{}
-	p.consensusTurn = 0
+	p.consensusTurn = mc.ConsensusTurnInfo{}
 	p.preBlockHash = common.Hash{}
 	p.bcInterval = nil
 	p.closeConsensusReqSender()
@@ -128,7 +128,7 @@ func (p *Process) ReInit() {
 	p.state = StateBlockBroadcast
 	p.curLeader = common.Address{}
 	p.nextLeader = common.Address{}
-	p.consensusTurn = 0
+	p.consensusTurn = mc.ConsensusTurnInfo{}
 	p.preBlockHash = common.Hash{}
 	p.closeConsensusReqSender()
 	p.stopMinerPikerTimer()
@@ -140,7 +140,7 @@ func (p *Process) ReInitNextLeader() {
 	p.nextLeader = common.Address{}
 }
 
-func (p *Process) SetCurLeader(leader common.Address, consensusTurn uint32) {
+func (p *Process) SetCurLeader(leader common.Address, consensusTurn mc.ConsensusTurnInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.curLeader == leader && p.consensusTurn == consensusTurn {

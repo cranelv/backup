@@ -2479,18 +2479,18 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 	height := block.NumberU64()
 
 	ans := []common.Address{}
-	log.ERROR("5555555555555", "开始调用 authFrom", authFrom, "height", height)
+	log.ERROR("签名助手", "开始调用 authFrom", authFrom, "height", height)
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR("5555555555555", "结束调用", "", "ans", ans)
+	log.ERROR("签名助手", "结束调用", "", "ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	} else {
-		log.ERROR("55555555", "开始检查反射", ans[0].String(), "height", height)
+		log.ERROR("签名助手", "开始检查反射", ans[0].String(), "height", height)
 		aa := st.GetAuthFrom(ans[0], height)
-		log.ERROR("55555555", "检查反射结果", aa.String())
+		log.ERROR("签名助手", "检查反射结果", aa.String())
 	}
 
-	log.ERROR("签名助手", "ans", ans, "entrustvalue", manparams.EntrustValue)
+	log.ERROR("签名助手", "ans", ans)
 	for _, v := range ans {
 		for kk, vv := range manparams.EntrustValue {
 			if v.Equal(kk) == false {

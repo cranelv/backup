@@ -27,8 +27,8 @@ func (self *HD) initCodec() {
 	self.registerCodec(mc.HD_LeaderReelectInquiryRsp, new(lrInquiryRspCodec))
 	self.registerCodec(mc.HD_LeaderReelectReq, new(lrReqCodec))
 	self.registerCodec(mc.HD_LeaderReelectVote, new(lrVoteCodec))
-	self.registerCodec(mc.HD_LeaderReelectResultBroadcast, new(lrResultBCCodec))
-	self.registerCodec(mc.HD_LeaderReelectResultBroadcastRsp, new(lrResultBCRspCodec))
+	self.registerCodec(mc.HD_LeaderReelectBroadcast, new(lrResultBCCodec))
+	self.registerCodec(mc.HD_LeaderReelectBroadcastRsp, new(lrResultBCRspCodec))
 	self.registerCodec(mc.HD_FullBlockReq, new(fullBlockReqCodec))
 	self.registerCodec(mc.HD_FullBlockRsp, new(fullBlockRspCodec))
 }
@@ -412,7 +412,7 @@ func (*lrVoteCodec) DecodeFn(data []byte, from common.Address) (interface{}, err
 
 ////////////////////////////////////////////////////////////////////////
 // leader重选结果广播消息
-// msg code = mc.HD_LeaderReelectResultBroadcast
+// msg code = mc.HD_LeaderReelectBroadcast
 type lrResultBCCodec struct {
 }
 
@@ -425,7 +425,7 @@ func (*lrResultBCCodec) EncodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (*lrResultBCCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := new(mc.HD_ReelectResultBroadcastMsg)
+	msg := new(mc.HD_ReelectBroadcastMsg)
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
@@ -436,7 +436,7 @@ func (*lrResultBCCodec) DecodeFn(data []byte, from common.Address) (interface{},
 
 ////////////////////////////////////////////////////////////////////////
 // leader重选结果广播响应消息
-// msg code = mc.HD_LeaderReelectResultBroadcastRsp
+// msg code = mc.HD_LeaderReelectBroadcastRsp
 type lrResultBCRspCodec struct {
 }
 
@@ -449,7 +449,7 @@ func (*lrResultBCRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (*lrResultBCRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := new(mc.HD_ReelectResultRspMsg)
+	msg := new(mc.HD_ReelectBroadcastRspMsg)
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

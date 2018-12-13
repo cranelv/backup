@@ -142,7 +142,7 @@ type LeaderChangeNotify struct {
 	Leader         common.Address
 	NextLeader     common.Address
 	Number         uint64
-	ConsensusTurn  uint32
+	ConsensusTurn  ConsensusTurnInfo
 	ReelectTurn    uint32
 	TurnBeginTime  int64
 	TurnEndTime    int64
@@ -152,7 +152,7 @@ type LeaderChangeNotify struct {
 type HD_BlkConsensusReqMsg struct {
 	From                   common.Address
 	Header                 *types.Header
-	ConsensusTurn          uint32
+	ConsensusTurn          ConsensusTurnInfo
 	TxsCode                []*common.RetCallTxN
 	OnlineConsensusResults []*HD_OnlineConsensusVoteResultMsg
 }
@@ -167,7 +167,7 @@ type LocalBlockVerifyConsensusReq struct {
 type BlockPOSFinishedNotify struct {
 	Number        uint64
 	Header        *types.Header // 包含签名列表的header
-	ConsensusTurn uint32
+	ConsensusTurn ConsensusTurnInfo
 	TxsCode       []*common.RetCallTxN
 }
 
@@ -251,9 +251,14 @@ type BroadCastEvent struct {
 }
 
 //
+type ConsensusTurnInfo struct {
+	PreConsensusTurn uint32 // 前一次共识轮次
+	UsedReelectTurn  uint32 // 完成共识花费的重选轮次
+}
+
 type HD_ReelectInquiryReqMsg struct {
 	Number        uint64
-	ConsensusTurn uint32
+	ConsensusTurn ConsensusTurnInfo
 	ReelectTurn   uint32
 	TimeStamp     uint64
 	Master        common.Address
@@ -292,7 +297,7 @@ type HD_ReelectLeaderConsensus struct {
 	Votes []common.Signature
 }
 
-type HD_ReelectResultBroadcastMsg struct {
+type HD_ReelectBroadcastMsg struct {
 	Number    uint64
 	Type      ReelectRSPType
 	POSResult *HD_BlkConsensusReqMsg
@@ -301,7 +306,7 @@ type HD_ReelectResultBroadcastMsg struct {
 	From      common.Address
 }
 
-type HD_ReelectResultRspMsg struct {
+type HD_ReelectBroadcastRspMsg struct {
 	Number     uint64
 	ResultHash common.Hash
 	Sign       common.Signature

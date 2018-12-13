@@ -4,7 +4,6 @@
 package leaderelect
 
 import (
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
@@ -18,8 +17,9 @@ import (
 type cdc struct {
 	state            stateDef
 	number           uint64
+	selfAddr         common.Address
 	role             common.RoleType
-	curConsensusTurn uint32
+	curConsensusTurn mc.ConsensusTurnInfo
 	consensusLeader  common.Address
 	curReelectTurn   uint32
 	reelectMaster    common.Address
@@ -36,8 +36,9 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	dc := &cdc{
 		state:            stIdle,
 		number:           number,
+		selfAddr:         common.Address{},
 		role:             common.RoleNil,
-		curConsensusTurn: 0,
+		curConsensusTurn: mc.ConsensusTurnInfo{},
 		consensusLeader:  common.Address{},
 		curReelectTurn:   0,
 		reelectMaster:    common.Address{},
@@ -49,8 +50,12 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		logInfo:          logInfo,
 	}
 
-	dc.leaderCal = newLeaderCalculator(chain, dc)
+	dc.leaderCal = newLeaderCalculator(chain, dc.number, dc.logInfo)
 	return dc
+}
+
+func (dc *cdc) SetSelfAddress(addr common.Address) {
+	dc.selfAddr = addr
 }
 
 func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState *state.StateDB) error {
@@ -79,12 +84,13 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 		return err
 	}
 
-	consensusLeader, err := dc.GetLeader(dc.curConsensusTurn, bcInterval)
+	consensusIndex := dc.curConsensusTurn.TotalTurns()
+	consensusLeader, err := dc.GetLeader(consensusIndex, bcInterval)
 	if err != nil {
 		return err
 	}
 	if dc.curReelectTurn != 0 {
-		reelectLeader, err := dc.GetLeader(dc.curConsensusTurn+dc.curReelectTurn, bcInterval)
+		reelectLeader, err := dc.GetLeader(consensusIndex+dc.curReelectTurn, bcInterval)
 		if err != nil {
 			return err
 		}
@@ -99,13 +105,14 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 	dc.consensusLeader.Set(consensusLeader)
 	dc.parentState = parentState
 	dc.role = role
+
 	return nil
 }
 
-func (dc *cdc) SetConsensusTurn(consensusTurn uint32) error {
-	consensusLeader, err := dc.GetLeader(consensusTurn, dc.bcInterval)
+func (dc *cdc) SetConsensusTurn(consensusTurn mc.ConsensusTurnInfo) error {
+	consensusLeader, err := dc.GetLeader(consensusTurn.TotalTurns(), dc.bcInterval)
 	if err != nil {
-		return errors.Errorf("获取共识leader错误(%v), 共识轮次(%d)", err, consensusTurn)
+		return errors.Errorf("获取共识leader错误(%v), 共识轮次: %s", err, consensusTurn.String())
 	}
 
 	dc.consensusLeader.Set(consensusLeader)
@@ -124,7 +131,7 @@ func (dc *cdc) SetReelectTurn(reelectTurn uint32) error {
 		dc.curReelectTurn = 0
 		return nil
 	}
-	master, err := dc.GetLeader(dc.curConsensusTurn+reelectTurn, dc.bcInterval)
+	master, err := dc.GetLeader(dc.curConsensusTurn.TotalTurns()+reelectTurn, dc.bcInterval)
 	if err != nil {
 		return errors.Errorf("获取master错误(%v), 重选轮次(%d), 共识轮次(%d)", err, reelectTurn, dc.curConsensusTurn)
 	}
@@ -150,7 +157,7 @@ func (dc *cdc) GetReelectMaster() common.Address {
 }
 
 func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
-	leaders, err := dc.leaderCal.GetLeader(dc.curConsensusTurn+dc.curReelectTurn, dc.bcInterval)
+	leaders, err := dc.leaderCal.GetLeader(dc.curConsensusTurn.TotalTurns()+dc.curReelectTurn, dc.bcInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -298,9 +305,8 @@ func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.Topolo
 }
 
 func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
-	selfAccount := ca.GetAddress()
 	for _, v := range TopologyGraph.NodeList {
-		if v.Account == selfAccount {
+		if v.Account == dc.selfAddr {
 			return v.Type
 		}
 	}

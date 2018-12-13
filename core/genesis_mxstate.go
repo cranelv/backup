@@ -91,7 +91,12 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
-
+	if err:=ms.setPreMinHashToStat(state,num);err!=nil{
+		return err
+	}
+	if err:=ms.setPreBroadcastRootToStat(state,num);err!=nil{
+		return err
+	}
 	return nil
 }
 
@@ -445,6 +450,7 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, n
 	log.INFO("Geneis", "超级区块配置", superBlkCfg)
 	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
 }
+
 func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
@@ -502,4 +508,11 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) e
 		return matrixstate.SetDataToState(mc.MSKeyBroadcastInterval, interval, state)
 	}
 	return nil
+}
+
+func (g *GenesisMState) setPreMinHashToStat(state *state.StateDB, num uint64) error {
+	return  matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.MinHashStruct{}, state)
+}
+func (g *GenesisMState)setPreBroadcastRootToStat (state *state.StateDB, num uint64) error {
+	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot,&mc.PreBroadStateRoot{},state)
 }

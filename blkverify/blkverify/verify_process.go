@@ -82,7 +82,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 			Leader:         common.Address{},
 			NextLeader:     common.Address{},
 			Number:         number,
-			ConsensusTurn:  0,
+			ConsensusTurn:  mc.ConsensusTurnInfo{},
 			ReelectTurn:    0,
 			TurnBeginTime:  0,
 			TurnEndTime:    0,
@@ -165,7 +165,7 @@ func (p *Process) stopProcess() {
 	p.closeMineReqMsgSender()
 	p.leaderCache.Leader.Set(common.Address{})
 	p.leaderCache.NextLeader.Set(common.Address{})
-	p.leaderCache.ConsensusTurn = 0
+	p.leaderCache.ConsensusTurn = mc.ConsensusTurnInfo{}
 	p.leaderCache.ReelectTurn = 0
 	p.leaderCache.TurnBeginTime = 0
 	p.leaderCache.TurnEndTime = 0
@@ -447,10 +447,10 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
-	if root1 != p.curProcessReq.req.Header.Root {
-		log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
-	}
+	//root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
+	//if root1 != p.curProcessReq.req.Header.Root {
+	//	log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
+	//}
 
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
@@ -485,7 +485,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) sendVote(validate bool) {
 	signHash := p.curProcessReq.hash
-	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate,p.curProcessReq.req.Header.ParentHash)
+	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), validate, p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "投票签名失败", err, "高度", p.number)
 		return

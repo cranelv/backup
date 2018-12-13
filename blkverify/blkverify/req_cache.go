@@ -58,7 +58,7 @@ func newReqDataByLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) *reqData {
 
 type reqCache struct {
 	mu             sync.RWMutex
-	curTurn        uint32
+	curTurn        mc.ConsensusTurnInfo
 	leaderReqCache map[common.Address]*reqData //from = leader 的req
 	otherReqCache  []*reqData                  //from != leader 的req
 	otherReqLimit  int
@@ -66,7 +66,7 @@ type reqCache struct {
 
 func newReqCache() *reqCache {
 	return &reqCache{
-		curTurn:        0,
+		curTurn:        mc.ConsensusTurnInfo{0, 0},
 		leaderReqCache: make(map[common.Address]*reqData),
 		otherReqCache:  make([]*reqData, 0),
 		otherReqLimit:  otherReqCountMax,
@@ -81,13 +81,13 @@ func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg) error {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
-	if req.ConsensusTurn < rc.curTurn {
-		return errors.Errorf("区块请求消息的轮次高低,消息轮次(%d) < 本地轮次(%d)", req.ConsensusTurn, rc.curTurn)
+	if req.ConsensusTurn.Cmp(rc.curTurn) < 0 {
+		return errors.Errorf("区块请求消息的轮次高低,消息轮次(%s) < 本地轮次(%s)", req.ConsensusTurn.String(), rc.curTurn.String())
 	}
 
 	if req.Header.Leader == req.From {
 		oldReq, exit := rc.leaderReqCache[req.From]
-		if exit && oldReq.req.ConsensusTurn >= req.ConsensusTurn {
+		if exit && oldReq.req.ConsensusTurn.Cmp(req.ConsensusTurn) >= 0 {
 			return leaderReqExistErr
 		}
 		rc.leaderReqCache[req.From] = newReqData(req)
@@ -115,11 +115,11 @@ func (rc *reqCache) AddLocalReq(req *mc.LocalBlockVerifyConsensusReq) error {
 	return nil
 }
 
-func (rc *reqCache) SetCurTurn(consensusTurn uint32) {
+func (rc *reqCache) SetCurTurn(consensusTurn mc.ConsensusTurnInfo) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
-	if rc.curTurn >= consensusTurn {
+	if rc.curTurn.Cmp(consensusTurn) >= 0 {
 		return
 	}
 
@@ -127,7 +127,7 @@ func (rc *reqCache) SetCurTurn(consensusTurn uint32) {
 	//fix leader req cache
 	deleteList := make([]common.Address, 0)
 	for key, req := range rc.leaderReqCache {
-		if req.req.ConsensusTurn < rc.curTurn {
+		if req.req.ConsensusTurn.Cmp(rc.curTurn) < 0 {
 			deleteList = append(deleteList, key)
 		}
 	}
@@ -138,14 +138,14 @@ func (rc *reqCache) SetCurTurn(consensusTurn uint32) {
 	//fix other req cache
 	newCache := make([]*reqData, 0)
 	for _, req := range rc.otherReqCache {
-		if req.req.ConsensusTurn >= rc.curTurn {
+		if req.req.ConsensusTurn.Cmp(rc.curTurn) >= 0 {
 			newCache = append(newCache, req)
 		}
 	}
 	rc.otherReqCache = newCache
 }
 
-func (rc *reqCache) GetLeaderReq(leader common.Address, consensusTurn uint32) (*reqData, error) {
+func (rc *reqCache) GetLeaderReq(leader common.Address, consensusTurn mc.ConsensusTurnInfo) (*reqData, error) {
 	if (leader == common.Address{}) {
 		return nil, paramErr
 	}
@@ -158,7 +158,7 @@ func (rc *reqCache) GetLeaderReq(leader common.Address, consensusTurn uint32) (*
 	}
 
 	if req.req.ConsensusTurn != consensusTurn {
-		return nil, errors.Errorf("请求轮次不匹配,缓存(%d) != 目标(%d)", req.req.ConsensusTurn, consensusTurn)
+		return nil, errors.Errorf("请求轮次不匹配,缓存(%s) != 目标(%s)", req.req.ConsensusTurn.String(), consensusTurn.String())
 	}
 
 	return req, nil

@@ -207,7 +207,7 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 		// 提前设置下个process的leader
 		nextProcess, err := self.pm.GetProcess(number + 1)
 		if err == nil {
-			nextProcess.SetCurLeader(leaderMsg.NextLeader, 0)
+			nextProcess.SetCurLeader(leaderMsg.NextLeader, mc.ConsensusTurnInfo{})
 		} else {
 			log.WARN(self.logExtraInfo(), "获取下个高度process失败", err)
 		}
@@ -253,10 +253,10 @@ func (self *BlockGenor) consensusBlockMsgHandle(data *mc.BlockLocalVerifyOK) {
 		return
 	}
 
-	root, _ := data.State.Commit(self.pm.bc.Config().IsEIP158(data.Header.Number))
-	if root != data.Header.Root {
-		log.Error("hyk_miss_trie_1", "root", data.Header.Root.TerminalString(), "state root", root.TerminalString())
-	}
+	//root, _ := data.State.Commit(self.pm.bc.Config().IsEIP158(data.Header.Number))
+	//if root != data.Header.Root {
+	//	log.Error("hyk_miss_trie_1", "root", data.Header.Root.TerminalString(), "state root", root.TerminalString())
+	//}
 
 	process.AddConsensusBlock(data)
 }
