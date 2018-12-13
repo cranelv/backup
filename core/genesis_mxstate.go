@@ -467,8 +467,8 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) e
 			log.INFO("Geneis", "没有配置广播周期配置信息", "")
 			return nil
 		}
-		if g.BCICfg.BCInterval < 20 {
-			return errors.Errorf("`BCInterval`(%d) of broadcast interval config illegal", g.BCICfg.BCInterval)
+		if g.BCICfg.BackupBCInterval < 20 {
+			return errors.Errorf("`BackupBCInterval`(%d) of broadcast interval config illegal", g.BCICfg.BackupBCInterval)
 		}
 		if g.BCICfg.BackupEnableNumber < num {
 			return errors.Errorf("广播周期生效高度(%d)非法, < 当前高度(%d)", g.BCICfg.BackupEnableNumber, num)

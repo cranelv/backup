@@ -141,12 +141,16 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	}
 	if nil != gensis1.MState {
 		gensis.MState = new(GenesisMState)
-		gensis.MState.Broadcast = new(mc.NodeInfo)
-		gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
-		gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
-		gensis.MState.Foundation = new(mc.NodeInfo)
-		gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
-		gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+		if nil != gensis1.MState.Broadcast {
+			gensis.MState.Broadcast = new(mc.NodeInfo)
+			gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
+			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+		}
+		if nil != gensis1.MState.Foundation {
+			gensis.MState.Foundation = new(mc.NodeInfo)
+			gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
+			gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+		}
 		if nil != gensis1.MState.InnerMiners {
 
 			for _, v := range *gensis1.MState.InnerMiners {

@@ -159,6 +159,8 @@ func Start(id discover.NodeID, path string) {
 			}
 			ide.specialAccounts = accounts
 
+			log.INFO("ca", "special accounts", accounts)
+
 			// get elect
 			elect, err := ide.topologyReader.GetNextElectByHash(hash)
 			if err != nil {
