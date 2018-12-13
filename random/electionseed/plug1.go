@@ -17,7 +17,6 @@ import (
 )
 
 func init() {
-	//fmt.Println("electionseed Minhash&Key")
 	electSeedPlug1 := &ElectSeedPlug1{privatekey: big.NewInt(0)}
 	RegisterElectSeedPlugs("Minhash&Key", electSeedPlug1)
 }
@@ -27,6 +26,8 @@ type ElectSeedPlug1 struct {
 }
 
 func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
+	log.INFO(ModuleElectSeed,"生成随机种子准备阶段","开始","height",height)
+	defer log.INFO(ModuleElectSeed,"生成随机种子准备阶段","结束","height",height)
 
 	data, err := commonsupport.GetElectGenTimes(support.BlockChain(), height)
 	if err != nil {
@@ -67,23 +68,23 @@ func (self *ElectSeedPlug1) CalcSeed(hash common.Hash, support baseinterface.Ran
 	}
 	minHash := commonsupport.GetMinHash(hash, support)
 	ans.Add(ans, minHash.Big())
-	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果未", ans, "高度hash", hash.String())
+	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果为", ans, "高度hash", hash.String())
 	return ans, nil
 }
 
 func NeedVote(height uint64) bool {
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(height)), common.RoleValidator)
 	if err != nil {
-		log.Error(ModuleElectSeed, "投票失敗", "獲取驗證者身份列表失敗", "高度", height)
+		log.Error(ModuleElectSeed, "投票失敗", "获取验证者身份列表失败", "高度", height)
 		return false
 	}
 	selfAddress := ca.GetAddress()
 	for _, v := range ans {
 		if v.Address == selfAddress {
-			log.INFO(ModuleElectSeed, "具備投票身份 賬戶", selfAddress)
+			log.INFO(ModuleElectSeed, "具备投票身份 账户", selfAddress)
 			return true
 		}
 	}
-	log.Error(ModuleElectSeed, "不具備投票身份,不存在抵押列表里 賬戶", selfAddress)
+	log.Error(ModuleElectSeed, "不具备投票身份,不存在抵押列表里 账户", selfAddress)
 	return false
 }

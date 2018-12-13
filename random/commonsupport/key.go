@@ -8,8 +8,6 @@ import (
 	"errors"
 	"math/big"
 
-	"fmt"
-
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/baseinterface"
@@ -30,7 +28,6 @@ func CompareMap(private map[common.Address][]byte, public map[common.Address][]b
 		return rangePrivate(private, public)
 	}
 	ans := rangePublic(private, public)
-	log.INFO(ModuleRandomCommon, "隨機數map匹配的公私鑰 data", ans)
 	return ans
 }
 
@@ -178,12 +175,12 @@ func GetMaxNonce(hash common.Hash, lastwHeight uint64, support baseinterface.Ran
 		log.Error("electionseed", "计算种子失败 err", err, "hash", hash.String())
 		return 0
 	}
-
+	if height<lastwHeight{
+		lastwHeight=0
+	}
 	ans := support.BlockChain().GetBlockByNumber(lastwHeight).Header().Nonce.Uint64()
-	lastwHeight = height - lastwHeight
 
 	for k := lastwHeight; k <= height; k++ {
-		fmt.Println("kkkk", k)
 		tempHash, err := support.BlockChain().GetAncestorHash(hash, k)
 		if err != nil {
 			break

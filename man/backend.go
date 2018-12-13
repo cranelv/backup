@@ -230,8 +230,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	dbDir := ctx.GetConfig().DataDir
-	man.reelection, err = reelection.New(man.blockchain, dbDir, man.random)
+	man.reelection, err = reelection.New(man.blockchain, man.random)
 	if err != nil {
 		return nil, err
 	}

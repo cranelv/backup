@@ -38,18 +38,18 @@ type ElectionSeed struct {
 }
 
 func RegisterElectSeedPlugs(name string, plug ElectSeedPlugs) {
-//	fmt.Println(ModuleElectSeed, "选举种子注册阶段", "", "插件名称", name)
 	mapElectSeedPlugs[name] = plug
 }
 
 func (self *ElectionSeed) CalcData(calcData common.Hash) (*big.Int, error) {
-	log.INFO(ModuleElectSeed, "计算阶段", "", "收到的数据", calcData)
-	return mapElectSeedPlugs[self.plug].CalcSeed(calcData, self.support)
+	ans,err:= mapElectSeedPlugs[self.plug].CalcSeed(calcData, self.support)
+	log.INFO(ModuleElectSeed, "计算阶段", "", "收到的数据", calcData,"结果",ans,"err",err)
+	return ans,err
 
 }
 
 func (self *ElectionSeed) Prepare(height uint64) error {
-	log.INFO(ModuleElectSeed, "准备阶段", "", "高度", height, "使用的插件", self.plug)
 	err := mapElectSeedPlugs[self.plug].Prepare(height,self.support)
+	log.INFO(ModuleElectSeed, "准备阶段", "", "高度", height, "使用的插件", self.plug)
 	return err
 }

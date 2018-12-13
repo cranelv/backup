@@ -72,8 +72,8 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		electStates.ElectList = append(electStates.ElectList, electList...)
 		electStates.NextElect = []mc.ElectNodeInfo{}
 	}
-
-	return SloveElectStatus(electStates)
+	log.INFO(Module,"高度",block.Number().Uint64(),"ProduceElectGraphData data",electStates)
+	return electStates,nil
 }
 
 func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
@@ -119,7 +119,8 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 			tt.Position = common.PosOnline
 			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
 		}
-		return SloveOnlineStatus(&electOnline)
+		log.INFO(Module,"高度",block.Number().Uint64(),"ProduceElectOnlineStateData data",electOnline)
+		return electOnline,nil
 	}
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
@@ -150,7 +151,8 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 		electStates.ElectOnline[k].Position = mappStatus[v.Account]
 	}
 
-	return SloveOnlineStatus(electStates)
+	log.INFO(Module,"高度",block.Number().Uint64(),"ProduceElectOnlineStateData data",electStates)
+	return electStates,nil
 }
 
 func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
@@ -203,21 +205,22 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 }
 func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProducePreBroadcastStateData CheckBlock err ", err)
+		log.ERROR(Module, "ProduceMinHashData CheckBlock err ", err)
 		return []byte{}, err
 	}
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
+		log.Error(Module, "ProduceMinHashData read broadcast interval err", err)
 		return nil, err
 	}
 	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
+		log.Error(Module, "ProduceMinHashData create broadcast interval err", err)
 		return nil,err
 	}
 	height := block.Number().Uint64()
 	if bcInterval.IsBroadcastNumber(height - 1) {
+		log.ERROR(Module,"ProduceMinHashData","是广播区块后一块",height)
 		return mc.MinHashStruct{MinHash: block.ParentHash()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)

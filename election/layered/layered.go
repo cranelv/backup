@@ -44,7 +44,6 @@ type VIP_Electoion struct{
 
 }
 func (node *vip_node)SetUsable(status bool){
-	//fmt.Println("-----",node.Address.String(),"flag",status)
 	node.Usable=status
 }
 
@@ -52,20 +51,15 @@ func (node * vip_node)SetIndex(index int){
 	node.index = index
 }
 func (node * vip_node)SetVipLevelInfo(VipLevelCfg []mc.VIPConfig){
-
-
 	for index:=0;index<len(VipLevelCfg);index++ {
 		temp:=big.NewInt(0).Set(node.Deposit)
 		deposMan:=temp.Div(temp,common.ManValue).Uint64()
-
 		if deposMan >= VipLevelCfg[index].MinMoney {
-
 			node.vipLevel = index
 			node.Ratio=VipLevelCfg[index].StockScale
 			return
 		}
 	}
-
 	maxLevel := len(VipLevelCfg)
 	node.Ratio=DefaultRatio
 	node.vipLevel = maxLevel
@@ -91,7 +85,6 @@ func (node  * vip_node)SetDepositInfo(depsit vm.DepositDetail){
 
 func NewVipElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg  mc.ElectConfigInfo, randseed * big.Int) * VIP_Electoion{
 	var vip VIP_Electoion
-
 	vip.randSeed = randseed
 	vip.MaxLevelNum = len(VipLevelCfg) + 1
 	vip.EleCfg = EleCfg
@@ -110,7 +103,6 @@ func NewVipElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg 
 	}
 	return &vip
 }
-
 
 func FindAddress(addr common.Address,addrList []common.Address)bool{
 	for _,v:=range addrList{
@@ -145,9 +137,7 @@ func (vip *VIP_Electoion)ProcessWhiteNode(){
 	}
 }
 func (vip * VIP_Electoion)GetNodeByLevel(level int) []vip_node{
-
 	specialNode := make([]vip_node,0)
-
 	for i:=0; i < len(vip.VipNodeInfo);i++{
 		if vip.VipNodeInfo[i].Usable==false{
 			continue
@@ -162,62 +152,34 @@ func (vip * VIP_Electoion)GetNodeByLevel(level int) []vip_node{
 
 func (vip * VIP_Electoion)GetNodeIndexByLevel(level int) []int{
 	specialNode := make([]int,0)
-
 	for i:=0; i < len(vip.VipNodeInfo);i++{
 		if level == vip.VipNodeInfo[i].vipLevel{
 			specialNode = append(specialNode, i)
 		}
 	}
-
 	return specialNode
 }
 
 func (vip * VIP_Electoion)GetLastNode(nodelist []vip_node) []vip_node{
-
-
 	var remainNodeList = make([]vip_node, 0)
 	for i := 0; i < len(vip.VipNodeInfo); i++{
-
 		if vip.VipNodeInfo[i].Usable ==false{
 			continue
 		}
-
-
 		remainNodeList = append(remainNodeList, vip.VipNodeInfo[i])
 	}
-
 	return remainNodeList
 }
 
 func (vip *VIP_Electoion)GetWeight(lastnode []vip_node)[]support.Stf{
 	var CapitalMap []support.Stf
-
 	for _, item := range lastnode {
 		self := support.SelfNodeInfo{Address: item.Address, Stk: float64(item.Deposit.Uint64()), Uptime: int(item.OnlineTime.Uint64()), Tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
 		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.Deposit_stake()*self.Coef_stk)
-
 		value=value*(float64(item.Ratio)/float64(DefaultRatioDenominator))
 		CapitalMap = append(CapitalMap, support.Stf{Addr: self.Address, Flot: float64(value)})
 	}
 	return CapitalMap
-}
-
-type VipNodeList []vip_node
-func (self VipNodeList) Len() int {
-	return len(self)
-}
-
-func (self VipNodeList) Less(i, j int) bool {
-	if self[i].Deposit.Cmp(self[j].Deposit) == 0{
-		return self[i].OnlineTime.Cmp(self[j].OnlineTime) > 0
-	}
-
-	return self[i].Deposit.Cmp(self[j].Deposit) > 0
-}
-func (self  VipNodeList) Swap(i, j int) {
-	temp := self[i]
-	self[i] = self[j]
-	self[j] = temp
 }
 
 func Knuth_Fisher_Yates_Algorithm( nodeList []vip_node, randSeed *big.Int) []vip_node {
@@ -248,18 +210,32 @@ func ( vip *VIP_Electoion)vipElection( nodeList []vip_node,  maxNum int) []vip_n
 	sort.Sort(VipNodeList(nodeList))
 	var vipElected = make([]vip_node, 0)
 	for _,v:=range nodeList{
-		//fmt.Println("maxNum",v)
 		vipElected=append(vipElected,v)
 		index,flag:=vip.GetIndex(v.Address)
 		if flag==false{
 			continue
 		}
 		vip.VipNodeInfo[index].SetUsable(false)
-		//fmt.Println("index",vip.VipNodeInfo[index].Address.String())
 		if len(vipElected)>=maxNum{
 			return vipElected
 		}
 	}
 
 	return vipElected
+}
+
+type VipNodeList []vip_node
+func (self VipNodeList) Len() int {
+	return len(self)
+}
+func (self VipNodeList) Less(i, j int) bool {
+	if self[i].Deposit.Cmp(self[j].Deposit) == 0{
+		return self[i].OnlineTime.Cmp(self[j].OnlineTime) > 0
+	}
+	return self[i].Deposit.Cmp(self[j].Deposit) > 0
+}
+func (self  VipNodeList) Swap(i, j int) {
+	temp := self[i]
+	self[i] = self[j]
+	self[j] = temp
 }
