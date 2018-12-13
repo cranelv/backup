@@ -220,7 +220,7 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 	}
 	height := block.Number().Uint64()
 	if bcInterval.IsBroadcastNumber(height - 1) {
-		log.ERROR(Module,"ProduceMinHashData","是广播区块后一块",height)
+		log.ERROR(Module,"ProduceMinHashData","","是广播区块后一块",height)
 		return mc.MinHashStruct{MinHash: block.ParentHash()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)
@@ -265,22 +265,13 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 	if bcInterval.IsReElectionNumber(height) == false {
 		return nil, nil
 	}
-	data, err := readFn(mc.MSKeyPerAllTop)
-	if err != nil {
-		log.ERROR(Module, "ProducePreAllTopData readFn 失败 key", mc.MSKeyPreBroadcastRoot, "err", err)
-		return nil, err
-	}
-	preAllTop, OK := data.(*mc.PreAllTopStruct)
-	if OK == false || preAllTop == nil {
-		log.ERROR(Module, "ProducePreAllTopData 非法", "反射失败")
-		return nil, err
-	}
+
 	header := self.bc.GetHeaderByHash(block.ParentHash())
 	if header == nil {
 		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
 		return nil, errors.New("header is nil")
 	}
-
+	preAllTop:=&mc.PreAllTopStruct{}
 	preAllTop.PreAllTopRoot = header.Root
 	log.INFO("高度",block.Number().Uint64(),"ProducePreAllTopData","preAllTop.PreAllTopRoot",preAllTop.PreAllTopRoot.String())
 	return preAllTop, nil
@@ -307,22 +298,13 @@ func (self *ReElection) ProducePreMinerData(block *types.Block, readFn matrixsta
 	if bcInterval.IsBroadcastNumber(height-1) {
 		return nil, nil
 	}
-	data, err := readFn(mc.MSKeyPreMiner)
-	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyPreMiner, "err", err)
-		return nil, err
-	}
-	preMiner, OK := data.(*mc.PreMinerStruct)
-	if OK == false || preMiner == nil {
-		log.ERROR(Module, "PreBroadStateRoot 非法", "反射失败")
-		return nil, err
-	}
+
 	header := self.bc.GetHeaderByHash(block.ParentHash())
 	if header == nil {
 		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
 		return nil, errors.New("header is nil")
 	}
-
+	preMiner:=&mc.PreMinerStruct{}
 	preMiner.PreMiner = header.Coinbase
 	log.INFO("高度",block.Number().Uint64(),"ProducePreMinerData","preMiner.PreMiner",preMiner.PreMiner.String())
 	return preMiner, nil
