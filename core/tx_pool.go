@@ -80,6 +80,7 @@ var (
 	ErrTXNonceSame     = errors.New("the same Nonce transaction exists")
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
 	ErrWithoutAuth  = errors.New("not be set entrust gas")
+	ErrinterestAmont      = errors.New("Incorrect total interest")
 )
 
 var (
