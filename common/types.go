@@ -410,6 +410,7 @@ type RewarTx struct {
 	CoinType      string
 	Fromaddr      Address
 	To_Amont      map[Address]*big.Int
+	RewardTyp byte
 }
 
 const (
@@ -422,6 +423,8 @@ var (
     BlkValidatorRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
 	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000002")   //交易费
 	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000003")   //彩票
+	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000004") //利息
+	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 )
 
 const (
@@ -437,7 +440,12 @@ const (
 	ExtraSuperBlockTx    byte = 120 //超级区块交易
 
 )
+var WhiteAddrlist  = [1]Address{TxGasRewardAddress}
 
+const (
+	RewardNomalType byte = 0 //奖励通过普通交易发放
+	RewardInerestType  byte = 1 //利息奖励通过合约交易发放
+)
 type TxTypeInt uint8
 type RetCallTxN struct {
 	TXt byte

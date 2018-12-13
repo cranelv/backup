@@ -618,7 +618,7 @@ func BtreeSaveHash(node *bnode, db *Database,typ byte) common.Hash{
 		return common.Hash{}
 	}
 	key := crypto.Keccak256Hash(encodeData)
-	db.insert(key, encodeData)
+	db.Insert(key, encodeData)
 	return key
 }
 
