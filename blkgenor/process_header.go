@@ -101,7 +101,7 @@ func (p *Process) processHeaderGen() error {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 
-	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
+	log.Info(p.logExtraInfo(), "获取拓扑结果 ", NetTopology, "高度", p.number)
 
 	tstamp := tstart.Unix()
 	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
@@ -110,12 +110,12 @@ func (p *Process) processHeaderGen() error {
 	// this will ensure we're not going off too far in the future
 	if now := time.Now().Unix(); tstamp > now+1 {
 		wait := time.Duration(tstamp-now) * time.Second
-		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+		log.Info(p.logExtraInfo(), "等待时间同步", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
 	account, vrfValue, vrfProof, err := p.getVrfValue(parent)
 	if err != nil {
-		log.INFO(p.logExtraInfo(), "区块生成阶段 获取vrfValue失败 err", err)
+		log.Error(p.logExtraInfo(), "区块生成阶段 获取vrfValue失败 错误", err)
 		return err
 	}
 	header := &types.Header{
@@ -169,7 +169,7 @@ func (p *Process) processHeaderGen() error {
 	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true,p.preBlockHash)
+		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -319,5 +319,5 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	} else {
 		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
-	return p.signHelper().SignVrf(vrfmsg,p.preBlockHash)
+	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
 }

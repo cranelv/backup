@@ -88,6 +88,7 @@ type worker struct {
 	mining int32
 	atWork int32
 
+	quitCh                chan struct{}
 	roleUpdateCh          chan *mc.RoleUpdatedMsg
 	roleUpdateSub         event.Subscription
 	miningRequestCh       chan *mc.HD_MiningReqMsg
@@ -105,8 +106,8 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorRea
 		engine: engine,
 		mux:    mux,
 
-		agents: make(map[Agent]struct{}),
-
+		agents:               make(map[Agent]struct{}),
+		quitCh:               make(chan struct{}),
 		miningRequestCh:      make(chan *mc.HD_MiningReqMsg, 100),
 		roleUpdateCh:         make(chan *mc.RoleUpdatedMsg, 100),
 		recv:                 make(chan *types.Header, resultQueueSize),
@@ -171,6 +172,10 @@ func (self *worker) update() {
 		if self.roleUpdateSub != nil {
 			self.roleUpdateSub.Unsubscribe()
 		}
+		self.StopAgent()
+		self.stopMineResultSender()
+		self.mineReqCtrl.Clear()
+		log.INFO("矿工节点退出成功")
 	}()
 
 	for {
@@ -189,6 +194,8 @@ func (self *worker) update() {
 		case <-self.miningRequestSub.Err():
 			return
 		case <-self.roleUpdateSub.Err():
+			return
+		case <-self.quitCh:
 			return
 		}
 	}
@@ -247,6 +254,10 @@ func (self *worker) BroadcastHashLocalMiningReqMsgHandle(req *mc.BlockData) {
 	if reqData != nil {
 		self.processAppointedMineReq(reqData)
 	}
+}
+
+func (self *worker) Stop() {
+	close(self.quitCh)
 }
 
 func (self *worker) wait() {

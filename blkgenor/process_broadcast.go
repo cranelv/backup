@@ -21,7 +21,7 @@ func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
 	defer p.mu.Unlock()
 
 	// 缓存广播区块挖矿结果
-	log.WARN(p.logExtraInfo(), "缓存广播区块挖矿结果成功，高度", p.number)
+	log.INFO(p.logExtraInfo(), "缓存广播区块挖矿结果成功，高度", p.number)
 	p.broadcastRstCache = append(p.broadcastRstCache, result.BlockMainData)
 
 	p.processMinerResultVerify(p.curLeader, true)
@@ -29,15 +29,15 @@ func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
 
 func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 	if p.bcInterval == nil {
-		log.ERROR(p.logExtraInfo(), "验证广播挖矿结果", "广播周期信息为nil")
+		log.WARN(p.logExtraInfo(), "验证广播挖矿结果", "广播周期信息为nil")
 		return false
 	}
 	if false == p.bcInterval.IsBroadcastNumber(result.Header.Number.Uint64()) {
-		log.ERROR(p.logExtraInfo(), "验证广播挖矿结果", "高度不是广播区块高度", "高度", result.Header.Number.Uint64())
+		log.WARN(p.logExtraInfo(), "验证广播挖矿结果", "高度不是广播区块高度", "高度", result.Header.Number.Uint64())
 		return false
 	}
 	if err := p.dposEngine().VerifyBlock(p.blockChain(), result.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证广播挖矿结果", "结果异常", "err", err)
+		log.WARN(p.logExtraInfo(), "验证广播挖矿结果", "结果异常", "err", err)
 		return false
 	}
 	return true
@@ -48,13 +48,13 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		// 运行广播区块交易
 		parent := p.blockChain().GetBlockByHash(result.Header.ParentHash)
 		if parent == nil {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "获取父区块错误!")
+			log.WARN(p.logExtraInfo(), "广播挖矿结果验证", "获取父区块错误!")
 			continue
 		}
 
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, result.Header)
 		if err != nil {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
+			log.WARN(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
 			continue
 		}
 

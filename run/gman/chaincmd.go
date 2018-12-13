@@ -17,8 +17,11 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/man/wizard"
 	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/man/wizard"
+
+	"bufio"
+	"encoding/base64"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -35,8 +38,6 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"encoding/base64"
-	"bufio"
 )
 
 var (

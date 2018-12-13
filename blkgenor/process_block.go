@@ -6,6 +6,8 @@ package blkgenor
 import (
 	"math/big"
 
+	"time"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
@@ -16,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -46,14 +47,14 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 
 	if p.state != StateEnd {
 		//处理完成后，状态不是完成状态，说明缺少数据
-		log.INFO(p.logExtraInfo(), "状态恢复消息处理", "处理完毕后，本地状态不是end", "本地状态", p.state, "header hash", headerHash.TerminalString())
+		log.INFO(p.logExtraInfo(), "状态恢复消息处理", "处理完毕后，本地状态不是end", "本地状态", p.state, "hash", headerHash.TerminalString())
 		if p.FullBlockReqCache.IsExistMsg(headerHash) {
 			data, err := p.FullBlockReqCache.ReUseMsg(headerHash)
 			if err != nil {
 				return
 			}
 			reqMsg, _ := data.(*mc.HD_FullBlockReqMsg)
-			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "header hash", reqMsg.HeaderHash.TerminalString())
+			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
 			p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{msg.From})
 		} else {
 			reqMsg := &mc.HD_FullBlockReqMsg{
@@ -61,7 +62,7 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 				Number:     header.Number.Uint64(),
 			}
 			p.FullBlockReqCache.AddMsg(headerHash, reqMsg, time.Now().Unix())
-			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "header hash", reqMsg.HeaderHash.TerminalString())
+			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
 			p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{msg.From})
 		}
 	}
@@ -86,14 +87,14 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 		Header: blockData.block.Header,
 		Txs:    blockData.block.Txs,
 	}
-	log.INFO(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "full hash", rspMsg.Header.Hash(), "交易数量", rspMsg.Txs.Len())
+	log.INFO(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易数量", rspMsg.Txs.Len())
 	p.pm.hd.SendNodeMsg(mc.HD_FullBlockRsp, rspMsg, common.RoleNil, []common.Address{req.From})
 }
 
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	fullHash := rsp.Header.Hash()
 	headerHash := rsp.Header.HashNoSignsAndNonce()
-	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "full hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Root.Hex(), "高度", p.number)
+	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "区块 hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Root.Hex(), "高度", p.number)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -113,7 +114,6 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	//运行交易
-	log.Info("file process_block", "func ProcessFullBlockRsp:YYYYYYYY:txs", rsp.Txs)
 	receipts, stateDB, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
@@ -183,7 +183,6 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 	defer p.mu.Unlock()
 
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
-		//log.ERROR(p.logExtraInfo(), "矿工挖矿结果入池失败", err, "高度", p.number)
 		return
 	}
 	log.INFO(p.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString(), "from", minerResult.From.Hex())
@@ -217,7 +216,7 @@ func (p *Process) processMinerResultVerify(leader common.Address, checkState boo
 	}
 
 	if p.bcInterval == nil {
-		log.INFO(p.logExtraInfo(), "准备进行挖矿结果验证", "广播周期信息为nil", "高度", p.number)
+		log.WARN(p.logExtraInfo(), "准备进行挖矿结果验证", "广播周期信息为nil", "高度", p.number)
 		return
 	}
 
@@ -256,7 +255,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 			return
 		}
 		if len(results) == 0 {
-			log.INFO(p.logExtraInfo(), "进行挖矿结果验证", "当前没有挖矿结果", "高度", p.number, "block hash", blockData.block.BlockHash.TerminalString())
+			log.WARN(p.logExtraInfo(), "进行挖矿结果验证", "当前没有挖矿结果", "高度", p.number, "block hash", blockData.block.BlockHash.TerminalString())
 			return
 		}
 
@@ -303,7 +302,7 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 	}
 
 	if p.bcInterval == nil {
-		log.ERROR(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
+		log.WARN(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
 		return
 	}
 
@@ -329,14 +328,14 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		}
 	}
 
-	log.INFO(p.logExtraInfo(), "~~~~区块插入~~~~", "开始", "高度", p.number)
+	log.INFO(p.logExtraInfo(), "区块插入", "开始", "高度", p.number)
 	hash, err := p.insertAndBcBlock(true, blockLeader, nil)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块插入，错误", err)
 		return
 	}
 
-	log.INFO(p.logExtraInfo(), "~~~~区块插入~~~~", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
+	log.INFO(p.logExtraInfo(), "区块插入", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
 	p.state = StateEnd
 }
 
@@ -345,17 +344,17 @@ func (p *Process) pickSatisfyMinerResults(header *types.Header, results []*mc.HD
 		if innerMinerPick == false {
 			role, _ := ca.GetAccountOriginalRole(result.Coinbase, header.ParentHash)
 			if common.RoleInnerMiner == role {
-				log.WARN(p.logExtraInfo(), "基金会矿工结果", "当前未超时，暂时不选用", "from", result.Coinbase.Hex(), "diff", result.Difficulty, "高度", p.number)
+				log.WARN(p.logExtraInfo(), "基金会矿工结果", "当前未超时，暂时不选用", "from", result.Coinbase.Hex(), "难度", result.Difficulty, "高度", p.number)
 				continue
 			}
 		}
 		if err := p.verifyOneResult(header, result); err != nil {
-			log.WARN(p.logExtraInfo(), "验证挖矿结果失败，删除该挖矿结果, from", result.From, "diff", result.Difficulty,
+			log.WARN(p.logExtraInfo(), "验证挖矿结果失败，删除该挖矿结果, from", result.From, "难度", result.Difficulty,
 				"高度", p.number, "block hash", result.BlockHash.TerminalString())
 			p.powPool.DelOneResult(result.BlockHash, result.Difficulty, result.From)
 			continue
 		}
-		log.INFO(p.logExtraInfo(), "选择挖矿结果", "完成", "矿工", result.Coinbase.Hex(), "diff", result.Difficulty, "高度", p.number)
+		log.INFO(p.logExtraInfo(), "选择挖矿结果", "完成", "矿工", result.Coinbase.Hex(), "难度", result.Difficulty, "高度", p.number)
 		return result, nil
 	}
 	return nil, HaveNotOKResultError
@@ -365,18 +364,18 @@ func (p *Process) verifyOneResult(rawHeader *types.Header, result *mc.HD_MiningR
 	header := p.copyHeader(rawHeader, result)
 	headerHash := header.HashNoSignsAndNonce()
 	if headerHash != result.BlockHash {
-		log.ERROR(p.logExtraInfo(), "挖矿结果不匹配, header hash", headerHash.TerminalString(), "挖矿结果hash", result.BlockHash.TerminalString())
+		log.WARN(p.logExtraInfo(), "挖矿结果不匹配, header hash", headerHash.TerminalString(), "挖矿结果hash", result.BlockHash.TerminalString())
 		return MinerResultError
 	}
 
 	if err := p.dposEngine().VerifyBlock(p.blockChain(), header); err != nil {
-		log.ERROR(p.logExtraInfo(), "挖矿结果DPOS共识失败", err)
+		log.WARN(p.logExtraInfo(), "挖矿结果DPOS共识失败", err)
 		return err
 	}
 
 	//todo 不是原始难度的结果，需要修改POW seal验证过程
 	if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
-		log.ERROR(p.logExtraInfo(), "挖矿结果POW验证失败", err)
+		log.WARN(p.logExtraInfo(), "挖矿结果POW验证失败", err)
 		return err
 	}
 
@@ -424,7 +423,7 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "Failed writing block to chain", err)
+		log.ERROR(p.logExtraInfo(), "插入区块失败", err)
 		return common.Hash{}, err
 	}
 

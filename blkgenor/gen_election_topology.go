@@ -15,7 +15,7 @@ import (
 func (p *Process) genElection(state *state.StateDB) []common.Elect {
 	info, err := p.reElection().GetElection(state, p.preBlockHash)
 	if err != nil {
-		log.Warn(p.logExtraInfo(), "verifyElection: get election err", err)
+		log.Warn(p.logExtraInfo(), "获取选举信息错误", err)
 		return nil
 	}
 
@@ -33,7 +33,7 @@ func (p *Process) getNetTopology(num uint64, parentHash common.Hash, bcInterval 
 func (p *Process) genAllNetTopology(parentHash common.Hash) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg) {
 	info, err := p.reElection().GetNetTopologyAll(parentHash)
 	if err != nil {
-		log.Warn(p.logExtraInfo(), "verifyNetTopology: get prev topology from ca err", err)
+		log.Warn(p.logExtraInfo(), "获取拓扑图错误", err)
 		return nil, nil
 	}
 
@@ -71,7 +71,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 
 	onlineResults := p.topNode().GetConsensusOnlineResults()
 	if len(onlineResults) == 0 {
-		log.Info(p.logExtraInfo(), "生成拓扑变化信息", "无在线共识结果, return")
+		log.Info(p.logExtraInfo(), "生成拓扑变化信息", "无在线共识结果")
 		return nil, nil
 	}
 
@@ -83,11 +83,11 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 	for i := 0; i < len(onlineResults); i++ {
 		result := onlineResults[i]
 		if result.Req == nil {
-			log.Info(p.logExtraInfo(), "生成拓扑变化信息", "result.Req = nil")
+			log.Info(p.logExtraInfo(), "生成拓扑变化信息", "共识请求为空")
 			continue
 		}
 		if result.IsValidity(p.number, manparams.OnlineConsensusValidityTime) == false {
-			log.Info(p.logExtraInfo(), "生成拓扑变化信息", "result.Number 不合法", "result.Number", result.Req.Number, "curNumber", p.number)
+			log.Info(p.logExtraInfo(), "生成拓扑变化信息", "高度 不合法", "请求高度", result.Req.Number, "当前高度", p.number)
 			continue
 		}
 
@@ -129,24 +129,23 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 	}
 
 	for i, value := range onlineNods {
-		log.Info(p.logExtraInfo(), "offlineTopNodes", value.String(), "index", i)
+		log.Info(p.logExtraInfo(), "下线节点地址", value.String(), "序号", i)
 	}
 	for i, value := range offlineNodes {
-		log.Info(p.logExtraInfo(), "onlineElectNods", value.String(), "index", i)
+		log.Info(p.logExtraInfo(), "上线节点地址", value.String(), "序号", i)
 	}
 
 	// generate topology alter info
 	alterInfo, err := p.reElection().GetTopoChange(parentHash, offlineNodes, onlineNods)
 	if err != nil {
-		log.Warn(p.logExtraInfo(), "get topology change info by reelection server err", err)
+		log.Warn(p.logExtraInfo(), "获取拓扑变化信息错误", err)
 		return nil, nil
 	}
 	for _, value := range alterInfo {
-		log.Info(p.logExtraInfo(), "alter-A", value.A, "alter-B", "", "position", value.Position, "number", p.number)
+		log.Info(p.logExtraInfo(), "获取拓扑变化地址", value.A, "位置", value.Position, "高度", p.number)
 	}
 
 	// generate self net topology
 	ans := p.reElection().TransferToNetTopologyChgStu(alterInfo)
-	log.INFO("scfffff-TransferToNetTopologyChgStu", "ans", ans)
 	return ans, consensusList
 }

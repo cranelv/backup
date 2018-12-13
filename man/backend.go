@@ -112,7 +112,7 @@ type Matrix struct {
 	reelection   *reelection.ReElection //换届服务
 	random       *baseinterface.Random
 	olConsensus  *olconsensus.TopNodeService
-	blockgen     *blkgenor.BlockGenor
+	blockGen     *blkgenor.BlockGenor
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
 
@@ -267,7 +267,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.blockgen, err = blkgenor.New(man)
+	man.blockGen, err = blkgenor.New(man)
 	if err != nil {
 		return nil, err
 	}
@@ -546,6 +546,8 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Matrix protocol.
 func (s *Matrix) Stop() error {
+	s.blockGen.Close()
+	s.blockVerify.Close()
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.protocolManager.Stop()

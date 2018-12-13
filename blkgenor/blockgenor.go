@@ -14,6 +14,7 @@ import (
 type BlockGenor struct {
 	pm                      *ProcessManage
 	man                     Backend
+	quitCh                  chan struct{}
 	roleUpdatedMsgCh        chan *mc.RoleUpdatedMsg
 	leaderChangeNotifyCh    chan *mc.LeaderChangeNotify
 	minerResultCh           chan *mc.HD_MiningRspMsg
@@ -36,11 +37,11 @@ type BlockGenor struct {
 
 func New(man Backend) (*BlockGenor, error) {
 	if nil == &man {
-		log.Error("nil == &manparams Error")
+		log.Error("区块生成模块，传入的参数为空")
 		return nil, ParaNull
 	}
 	if nil == man.BlockChain().Engine() {
-		log.Error("manparams.BlockChain().Engine() Error")
+		log.Error("区块生成模块，传入的共识引擎为空")
 		return nil, ParaNull
 	}
 	//if nil==manparams.ReElection(){
@@ -48,8 +49,8 @@ func New(man Backend) (*BlockGenor, error) {
 	//}
 
 	bg := &BlockGenor{
-		man: man,
-
+		man:                    man,
+		quitCh:                 make(chan struct{}),
 		roleUpdatedMsgCh:       make(chan *mc.RoleUpdatedMsg, 1),
 		leaderChangeNotifyCh:   make(chan *mc.LeaderChangeNotify, 1),
 		minerResultCh:          make(chan *mc.HD_MiningRspMsg, 1),
@@ -65,36 +66,49 @@ func New(man Backend) (*BlockGenor, error) {
 
 	var err error
 	if bg.roleUpdatedMsgSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, bg.roleUpdatedMsgCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.CA_RoleUpdated, "错误：", err)
 		return nil, err
 	}
 	if bg.leaderChangeSub, err = mc.SubscribeEvent(mc.Leader_LeaderChangeNotify, bg.leaderChangeNotifyCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.Leader_LeaderChangeNotify, "错误：", err)
 		return nil, err
 	}
 	if bg.minerResultSub, err = mc.SubscribeEvent(mc.HD_MiningRsp, bg.minerResultCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.HD_MiningRsp, "错误：", err)
 		return nil, err
 	}
 	if bg.broadcastMinerResultSub, err = mc.SubscribeEvent(mc.HD_BroadcastMiningRsp, bg.broadcastMinerResultCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.HD_BroadcastMiningRsp, "错误：", err)
 		return nil, err
 	}
 	if bg.blockConsensusSub, err = mc.SubscribeEvent(mc.BlkVerify_VerifyConsensusOK, bg.blockConsensusCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.BlkVerify_VerifyConsensusOK, "错误：", err)
 		return nil, err
 	}
 	if bg.blockInsertSub, err = mc.SubscribeEvent(mc.HD_NewBlockInsert, bg.blockInsertCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.HD_NewBlockInsert, "错误：", err)
 		return nil, err
 	}
 	if bg.recoverySub, err = mc.SubscribeEvent(mc.Leader_RecoveryState, bg.recoveryCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.Leader_RecoveryState, "错误：", err)
 		return nil, err
 	}
 	if bg.fullBlockReqSub, err = mc.SubscribeEvent(mc.HD_FullBlockReq, bg.fullBlockReqCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.HD_FullBlockReq, "错误：", err)
 		return nil, err
 	}
 	if bg.fullBlockRspSub, err = mc.SubscribeEvent(mc.HD_FullBlockRsp, bg.fullBlockRspCh); err != nil {
+		log.Error("区块生成模块", "订阅错误，消息号", mc.HD_FullBlockRsp, "错误：", err)
 		return nil, err
 	}
 
 	go bg.update()
-
+	log.INFO("区块生成模块对象创建成功")
 	return bg, nil
+}
+
+func (self *BlockGenor) Close() {
+	close(self.quitCh)
 }
 
 func (self *BlockGenor) update() {
@@ -108,6 +122,7 @@ func (self *BlockGenor) update() {
 		self.minerResultSub.Unsubscribe()
 		self.leaderChangeSub.Unsubscribe()
 		self.roleUpdatedMsgSub.Unsubscribe()
+		log.INFO("区块生成模块退出成功")
 	}()
 
 	for {
@@ -138,6 +153,8 @@ func (self *BlockGenor) update() {
 
 		case nbRsqMsg := <-self.fullBlockRspCh:
 			go self.handleNewBlockRspMsg(nbRsqMsg)
+		case <-self.quitCh:
+			return
 		}
 	}
 }
@@ -176,7 +193,7 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 	}
 
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "Leader变更消息 获取Process失败", err)
+		log.Error(self.logExtraInfo(), "Leader变更消息 获取Process失败", err)
 		return
 	}
 
@@ -191,6 +208,8 @@ func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotif
 		nextProcess, err := self.pm.GetProcess(number + 1)
 		if err == nil {
 			nextProcess.SetCurLeader(leaderMsg.NextLeader, 0)
+		} else {
+			log.WARN(self.logExtraInfo(), "获取下个高度process失败", err)
 		}
 	} else {
 		process.ReInit()
@@ -215,9 +234,7 @@ func (self *BlockGenor) broadcastMinerResultHandle(result *mc.HD_BroadcastMining
 	number := result.BlockMainData.Header.Number.Uint64()
 	log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "开始", "高度", number, "交易数量", result.BlockMainData.Txs.Len())
 	defer log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "结束", "高度", number)
-	for _, tx := range result.BlockMainData.Txs {
-		log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息 高度", number, "交易", tx)
-	}
+
 	process, err := self.pm.GetProcess(number)
 	if err != nil {
 		log.INFO(self.logExtraInfo(), "矿工挖矿结果消息 获取Process失败", err)
@@ -260,7 +277,6 @@ func (self *BlockGenor) blockInsertMsgHandle(blockInsert *mc.HD_BlockInsertNotif
 		log.INFO(self.logExtraInfo(), "最终区块插入 获取Process失败", err)
 		return
 	}
-	//log.INFO(self.logExtraInfo(), "最终区块插入 获取Process成功", err)
 	process.AddInsertBlockInfo(blockInsert)
 }
 
