@@ -86,7 +86,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 		log.WARN(PackageName, "反射失败", err)
 		return nil
 	}
-	coinBase := preMiner.(mc.PreMinerStruct).PreMiner
+	coinBase := preMiner.(*mc.PreMinerStruct).PreMiner
 	if coinBase.Equal(common.Address{}) {
 		log.ERROR(PackageName, "矿工奖励的地址非法", coinBase.Hex())
 		return nil
