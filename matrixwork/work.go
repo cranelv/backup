@@ -486,12 +486,12 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
-		if nil != minersRewardMap {
+		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(env.header.Leader, env.header.Number.Uint64())
-		if nil != validatorsRewardMap {
+		if 0 != len(validatorsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
@@ -500,23 +500,23 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	txsReward := txsreward.New(bc, env.State)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
-		if nil != txsRewardMap {
+		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
 	lottery := lottery.New(bc, env.State, &randSeed{bc})
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
-
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-
+		if 0 != len(lotteryRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+		}
 	}
 
 	////todo 利息
 	interestReward := interest.New(env.State)
 	if nil != interestReward {
 		interestRewardMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
-		if nil != interestRewardMap {
+		if 0 != len(interestRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
 		}
 	}

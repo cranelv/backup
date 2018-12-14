@@ -104,53 +104,67 @@ func abs(n int64) int64 {
 func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 
+	if !tlr.canChooseLottery(num) {
+		return nil
+	}
+
+	txsCmpResultList := tlr.getLotteryList(num, len(tlr.lotteryCfg.LotteryInfo))
+	if 0 == len(txsCmpResultList) {
+		log.ERROR(PackageName, "本周期没有交易不抽奖", "")
+		return nil
+	}
+	LotteryAccount := make(map[common.Address]*big.Int, 0)
+
+	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
+
+	if 0 == len(LotteryAccount) {
+		log.ERROR(PackageName, "抽奖结果为nil", "")
+		return nil
+	}
+	return LotteryAccount
+}
+
+func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 	if num == 1 {
 		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
-		return nil
+		return false
 	}
 	if tlr.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
-		return nil
+		return false
 	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
 	if nil != err {
 		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
-		return nil
+		return false
 	}
-
-	if latestNum > tlr.bcInterval.GetReElectionInterval() {
+	if latestNum > tlr.bcInterval.GetLastReElectionNumber() {
 		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
-		return nil
+		return false
 	}
-
 	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
 	balance := tlr.state.GetBalance(common.LotteryRewardAddress)
 	if len(balance) == 0 {
 		log.ERROR(PackageName, "状态树获取彩票账户余额错误", "")
-		return nil
+		return false
 	}
 	var allPrice uint64
-
 	for _, v := range tlr.lotteryCfg.LotteryInfo {
 		if v.PrizeMoney < 0 {
 			log.ERROR(PackageName, "彩票奖励配置错误，金额", v.PrizeMoney, "奖项", v.PrizeLevel)
-			return nil
+			return false
 		}
 		allPrice = allPrice + v.PrizeMoney*v.PrizeNum
 	}
 	if allPrice <= 0 {
 		log.ERROR(PackageName, "总奖励不合法", allPrice)
-		return nil
+		return false
 	}
 	if balance[common.MainAccount].Balance.Cmp(new(big.Int).Mul(new(big.Int).SetUint64(allPrice), util.ManPrice)) < 0 {
 		log.ERROR(PackageName, "彩票账户余额不足，余额为", balance[common.MainAccount].Balance.String(), "总奖励", util.ManPrice)
-		return nil
+		return false
 	}
-	LotteryAccount := make(map[common.Address]*big.Int, 0)
-	txsCmpResultList := tlr.getLotteryList(num, len(tlr.lotteryCfg.LotteryInfo))
-	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
-
-	return LotteryAccount
+	return true
 }
 
 func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultList {

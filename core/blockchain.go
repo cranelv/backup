@@ -1413,12 +1413,12 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(num)
-		if nil != minersRewardMap {
+		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
-		if nil != validatorsRewardMap {
+		if 0 != len(validatorsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
@@ -1426,22 +1426,24 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 	txsReward := txsreward.New(bc, state)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(big.NewInt(0), header.Leader, header.Number.Uint64())
-		if nil != txsRewardMap {
+		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
 	lottery := lottery.New(bc, state, &randSeed{bc})
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
-
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-
+		if 0 != len(lotteryRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+		}
 	}
 	interestReward := interest.New(state)
 	if nil != interestReward {
-		interestReward.InterestCalc(state, num)
+		interestRewardMap := interestReward.InterestCalc(state, header.Number.Uint64())
+		if 0 != len(interestRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
+		}
 	}
-
 	//todo 惩罚
 
 	slash := slash.New(bc, state)

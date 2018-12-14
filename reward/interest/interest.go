@@ -154,7 +154,7 @@ func (ic *interest) canPayInterst(state vm.StateDB, num uint64, payInterestPerio
 		return false
 	}
 	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod)+1 {
-		log.Info(PackageName, "当前周期利息已处理无须再处理", "")
+		log.Info(PackageName, "当前周期利息已支付无须再处理", "")
 		return false
 	}
 	matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
@@ -215,7 +215,7 @@ func (ic *interest) canCalcInterest(state vm.StateDB, num uint64, calcInterestIn
 		return false
 	}
 	if latestNum >= ic.getLastInterestNumber(num-1, calcInterestInterval)+1 {
-		log.Info(PackageName, "当前利息已处理无须再处理", "")
+		log.Info(PackageName, "当前利息已计算无须再处理", "")
 		return false
 	}
 	matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
