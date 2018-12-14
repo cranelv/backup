@@ -167,7 +167,9 @@ func Test(t *testing.T) {
 	fmt.Println("buf ", buf.Bytes())
 
 	buf2 := bytes.NewBuffer(buf.Bytes())
+	test := make(map[int]int)
+	test = nil
 	binary.Read(buf2, binary.BigEndian, sbs)
-	fmt.Println("超级区块序号", sbs)
+	fmt.Println("超级区块序号", len(test))
 
 }

@@ -139,8 +139,12 @@ func getKeyTransInfo(hash common.Hash, Height uint64, types string, support base
 		log.Error("electionseed", "获取特殊交易阶段-获取祖先hash失败 hash", hash.String(), "height", Height)
 		return make(map[common.Address][]byte)
 	}
-
-	ans, err := core.GetBroadcastTxs(aimHash, types)
+	header:=support.BlockChain().GetHeaderByHash(aimHash)
+	if header==nil{
+		log.ERROR("electionseed","根据hash算高度失败 高度",Height,"hash",aimHash)
+		return make(map[common.Address][]byte)
+	}
+	ans, err := core.GetBroadcastTxMap(support,header.Root, types)
 	if err != nil {
 		log.Error("electionseed", "获取特殊交易失败 Height", Height, "types", types)
 	}
@@ -166,7 +170,13 @@ func GetCurrentKeys(hash common.Hash, support baseinterface.RandomChainSupport) 
 	PrivateMap := getKeyTransInfo(hash, height_1, mc.Privatekey, support)
 	PublicMap := getKeyTransInfo(hash, height_2, mc.Publickey, support)
 
-	return CompareMap(PrivateMap, PublicMap), nil
+
+
+	MapAns:=CompareMap(PrivateMap, PublicMap)
+	log.INFO("electionseed","获取到的公钥",PublicMap,"高度",height_1)
+	log.INFO("electionseed","获取到的私钥",PrivateMap,"高度",height_2)
+	log.INFO("electionseed","算出的有效私钥之和",MapAns)
+	return MapAns, nil
 }
 
 func GetMaxNonce(hash common.Hash, lastwHeight uint64, support baseinterface.RandomChainSupport) uint64 {

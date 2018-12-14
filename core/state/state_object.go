@@ -329,13 +329,13 @@ func (c *stateObject) SubBalance(accountType uint32, amount *big.Int) {
 	}
 }
 
-func (self *stateObject) SetBalance(accountType uint32,amount *big.Int) {
-	tmpPrev := make(common.BalanceType,len(self.data.Balance))
-	copy(tmpPrev,self.data.Balance)
+func (self *stateObject) SetBalance(accountType uint32, amount *big.Int) {
+	tmpPrev := make(common.BalanceType, len(self.data.Balance))
+	copy(tmpPrev, self.data.Balance)
 	self.db.journal.append(balanceChange{
 		account: &self.address,
 		//prev:    new(big.Int).Set(self.data.Balance),
-		prev:    tmpPrev,
+		prev: tmpPrev,
 	})
 	self.setBalance(accountType, amount)
 }

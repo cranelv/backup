@@ -205,7 +205,7 @@ func CheckEntrust(ctx *cli.Context) error {
 }
 
 func ReadDecryptPassword(ctx *cli.Context) (string, error) {
-	if password := ctx.GlobalString(utils.TestEntrustFlag.Name);password!=""{
+	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
 		return password, nil
 	}
 

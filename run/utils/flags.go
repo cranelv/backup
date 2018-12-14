@@ -367,10 +367,10 @@ var (
 		Usage: "Password file to entrustment transaction",
 		Value: "",
 	}
-	TestEntrustFlag=cli.StringFlag{
-		Name:"testmode",
-		Usage:"默认使用2222222222222222解密",
-		Value:"",
+	TestEntrustFlag = cli.StringFlag{
+		Name:  "testmode",
+		Usage: "默认使用2222222222222222解密",
+		Value: "",
 	}
 	VMEnableDebugFlag = cli.BoolFlag{
 		Name:  "vmdebug",
