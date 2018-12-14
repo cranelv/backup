@@ -755,7 +755,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		log.Info("file handler", "msg NetworkMsg ", "ProcessMsg")
-		go pm.txpool.ProcessMsg(core.NetworkMsgData{NodeId: p.ID(), Data: m})
+
+		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
+		go pm.txpool.ProcessMsg(core.NetworkMsgData{SendAddress: addr, Data: m})
 
 	case msg.Code == common.AlgorithmMsg:
 		var m msgsend.NetData
