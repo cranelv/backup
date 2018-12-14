@@ -13,6 +13,8 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"sync"
 	"time"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -390,6 +392,23 @@ func (pm *TxPoolManager) GetAllSpecialTxs() (reqVal map[common.Address][]types.S
 	return
 }
 
+func (pm *TxPoolManager) ProduceMatrixStateData (block *types.Block, readFn matrixstate.PreStateReadFn)(interface{}, error){
+	pm.txPoolsMutex.RLock()
+	defer pm.txPoolsMutex.RUnlock()
+	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
+		return nil,nil
+	}
+
+	bPool, ok := pm.txPools[types.NormalTxIndex]
+	if !ok {
+		log.Error("TxPoolManager", "get broadcast txpool error", ErrTxPoolNonexistent)
+		return nil,ErrTxPoolNonexistent
+	}
+	if bTxPool, ok := bPool.(*NormalTxPool); ok {
+		return bTxPool.ProduceMatrixStateData(block,readFn)
+	}
+	return nil,ErrTxPoolNonexistent
+}
 func (pm *TxPoolManager) Stats() (int, int) {
 	return 0, 0
 }
