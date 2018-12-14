@@ -204,7 +204,7 @@ func (p *Process) processHeaderGen() error {
 func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
 	//broadcast txs deal,remove no validators txs
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 			return nil, nil, nil, nil, err
@@ -233,7 +233,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 
 	} else {
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 			return nil, nil, nil, nil, err

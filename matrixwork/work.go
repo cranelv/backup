@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/matrix/go-matrix/reward/blkreward"
@@ -74,6 +75,7 @@ type Work struct {
 
 	header   *types.Header
 	uptime   map[common.Address]uint64
+	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
 
@@ -127,7 +129,7 @@ func (cu *coingasUse) clearmap() {
 	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
 }
-func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header, random *baseinterface.Random) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
@@ -135,6 +137,7 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		gasPool: gasPool,
 		header:  header,
 		uptime:  make(map[common.Address]uint64, 0),
+		random:  random,
 	}
 	var err error
 
@@ -504,9 +507,9 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, env.State, &randSeed{bc})
+	lottery := lottery.New(bc, env.State, env.random)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+		lotteryRewardMap := lottery.LotteryCalc(env.header.ParentHash, env.header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}

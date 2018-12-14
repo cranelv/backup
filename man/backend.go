@@ -491,6 +491,7 @@ func (s *Matrix) SignHelper() *signhelper.SignHelper       { return s.signHelper
 func (s *Matrix) ReElection() *reelection.ReElection       { return s.reelection }
 func (s *Matrix) HD() *msgsend.HD                          { return s.hd }
 func (s *Matrix) OLConsensus() *olconsensus.TopNodeService { return s.olConsensus }
+func (s *Matrix) Random() *baseinterface.Random            { return s.random }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.

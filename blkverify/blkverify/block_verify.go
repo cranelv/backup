@@ -5,6 +5,7 @@ package blkverify
 
 import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
@@ -21,6 +22,7 @@ type Matrix interface {
 	SignHelper() *signhelper.SignHelper
 	ReElection() *reelection.ReElection
 	EventMux() *event.TypeMux
+	Random() *baseinterface.Random
 }
 
 type BlockVerify struct {

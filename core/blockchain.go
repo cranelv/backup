@@ -1430,12 +1430,9 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, state, &randSeed{bc})
+	lottery := lottery.New(bc, state, nil)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
-		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-		}
+		lottery.ProcessMatrixState(header.Number.Uint64())
 	}
 	interestReward := interest.New(state)
 	if nil != interestReward {
