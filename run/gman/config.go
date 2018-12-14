@@ -167,15 +167,12 @@ func dumpConfig(ctx *cli.Context) error {
 	return nil
 }
 func CheckEntrust(ctx *cli.Context) error {
-	//fmt.Println("CheckEntrust CheckEntrust CheckEntrust")
 	path := ctx.GlobalString(utils.AccountPasswordFileFlag.Name)
-
 	if path == "" {
 		return nil
 	}
 
-	password, err := ReadPassword1()
-	//fmt.Println("password", password, "err", err)
+	password, err := ReadDecryptPassword(ctx)
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)
@@ -183,11 +180,10 @@ func CheckEntrust(ctx *cli.Context) error {
 	}
 
 	b, err := ioutil.ReadAll(f)
-	//fmt.Println("readAll", string(b), err)
-
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
 		fmt.Println("解密失败", err)
+		return err
 	}
 	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
 	if err != nil {
@@ -198,23 +194,21 @@ func CheckEntrust(ctx *cli.Context) error {
 	var anss []EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
+		fmt.Println("加密文件解码失败 密码不正确")
 		return err
 	}
-	//fmt.Println("Unmarashal err", err, "anss", anss)
-	//fmt.Println("解密后的内容", string(tpass))
 
 	for _, v := range anss {
 		manparams.EntrustValue[v.Address] = v.Password
 	}
-
-	//for k, v := range manparams.EntrustValue {
-	//	fmt.Println("账户", k.String(), "密码", v)
-	//}
 	return nil
 }
 
-func ReadPassword1() (string, error) {
-	return "2222222222222222", nil
+func ReadDecryptPassword(ctx *cli.Context) (string, error) {
+	if password := ctx.GlobalString(utils.TestEntrustFlag.Name);password!=""{
+		return password, nil
+	}
+
 	ans := ""
 	reader := bufio.NewReader(os.Stdin)
 
@@ -231,6 +225,5 @@ func ReadPassword1() (string, error) {
 
 		}
 	}
-
 	return ans, nil
 }

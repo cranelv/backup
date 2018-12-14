@@ -5,6 +5,7 @@ import (
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/common"
 )
 
 func (self *keyManager) initCodec() {
@@ -28,6 +29,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeySlashCfg] = new(MSPSlashCfgCodec)
 	self.codecMap[mc.MSKeyMultiCoin] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeySuperBlockCfg] = new(MSPSuperBlkCfgCodec)
+	self.codecMap[mc.MSKeyBroadcastTx] = new(MSKeyBroadcastTxCodec)
 }
 
 type codec interface {
@@ -517,4 +519,26 @@ func (MSKeyPreMinerCodec) decodeFn(data []byte) (interface{}, error) {
 		return nil, errors.New("msg is nil")
 	}
 	return msg, nil
+}
+////////////////////////////////////////////////////////////////////////
+// key = MSKeyBroadcastTx
+type MSKeyBroadcastTxCodec struct {
+}
+func (MSKeyBroadcastTxCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+func (MSKeyBroadcastTxCodec) decodeFn(data []byte) (interface{}, error) {
+	tempMap := make(map[string]map[common.Address][]byte)
+	err := json.Unmarshal(data, &tempMap)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if tempMap == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return tempMap, nil
 }

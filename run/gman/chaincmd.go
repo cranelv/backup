@@ -17,11 +17,8 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/man/wizard"
-
-	"bufio"
-	"encoding/base64"
+	"github.com/matrix/go-matrix/crypto/aes"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -38,6 +35,8 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
+	"encoding/base64"
+	"bufio"
 )
 
 var (
@@ -793,36 +792,40 @@ func signVersion(ctx *cli.Context) error {
 	return nil
 }
 func aesEncrypt(ctx *cli.Context) error {
-	fmt.Println(ctx.Args())
-	var path string
-	path = ctx.GlobalString(utils.AesInputFlag.Name)
-	fmt.Println("AesInputFlag", path)
+	//fmt.Println(ctx.Args())
+	Inpath := ctx.GlobalString(utils.AesInputFlag.Name)
+	fmt.Println("输入文件", Inpath)
 	JsonParse := NewJsonStruct()
 	fileValue := []EntrustInfo{}
-	JsonParse.Load(path, &fileValue)
+	JsonParse.Load(Inpath, &fileValue)
 
 	dataV, err := json.Marshal(fileValue)
 	if err != nil {
 		return errors.New("对文本内容进行Marshal失败")
 	}
-	entrustPassword, err := ReadPassword()
+	entrustPassword, err := ReadEncryptionPassword(fileValue)
 	if err != nil {
 		return err
 	}
-	fmt.Println("密码是", entrustPassword)
+	//fmt.Println("您的密码是", entrustPassword)
+	//fmt.Println("您的文本内容是")
+//	for _,v:=range fileValue{
+//		fmt.Println("账户",v.Address.String(),"密码",v.Password)
+//	}
 	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
 	if err != nil {
 		return errors.New("加密失败")
 	}
 	pass64 := base64.StdEncoding.EncodeToString(xpass)
-	fmt.Println("加密后", pass64)
+	//fmt.Println("加密后", pass64)
 
-	path = ctx.GlobalString(utils.AesOutputFlag.Name)
+	outPath:= ctx.GlobalString(utils.AesOutputFlag.Name)
 	//写入文件
-	err = ioutil.WriteFile(path, []byte(pass64), 0666)
-	fmt.Println("写文件状态", err)
+	err = ioutil.WriteFile(outPath, []byte(pass64), 0666)
+	if err==nil{
+		fmt.Println("成功写入到文件",outPath)
+	}
 
-	//fmt.Println("AesOutputFlag", path)
 
 	return nil
 }
@@ -834,7 +837,7 @@ func CheckPassword(password string) bool {
 	fmt.Println("你的密码不符合规则 请重新输入", "密码", password, "密码长度", len(password))
 	return false
 }
-func ReadPassword() (string, error) {
+func ReadEncryptionPassword(FileData []EntrustInfo) (string, error) {
 	ans := ""
 	reader := bufio.NewReader(os.Stdin)
 
@@ -846,7 +849,14 @@ func ReadPassword() (string, error) {
 			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
 			status, _, _ := reader.ReadLine()
 			if string(status) == "y" {
-				break
+				for _,v:=range FileData{
+					fmt.Println("账户",v.Address.String(),"密码",v.Password)
+				}
+				fmt.Println("请确认你的初始文本的账户和密码","输入y继续，其他重新输入")
+				Isok,_,_:=reader.ReadLine()
+				if string(Isok)=="y"{
+					break
+				}
 			}
 
 		}
