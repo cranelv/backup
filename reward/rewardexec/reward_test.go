@@ -59,7 +59,6 @@ func (s *InnerSeed) GetSeed(num uint64) *big.Int {
 	return new(big.Int).SetUint64(random.Uint64())
 }
 
-
 func TestBlockReward_setLeaderRewards(t *testing.T) {
 
 	log.InitLog(3)

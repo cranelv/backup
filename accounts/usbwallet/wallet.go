@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package usbwallet implements support for USB hardware wallets.
 package usbwallet
@@ -14,12 +13,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/karalabe/hid"
 	matrix "github.com/matrix/go-matrix"
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
-	"github.com/karalabe/hid"
 )
 
 // Maximum time between wallet health checks to detect USB unplugs.
@@ -71,11 +70,11 @@ type wallet struct {
 	accounts []accounts.Account                         // List of derive accounts pinned on the hardware wallet
 	paths    map[common.Address]accounts.DerivationPath // Known derivation paths for signing operations
 
-	deriveNextPath accounts.DerivationPath   // Next derivation path for account auto-discovery
-	deriveNextAddr common.Address            // Next derived account address for auto-discovery
+	deriveNextPath accounts.DerivationPath // Next derivation path for account auto-discovery
+	deriveNextAddr common.Address          // Next derived account address for auto-discovery
 	deriveChain    matrix.ChainStateReader // Blockchain state reader to discover used account with
-	deriveReq      chan chan struct{}        // Channel to request a self-derivation on
-	deriveQuit     chan chan error           // Channel to terminate the self-deriver with
+	deriveReq      chan chan struct{}      // Channel to request a self-derivation on
+	deriveQuit     chan chan error         // Channel to terminate the self-deriver with
 
 	healthQuit chan chan error
 
@@ -535,9 +534,10 @@ func (w *wallet) SignTx(account accounts.Account, tx types.SelfTransaction, chai
 	}
 	return signed, nil
 }
-func (ks *wallet) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
+func (ks *wallet) SignTxWithPasswd(a accounts.Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
 	return nil, nil
 }
+
 // SignHashWithPassphrase implements accounts.Wallet, however signing arbitrary
 // data is not supported for Ledger wallets, so this method will always return
 // an error.
@@ -560,6 +560,6 @@ func (w *wallet) SignHashValidateWithPass(account accounts.Account, passphrase s
 	return nil, accounts.ErrNotSupported
 }
 
-func (w *wallet)SignVrfWithPass(account accounts.Account,passphrase string ,msg []byte)([]byte,[]byte,[]byte,error){
-	return nil,nil,nil,accounts.ErrNotSupported
+func (w *wallet) SignVrfWithPass(account accounts.Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error) {
+	return nil, nil, nil, accounts.ErrNotSupported
 }

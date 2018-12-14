@@ -28,10 +28,10 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 }
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	MaxValidator:=int(mvrerm.ElectConfig.ValidatorNum)
-	MaxBackValidator:=int(mvrerm.ElectConfig.BackValidator)
+	MaxValidator := int(mvrerm.ElectConfig.ValidatorNum)
+	MaxBackValidator := int(mvrerm.ElectConfig.BackValidator)
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	validatorList:=support.CheckData(mvrerm.ValidatorList)
+	validatorList := support.CheckData(mvrerm.ValidatorList)
 
 	var master, backup, candiate []support.Strallyint
 	var value []support.Stf
@@ -44,7 +44,7 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, len(mvrerm.FoundationValidatorList)) //0x12217)
 		master = support.CommbineFundNodesAndPricipal(value, valuefound, master, 0.25, 4.0)
 	}
-	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum,[]support.Strallyint{},master,backup,candiate)
+	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, master, backup, candiate)
 }
 
 func (self *StockElect) ToPoUpdate(allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {

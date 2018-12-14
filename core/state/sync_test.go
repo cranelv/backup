@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package state
 
@@ -36,7 +35,7 @@ func makeTestState() (Database, common.Hash, []*testAccount) {
 		obj := state.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
 		acc := &testAccount{address: common.BytesToAddress([]byte{i})}
 
-		obj.AddBalance(common.MainAccount,big.NewInt(int64(11 * i)))
+		obj.AddBalance(common.MainAccount, big.NewInt(int64(11*i)))
 		acc.balance = big.NewInt(int64(11 * i))
 
 		obj.SetNonce(uint64(42 * i))

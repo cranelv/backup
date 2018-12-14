@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	MaxSample = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值
-	J         = 0    //基金会验证节点个数tps_weight
+	MaxSample         = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值
+	J                 = 0    //基金会验证节点个数tps_weight
 	DefaultDeposit    = 50000
 	DefaultWithdrawH  = 0
 	DefaultOnlineTime = 300
-	DefaultStock=1
+	DefaultStock      = 1
 )
 
 type AllNative struct {
@@ -28,14 +28,13 @@ type AllNative struct {
 
 }
 
-type Eletion_cfg struct{
-	MaxMinerNum int
-	MaxValidatorNum int
-	MaxBackUpValidatorNum int
+type Eletion_cfg struct {
+	MaxMinerNum              int
+	MaxValidatorNum          int
+	MaxBackUpValidatorNum    int
 	MaxCadidatorValidatorNum int
 }
 type Strallyint struct {
-	Value  int
+	Value int
 	Addr  common.Address
 }
-

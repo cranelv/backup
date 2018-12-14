@@ -1,21 +1,23 @@
 package multicoinreward
+
 import (
-"bou.ke/monkey"
-"fmt"
-"github.com/matrix/go-matrix/ca"
-"github.com/matrix/go-matrix/common"
-"github.com/matrix/go-matrix/consensus/manash"
-"github.com/matrix/go-matrix/core"
-"github.com/matrix/go-matrix/core/types"
-"github.com/matrix/go-matrix/core/vm"
-"github.com/matrix/go-matrix/log"
-"github.com/matrix/go-matrix/mc"
-"github.com/matrix/go-matrix/reward/util"
-. "github.com/smartystreets/goconvey/convey"
-"math/big"
-"sync"
-"testing"
+	"bou.ke/monkey"
+	"fmt"
+	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/reward/util"
+	. "github.com/smartystreets/goconvey/convey"
+	"math/big"
+	"sync"
+	"testing"
 )
+
 type FakeEth struct {
 	blockchain *core.BlockChain
 	once       *sync.Once
@@ -24,6 +26,7 @@ type FakeEth struct {
 const (
 	testAddress = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
+
 func (s *FakeEth) BlockChain() *core.BlockChain { return s.blockchain }
 
 func fakeEthNew(n int) *FakeEth {
@@ -90,4 +93,3 @@ func TestNew(t *testing.T) {
 
 	})
 }
-

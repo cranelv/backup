@@ -118,5 +118,5 @@ func Checksum(data []byte, table *Table) uint8 {
 
 func CalCRC8(data []byte) uint8 {
 	table := MakeTable(CRC8)
-	return Checksum(data,table)
+	return Checksum(data, table)
 }

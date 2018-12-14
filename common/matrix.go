@@ -36,15 +36,16 @@ const (
 	ElectRoleNil                ElectRoleType = 0xff
 )
 
-const(
-	TopAccountA0="A0"
-	TopAccountA1="A1"
+const (
+	TopAccountA0 = "A0"
+	TopAccountA1 = "A1"
+)
 
-)
 var (
-	SignLog = "SignLog"
-	TopAccountType=TopAccountA1
+	SignLog        = "SignLog"
+	TopAccountType = TopAccountA1
 )
+
 func (ert ElectRoleType) Transfer2CommonRole() RoleType {
 	switch ert {
 	case ElectRoleMiner:
@@ -127,19 +128,20 @@ type Echelon struct {
 }
 
 var (
-	ManValue      = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+
 //	vip1          = new(big.Int).Mul(big.NewInt(10000000), ManValue)
 //	vip2          = new(big.Int).Mul(big.NewInt(1000000), ManValue)
-	//EchelonArrary = []Echelon{
-	//	Echelon{
-	//		MinMoney: vip1,
-	//		MaxNum:   5,
-	//		Ratio:   1000,
-	//	},
-	//	Echelon{
-	//		MinMoney: vip2,
-	//		MaxNum:   3,
-	//		Ratio:    500,
-	//	},
-	//}
+//EchelonArrary = []Echelon{
+//	Echelon{
+//		MinMoney: vip1,
+//		MaxNum:   5,
+//		Ratio:   1000,
+//	},
+//	Echelon{
+//		MinMoney: vip2,
+//		MaxNum:   3,
+//		Ratio:    500,
+//	},
+//}
 )

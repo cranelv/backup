@@ -29,7 +29,7 @@ type AuthReader interface {
 }
 
 var (
-	ModeLog="签名助手"
+	ModeLog                  = "签名助手"
 	ErrNilAccountManager     = errors.New("account manager is nil")
 	ErrEmptySignAddress      = errors.New("sign address is empty")
 	ErrUnSetSignAccount      = errors.New("The sign account not set yet!")
@@ -118,7 +118,7 @@ func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byt
 	defer sh.mu.RUnlock()
 
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(reader, blkHash)
-//	log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
+	//	log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
 	}

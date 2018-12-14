@@ -35,7 +35,7 @@ import (
 
 const (
 	softResponseLimit = 10 * 1024 * 1024 // Target maximum size of returned blocks, headers or node data.
-	estHeaderRlpSize  = 500             // Approximate size of an RLP encoded block header
+	estHeaderRlpSize  = 500              // Approximate size of an RLP encoded block header
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
@@ -754,7 +754,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Info("file handler", "mag NetworkMsg err", err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		log.Info("file handler", "msg NetworkMsg ","ProcessMsg")
+		log.Info("file handler", "msg NetworkMsg ", "ProcessMsg")
 		go pm.txpool.ProcessMsg(core.NetworkMsgData{NodeId: p.ID(), Data: m})
 
 	case msg.Code == common.AlgorithmMsg:

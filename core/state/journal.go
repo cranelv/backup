@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package state
 
@@ -80,8 +79,8 @@ type (
 		prev *stateObject
 	}
 	suicideChange struct {
-		account     *common.Address
-		prev        bool // whether account had already suicided
+		account *common.Address
+		prev    bool // whether account had already suicided
 		//prevbalance *big.Int
 		prevbalance common.BalanceType
 	}
@@ -90,7 +89,7 @@ type (
 	balanceChange struct {
 		account *common.Address
 		//prev    *big.Int
-		prev    common.BalanceType
+		prev common.BalanceType
 	}
 	nonceChange struct {
 		account *common.Address
@@ -157,8 +156,8 @@ func (ch suicideChange) revert(s *StateDB) {
 	if obj != nil {
 		obj.suicided = ch.prev
 		//obj.setBalance(ch.prevbalance)
-		for _,tAccount := range ch.prevbalance{
-			obj.setBalance(tAccount.AccountType,tAccount.Balance)
+		for _, tAccount := range ch.prevbalance {
+			obj.setBalance(tAccount.AccountType, tAccount.Balance)
 		}
 	}
 }
@@ -178,8 +177,8 @@ func (ch touchChange) dirtied() *common.Address {
 
 func (ch balanceChange) revert(s *StateDB) {
 	//s.getStateObject(*ch.account).setBalance(ch.prev)
-	for _,tAccount := range ch.prev{
-		s.getStateObject(*ch.account).setBalance(tAccount.AccountType,tAccount.Balance)
+	for _, tAccount := range ch.prev {
+		s.getStateObject(*ch.account).setBalance(tAccount.AccountType, tAccount.Balance)
 	}
 }
 
@@ -258,12 +257,12 @@ func (ch addMatrixDataChange) dirtied() *common.Address {
 }
 
 func (ch addBtreeChange) revert(s *StateDB) {
-	tm := make([]BtreeDietyStruct,0)
-	for _,bt := range s.btreeMap{
-		if bt.Key == ch.key && bt.Typ == ch.typ{
+	tm := make([]BtreeDietyStruct, 0)
+	for _, bt := range s.btreeMap {
+		if bt.Key == ch.key && bt.Typ == ch.typ {
 			continue
 		}
-		tm = append(tm,BtreeDietyStruct{bt.Key,bt.Data,bt.Typ})
+		tm = append(tm, BtreeDietyStruct{bt.Key, bt.Data, bt.Typ})
 	}
 	s.btreeMap = tm
 }

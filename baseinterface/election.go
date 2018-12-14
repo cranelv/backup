@@ -34,5 +34,5 @@ type ElectionInterface interface {
 	MinerTopGen(*mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp
 	ValidatorTopGen(*mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq
 	ToPoUpdate(support.AllNative, *mc.TopologyGraph) []mc.Alternative
-//	PrimarylistUpdate([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, mc.TopologyNodeInfo, int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo)
+	//	PrimarylistUpdate([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, mc.TopologyNodeInfo, int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo)
 }

@@ -26,8 +26,8 @@ type ElectSeedPlug1 struct {
 }
 
 func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
-	log.INFO(ModuleElectSeed,"生成随机种子准备阶段","开始","height",height)
-	defer log.INFO(ModuleElectSeed,"生成随机种子准备阶段","结束","height",height)
+	log.INFO(ModuleElectSeed, "生成随机种子准备阶段", "开始", "height", height)
+	defer log.INFO(ModuleElectSeed, "生成随机种子准备阶段", "结束", "height", height)
 
 	data, err := commonsupport.GetElectGenTimes(support.BlockChain(), height)
 	if err != nil {
@@ -52,8 +52,8 @@ func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomC
 	}
 
 	log.INFO(ModuleElectSeed, "公钥 高度", (height + voteBeforeTime))
-	log.INFO(ModuleElectSeed, "私钥 高度", (height +voteBeforeTime))
-	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height +voteBeforeTime)), Data: publickeySend})
+	log.INFO(ModuleElectSeed, "私钥 高度", (height + voteBeforeTime))
+	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: publickeySend})
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: privatekeySend})
 
 	self.privatekey = privatekey

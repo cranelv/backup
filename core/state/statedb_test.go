@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package state
 
@@ -34,7 +33,7 @@ func TestUpdateLeaks(t *testing.T) {
 	// Update it with some accounts
 	for i := byte(0); i < 255; i++ {
 		addr := common.BytesToAddress([]byte{i})
-		state.AddBalance(common.MainAccount,addr, big.NewInt(int64(11*i)))
+		state.AddBalance(common.MainAccount, addr, big.NewInt(int64(11*i)))
 		state.SetNonce(addr, uint64(42*i))
 		if i%2 == 0 {
 			state.SetState(addr, common.BytesToHash([]byte{i, i, i}), common.BytesToHash([]byte{i, i, i, i}))
@@ -63,7 +62,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 
 		//state.SetBalance(common.MainAccount,addr, big.NewInt(int64(11*i)+int64(tweak)))
-		state.SetBalance(common.MainAccount,common.HexToAddress("0x8000000000000000000000000000000000000000"), big.NewInt(int64(11*i)+int64(tweak)))
+		state.SetBalance(common.MainAccount, common.HexToAddress("0x8000000000000000000000000000000000000000"), big.NewInt(int64(11*i)+int64(tweak)))
 		state.SetNonce(addr, uint64(42*i+tweak))
 		if i%2 == 0 {
 			state.SetState(addr, common.Hash{i, i, i, 0}, common.Hash{})
@@ -117,7 +116,7 @@ func TestCopy(t *testing.T) {
 
 	for i := byte(0); i < 255; i++ {
 		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		obj.AddBalance(common.MainAccount,big.NewInt(int64(i)))
+		obj.AddBalance(common.MainAccount, big.NewInt(int64(i)))
 		orig.updateStateObject(obj)
 	}
 	orig.Finalise(false)
@@ -129,8 +128,8 @@ func TestCopy(t *testing.T) {
 		origObj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
 		copyObj := copy.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
 
-		origObj.AddBalance(common.MainAccount,big.NewInt(2 * int64(i)))
-		copyObj.AddBalance(common.MainAccount,big.NewInt(3 * int64(i)))
+		origObj.AddBalance(common.MainAccount, big.NewInt(2*int64(i)))
+		copyObj.AddBalance(common.MainAccount, big.NewInt(3*int64(i)))
 
 		orig.updateStateObject(origObj)
 		copy.updateStateObject(copyObj)
@@ -200,14 +199,14 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 		{
 			name: "SetBalance",
 			fn: func(a testAction, s *StateDB) {
-				s.SetBalance(common.MainAccount,addr, big.NewInt(a.args[0]))
+				s.SetBalance(common.MainAccount, addr, big.NewInt(a.args[0]))
 			},
 			args: make([]int64, 1),
 		},
 		{
 			name: "AddBalance",
 			fn: func(a testAction, s *StateDB) {
-				s.AddBalance(common.MainAccount,addr, big.NewInt(a.args[0]))
+				s.AddBalance(common.MainAccount, addr, big.NewInt(a.args[0]))
 			},
 			args: make([]int64, 1),
 		},
@@ -401,7 +400,7 @@ func (s *StateSuite) TestTouchDelete(c *check.C) {
 	s.state.Reset(root)
 
 	snapshot := s.state.Snapshot()
-	s.state.AddBalance(common.MainAccount,common.Address{}, new(big.Int))
+	s.state.AddBalance(common.MainAccount, common.Address{}, new(big.Int))
 
 	if len(s.state.journal.dirties) != 1 {
 		c.Fatal("expected one dirty state object")
