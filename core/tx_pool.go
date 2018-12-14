@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"errors"
-	"github.com/matrix/go-matrix/p2p/discover"
+	//"github.com/matrix/go-matrix/p2p/discover"
 	"math/big"
 	"sync"
 	"time"
@@ -500,7 +500,7 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 		}
 	case GetTxbyN, RecvTxbyN, GetConsensusTxbyN, RecvConsensusTxbyN: //YY
 		//给固定的节点发送根据N获取Tx的请求
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	case RecvErrTx: //YY 给全部验证者发送错误交易做共识
 		if selfRole == common.RoleValidator {
 			p2p.SendToGroup(common.RoleValidator, common.NetworkMsg, []interface{}{data})
@@ -712,7 +712,7 @@ func (nPool *NormalTxPool) getPendingTx() {
 }
 
 //YY 检查当前map中是否存在洪泛过来的交易
-func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid discover.NodeID) {
+func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid common.Address) {
 	log.Info("msg_CheckTx IN", "len(mapSN)", len(mapSN))
 	defer log.Info("msg_CheckTx OUT")
 	listN := make([]uint32, 0)
@@ -769,13 +769,13 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 	log.Trace("file txpool", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
 	if len(ns) > 0 {
 		txs = make([]types.SelfTransaction, 0)
-		nid, err1 := ca.ConvertAddressToNodeId(addr)
-		log.Info("leader node", "addr::", addr, "id::", nid.String())
-		if err1 != nil {
-			log.Error("file txpool", "ReturnAllTxsByN:discover=err", err1)
-			retch <- &RetChan_txpool{nil, err1, resqe}
-			return
-		}
+		//nid, err1 := ca.ConvertAddressToNodeId(addr)
+		//log.Info("leader node", "addr::", addr, "id::", nid.String())
+		//if err1 != nil {
+		//	log.Error("file txpool", "ReturnAllTxsByN:discover=err", err1)
+		//	retch <- &RetChan_txpool{nil, err1, resqe}
+		//	return
+		//}
 		msData, err2 := json.Marshal(ns)
 		if err2 != nil {
 			log.Error("file txpool", "ReturnAllTxsByN:Marshal=err", err2)
@@ -833,7 +833,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 }
 
 // (共识要交易)根据N值获取对应的交易(modi hezi)
-func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID) {
+func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address) {
 	log.Trace("file txpool ", "msg_GetConsensusTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
@@ -880,7 +880,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 	//msData, _ := json.Marshal(mapNtx)
 	msData, err := rlp.EncodeToBytes(mapNtx)
 	if err == nil {
-		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, NodeId: nid, MsgData: msData})
+		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, SendAddr: nid, MsgData: msData})
 		log.Trace("file txpool", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 	} else {
 		log.Trace("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
@@ -888,7 +888,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid discover.NodeID
 }
 
 //YY 根据N值获取对应的交易(洪泛)
-func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
+func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid common.Address) {
 	log.Trace("file txpool", "msg_GetTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
@@ -906,7 +906,7 @@ func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid discover.NodeID) {
 	}
 	nPool.mu.Unlock()
 	msData, _ := json.Marshal(mapNtx)
-	nPool.SendMsg(MsgStruct{Msgtype: RecvTxbyN, NodeId: nid, MsgData: msData})
+	nPool.SendMsg(MsgStruct{Msgtype: RecvTxbyN, SendAddr: nid, MsgData: msData})
 }
 
 //此接口传的交易带s(modi hezi)
