@@ -18,6 +18,7 @@ type StateDB interface {
 	SubBalance(uint32, common.Address, *big.Int)
 	AddBalance(uint32, common.Address, *big.Int)
 	GetBalance(common.Address) common.BalanceType
+	GetBalanceByType(addr common.Address, accType uint32) *big.Int
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
@@ -40,7 +41,6 @@ type StateDB interface {
 
 	GetStateByteArray(common.Address, common.Hash) []byte
 	SetStateByteArray(common.Address, common.Hash, []byte)
-
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
 
@@ -66,6 +66,10 @@ type StateDB interface {
 	GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	Dump() []byte
+	Finalise(deleteEmptyObjects bool)
+	GetAllEntrustSignFrom(authFrom common.Address) []common.Address
+	GetAllEntrustGasFrom(authFrom common.Address) []common.Address
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM EVM

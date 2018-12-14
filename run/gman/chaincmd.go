@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/man/wizard"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -18,6 +16,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/matrix/go-matrix/accounts/keystore"
+	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/man/wizard"
+
+	"bufio"
+	"encoding/base64"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
@@ -227,9 +231,9 @@ participating.
 It expects the genesis file as argument.`,
 	}
 
-	sighCommand = cli.Command{
+	signCommand = cli.Command{
 		Action:    utils.MigrateFlags(signBlock),
-		Name:      "sighblock",
+		Name:      "signblock",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
@@ -245,7 +249,7 @@ participating.
 It expects the genesis file as argument.`,
 	}
 
-	sighVersionCommand = cli.Command{
+	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
 		Name:      "sighverison",
 		Usage:     "Bootstrap and rollback a new super block",
@@ -261,6 +265,18 @@ This is a destructive action and changes the network in which you will be
 participating.
 
 It expects the genesis file as argument.`,
+	}
+	AesEncryptCommand = cli.Command{
+		Action:    utils.MigrateFlags(aesEncrypt),
+		Name:      "aes",
+		Usage:     "encrypt  a file",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.AesInputFlag,
+			utils.AesOutputFlag,
+		},
+		Category:    "aes commands",
+		Description: "aes commit",
 	}
 )
 
@@ -481,15 +497,18 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	currentHeader := hc.CurrentHeader()
 	peer := downloader.NewFakePeer("local", db, hc, dl)
 	if err = dl.RegisterPeer("local", 63, peer); err != nil {
 		return err
 	}
 	// Synchronise with the simulated peer
 	start := time.Now()
-
-	currentHeader := hc.CurrentHeader()
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncmode); err != nil {
+	sbs, err := chain.GetSuperBlockNum()
+	if nil != err {
+		return err
+	}
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), currentHeader.SuperBlockSeq(), sbs, syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {
@@ -574,6 +593,7 @@ func getCommit(ctx *cli.Context) error {
 	}
 	return nil
 }
+
 func importSupBlock(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
@@ -586,8 +606,8 @@ func importSupBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 		return err
 	}
@@ -598,8 +618,9 @@ func importSupBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 		return errors.New("make chain err")
 	}
-
-	if _, err := chain.InsertSuperBlock(genesis); err != nil {
+	genesis := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	if _, err := chain.InsertSuperBlock(genesis, false); err != nil {
 		utils.Fatalf("insert super block err(%v)", err)
 		return err
 	}
@@ -666,8 +687,8 @@ func signBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
@@ -677,10 +698,12 @@ func signBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 	}
 
-	parent := chain.GetHeaderByHash(genesis.ParentHash)
+	parent := chain.GetHeaderByHash(matrixGenesis.ParentHash)
 	if nil == parent {
 		utils.Fatalf("get parent header err")
 	}
+	genesis := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, genesis)
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
@@ -708,11 +731,11 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	genesis.Root = superBlock.Root()
-	genesis.TxHash = superBlock.TxHash()
-	genesis.Signatures = append(genesis.Signatures, sign)
+	matrixGenesis.Root = superBlock.Root()
+	matrixGenesis.TxHash = superBlock.TxHash()
+	matrixGenesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
-	out, _ := json.MarshalIndent(genesis, "", "  ")
+	out, _ := json.MarshalIndent(matrixGenesis, "", "  ")
 	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
 		utils.Fatalf("Failed to save genesis file, err = %v", err)
 	}
@@ -767,4 +790,103 @@ func signVersion(ctx *cli.Context) error {
 	}
 	fmt.Println("Exported sign  version to ", pathSplit[0]+"VersionSigned.json")
 	return nil
+}
+func aesEncrypt(ctx *cli.Context) error {
+	//fmt.Println(ctx.Args())
+	Inpath := ctx.GlobalString(utils.AesInputFlag.Name)
+	fmt.Println("输入文件", Inpath)
+	JsonParse := NewJsonStruct()
+	fileValue := []EntrustInfo{}
+	JsonParse.Load(Inpath, &fileValue)
+
+	dataV, err := json.Marshal(fileValue)
+	if err != nil {
+		return errors.New("对文本内容进行Marshal失败")
+	}
+	entrustPassword, err := ReadEncryptionPassword(fileValue)
+	if err != nil {
+		return err
+	}
+	//fmt.Println("您的密码是", entrustPassword)
+	//fmt.Println("您的文本内容是")
+	//	for _,v:=range fileValue{
+	//		fmt.Println("账户",v.Address.String(),"密码",v.Password)
+	//	}
+	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
+	if err != nil {
+		return errors.New("加密失败")
+	}
+	pass64 := base64.StdEncoding.EncodeToString(xpass)
+	//fmt.Println("加密后", pass64)
+
+	outPath := ctx.GlobalString(utils.AesOutputFlag.Name)
+	//写入文件
+	err = ioutil.WriteFile(outPath, []byte(pass64), 0666)
+	if err == nil {
+		fmt.Println("成功写入到文件", outPath)
+	}
+
+	return nil
+}
+
+func CheckPassword(password string) bool {
+	if len(password) == 16 {
+		return true
+	}
+	fmt.Println("你的密码不符合规则 请重新输入", "密码", password, "密码长度", len(password))
+	return false
+}
+func ReadEncryptionPassword(FileData []EntrustInfo) (string, error) {
+	ans := ""
+	reader := bufio.NewReader(os.Stdin)
+
+	for true {
+		fmt.Println("请输入你的委托交易密码 密码暂定需要16位")
+		data, _, _ := reader.ReadLine()
+		if CheckPassword(string(data)) {
+			ans = string(data)
+			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
+			status, _, _ := reader.ReadLine()
+			if string(status) == "y" {
+				for _, v := range FileData {
+					fmt.Println("账户", v.Address.String(), "密码", v.Password)
+				}
+				fmt.Println("请确认你的初始文本的账户和密码", "输入y继续，其他重新输入")
+				Isok, _, _ := reader.ReadLine()
+				if string(Isok) == "y" {
+					break
+				}
+			}
+
+		}
+	}
+
+	return ans, nil
+}
+
+type EntrustInfo struct {
+	Address  common.Address
+	Password string
+}
+
+type JsonStruct struct {
+}
+
+func NewJsonStruct() *JsonStruct {
+	return &JsonStruct{}
+}
+
+func (jst *JsonStruct) Load(filename string, v interface{}) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("读取通用配置文件失败 err", err, "file", filename)
+		os.Exit(-1)
+		return
+	}
+	err = json.Unmarshal(data, v)
+	if err != nil {
+		fmt.Println("通用配置文件数据获取失败 err", err)
+		os.Exit(-1)
+		return
+	}
 }

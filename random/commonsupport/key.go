@@ -8,8 +8,6 @@ import (
 	"errors"
 	"math/big"
 
-	"fmt"
-
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/baseinterface"
@@ -18,6 +16,7 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -29,7 +28,6 @@ func CompareMap(private map[common.Address][]byte, public map[common.Address][]b
 		return rangePrivate(private, public)
 	}
 	ans := rangePublic(private, public)
-	log.INFO(ModuleRandomCommon, "隨機數map匹配的公私鑰 data", ans)
 	return ans
 }
 
@@ -98,7 +96,8 @@ func GetMinHash(hash common.Hash, support baseinterface.RandomChainSupport) comm
 		return common.Hash{}
 	}
 	minhash := hash
-	BroadcastInterval := common.GetBroadcastInterval()
+	bcInterval := manparams.NewBCInterval()
+	BroadcastInterval := bcInterval.GetBroadcastInterval()
 	for i := height - 1; i > height-BroadcastInterval; i-- {
 		TempHash, err := GetHeaderHashByNumber(hash, i, support)
 		if err != nil {
@@ -148,6 +147,7 @@ func getKeyTransInfo(hash common.Hash, Height uint64, types string, support base
 	return ans
 }
 func GetCurrentKeys(hash common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error) {
+	//preHash:=support.BlockChain().GetMatrixStateDataByNumber(mc.MSKeyPreBroadcastRoot)
 
 	height, err := GetNumberByHash(hash, support)
 	if err != nil {
@@ -158,9 +158,10 @@ func GetCurrentKeys(hash common.Hash, support baseinterface.RandomChainSupport) 
 		return nil, errors.New("请求的高度不是广播高度")
 	}
 
-	broadcastInterval := common.GetBroadcastInterval()
+	bcInterval := manparams.NewBCInterval()
+	broadcastInterval := bcInterval.GetBroadcastInterval()
 	height_1 := height / broadcastInterval * broadcastInterval //上一个广播区块
-	height_2 := height_1 - common.GetBroadcastInterval()
+	height_2 := height_1 - bcInterval.GetBroadcastInterval()
 
 	PrivateMap := getKeyTransInfo(hash, height_1, mc.Privatekey, support)
 	PublicMap := getKeyTransInfo(hash, height_2, mc.Publickey, support)
@@ -174,12 +175,12 @@ func GetMaxNonce(hash common.Hash, lastwHeight uint64, support baseinterface.Ran
 		log.Error("electionseed", "计算种子失败 err", err, "hash", hash.String())
 		return 0
 	}
-
+	if height < lastwHeight {
+		lastwHeight = 0
+	}
 	ans := support.BlockChain().GetBlockByNumber(lastwHeight).Header().Nonce.Uint64()
-	lastwHeight = height - lastwHeight
 
 	for k := lastwHeight; k <= height; k++ {
-		fmt.Println("kkkk", k)
 		tempHash, err := support.BlockChain().GetAncestorHash(hash, k)
 		if err != nil {
 			break

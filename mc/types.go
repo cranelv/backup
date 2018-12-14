@@ -33,8 +33,9 @@ type BlockToBucket struct {
 }
 
 type BlockToLinker struct {
-	Height *big.Int
-	Role   common.RoleType
+	Height            *big.Int
+	BroadCastInterval *BCIntervalInfo
+	Role              common.RoleType
 }
 
 //Election Module

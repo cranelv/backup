@@ -83,7 +83,7 @@ func (self *Miner) Start() {
 func (self *Miner) Stop() {
 	// todo:
 
-	//self.worker.Stop()
+	self.worker.Stop()
 	atomic.StoreInt32(&self.shouldStart, 0)
 
 }

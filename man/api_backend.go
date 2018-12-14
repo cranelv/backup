@@ -7,6 +7,10 @@ package man
 import (
 	"context"
 	"encoding/json"
+	"math/big"
+	"os"
+	"time"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -26,9 +30,6 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
 	"github.com/pkg/errors"
-	"math/big"
-	"os"
-	"time"
 )
 
 // ManAPIBackend implements manapi.Backend for full nodes
@@ -160,20 +161,26 @@ func (b *ManAPIBackend) ImportSuperBlock(ctx context.Context, filePath string) (
 		return common.Hash{}, errors.Errorf("reader config file from \"%s\" err (%v)", filePath, err)
 	}
 
-	superGen := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(superGen); err != nil {
+	matrixGenesis := new(core.Genesis1)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		log.Error("ManAPIBackend", "超级区块插入", "文件数据解码错误", err)
 		file.Close()
 		return common.Hash{}, errors.Errorf("decode config file from \"%s\" err (%v)", filePath, err)
 	}
 	file.Close()
 
-	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen)
+	superGen := new(core.Genesis)
+	core.ManGenesisToEthGensis(matrixGenesis, superGen)
+
+	superBlock, err := b.man.BlockChain().InsertSuperBlock(superGen, true)
 	if err != nil {
 		return common.Hash{}, err
 	}
+	for i := 0; i < 3; i++ {
+		b.man.protocolManager.AllBroadcastBlock(superBlock, true)
+		time.Sleep(100 * time.Millisecond)
+	}
 
-	b.man.EventMux().Post(core.NewMinedBlockEvent{Block: superBlock})
 	return superBlock.Hash(), nil
 }
 
@@ -322,7 +329,7 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 
 //YY
 func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	return b.man.signHelper.SignTx(signedTx, chainID)
+	return b.man.signHelper.SignTx(signedTx, chainID, b.man.blockchain.CurrentBlock().ParentHash())
 }
 
 //YY

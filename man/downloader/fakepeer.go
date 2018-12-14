@@ -31,9 +31,9 @@ func NewFakePeer(id string, db mandb.Database, hc *core.HeaderChain, dl *Downloa
 
 // Head implements downloader.Peer, returning the current head hash and number
 // of the best known header.
-func (p *FakePeer) Head() (common.Hash, *big.Int) {
+func (p *FakePeer) Head() (common.Hash, *big.Int, uint64, uint64) {
 	header := p.hc.CurrentHeader()
-	return header.Hash(), header.Number
+	return header.Hash(), header.Number, header.SuperBlockSeq(), 0
 }
 
 // RequestHeadersByHash implements downloader.Peer, returning a batch of headers

@@ -7,18 +7,17 @@ package types
 import (
 	"container/heap"
 	"errors"
-	"io"
-	"math/big"
-	"strings"
-	"sync/atomic"
-	"time"
-
-	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/rlp"
+	"io"
+	"math/big"
+	"strings"
+	"sync/atomic"
+	"time"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -490,7 +489,6 @@ func (tx *Transaction) GetLocalHeight() uint32 {
 	}
 	return uint32(time.Now().Unix())
 }
-
 func (tx *Transaction) TxType() byte { return tx.data.TxEnterType }
 
 func (tx *Transaction) IsEntrustTx() bool { return tx.data.IsEntrustTx == 1 }
@@ -603,7 +601,6 @@ func (tx *Transaction) CostALL() *big.Int {
 func (tx *Transaction) GetTxNLen() int {
 	return len(tx.N)
 }
-
 func (tx *Transaction) GetIsEntrustGas() bool {
 	return tx.IsEntrustGas
 }

@@ -114,8 +114,5 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 }
 
 func Test111(t *testing.T) {
-	JsonParse := NewJsonStruct()
-	v := JsonConfig{}
-	JsonParse.Load("./test.json", &v)
-	fmt.Println("ans", v)
+	f, err := os.Open()
 }

@@ -103,6 +103,8 @@ type txPool interface {
 type statusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
+	SBS             uint64
+	SBH             uint64
 	TD              *big.Int
 	CurrentBlock    common.Hash
 	GenesisBlock    common.Hash
@@ -162,6 +164,8 @@ func (hn *hashOrNumber) DecodeRLP(s *rlp.Stream) error {
 type newBlockData struct {
 	Block *types.Block
 	TD    *big.Int
+	SBH   uint64 //超级区块高度
+	SBS   uint64 //超级区块序号
 }
 
 // blockBody represents the data content of a single block.

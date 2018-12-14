@@ -340,22 +340,22 @@ func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) comm
 	return common.Address{}
 }
 
-//根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
-func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
-	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
-	if len(AuthMarsha1Data) > 0 {
-		AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
-		err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
-		if err != nil {
-			return common.Address{}
-		}
-		for _, AuthData := range AuthDataList {
-			if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
-				return AuthData.AuthAddres
-			}
+//根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustSignFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType, 0)
+	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	if err != nil {
+		return nil
+	}
+	addressList := make([]common.Address, 0)
+	for _, entrustData := range entrustDataList {
+		if entrustData.IsEntrustSign == true {
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
+			addressList = append(addressList, entrustFrom)
 		}
 	}
-	return common.Address{}
+	return addressList
 }
 
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
@@ -375,6 +375,42 @@ func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint6
 		}
 	}
 	return common.Address{}
+}
+
+//根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
+	if len(AuthMarsha1Data) > 0 {
+		AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+		err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+		if err != nil {
+			return common.Address{}
+		}
+		for _, AuthData := range AuthDataList {
+			if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustGas == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
+				return AuthData.AuthAddres
+			}
+		}
+	}
+	return common.Address{}
+}
+
+//根据授权人获取所有委托gas列表,(该方法用于取消委托时调用)
+func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Address {
+	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	entrustDataList := make([]common.EntrustType, 0)
+	err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	if err != nil {
+		return nil
+	}
+	addressList := make([]common.Address, 0)
+	for _, entrustData := range entrustDataList {
+		if entrustData.IsEntrustGas == true {
+			entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
+			addressList = append(addressList, entrustFrom)
+		}
+	}
+	return addressList
 }
 
 func (self *StateDB) GetEntrustFromByTime(authFrom common.Address, time uint64) []common.Address {
@@ -437,7 +473,6 @@ func (self *StateDB) Database() Database {
 }
 
 //isdel:true 表示需要从map中删除hash，false 表示不需要删除
-
 func (self *StateDB) GetSaveTx(typ byte, key uint32, hashlist []common.Hash, isdel bool) {
 	//var item trie.Item
 	var str string
@@ -1108,9 +1143,10 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 
 	for hash, val := range s.matrixData {
 		_, isDirty := s.matrixDataDirty[hash]
-		if isDirty {
-			s.updateMatrixData(hash, val)
+		if !isDirty {
+			continue
 		}
+		s.updateMatrixData(hash, val)
 		delete(s.matrixDataDirty, hash)
 	}
 	s.CommitSaveTx()
@@ -1131,4 +1167,36 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	})
 	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
+}
+
+func (self *StateDB) MissTrieDebug() {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	log.Info("miss tree node debug", "data amount", len(self.matrixData), "dirty amount", len(self.matrixDataDirty))
+	matrixKeys := make([]common.Hash, 0)
+	for key := range self.matrixData {
+		matrixKeys = append(matrixKeys, key)
+	}
+
+	sort.Slice(matrixKeys, func(i, j int) bool {
+		return matrixKeys[i].Big().Cmp(matrixKeys[j].Big()) <= 0
+	})
+
+	for i, k := range matrixKeys {
+		log.Info("miss tree node debug", "data index", i, "hash", k.TerminalString(), "data", self.matrixData[k])
+	}
+
+	dirtyKeys := make([]common.Hash, 0)
+	for key := range self.matrixDataDirty {
+		dirtyKeys = append(dirtyKeys, key)
+	}
+
+	sort.Slice(dirtyKeys, func(i, j int) bool {
+		return dirtyKeys[i].Big().Cmp(dirtyKeys[j].Big()) <= 0
+	})
+
+	for i, k := range dirtyKeys {
+		log.Info("miss tree node debug", "dirty index", i, "hash", k.TerminalString(), "data", self.matrixDataDirty[k])
+	}
 }

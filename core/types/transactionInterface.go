@@ -1,10 +1,9 @@
 package types
 
 import (
-	"math/big"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
+	"math/big"
 )
 
 const (

@@ -444,6 +444,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		evm   = st.evm
 		vmerr error
 	)
+
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -452,11 +453,19 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		}
 	}
 	st.gas = 0
+	issendFromContract := false
+	beforAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
+	interset := big.NewInt(0)
 	if toaddr == nil { //YY
 		log.Error("file state_transition", "func CallUnGasNormalTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
+		if st.To() != common.ContractAddress {
+			interset = new(big.Int).Add(interset, st.value)
+		} else {
+			issendFromContract = true
+		}
 		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
@@ -466,6 +475,11 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 				log.Error("file state_transition", "func CallUnGasNormalTx()", "Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
+				if *ex.Recipient != common.ContractAddress {
+					interset = new(big.Int).Add(interset, ex.Amount)
+				} else {
+					issendFromContract = true
+				}
 				// Increment the nonce for the next transaction
 				ret, st.gas, vmerr = evm.Call(sender, *ex.Recipient, ex.Payload, st.gas, ex.Amount)
 			}
@@ -478,6 +492,13 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		log.Debug("VM returned with error", "err", vmerr)
 		if vmerr == vm.ErrInsufficientBalance {
 			return nil, 0, false, vmerr
+		}
+	}
+	if issendFromContract {
+		afterAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
+		difAmont := new(big.Int).Sub(afterAmont, beforAmont)
+		if difAmont.Cmp(interset) != 0 {
+			return nil, 0, false, ErrinterestAmont
 		}
 	}
 	return ret, 0, vmerr != nil, err

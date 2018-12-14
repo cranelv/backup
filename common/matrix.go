@@ -28,10 +28,22 @@ const (
 type ElectRoleType uint8
 
 const (
-	ElectRoleMiner           ElectRoleType = 0x00
-	ElectRoleMinerBackUp     ElectRoleType = 0x01
-	ElectRoleValidator       ElectRoleType = 0x02
-	ElectRoleValidatorBackUp ElectRoleType = 0x03
+	ElectRoleMiner              ElectRoleType = 0x00
+	ElectRoleMinerBackUp        ElectRoleType = 0x01
+	ElectRoleValidator          ElectRoleType = 0x02
+	ElectRoleValidatorBackUp    ElectRoleType = 0x03
+	ElectRoleCandidateValidator ElectRoleType = 0x10
+	ElectRoleNil                ElectRoleType = 0xff
+)
+
+const (
+	TopAccountA0 = "A0"
+	TopAccountA1 = "A1"
+)
+
+var (
+	SignLog        = "SignLog"
+	TopAccountType = TopAccountA1
 )
 
 func (ert ElectRoleType) Transfer2CommonRole() RoleType {
@@ -44,6 +56,8 @@ func (ert ElectRoleType) Transfer2CommonRole() RoleType {
 		return RoleValidator
 	case ElectRoleValidatorBackUp:
 		return RoleBackupValidator
+	case ElectRoleCandidateValidator:
+		return RoleCandidateValidator
 	}
 	return RoleNil
 }
@@ -53,6 +67,9 @@ func GetRoleTypeFromPosition(position uint16) RoleType {
 }
 
 func GeneratePosition(index uint16, electRole ElectRoleType) uint16 {
+	if electRole >= ElectRoleValidatorBackUp {
+		return 0xffff
+	}
 	return uint16(electRole)<<12 + index
 }
 
@@ -106,24 +123,25 @@ func GetRoleVipGrade(aim uint64) int {
 
 type Echelon struct {
 	MinMoney *big.Int
-	Quota    int
-	Ratio    float64
+	MaxNum   int
+	Ratio    uint16
 }
 
 var (
-	ManValue      = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	vip1          = new(big.Int).Mul(big.NewInt(100000), ManValue)
-	vip2          = new(big.Int).Mul(big.NewInt(40000), ManValue)
-	EchelonArrary = []Echelon{
-		Echelon{
-			MinMoney: vip1,
-			Quota:    5,
-			Ratio:    2.0,
-		},
-		Echelon{
-			MinMoney: vip2,
-			Quota:    3,
-			Ratio:    1.0,
-		},
-	}
+	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+
+//	vip1          = new(big.Int).Mul(big.NewInt(10000000), ManValue)
+//	vip2          = new(big.Int).Mul(big.NewInt(1000000), ManValue)
+//EchelonArrary = []Echelon{
+//	Echelon{
+//		MinMoney: vip1,
+//		MaxNum:   5,
+//		Ratio:   1000,
+//	},
+//	Echelon{
+//		MinMoney: vip2,
+//		MaxNum:   3,
+//		Ratio:    500,
+//	},
+//}
 )

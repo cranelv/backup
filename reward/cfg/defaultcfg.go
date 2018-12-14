@@ -3,8 +3,9 @@ package cfg
 import (
 	"math/big"
 
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/mc"
+
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/reward/leaderreward"
@@ -14,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/reward/util"
 )
 
 const (
@@ -35,7 +37,7 @@ const (
 	BackupRate                   = uint64(5000) //当前替补验证者奖励50%
 )
 
-type RewardMountCfg struct {
+type RewardStateCfg struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
 
@@ -50,9 +52,12 @@ type RewardMountCfg struct {
 	OriginElectOfflineRate uint64 //初选下线验证者奖励
 	BackupRewardRate       uint64 //当前替补验证者奖励
 }
+
 type RewardCfg struct {
-	RewardMount *RewardMountCfg
-	SetReward   SetRewardsExec
+	MinersRate     uint64 //矿工网络奖励
+	ValidatorsRate uint64 //验证者网络奖励
+	RewardMount    *mc.BlkRewardCfg
+	SetReward      SetRewardsExec
 }
 type ChainReader interface {
 	// Config retrieves the blockchain's chain configuration.
@@ -76,12 +81,11 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 type SetRewardsExec interface {
-	SetLeaderRewards(reward *big.Int, rewards map[common.Address]*big.Int, Leader common.Address, num *big.Int)
-	SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int)
-	SetSelectedRewards(reward *big.Int, chain ChainReader, topRewards map[common.Address]*big.Int, roleType common.RoleType, header *types.Header, rate uint64) //todo 金额
+	SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
+	SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int
+	GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int //todo 金额
 }
 type DefaultSetRewards struct {
 	leader   leaderreward.LeaderReward
@@ -98,46 +102,20 @@ func DefaultSetRewardNew() *DefaultSetRewards {
 
 }
 
-func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, rewards map[common.Address]*big.Int, Leader common.Address, num *big.Int) {
-	if common.IsBroadcastNumber(num.Uint64()) {
-		return
-	}
-	str.leader.SetLeaderRewards(reward, rewards, Leader, num)
+func (str *DefaultSetRewards) SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
+
+	return str.leader.SetLeaderRewards(reward, Leader, num)
 }
-func (str *DefaultSetRewards) SetSelectedRewards(reward *big.Int, chain ChainReader, topRewards map[common.Address]*big.Int, roleType common.RoleType, header *types.Header, rate uint64) {
-	if common.IsBroadcastNumber(header.Number.Uint64()) {
-		return
-	}
-	str.selected.SetSelectedRewards(reward, chain, topRewards, roleType, header, rate)
+func (str *DefaultSetRewards) GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int {
+
+	return str.selected.GetSelectedRewards(reward, state, chain, roleType, number, rate)
 }
-func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, chain ChainReader, num *big.Int, rewards map[common.Address]*big.Int) {
-	if common.IsBroadcastNumber(num.Uint64()) {
-		return
-	}
-	str.miner.SetMinerOutRewards(reward, chain, num, rewards)
+func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain ChainReader, num uint64) map[common.Address]*big.Int {
+
+	return str.miner.SetMinerOutRewards(reward, state, chain, num)
 }
 
-func New(RewardMount *RewardMountCfg, SetReward SetRewardsExec) *RewardCfg {
-
-	//默认配置
-	if nil == RewardMount {
-		RewardMount = &RewardMountCfg{
-			MinersRate:     MinersBlockRewardRate,
-			ValidatorsRate: ValidatorsBlockRewardRate,
-
-			MinerOutRate:        MinerOutRewardRate,
-			ElectedMinerRate:    ElectedMinerRewardRate,
-			FoundationMinerRate: FoundationMinerRewardRate,
-
-			LeaderRate:              LeaderRewardRate,
-			ElectedValidatorsRate:   ElectedValidatorsRewardRate,
-			FoundationValidatorRate: FoundationValidatorsRewardRate,
-
-			OriginElectOfflineRate: OriginElectOfflineRewardRate,
-			BackupRewardRate:       BackupRate,
-		}
-
-	}
+func New(RewardMount *mc.BlkRewardCfg, SetReward SetRewardsExec) *RewardCfg {
 	//默认配置
 	if nil == SetReward {
 

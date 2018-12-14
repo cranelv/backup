@@ -4,11 +4,7 @@
 package stock
 
 import (
-	"math/big"
-
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -32,72 +28,28 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 }
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
+	MaxValidator := int(mvrerm.ElectConfig.ValidatorNum)
+	MaxBackValidator := int(mvrerm.ElectConfig.BackValidator)
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	ValidatorElectMap := make(map[string]vm.DepositDetail)
-	for i, item := range mvrerm.ValidatorList {
-		ValidatorElectMap[item.NodeID.String()] = item
-		//todo: panic
-		if item.Deposit == nil {
-			mvrerm.ValidatorList[i].Deposit = big.NewInt(support.DefaultDeposit)
-		}
-		if item.WithdrawH == nil {
-			mvrerm.ValidatorList[i].WithdrawH = big.NewInt(support.DefaultWithdrawH)
-		}
-		if item.OnlineTime == nil {
-			mvrerm.ValidatorList[i].OnlineTime = big.NewInt(support.DefaultOnlineTime)
-		}
-	}
+	validatorList := support.CheckData(mvrerm.ValidatorList)
 
-	ValidatorEleRs := new(mc.MasterValidatorReElectionRsq)
-	ValidatorEleRs.SeqNum = mvrerm.SeqNum
-
-	var a, b, c []support.Strallyint
+	var master, backup, candiate []support.Strallyint
 	var value []support.Stf
-	if len(mvrerm.FoundationValidatoeList) == 0 {
-		value = support.CalcAllValueFunction(mvrerm.ValidatorList)
-		a, b, c = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), 11, 5, 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
+	if len(mvrerm.FoundationValidatorList) == 0 {
+		value = support.CalcAllValueFunction(validatorList)
+		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
 	} else {
-		value = support.CalcAllValueFunction(mvrerm.ValidatorList)
-		valuefound := support.CalcAllValueFunction(mvrerm.FoundationValidatoeList)
-		a, b, c = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), 11, 5, len(mvrerm.FoundationValidatoeList)) //0x12217)
-		a = support.CommbineFundNodesAndPricipal(value, valuefound, a, 0.25, 4.0)
+		value = support.CalcAllValueFunction(validatorList)
+		valuefound := support.CalcAllValueFunction(mvrerm.FoundationValidatorList)
+		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, len(mvrerm.FoundationValidatorList)) //0x12217)
+		master = support.CommbineFundNodesAndPricipal(value, valuefound, master, 0.25, 4.0)
 	}
-
-	for index, item := range a {
-		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
-		ToG.Account = tmp.Address
-		ToG.Position = uint16(index)
-		ToG.Type = common.RoleValidator
-		ToG.Stock = uint16(item.Value)
-		ValidatorEleRs.MasterValidator = append(ValidatorEleRs.MasterValidator, ToG)
-	}
-
-	for index, item := range b {
-		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
-		ToG.Account = tmp.Address
-		ToG.Position = uint16(index)
-		ToG.Type = common.RoleBackupValidator
-		ToG.Stock = uint16(item.Value)
-		ValidatorEleRs.BackUpValidator = append(ValidatorEleRs.BackUpValidator, ToG)
-	}
-
-	for index, item := range c {
-		tmp := ValidatorElectMap[item.Nodeid]
-		var ToG mc.TopologyNodeInfo
-		ToG.Account = tmp.Address
-		ToG.Position = uint16(index)
-		ToG.Type = common.RoleCandidateValidator
-		ToG.Stock = uint16(item.Value)
-		ValidatorEleRs.CandidateValidator = append(ValidatorEleRs.CandidateValidator, ToG)
-	}
-	return ValidatorEleRs
+	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, master, backup, candiate)
 }
 
-func (self *StockElect) ToPoUpdate(offline []common.Address, allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
+func (self *StockElect) ToPoUpdate(allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 
-	return support.ToPoUpdate(offline, allNative, topoG)
+	return support.ToPoUpdate(allNative, topoG)
 }
 
 func (self *StockElect) PrimarylistUpdate(Q0, Q1, Q2 []mc.TopologyNodeInfo, online mc.TopologyNodeInfo, flag int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo) {

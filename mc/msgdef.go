@@ -59,31 +59,48 @@ type DepositDetail struct {
 	WithdrawH  *big.Int
 	OnlineTime *big.Int
 }
-type TopologyNodeInfo struct {
-	Account    common.Address
-	Position   uint16
-	Type       common.RoleType
-	Stock      uint16
-	NodeNumber uint8 //0-99
-	//	OnlineState bool
-}
+
 type Alternative struct {
 	A        common.Address
 	Position uint16
 }
 
+type TopologyNodeInfo struct {
+	Account    common.Address
+	Position   uint16
+	Type       common.RoleType
+	NodeNumber uint8 //0-99
+}
+
 type TopologyGraph struct {
-	Number        uint64
 	NodeList      []TopologyNodeInfo
-	ElectList     []TopologyNodeInfo
 	CurNodeNumber uint8
+}
+
+type ElectNodeInfo struct {
+	Account  common.Address
+	Position uint16
+	Stock    uint16
+	Type     common.RoleType
+}
+
+type ElectGraph struct {
+	Number    uint64
+	ElectList []ElectNodeInfo
+	NextElect []ElectNodeInfo
+}
+
+type ElectOnlineStatus struct {
+	Number      uint64
+	ElectOnline []ElectNodeInfo
 }
 
 //矿工主节点生成请求
 type MasterMinerReElectionReqMsg struct {
-	SeqNum    uint64
-	RandSeed  *big.Int
-	MinerList []vm.DepositDetail
+	SeqNum      uint64
+	RandSeed    *big.Int
+	MinerList   []vm.DepositDetail
+	ElectConfig ElectConfigInfo
 }
 
 //验证者主节点生成请求
@@ -91,29 +108,32 @@ type MasterValidatorReElectionReqMsg struct {
 	SeqNum                  uint64
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
-	FoundationValidatoeList []vm.DepositDetail
+	FoundationValidatorList []vm.DepositDetail
+	ElectConfig             ElectConfigInfo
+	VIPList                 []VIPConfig
 }
 
 //矿工主节点生成响应
 type MasterMinerReElectionRsp struct {
 	SeqNum      uint64
-	MasterMiner []TopologyNodeInfo
-	BackUpMiner []TopologyNodeInfo
+	MasterMiner []ElectNodeInfo
+	BackUpMiner []ElectNodeInfo
 }
 
 //验证者主节点生成响应
 type MasterValidatorReElectionRsq struct {
 	SeqNum             uint64
-	MasterValidator    []TopologyNodeInfo
-	BackUpValidator    []TopologyNodeInfo
-	CandidateValidator []TopologyNodeInfo
+	MasterValidator    []ElectNodeInfo
+	BackUpValidator    []ElectNodeInfo
+	CandidateValidator []ElectNodeInfo
 }
 
 type RoleUpdatedMsg struct {
-	Role      common.RoleType
-	BlockNum  uint64
-	BlockHash common.Hash
-	Leader    common.Address
+	Role         common.RoleType
+	BlockNum     uint64
+	BlockHash    common.Hash
+	Leader       common.Address
+	IsSuperBlock bool
 }
 
 type LeaderChangeNotify struct {
@@ -122,7 +142,7 @@ type LeaderChangeNotify struct {
 	Leader         common.Address
 	NextLeader     common.Address
 	Number         uint64
-	ConsensusTurn  uint32
+	ConsensusTurn  ConsensusTurnInfo
 	ReelectTurn    uint32
 	TurnBeginTime  int64
 	TurnEndTime    int64
@@ -132,7 +152,7 @@ type LeaderChangeNotify struct {
 type HD_BlkConsensusReqMsg struct {
 	From                   common.Address
 	Header                 *types.Header
-	ConsensusTurn          uint32
+	ConsensusTurn          ConsensusTurnInfo
 	TxsCode                []*common.RetCallTxN
 	OnlineConsensusResults []*HD_OnlineConsensusVoteResultMsg
 }
@@ -147,7 +167,7 @@ type LocalBlockVerifyConsensusReq struct {
 type BlockPOSFinishedNotify struct {
 	Number        uint64
 	Header        *types.Header // 包含签名列表的header
-	ConsensusTurn uint32
+	ConsensusTurn ConsensusTurnInfo
 	TxsCode       []*common.RetCallTxN
 }
 
@@ -167,6 +187,7 @@ type HD_BlockInsertNotify struct {
 
 type NewBlockReadyMsg struct {
 	Header *types.Header
+	State  *state.StateDB
 }
 
 //随机数生成请求
@@ -230,9 +251,14 @@ type BroadCastEvent struct {
 }
 
 //
+type ConsensusTurnInfo struct {
+	PreConsensusTurn uint32 // 前一次共识轮次
+	UsedReelectTurn  uint32 // 完成共识花费的重选轮次
+}
+
 type HD_ReelectInquiryReqMsg struct {
 	Number        uint64
-	ConsensusTurn uint32
+	ConsensusTurn ConsensusTurnInfo
 	ReelectTurn   uint32
 	TimeStamp     uint64
 	Master        common.Address
@@ -271,7 +297,7 @@ type HD_ReelectLeaderConsensus struct {
 	Votes []common.Signature
 }
 
-type HD_ReelectResultBroadcastMsg struct {
+type HD_ReelectBroadcastMsg struct {
 	Number    uint64
 	Type      ReelectRSPType
 	POSResult *HD_BlkConsensusReqMsg
@@ -280,7 +306,7 @@ type HD_ReelectResultBroadcastMsg struct {
 	From      common.Address
 }
 
-type HD_ReelectResultRspMsg struct {
+type HD_ReelectBroadcastRspMsg struct {
 	Number     uint64
 	ResultHash common.Hash
 	Sign       common.Signature

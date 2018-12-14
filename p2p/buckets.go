@@ -6,6 +6,7 @@ package p2p
 
 import (
 	"container/ring"
+	"errors"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -27,7 +28,8 @@ type Bucket struct {
 	rings *ring.Ring
 	lock  sync.RWMutex
 
-	ids []common.Address
+	ids  []common.Address
+	self int64
 
 	sub event.Subscription
 
@@ -45,9 +47,14 @@ var Buckets = &Bucket{
 	rings: ring.New(4),
 }
 
-const MaxBucketContent = 2000
+const (
+	MaxBucketContent = 2000
+	BucketLimit      = 10
+)
 
 var (
+	errAddressEmpty = errors.New("address is empty")
+
 	MaxLink = 3
 )
 
@@ -117,12 +124,11 @@ func (b *Bucket) Start() {
 			if temp.Mod(h.Height, big.NewInt(300)) == big.NewInt(50) {
 				b.rings = b.rings.Prev()
 			}
-			if len(b.ids) <= 64 {
+
+			if len(b.ids) <= BucketLimit {
 				b.maintainOuter()
 				break
 			}
-			// maintain inner
-			b.maintainInner()
 
 			// maintain outer
 			selfBucket, err := b.selfBucket()
@@ -130,6 +136,10 @@ func (b *Bucket) Start() {
 				b.log.Error("bucket number wrong", "error", err)
 				break
 			}
+			b.self = selfBucket
+
+			// maintain inner
+			b.maintainInner()
 			switch selfBucket {
 			case b.rings.Value.(int64):
 				b.maintainOuter()
@@ -158,6 +168,9 @@ func (b *Bucket) maintainNodes(elected []common.Address) {
 	b.bucket = make(map[int64][]common.Address)
 	for _, v := range elected {
 		b.bucketAdd(v)
+	}
+	for index, bkt := range b.bucket {
+		b.log.Info("bucket info", "index", index, "length", len(bkt))
 	}
 }
 
@@ -198,6 +211,7 @@ func (b *Bucket) disconnectOnePeer() {
 // MaintainInner maintain bucket inner.
 func (b *Bucket) maintainInner() {
 	count := 0
+	next := (b.self + 1) % 4
 	for _, peer := range ServerP2p.Peers() {
 		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
 		if signAddr == emptyAddress {
@@ -208,16 +222,16 @@ func (b *Bucket) maintainInner() {
 			b.log.Error("bucket number wrong", "error", err)
 			continue
 		}
-		if pid == b.rings.Next().Value {
+		if pid == next {
 			count++
 		}
 	}
 	if count < MaxLink {
-		if MaxLink < len(b.bucket[b.rings.Next().Value.(int64)]) {
-			b.inner(MaxLink-count, b.rings.Next().Value.(int64))
+		if MaxLink < len(b.bucket[next]) {
+			b.inner(MaxLink-count, next)
 			return
 		}
-		b.inner(len(b.bucket[b.rings.Next().Value.(int64)])-count, b.rings.Next().Value.(int64))
+		b.inner(len(b.bucket[next])-count, next)
 	}
 }
 
@@ -252,11 +266,19 @@ func (b *Bucket) selfBucket() (int64, error) {
 
 func (b *Bucket) peerBucket(addr common.Address) (int64, error) {
 	m := big.Int{}
-	return m.Mod(addr.Hash().Big(), big.NewInt(4)).Int64(), nil
+	if b.self < common.RoleBucket {
+		return m.Mod(MockHash(ServerP2p.Self().ID).Big(), big.NewInt(4)).Int64(), nil
+	}
+
+	if addr != emptyAddress {
+		return m.Mod(common.BytesToHash(addr.Bytes()).Big(), big.NewInt(4)).Int64(), nil
+	}
+
+	return 0, errAddressEmpty
 }
 
 func (b *Bucket) linkBucketPeer() {
-	if len(b.ids) <= 64 {
+	if len(b.ids) <= BucketLimit {
 		b.maintainOuter()
 		return
 	}
@@ -284,10 +306,10 @@ func (b *Bucket) linkBucketPeer() {
 
 	if count < MaxLink {
 		if MaxLink < len(b.bucket[self]) {
-			b.inner(MaxLink-count, b.rings.Value.(int64))
+			b.inner(MaxLink-count, self)
 			return
 		}
-		b.inner(len(b.bucket[self])-count, b.rings.Value.(int64))
+		b.inner(len(b.bucket[self])-count, self)
 	}
 }
 
@@ -335,7 +357,7 @@ func (b *Bucket) outer(num int, ids []common.Address) {
 
 // RandomPeers random peers from next buckets.
 func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []common.Address) {
-	length := len(b.bucket[b.rings.Next().Value.(int64)])
+	length := len(b.bucket[bucket])
 
 	if length <= MaxLink {
 		return b.bucket[bucket]
@@ -349,6 +371,9 @@ func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []
 				break
 			}
 		}
+	}
+	if len(nodes) <= 0 {
+		return b.randomInnerPeersByBucketNumber(num, (bucket+1)%4)
 	}
 	return nodes
 }
@@ -377,4 +402,8 @@ func Random(max, num int) (randoms []int) {
 		randoms = append(randoms, rand.Intn(max))
 	}
 	return randoms
+}
+
+func MockHash(id discover.NodeID) common.Hash {
+	return common.BytesToHash([]byte(id.String()))
 }

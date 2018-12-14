@@ -17,6 +17,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/trie"
 )
 
@@ -61,11 +62,7 @@ func (bPool *BroadCastTxPool) checkTxFrom(tx types.SelfTransaction) (common.Addr
 
 // SetBroadcastTxs
 func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
-	if head.Number().Uint64()%common.GetBroadcastInterval() != 0 {
-		return
-	}
-
-	if 0 == len(head.Transactions()) {
+	if manparams.IsBroadcastNumberByHash(head.Number().Uint64(), head.ParentHash()) == false {
 		return
 	}
 
@@ -217,10 +214,13 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			3、判断同一个节点在此区间内是否发送过相同类型的交易（每个节点在一个区间内一种类型的交易只能发送一笔）。
 			4、广播交易的类型必须是已知的如果是未知的则丢弃。（心跳、点名、公钥、私钥）
 	*/
+
+	bcInterval := manparams.NewBCInterval()
+
 	height := bPool.chain.CurrentBlock().Number()
 	blockHash := bPool.chain.CurrentBlock().Hash()
 	curBlockNum := height.Uint64()
-	tval := curBlockNum / common.GetBroadcastInterval()
+	tval := curBlockNum / bcInterval.GetBroadcastInterval()
 	strVal := fmt.Sprintf("%v", tval+1)
 	index := strings.Index(keydata, strVal)
 	numStr := keydata[index:]
@@ -238,7 +238,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 	case mc.CallTheRoll:
 		broadcastNum1 := curBlockNum + 1
 		broadcastNum2 := curBlockNum + 2
-		curBroadcastNum := common.GetNextBroadcastNumber(curBlockNum)
+		curBroadcastNum := bcInterval.GetNextBroadcastNumber(curBlockNum)
 		if broadcastNum1 != curBroadcastNum && broadcastNum2 != curBroadcastNum {
 			log.Error("The current block height is higher than the broadcast block height. (func filter())")
 			return false
@@ -260,9 +260,9 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		for _, node := range nodelist {
 			if from == node.Address {
 				currentAcc := from.Big()
-				ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
+				ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
 				broadcastBlock := blockHash.Big()
-				val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))
+				val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
 				if ret.Cmp(val) == 0 {
 					return true
 				}

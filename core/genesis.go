@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/mc"
 	"math/big"
 	"strings"
 
@@ -51,6 +52,7 @@ type Genesis struct {
 	Mixhash    common.Hash    `json:"mixHash"`
 	Coinbase   common.Address `json:"coinbase"`
 	Alloc      GenesisAlloc   `json:"alloc"      gencodec:"required"`
+	MState     *GenesisMState `json:"mstate"    gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -73,6 +75,7 @@ type Genesis1 struct {
 	ExtraData         []byte              `json:"extraData"`
 	Version           string              `json:"version"    gencodec:"required"`
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
+	VrfValue          []byte              `json:"vrfvalue"`
 	Leader            string              `json:"leader"`
 	Elect             []common.Elect1     `json:"elect"    gencodec:"required"`
 	NetTopology       common.NetTopology1 `json:"nettopology"       gencodec:"required"`
@@ -82,11 +85,14 @@ type Genesis1 struct {
 	Mixhash           common.Hash         `json:"mixHash"`
 	Coinbase          string              `json:"coinbase"`
 	Alloc             GenesisAlloc1       `json:"alloc"      gencodec:"required"`
+	MState            *GenesisMState1     `json:"mstate,omitempty"`
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	Root       common.Hash `json:"stateRoot,omitempty"`
+	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
 func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
@@ -104,6 +110,8 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.ParentHash = gensis1.ParentHash
 	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
+	gensis.Root = gensis1.Root
+	gensis.TxHash = gensis1.TxHash
 	//Elect
 	sliceElect := make([]common.Elect, 0)
 	for _, elec := range gensis1.Elect {
@@ -129,6 +137,36 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	for kString, vGenesisAccount := range gensis1.Alloc {
 		tmpk := base58.Base58DecodeToAddress(kString)
 		gensis.Alloc[tmpk] = vGenesisAccount
+	}
+	if nil != gensis1.MState {
+		gensis.MState = new(GenesisMState)
+		if nil != gensis1.MState.Broadcast {
+			gensis.MState.Broadcast = new(mc.NodeInfo)
+			gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
+			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+		}
+		if nil != gensis1.MState.Foundation {
+			gensis.MState.Foundation = new(mc.NodeInfo)
+			gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
+			gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+		}
+		if nil != gensis1.MState.InnerMiners {
+
+			for _, v := range *gensis1.MState.InnerMiners {
+
+				*gensis.MState.InnerMiners = append(*gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+			}
+		}
+		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
+		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
+		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
+		gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
+		gensis.MState.SlashCfg = gensis1.MState.SlashCfg
+		gensis.MState.BCICfg = gensis1.MState.BCICfg
+		gensis.MState.VIPCfg = gensis1.MState.VIPCfg
+		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
+		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
+		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
 	}
 }
 
@@ -308,6 +346,19 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 			statedb.SetState(addr, key, value)
 		}
 	}
+	if nil == g.MState {
+		log.Error("genesis", "设置matrix状态树错误", "")
+		return nil
+	}
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
+
+	if err := g.MState.SetSuperBlkToState(statedb, g.ExtraData, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
@@ -363,7 +414,17 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 			stateDB.SetState(addr, key, value)
 		}
 	}
+	if nil != g.MState {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
+			log.Error("genesis super block", "设置matrix状态树错误", err)
+			return nil
+		}
 
+	}
+	if err := g.MState.SetSuperBlkToState(stateDB, g.ExtraData, g.Number); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return nil
+	}
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
 		Nonce:             types.EncodeNonce(g.Nonce),
@@ -393,24 +454,42 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 	}
 
 	// 创建超级区块交易
+	txs := make([]types.SelfTransaction, 0)
 	data, err := json.Marshal(g.Alloc)
 	if err != nil {
 		log.ERROR("genesis super block", "marshal alloc info err", err)
 		return nil
 	}
-	tx := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, common.ExtraSuperBlockTx, 0)
-	if tx == nil {
+	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, common.ExtraSuperBlockTx, 0)
+	if tx0 == nil {
 		log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
 		return nil
 	}
+	txs = append(txs, tx0)
+	if nil != g.MState {
+		data, err = json.Marshal(g.MState)
+		if err != nil {
+			log.ERROR("genesis super block", "marshal alloc info err", err)
+			return nil
+		}
+		tx1 := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, data, common.ExtraSuperBlockTx, 0)
+		if tx1 == nil {
+			log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
+			return nil
+		}
+		txs = append(txs, tx1)
+	}
 
-	return types.NewBlock(head, []types.SelfTransaction{tx}, nil, nil)
+	return types.NewBlock(head, txs, nil, nil)
 }
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db mandb.Database) (*types.Block, error) {
 	block := g.ToBlock(db)
+	if nil == block {
+		return nil, fmt.Errorf("can't create genesis block")
+	}
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}

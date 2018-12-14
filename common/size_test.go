@@ -5,6 +5,7 @@
 package common
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -23,4 +24,10 @@ func TestStorageSizeString(t *testing.T) {
 			t.Errorf("%f: got %q, want %q", float64(test.size), test.size.String(), test.str)
 		}
 	}
+}
+
+func TestASAD(t *testing.T) {
+	a := uint64(45)
+	b := uint64(100)
+	fmt.Println(a - b)
 }

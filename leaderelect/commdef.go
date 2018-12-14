@@ -9,22 +9,24 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 )
 
 var (
-	ErrMsgAccountIsNull  = errors.New("不合法的账户：空账户")
-	ErrValidatorsIsNil   = errors.New("验证者列表为空")
-	ErrValidatorNotFound = errors.New("验证者未找到")
-	ErrMsgExistInCache   = errors.New("缓存中已存在消息")
-	ErrNoMsgInCache      = errors.New("缓存中没有目标消息")
-	ErrMsgIsNil          = errors.New("消息为nil")
-	ErrSelfReqIsNil      = errors.New("self请求不在缓存中")
-	ErrBroadcastIsNil    = errors.New("缓存没有广播消息")
-	ErrPOSResultIsNil    = errors.New("POS结果为nil/header为nil")
-	ErrLeaderResultIsNil = errors.New("leader共识结果为nil")
+	ErrMsgAccountIsNull     = errors.New("不合法的账户：空账户")
+	ErrValidatorsIsNil      = errors.New("验证者列表为空")
+	ErrSepcialsIsNil        = errors.New("特殊账户为空")
+	ErrValidatorNotFound    = errors.New("验证者未找到")
+	ErrMsgExistInCache      = errors.New("缓存中已存在消息")
+	ErrNoMsgInCache         = errors.New("缓存中没有目标消息")
+	ErrParamsIsNil          = errors.New("参数为nil")
+	ErrSelfReqIsNil         = errors.New("self请求不在缓存中")
+	ErrPOSResultIsNil       = errors.New("POS结果为nil/header为nil")
+	ErrLeaderResultIsNil    = errors.New("leader共识结果为nil")
+	ErrCDCOrSignHelperisNil = errors.New("cdc or signHelper is nil")
 )
 
 type Matrix interface {
@@ -36,16 +38,20 @@ type Matrix interface {
 	FetcherNotify(hash common.Hash, number uint64)
 }
 
-type state uint8
+const defaultBeginTime = int64(0)
+
+const mangerCacheMax = 2
+
+type stateDef uint8
 
 const (
-	stIdle state = iota
+	stIdle stateDef = iota
 	stPos
 	stReelect
 	stMining
 )
 
-func (s state) String() string {
+func (s stateDef) String() string {
 	switch s {
 	case stIdle:
 		return "未运行阶段"
@@ -77,7 +83,18 @@ func (self *leaderData) copyData() *leaderData {
 }
 
 type startControllerMsg struct {
-	role         common.RoleType
-	validators   []mc.TopologyNodeInfo
-	parentHeader *types.Header
+	parentIsSupper bool
+	parentHeader   *types.Header
+	parentStateDB  *state.StateDB
+}
+
+func isFirstConsensusTurn(turnInfo mc.ConsensusTurnInfo) bool {
+	return turnInfo.PreConsensusTurn == 0 && turnInfo.UsedReelectTurn == 0
+}
+
+func calcNextConsensusTurn(curConsensusTurn mc.ConsensusTurnInfo, curReelectTurn uint32) mc.ConsensusTurnInfo {
+	return mc.ConsensusTurnInfo{
+		PreConsensusTurn: curConsensusTurn.TotalTurns(),
+		UsedReelectTurn:  curReelectTurn,
+	}
 }
