@@ -3,9 +3,9 @@ package matrixstate
 import (
 	"encoding/json"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/common"
 )
 
 func (self *keyManager) initCodec() {
@@ -520,10 +520,12 @@ func (MSKeyPreMinerCodec) decodeFn(data []byte) (interface{}, error) {
 	}
 	return msg, nil
 }
+
 ////////////////////////////////////////////////////////////////////////
 // key = MSKeyBroadcastTx
 type MSKeyBroadcastTxCodec struct {
 }
+
 func (MSKeyBroadcastTxCodec) encodeFn(msg interface{}) ([]byte, error) {
 	data, err := json.Marshal(msg)
 	if err != nil {

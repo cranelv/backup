@@ -66,6 +66,8 @@ type StateDB interface {
 	GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	Dump() []byte
+	Finalise(deleteEmptyObjects bool)
 	GetAllEntrustSignFrom(authFrom common.Address) []common.Address
 	GetAllEntrustGasFrom(authFrom common.Address) []common.Address
 }

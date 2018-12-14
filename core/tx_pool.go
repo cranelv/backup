@@ -10,6 +10,7 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
@@ -19,11 +20,10 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"runtime"
-	"github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/params/manparams"
 	"strings"
 )
 
@@ -1601,9 +1601,9 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (bPool *NormalTxPool)ProduceMatrixStateData (block *types.Block, readFn matrixstate.PreStateReadFn)(interface{}, error){
+func (bPool *NormalTxPool) ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
-		return nil,errors.New("current block is not broadcast block")
+		return nil, errors.New("current block is not broadcast block")
 	}
 
 	var (
@@ -1642,30 +1642,30 @@ func (bPool *NormalTxPool)ProduceMatrixStateData (block *types.Block, readFn mat
 			}
 		}
 	}
-	if len(tempMap) > 0{
-		log.INFO("ProduceMatrixStateData","tempMap",tempMap)
-		return tempMap,nil
+	if len(tempMap) > 0 {
+		log.INFO("ProduceMatrixStateData", "tempMap", tempMap)
+		return tempMap, nil
 	}
-	return nil,errors.New("without broadcatTxs")
+	return nil, errors.New("without broadcatTxs")
 }
 func GetBroadcastTxMap(bc interface{}, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
-	state,err := bc.(blockChain).StateAt(root)
-	if err != nil{
+	state, err := bc.(blockChain).StateAt(root)
+	if err != nil {
 		log.Error("GetBroadcastTxMap StateAt err")
-		return nil,err
+		return nil, err
 	}
 
-	broadInterface,err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx,state)
-	if err != nil{
+	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
+	if err != nil {
 		log.Error("GetBroadcastTxMap GetDataByState err")
-		return nil,err
+		return nil, err
 	}
 	mapdata := broadInterface.(map[string]map[common.Address][]byte)
-	for typekey,mapVal := range mapdata{
-		if txtype == typekey{
-			return mapVal,nil
+	for typekey, mapVal := range mapdata {
+		if txtype == typekey {
+			return mapVal, nil
 		}
 	}
 	log.Error("GetBroadcastTxMap get broadcast map is nil")
-	return nil,errors.New("GetBroadcastTxMap is nil")
+	return nil, errors.New("GetBroadcastTxMap is nil")
 }

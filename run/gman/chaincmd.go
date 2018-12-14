@@ -17,9 +17,11 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/keystore"
-	"github.com/matrix/go-matrix/man/wizard"
 	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/man/wizard"
 
+	"bufio"
+	"encoding/base64"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
@@ -35,8 +37,6 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"encoding/base64"
-	"bufio"
 )
 
 var (
@@ -809,9 +809,9 @@ func aesEncrypt(ctx *cli.Context) error {
 	}
 	//fmt.Println("您的密码是", entrustPassword)
 	//fmt.Println("您的文本内容是")
-//	for _,v:=range fileValue{
-//		fmt.Println("账户",v.Address.String(),"密码",v.Password)
-//	}
+	//	for _,v:=range fileValue{
+	//		fmt.Println("账户",v.Address.String(),"密码",v.Password)
+	//	}
 	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
 	if err != nil {
 		return errors.New("加密失败")
@@ -819,13 +819,12 @@ func aesEncrypt(ctx *cli.Context) error {
 	pass64 := base64.StdEncoding.EncodeToString(xpass)
 	//fmt.Println("加密后", pass64)
 
-	outPath:= ctx.GlobalString(utils.AesOutputFlag.Name)
+	outPath := ctx.GlobalString(utils.AesOutputFlag.Name)
 	//写入文件
 	err = ioutil.WriteFile(outPath, []byte(pass64), 0666)
-	if err==nil{
-		fmt.Println("成功写入到文件",outPath)
+	if err == nil {
+		fmt.Println("成功写入到文件", outPath)
 	}
-
 
 	return nil
 }
@@ -849,12 +848,12 @@ func ReadEncryptionPassword(FileData []EntrustInfo) (string, error) {
 			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
 			status, _, _ := reader.ReadLine()
 			if string(status) == "y" {
-				for _,v:=range FileData{
-					fmt.Println("账户",v.Address.String(),"密码",v.Password)
+				for _, v := range FileData {
+					fmt.Println("账户", v.Address.String(), "密码", v.Password)
 				}
-				fmt.Println("请确认你的初始文本的账户和密码","输入y继续，其他重新输入")
-				Isok,_,_:=reader.ReadLine()
-				if string(Isok)=="y"{
+				fmt.Println("请确认你的初始文本的账户和密码", "输入y继续，其他重新输入")
+				Isok, _, _ := reader.ReadLine()
+				if string(Isok) == "y" {
 					break
 				}
 			}
