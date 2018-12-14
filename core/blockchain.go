@@ -8,14 +8,15 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/slash"
 	"io"
 	"math/big"
 	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/slash"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -25,6 +26,7 @@ import (
 	"github.com/matrix/go-matrix/common/mclock"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -38,6 +40,9 @@ import (
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/txsreward"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
@@ -131,6 +136,11 @@ type BlockChain struct {
 	//lb ipfs
 	bBlockSendIpfs bool
 	qBlockQueue    *prque.Prque
+
+	//matrix state
+	matrixState *matrixstate.MatrixState
+	graphStore  *matrixstate.GraphStore
+	upTime      map[common.Address]uint64
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -163,13 +173,26 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:       engine,
 		vmConfig:     vmConfig,
 		badBlocks:    badBlocks,
+		upTime:       make(map[common.Address]uint64),
+		matrixState:  matrixstate.NewMatrixState(),
 	}
+	bc.graphStore = matrixstate.NewGraphStore(bc)
+
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
 
 	bc.dposEngine = mtxdpos.NewMtxDPOS()
 
 	var err error
+	err = bc.RegisterMatrixStateDataProducer(mc.MSKeyTopologyGraph, bc.graphStore.ProduceTopologyStateData)
+	if err != nil {
+		return nil, err
+	}
+	err = bc.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastInterval, ProduceBroadcastIntervalData)
+	if err != nil {
+		return nil, err
+	}
+
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.dposEngine, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
@@ -214,6 +237,8 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	} else {
 		log.ERROR("BlockChain", "订阅CA请求当前区块事件失败", err)
 	}
+
+	manparams.SetStateReader(bc)
 
 	// Take ownership of this particular state
 	go bc.update()
@@ -420,6 +445,14 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 	return state.New(root, bc.stateCache)
 }
 
+func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDB, error) {
+	block := bc.GetBlockByHash(hash)
+	if block == nil {
+		return nil, errors.New("can't find block by hash")
+	}
+	return bc.StateAt(block.Root())
+}
+
 // Reset purges the entire blockchain, restoring it to its genesis state.
 func (bc *BlockChain) Reset() error {
 	return bc.ResetWithGenesisBlock(bc.genesisBlock)
@@ -447,11 +480,6 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 	bc.currentFastBlock.Store(bc.genesisBlock)
-
-	//save topology
-	if err := bc.hc.topologyStore.WriteTopologyGraph(bc.genesisBlock.Header()); err != nil {
-		log.ERROR("block chain", "ResetWithGenesisBlock 缓存拓扑信息错误", err)
-	}
 
 	return nil
 }
@@ -511,7 +539,26 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // Note, this function assumes that the `mu` mutex is held!
 func (bc *BlockChain) insert(block *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
-	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
+	var updateHeads bool
+	if block.IsSuperBlock() {
+		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
+
+		if currentblock.NumberU64() > block.NumberU64() {
+			log.INFO("blockchain", "rewind to", block.NumberU64()-1)
+			bc.bodyCache.Purge()
+			bc.bodyRLPCache.Purge()
+			bc.blockCache.Purge()
+			bc.futureBlocks.Purge()
+			delFn := func(hash common.Hash, num uint64) {
+				rawdb.DeleteBody(bc.db, hash, num)
+			}
+			bc.hc.SetHead(block.NumberU64()-1, delFn)
+		}
+
+		updateHeads = true
+	} else {
+		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
+	}
 
 	// Add the block to the canonical chain number scheme and mark as the head
 	rawdb.WriteCanonicalHash(bc.db, block.Hash(), block.NumberU64())
@@ -526,7 +573,8 @@ func (bc *BlockChain) insert(block *types.Block) {
 
 		bc.currentFastBlock.Store(block)
 	}
-	if common.IsBroadcastNumber(block.NumberU64()) {
+	blockNumber := block.NumberU64()
+	if manparams.IsBroadcastNumber(blockNumber, blockNumber-1) && !block.Header().IsSuperHeader() {
 		SetBroadcastTxs(block, bc.chainConfig.ChainId)
 	}
 }
@@ -777,6 +825,9 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 
 // SetReceiptsData computes all the non-consensus fields of the receipts
 func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts types.Receipts) error {
+	if block.IsSuperBlock() {
+		return nil
+	}
 	signer := types.MakeSigner(config, block.Number())
 
 	transactions, logIndex := block.Transactions(), uint(0)
@@ -964,16 +1015,24 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
+	log.Info("miss tree node debug", "入链时", "commit前state状态")
+	state.MissTrieDebug()
+
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		return NonStatTy, err
+	}
+
+	if root != block.Root() {
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+		return NonStatTy, errors.New("root not match")
 	}
 
 	triedb := bc.stateCache.TrieDB()
 
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
-		log.Info("file blockchain","gcmode modify archive","")
+		log.Info("file blockchain", "gcmode modify archive", "")
 		if err := triedb.Commit(root, false); err != nil {
 			return NonStatTy, err
 		}
@@ -1029,25 +1088,30 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
-	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-	}
-	if reorg {
-		// Reorganise the chain if the parent is not the head block
-		if block.ParentHash() != currentBlock.Hash() {
-			if err := bc.reorg(currentBlock, block); err != nil {
-				return NonStatTy, err
-			}
-		}
-		// Write the positional metadata for transaction/receipt lookups and preimages
-		rawdb.WriteTxLookupEntries(batch, block)
-		rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
-
+	if block.IsSuperBlock() {
 		status = CanonStatTy
 	} else {
-		status = SideStatTy
+		if !reorg && externTd.Cmp(localTd) == 0 {
+			// Split same-difficulty blocks by number, then at random
+			reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+		}
+		if reorg {
+			// Reorganise the chain if the parent is not the head block
+			if block.ParentHash() != currentBlock.Hash() {
+				if err := bc.reorg(currentBlock, block); err != nil {
+					return NonStatTy, err
+				}
+			}
+			// Write the positional metadata for transaction/receipt lookups and preimages
+			rawdb.WriteTxLookupEntries(batch, block)
+			rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+
+			status = CanonStatTy
+		} else {
+			status = SideStatTy
+		}
 	}
+
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
@@ -1057,10 +1121,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 	}
 
-	//save topology
-	if err := bc.hc.topologyStore.WriteTopologyGraph(block.Header()); err != nil {
-		log.ERROR("block chain", "缓存拓扑信息错误", err)
-	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
 }
@@ -1077,13 +1137,30 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	return n, err
 }
 
-func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
+func (bc *BlockChain) InsertChainNotify(chain types.Blocks, notify bool) (int, error) {
+	n, events, logs, err := bc.insertChain(chain)
+	if notify {
+		bc.PostChainEvents(events, logs)
+	}
+	return n, err
+}
+func (bc *BlockChain) GetUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {
+	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
+	if err != nil {
+		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
+		return nil, err
+	}
+	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
+	if Ok == false {
+		log.ERROR("blockchain", "选举生成点信息失败 err", err)
+		return nil, err
+	}
 
 	log.INFO("blockchain", "获取所有参与uptime点名高度", num)
 
 	upTimeAccounts := make([]common.Address, 0)
 
-	minerNum := num - (num % common.GetBroadcastInterval()) - manparams.MinerTopologyGenerateUpTime
+	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
 	log.INFO("blockchain", "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
@@ -1095,7 +1172,7 @@ func (bc *BlockChain) GetUpTimeAccounts(num uint64) ([]common.Address, error) {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	validatorNum := num - (num % common.GetBroadcastInterval()) - manparams.VerifyTopologyGenerateUpTime
+	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
 	log.INFO("blockchain", "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {
@@ -1138,17 +1215,17 @@ func (bc *BlockChain) GetUpTimeData(hash common.Hash) (map[common.Address]uint32
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
 
-func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64) error {
+func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
-	blockNumRem := blockNum % common.GetBroadcastInterval()
+	blockNumRem := blockNum % bcInterval.GetBroadcastInterval()
 
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal := blockNum - blockNumRem
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal = subVal
-	if blockNum < common.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
+	if blockNum < bcInterval.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
 		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
 	} else {
 		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
@@ -1156,11 +1233,11 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	// todo: remove
 	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
 	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % ((common.GetBroadcastInterval()) - 1)
+	val := broadcastBlock.Uint64() % ((bcInterval.GetBroadcastInterval()) - 1)
 
 	for _, v := range accounts {
-		currentAcc := v.Big()
-		ret := currentAcc.Uint64() % (common.GetBroadcastInterval() - 1)
+		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
+		ret := currentAcc.Uint64() % (bcInterval.GetBroadcastInterval() - 1)
 		if ret == val {
 			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
 			if _, ok := heatBeatAccounts[v]; ok {
@@ -1174,7 +1251,7 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	}
 
 	var upTime uint64
-	originTopologyNum := blockNum - blockNum%common.GetBroadcastInterval() - 1
+	originTopologyNum := blockNum - blockNum%bcInterval.GetBroadcastInterval() - 1
 	log.Info("blockchain", "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
 	if err != nil {
@@ -1193,19 +1270,20 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 		} else { //没被点名，没有主动上报，则为最大值，
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
-					upTime = common.GetBroadcastInterval() - 3
+					upTime = bcInterval.GetBroadcastInterval() - 3
 					log.INFO("blockchain", "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.INFO("blockchain", "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
-				upTime = common.GetBroadcastInterval() - 3
+				upTime = bcInterval.GetBroadcastInterval() - 3
 				log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
 		}
 		// todo: add
+		bc.upTime[account] = upTime
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
 		read, err := depoistInfo.GetOnlineTime(state, account)
 		if nil == err {
@@ -1221,25 +1299,154 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	return nil
 }
 
+func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
+	broadcastInterval := bcInterval.GetBroadcastInterval()
+	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
+	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
+	if err != nil {
+		return err
+	}
+	originTopologyMap := make(map[common.Address]uint32, 0)
+	for _, v := range originTopology.NodeList {
+		originTopologyMap[v.Account] = 0
+	}
+	for _, account := range accounts {
+
+		upTime := broadcastInterval - 3
+		log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
+
+		// todo: add
+		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
+		read, err := depoistInfo.GetOnlineTime(state, account)
+		bc.upTime[account] = upTime
+		if nil == err {
+			log.INFO("blockchain", "读取状态树", account, "upTime减半", read)
+			if _, ok := originTopologyMap[account]; ok {
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO("blockchain", "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
+			}
+		}
+
+	}
+	return nil
+
+}
+
 func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
 	header := block.Header()
-	if common.IsBroadcastNumber(header.Number.Uint64()-1) && header.Number.Uint64() > common.GetBroadcastInterval() {
-		log.INFO("core", "区块插入验证", "完成创建work, 开始执行uptime")
-		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64())
+	if header.Number.Uint64() == 1 {
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
+		return nil
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
+	if nil != err {
+		return err
+	}
+
+	bcInterval, err := manparams.NewBCIntervalByHash(block.ParentHash())
+	if err != nil {
+		log.Error("blockchain", "获取广播周期失败", err)
+		return err
+	}
+
+	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
+		return nil
+	}
+	sbh, err := bc.GetSuperBlockNum()
+	if nil != err {
+		return errors.Errorf("get super seq error")
+	}
+	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
+		log.INFO("blockchain", "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
+		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64(), bcInterval)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
 			return err
 		}
-		calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
-		if err != nil {
-			log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+		if sbh < bcInterval.GetLastBroadcastNumber() &&
+			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
+			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
+		} else {
+			calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
+			if err != nil {
+				log.WARN("co"+
+					"re", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
+			}
+
+			err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
+			if nil != err {
+				log.ERROR("core", "处理uptime错误", err)
+				return err
+			}
 		}
 
-		err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64())
-		if nil != err {
-			log.ERROR("core", "处理uptime错误", err)
-			return err
+	}
+
+	return nil
+}
+
+type randSeed struct {
+	bc *BlockChain
+}
+
+func (r *randSeed) GetSeed(num uint64) *big.Int {
+	parent := r.bc.GetBlockByNumber(num - 1)
+	if parent == nil {
+		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
+		return big.NewInt(0)
+	}
+	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	seed := common.BytesToHash(preVrfValue).Big()
+	return seed
+}
+
+func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
+
+	num := header.Number.Uint64()
+	if bcInterval.IsBroadcastNumber(num) {
+		return nil
+	}
+	blkReward := blkreward.New(bc, state)
+	rewardList := make([]common.RewarTx, 0)
+	if nil != blkReward {
+		//todo: read half number from state
+		minersRewardMap := blkReward.CalcMinerRewards(num)
+		if nil != minersRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
+
+		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
+		if nil != validatorsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+		}
+	}
+
+	txsReward := txsreward.New(bc, state)
+	if nil != txsReward {
+		txsRewardMap := txsReward.CalcNodesRewards(big.NewInt(0), header.Leader, header.Number.Uint64())
+		if nil != txsRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+		}
+	}
+	lottery := lottery.New(bc, state, &randSeed{bc})
+	if nil != lottery {
+		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
+
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+
+	}
+	interestReward := interest.New(state)
+	if nil != interestReward {
+		interestReward.InterestCalc(state, num)
+	}
+
+	//todo 惩罚
+
+	slash := slash.New(bc, state)
+	if nil != slash {
+		slash.CalcSlash(state, num, bc.upTime)
 	}
 
 	return nil
@@ -1276,25 +1483,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		lastCanon     *types.Block
 		coalescedLogs []*types.Log
 	)
-	// Start the parallel header verifier
-	headers := make([]*types.Header, len(chain))
-	seals := make([]bool, len(chain))
-
-	for i, block := range chain {
-		headers[i] = block.Header()
-		if common.IsBroadcastNumber(block.NumberU64()) || block.IsSuperBlock() {
-			seals[i] = false
-		} else {
-			seals[i] = true
-		}
-	}
-	err := bc.dposEngine.VerifyBlocks(bc, headers)
-	if err != nil {
-		log.Error("block chain", "insertChain DPOS共识错误", err)
-		return 0, nil, nil, fmt.Errorf("insert block dpos error")
-	}
-	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
-	defer close(abort)
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
@@ -1311,7 +1499,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		// Wait for the block's verification to complete
 		bstart := time.Now()
 
-		err := <-results
+		header := block.Header()
+		seal := true
+		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
+			seal = false
+		}
+		err := bc.engine.VerifyHeader(bc, header, seal)
 		if err == nil {
 			err = bc.Validator().ValidateBody(block)
 		}
@@ -1377,6 +1570,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
+
+		// verify pos
+		err = bc.dposEngine.VerifyBlock(bc, header)
+		if err != nil {
+			log.Error("block chain", "insertChain DPOS共识错误", err)
+			return 0, nil, nil, fmt.Errorf("insert block dpos error")
+		}
+
 		// Create a new statedb using the parent block and report an
 		// error if it fails.
 		var parent *types.Block
@@ -1385,17 +1586,24 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			parent = chain[i-1]
 		}
+		// Process block using the parent state as reference point.
 		state, err := state.New(parent.Root(), bc.stateCache)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		// Process block using the parent state as reference point.
 		var (
 			receipts types.Receipts = nil
 			logs                    = make([]*types.Log, 0)
 			usedGas  uint64         = 0
 		)
 		if block.IsSuperBlock() {
+			sbs, err := bc.GetSuperBlockSeq()
+			if nil != err {
+				return i, events, coalescedLogs, errors.Errorf("get super seq error")
+			}
+			if block.Header().SuperBlockSeq() <= sbs {
+				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)", block.Header().SuperBlockSeq(), sbs)
+			}
 			err = bc.processSuperBlockState(block, state)
 			if err != nil {
 				bc.reportBlock(block, receipts, err)
@@ -1406,19 +1614,29 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			if root != block.Root() {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
 			}
-
 		} else {
+			bcInterval, err := bc.getBCIntervalByState(state)
+			if err != nil {
+				return i, events, coalescedLogs, errors.Errorf("get broadcast interval err", err)
+			}
+
+			// Process matrix state
+			err = bc.matrixState.ProcessMatrixState(block, state)
+			if err != nil {
+				return i, events, coalescedLogs, err
+			}
+
 			err = bc.ProcessUpTime(state, block)
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		interestReward:=interest.New(bc)
-		interestReward.InterestCalc(state,block.Number().Uint64())
-		//todo 惩罚
 
-		slash := slash.New(bc)
-		slash.CalcSlash(state, block.Number().Uint64())
+			err = bc.ProcessReward(state, block.Header(), bcInterval)
+			if err != nil {
+				bc.reportBlock(block, nil, err)
+				return i, events, coalescedLogs, err
+			}
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {
@@ -1442,7 +1660,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		switch status {
 		case CanonStatTy:
-			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+			log.Debug(" Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
 				"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
 
 			coalescedLogs = append(coalescedLogs, logs...)
@@ -1664,8 +1882,14 @@ var viSendHeartTx bool = false         //是否验证过发送心跳交易，每
 var saveBroacCastblockHash common.Hash //YY 广播区块的hash  默认值应该为创世区块的hash
 func (bc *BlockChain) sendBroadTx() {
 	block := bc.CurrentBlock()
+	bcInterval, err := bc.GetBroadcastInterval(block.Hash())
+	if err != nil {
+		log.ERROR("sendBroadTx", "获取广播周期失败", err)
+		return
+	}
+
 	blockNum := block.Number()
-	blockNumRem := new(big.Int).Rem(block.Number(), big.NewInt(int64(common.GetBroadcastInterval())))
+	blockNumRem := new(big.Int).Rem(block.Number(), big.NewInt(int64(bcInterval.BCInterval)))
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
 	subVal := new(big.Int).Sub(blockNum, blockNumRem)
 	//没验证过心跳交易
@@ -1673,18 +1897,18 @@ func (bc *BlockChain) sendBroadTx() {
 		viSendHeartTx = true
 		//广播区块的hash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
 		if len(saveBroacCastblockHash) <= 0 { //如果长度为0说明是第一次执行
-			if blockNum.Cmp(big.NewInt(int64(common.GetBroadcastInterval()))) < 0 { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
+			if blockNum.Cmp(big.NewInt(int64(bcInterval.BCInterval))) < 0 { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
 				saveBroacCastblockHash = bc.GetBlockByNumber(1).Hash() //创世区块的hash
 			} else {
 				saveBroacCastblockHash = bc.GetBlockByNumber(subVal.Uint64()).Hash() //获取最近的广播区块的hash
 			}
 		}
-		currentAcc := ca.GetAddress().Big()  //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
-		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(common.GetBroadcastInterval())-1))
+		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := saveBroacCastblockHash.Big()
-		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(common.GetBroadcastInterval())-1))
+		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
 		if ret.Cmp(val) == 0 {
-			height := new(big.Int).Add(subVal, big.NewInt(int64(common.GetBroadcastInterval()))) //下一广播区块的高度
+			height := new(big.Int).Add(subVal, big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
 			data := new([]byte)
 			mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{mc.Heartbeat, height, *data})
 			log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
@@ -1896,27 +2120,11 @@ func (bc *BlockChain) SetDposEngine(dposEngine consensus.DPOSEngine) {
 }
 
 func (bc *BlockChain) GetHashByNumber(number uint64) common.Hash {
-	return bc.hc.GetHashByNumber(number)
-}
-
-func (bc *BlockChain) GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error) {
-	return bc.hc.GetTopologyGraphByHash(blockHash)
-}
-
-func (bc *BlockChain) GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return bc.hc.GetOriginalElectByHash(blockHash)
-}
-
-func (bc *BlockChain) GetNextElectByHash(blockHash common.Hash) ([]common.Elect, error) {
-	return bc.hc.GetNextElectByHash(blockHash)
-}
-
-func (bc *BlockChain) NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error) {
-	return bc.hc.NewTopologyGraph(header)
-}
-
-func (bc *BlockChain) TopologyStore() *TopologyStore {
-	return bc.hc.topologyStore
+	block := bc.GetBlockByNumber(number)
+	if block == nil {
+		return common.Hash{}
+	}
+	return block.Hash()
 }
 
 func (bc *BlockChain) GetCurrentHash() common.Hash {
@@ -1927,15 +2135,169 @@ func (bc *BlockChain) GetCurrentHash() common.Hash {
 	return block.Hash()
 }
 
-func (bc *BlockChain) GetValidatorByHash(hash common.Hash) (*mc.TopologyGraph, error) {
-	return bc.hc.GetValidatorByHash(hash)
+func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+	topologyGraph, err := bc.graphStore.GetTopologyGraphByHash(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	electGraph, err := bc.graphStore.GetElectGraphByHash(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	return topologyGraph, electGraph, nil
+}
+
+func (bc *BlockChain) GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+	if err != nil {
+		return nil, nil, err
+	}
+	electGraph, err := matrixstate.GetDataByState(mc.MSKeyElectGraph, state)
+	if err != nil {
+		return nil, nil, err
+	}
+	return topologyGraph.(*mc.TopologyGraph), electGraph.(*mc.ElectGraph), nil
+}
+
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
+	return bc.matrixState.ProcessMatrixState(block, state)
+}
+
+func (bc *BlockChain) GetGraphStore() *matrixstate.GraphStore {
+	return bc.graphStore
+}
+
+func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer matrixstate.ProduceMatrixStateDataFn) error {
+	return bc.matrixState.RegisterProducer(key, producer)
 }
 
 func (bc *BlockChain) GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error) {
 	return bc.hc.GetAncestorHash(sonHash, ancestorNumber)
 }
 
-func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, error) {
+func (bc *BlockChain) GetMatrixStateData(key string) (interface{}, error) {
+	state, err := bc.State()
+	if err != nil {
+		return nil, errors.Errorf("get cur state err(%v)", err)
+	}
+	if state == nil {
+		return nil, errors.New("cur state is nil")
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error) {
+	header := bc.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by hash(%s)", hash.Hex())
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error) {
+	header := bc.GetHeaderByNumber(number)
+	if header == nil {
+		return nil, errors.Errorf("can't find block by number(%d)", number)
+	}
+	state, err := bc.StateAt(header.Root)
+	if err != nil {
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+	}
+	if state == nil {
+		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+	}
+	return matrixstate.GetDataByState(key, state)
+}
+
+func (bc *BlockChain) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false || accounts == nil {
+		return nil, errors.New("反射结构体MatrixSpecialAccounts失败")
+	}
+
+	return accounts, nil
+}
+
+func (bc *BlockChain) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyBroadcastInterval, blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	interval, OK := data.(*mc.BCIntervalInfo)
+	if OK == false {
+		return nil, errors.New("反射广播周期失败")
+	}
+	log.INFO("blockChain", "广播周期", interval.BCInterval, "上个广播高度", interval.LastBCNumber)
+	return interval, nil
+}
+
+func (bc *BlockChain) GetSuperBlockSeq() (uint64, error) {
+
+	data, err := bc.GetMatrixStateData(mc.MSKeySuperBlockCfg)
+	if err != nil {
+		return 0, err
+	}
+
+	superBlkCfg, OK := data.(*mc.SuperBlkCfg)
+	if OK == false {
+		return 0, errors.New("反射广播周期失败")
+	}
+	log.INFO("blockChain", "超级区块序号", superBlkCfg.Seq)
+
+	return superBlkCfg.Seq, nil
+}
+
+func (bc *BlockChain) GetSuperBlockNum() (uint64, error) {
+	data, err := bc.GetMatrixStateData(mc.MSKeySuperBlockCfg)
+	if err != nil {
+		return 0, err
+	}
+
+	superBlkCfg, OK := data.(*mc.SuperBlkCfg)
+	if OK == false {
+		return 0, errors.New("反射广播周期失败")
+	}
+	log.INFO("blockChain", "超级区块高度", superBlkCfg.Num)
+
+	return superBlkCfg.Num, nil
+}
+
+func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
+	data, err := bc.GetMatrixStateData(mc.MSKeySuperBlockCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	superBlkCfg, OK := data.(*mc.SuperBlkCfg)
+	if OK == false {
+		return nil, errors.New("反射广播周期失败")
+	}
+	log.INFO("blockChain", "超级区块高度", superBlkCfg.Num)
+
+	return superBlkCfg, nil
+}
+func (bc *BlockChain) getBCIntervalByState(st *state.StateDB) (*manparams.BCInterval, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
+}
+
+func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*types.Block, error) {
 	if nil == superBlockGen {
 		return nil, errors.New("super block is nil")
 	}
@@ -1964,17 +2326,34 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis) (*types.Block, er
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
 	}
+	sbh, err := bc.GetSuperBlockNum()
+	if nil != err {
+		return nil, errors.Errorf("get super seq error")
+	}
+	superBlock := bc.GetBlockByNumber(sbh)
+	if nil != superBlock {
+		if block.Hash() == superBlock.Hash() {
+			log.WARN("blockchain", "has the same super block", "")
+			return block, nil
+		}
+	}
+	sbs, err := bc.GetSuperBlockSeq()
+	if nil != err {
+		return nil, errors.Errorf("get super seq error")
+	}
+	if block.Header().SuperBlockSeq() <= sbs {
+		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) < genesis block(%v)", sbs, block.Header().SuperBlockSeq())
+	}
 
 	if err := bc.DPOSEngine().VerifyBlock(bc, block.Header()); err != nil {
 		return nil, errors.Errorf("verify super block err(%v)", err)
 	}
-
 	//todo 应该在InsertChain时确定权威链，从而进行回滚
-	if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
-		return nil, errors.Errorf("rollback chain err(%v)", err)
-	}
+	//if err := bc.SetHead(superBlockGen.Number - 1); err != nil {
+	//	return nil, errors.Errorf("rollback chain err(%v)", err)
+	//}
 
-	if _, err := bc.InsertChain(types.Blocks{block}); err != nil {
+	if _, err := bc.InsertChainNotify(types.Blocks{block}, notify); err != nil {
 		return nil, errors.Errorf("insert super block err(%v)", err)
 	}
 
@@ -1991,7 +2370,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	txs := block.Transactions()
-	if len(txs) != 1 {
+	if len(txs) == 0 || len(txs) > 2 {
 		return errors.Errorf("super block's txs count(%d) err", len(txs))
 	}
 
@@ -2016,5 +2395,147 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			stateDB.SetState(addr, key, value)
 		}
 	}
+	mState := new(GenesisMState)
+	if 2 == len(txs) {
+		tx1 := txs[1]
+
+		if err := json.Unmarshal(tx1.Data(), mState); err != nil {
+			return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
+		}
+		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, block.Header().Number.Uint64())
+
+	}
+	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
+		log.Error("genesis", "设置matrix状态树错误", err)
+		return errors.Errorf("设置超级区块状态树错误", err)
+	}
 	return nil
+}
+
+func ProduceBroadcastIntervalData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+	bciData, err := readFn(mc.MSKeyBroadcastInterval)
+	if err != nil {
+		log.Error("ProduceBroadcastIntervalData", "read pre broadcast interval err", err)
+		return nil, err
+	}
+
+	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
+	if err != nil {
+		return nil, err
+	}
+
+	modify := false
+	number := block.NumberU64()
+	backupEnableNumber := bcInterval.GetBackupEnableNumber()
+	if number == backupEnableNumber {
+		// 备选生效时间点
+		if bcInterval.IsReElectionNumber(number) == false || bcInterval.IsBroadcastNumber(number) == false {
+			// 生效时间点不是原周期的选举点，数据错误
+			log.Crit("ProduceBroadcastIntervalData", "backup enable number illegal", backupEnableNumber,
+				"old interval", bcInterval.GetBroadcastInterval(), "last broadcast number", bcInterval.GetLastBroadcastNumber(), "last reelect number", bcInterval.GetLastReElectionNumber())
+		}
+
+		oldInterval := bcInterval.GetBroadcastInterval()
+
+		// 设置最后的广播区块和选举区块
+		bcInterval.SetLastBCNumber(backupEnableNumber)
+		bcInterval.SetLastReelectNumber(backupEnableNumber)
+		// 启动备选周期
+		bcInterval.UsingBackupInterval()
+		log.INFO("ProduceBroadcastIntervalData", "old interval", oldInterval, "new interval", bcInterval.GetBroadcastInterval())
+		modify = true
+	} else {
+		if bcInterval.IsBroadcastNumber(number) {
+			bcInterval.SetLastBCNumber(number)
+			modify = true
+		}
+
+		if bcInterval.IsReElectionNumber(number) {
+			bcInterval.SetLastReelectNumber(number)
+			modify = true
+		}
+	}
+
+	if modify {
+		data := bcInterval.ToInfoStu()
+		log.INFO("ProduceBroadcastIntervalData", "生成广播区块内容", "成功", "block number", number, "data", data)
+		return data, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+	if common.TopAccountType == common.TopAccountA0 {
+		//TODO 暂定根据ca提供的接口获取委托账户，
+	}
+
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "根据区块hash获取区块失败 hash", blockHash)
+		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "根据区块root获取statedb失败 err", err)
+		return common.Address{}, "", errors.New("获取stateDB失败")
+	}
+
+	height := block.NumberU64()
+
+	ans := []common.Address{}
+	ans = st.GetEntrustFrom(authFrom, height)
+	log.ERROR(common.SignLog, "结束调用", "", "authFrom", authFrom, "ans", ans)
+	if len(ans) == 0 {
+		ans = append(ans, authFrom)
+	} else {
+		aa := st.GetAuthFrom(ans[0], height)
+		log.INFO(common.SignLog, "检查反射结果", aa.String())
+	}
+
+	for _, v := range ans {
+		for kk, vv := range manparams.EntrustValue {
+			if v.Equal(kk) == false {
+				continue
+			}
+			if _, ok := manparams.EntrustValue[kk]; ok {
+				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				return kk, manparams.EntrustValue[kk], nil
+			}
+			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
+			return kk, vv, errors.New("无该密码")
+
+		}
+	}
+	log.ERROR(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	return common.Address{}, "", errors.New("ans为空")
+}
+
+//TransSignAccontToDeposit(signAccount common.Address, height uint64) (common.Address, error) {
+func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "根据区块hash算区块失败", "err")
+		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "根据区块root获取状态树失败 err", err)
+		return common.Address{}, errors.New("获取stateDB失败")
+	}
+
+	height := block.NumberU64()
+	addr := st.GetAuthFrom(signAccount, height)
+	if addr.Equal(common.Address{}) {
+		log.WARN(common.SignLog, "解签阶段 无委托 高度", height, "签名账户", signAccount, "真实账户", signAccount)
+		//return signAccount, nil
+		addr = signAccount
+	} else {
+		log.WARN(common.SignLog, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
+	}
+	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
+	if common.TopAccountType == common.TopAccountA0 {
+		//TODO 利用CA接口将A1转换为A0
+	}
+	return addr, nil
 }

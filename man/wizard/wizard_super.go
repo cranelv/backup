@@ -18,14 +18,17 @@ package wizard
 
 import (
 	"bufio"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/params/manparams"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"time"
+
+	"github.com/matrix/go-matrix/base58"
+
+	"github.com/matrix/go-matrix/mandb"
 
 	"github.com/matrix/go-matrix/core/types"
 
@@ -64,38 +67,64 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		log.Error("get parent header err!")
 		return
 	}
-
-	genesis := &core.Genesis{
+	genesis := &core.Genesis1{
 		ParentHash:        parentHeader.Hash(),
-		Leader:            common.HexToAddress("0x8111111111111111111111111111111111111111"),
+		Leader:            base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
 		Mixhash:           parentHeader.MixDigest,
-		Coinbase:          manparams.InnerMinerNodes[0].Address,
+		Coinbase:          base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
 		Signatures:        make([]common.Signature, 0),
 		Timestamp:         uint64(time.Now().Unix()),
 		GasLimit:          parentHeader.GasLimit,
 		Difficulty:        parentHeader.Difficulty,
-		Alloc:             make(core.GenesisAlloc),
-		ExtraData:         make([]byte, 0),
+		Alloc:             make(core.GenesisAlloc1),
+		ExtraData:         make([]byte, 8),
 		Version:           string(parentHeader.Version),
 		VersionSignatures: parentHeader.VersionSignatures,
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
+		VrfValue:          parentHeader.VrfValue,
 	}
 
+	sbs, err := bc.GetSuperBlockSeq()
+	if nil != err {
+		log.Error("Failed get SuperBlockSeq", "err", err)
+		return
+	}
+	sbs = sbs + 1
+	binary.BigEndian.PutUint64(genesis.ExtraData, sbs)
+	fmt.Println("超级区块序号", sbs)
 	if curHeader != nil {
-		genesis.Elect = curHeader.Elect
-		genesis.NetTopology = curHeader.NetTopology
+		sliceElect := make([]common.Elect1, 0)
+		for _, elec := range curHeader.Elect {
+			tmp := new(common.Elect1)
+			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
+			tmp.Stock = elec.Stock
+			tmp.Type = elec.Type
+			sliceElect = append(sliceElect, *tmp)
+		}
+		genesis.Elect = sliceElect
+		//NetTopology
+		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
+		for _, netTopology := range curHeader.NetTopology.NetTopologyData {
+			tmp := new(common.NetTopologyData1)
+			tmp.Account = base58.Base58EncodeToString("MAN", netTopology.Account)
+			tmp.Position = netTopology.Position
+			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
+		}
+		genesis.NetTopology.NetTopologyData = sliceNetTopologyData
+		genesis.NetTopology.Type = curHeader.NetTopology.Type
+
 	} else {
-		genesis.Elect = make([]common.Elect, 0)
-		genesis.NetTopology = common.NetTopology{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData, 0)}
+		genesis.Elect = make([]common.Elect1, 0)
+		genesis.NetTopology = common.NetTopology1{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData1, 0)}
 	}
 
 	// Figure out which consensus engine to choose
-	genesis.Alloc[common.BlkMinerRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[common.BlkValidatorRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[common.TxGasRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[common.LotteryRewardAddress] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkMinerRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkValidatorRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.TxGasRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
+	genesis.Alloc[base58.Base58EncodeToString("MAN", common.LotteryRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	// All done, store the genesis and flush to disk
 	log.Info("Configured new genesis block")
 

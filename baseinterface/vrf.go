@@ -24,6 +24,6 @@ func NewVrf() VrfInterface {
 }
 
 func RegVrf(name string, value func() VrfInterface) {
-//	fmt.Println("Vrf插件 注册函数", "name", name)
+	//	fmt.Println("Vrf插件 注册函数", "name", name)
 	mapVrf[name] = value
 }

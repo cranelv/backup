@@ -1,15 +1,14 @@
 package types
 
 import (
-	"math/big"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
+	"math/big"
 )
-
 
 const (
 	NormalTxIndex    byte = iota // NormalPool save normal transaction
-	BroadCastTxIndex                   // BroadcastPool save broadcast transaction
+	BroadCastTxIndex             // BroadcastPool save broadcast transaction
 
 )
 
@@ -23,7 +22,7 @@ type SelfTransaction interface {
 	CheckNonce() bool
 	GetMatrix_EX() []Matrix_Extra
 	From() common.Address
-	GetTxFrom() (common.Address,error)
+	GetTxFrom() (common.Address, error)
 	SetNonce(nc uint64)
 	GetTxS() *big.Int
 	GetTxR() *big.Int
@@ -38,11 +37,11 @@ type SelfTransaction interface {
 	SetFromLoad(x interface{})
 	ChainId() *big.Int
 	WithSignature(signer Signer, sig []byte) (SelfTransaction, error)
-	GetTxNLen()int
+	GetTxNLen() int
 	GetTxN(index int) uint32
 	RawSignatureValues() (*big.Int, *big.Int, *big.Int)
 	//Protected() bool
-	GetConstructorType()uint16
+	GetConstructorType() uint16
 	GasFrom() common.Address
 	AmontFrom() common.Address
 	GetMatrixType() byte
@@ -56,32 +55,32 @@ type SelfTransaction interface {
 	GetIsEntrustByTime() bool
 }
 
-func SetTransactionToMx(txer SelfTransaction)(txm *Transaction_Mx){
-	if txer.TxType() == BroadCastTxIndex{
+func SetTransactionToMx(txer SelfTransaction) (txm *Transaction_Mx) {
+	if txer.TxType() == BroadCastTxIndex {
 		txm = GetTransactionMx(txer)
-	}else if txer.TxType() == NormalTxIndex{
+	} else if txer.TxType() == NormalTxIndex {
 		txm = ConvTxtoMxtx(txer)
 	}
 	return
 }
-func SetMxToTransaction(txm *Transaction_Mx)(txer SelfTransaction){
+func SetMxToTransaction(txm *Transaction_Mx) (txer SelfTransaction) {
 	txer = nil
-	if txm.TxType_Mx == common.ExtraNormalTxType{
+	if txm.TxType_Mx == common.ExtraNormalTxType {
 		tx := ConvMxtotx(txm)
-		if tx != nil{
+		if tx != nil {
 			txer = tx
-		}else {
-			log.Info("file transactionInterface","func SetMxToTransaction1","tx is nil","Transaction_Mx",txm)
+		} else {
+			log.Info("file transactionInterface", "func SetMxToTransaction1", "tx is nil", "Transaction_Mx", txm)
 		}
 	} else if txm.TxType_Mx == common.ExtraBroadTxType {
 		tx := SetTransactionMx(txm)
-		if tx != nil{
+		if tx != nil {
 			txer = tx
-		}else {
-			log.Info("file transactionInterface","func SetMxToTransaction2","tx is nil","Transaction_Mx",txm)
+		} else {
+			log.Info("file transactionInterface", "func SetMxToTransaction2", "tx is nil", "Transaction_Mx", txm)
 		}
-	}else{
-		log.Info("file transactionInterface","func SetMxToTransaction","Transaction_Mx is nil",txm)
+	} else {
+		log.Info("file transactionInterface", "func SetMxToTransaction", "Transaction_Mx is nil", txm)
 	}
 	return
 }

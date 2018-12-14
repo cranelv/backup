@@ -44,12 +44,17 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 	}
 }
 
-func (pm *ProcessManage) SetCurNumber(number uint64) {
+func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
-	pm.fixProcessMap()
+	if preSuperBlock {
+		pm.clearProcessMap()
+	} else {
+		pm.fixProcessMap()
+	}
+
 }
 
 func (pm *ProcessManage) GetCurrentProcess() *Process {
@@ -102,6 +107,30 @@ func (pm *ProcessManage) fixProcessMap() {
 	}
 
 	log.INFO(pm.logExtraInfo(), "PM 结束修正map, process数量", len(pm.processMap))
+}
+
+func (pm *ProcessManage) clearProcessMap() {
+	if pm.curNumber == 0 {
+		return
+	}
+
+	if len(pm.processMap) == 0 {
+		return
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 开始删除map, process数量", len(pm.processMap), "修复高度", pm.curNumber)
+
+	delKeys := make([]uint64, 0)
+	for key, process := range pm.processMap {
+		process.Close()
+		delKeys = append(delKeys, key)
+	}
+
+	for _, delKey := range delKeys {
+		delete(pm.processMap, delKey)
+	}
+
+	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
 }
 
 func (pm *ProcessManage) AddVoteToPool(signHash common.Hash, sign common.Signature, fromAccount common.Address, height uint64) error {

@@ -115,13 +115,13 @@ func (self *Random) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 func getSubServicePlug(name string) (string, bool) {
 	plug, ok := manparams.RandomConfig[name]
 	if ok == false {
-		log.ERROR(ModuleRandom, "获取插件状态", "", "配置中无该名字", manparams.RandomConfig[name])
+		log.WARN(ModuleRandom, "获取插件状态", "", "配置中无该名字", manparams.RandomConfig[name])
 		return "", false
 	}
 	//检查配置中的插件正确性
 	plugs, ok := manparams.RandomServicePlugs[name]
 	if ok == false {
-	//	fmt.Println("无该自服务名", name)
+		//	fmt.Println("无该自服务名", name)
 		log.ERROR(ModuleRandom, "获取插件阶段", "", "无该子服务 服务名称", name)
 		return "", false
 	}

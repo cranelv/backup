@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package man
 
@@ -27,12 +26,12 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 
+	"github.com/matrix/go-matrix/man/wizard"
 	"github.com/matrix/go-matrix/miner"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
 	"github.com/matrix/go-matrix/trie"
-	"github.com/matrix/go-matrix/man/wizard"
 )
 
 // PublicMatrixAPI provides an API to access Matrix full node-related
@@ -285,7 +284,7 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 		w := wizard.MakeWizard("MANSuperGenesis")
 
 		hash := api.e.BlockChain().GetCurrentHash()
-		currentNum:=api.e.BlockChain().GetBlockByHash(hash).Number().Uint64()
+		currentNum := api.e.BlockChain().GetBlockByHash(hash).Number().Uint64()
 		if num > currentNum+1 {
 			log.Error("num is error", "current num:", currentNum)
 
@@ -310,7 +309,6 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 		//log.INFO("successfully local", "data", mc.BlockData{Header: testHeader, Txs: &types.Transactions{}})
 	}
 }
-
 
 // SetExtra sets the extra data string that is included when this miner mines a block.
 func (api *PrivateMinerAPI) SetExtra(extra string) (bool, error) {
@@ -491,11 +489,11 @@ func (api *PrivateDebugAPI) Preimage(ctx context.Context, hash common.Hash) (hex
 func (api *PrivateDebugAPI) GetBadBlocks(ctx context.Context) ([]core.BadBlockArgs, error) {
 	return api.man.BlockChain().BadBlocks()
 }
-func (api *PrivateDebugAPI)GetCommit(ctx context.Context)([]common.CommitContext,error){
+func (api *PrivateDebugAPI) GetCommit(ctx context.Context) ([]common.CommitContext, error) {
 	/*for _,v:=range common.PutCommit{
 		fmt.Println(v)
 	}*/
-	return common.PutCommit,nil
+	return common.PutCommit, nil
 }
 
 // StorageRangeResult is the result of a debug_storageRangeAt API call.

@@ -359,7 +359,7 @@ type VerifiedSign struct {
 
 type VerifiedSign1 struct {
 	Sign     Signature `json:"sign"`
-	Account  string   `json:"account"`
+	Account  string    `json:"account"`
 	Validate bool      `json:"validate"`
 	Stock    uint16    `json:"stock"`
 }
@@ -377,16 +377,19 @@ type Elect1 struct {
 	Stock   uint16
 	Type    ElectRoleType
 }
+
 //hezi
 type NetTopology1 struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData1
 }
+
 //hezi
 type NetTopologyData1 struct {
 	Account  string
 	Position uint16
 }
+
 const (
 	PosOffline uint16 = 0xF000
 	PosOnline  uint16 = 0xF001
@@ -407,9 +410,9 @@ type NetTopology struct {
 	NetTopologyData []NetTopologyData
 }
 type RewarTx struct {
-	CoinType      string
-	Fromaddr      Address
-	To_Amont      map[Address]*big.Int
+	CoinType  string
+	Fromaddr  Address
+	To_Amont  map[Address]*big.Int
 	RewardTyp byte
 }
 
@@ -419,40 +422,42 @@ const (
 )
 
 var (
-    BlkMinerRewardAddress       Address = HexToAddress("0x8000000000000000000000000000000000000000")   //区块奖励
-    BlkValidatorRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000001")   //leader奖励
-	TxGasRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000002")   //交易费
-	LotteryRewardAddress   Address = HexToAddress("0x8000000000000000000000000000000000000003")   //彩票
+	BlkMinerRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000000") //区块奖励
+	BlkValidatorRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000001") //leader奖励
+	TxGasRewardAddress        Address = HexToAddress("0x8000000000000000000000000000000000000002") //交易费
+	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000003") //彩票
 	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000004") //利息
 	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 )
 
 const (
-	ExtraNormalTxType    byte = 0  //普通交易
-	ExtraBroadTxType     byte = 1  //广播交易(内部交易，钱包无用)
-	ExtraUnGasTxType     byte = 2  //无gas的奖励交易(内部交易，钱包无用)
-	ExtraRevocable       byte = 3  //可撤销的交易
-	ExtraRevertTxType    byte = 4  //撤销交易
-	ExtraAuthTx          byte = 5 //授权委托
-	ExtraCancelEntrust   byte = 6 //取消委托
-	ExtraTimeTxType      byte = 7  //定时交易
-	ExtraAItxType        byte = 8 //AI 交易
-	ExtraSuperBlockTx    byte = 120 //超级区块交易
+	ExtraNormalTxType  byte = 0   //普通交易
+	ExtraBroadTxType   byte = 1   //广播交易(内部交易，钱包无用)
+	ExtraUnGasTxType   byte = 2   //无gas的奖励交易(内部交易，钱包无用)
+	ExtraRevocable     byte = 3   //可撤销的交易
+	ExtraRevertTxType  byte = 4   //撤销交易
+	ExtraAuthTx        byte = 5   //授权委托
+	ExtraCancelEntrust byte = 6   //取消委托
+	ExtraTimeTxType    byte = 7   //定时交易
+	ExtraAItxType      byte = 8   //AI 交易
+	ExtraSuperBlockTx  byte = 120 //超级区块交易
 
 )
-var WhiteAddrlist  = [1]Address{TxGasRewardAddress}
+
+var WhiteAddrlist = [1]Address{TxGasRewardAddress}
 
 const (
-	RewardNomalType byte = 0 //奖励通过普通交易发放
-	RewardInerestType  byte = 1 //利息奖励通过合约交易发放
+	RewardNomalType   byte = 0 //奖励通过普通交易发放
+	RewardInerestType byte = 1 //利息奖励通过合约交易发放
 )
+
 type TxTypeInt uint8
 type RetCallTxN struct {
-	TXt byte
+	TXt   byte
 	ListN []uint32
 }
 type AddrAmont struct {
-	Addr Address
+	Addr  Address
 	Amont *big.Int
 }
 
@@ -466,17 +471,17 @@ type RecorbleTx struct {
 //地址为matrix地址
 type EntrustType struct {
 	//委托地址
-	EntrustAddres string	//被委托人from
+	EntrustAddres string //被委托人from
 	//委托权限
-	IsEntrustGas    bool	//委托gas
-	IsEntrustSign   bool	//委托签名
-	EnstrustSetType byte    //0-按高度委托,1-按时间委托
+	IsEntrustGas    bool //委托gas
+	IsEntrustSign   bool //委托签名
+	EnstrustSetType byte //0-按高度委托,1-按时间委托
 
 	//委托限制
-	StartHeight     uint64   //委托起始高度
-	EndHeight       uint64   //委托结束高度
-	StartTime       uint64
-	EndTime         uint64
+	StartHeight uint64 //委托起始高度
+	EndHeight   uint64 //委托结束高度
+	StartTime   uint64
+	EndTime     uint64
 }
 
 //地址为0x地址
@@ -498,13 +503,12 @@ type EntrustType struct {
 //}
 
 type AuthType struct {
-	AuthAddres Address	//授权人from
+	AuthAddres      Address //授权人from
 	EnstrustSetType byte    //0-按高度委托,1-按时间委托
-	IsEntrustGas    bool	//委托gas
-	IsEntrustSign   bool	//委托签名
-	StartHeight     uint64   //委托起始高度
-	EndHeight       uint64   //委托结束高度
+	IsEntrustGas    bool    //委托gas
+	IsEntrustSign   bool    //委托签名
+	StartHeight     uint64  //委托起始高度
+	EndHeight       uint64  //委托结束高度
 	StartTime       uint64
 	EndTime         uint64
 }
-

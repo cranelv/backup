@@ -52,6 +52,7 @@ import (
 	"sync"
 
 	"github.com/matrix/go-matrix/baseinterface"
+	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/trie"
@@ -111,7 +112,7 @@ type Matrix struct {
 	reelection   *reelection.ReElection //换届服务
 	random       *baseinterface.Random
 	olConsensus  *olconsensus.TopNodeService
-	blockgen     *blkgenor.BlockGenor
+	blockGen     *blkgenor.BlockGenor
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
 
@@ -203,7 +204,9 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.bloomIndexer.Start(man.blockchain)
 
-	ca.SetTopologyReader(man.blockchain.TopologyStore())
+	man.signHelper.SetAuthReader(man.blockchain)
+
+	ca.SetTopologyReader(man.blockchain.GetGraphStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
@@ -227,11 +230,18 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	dbDir := ctx.GetConfig().DataDir
-	man.reelection, err = reelection.New(man.blockchain, dbDir, man.random)
+	man.reelection, err = reelection.New(man.blockchain, man.random)
 	if err != nil {
 		return nil, err
 	}
+
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner, man.reelection.ProducePreMinerData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, man.txPool.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
@@ -247,6 +257,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
 	man.olConsensus.SetValidatorReader(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain)
 	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
 	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
 	man.olConsensus.SetMessageSendInterface(topNodeInstance)
@@ -256,7 +267,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.blockgen, err = blkgenor.New(man)
+	man.blockGen, err = blkgenor.New(man)
 	if err != nil {
 		return nil, err
 	}
@@ -535,6 +546,8 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Matrix protocol.
 func (s *Matrix) Stop() error {
+	s.blockGen.Close()
+	s.blockVerify.Close()
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.protocolManager.Stop()

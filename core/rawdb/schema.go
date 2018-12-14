@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package rawdb contains a collection of low level database accessors.
 package rawdb
@@ -42,18 +41,16 @@ var (
 	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
-	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
+	preimagePrefix = []byte("secure-key-")    // preimagePrefix + hash -> preimage
 	configPrefix   = []byte("matrix-config-") // config prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 
-	preimageCounter     = metrics.NewRegisteredCounter("db/preimage/total", nil)
-	preimageHitCounter  = metrics.NewRegisteredCounter("db/preimage/hits", nil)
-	topologyGraphPrefix = []byte("g") //topologyGraphPrefix + num + blockHash -> topology graph
-	electIndexPrefix    = []byte("e") //electIndexPrefix + num + blockHash -> {header hash with v elect, header hash with m elect}
+	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
+	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
 
-	matrixRootPrefix = []byte("Matrix-root")
+	matrixRootPrefix = []byte("matrix-root")
 )
 
 var (
@@ -76,7 +73,7 @@ func encodeBlockNumber(number uint64) []byte {
 	return enc
 }
 
-type ElectIndexData struct {
-	VElectBlock common.Hash
-	MElectBlock common.Hash
+type SuperBlockIndexData struct {
+	Num uint64
+	Seq uint64
 }

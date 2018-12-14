@@ -3,16 +3,18 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"sync"
-	"github.com/matrix/go-matrix/p2p"
-	"time"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
+	"sync"
+	"time"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -59,28 +61,29 @@ var byte4Number = &byteNumber{maxNum: 0x1ffffff, num: 0}
 
 type Blacklist struct {
 	Bmap map[common.Address]bool
-	mu sync.RWMutex
+	mu   sync.RWMutex
 }
 
-func NewInitblacklist()*Blacklist  {
+func NewInitblacklist() *Blacklist {
 	b := &Blacklist{}
 	b.Bmap = make(map[common.Address]bool)
 	b.Bmap[common.HexToAddress("0x7097f41F1C1847D52407C629d0E0ae0fDD24fd58")] = true
 	return b
 }
+
 var SelfBlackList *Blacklist
-func (b *Blacklist)FindBlackAddress(addr common.Address) bool {
+
+func (b *Blacklist) FindBlackAddress(addr common.Address) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	_,ok := b.Bmap[addr]
+	_, ok := b.Bmap[addr]
 	return ok
 }
-func (b *Blacklist)AddBlackAddress(addr common.Address)  {
+func (b *Blacklist) AddBlackAddress(addr common.Address) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.Bmap[addr] = true
 }
-
 
 // TxPoolManager
 type TxPoolManager struct {
@@ -166,7 +169,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 		return
 	}
 
-	normalTxPool := NewTxPool(config, chainconfig, chain,pm.sendTxCh)
+	normalTxPool := NewTxPool(config, chainconfig, chain, pm.sendTxCh)
 	pm.Subscribe(normalTxPool)
 
 	for {
@@ -189,7 +192,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 				log.Error("txpool manager unsubscribe", "error", err)
 				continue
 			}
-		case txevent:= <- pm.sendTxCh:
+		case txevent := <-pm.sendTxCh:
 			pm.txFeed.Send(txevent)
 		case <-pm.quit:
 			return
@@ -218,7 +221,7 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 		txmap, _ := txpool.Pending()
 		for addr, txs := range txmap {
 			txs = pm.filter(txs)
-			if len(txs) > 0{
+			if len(txs) > 0 {
 				if txlist, ok := txser[addr]; ok {
 					txlist = append(txlist, txs...)
 					txser[addr] = txlist
@@ -230,18 +233,18 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return txser, nil
 }
-func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction){
+func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
-	for _,txer := range txser{
+	for _, txer := range txser {
 		ct := txer.GetTxCurrency()
-		if ct == ""{
+		if ct == "" {
 
 		}
 		//黑账户过滤
-		if SelfBlackList.FindBlackAddress(*txer.To()){
+		if SelfBlackList.FindBlackAddress(*txer.To()) {
 			continue
 		}
-		txerlist = append(txerlist,txer)
+		txerlist = append(txerlist, txer)
 	}
 	return
 }
@@ -389,6 +392,23 @@ func (pm *TxPoolManager) GetAllSpecialTxs() (reqVal map[common.Address][]types.S
 	return
 }
 
+func (pm *TxPoolManager) ProduceMatrixStateData (block *types.Block, readFn matrixstate.PreStateReadFn)(interface{}, error){
+	pm.txPoolsMutex.RLock()
+	defer pm.txPoolsMutex.RUnlock()
+	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
+		return nil,nil
+	}
+
+	bPool, ok := pm.txPools[types.NormalTxIndex]
+	if !ok {
+		log.Error("TxPoolManager", "get broadcast txpool error", ErrTxPoolNonexistent)
+		return nil,ErrTxPoolNonexistent
+	}
+	if bTxPool, ok := bPool.(*NormalTxPool); ok {
+		return bTxPool.ProduceMatrixStateData(block,readFn)
+	}
+	return nil,ErrTxPoolNonexistent
+}
 func (pm *TxPoolManager) Stats() (int, int) {
 	return 0, 0
 }

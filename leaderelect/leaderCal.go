@@ -14,43 +14,51 @@ import (
 )
 
 type leaderCalculator struct {
+	number      uint64
 	preLeader   common.Address
 	preHash     common.Hash
 	preIsSupper bool
 	leaderList  map[uint32]common.Address
 	validators  []mc.TopologyNodeInfo
+	specials    *mc.MatrixSpecialAccounts
 	chain       *core.BlockChain
-	cdc         *cdc
+	logInfo     string
 }
 
-func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
+func newLeaderCalculator(chain *core.BlockChain, number uint64, logInfo string) *leaderCalculator {
 	return &leaderCalculator{
+		number:      number,
 		preLeader:   common.Address{},
 		preHash:     common.Hash{},
 		preIsSupper: false,
 		leaderList:  make(map[uint32]common.Address),
 		validators:  nil,
+		specials:    nil,
 		chain:       chain,
-		cdc:         cdc,
+		logInfo:     logInfo,
 	}
 }
 
-func (self *leaderCalculator) SetValidators(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo) error {
-	if validators == nil {
+func (self *leaderCalculator) SetValidatorsAndSpecials(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo, specials *mc.MatrixSpecialAccounts, bcInterval *manparams.BCInterval) error {
+	if validators == nil || specials == nil || bcInterval == nil {
 		return ErrValidatorsIsNil
 	}
 
-	preNumber := self.cdc.number - 1
-	if preIsSupper == false && common.IsBroadcastNumber(preNumber) && preNumber != 0 {
-		header := self.chain.GetHeaderByNumber(preNumber - 1)
-		if nil == header {
-			log.ERROR("")
-			return errors.Errorf("获取广播区块前一区块(%d)错误!", preNumber-1)
+	preNumber := self.number - 1
+	realPreLeader := preLeader
+	if preIsSupper == false && bcInterval.IsBroadcastNumber(preNumber) && preNumber != 0 {
+		headerHash, err := self.chain.GetAncestorHash(preHash, preNumber-1)
+		if err != nil {
+			return errors.Errorf("获取广播区块OR超级区块前一区块(%d)错误!", preNumber-1, "err", err)
 		}
-		preLeader = header.Leader
+		header := self.chain.GetHeaderByHash(headerHash)
+		if header == nil {
+			return errors.Errorf("获取广播区块OR超级区块前一区块(%s)错误!", headerHash.TerminalString())
+		}
+		realPreLeader = header.Leader
 	}
-	log.INFO(self.cdc.logInfo, "计算leader列表", "开始", "preLeader", preLeader.Hex(), "前一个区块是否为超级区块", preIsSupper)
-	leaderList, err := calLeaderList(preLeader, preNumber, preIsSupper, validators)
+	log.INFO(self.logInfo, "计算leader列表", "开始", "preLeader", realPreLeader.Hex(), "前一个区块是否为超级区块", preIsSupper)
+	leaderList, err := calLeaderList(realPreLeader, preNumber, preIsSupper, validators, bcInterval)
 	if err != nil {
 		return err
 	}
@@ -59,6 +67,7 @@ func (self *leaderCalculator) SetValidators(preHash common.Hash, preIsSupper boo
 	self.preHash.Set(preHash)
 	self.validators = validators
 	self.preIsSupper = preIsSupper
+	self.specials = specials
 
 	return nil
 }
@@ -74,39 +83,45 @@ func (self *leaderCalculator) GetValidators() (*mc.TopologyGraph, error) {
 	return rlt, nil
 }
 
-func (self *leaderCalculator) GetLeader(turn uint32) (*leaderData, error) {
+func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInterval) (*leaderData, error) {
+	if bcInterval == nil {
+		return nil, errors.New("leader calculator: param bcInterval is nil")
+	}
 	leaderCount := uint32(len(self.leaderList))
 	if leaderCount == 0 {
 		return nil, ErrValidatorsIsNil
 	}
+	if self.specials == nil {
+		return nil, ErrSepcialsIsNil
+	}
 
 	leaders := &leaderData{}
-	number := self.cdc.number
-	if common.IsReElectionNumber(number) {
-		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
+	number := self.number
+	if bcInterval.IsReElectionNumber(number) {
+		leaders.leader.Set(self.specials.BroadcastAccount.Address)
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])
 		return leaders, nil
 	}
 
-	if common.IsBroadcastNumber(number) {
-		leaders.leader.Set(manparams.BroadCastNodes[0].Address)
+	if bcInterval.IsBroadcastNumber(number) {
+		leaders.leader.Set(self.specials.BroadcastAccount.Address)
 		leaders.nextLeader.Set(self.leaderList[(turn)%leaderCount])
 		return leaders, nil
 	}
 
 	leaders.leader.Set(self.leaderList[turn%leaderCount])
-	if common.IsBroadcastNumber(number + 1) {
-		leaders.nextLeader.Set(manparams.BroadCastNodes[0].Address)
+	if bcInterval.IsBroadcastNumber(number + 1) {
+		leaders.nextLeader.Set(self.specials.BroadcastAccount.Address)
 	} else {
 		leaders.nextLeader.Set(self.leaderList[(turn+1)%leaderCount])
 	}
 	return leaders, nil
 }
 
-func calLeaderList(preLeader common.Address, preNumber uint64, preIsSupper bool, validators []mc.TopologyNodeInfo) (map[uint32]common.Address, error) {
+func calLeaderList(preLeader common.Address, preNumber uint64, preIsSupper bool, validators []mc.TopologyNodeInfo, bcInterval *manparams.BCInterval) (map[uint32]common.Address, error) {
 	ValidatorNum := len(validators)
 	var startPos = 0
-	if preIsSupper || common.IsReElectionNumber(preNumber) || common.IsReElectionNumber(preNumber+1) {
+	if preIsSupper || bcInterval.IsReElectionNumber(preNumber) || bcInterval.IsReElectionNumber(preNumber+1) {
 		startPos = 0
 	} else {
 		preIndex, err := findLeaderIndex(preLeader, validators)

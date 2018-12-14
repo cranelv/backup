@@ -25,11 +25,12 @@ type TopNodeService struct {
 	msgCheck *messageCheck
 	dposRing *DPosVoteRing
 
-	validatorReader consensus.ValidatorReader
+	validatorReader consensus.StateReader
 	topNodeState    TopNodeStateInterface
 	validatorSign   ValidatorAccountInterface
 	msgSender       MessageSendInterface
 	msgCenter       MessageCenterInterface
+	stateReader     StateReaderInterface
 	cd              consensus.DPOSEngine
 
 	roleUpdateCh       chan *mc.RoleUpdatedMsg
@@ -67,7 +68,7 @@ func NewTopNodeService(cd consensus.DPOSEngine) *TopNodeService {
 	return t
 }
 
-func (serv *TopNodeService) SetValidatorReader(reader consensus.ValidatorReader) {
+func (serv *TopNodeService) SetValidatorReader(reader consensus.StateReader) {
 	serv.validatorReader = reader
 }
 
@@ -85,6 +86,10 @@ func (serv *TopNodeService) SetMessageSendInterface(inter MessageSendInterface) 
 
 func (serv *TopNodeService) SetMessageCenterInterface(inter MessageCenterInterface) {
 	serv.msgCenter = inter
+}
+
+func (serv *TopNodeService) SetStateReaderInterface(inter StateReaderInterface) {
+	serv.stateReader = inter
 }
 
 func (serv *TopNodeService) Start() error {
@@ -143,14 +148,20 @@ func (serv *TopNodeService) update() {
 	for {
 		select {
 		case data := <-serv.roleUpdateCh:
-			topology, err := ca.GetTopologyByHash(common.RoleValidator|common.RoleBackupValidator, data.BlockHash)
-			if err != nil {
-				log.Error(serv.extraInfo, "处理CA通知消息", "获取拓扑图错误", "err", err)
-				continue
-			}
-			if serv.msgCheck.CheckRoleUpdateMsg(data, topology) {
+			if serv.msgCheck.CheckRoleUpdateMsg(data) {
+				topology, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyTopologyGraph, data.BlockHash)
+				if err != nil {
+					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
+					continue
+				}
+				electOline, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyElectOnlineState, data.BlockHash)
+				if err != nil {
+					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
+					continue
+				}
+
 				log.Debug(serv.extraInfo, "处理CA通知消息", "", "块高", data.BlockNum)
-				serv.stateMap.SetCurStates(data.BlockNum+1, topology.NodeList, topology.ElectList)
+				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectOnlineStatus))
 				go serv.LeaderChangeNotifyHandler(serv.msgCheck.GetCurLeader())
 			}
 		case data := <-serv.leaderChangeCh:
@@ -360,7 +371,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 
 	if ok {
 		//投赞成票
-		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), true)
+		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), true, serv.msgCheck.blockHash)
 		if err != nil {
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
@@ -368,7 +379,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String())
 	} else {
 		//投反对票
-		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false)
+		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false, serv.msgCheck.blockHash)
 		if err != nil {
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed

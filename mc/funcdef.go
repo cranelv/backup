@@ -4,39 +4,31 @@
 package mc
 
 import (
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/pkg/errors"
 	"strconv"
+
+	"github.com/matrix/go-matrix/common"
+	"github.com/pkg/errors"
 )
 
-func NewGenesisTopologyGraph(genesisHeader *types.Header) (*TopologyGraph, error) {
-	if genesisHeader.Number.Uint64() != 0 {
+func NewGenesisTopologyGraph(number uint64, netTopology common.NetTopology) (*TopologyGraph, error) {
+	if number != 0 {
 		return nil, errors.New("输入错误，创世区块高度不为0")
 	}
 
-	if genesisHeader.NetTopology.Type != common.NetTopoTypeAll {
+	if netTopology.Type != common.NetTopoTypeAll {
 		return nil, errors.New("输入错误，创世区块拓扑类型不是全拓扑")
 	}
 
 	newGraph := &TopologyGraph{
-		Number:        0,
 		NodeList:      make([]TopologyNodeInfo, 0),
-		ElectList:     make([]TopologyNodeInfo, 0),
 		CurNodeNumber: 99,
 	}
-	for _, topNode := range genesisHeader.NetTopology.NetTopologyData {
+	for _, topNode := range netTopology.NetTopologyData {
 		newGraph.NodeList = append(newGraph.NodeList, TopologyNodeInfo{
 			Account:    topNode.Account,
 			Position:   topNode.Position,
 			Type:       common.GetRoleTypeFromPosition(topNode.Position),
-			Stock:      getNodeStock(topNode.Account, genesisHeader.Elect),
 			NodeNumber: newGraph.increaseNodeNumber(),
-		})
-		newGraph.ElectList = append(newGraph.ElectList, TopologyNodeInfo{
-			Account:  topNode.Account,
-			Position: topNode.Position,
-			Type:     common.GetRoleTypeFromPosition(topNode.Position),
 		})
 	}
 	return newGraph, nil
@@ -54,28 +46,10 @@ func (self *TopologyGraph) AccountIsInGraph(account common.Address) bool {
 	return false
 }
 
-func (self *TopologyGraph) GetAccountElectInfo(account common.Address) *TopologyNodeInfo {
-	if len(self.ElectList) == 0 {
-		return nil
-	}
-	for i := 0; i < len(self.ElectList); i++ {
-		info := self.ElectList[i]
-		if account == info.Account {
-			return &info
-		}
-	}
-	return nil
-}
-
-func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *common.NetTopology, electList []common.Elect) (*TopologyGraph, error) {
-	if self.Number+1 != number {
-		return nil, errors.Errorf("高度不匹配,current(%d) + 1 != target(%d)", self.Number, number)
-	}
+func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *common.NetTopology) (*TopologyGraph, error) {
 
 	newGraph := &TopologyGraph{
-		Number:        number,
 		NodeList:      make([]TopologyNodeInfo, 0),
-		ElectList:     make([]TopologyNodeInfo, 0),
 		CurNodeNumber: self.CurNodeNumber,
 	}
 
@@ -86,19 +60,15 @@ func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *comm
 				Account:    topNode.Account,
 				Position:   topNode.Position,
 				Type:       common.GetRoleTypeFromPosition(topNode.Position),
-				Stock:      getNodeStock(topNode.Account, electList),
 				NodeNumber: newGraph.increaseNodeNumber(),
 			})
 		}
-		newGraph.ElectList = append(newGraph.ElectList, newGraph.NodeList...)
 		return newGraph, nil
 
 	case common.NetTopoTypeChange:
 		newGraph.NodeList = append(newGraph.NodeList, self.NodeList...)
-		newGraph.ElectList = append(newGraph.ElectList, self.ElectList...)
 		for _, chgInfo := range blockTopology.NetTopologyData {
-			newGraph.modifyGraphByChgInfo(&chgInfo, electList)
-			newGraph.modifyElectStateByChgInfo(&chgInfo)
+			newGraph.modifyGraphByChgInfo(&chgInfo)
 		}
 		return newGraph, nil
 
@@ -107,7 +77,7 @@ func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *comm
 	}
 }
 
-func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData, electList []common.Elect) {
+func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData) {
 	size := len(self.NodeList)
 	for i := 0; i < size; i++ {
 		topNode := &self.NodeList[i]
@@ -121,7 +91,6 @@ func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData,
 				self.NodeList = append(self.NodeList[:i], self.NodeList[i+1:]...)
 			} else {
 				topNode.Account.Set(chgInfo.Account)
-				topNode.Stock = getNodeStock(topNode.Account, electList)
 				topNode.NodeNumber = self.increaseNodeNumber()
 			}
 			return
@@ -130,7 +99,6 @@ func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData,
 				Account:    chgInfo.Account,
 				Position:   chgInfo.Position,
 				Type:       common.GetRoleTypeFromPosition(chgInfo.Position),
-				Stock:      getNodeStock(topNode.Account, electList),
 				NodeNumber: self.increaseNodeNumber(),
 			}
 			//newNode插入切片I位置
@@ -138,25 +106,6 @@ func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData,
 			self.NodeList = append(self.NodeList[:i], newNode)
 			self.NodeList = append(self.NodeList, rear...)
 			return
-		}
-	}
-}
-
-func (self *TopologyGraph) modifyElectStateByChgInfo(chgInfo *common.NetTopologyData) {
-	size := len(self.ElectList)
-	for i := 0; i < size; i++ {
-		eleNode := &self.ElectList[i]
-		if chgInfo.Position == common.PosOffline || chgInfo.Position == common.PosOnline {
-			if chgInfo.Account == eleNode.Account {
-				eleNode.Position = chgInfo.Position
-				return
-			}
-		} else {
-			if chgInfo.Position == eleNode.Position && chgInfo.Account != eleNode.Account {
-				// 说明该位置的选举节点掉线了，别的节点顶替了
-				eleNode.Position = common.PosOffline
-				return
-			}
 		}
 	}
 }
@@ -171,14 +120,36 @@ func (self *TopologyGraph) increaseNodeNumber() uint8 {
 	return self.CurNodeNumber
 }
 
-func getNodeStock(addr common.Address, electList []common.Elect) uint16 {
-	for _, electInfo := range electList {
-		if electInfo.Account == addr {
-			return electInfo.Stock
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+func (eg *ElectGraph) TransferElect2CommonElect() []common.Elect {
+	size := len(eg.ElectList)
+	rst := make([]common.Elect, size, size)
+	for i := 0; i < size; i++ {
+		rst[i].Account = eg.ElectList[i].Account
+		rst[i].Stock = eg.ElectList[i].Stock
+		rst[i].Type = eg.ElectList[i].Type.Transfer2ElectRole()
+	}
+	return rst
+}
+
+func (eg *ElectGraph) TransferNextElect2CommonElect() []common.Elect {
+	size := len(eg.NextElect)
+	rst := make([]common.Elect, size, size)
+	for i := 0; i < size; i++ {
+		rst[i].Account.Set(eg.NextElect[i].Account)
+		rst[i].Stock = eg.NextElect[i].Stock
+		rst[i].Type = eg.NextElect[i].Type.Transfer2ElectRole()
+	}
+	return rst
+}
+
+func (eos *ElectOnlineStatus) FindNodeElectOnlineState(node common.Address) *ElectNodeInfo {
+	for _, elect := range eos.ElectOnline {
+		if elect.Account == node {
+			return &elect
 		}
 	}
-
-	return 1
+	return nil
 }
 
 func (msg *HD_OnlineConsensusVoteResultMsg) IsValidity(curNumber uint64, validityTime uint64) bool {
@@ -196,5 +167,35 @@ func (os OnlineState) String() string {
 		return "OffLine"
 	default:
 		return strconv.Itoa(int(os))
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+func (info *ConsensusTurnInfo) String() string {
+	return "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
+}
+
+func (info *ConsensusTurnInfo) TotalTurns() uint32 {
+	return info.PreConsensusTurn + info.UsedReelectTurn
+}
+
+// if < target, return -1
+// if == target, return 0
+// if > target, return 1
+func (info *ConsensusTurnInfo) Cmp(target ConsensusTurnInfo) int64 {
+	if *info == target {
+		return 0
+	}
+
+	if info.TotalTurns() < target.TotalTurns() {
+		return -1
+	} else if info.TotalTurns() > target.TotalTurns() {
+		return 1
+	} else {
+		if info.PreConsensusTurn < target.PreConsensusTurn {
+			return -1
+		} else {
+			return 1
+		}
 	}
 }

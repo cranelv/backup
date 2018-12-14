@@ -17,6 +17,7 @@ type messageCheck struct {
 	leaderCache   []*mc.LeaderChangeNotify
 	capacity      int
 	last          int
+	blockHash     common.Hash
 }
 
 func newMessageCheck(capacity int) *messageCheck {
@@ -29,8 +30,8 @@ func newMessageCheck(capacity int) *messageCheck {
 	}
 }
 
-func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg, topology *mc.TopologyGraph) bool {
-	if nil == msg || nil == topology {
+func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg) bool {
+	if nil == msg {
 		return false
 	}
 
@@ -49,7 +50,7 @@ func (chk *messageCheck) CheckAndSaveLeaderChangeNotify(msg *mc.LeaderChangeNoti
 
 	chk.mu.Lock()
 	defer chk.mu.Unlock()
-	switch cmpRound(chk.curNumber, chk.curLeaderTurn, msg.Number, msg.ConsensusTurn) {
+	switch cmpRound(chk.curNumber, chk.curLeaderTurn, msg.Number, msg.ConsensusTurn.TotalTurns()) {
 	case 1: // cur > msg
 		return false
 	case -1: // cur < msg
@@ -92,7 +93,16 @@ func (chk *messageCheck) setCurNumber(number uint64) bool {
 	}
 	return true
 }
-
+func (chk *messageCheck) setBlockHash(hash common.Hash) {
+	chk.mu.Lock()
+	defer chk.mu.Unlock()
+	chk.blockHash = hash
+}
+func (chk *messageCheck) getBlockHash() common.Hash {
+	chk.mu.RLock()
+	defer chk.mu.RUnlock()
+	return chk.blockHash
+}
 func (chk *messageCheck) setLeader(msg *mc.LeaderChangeNotify) bool {
 	// 检查重复
 	for i, one := range chk.leaderCache {
@@ -117,7 +127,7 @@ func (chk *messageCheck) getLeader(number uint64, turn uint32) common.Address {
 		if msg == nil {
 			continue
 		}
-		if msg.Number == number && msg.ConsensusTurn == turn {
+		if msg.Number == number && msg.ConsensusTurn.TotalTurns() == turn {
 			return msg.Leader
 		}
 	}
