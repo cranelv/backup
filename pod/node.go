@@ -7,6 +7,7 @@ package pod
 import (
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"io"
@@ -180,7 +181,7 @@ func (n *Node) Signature() (signature common.Signature) {
 		return
 	}
 
-	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress})
+	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: base58.Base58EncodeToString("MAN", n.config.P2P.ManAddress)})
 	if err != nil {
 		n.log.Error("find signature account", "error", err)
 		return
