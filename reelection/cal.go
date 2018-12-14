@@ -48,12 +48,12 @@ func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
 		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
 		return nil, err
 	}
-	vipList,OK:=data.(*[]mc.VIPConfig)
+	vipList, OK := data.(*[]mc.VIPConfig)
 	if OK == false || vipList == nil {
 		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
-	return *vipList,nil
+	return *vipList, nil
 }
 
 func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInterface, error) {
@@ -69,8 +69,6 @@ func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInter
 	}
 	return baseinterface.NewElect(electInfo.ElectPlug), nil
 }
-
-
 
 func (self *ReElection) GetBroadcastIntervalByHash(hash common.Hash) (*manparams.BCInterval, error) {
 	data, err := self.bc.GetBroadcastInterval(hash)
@@ -119,9 +117,6 @@ func CheckBlock(block *types.Block) error {
 	}
 	return nil
 }
-
-
-
 
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
 	result := make([]common.Elect, 0)

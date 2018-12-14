@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package keystore implements encrypted storage of secp256k1 private keys.
 //
@@ -283,7 +282,7 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx types.SelfTransaction, chainID
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), unlockedKey.PrivateKey)
 	//YYY===================end=======================
 }
-func (ks *KeyStore) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
+func (ks *KeyStore) SignTxWithPasswd(a accounts.Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
 	// Look up the key to sign with and abort if it cannot be found
 	//todo 暂时修改为使用缓存方式
 	key := ks.findSignKeyInTemp(a)
@@ -301,6 +300,7 @@ func (ks *KeyStore) SignTxWithPasswd(a accounts.Account, passwd string,tx types.
 
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), key.PrivateKey)
 }
+
 // SignHashWithPassphrase signs hash if the private key matching the given address
 // can be decrypted with the given passphrase. The produced signature is in the
 // [R || S || V] format where V is 0 or 1.

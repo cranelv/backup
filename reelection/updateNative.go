@@ -4,14 +4,13 @@
 package reelection
 
 import (
+	"encoding/json"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/matrixstate"
-	"encoding/json"
 )
-
 
 func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnlineStatus, top *mc.TopologyGraph) support.AllNative {
 	mapTopStatus := make(map[common.Address]common.RoleType, 0)
@@ -92,7 +91,6 @@ func GetOnlineAlter(offline []common.Address, online []common.Address, electonli
 	return ans
 }
 
-
 func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.TopologyGraph, height uint64) ([]mc.Alternative, error) {
 	elect, err := self.GetElectPlug(height)
 	if err != nil {
@@ -101,7 +99,6 @@ func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.Topology
 	}
 	return elect.ToPoUpdate(allNative, top), nil
 }
-
 
 func (self *ReElection) LastMinerGenTimeStamp(height uint64, types common.RoleType, hash common.Hash) (uint64, error) {
 

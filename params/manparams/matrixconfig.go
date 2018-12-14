@@ -17,13 +17,13 @@ import (
 )
 
 const (
-//	VerifyNetChangeUpTime = 6
-//MinerNetChangeUpTime  = 4
-//
-//VerifyTopologyGenerateUpTime = 8
-//MinerTopologyGenerateUpTime  = 8
+	//	VerifyNetChangeUpTime = 6
+	//MinerNetChangeUpTime  = 4
+	//
+	//VerifyTopologyGenerateUpTime = 8
+	//MinerTopologyGenerateUpTime  = 8
 
-//	RandomVoteTime = 5
+	//	RandomVoteTime = 5
 
 	LRSParentMiningTime = int64(20)
 	LRSPOSOutTime       = int64(20)

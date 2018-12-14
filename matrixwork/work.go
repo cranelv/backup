@@ -24,6 +24,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/matrix/go-matrix/accounts/abi"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/core"
@@ -34,13 +35,13 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"strings"
-	"github.com/matrix/go-matrix/accounts/abi"
 )
 
 type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
 }
+
 var packagename string = "matrixwork"
 var (
 	depositDef = ` [{"constant": true,"inputs": [],"name": "getDepositList","outputs": [{"name": "","type": "address[]"}],"payable": false,"stateMutability": "view","type": "function"},
@@ -52,7 +53,7 @@ var (
 			{"constant": false,"inputs": [{"name": "addr","type": "address"}],"name": "interestAdd","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
 			{"constant": false,"inputs": [{"name": "addr","type": "address"}],"name": "getinterest","outputs": [],"payable": false,"stateMutability": "payable","type": "function"}]`
 
-	depositAbi, Abierr                                                                                  = abi.JSON(strings.NewReader(depositDef))
+	depositAbi, Abierr = abi.JSON(strings.NewReader(depositDef))
 )
 
 // Work is the workers current environment and holds
@@ -329,16 +330,16 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		extra := make([]*types.ExtraTo_tr, 0)
 		var to common.Address
 		var value *big.Int
-		databytes := make([]byte,0)
+		databytes := make([]byte, 0)
 		isfirst := true
 		for _, addr := range sorted_keys {
 			k := common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if isfirst{
-				if rewart.RewardTyp == common.RewardInerestType{
-					databytes = append(databytes,depositAbi.Methods["interestAdd"].Id()...)
+			if isfirst {
+				if rewart.RewardTyp == common.RewardInerestType {
+					databytes = append(databytes, depositAbi.Methods["interestAdd"].Id()...)
 					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-					databytes = append(databytes,tmpbytes...)
+					databytes = append(databytes, tmpbytes...)
 				}
 				to = k
 				value = v
@@ -350,17 +351,17 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			var kk common.Address = k
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
-			if rewart.RewardTyp == common.RewardInerestType{
-				bytes := make([]byte,0)
-				bytes = append(bytes,depositAbi.Methods["interestAdd"].Id()...)
+			if rewart.RewardTyp == common.RewardInerestType {
+				bytes := make([]byte, 0)
+				bytes = append(bytes, depositAbi.Methods["interestAdd"].Id()...)
 				tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-				bytes = append(bytes,tmpbytes...)
+				bytes = append(bytes, tmpbytes...)
 				b := hexutil.Bytes(bytes)
 				tmp.Input_tr = &b
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr),to,value,0,new(big.Int),databytes,extra,0,common.ExtraUnGasTxType,0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		tx.SetTxS(big.NewInt(1))
 		tx.SetTxV(big.NewInt(1))

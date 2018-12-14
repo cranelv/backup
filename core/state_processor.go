@@ -1,11 +1,11 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package core
 
 import (
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
@@ -13,11 +13,10 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
-	"github.com/matrix/go-matrix/params"
-	"sync"
-	"errors"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params"
 	"runtime"
+	"sync"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -61,20 +60,20 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Iterate over and process the individual transactions
 	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
-	stxs := make([]types.SelfTransaction,0)
+	stxs := make([]types.SelfTransaction, 0)
 	var txcount int
 	txs := block.Transactions()
 	var waitG = &sync.WaitGroup{}
-	maxProcs := runtime.NumCPU()   //获取cpu个数
-	if maxProcs >= 2{
-		runtime.GOMAXPROCS(maxProcs-1)  //限制同时运行的goroutines数量
+	maxProcs := runtime.NumCPU() //获取cpu个数
+	if maxProcs >= 2 {
+		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
 	}
 	normalTxindex := 0
-	for _,tx:=range txs{
-		if tx.GetMatrixType() == common.ExtraUnGasTxType{
-			tmpstxs := make([]types.SelfTransaction,0)
-			tmpstxs = append(tmpstxs,tx)
-			tmpstxs = append(tmpstxs,stxs...)
+	for _, tx := range txs {
+		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+			tmpstxs := make([]types.SelfTransaction, 0)
+			tmpstxs = append(tmpstxs, tx)
+			tmpstxs = append(tmpstxs, stxs...)
 			stxs = tmpstxs
 			normalTxindex++
 			continue
@@ -82,14 +81,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		sig := types.NewEIP155Signer(tx.ChainId())
 		waitG.Add(1)
 		ttx := tx
-		go types.Sender_self(sig,ttx,waitG)
+		go types.Sender_self(sig, ttx, waitG)
 	}
 	waitG.Wait()
 	for i, tx := range txs[normalTxindex:] {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType{
-			tmpstxs := make([]types.SelfTransaction,0)
-			tmpstxs = append(tmpstxs,tx)
-			tmpstxs = append(tmpstxs,stxs...)
+		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+			tmpstxs := make([]types.SelfTransaction, 0)
+			tmpstxs = append(tmpstxs, tx)
+			tmpstxs = append(tmpstxs, stxs...)
 			stxs = tmpstxs
 			continue
 		}
@@ -108,13 +107,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		tmpr := make(types.Receipts,0)
+		tmpr := make(types.Receipts, 0)
 		tmpr = append(tmpr, receipt)
 		tmpr = append(tmpr, receipts...)
 		receipts = tmpr
-		tmpl := make([]*types.Log,0)
+		tmpl := make([]*types.Log, 0)
 		tmpl = append(tmpl, receipt.Logs...)
-		tmpl = append(tmpl,allLogs...)
+		tmpl = append(tmpl, allLogs...)
 		allLogs = tmpl
 	}
 
@@ -140,8 +139,8 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64
 	var failed bool
-	if tx.TxType() == types.BroadCastTxIndex{
-		if extx := tx.GetMatrix_EX(); (extx != nil) && len(extx) > 0 && extx[0].TxType == 1{
+	if tx.TxType() == types.BroadCastTxIndex {
+		if extx := tx.GetMatrix_EX(); (extx != nil) && len(extx) > 0 && extx[0].TxType == 1 {
 			gas = uint64(0)
 			failed = true
 		}
@@ -152,9 +151,9 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		}
 	}
 	//如果是委托gas并且是按时间委托
-	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime(){
+	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
 		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		if !statedb.GetIsEntrustByTime(from,header.Time.Uint64()){
+		if !statedb.GetIsEntrustByTime(from, header.Time.Uint64()) {
 			log.Error("按时间委托gas的交易失效")
 			return nil, 0, errors.New("entrustTx is invalid")
 		}

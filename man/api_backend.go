@@ -329,7 +329,7 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 
 //YY
 func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	return b.man.signHelper.SignTx(signedTx, chainID,common.Hash{})
+	return b.man.signHelper.SignTx(signedTx, chainID, common.Hash{})
 }
 
 //YY

@@ -14,15 +14,15 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	//"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/baseinterface"
 	_ "github.com/matrix/go-matrix/election/layered"
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/p2p/discover"
 	//"encoding/json"
-	"github.com/matrix/go-matrix/log"
 	"encoding/json"
+	"github.com/matrix/go-matrix/log"
 	"io/ioutil"
 	"os"
 )
@@ -34,10 +34,10 @@ func GetDepositDetatil(num int, m int, n int) []vm.DepositDetail {
 		temp.Address = common.BigToAddress(big.NewInt(int64(i)))
 
 		if m > 0 {
-			temp.Deposit =new(big.Int).Mul(big.NewInt(10000000), common.ManValue)
+			temp.Deposit = new(big.Int).Mul(big.NewInt(10000000), common.ManValue)
 			m--
 		} else if n > 0 {
-			temp.Deposit =new(big.Int).Mul(big.NewInt(1000000), common.ManValue)
+			temp.Deposit = new(big.Int).Mul(big.NewInt(1000000), common.ManValue)
 			n--
 		} else {
 			temp.Deposit = big.NewInt(int64(i))
@@ -74,43 +74,42 @@ func MakeValidatorTopReq(num int, Seed uint64) *mc.MasterValidatorReElectionReqM
 	mList := GetDepositDetatil(num, 3, 2)
 
 	ans := &mc.MasterValidatorReElectionReqMsg{
-		SeqNum:                  Seed,
-		RandSeed:                big.NewInt(int64(Seed)),
-		ValidatorList:           mList,
-	//	FoundationValidatoeList: []vm.DepositDetail{},
+		SeqNum:        Seed,
+		RandSeed:      big.NewInt(int64(Seed)),
+		ValidatorList: mList,
+		//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
-	ans.ElectConfig=mc.ElectConfigInfo{
-		ValidatorNum:11,
-		BackValidator:5,
-
+	ans.ElectConfig = mc.ElectConfigInfo{
+		ValidatorNum:  11,
+		BackValidator: 5,
 	}
-	ans.VIPList=[]mc.VIPConfig{
+	ans.VIPList = []mc.VIPConfig{
 
 		mc.VIPConfig{
-			MinMoney:10000000,
-			InterestRate:100,
-			ElectUserNum:3,
-			StockScale:1000,
+			MinMoney:     10000000,
+			InterestRate: 100,
+			ElectUserNum: 3,
+			StockScale:   1000,
 		},
 		mc.VIPConfig{
-			MinMoney:1000000,
-			InterestRate:100,
-			ElectUserNum:3,
-			StockScale:1000,
+			MinMoney:     1000000,
+			InterestRate: 100,
+			ElectUserNum: 3,
+			StockScale:   1000,
 		},
 	}
-	ans.ElectConfig.WhiteList=append(ans.ElectConfig.WhiteList,common.BigToAddress(big.NewInt(4)))
-	ans.ElectConfig.BlackList=append(ans.ElectConfig.BlackList,common.BigToAddress(big.NewInt(5)))
+	ans.ElectConfig.WhiteList = append(ans.ElectConfig.WhiteList, common.BigToAddress(big.NewInt(4)))
+	ans.ElectConfig.BlackList = append(ans.ElectConfig.BlackList, common.BigToAddress(big.NewInt(5)))
 	return ans
 
 }
 func GetFencengValidatorList(num int, Seed uint64, m int, n int) *mc.MasterValidatorReElectionReqMsg {
 	mList := GetDepositDetatil(num, m, n)
 	ans := &mc.MasterValidatorReElectionReqMsg{
-		SeqNum:                  Seed,
-		RandSeed:                big.NewInt(int64(Seed)),
-		ValidatorList:           mList,
-	//	FoundationValidatoeList: []vm.DepositDetail{},
+		SeqNum:        Seed,
+		RandSeed:      big.NewInt(int64(Seed)),
+		ValidatorList: mList,
+		//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
 	return ans
 }
@@ -146,7 +145,6 @@ func PrintValidator(validator *mc.MasterValidatorReElectionRsq) {
 	}
 	fmt.Println("\n\n\n\n")
 }
-
 
 func TestUnit1(t *testing.T) {
 	//矿工生成单元测试
@@ -191,6 +189,7 @@ func TestUnit3(t *testing.T) {
 		}
 	}
 }
+
 //
 //func TestUnit4(t *testing.T) {
 //	//验证者拓扑生成
@@ -317,7 +316,6 @@ func TestUnit3(t *testing.T) {
 //	fmt.Println("str data",string(data),"err",err)
 //}
 
-
 type MyDepos struct {
 	Address    common.Address
 	Deposit    *big.Int
@@ -325,113 +323,102 @@ type MyDepos struct {
 	OnlineTime *big.Int
 }
 type JsonStruct struct {
-	Type string
-	SeqNum                  uint64
-	RandSeed                *big.Int
-	VM []MyDepos
+	Type        string
+	SeqNum      uint64
+	RandSeed    *big.Int
+	VM          []MyDepos
 	ElectConfig mc.ElectConfigInfo
-	VIPList []mc.VIPConfig
+	VIPList     []mc.VIPConfig
 }
 
-
-
-func Test111(t *testing.T){
-	vipList:=[]mc.VIPConfig{
+func Test111(t *testing.T) {
+	vipList := []mc.VIPConfig{
 		mc.VIPConfig{
-			MinMoney:1000000,
-			InterestRate :1000, //(分母待定为1000w)
-			ElectUserNum :3,
-			StockScale   :1000 ,//千分比
+			MinMoney:     1000000,
+			InterestRate: 1000, //(分母待定为1000w)
+			ElectUserNum: 3,
+			StockScale:   1000, //千分比
 		},
 		mc.VIPConfig{
-			MinMoney:5000000,
-			InterestRate:1700,
-			ElectUserNum:3,
-			StockScale:1700,
+			MinMoney:     5000000,
+			InterestRate: 1700,
+			ElectUserNum: 3,
+			StockScale:   1700,
 		},
 	}
-	vm:=[]MyDepos{
+	vm := []MyDepos{
 		MyDepos{
-			Address:common.BigToAddress(big.NewInt(1)),
-			Deposit:big.NewInt(1),
-			WithdrawH:big.NewInt(1),
-			OnlineTime:big.NewInt(1),
-
+			Address:    common.BigToAddress(big.NewInt(1)),
+			Deposit:    big.NewInt(1),
+			WithdrawH:  big.NewInt(1),
+			OnlineTime: big.NewInt(1),
 		},
 		MyDepos{
-			Address:common.BigToAddress(big.NewInt(2)),
-			Deposit:big.NewInt(2),
-			WithdrawH:big.NewInt(2),
-			OnlineTime:big.NewInt(2),
-
+			Address:    common.BigToAddress(big.NewInt(2)),
+			Deposit:    big.NewInt(2),
+			WithdrawH:  big.NewInt(2),
+			OnlineTime: big.NewInt(2),
 		},
 	}
-	ans:=JsonStruct{
-
+	ans := JsonStruct{}
+	ans.Type = "miner"
+	ans.SeqNum = 1
+	ans.RandSeed = big.NewInt(1)
+	ans.VM = vm
+	ans.ElectConfig = mc.ElectConfigInfo{
+		MinerNum:      21,
+		ValidatorNum:  11,
+		BackValidator: 5,
+		ElectPlug:     "layerd",
+		WhiteList:     []common.Address{},
+		BlackList:     []common.Address{},
 	}
-	ans.Type="miner"
-	ans.SeqNum=1
-	ans.RandSeed=big.NewInt(1)
-	ans.VM=vm
-	ans.ElectConfig=mc.ElectConfigInfo{
-		MinerNum:21,
-		ValidatorNum:11,
-		BackValidator:5,
-		ElectPlug :"layerd",
-		WhiteList    : []common.Address{},
-		BlackList     :     []common.Address{},
-	}
-		ans.VIPList=vipList
-	fmt.Println("ans",ans)
-	data,err:=json.Marshal(ans)
-	fmt.Println("err",err,"data",data)
-	fmt.Println("string(data)",string(data))
+	ans.VIPList = vipList
+	fmt.Println("ans", ans)
+	data, err := json.Marshal(ans)
+	fmt.Println("err", err, "data", data)
+	fmt.Println("string(data)", string(data))
 
-	filename:="./input.json"
-
+	filename := "./input.json"
 
 	err = ioutil.WriteFile(filename, data, os.ModeAppend)
 	if err != nil {
 		log.Error("测试支持", "生成./input.json文件成功")
 	}
-
 
 }
 
 type OutPut struct {
-	Type string
-	SeqNum             uint64
+	Type      string
+	SeqNum    uint64
 	Master    []mc.ElectNodeInfo
-	BackUp   []mc.ElectNodeInfo
+	BackUp    []mc.ElectNodeInfo
 	Candidate []mc.ElectNodeInfo
 }
-func TestOutPut(t *testing.T){
-	temp:=[]mc.ElectNodeInfo{
+
+func TestOutPut(t *testing.T) {
+	temp := []mc.ElectNodeInfo{
 		mc.ElectNodeInfo{
-			Account:common.BigToAddress(big.NewInt(1)),
-			Position:0,
-			Stock:1,
-			Type:common.RoleMiner,
+			Account:  common.BigToAddress(big.NewInt(1)),
+			Position: 0,
+			Stock:    1,
+			Type:     common.RoleMiner,
 		},
 		mc.ElectNodeInfo{
-			Account:common.BigToAddress(big.NewInt(2)),
-			Position:0,
-			Stock:1,
-			Type:common.RoleMiner,
+			Account:  common.BigToAddress(big.NewInt(2)),
+			Position: 0,
+			Stock:    1,
+			Type:     common.RoleMiner,
 		},
 	}
 
+	ans := OutPut{}
+	ans.Type = "miner"
+	ans.SeqNum = 1
+	ans.Master = temp
 
-	ans:=OutPut{
-
-	}
-	ans.Type="miner"
-	ans.SeqNum=1
-	ans.Master=temp
-
-	data,err:=json.Marshal(ans)
-	filename:="./output.json"
-
+	data, err := json.Marshal(ans)
+	filename := "./output.json"
 
 	err = ioutil.WriteFile(filename, data, os.ModeAppend)
 	if err != nil {
@@ -439,5 +426,3 @@ func TestOutPut(t *testing.T){
 	}
 
 }
-
-

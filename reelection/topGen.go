@@ -13,6 +13,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
+
 type TopGenStatus struct {
 	MastV []mc.ElectNodeInfo
 	BackV []mc.ElectNodeInfo
@@ -22,7 +23,6 @@ type TopGenStatus struct {
 	BackM []mc.ElectNodeInfo
 	CandM []mc.ElectNodeInfo
 }
-
 
 func (self *ReElection) HandleTopGen(hash common.Hash) (TopGenStatus, error) {
 	topGenStatus := TopGenStatus{}
@@ -71,16 +71,16 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 
 	genData, err := self.GetElectGenTimes(height)
 	if err != nil {
-		log.ERROR(Module, "获取配置错误 高度", height,"err",err)
+		log.ERROR(Module, "获取配置错误 高度", height, "err", err)
 		return false
 	}
 
 	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.MinerNetChange)) {
-		log.ERROR(Module, "是矿工生成点 高度", height, "MinerNetChange", genData.MinerNetChange,"换届周期", bcInterval.GetReElectionInterval())
+		log.ERROR(Module, "是矿工生成点 高度", height, "MinerNetChange", genData.MinerNetChange, "换届周期", bcInterval.GetReElectionInterval())
 		return true
 	}
 
-	log.ERROR(Module, "不是矿工生成点 高度",height,"提前点",genData.MinerNetChange, "换届周期", bcInterval.GetReElectionInterval())
+	log.ERROR(Module, "不是矿工生成点 高度", height, "提前点", genData.MinerNetChange, "换届周期", bcInterval.GetReElectionInterval())
 	return false
 }
 
@@ -101,24 +101,25 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 
 	genData, err := self.GetElectGenTimes(height)
 	if err != nil {
-		log.ERROR(Module, "获取配置错误 高度", height,"err",err)
+		log.ERROR(Module, "获取配置错误 高度", height, "err", err)
 		return false
 	}
 	if bcInterval.IsReElectionNumber(height + 1 + uint64(genData.ValidatorNetChange)) {
-		log.ERROR(Module, "是验证者生成点 height", height, "ValidatorNetChange", genData.ValidatorNetChange,"换届周期", bcInterval.GetReElectionInterval())
+		log.ERROR(Module, "是验证者生成点 height", height, "ValidatorNetChange", genData.ValidatorNetChange, "换届周期", bcInterval.GetReElectionInterval())
 		return true
 	}
-	log.ERROR(Module, "不是验证者生成点 高度", height, "提前切换高度", genData.ValidatorNetChange,"换届周期", bcInterval.GetReElectionInterval())
+	log.ERROR(Module, "不是验证者生成点 高度", height, "提前切换高度", genData.ValidatorNetChange, "换届周期", bcInterval.GetReElectionInterval())
 	return false
 }
+
 //得到随机种子
 func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
 	return self.random.GetRandom(hash, "electionseed")
 }
 
 func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
-	log.INFO(Module,"准备生成矿工拓扑图","start","hash",hash.String())
-	defer log.INFO(Module,"生成矿工拓扑图结束","end","hash",hash.String())
+	log.INFO(Module, "准备生成矿工拓扑图", "start", "hash", hash.String())
+	defer log.INFO(Module, "生成矿工拓扑图结束", "end", "hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
@@ -168,8 +169,8 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 }
 
 func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
-	log.INFO(Module,"准备生成验证者拓扑图","start","hash",hash.String())
-	defer log.INFO(Module,"生成验证者拓扑图结束","end","hash",hash.String())
+	log.INFO(Module, "准备生成验证者拓扑图", "start", "hash", hash.String())
+	defer log.INFO(Module, "生成验证者拓扑图结束", "end", "hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())

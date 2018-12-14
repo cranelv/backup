@@ -27,8 +27,6 @@ const (
 	Module = "换届服务"
 )
 
-
-
 type ElectReturnInfo struct {
 	MasterMiner     []mc.ElectNodeInfo
 	BackUpMiner     []mc.ElectNodeInfo
@@ -36,19 +34,18 @@ type ElectReturnInfo struct {
 	BackUpValidator []mc.ElectNodeInfo
 }
 type ReElection struct {
-	bc  *core.BlockChain
+	bc     *core.BlockChain
 	random *baseinterface.Random
 	lock   sync.Mutex
 }
 
-func New(bc *core.BlockChain,  random *baseinterface.Random) (*ReElection, error) {
+func New(bc *core.BlockChain, random *baseinterface.Random) (*ReElection, error) {
 	reelection := &ReElection{
-		bc:             bc,
-		random:         random,
+		bc:     bc,
+		random: random,
 	}
 	return reelection, nil
 }
-
 
 func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
 	log.INFO(Module, "GetElection", "start", "hash", hash)

@@ -1015,6 +1015,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
+	log.Info("miss tree node debug", "入链时", "commit前state状态")
+	state.MissTrieDebug()
+
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		return NonStatTy, err
@@ -2469,12 +2472,12 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog,"根据区块hash获取区块失败 hash",blockHash)
+		log.ERROR(common.SignLog, "根据区块hash获取区块失败 hash", blockHash)
 		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog,"根据区块root获取statedb失败 err",err)
+		log.ERROR(common.SignLog, "根据区块root获取statedb失败 err", err)
 		return common.Address{}, "", errors.New("获取stateDB失败")
 	}
 
@@ -2482,7 +2485,7 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	ans := []common.Address{}
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR(common.SignLog, "结束调用", "", "authFrom",authFrom,"ans", ans)
+	log.ERROR(common.SignLog, "结束调用", "", "authFrom", authFrom, "ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	} else {
@@ -2512,12 +2515,12 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog,"根据区块hash算区块失败","err")
+		log.ERROR(common.SignLog, "根据区块hash算区块失败", "err")
 		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog,"根据区块root获取状态树失败 err",err)
+		log.ERROR(common.SignLog, "根据区块root获取状态树失败 err", err)
 		return common.Address{}, errors.New("获取stateDB失败")
 	}
 
@@ -2528,7 +2531,7 @@ func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash commo
 		//return signAccount, nil
 		addr = signAccount
 	} else {
-		log.WARN(common.SignLog,"存在委托 signAccount", signAccount, "height", height, "addr", addr)
+		log.WARN(common.SignLog, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
 	}
 	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
 	if common.TopAccountType == common.TopAccountA0 {

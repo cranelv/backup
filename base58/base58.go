@@ -1,10 +1,10 @@
 package base58
 
 import (
-	"math/big"
-	"strings"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/crc8"
+	"math/big"
+	"strings"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	alphabetIdx0 = '1'
 )
 
-var  b58 = [256]byte{
+var b58 = [256]byte{
 	255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255,
@@ -48,6 +48,7 @@ var  b58 = [256]byte{
 	255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255,
 }
+
 //go:generate go run genalphabet.go
 
 var bigRadix = big.NewInt(58)
@@ -132,13 +133,13 @@ func Encode(b []byte) string {
 }
 
 func EncodeInt(data uint8) string {
-	if len(alphabet)-1 < int(data){
+	if len(alphabet)-1 < int(data) {
 		return ""
 	}
 	return string(alphabet[data])
 }
 
-func Base58EncodeToString(currency string,b common.Address) string {
+func Base58EncodeToString(currency string, b common.Address) string {
 	str := Encode(b[:])
 	strAddr := currency + "." + str
 	crc := crc8.CalCRC8([]byte(strAddr))
@@ -147,14 +148,14 @@ func Base58EncodeToString(currency string,b common.Address) string {
 }
 
 func Base58DecodeToAddress(strData string) common.Address {
-	if strData == ""{
+	if strData == "" {
 		return common.Address{}
 	}
-	if !strings.Contains(strData,"."){
+	if !strings.Contains(strData, ".") {
 		return common.Address{}
 	}
-	tmpaddres := strings.Split(strData,".")[1]
-	addres := Decode(tmpaddres[0:len(tmpaddres)-1]) //最后一位为crc%58
+	tmpaddres := strings.Split(strData, ".")[1]
+	addres := Decode(tmpaddres[0 : len(tmpaddres)-1]) //最后一位为crc%58
 	return common.BytesToAddress(addres)
 	//return common.HexToAddress(string(addres))
 }

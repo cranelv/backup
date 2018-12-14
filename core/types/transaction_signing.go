@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package types
 
@@ -61,8 +60,8 @@ func SignTx(tx SelfTransaction, s Signer, prv *ecdsa.PrivateKey) (SelfTransactio
 // not match the signer used in the current call.
 func Sender(signer Signer, tx SelfTransaction) (common.Address, error) {
 	if sc := tx.GetFromLoad(); sc != nil {
-		sigCache ,ok := sc.(sigCache)
-		if ok{
+		sigCache, ok := sc.(sigCache)
+		if ok {
 			// If the signer used to derive from in a previous
 			// call is not the same as used current, invalidate
 			// the cache.
@@ -227,26 +226,26 @@ func (s EIP155Signer) SignatureValues(tx SelfTransaction, sig []byte) (R, S, V *
 func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 	switch txer.TxType() {
 	case NormalTxIndex:
-		tx,ok := txer.(*Transaction)
-		if !ok{
+		tx, ok := txer.(*Transaction)
+		if !ok {
 			return common.Hash{}
 		}
 		//if tx.Mtype == true{
-			var data1 txdata1
-			TxdataAddresToString(tx.Currency,&tx.data,&data1)
-			return rlpHash([]interface{}{
-				data1.AccountNonce,
-				data1.Price,
-				data1.GasLimit,
-				data1.Recipient,
-				data1.Amount,
-				data1.Payload,
-				s.chainId, uint(0), uint(0),
-				data1.TxEnterType,
-				data1.IsEntrustTx,
-				data1.CommitTime,
-				data1.Extra,
-			})
+		var data1 txdata1
+		TxdataAddresToString(tx.Currency, &tx.data, &data1)
+		return rlpHash([]interface{}{
+			data1.AccountNonce,
+			data1.Price,
+			data1.GasLimit,
+			data1.Recipient,
+			data1.Amount,
+			data1.Payload,
+			s.chainId, uint(0), uint(0),
+			data1.TxEnterType,
+			data1.IsEntrustTx,
+			data1.CommitTime,
+			data1.Extra,
+		})
 
 		//}else{
 		//		return rlpHash([]interface{}{
@@ -264,8 +263,8 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 		//		})
 		//}
 	case BroadCastTxIndex:
-		tx,ok := txer.(*TransactionBroad)
-		if !ok{
+		tx, ok := txer.(*TransactionBroad)
+		if !ok {
 			return common.Hash{}
 		}
 		return rlpHash([]interface{}{

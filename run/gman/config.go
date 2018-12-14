@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
@@ -13,18 +13,18 @@ import (
 	"reflect"
 	"unicode"
 
-	cli "gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/crypto/aes"
-	"github.com/matrix/go-matrix/run/utils"
-	"github.com/matrix/go-matrix/dashboard"
-	"github.com/matrix/go-matrix/man"
-	"github.com/matrix/go-matrix/pod"
-	"github.com/matrix/go-matrix/params"
-	"github.com/naoina/toml"
-	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/dashboard"
+	"github.com/matrix/go-matrix/man"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/pod"
+	"github.com/matrix/go-matrix/run/utils"
+	"github.com/naoina/toml"
+	cli "gopkg.in/urfave/cli.v1"
+	"io/ioutil"
 )
 
 var (
@@ -91,8 +91,8 @@ func defaultNodeConfig() pod.Config {
 	cfg := pod.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "man","eth", "shh")
-	cfg.WSModules = append(cfg.WSModules, "man","eth", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "man", "eth", "shh")
+	cfg.WSModules = append(cfg.WSModules, "man", "eth", "shh")
 	cfg.IPCPath = "gman.ipc"
 	return cfg
 }

@@ -347,9 +347,9 @@ var (
 		Name:  "testchangerole",
 		Usage: "change role",
 	}
-	GetCommitFlag=cli.StringFlag{
-		Name:"testgetcommit",
-		Usage:"get commit",
+	GetCommitFlag = cli.StringFlag{
+		Name:  "testgetcommit",
+		Usage: "get commit",
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -814,9 +814,6 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 type EntrustPassword struct {
 	Password map[common.Address]string
 }
-
-
-
 
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {

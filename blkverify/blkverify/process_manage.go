@@ -49,9 +49,9 @@ func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	defer pm.mu.Unlock()
 
 	pm.curNumber = number
-	if preSuperBlock{
+	if preSuperBlock {
 		pm.clearProcessMap()
-	}else{
+	} else {
 		pm.fixProcessMap()
 	}
 
@@ -132,7 +132,6 @@ func (pm *ProcessManage) clearProcessMap() {
 
 	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
 }
-
 
 func (pm *ProcessManage) AddVoteToPool(signHash common.Hash, sign common.Signature, fromAccount common.Address, height uint64) error {
 	return pm.votePool.AddVote(signHash, sign, fromAccount, height, true)

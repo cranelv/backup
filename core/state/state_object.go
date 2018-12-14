@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 package state
 
@@ -52,6 +51,7 @@ func (self StorageByteArray) Copy() StorageByteArray {
 	}
 	return cpy
 }
+
 // stateObject represents an Matrix account which is being modified.
 //
 // The usage pattern is as follows:
@@ -92,10 +92,10 @@ type stateObject struct {
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
 	var amountIsZero bool
-	for _,tAccount := range s.data.Balance{
-		if tAccount.AccountType == common.MainAccount{
+	for _, tAccount := range s.data.Balance {
+		if tAccount.AccountType == common.MainAccount {
 			amount := tAccount.Balance
-			if amount.Cmp(big.NewInt(int64(0))) ==0{
+			if amount.Cmp(big.NewInt(int64(0))) == 0 {
 				amountIsZero = true
 			}
 			break
@@ -118,25 +118,25 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Balance == nil {
 		//data.Balance = new(big.Int)
 		//hezi初始化账户
-		data.Balance = make(common.BalanceType,0)
+		data.Balance = make(common.BalanceType, 0)
 		tmp := new(common.BalanceSlice)
 		var i uint32
-		for i = 0; i <= common.LastAccount; i++{
+		for i = 0; i <= common.LastAccount; i++ {
 			tmp.AccountType = i
 			tmp.Balance = new(big.Int)
-			data.Balance = append(data.Balance,*tmp)
+			data.Balance = append(data.Balance, *tmp)
 		}
 	}
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
 	return &stateObject{
-		db:            db,
-		address:       address,
-		addrHash:      crypto.Keccak256Hash(address[:]),
-		data:          data,
-		cachedStorage: make(Storage),
-		dirtyStorage:  make(Storage),
+		db:                     db,
+		address:                address,
+		addrHash:               crypto.Keccak256Hash(address[:]),
+		data:                   data,
+		cachedStorage:          make(Storage),
+		dirtyStorage:           make(Storage),
 		cachedStorageByteArray: make(StorageByteArray),
 		dirtyStorageByteArray:  make(StorageByteArray),
 	}
@@ -216,6 +216,7 @@ func (self *stateObject) GetStateByteArray(db Database, key common.Hash) []byte 
 	}
 	return value
 }
+
 // SetState updates a value in account storage.
 func (self *stateObject) SetState(db Database, key, value common.Hash) {
 	self.db.journal.append(storageChange{
@@ -290,7 +291,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 
 // AddBalance removes amount from c's balance.
 // It is used to add funds to the destination account of a transfer.
-func (c *stateObject) AddBalance(accountType uint32,amount *big.Int) {
+func (c *stateObject) AddBalance(accountType uint32, amount *big.Int) {
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 	if amount.Sign() == 0 {
@@ -300,11 +301,11 @@ func (c *stateObject) AddBalance(accountType uint32,amount *big.Int) {
 
 		return
 	}
-	for _,tAccount := range c.Balance(){
-		if tAccount.AccountType == accountType{
-			if tAccount.Balance != nil{
-				amt := new(big.Int).Add(tAccount.Balance,amount)
-				c.SetBalance(accountType,amt)
+	for _, tAccount := range c.Balance() {
+		if tAccount.AccountType == accountType {
+			if tAccount.Balance != nil {
+				amt := new(big.Int).Add(tAccount.Balance, amount)
+				c.SetBalance(accountType, amt)
 			}
 			break
 		}
@@ -313,34 +314,34 @@ func (c *stateObject) AddBalance(accountType uint32,amount *big.Int) {
 
 // SubBalance removes amount from c's balance.
 // It is used to remove funds from the origin account of a transfer.
-func (c *stateObject) SubBalance(accountType uint32,amount *big.Int) {
+func (c *stateObject) SubBalance(accountType uint32, amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	for _,tAccount := range c.Balance(){
-		if tAccount.AccountType == accountType{
-			if tAccount.Balance != nil{
-				amt := new(big.Int).Sub(tAccount.Balance,amount)
-				c.SetBalance(accountType,amt)
+	for _, tAccount := range c.Balance() {
+		if tAccount.AccountType == accountType {
+			if tAccount.Balance != nil {
+				amt := new(big.Int).Sub(tAccount.Balance, amount)
+				c.SetBalance(accountType, amt)
 			}
 			break
 		}
 	}
 }
 
-func (self *stateObject) SetBalance(accountType uint32,amount *big.Int) {
+func (self *stateObject) SetBalance(accountType uint32, amount *big.Int) {
 	self.db.journal.append(balanceChange{
 		account: &self.address,
 		//prev:    new(big.Int).Set(self.data.Balance),
-		prev:    self.data.Balance,
+		prev: self.data.Balance,
 	})
-	self.setBalance(accountType,amount)
+	self.setBalance(accountType, amount)
 }
 
-func (self *stateObject) setBalance(accountType uint32,amount *big.Int) {
+func (self *stateObject) setBalance(accountType uint32, amount *big.Int) {
 	//self.data.Balance[accountType] = amount
-	for index,tAccount := range self.data.Balance{
-		if tAccount.AccountType == accountType{
+	for index, tAccount := range self.data.Balance {
+		if tAccount.AccountType == accountType {
 			self.data.Balance[index].Balance = amount
 			break
 		}

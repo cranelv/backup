@@ -175,8 +175,8 @@ func GetMaxNonce(hash common.Hash, lastwHeight uint64, support baseinterface.Ran
 		log.Error("electionseed", "计算种子失败 err", err, "hash", hash.String())
 		return 0
 	}
-	if height<lastwHeight{
-		lastwHeight=0
+	if height < lastwHeight {
+		lastwHeight = 0
 	}
 	ans := support.BlockChain().GetBlockByNumber(lastwHeight).Header().Nonce.Uint64()
 
