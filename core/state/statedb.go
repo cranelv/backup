@@ -1158,3 +1158,35 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
+
+func (self *StateDB) MissTrieDebug() {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	log.Info("miss tree node debug", "data amount", len(self.matrixData), "dirty amount", len(self.matrixDataDirty))
+	matrixKeys := make([]common.Hash, 0)
+	for key := range self.matrixData {
+		matrixKeys = append(matrixKeys, key)
+	}
+
+	sort.Slice(matrixKeys, func(i, j int) bool {
+		return matrixKeys[i].Big().Cmp(matrixKeys[j].Big()) <= 0
+	})
+
+	for i, k := range matrixKeys {
+		log.Info("miss tree node debug", "data index", i, "hash", k.TerminalString(), "data", self.matrixData[k])
+	}
+
+	dirtyKeys := make([]common.Hash, 0)
+	for key := range self.matrixDataDirty {
+		dirtyKeys = append(dirtyKeys, key)
+	}
+
+	sort.Slice(dirtyKeys, func(i, j int) bool {
+		return dirtyKeys[i].Big().Cmp(dirtyKeys[j].Big()) <= 0
+	})
+
+	for i, k := range dirtyKeys {
+		log.Info("miss tree node debug", "dirty index", i, "hash", k.TerminalString(), "data", self.matrixDataDirty[k])
+	}
+}

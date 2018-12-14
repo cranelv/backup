@@ -1015,6 +1015,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
+	log.Info("miss tree node debug", "入链时", "commit前state状态")
+	state.MissTrieDebug()
+
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		return NonStatTy, err

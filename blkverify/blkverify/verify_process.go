@@ -439,6 +439,9 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
+	log.Info("miss tree node debug", "验证完成后", "commit前state状态")
+	work.State.MissTrieDebug()
+
 	// 运行完matrix state后，生成root
 	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
 	if err != nil {
