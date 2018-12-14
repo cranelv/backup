@@ -41,7 +41,7 @@ func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomC
 		return nil
 	}
 	if NeedVote(height) == false {
-		log.WARN(ModuleElectSeed, "不需要投票 賬戶 不存在抵押交易 高度", height)
+		log.WARN(ModuleElectSeed, "不需要投票  账户不存在抵押交易 高度", height)
 		return nil
 	}
 	privatekey, publickeySend, err := commonsupport.Getkey()
@@ -51,8 +51,8 @@ func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomC
 		return err
 	}
 
-	log.INFO(ModuleElectSeed, "公钥 高度", (height + voteBeforeTime), "publickey", publickeySend)
-	log.INFO(ModuleElectSeed, "私钥 高度", (height +voteBeforeTime), "privatekey", common.BigToHash(privatekey).Bytes(), "privatekeySend", privatekeySend)
+	log.INFO(ModuleElectSeed, "公钥 高度", (height + voteBeforeTime))
+	log.INFO(ModuleElectSeed, "私钥 高度", (height +voteBeforeTime))
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height +voteBeforeTime)), Data: publickeySend})
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: privatekeySend})
 

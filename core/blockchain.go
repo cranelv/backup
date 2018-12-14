@@ -2472,45 +2472,42 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
+		log.ERROR(common.SignLog,"根据区块hash获取区块失败 hash",blockHash)
 		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
+		log.ERROR(common.SignLog,"根据区块root获取statedb失败 err",err)
 		return common.Address{}, "", errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 
 	ans := []common.Address{}
-	log.ERROR("签名助手", "开始调用 authFrom", authFrom, "height", height)
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR("签名助手", "结束调用", "", "ans", ans)
+	log.ERROR(common.SignLog, "结束调用", "", "authFrom",authFrom,"ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	} else {
-		log.ERROR("签名助手", "开始检查反射", ans[0].String(), "height", height)
 		aa := st.GetAuthFrom(ans[0], height)
-		log.ERROR("签名助手", "检查反射结果", aa.String())
+		log.INFO(common.SignLog, "检查反射结果", aa.String())
 	}
 
-	log.ERROR("签名助手", "ans", ans)
 	for _, v := range ans {
 		for kk, vv := range manparams.EntrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
 			if _, ok := manparams.EntrustValue[kk]; ok {
-				log.Info("签名助手", "获取到的账户", v.String(), "高度", height)
-				log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
 				return kk, manparams.EntrustValue[kk], nil
 			}
 			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			log.ERROR("签名助手", "无该密码", kk.String())
 			return kk, vv, errors.New("无该密码")
 
 		}
 	}
-	log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	log.ERROR(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
 	return common.Address{}, "", errors.New("ans为空")
 }
 
@@ -2518,21 +2515,23 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
+		log.ERROR(common.SignLog,"根据区块hash算区块失败","err")
 		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
+		log.ERROR(common.SignLog,"根据区块root获取状态树失败 err",err)
 		return common.Address{}, errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 	addr := st.GetAuthFrom(signAccount, height)
 	if addr.Equal(common.Address{}) {
-		log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", signAccount)
+		log.WARN(common.SignLog, "解签阶段 无委托 高度", height, "签名账户", signAccount, "真实账户", signAccount)
 		//return signAccount, nil
 		addr = signAccount
 	} else {
-		log.ERROR("存在委托", "signAccount", signAccount, "height", height, "addr", addr)
+		log.WARN(common.SignLog,"存在委托 signAccount", signAccount, "height", height, "addr", addr)
 	}
 	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
 	if common.TopAccountType == common.TopAccountA0 {

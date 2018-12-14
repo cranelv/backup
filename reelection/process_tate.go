@@ -72,7 +72,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		electStates.ElectList = append(electStates.ElectList, electList...)
 		electStates.NextElect = []mc.ElectNodeInfo{}
 	}
-	log.INFO(Module,"高度",block.Number().Uint64(),"ProduceElectGraphData data",electStates)
+	log.DEBUG(Module,"高度",block.Number().Uint64(),"ProduceElectGraphData data",electStates)
 	return electStates,nil
 }
 
@@ -125,7 +125,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
 	data, err := readFn(mc.MSKeyElectOnlineState)
-	log.INFO(Module, "data", data, "err", err)
+	//log.INFO(Module, "data", data, "err", err)
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectOnlineState, "err", err)
 		return []byte{}, err
@@ -151,7 +151,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 		electStates.ElectOnline[k].Position = mappStatus[v.Account]
 	}
 
-	log.INFO(Module,"高度",block.Number().Uint64(),"ProduceElectOnlineStateData data",electStates)
+	log.DEBUG(Module,"高度",block.Number().Uint64(),"ProduceElectOnlineStateData data",electStates)
 	return electStates,nil
 }
 
