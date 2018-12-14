@@ -24,6 +24,8 @@ import (
 	"sort"
 	"sync"
 
+	"strings"
+
 	"github.com/matrix/go-matrix/accounts/abi"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
@@ -34,7 +36,6 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	"strings"
 )
 
 type ChainReader interface {
@@ -514,7 +515,10 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	////todo 利息
 	interestReward := interest.New(env.State)
 	if nil != interestReward {
-		interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+		interestRewardMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+		if nil != interestRewardMap {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
+		}
 	}
 	//todo 惩罚
 
