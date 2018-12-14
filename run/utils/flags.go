@@ -178,11 +178,11 @@ var (
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
 	}
 	AesInputFlag = cli.StringFlag{
-		Name:  "aesinput",
+		Name:  "aesin",
 		Usage: "aes 输入",
 	}
 	AesOutputFlag = cli.StringFlag{
-		Name:  "aesoutput",
+		Name:  "aesout",
 		Usage: "aes 输出",
 	}
 	// Dashboard settings
@@ -366,6 +366,11 @@ var (
 		Name:  "entrust",
 		Usage: "Password file to entrustment transaction",
 		Value: "",
+	}
+	TestEntrustFlag=cli.StringFlag{
+		Name:"testmode",
+		Usage:"默认使用2222222222222222解密",
+		Value:"",
 	}
 	VMEnableDebugFlag = cli.BoolFlag{
 		Name:  "vmdebug",
