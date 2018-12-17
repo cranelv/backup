@@ -191,7 +191,7 @@ func (n *Node) Signature() (signature common.Signature) {
 		if account.Address != n.config.P2P.ManAddress {
 			continue
 		}
-		sig, err := wallet.SignHashValidateWithPass(account, n.config.P2P.ManPassword, discover.PubkeyID(&n.config.P2P.PrivateKey.PublicKey).Bytes(), true)
+		sig, err := wallet.SignHashValidateWithPass(account, n.config.P2P.ManPassword, discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes(), true)
 		if err != nil {
 			n.log.Error("signature with account", "error", err)
 			return
