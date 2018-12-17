@@ -7,7 +7,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
@@ -26,7 +25,7 @@ type cdc struct {
 	isMaster         bool
 	leaderCal        *leaderCalculator
 	bcInterval       *manparams.BCInterval
-	parentState      *state.StateDB
+	parentState      StateReader
 	turnTime         *turnTimes
 	chain            *core.BlockChain
 	logInfo          string
@@ -58,7 +57,7 @@ func (dc *cdc) SetSelfAddress(addr common.Address) {
 	dc.selfAddr = addr
 }
 
-func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState *state.StateDB) error {
+func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState StateReader) error {
 	if parentState == nil {
 		return errors.New("parent state is nil")
 	}
@@ -99,7 +98,8 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 		dc.reelectMaster.Set(common.Address{})
 	}
 	if err := dc.turnTime.SetTimeConfig(config); err != nil {
-		log.Error(dc.logInfo, "设置时间配置参数失败", err)
+		log.Error(dc.logInfo, "turnTime设置时间配置参数失败", err)
+		return err
 	}
 	dc.bcInterval = bcInterval
 	dc.consensusLeader.Set(consensusLeader)
@@ -133,7 +133,7 @@ func (dc *cdc) SetReelectTurn(reelectTurn uint32) error {
 	}
 	master, err := dc.GetLeader(dc.curConsensusTurn.TotalTurns()+reelectTurn, dc.bcInterval)
 	if err != nil {
-		return errors.Errorf("获取master错误(%v), 重选轮次(%d), 共识轮次(%d)", err, reelectTurn, dc.curConsensusTurn)
+		return errors.Errorf("获取master错误(%v), 重选轮次(%d), 共识轮次(%d)", err, reelectTurn, dc.curConsensusTurn.String())
 	}
 	dc.reelectMaster.Set(master)
 	dc.curReelectTurn = reelectTurn
@@ -175,6 +175,77 @@ func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 	}, nil
 }
 
+func (dc *cdc) readValidatorsAndRoleFromState(state StateReader) ([]mc.TopologyNodeInfo, common.RoleType, error) {
+	graphData, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+	if err != nil {
+		return nil, common.RoleNil, err
+	}
+
+	topology, OK := graphData.(*mc.TopologyGraph)
+	if OK == false || topology == nil {
+		return nil, common.RoleNil, errors.New("reflect topology data failed")
+	}
+
+	role := dc.getRoleFromTopology(topology)
+
+	validators := make([]mc.TopologyNodeInfo, 0)
+	for _, node := range topology.NodeList {
+		if node.Type == common.RoleValidator {
+			validators = append(validators, node)
+		}
+	}
+	return validators, role, nil
+}
+
+func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
+	for _, v := range TopologyGraph.NodeList {
+		if v.Account == dc.selfAddr {
+			return v.Type
+		}
+	}
+	return common.RoleNil
+}
+
+func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*mc.MatrixSpecialAccounts, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
+	if err != nil {
+		return nil, err
+	}
+	specials, OK := data.(*mc.MatrixSpecialAccounts)
+	if OK == false {
+		return nil, errors.New("reflect MatrixSpecialAccounts failed")
+	}
+	if specials == nil {
+		return nil, errors.New("MatrixSpecialAccounts == nil")
+	}
+	return specials, nil
+}
+
+func (dc *cdc) readLeaderConfigFromState(state StateReader) (*mc.LeaderConfig, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyLeaderConfig, state)
+	if err != nil {
+		return nil, err
+	}
+	config, OK := data.(*mc.LeaderConfig)
+	if OK == false {
+		return nil, errors.New("reflect LeaderConfig failed")
+	}
+	if config == nil {
+		return nil, errors.New("LeaderConfig == nil")
+	}
+	return config, nil
+}
+
+func (dc *cdc) readBroadCastIntervalFromState(state StateReader) (*manparams.BCInterval, error) {
+	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//提供共识引擎调用，获取数据的接口
 func (dc *cdc) GetCurrentHash() common.Hash {
 	return dc.leaderCal.preHash
 }
@@ -214,8 +285,7 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 
 func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
 	if blockHash.Equal(common.Hash{}) {
-		log.Error(dc.logInfo, "GetEntrustSignInfo", "输入hash为空")
-		return common.Address{}, "", errors.New("输入hash为空")
+		return common.Address{}, "", errors.New("cdc:输入hash为空")
 	}
 
 	if blockHash != dc.leaderCal.preHash {
@@ -223,12 +293,11 @@ func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash
 	}
 
 	if common.TopAccountType == common.TopAccountA0 {
-		//TODO 暂定根据ca提供的接口获取委托账户，
+		//TODO 暂定根据ca提供的接口获取委托账户
 	}
 
 	if nil == dc.parentState {
-		log.Error(dc.logInfo, "GetEntrustSignInfo", "parentStateDB为空")
-		return common.Address{}, "", errors.New("cdc state can't find")
+		return common.Address{}, "", errors.New("cdc: parent stateDB is nil, can't reader data")
 	}
 
 	height := dc.number - 1
@@ -242,18 +311,14 @@ func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash
 				continue
 			}
 			if _, ok := manparams.EntrustValue[kk]; ok {
-				//log.Info("签名助手", "获取到的账户", v.String(), "高度", height)
-				//log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
 				return kk, manparams.EntrustValue[kk], nil
 			}
-			//log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			//log.ERROR("签名助手", "无该密码", kk.String())
-			return kk, vv, errors.New("无该密码")
+			return kk, vv, errors.New("cdc: 无该密码")
 
 		}
 	}
-	log.Info(dc.logInfo, "GetEntrustSignInfo", "失败", "高度", height, "真实账户", authFrom.String())
-	return common.Address{}, "", errors.New("ans为空")
+	//log.Info(dc.logInfo, "GetEntrustSignInfo", "失败", "高度", height, "真实账户", authFrom.String())
+	return common.Address{}, "", errors.New("cdc: ans为空")
 }
 
 func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
@@ -285,68 +350,4 @@ func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (com
 		return addr, nil
 	}
 	return dc.chain.GetAuthAccount(signAccount, hash)
-}
-
-func (dc *cdc) readValidatorsAndRoleFromState(state *state.StateDB) ([]mc.TopologyNodeInfo, common.RoleType, error) {
-	topology, _, err := dc.chain.GetGraphByState(state)
-	if err != nil {
-		return nil, common.RoleNil, err
-	}
-
-	role := dc.getRoleFromTopology(topology)
-
-	validators := make([]mc.TopologyNodeInfo, 0)
-	for _, node := range topology.NodeList {
-		if node.Type == common.RoleValidator {
-			validators = append(validators, node)
-		}
-	}
-	return validators, role, nil
-}
-
-func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleType {
-	for _, v := range TopologyGraph.NodeList {
-		if v.Account == dc.selfAddr {
-			return v.Type
-		}
-	}
-	return common.RoleNil
-}
-
-func (dc *cdc) readSpecialAccountsFromState(state *state.StateDB) (*mc.MatrixSpecialAccounts, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
-	if err != nil {
-		return nil, err
-	}
-	specials, OK := data.(*mc.MatrixSpecialAccounts)
-	if OK == false {
-		return nil, errors.New("反射MatrixSpecialAccounts失败")
-	}
-	if specials == nil {
-		return nil, errors.New("MatrixSpecialAccounts == nil")
-	}
-	return specials, nil
-}
-
-func (dc *cdc) readLeaderConfigFromState(state *state.StateDB) (*mc.LeaderConfig, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyLeaderConfig, state)
-	if err != nil {
-		return nil, err
-	}
-	config, OK := data.(*mc.LeaderConfig)
-	if OK == false {
-		return nil, errors.New("反射LeaderConfig失败")
-	}
-	if config == nil {
-		return nil, errors.New("LeaderConfig == nil")
-	}
-	return config, nil
-}
-
-func (dc *cdc) readBroadCastIntervalFromState(state *state.StateDB) (*manparams.BCInterval, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
-	if err != nil {
-		return nil, err
-	}
-	return manparams.NewBCIntervalWithInterval(data)
 }

@@ -135,6 +135,10 @@ func (serv *TopNodeService) subMsg() error {
 	return nil
 }
 
+func (serv *TopNodeService) Close() {
+	close(serv.quitCh)
+}
+
 func (serv *TopNodeService) unSubMsg() {
 	serv.roleUpdateSub.Unsubscribe()
 	serv.leaderChangeSub.Unsubscribe()

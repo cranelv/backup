@@ -42,7 +42,7 @@ func NewBCIntervalWithInterval(interval interface{}) (*BCInterval, error) {
 		return nil, errors.Errorf("transfer broadcast interval data to struct err(%v)", err)
 	}
 
-	log.INFO("params", "NewBCIntervalWithInterval广播周期", infoStu.BCInterval, "上个广播高度", infoStu.LastBCNumber)
+	//log.INFO("params", "NewBCIntervalWithInterval广播周期", infoStu.BCInterval, "上个广播高度", infoStu.LastBCNumber)
 	return &BCInterval{
 		lastBCNumber:       infoStu.LastBCNumber,
 		lastReelectNumber:  infoStu.LastReelectNumber,

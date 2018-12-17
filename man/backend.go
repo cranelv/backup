@@ -8,10 +8,10 @@ package man
 import (
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/ca"
 	"math/big"
 	"runtime"
 	"sync/atomic"
-	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -53,9 +53,9 @@ import (
 	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/trie"
 	"time"
-	"github.com/matrix/go-matrix/p2p/discover"
 )
 
 var MsgCenter *mc.Center
@@ -528,6 +528,7 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	//s.broadTx.Start()//YY
 	return nil
 }
+
 //func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
 //	ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
 //	selfId := p2p.ServerP2p.Self().ID.String()
@@ -576,11 +577,13 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Addr
 	s.protocolManager.fetcher.Notify(nid.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
 
 }
+
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Matrix protocol.
 func (s *Matrix) Stop() error {
 	s.blockGen.Close()
 	s.blockVerify.Close()
+	s.olConsensus.Close()
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.protocolManager.Stop()

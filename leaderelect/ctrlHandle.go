@@ -139,7 +139,7 @@ func (self *controller) timeOutHandle() {
 			"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn,
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
 	default:
-		log.ERROR(self.logInfo, "超时事件", "当前状态错误", self.State(), "轮次", self.curTurnInfo(), "高度", self.Number(),
+		log.ERROR(self.logInfo, "超时事件", "当前状态错误", self.State().String(), "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "当前时间", curTime)
 		return
 	}
