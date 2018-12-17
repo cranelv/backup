@@ -403,6 +403,8 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 		return common.Hash{}, HaveNoGenBlockError
 	}
 
+	log.Info(p.logExtraInfo(), "区块插入", "信息", "leader", leader.Hex(), "block hash", blockData.block.BlockHash.TerminalString(), "root", blockData.block.Header.Root.TerminalString())
+
 	insertHeader := blockData.block.Header
 	if isSelf == false {
 		if header.HashNoSignsAndNonce() != insertHeader.HashNoSignsAndNonce() {

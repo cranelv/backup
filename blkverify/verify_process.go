@@ -524,8 +524,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	intermediateRoot := work.State.IntermediateRoot(p.blockChain().Config().IsEIP158(localBlock.Number()))
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "remote root", remoteHeader.Root.Hex())
+	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex(), "remote hash", remoteHeader.HashNoNonce())
 	//log.Info("miss tree node debug", "验证完成后", "commit后state状态")
 	//work.State.MissTrieDebug()
 
