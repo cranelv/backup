@@ -513,9 +513,6 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	//log.Info("miss tree node debug", "验证完成后", "commit前state状态")
-	//work.State.MissTrieDebug()
-
 	// 运行完matrix state后，生成root
 	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
 	if err != nil {
@@ -524,14 +521,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex(), "remote hash", remoteHeader.HashNoNonce())
-	//log.Info("miss tree node debug", "验证完成后", "commit后state状态")
-	//work.State.MissTrieDebug()
-
-	//root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
-	//if root1 != p.curProcessReq.req.Header.Root {
-	//	log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
-	//}
+	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
 
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {

@@ -389,15 +389,15 @@ func (self *controller) sendInquiryReq() {
 	reqHash := self.selfCache.SaveInquiryReq(req)
 	selfSign, err := self.matrix.SignHelper().SignHashWithValidateByReader(self.dc, reqHash.Bytes(), true, self.ParentHash())
 	if err != nil {
-		log.ERROR(self.logInfo, "send<重选询问请求>", "自己的同意签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
+		log.Error(self.logInfo, "send<重选询问请求>", "自己的同意签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
 	}
 	if err := self.selfCache.SaveInquiryVote(reqHash, selfSign, self.dc.selfAddr, self.dc, self.matrix.SignHelper()); err != nil {
-		log.ERROR(self.logInfo, "send<重选询问请求>", "保存自己的同意签名错误", "err", err)
+		log.Error(self.logInfo, "send<重选询问请求>", "保存自己的同意签名错误", "err", err)
 		return
 	}
 
-	log.INFO(self.logInfo, "send<重选询问请求>, hash", reqHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number())
+	log.INFO(self.logInfo, "send<重选询问请求>", "成功", "轮次", self.curTurnInfo(), "高度", self.Number(), "reqHash", reqHash.TerminalString())
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryReq, req, common.RoleValidator, nil)
 	return
 }
@@ -405,7 +405,7 @@ func (self *controller) sendInquiryReq() {
 func (self *controller) sendInquiryReqToSingle(target common.Address) {
 	curTime := time.Now().Unix()
 	if false == self.selfCache.CanSendSingleInquiryReq(curTime, self.dc.turnTime.reelectHandleInterval) {
-		log.Warn(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
+		log.Trace(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
 		return
 	}
 	req := &mc.HD_ReelectInquiryReqMsg{
@@ -458,7 +458,7 @@ func (self *controller) sendInquiryRspWithAgree(reqHash common.Hash, target comm
 		RLResult:  nil,
 		NewBlock:  nil,
 	}
-	log.ERROR(self.logInfo, "send<询问响应(同意更换leader响应)>", "成功", "reqHash", reqHash.TerminalString(), "高度", number,
+	log.Info(self.logInfo, "send<询问响应(同意更换leader响应)>", "成功", "reqHash", reqHash.TerminalString(), "高度", number,
 		"轮次信息", self.curTurnInfo(), "目标", target.Hex())
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
 }
@@ -467,7 +467,7 @@ func (self *controller) sendInquiryRspWithRLConsensus(reqHash common.Hash, targe
 	consensusMsg, err := self.mp.GetRLConsensusMsg(self.dc.curConsensusTurn)
 	if err != nil {
 		log.ERROR(self.logInfo, "send<询问响应(leader重选已完成)>", "获取leader重选共识消息错误", "err", err, "高度", self.Number(),
-			"共识轮次", self.dc.curConsensusTurn, "共识leader", self.dc.GetConsensusLeader())
+			"轮次信息", self.curTurnInfo(), "目标", target.Hex())
 		return
 	}
 	rsp := &mc.HD_ReelectInquiryRspMsg{
@@ -479,15 +479,15 @@ func (self *controller) sendInquiryRspWithRLConsensus(reqHash common.Hash, targe
 		RLResult:  consensusMsg,
 		NewBlock:  nil,
 	}
-	log.ERROR(self.logInfo, "send<询问响应(leader重选已完成)>", "成功", "轮次", consensusMsg.Req.InquiryReq.ConsensusTurn, "高度", self.Number(),
-		"共识轮次", self.dc.curConsensusTurn, "共识leader", self.dc.GetConsensusLeader())
+	log.Info(self.logInfo, "send<询问响应(leader重选已完成)>", "成功", "轮次", consensusMsg.Req.InquiryReq.ConsensusTurn, "高度", self.Number(),
+		"轮次信息", self.curTurnInfo(), "目标", target.Hex())
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendInquiryRspWithNewBlockReady(reqHash common.Hash, target common.Address, number uint64) {
 	parentHeader := self.mp.GetParentHeader()
 	if parentHeader == nil {
-		log.ERROR(self.logInfo, "send<询问响应(新区块已准备完毕响应)>", "获取区块失败")
+		log.Warn(self.logInfo, "send<询问响应(新区块已准备完毕响应)>", "获取区块失败")
 		return
 	}
 
@@ -500,35 +500,35 @@ func (self *controller) sendInquiryRspWithNewBlockReady(reqHash common.Hash, tar
 		RLResult:  nil,
 		NewBlock:  parentHeader,
 	}
-	log.ERROR(self.logInfo, "send<询问响应(新区块已准备完毕响应)>", "完成", "block hash", parentHeader.Hash().TerminalString(), "req hash", reqHash.TerminalString(), "to", target.Hex())
+	log.Info(self.logInfo, "send<询问响应(新区块已准备完毕响应)>", "成功", "block hash", parentHeader.Hash().TerminalString(), "req hash", reqHash.TerminalString(), "to", target.Hex())
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendRLReq() {
 	req, reqHash, err := self.selfCache.GetRLReqMsg()
 	if err != nil {
-		log.ERROR(self.logInfo, "send<leader重选请求>", "获取请求消息失败", "err", err)
+		log.Warn(self.logInfo, "send<leader重选请求>", "获取请求消息失败", "err", err)
 		return
 	}
 
 	selfSign, err := self.matrix.SignHelper().SignHashWithValidateByReader(self.dc, reqHash.Bytes(), true, self.ParentHash())
 	if err != nil {
-		log.ERROR(self.logInfo, "send<leader重选请求>", "自己的签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
+		log.Error(self.logInfo, "send<leader重选请求>", "自己的签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
 	}
 	if err := self.selfCache.SaveRLVote(reqHash, selfSign, self.dc.selfAddr, self.dc, self.matrix.SignHelper()); err != nil {
-		log.ERROR(self.logInfo, "send<leader重选请求>", "保存自己签名错误", "err", err)
+		log.Error(self.logInfo, "send<leader重选请求>", "保存自己签名错误", "err", err)
 		return
 	}
 
-	log.Trace(self.logInfo, "send<Leader重选请求>, hash", reqHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number())
+	log.Info(self.logInfo, "send<Leader重选请求>, hash", reqHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number())
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectReq, req, common.RoleValidator, nil)
 }
 
 func (self *controller) sendResultBroadcastMsg() {
 	msg, msgHash, err := self.selfCache.GetBroadcastMsg()
 	if err != nil {
-		log.ERROR(self.logInfo, "send<重选结果广播>", "获取广播消息失败", "err", err)
+		log.Warn(self.logInfo, "send<重选结果广播>", "获取广播消息失败", "err", err)
 		return
 	}
 	selfSign, err := self.matrix.SignHelper().SignHashWithValidateByReader(self.dc, msgHash.Bytes(), true, self.ParentHash())
@@ -540,7 +540,7 @@ func (self *controller) sendResultBroadcastMsg() {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "保存自己的响应失败", "err", err)
 		return
 	}
-	log.Trace(self.logInfo, "send<重选结果广播>, hash", msgHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number(), "类型", msg.Type)
+	log.Info(self.logInfo, "send<重选结果广播>, hash", msgHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number(), "类型", msg.Type)
 	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectBroadcast, msg, common.RoleValidator, nil)
 }
 

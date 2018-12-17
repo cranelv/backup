@@ -242,11 +242,6 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		return
 	}
 
-	//root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
-	//if root != blockData.block.Header.Root {
-	//	log.Error("hyk_miss_trie_2", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
-	//}
-
 	if blockData.state == blockStateLocalVerified {
 		diff := big.NewInt(blockData.block.Header.Difficulty.Int64())
 		results, err := p.powPool.GetMinerResults(blockData.block.BlockHash, diff)
@@ -285,11 +280,6 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
-
-	//root2, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
-	//if root2 != blockData.block.Header.Root {
-	//	log.Error("hyk_miss_trie_4", "root", blockData.block.Header.Root.TerminalString(), "state root", root2.TerminalString())
-	//}
 
 	p.state = StateBlockInsert
 	p.processBlockInsert(p.curLeader)
@@ -402,8 +392,6 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 	if nil == blockData || blockData.state != blockStateReady {
 		return common.Hash{}, HaveNoGenBlockError
 	}
-
-	log.Info(p.logExtraInfo(), "区块插入", "信息", "leader", leader.Hex(), "block hash", blockData.block.BlockHash.TerminalString(), "root", blockData.block.Header.Root.TerminalString())
 
 	insertHeader := blockData.block.Header
 	if isSelf == false {

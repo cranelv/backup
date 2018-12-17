@@ -253,11 +253,6 @@ func (self *BlockGenor) consensusBlockMsgHandle(data *mc.BlockLocalVerifyOK) {
 		return
 	}
 
-	//root, _ := data.State.Commit(self.pm.bc.Config().IsEIP158(data.Header.Number))
-	//if root != data.Header.Root {
-	//	log.Error("hyk_miss_trie_1", "root", data.Header.Root.TerminalString(), "state root", root.TerminalString())
-	//}
-
 	process.AddConsensusBlock(data)
 }
 
