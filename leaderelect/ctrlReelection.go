@@ -47,8 +47,7 @@ func (self *controller) startReelect(reelectTurn uint32) {
 }
 
 func (self *controller) finishReelectWithPOS(posResult *mc.HD_BlkConsensusReqMsg, from common.Address) {
-	log.INFO(self.logInfo, "完成重阶段(POS结果)", "开始处理")
-	defer log.INFO(self.logInfo, "完成重阶段(POS结果)", "结束处理")
+	log.INFO(self.logInfo, "完成leader重选", "POS结果重置，恢复并开始挖矿等待", "共识轮次", self.ConsensusTurn().String(), "高度", self.Number())
 	mc.PublishEvent(mc.Leader_RecoveryState, &mc.RecoveryStateMsg{Type: mc.RecoveryTypePOS, Header: posResult.Header, From: from})
 	self.setTimer(0, self.timer)
 	self.setTimer(0, self.reelectTimer)
@@ -60,12 +59,9 @@ func (self *controller) finishReelectWithPOS(posResult *mc.HD_BlkConsensusReqMsg
 }
 
 func (self *controller) finishReelectWithRLConsensus(rlResult *mc.HD_ReelectLeaderConsensus) {
-	log.INFO(self.logInfo, "完成重阶段(leader重选结果)", "开始处理")
-	defer log.INFO(self.logInfo, "完成重阶段(leader重选结果)", "结束处理")
 	consensusTurn := calcNextConsensusTurn(rlResult.Req.InquiryReq.ConsensusTurn, rlResult.Req.InquiryReq.ReelectTurn)
-	log.INFO(self.logInfo, "完成重选阶段(leader重选结果), 共识轮次", consensusTurn.String())
 	if err := self.dc.SetConsensusTurn(consensusTurn); err != nil {
-		log.ERROR(self.logInfo, "完成重选阶段(leader重选结果)", "设置共识轮次失败", "err", err, "目标共识轮次", consensusTurn)
+		log.ERROR(self.logInfo, "完成leader重选(leader重置)", "设置共识轮次失败", "err", err, "目标共识轮次", consensusTurn)
 		return
 	}
 
@@ -79,7 +75,8 @@ func (self *controller) finishReelectWithRLConsensus(rlResult *mc.HD_ReelectLead
 	self.dc.turnTime.SetBeginTime(consensusTurn, int64(rlResult.Req.TimeStamp))
 	curTime := time.Now().Unix()
 	st, remainTime, reelectTurn := self.dc.turnTime.CalState(consensusTurn, curTime)
-	log.INFO(self.logInfo, "完成重选阶段(leader重选结果)", "计算当前状态结果", "状态", st, "剩余时间", remainTime, "重选轮次", reelectTurn)
+	log.INFO(self.logInfo, "完成leader重选", "leader重置", "重选轮次", reelectTurn, "旧共识轮次", self.ConsensusTurn().String(), "新共识轮次", consensusTurn.String(), "高度", self.Number(),
+		"状态计算结果", "状态", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn, "轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()))
 	self.dc.state = st
 	self.dc.curReelectTurn = 0
 	self.setTimer(remainTime, self.timer)
@@ -94,7 +91,7 @@ func (self *controller) finishReelectWithRLConsensus(rlResult *mc.HD_ReelectLead
 
 func (self *controller) reelectTimeOutHandle() {
 	if self.State() != stReelect {
-		log.ERROR(self.logInfo, "重选定时器超时处理", "状态错误,当前状态不是重选阶段", "当前状态", self.State().String())
+		log.Warn(self.logInfo, "重选处理定时器超时", "状态错误,当前状态不是重选阶段", "当前状态", self.State().String())
 		return
 	}
 	switch self.selfCache.GetInquiryResult() {
@@ -105,59 +102,61 @@ func (self *controller) reelectTimeOutHandle() {
 	case mc.ReelectRSPTypePOS, mc.ReelectRSPTypeAlreadyRL:
 		self.sendResultBroadcastMsg()
 	default:
-		log.WARN(self.logInfo, "重选定时器超时处理", "当前询问结果错误", "inquiryResult", self.selfCache.GetInquiryResult())
+		log.Warn(self.logInfo, "重选处理定时器超时", "当前询问结果错误", "inquiryResult", self.selfCache.GetInquiryResult())
 	}
 	self.setTimer(self.dc.turnTime.reelectHandleInterval, self.reelectTimer)
 }
 
 func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
-	if self.State() == stIdle {
-		log.WARN(self.logInfo, "处理重选询问请求", "当前状态为idle，忽略消息", "from", req.From.Hex(), "高度", self.dc.number)
+	if nil == req {
+		log.Warn(self.logInfo, "处理重选询问请求", "消息为nil")
 		return
 	}
-	if nil == req {
-		log.WARN(self.logInfo, "处理重选询问请求", "消息为nil")
+	if self.State() == stIdle {
+		log.Warn(self.logInfo, "处理重选询问请求", "当前状态为idle，忽略消息", "from", req.From.Hex(), "高度", self.dc.number)
 		return
 	}
 	if req.Master != req.From {
-		log.WARN(self.logInfo, "处理重选询问请求", "消息master与from不匹配", "master", req.Master.Hex(), "from", req.From.Hex())
+		log.Warn(self.logInfo, "处理重选询问请求", "消息master与from不匹配", "master", req.Master.Hex(), "from", req.From.Hex(), "高度", self.dc.number)
 		return
 	}
-	log.INFO(self.logInfo, "处理重选询问消息", "开始", "高度", req.Number, "共识轮次", req.ConsensusTurn, "重选轮次", req.ReelectTurn, "from", req.From.Hex())
+	log.Debug(self.logInfo, "处理重选询问消息", "开始", "高度", req.Number, "共识轮次", req.ConsensusTurn.String(), "重选轮次", req.ReelectTurn, "本地轮次信息", self.curTurnInfo(), "from", req.From.Hex())
 
 	// 对比请求高度
 	if req.Number < self.Number() {
 		// 消息高度<本地高度: 请求方高度落后
 		reqHash := types.RlpHash(req)
-		log.INFO(self.logInfo, "处理重选询问请求", "请求高度<本地高度, 发送新区块已准备完毕响应", "请求高度", req.Number, "本地高度", self.Number(), "reqHash", reqHash.TerminalString())
+		log.Trace(self.logInfo, "处理重选询问请求", "请求高度<本地高度, 发送新区块已准备完毕响应", "请求高度", req.Number, "本地高度", self.Number(), "reqHash", reqHash.TerminalString())
 		self.sendInquiryRspWithNewBlockReady(reqHash, req.From, req.Number)
 		return
 	} else if req.Number > self.Number() {
 		// 消息轮次>本地轮次: 本地高度落后
-		log.INFO(self.logInfo, "处理重选询问请求", "请求高度>本地高度, 主动询问对方状态", "请求高度", req.Number, "本地高度", self.Number(), "目标", req.From.Hex())
 		if self.State() == stReelect && self.dc.isMaster {
-			log.INFO(self.logInfo, "处理重选询问请求", "高度落后，但当前是master，不另外发送询问", "请求高度", req.Number, "本地高度", self.Number(), "目标", req.From.Hex())
+			log.Trace(self.logInfo, "处理重选询问请求", "高度落后，但当前是master，不另外发送询问", "请求高度", req.Number, "本地高度", self.Number(), "目标", req.From.Hex())
+			return
+		} else {
+			log.Trace(self.logInfo, "处理重选询问请求", "请求高度>本地高度, 主动询问对方状态", "请求高度", req.Number, "本地高度", self.Number(), "目标", req.From.Hex())
+			self.sendInquiryReqToSingle(req.From)
 			return
 		}
-		self.sendInquiryReqToSingle(req.From)
-		return
 	}
 
 	// 高度相同，对比共识轮次
 	if req.ConsensusTurn.Cmp(self.dc.curConsensusTurn) < 0 {
 		// 消息轮次<本地轮次: 请求方共识轮次落后
-		log.INFO(self.logInfo, "处理重选询问请求", "请求共识轮次<本地共识轮次, 发送重选共识结果", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+		log.Trace(self.logInfo, "处理重选询问请求", "请求共识轮次<本地共识轮次, 发送重选共识结果", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
 		self.sendInquiryRspWithRLConsensus(types.RlpHash(req), req.From)
 		return
 	} else if req.ConsensusTurn.Cmp(self.dc.curConsensusTurn) > 0 {
 		// 消息轮次>本地轮次: 本地共识轮次落后
-		log.INFO(self.logInfo, "处理重选询问请求", "请求共识轮次>本地共识轮次, 主动询问对方状态", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+		log.Trace(self.logInfo, "处理重选询问请求", "请求共识轮次>本地共识轮次, 主动询问对方状态", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
 		if self.State() == stReelect && self.dc.isMaster {
-			log.INFO(self.logInfo, "处理重选询问请求", "共识轮次落后，但当前是master，不另外发送询问", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+			log.Trace(self.logInfo, "处理重选询问请求", "共识轮次落后，但当前是master，不另外发送询问", "消息共识轮次", req.ConsensusTurn, "本地共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+			return
+		} else {
+			self.sendInquiryReqToSingle(req.From)
 			return
 		}
-		self.sendInquiryReqToSingle(req.From)
-		return
 	} else {
 		master, err := self.dc.GetLeader(req.ConsensusTurn.TotalTurns()+req.ReelectTurn, self.dc.bcInterval)
 		if err != nil {
@@ -198,7 +197,7 @@ func (self *controller) handleInquiryRsp(rsp *mc.HD_ReelectInquiryRspMsg) {
 	}
 
 	if err := self.selfCache.IsMatchedInquiryRsp(rsp); err != nil {
-		log.WARN(self.logInfo, "处理重选询问响应", "不是匹配的响应", "高度", self.dc.number, "err", err)
+		log.Warn(self.logInfo, "处理重选询问响应", "不是匹配的响应", "高度", self.dc.number, "err", err)
 		return
 	}
 	switch rsp.Type {
@@ -322,7 +321,7 @@ func (self *controller) handleRLVote(msg *mc.HD_ConsensusVote) {
 
 func (self *controller) handleBroadcastMsg(msg *mc.HD_ReelectBroadcastMsg) {
 	if nil == msg {
-		log.WARN(self.logInfo, "处理重选结果广播", "消息为nil")
+		log.Warn(self.logInfo, "处理重选结果广播", "消息为nil")
 		return
 	}
 	if err := self.processResultBroadcastMsg(msg); err != nil {
@@ -417,7 +416,7 @@ func (self *controller) sendInquiryReq() {
 func (self *controller) sendInquiryReqToSingle(target common.Address) {
 	curTime := time.Now().Unix()
 	if false == self.selfCache.CanSendSingleInquiryReq(curTime, self.dc.turnTime.reelectHandleInterval) {
-		log.WARN(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
+		log.Warn(self.logInfo, "send<重选询问请求>single", "尚未达到发送间隔，不发送请求")
 		return
 	}
 	req := &mc.HD_ReelectInquiryReqMsg{

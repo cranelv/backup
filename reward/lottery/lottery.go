@@ -177,7 +177,7 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 }
 
 func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum int) TxCmpResultList {
-	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - 1
+	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - tlr.bcInterval.GetReElectionInterval()
 
 	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
@@ -187,11 +187,15 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 		log.Error(PackageName, "获取随机数错误", err)
 		return nil
 	}
-	rand.Seed(randSeed.Int64())
+
+	log.INFO(PackageName, "随机数种子", abs(randSeed.Int64()))
+	rand.Seed(abs(randSeed.Int64()))
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
+		log.INFO(PackageName, "交易获取高度", originBlockNum)
 		for _, tx := range txs {
+			log.INFO(PackageName, "交易类型", tx.GetMatrixType())
 			if tx.GetMatrixType() == common.ExtraNormalTxType {
 				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
@@ -205,8 +209,10 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	}
 	sort.Sort(txsCmpResultList)
 	chooseResultList := make(TxCmpResultList, 0)
+	log.INFO(PackageName, "交易数目", len(txsCmpResultList))
 	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {
 		randUint64 := rand.Uint64()
+		log.INFO(PackageName, "随机数", randUint64)
 		index := randUint64 % (uint64(len(txsCmpResultList)))
 		log.INFO(PackageName, "交易序号", index)
 		chooseResultList = append(chooseResultList, txsCmpResultList[index])

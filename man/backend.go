@@ -21,7 +21,7 @@ import (
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/blkgenor"
-	"github.com/matrix/go-matrix/blkverify/blkverify"
+	"github.com/matrix/go-matrix/blkverify"
 	"github.com/matrix/go-matrix/broadcastTx"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"

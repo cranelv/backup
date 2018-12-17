@@ -11,6 +11,7 @@ import (
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/core/types"
+	"errors"
 )
 
 // keystoreWallet implements the accounts.Wallet interface for the original
@@ -166,11 +167,23 @@ func (w *keystoreWallet) SignHashValidateWithPass(account accounts.Account, pass
 	return w.keystore.SignHashValidateWithPass(account, passphrase, hash, validate)
 }
 func (w *keystoreWallet) SignVrfWithPass(account accounts.Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error) {
-	_, key, err := w.keystore.getDecryptedKey(account, passphrase)
-	if err != nil {
-		return []byte{}, []byte{}, []byte{}, err
+	ks := w.keystore
+	if ks == nil {
+		return []byte{}, []byte{}, []byte{}, errors.New("准备签名vrf失败 w.keystore为空")
 	}
-	defer zeroKey(key.PrivateKey)
+	key := ks.findSignKeyInTemp(account)
+	if key == nil {
+		var err error
+		ks.mu.Lock()
+		_, key, err = ks.getDecryptedKey(account, passphrase)
+		if err != nil {
+			ks.mu.Unlock()
+			return []byte{}, []byte{}, []byte{}, err
+		}
+		ks.tempPrvKey[account.Address] = key
+		ks.mu.Unlock()
+	}
+
 	vrfValue, vrfProof, err := baseinterface.NewVrf().ComputeVrf(key.PrivateKey, msg)
 	if err != nil {
 		return []byte{}, []byte{}, []byte{}, err

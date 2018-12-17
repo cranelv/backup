@@ -169,13 +169,13 @@ func (vip *VIP_Electoion) GetLastNode(nodelist []vip_node) []vip_node {
 	return remainNodeList
 }
 
-func (vip *VIP_Electoion) GetWeight(lastnode []vip_node) []support.Stf {
-	var CapitalMap []support.Stf
+func (vip *VIP_Electoion) GetWeight(lastnode []vip_node) []support.Pnormalized {
+	var CapitalMap []support.Pnormalized
 	for _, item := range lastnode {
 		self := support.SelfNodeInfo{Address: item.Address, Stk: float64(item.Deposit.Uint64()), Uptime: int(item.OnlineTime.Uint64()), Tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
 		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.Deposit_stake()*self.Coef_stk)
 		value = value * (float64(item.Ratio) / float64(DefaultRatioDenominator))
-		CapitalMap = append(CapitalMap, support.Stf{Addr: self.Address, Flot: float64(value)})
+		CapitalMap = append(CapitalMap, support.Pnormalized{Addr: self.Address, Value: float64(value)})
 	}
 	return CapitalMap
 }
@@ -203,8 +203,17 @@ func (vip *VIP_Electoion) vipElection(nodeList []vip_node, maxNum int) []vip_nod
 	if maxNum > vip.LastMasterNum {
 		maxNum = vip.LastMasterNum
 	}
+	//fmt.Println("排序前")
+	//for _,v:=range nodeList{
+	//	fmt.Println(v.Address.String())
+	//}
 	nodeList = Knuth_Fisher_Yates_Algorithm(nodeList, vip.randSeed)
 
+	//fmt.Println("排序后")
+	//for _,v:=range nodeList{
+	//	fmt.Println(v.Address.String())
+	//}
+	//fmt.Println("排序后--")
 	sort.Sort(VipNodeList(nodeList))
 	var vipElected = make([]vip_node, 0)
 	for _, v := range nodeList {

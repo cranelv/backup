@@ -30,6 +30,8 @@ type reqData struct {
 	stateDB           *state.StateDB
 	localReq          bool
 	localVerifyResult uint8
+	posFinished       bool
+	votes             []*common.VerifiedSign
 }
 
 func newReqData(req *mc.HD_BlkConsensusReqMsg) *reqData {
@@ -41,6 +43,8 @@ func newReqData(req *mc.HD_BlkConsensusReqMsg) *reqData {
 		stateDB:           nil,
 		localReq:          false,
 		localVerifyResult: localVerifyResultProcessing,
+		posFinished:       false,
+		votes:             make([]*common.VerifiedSign, 0),
 	}
 }
 
@@ -53,7 +57,44 @@ func newReqDataByLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) *reqData {
 		stateDB:           localReq.State,
 		localReq:          true,
 		localVerifyResult: localVerifyResultProcessing,
+		posFinished:       false,
+		votes:             make([]*common.VerifiedSign, 0),
 	}
+}
+
+func (rd *reqData) isAccountExistVote(account common.Address) bool {
+	if (account == common.Address{}) {
+		return true
+	}
+
+	for _, item := range rd.votes {
+		if item.Account == account {
+			return true
+		}
+	}
+	return false
+}
+
+func (rd *reqData) addVote(vote *common.VerifiedSign) error {
+	if vote == nil || (vote.Account == common.Address{}) {
+		return ErrParamIsNil
+	}
+
+	for _, item := range rd.votes {
+		if item.Account == vote.Account {
+			return ErrExistVote
+		}
+	}
+	rd.votes = append(rd.votes, vote)
+	return nil
+}
+
+func (rd *reqData) getVotes() []*common.VerifiedSign {
+	return rd.votes[:]
+}
+
+func (rd *reqData) clearVotes() {
+	rd.votes = make([]*common.VerifiedSign, 0)
 }
 
 type reqCache struct {
@@ -73,46 +114,49 @@ func newReqCache() *reqCache {
 	}
 }
 
-func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg) error {
+func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg) (*reqData, error) {
 	if nil == req {
-		return paramErr
+		return nil, paramErr
 	}
 
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
 	if req.ConsensusTurn.Cmp(rc.curTurn) < 0 {
-		return errors.Errorf("区块请求消息的轮次高低,消息轮次(%s) < 本地轮次(%s)", req.ConsensusTurn.String(), rc.curTurn.String())
+		return nil, errors.Errorf("区块请求消息的轮次高低,消息轮次(%s) < 本地轮次(%s)", req.ConsensusTurn.String(), rc.curTurn.String())
 	}
 
 	if req.Header.Leader == req.From {
 		oldReq, exit := rc.leaderReqCache[req.From]
 		if exit && oldReq.req.ConsensusTurn.Cmp(req.ConsensusTurn) >= 0 {
-			return leaderReqExistErr
+			return nil, leaderReqExistErr
 		}
-		rc.leaderReqCache[req.From] = newReqData(req)
-		return nil
+		reqData := newReqData(req)
+		rc.leaderReqCache[req.From] = reqData
+		return reqData, nil
 	}
 
 	//other req
+	reqData := newReqData(req)
 	count := len(rc.otherReqCache)
 	if count >= rc.otherReqLimit {
-		rc.otherReqCache = append(rc.otherReqCache[1:], newReqData(req))
+		rc.otherReqCache = append(rc.otherReqCache[1:], reqData)
 	} else {
-		rc.otherReqCache = append(rc.otherReqCache, newReqData(req))
+		rc.otherReqCache = append(rc.otherReqCache, reqData)
 	}
-	return nil
+	return reqData, nil
 }
 
-func (rc *reqCache) AddLocalReq(req *mc.LocalBlockVerifyConsensusReq) error {
+func (rc *reqCache) AddLocalReq(req *mc.LocalBlockVerifyConsensusReq) (*reqData, error) {
 	if nil == req {
-		return paramErr
+		return nil, paramErr
 	}
 
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
-	rc.leaderReqCache[req.BlkVerifyConsensusReq.Header.Leader] = newReqDataByLocalReq(req)
-	return nil
+	reqData := newReqDataByLocalReq(req)
+	rc.leaderReqCache[req.BlkVerifyConsensusReq.Header.Leader] = reqData
+	return reqData, nil
 }
 
 func (rc *reqCache) SetCurTurn(consensusTurn mc.ConsensusTurnInfo) {

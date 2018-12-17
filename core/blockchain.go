@@ -46,6 +46,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
+	//"github.com/matrix/go-matrix/baseinterface"
 )
 
 var (
@@ -1397,8 +1398,9 @@ func (r *randSeed) GetSeed(num uint64) *big.Int {
 		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
 		return big.NewInt(0)
 	}
-	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	seed := common.BytesToHash(preVrfValue).Big()
+	//_, preVrfValue, _ := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	//seed := common.BytesToHash(preVrfValue).Big()
+	seed:=big.NewInt(0)
 	return seed
 }
 

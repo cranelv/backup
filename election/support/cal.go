@@ -3,49 +3,87 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package support
 
-import (
-	"math/big"
 
-	"github.com/matrix/go-matrix/common"
+
+import (
+ 	"math/big"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/common"
 )
 
-func MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
-	for i, item := range mmrerm.MinerList {
-		if item.Deposit == nil {
-			mmrerm.MinerList[i].Deposit = big.NewInt(DefaultDeposit)
-		}
-		if item.WithdrawH == nil {
-			mmrerm.MinerList[i].WithdrawH = big.NewInt(DefaultWithdrawH)
-		}
-		if item.OnlineTime == nil {
-			mmrerm.MinerList[i].OnlineTime = big.NewInt(DefaultOnlineTime)
-		}
-	}
 
-	value := CalcAllValueFunction(mmrerm.MinerList)
-	Master, _ := MinerNodesSelected(value, mmrerm.RandSeed.Int64(), mmrerm.ElectConfig) //Ele.Engine(value, mmrerm.RandSeed.Int64()) //0x12217)
-
-	MinerEleRs := &mc.MasterMinerReElectionRsp{
-		SeqNum: mmrerm.SeqNum,
-	}
-
-	for index, item := range Master {
-		MinerEleRs.MasterMiner = append(MinerEleRs.MasterMiner, MakeElectNode(item.Addr, index, item.Value, common.RoleMiner))
-	}
-
-	return MinerEleRs
+type NodeElect struct {
+	NodeList []NodeInfo
+	SeqNum      uint64
+	RandSeed    *big.Int
+	ElectConfig mc.ElectConfigInfo
 }
 
-func CalcAllValueFunction(nodelist []vm.DepositDetail) []Stf { //nodelist []Mynode) map[string]float32 {
-	var CapitalMap []Stf
+
+func NewNodeElect()*NodeElect{
+	return &NodeElect{}
+}
+
+func (self *NodeElect)SetNodeList(vmList []vm.DepositDetail){
+	self.NodeList=[]NodeInfo{}
+	for _,v:=range vmList{
+		self.NodeList=append(self.NodeList,NodeInfo{
+			Addr:v.Address,
+			WithDraw :v.WithdrawH,
+			OnlineTime:v.OnlineTime,
+			Deposit :v.Deposit,
+			Usable:true,
+		})
+	}
+	self.CheckNodeList()
+}
+func (self *NodeElect)CheckNodeList(){
+	for k,v:=range self.NodeList{
+		if nil==v.Deposit{
+			self.NodeList[k].Deposit=big.NewInt(DefaultDeposit)
+		}
+		if nil==v.OnlineTime{
+			self.NodeList[k].OnlineTime=big.NewInt(DefaultOnlineTime)
+		}
+		if nil==v.WithDraw{
+			self.NodeList[k].WithDraw=big.NewInt(DefaultWithdrawH)
+		}
+	}
+}
+func (self *NodeElect)SetSeqNum(seqNum uint64){
+	self.SeqNum=seqNum
+}
+func (self *NodeElect)SetRandom(randomSeed *big.Int)  {
+	self.RandSeed=randomSeed
+}
+func (self *NodeElect)SetElectConfig(electConfig mc.ElectConfigInfo){
+	self.ElectConfig=electConfig
+}
+func (self *NodeElect)CalcValue()[]Pnormalized {
+	return CalcAllValueFunction(self.NodeList)
+}
+
+func (self *NodeElect)MakeMinerAns(chosed []Strallyint)*mc.MasterMinerReElectionRsp{
+	minerResult:=&mc.MasterMinerReElectionRsp{
+	}
+	minerResult.SeqNum=self.SeqNum
+	for k,v:=range chosed{
+		minerResult.MasterMiner=append(minerResult.MasterMiner,MakeElectNode(v.Addr,k,v.Value,common.RoleMiner))
+	}
+	return minerResult
+}
+
+
+
+func CalcAllValueFunction(nodelist []NodeInfo) []Pnormalized { //nodelist []Mynode) map[string]float32 {
+	var CapitalMap []Pnormalized
 
 	for _, item := range nodelist {
-		self := SelfNodeInfo{Address: item.Address, Stk: float64(item.Deposit.Uint64()), Uptime: int(item.OnlineTime.Uint64()), Tps: int(item.WithdrawH.Uint64()), Coef_tps: 0.2, Coef_stk: 0.25}
+		self := SelfNodeInfo{Address: item.Addr, Stk: float64(item.Deposit.Uint64()), Uptime: int(item.OnlineTime.Uint64()), Tps: int(item.WithDraw.Uint64()), Coef_tps: 0.2, Coef_stk: 0.25}
 		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.Deposit_stake()*self.Coef_stk)
 		flot := float64(value)
-		CapitalMap = append(CapitalMap, Stf{Addr: self.Address, Flot: flot})
+		CapitalMap = append(CapitalMap, Pnormalized{Addr: self.Address, Value: flot})
 	}
 	return CapitalMap
 }

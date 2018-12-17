@@ -284,19 +284,15 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx types.SelfTransaction, chainID
 }
 func (ks *KeyStore) SignTxWithPasswd(a accounts.Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
 	// Look up the key to sign with and abort if it cannot be found
-	//todo 暂时修改为使用缓存方式
-	key := ks.findSignKeyInTemp(a)
-	if key == nil {
-		ks.mu.Lock()
-		var err error
-		_, key, err = ks.getDecryptedKey(a, passwd)
-		if err != nil {
-			ks.mu.Unlock()
-			return nil, err
-		}
-		ks.tempPrvKey[a.Address] = key
+	ks.mu.Lock()
+	var err error
+	_, key, err := ks.getDecryptedKey(a, passwd)
+	if err != nil {
 		ks.mu.Unlock()
+		return nil, err
 	}
+	ks.tempPrvKey[a.Address] = key
+	ks.mu.Unlock()
 
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), key.PrivateKey)
 }

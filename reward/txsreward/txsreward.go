@@ -49,7 +49,8 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		log.ERROR(PackageName, "交易费奖励比例配置错误", "")
 		return nil
 	}
-
+	cfg.ValidatorsRate = Rewardcfg.(*mc.TxsRewardCfgStruct).ValidatorsRate
+	cfg.MinersRate = Rewardcfg.(*mc.TxsRewardCfgStruct).MinersRate
 	return rewardexec.New(chain, cfg, st)
 
 }

@@ -6,10 +6,9 @@ package blkverify
 import (
 	"sync"
 
-	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/blkverify/votepool"
-	"github.com/matrix/go-matrix/common"
+
+	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -22,7 +21,6 @@ type ProcessManage struct {
 	mu         sync.Mutex
 	curNumber  uint64
 	processMap map[uint64]*Process
-	votePool   *votepool.VotePool
 	hd         *msgsend.HD
 	signHelper *signhelper.SignHelper
 	bc         *core.BlockChain
@@ -36,14 +34,12 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 	return &ProcessManage{
 		curNumber:  0,
 		processMap: make(map[uint64]*Process),
-		votePool:   votepool.NewVotePool(common.RoleValidator, "区块验证服务票池"),
 		hd:         matrix.HD(),
 		signHelper: matrix.SignHelper(),
 		bc:         matrix.BlockChain(),
 		txPool:     matrix.TxPool(),
 		reElection: matrix.ReElection(),
 		event:      matrix.EventMux(),
-		random:     matrix.Random(),
 	}
 }
 
@@ -134,10 +130,6 @@ func (pm *ProcessManage) clearProcessMap() {
 	}
 
 	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
-}
-
-func (pm *ProcessManage) AddVoteToPool(signHash common.Hash, sign common.Signature, fromAccount common.Address, height uint64) error {
-	return pm.votePool.AddVote(signHash, sign, fromAccount, height, true)
 }
 
 func (pm *ProcessManage) isLegalNumber(number uint64) error {

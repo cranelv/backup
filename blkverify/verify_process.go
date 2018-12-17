@@ -12,7 +12,7 @@ import (
 	"github.com/matrix/go-matrix/core/matrixstate"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
-	"github.com/matrix/go-matrix/blkverify/votepool"
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/types"
@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
+	"github.com/pkg/errors"
 )
 
 type State uint16
@@ -60,6 +61,11 @@ const (
 	localVerifyResultStateFailed
 )
 
+var (
+	ErrParamIsNil = errors.New("param is nil")
+	ErrExistVote  = errors.New("vote is existed")
+)
+
 type Process struct {
 	mu               sync.Mutex
 	leaderCache      mc.LeaderChangeNotify
@@ -68,6 +74,7 @@ type Process struct {
 	state            State
 	curProcessReq    *reqData
 	reqCache         *reqCache
+	unverifiedVotes  *unverifiedVotePool
 	pm               *ProcessManage
 	txsAcquireSeq    int
 	voteMsgSender    *common.ResendMsgCtrl
@@ -92,6 +99,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		state:            StateIdle,
 		curProcessReq:    nil,
 		reqCache:         newReqCache(),
+		unverifiedVotes:  newUnverifiedVotePool(pm.logExtraInfo()),
 		pm:               pm,
 		txsAcquireSeq:    0,
 		voteMsgSender:    nil,
@@ -180,12 +188,27 @@ func (p *Process) AddReq(reqMsg *mc.HD_BlkConsensusReqMsg) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	err := p.reqCache.AddReq(reqMsg)
+	reqData, err := p.reqCache.AddReq(reqMsg)
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
+		//log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
 		return
 	}
-	log.INFO(p.logExtraInfo(), "请求添加缓存成功", err, "from", reqMsg.From, "高度", p.number)
+	log.INFO(p.logExtraInfo(), "区块共识请求处理", "请求添加缓存成功", "from", reqMsg.From.Hex(), "高度", p.number, "reqHash", reqData.hash.TerminalString())
+	// 添加早于请求达到的投票
+	parentHash := reqData.req.Header.ParentHash
+	votes := p.unverifiedVotes.GetVotes(reqData.hash)
+	for _, vote := range votes {
+		if vote.signHash != reqData.hash {
+			log.Info(p.logExtraInfo(), "区块共识请求处理", "添加早的投票, signHash不匹配")
+			continue
+		}
+		verifiedVote, err := p.verifyVote(reqData.hash, vote.sign, vote.from, parentHash, true)
+		if err != nil {
+			log.Info(p.logExtraInfo(), "区块共识请求处理", "添加早的投票, 签名验证失败", "err", err, "from", vote.from.Hex(), "reqHash", reqData.hash.TerminalString())
+			continue
+		}
+		reqData.addVote(verifiedVote)
+	}
 
 	if p.role == common.RoleBroadcast {
 		p.startReqVerifyBC()
@@ -199,18 +222,63 @@ func (p *Process) AddLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) {
 	defer p.mu.Unlock()
 
 	leader := localReq.BlkVerifyConsensusReq.Header.Leader
-	err := p.reqCache.AddLocalReq(localReq)
+	reqData, err := p.reqCache.AddLocalReq(localReq)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "本地请求添加缓存失败", err, "高度", p.number, "leader", leader.Hex())
 		return
 	}
 	log.INFO(p.logExtraInfo(), "本地请求添加成功, 高度", p.number, "leader", leader.Hex())
+	// 添加早于请求达到的投票
+	parentHash := reqData.req.Header.ParentHash
+	votes := p.unverifiedVotes.GetVotes(reqData.hash)
+	for _, vote := range votes {
+		if vote.signHash != reqData.hash {
+			log.Info(p.logExtraInfo(), "区块共识请求(本地)处理", "添加早的投票, signHash不匹配")
+			continue
+		}
+		verifiedVote, err := p.verifyVote(reqData.hash, vote.sign, vote.from, parentHash, true)
+		if err != nil {
+			log.Info(p.logExtraInfo(), "区块共识请求(本地)处理", "添加早的投票, 签名验证失败", "err", err, "from", vote.from.Hex(), "reqHash", reqData.hash.TerminalString())
+			continue
+		}
+		reqData.addVote(verifiedVote)
+	}
 
 	if p.role == common.RoleBroadcast {
 		p.startReqVerifyBC()
 	} else if p.role == common.RoleValidator {
 		p.startReqVerifyCommon()
 	}
+}
+
+func (p *Process) HandleVote(signHash common.Hash, vote common.Signature, from common.Address) {
+	if (signHash == common.Hash{}) || (vote == common.Signature{}) || (from == common.Address{}) {
+		return
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	req, err := p.reqCache.GetLeaderReqByHash(signHash)
+	if err != nil {
+		// 没有找到请求，将投票存入未验证票池中
+		p.unverifiedVotes.AddVote(signHash, vote, from)
+		return
+	}
+
+	if req.isAccountExistVote(from) {
+		log.Trace(p.logExtraInfo(), "处理投票消息", "已存在的投票", "from", from.Hex())
+		return
+	}
+
+	verifiedVote, err := p.verifyVote(signHash, vote, from, req.req.Header.ParentHash, true)
+	if err != nil {
+		log.Info(p.logExtraInfo(), "处理投票消息", "签名验证失败", "err", err)
+		return
+	}
+
+	req.addVote(verifiedVote)
+	p.processDPOSOnce()
 }
 
 func (p *Process) ProcessDPOSOnce() {
@@ -235,10 +303,16 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 	}
 
 	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "开始重置POS投票")
-	p.votePool().DelVotes(reqData.hash)
+	reqData.clearVotes()
+	parentHash := reqData.req.Header.ParentHash
 	//添加投票
 	for _, sign := range msg.Header.Signatures {
-		p.votePool().AddVote(reqData.hash, sign, common.Address{}, p.number, false)
+		verifiedVote, err := p.verifyVote(reqData.hash, sign, common.Address{}, parentHash, false)
+		if err != nil {
+			log.Info(p.logExtraInfo(), "处理状态恢复消息", "签名验证失败", "err", err)
+			continue
+		}
+		reqData.addVote(verifiedVote)
 	}
 	p.processDPOSOnce()
 	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "完成")
@@ -496,10 +570,13 @@ func (p *Process) sendVote(validate bool) {
 
 	p.startVoteMsgSender(&mc.HD_ConsensusVote{SignHash: signHash, Sign: sign, Number: p.number})
 
-	//将自己的投票加入票池
-	if err := p.votePool().AddVote(signHash, sign, common.Address{}, p.number, false); err != nil {
-		log.ERROR(p.logExtraInfo(), "自己的投票加入票池失败", err, "高度", p.number)
-	}
+	//将自己的投票加入票池 todo 股权
+	p.curProcessReq.addVote(&common.VerifiedSign{
+		Sign:     sign,
+		Account:  ca.GetAddress(),
+		Validate: true,
+		Stock:    0,
+	})
 
 	// notify block genor server the result
 	result := mc.BlockLocalVerifyOK{
@@ -595,14 +672,20 @@ func (p *Process) processDPOSOnce() {
 		return
 	}
 
-	signs := p.votePool().GetVotes(p.curProcessReq.hash)
-	log.INFO(p.logExtraInfo(), "执行DPOS, 投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
-	rightSigns, err := p.blockChain().DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "共识引擎验证失败", err, "高度", p.number)
+	if p.curProcessReq.posFinished {
+		log.Trace(p.logExtraInfo(), "POS验证处理", "已完成，不重复处理")
 		return
 	}
-	log.INFO(p.logExtraInfo(), "DPOS通过，正确签名数量", len(rightSigns), "高度", p.number)
+
+	signs := p.curProcessReq.getVotes()
+	log.INFO(p.logExtraInfo(), "POS验证处理", "执行POS", "投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
+	rightSigns, err := p.blockChain().DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
+	if err != nil {
+		log.Trace(p.logExtraInfo(), "POS验证处理", "POS未通过", "err", err, "高度", p.number)
+		return
+	}
+	log.INFO(p.logExtraInfo(), "POS验证处理", "POS通过", "正确签名数量", len(rightSigns), "高度", p.number)
+	p.curProcessReq.posFinished = true
 	p.curProcessReq.req.Header.Signatures = rightSigns
 
 	p.finishedProcess()
@@ -635,8 +718,6 @@ func (p *Process) finishedProcess() {
 	p.startSendMineReq(&mc.HD_MiningReqMsg{Header: p.curProcessReq.req.Header})
 	//给广播节点发送区块验证请求(带签名列表)
 	p.startPosedReqSender(p.curProcessReq.req)
-
-	p.votePool().DelVotes(p.curProcessReq.hash)
 	p.state = StateEnd
 }
 
@@ -653,7 +734,24 @@ func (p *Process) changeState(targetState State) {
 	}
 }
 
-func (p *Process) votePool() *votepool.VotePool { return p.pm.votePool }
+func (p *Process) verifyVote(signHash common.Hash, vote common.Signature, from common.Address, blkHash common.Hash, verifyFrom bool) (*common.VerifiedSign, error) {
+	signAccount, validate, err := p.signHelper().VerifySignWithValidateDependHash(signHash.Bytes(), vote.Bytes(), blkHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if verifyFrom && signAccount != from {
+		return nil, errors.Errorf("vote sign account[%s] != from account[%s]", signAccount.Hex(), from.Hex())
+	}
+
+	//todo 股权消息
+	return &common.VerifiedSign{
+		Sign:     vote,
+		Account:  signAccount,
+		Validate: validate,
+		Stock:    0,
+	}, nil
+}
 
 func (p *Process) signHelper() *signhelper.SignHelper { return p.pm.signHelper }
 

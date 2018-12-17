@@ -6,6 +6,7 @@ package support
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
+	"math/big"
 )
 
 const (
@@ -25,6 +26,7 @@ type AllNative struct {
 	MasterQ    []common.Address //第一梯队候选
 	BackUpQ    []common.Address //第二梯队候选
 	CandidateQ []common.Address //第三梯队候选
+	ElectInfo *mc.ElectConfigInfo
 
 }
 
@@ -37,4 +39,11 @@ type Eletion_cfg struct {
 type Strallyint struct {
 	Value int
 	Addr  common.Address
+}
+type NodeInfo struct {
+	Addr common.Address
+	WithDraw *big.Int
+	OnlineTime *big.Int
+	Deposit *big.Int
+	Usable bool
 }
