@@ -280,15 +280,7 @@ func (md *MatrixDeposit) getAddress(contract *Contract, stateDB StateDB, addr co
 	if signAddr == emptyHash {
 		return common.Address{}
 	}
-	// get deposit address
-	depoAddrKey := append(signAddr[:], 'N', 'Y')
-	depoAddr := stateDB.GetState(contract.Address(), common.BytesToHash(depoAddrKey))
-	if depoAddr == emptyHash {
-		return common.Address{}
-	}
-	var signAddress common.Address
-	copy(signAddress[:], signAddr[:])
-	return signAddress
+	return common.BytesToAddress(signAddr.Bytes())
 }
 
 func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address common.Address) error {
