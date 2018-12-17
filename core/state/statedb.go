@@ -1172,30 +1172,61 @@ func (self *StateDB) MissTrieDebug() {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	log.Info("miss tree node debug", "data amount", len(self.matrixData), "dirty amount", len(self.matrixDataDirty))
+	log.Info("miss tree node debug", "matrix data amount", len(self.matrixData))
 	matrixKeys := make([]common.Hash, 0)
 	for key := range self.matrixData {
 		matrixKeys = append(matrixKeys, key)
 	}
-
 	sort.Slice(matrixKeys, func(i, j int) bool {
 		return matrixKeys[i].Big().Cmp(matrixKeys[j].Big()) <= 0
 	})
-
 	for i, k := range matrixKeys {
-		log.Info("miss tree node debug", "data index", i, "hash", k.TerminalString(), "data", self.matrixData[k])
+		log.Info("miss tree node debug", "matrix data index", i, "hash", k.Hex(), "data hash", types.RlpHash(self.matrixData[k]).Hex())
 	}
 
+	log.Info("miss tree node debug", "matrix dirty amount", len(self.matrixDataDirty))
 	dirtyKeys := make([]common.Hash, 0)
 	for key := range self.matrixDataDirty {
 		dirtyKeys = append(dirtyKeys, key)
 	}
-
 	sort.Slice(dirtyKeys, func(i, j int) bool {
 		return dirtyKeys[i].Big().Cmp(dirtyKeys[j].Big()) <= 0
 	})
-
 	for i, k := range dirtyKeys {
-		log.Info("miss tree node debug", "dirty index", i, "hash", k.TerminalString(), "data", self.matrixDataDirty[k])
+		log.Info("miss tree node debug", "matrix dirty index", i, "hash", k.Hex(), "data", types.RlpHash(self.matrixDataDirty[k]).Hex())
+	}
+
+	log.Info("miss tree node debug", "object amount", len(self.stateObjects))
+	objKeys := make([]common.Address, 0)
+	for key := range self.stateObjects {
+		objKeys = append(objKeys, key)
+	}
+	sort.Slice(objKeys, func(i, j int) bool {
+		return objKeys[i].Big().Cmp(objKeys[j].Big()) <= 0
+	})
+	for i, k := range objKeys {
+		log.Info("miss tree node debug", "object index", i, "address", k.Hex(), "data", types.RlpHash(self.stateObjects[k]).Hex())
+	}
+
+	log.Info("miss tree node debug", "object dirty amount", len(self.stateObjectsDirty))
+	objDirtyKeys := make([]common.Address, 0)
+	for key := range self.stateObjectsDirty {
+		objDirtyKeys = append(objDirtyKeys, key)
+	}
+	sort.Slice(objDirtyKeys, func(i, j int) bool {
+		return objDirtyKeys[i].Big().Cmp(objDirtyKeys[j].Big()) <= 0
+	})
+	for i, k := range objDirtyKeys {
+		log.Info("miss tree node debug", "object dirty index", i, "address", k.Hex())
+	}
+
+	log.Info("miss tree node debug", "btree amount", len(self.btreeMap))
+	for i, data := range self.btreeMap {
+		log.Info("miss tree node debug", "btree index", i, "data,key", data.Key, "data.type", data.Typ, "hash data", types.RlpHash(data).Hex())
+	}
+
+	log.Info("miss tree node debug", "btree dirty amount", len(self.btreeMapDirty))
+	for i, data := range self.btreeMapDirty {
+		log.Info("miss tree node debug", "btree index", i, "data,key", data.Key, "data.type", data.Typ, "hash data", types.RlpHash(data).Hex())
 	}
 }

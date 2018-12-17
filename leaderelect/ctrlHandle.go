@@ -69,7 +69,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	self.SetSelfAddress(ca.GetAddress())
 
 	log.INFO(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "isSupper", msg.parentIsSupper, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
-	if err := self.dc.AnalysisState(msg.parentHeader.Hash(), msg.parentIsSupper, msg.parentHeader.Leader, msg.parentStateDB); err != nil {
+	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentIsSupper, msg.parentStateDB); err != nil {
 		log.ERROR(self.logInfo, "开始消息处理", "分析状态树信息错误", "err", err)
 		return
 	}

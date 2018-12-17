@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
@@ -57,9 +58,9 @@ func (dc *cdc) SetSelfAddress(addr common.Address) {
 	dc.selfAddr = addr
 }
 
-func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader common.Address, parentState StateReader) error {
-	if parentState == nil {
-		return errors.New("parent state is nil")
+func (dc *cdc) AnalysisState(parentHeader *types.Header, preIsSupper bool, parentState StateReader) error {
+	if parentState == nil || parentHeader == nil {
+		return errors.New("parent state or parentHeader is nil")
 	}
 
 	validators, role, err := dc.readValidatorsAndRoleFromState(parentState)
@@ -79,7 +80,7 @@ func (dc *cdc) AnalysisState(preHash common.Hash, preIsSupper bool, preLeader co
 		return err
 	}
 
-	if err := dc.leaderCal.SetValidatorsAndSpecials(preHash, preIsSupper, preLeader, validators, specials, bcInterval); err != nil {
+	if err := dc.leaderCal.SetValidatorsAndSpecials(parentHeader, preIsSupper, validators, specials, bcInterval); err != nil {
 		return err
 	}
 
