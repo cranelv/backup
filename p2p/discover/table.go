@@ -489,7 +489,7 @@ func (tab *Table) loadSeedNodes(bond bool) {
 	for i := range seeds {
 		seed := seeds[i]
 		age := log.Lazy{Fn: func() interface{} { return time.Since(tab.db.bondTime(seed.ID)) }}
-		log.Debug("Found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age)
+		log.Debug("Found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age, "node info", seed.Address.String())
 		tab.add(seed)
 	}
 }
@@ -737,12 +737,11 @@ func (tab *Table) add(new *Node) {
 	if new.Address != emptyAddr {
 		if val, ok := tab.nodeBindAddress[new.Address]; !ok {
 			tab.nodeBindAddress[new.Address] = new
-		} else {
-			if val.ID != new.ID && val.SignTime.Before(new.SignTime) {
-				tab.nodeBindAddress[new.Address] = new
-			}
+		} else if val.ID != new.ID && val.SignTime.Before(new.SignTime) {
+			tab.nodeBindAddress[new.Address] = new
 		}
 	}
+	log.Info("address map info", "map", tab.nodeBindAddress)
 
 	if !tab.bumpOrAdd(b, new) {
 		// Node is not in table. Add it to the replacement list.
