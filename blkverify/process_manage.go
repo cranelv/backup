@@ -40,6 +40,7 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 		txPool:     matrix.TxPool(),
 		reElection: matrix.ReElection(),
 		event:      matrix.EventMux(),
+		random:     matrix.Random(),
 	}
 }
 

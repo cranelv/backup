@@ -449,22 +449,6 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-type randSeed struct {
-	bc *core.BlockChain
-}
-
-func (r *randSeed) GetSeed(num uint64) *big.Int {
-	parent := r.bc.GetBlockByNumber(num - 1)
-	if parent == nil {
-		log.Error(packagename, "获取父区块错误,高度", (num - 1))
-		return big.NewInt(0)
-	}
-	//_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	//seed := common.BytesToHash(preVrfValue).Big()
-	seed:=big.NewInt(0)
-	return seed
-}
-
 func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {

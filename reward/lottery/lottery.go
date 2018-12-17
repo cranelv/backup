@@ -2,8 +2,9 @@ package lottery
 
 import (
 	"math/big"
-	"math/rand"
 	"sort"
+
+	"github.com/matrix/go-matrix/common/mt19937"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
@@ -188,8 +189,8 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 		return nil
 	}
 
-	log.INFO(PackageName, "随机数种子", abs(randSeed.Int64()))
-	rand.Seed(abs(randSeed.Int64()))
+	log.INFO(PackageName, "随机数种子", randSeed.Int64())
+	rand := mt19937.RandUniformInit(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
@@ -211,9 +212,9 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	chooseResultList := make(TxCmpResultList, 0)
 	log.INFO(PackageName, "交易数目", len(txsCmpResultList))
 	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {
-		randUint64 := rand.Uint64()
-		log.INFO(PackageName, "随机数", randUint64)
-		index := randUint64 % (uint64(len(txsCmpResultList)))
+		randomData := uint64(rand.Uniform(0, float64(^uint64(0))))
+		log.INFO(PackageName, "随机数", randomData)
+		index := randomData % (uint64(len(txsCmpResultList)))
 		log.INFO(PackageName, "交易序号", index)
 		chooseResultList = append(chooseResultList, txsCmpResultList[index])
 	}
