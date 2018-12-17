@@ -88,7 +88,10 @@ type startControllerMsg struct {
 	parentStateDB  *state.StateDB
 }
 
-func isFirstConsensusTurn(turnInfo mc.ConsensusTurnInfo) bool {
+func isFirstConsensusTurn(turnInfo *mc.ConsensusTurnInfo) bool {
+	if turnInfo == nil {
+		return false
+	}
 	return turnInfo.PreConsensusTurn == 0 && turnInfo.UsedReelectTurn == 0
 }
 

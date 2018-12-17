@@ -99,7 +99,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		if isFirstConsensusTurn(self.ConsensusTurn()) {
 			curTime := time.Now().Unix()
 			st, remainTime, reelectTurn := self.dc.turnTime.CalState(mc.ConsensusTurnInfo{}, curTime)
-			log.INFO(self.logInfo, "开始消息处理", "状态计算结果", "状态", st, "剩余时间", remainTime, "重选轮次", reelectTurn)
+			log.INFO(self.logInfo, "开始消息处理", "完成", "状态计算结果", st.String(), "剩余时间", remainTime, "重选轮次", reelectTurn)
 			self.dc.state = st
 			self.dc.curReelectTurn = 0
 			self.setTimer(remainTime, self.timer)
@@ -133,14 +133,14 @@ func (self *controller) timeOutHandle() {
 	case stPos:
 		log.Warn(self.logInfo, "超时事件", "POS未完成", "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn,
-			"轮次开始时间", self.dc.turnTime.GetBeginTime(self.ConsensusTurn()), "leader", self.dc.GetConsensusLeader().Hex())
+			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "leader", self.dc.GetConsensusLeader().Hex())
 	case stReelect:
 		log.Warn(self.logInfo, "超时事件", "重选未完成", "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn,
-			"轮次开始时间", self.dc.turnTime.GetBeginTime(self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
+			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
 	default:
 		log.ERROR(self.logInfo, "超时事件", "当前状态错误", self.State(), "轮次", self.curTurnInfo(), "高度", self.Number(),
-			"轮次开始时间", self.dc.turnTime.GetBeginTime(self.ConsensusTurn()), "当前时间", curTime)
+			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "当前时间", curTime)
 		return
 	}
 

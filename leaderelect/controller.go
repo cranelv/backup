@@ -60,8 +60,8 @@ func (self *controller) State() stateDef {
 	return self.dc.state
 }
 
-func (self *controller) ConsensusTurn() mc.ConsensusTurnInfo {
-	return self.dc.curConsensusTurn
+func (self *controller) ConsensusTurn() *mc.ConsensusTurnInfo {
+	return &self.dc.curConsensusTurn
 }
 
 func (self *controller) ParentHash() common.Hash {
