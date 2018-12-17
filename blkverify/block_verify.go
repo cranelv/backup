@@ -202,17 +202,17 @@ func (self *BlockVerify) handleVoteMsg(voteMsg *mc.HD_ConsensusVote) {
 		log.ERROR(self.logExtraInfo(), "投票消息处理", "消息为nil")
 		return
 	}
-	log.INFO(self.logExtraInfo(), "投票消息处理", "开始", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
-	defer log.INFO(self.logExtraInfo(), "投票消息处理", "结束", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
-	if err := self.processManage.AddVoteToPool(voteMsg.SignHash, voteMsg.Sign, voteMsg.From, voteMsg.Number); err != nil {
-		log.ERROR(self.logExtraInfo(), "投票消息，加入票池失败", err)
+
+	log.Trace(self.logExtraInfo(), "投票消息处理", "开始", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
+	defer log.Trace(self.logExtraInfo(), "投票消息处理", "结束", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
+
+	process, err := self.processManage.GetProcess(voteMsg.Number)
+	if err != nil {
+		log.Debug(self.logExtraInfo(), "本地请求消息 获取Process失败", err)
 		return
 	}
 
-	curProcess := self.processManage.GetCurrentProcess()
-	if curProcess != nil {
-		curProcess.ProcessDPOSOnce()
-	}
+	process.HandleVote(voteMsg.SignHash, voteMsg.Sign, voteMsg.From)
 }
 
 func (self *BlockVerify) handleRecoveryMsg(msg *mc.RecoveryStateMsg) {

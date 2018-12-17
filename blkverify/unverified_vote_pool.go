@@ -1,79 +1,63 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-package votepool
+package blkverify
 
 import (
 	"container/list"
 	"time"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/params/manparams"
-	"sync"
 )
 
 type voteInfo struct {
-	time        int64               // 时间戳，收到的时间
-	sign        common.VerifiedSign // 签名
-	fromAccount common.Address      // 来源
-	signHash    common.Hash         // 签名对应的msg的hash
+	time     int64 // 时间戳，收到的时间
+	sign     common.Signature
+	signHash common.Hash
+	from     common.Address
 }
 
-// 协程安全投票池
-type VotePool struct {
-	// 缓存结构为：map <from, map <msgHash, *data> >
+type unverifiedVotePool struct {
 	voteMap               map[common.Address]map[common.Hash]*voteInfo // 投票缓存
 	timeIndex             *list.List                                   // 按投票到来先后的索引，用于删除过期数据
 	timeoutInterval       int64                                        // 超时时间
 	AccountVoteCountLimit int                                          // 每个用户的投票数量限制
-	legalRole             common.RoleType                              // 合法的角色
 	logInfo               string
-	mu                    sync.RWMutex
 }
 
-func NewVotePool(legalRole common.RoleType, logInfo string) *VotePool {
-	return &VotePool{
+func newUnverifiedVotePool(logInfo string) *unverifiedVotePool {
+	return &unverifiedVotePool{
 		voteMap:               make(map[common.Address]map[common.Hash]*voteInfo),
 		timeIndex:             list.New(),
 		timeoutInterval:       manparams.VotePoolTimeout,
 		AccountVoteCountLimit: manparams.VotePoolCountLimit,
-		legalRole:             legalRole,
 		logInfo:               logInfo,
 	}
 }
 
-func (vp *VotePool) AddVote(signHash common.Hash, sign common.Signature, fromAccount common.Address, height uint64, verifyFrom bool) error {
-	signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
+func (vp *unverifiedVotePool) AddVote(signHash common.Hash, sign common.Signature, from common.Address) error {
+	/*signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
 	if err != nil {
 		return err
 	}
 
 	if verifyFrom && signAccount.Equal(fromAccount) == false {
 		return errors.Errorf("vote sign account[%s] != from account[%s]", signAccount.Hex(), fromAccount.Hex())
-	}
-
-	//todo 暂时关闭，经常因为高度获取不到 CA 导致丢票
-	/*fromInfo, err := ca.GetAccountTopologyInfo(fromAccount, height-1)
-	if err != nil {
-		return fmt.Errorf("vote from node(%s) get role err(%s)", fromAccount.Hex(), err)
-	}
-
-	if fromInfo.Type != vp.legalRole {
-		return fmt.Errorf("vote from node  role (%s) illegal! Legal role is (%s)", fromInfo.Type.String(), vp.legalRole.String())
 	}*/
 
-	vp.mu.Lock()
-	defer vp.mu.Unlock()
+	if (signHash == common.Hash{}) || (sign == common.Signature{}) || (from == common.Address{}) {
+		return ErrParamIsNil
+	}
 
 	vote := &voteInfo{
-		time:        time.Now().UnixNano() / 1000000,
-		sign:        common.VerifiedSign{Sign: sign, Account: signAccount, Validate: validate, Stock: 0},
-		fromAccount: signAccount,
-		signHash:    signHash,
+		time:     time.Now().UnixNano() / 1000000,
+		sign:     sign,
+		signHash: signHash,
+		from:     from,
 	}
 
 	if err := vp.addVoteToMap(vote); err != nil {
@@ -81,32 +65,26 @@ func (vp *VotePool) AddVote(signHash common.Hash, sign common.Signature, fromAcc
 	}
 
 	vp.fixPoolByTimeout(vote.time)
-	vp.fixPoolByCountLimit(vote.fromAccount, vote.time)
+	vp.fixPoolByCountLimit(from, vote.time)
 
 	return nil
 }
 
-func (vp *VotePool) GetVotes(signHash common.Hash) (signs []*common.VerifiedSign) {
-	vp.mu.RLock()
-	defer vp.mu.RUnlock()
-
+func (vp *unverifiedVotePool) GetVotes(signHash common.Hash) (votes []*voteInfo) {
 	for _, accountVoteMap := range vp.voteMap {
 		for key, value := range accountVoteMap {
 			if signHash.Equal(key) {
-				signs = append(signs, &value.sign)
+				votes = append(votes, value)
 			}
 		}
 	}
 	return
 }
 
-func (vp *VotePool) DelVotes(signHash common.Hash) {
+func (vp *unverifiedVotePool) DelVotes(signHash common.Hash) {
 	if (signHash == common.Hash{}) {
 		return
 	}
-
-	vp.mu.Lock()
-	defer vp.mu.Unlock()
 
 	for fromAccount, accountVoteMap := range vp.voteMap {
 		for key := range accountVoteMap {
@@ -120,36 +98,33 @@ func (vp *VotePool) DelVotes(signHash common.Hash) {
 	}
 }
 
-func (vp *VotePool) Clear() {
-	vp.mu.Lock()
-	defer vp.mu.Unlock()
-
+func (vp *unverifiedVotePool) Clear() {
 	vp.timeIndex.Init()
 	vp.voteMap = make(map[common.Address]map[common.Hash]*voteInfo)
 }
 
-func (vp *VotePool) addVoteToMap(vote *voteInfo) error {
-	accountVoteMap, OK := vp.voteMap[vote.fromAccount]
+func (vp *unverifiedVotePool) addVoteToMap(vote *voteInfo) error {
+	accountVoteMap, OK := vp.voteMap[vote.from]
 	if !OK {
 		accountVoteMap = make(map[common.Hash]*voteInfo)
-		vp.voteMap[vote.fromAccount] = accountVoteMap
+		vp.voteMap[vote.from] = accountVoteMap
 	}
 
 	_, exist := accountVoteMap[vote.signHash]
 	if exist {
-		log.ERROR(vp.logInfo, "添加票池失败,已存在票 hash", vote.signHash.TerminalString(), "from", vote.fromAccount.Hex())
+		//log.ERROR(vp.logInfo, "添加票池失败,已存在票 hash", signHash.TerminalString(), "from", vote.sign.Account.Hex())
 		return errors.Errorf("Vote is already exist")
 	}
 
 	accountVoteMap[vote.signHash] = vote
 	vp.timeIndex.PushBack(vote)
 
-	log.INFO(vp.logInfo, "加入票池成功 from", vote.fromAccount.Hex(), "sighHash", vote.signHash, "from总票数", len(accountVoteMap))
+	//log.INFO(vp.logInfo, "加入票池成功 from", vote.fromAccount.Hex(), "sighHash", vote.signHash, "from总票数", len(accountVoteMap))
 
 	return nil
 }
 
-func (vp *VotePool) fixPoolByTimeout(curTime int64) {
+func (vp *unverifiedVotePool) fixPoolByTimeout(curTime int64) {
 	deadLine := curTime - vp.timeoutInterval
 	for {
 		e := vp.timeIndex.Front()
@@ -169,17 +144,17 @@ func (vp *VotePool) fixPoolByTimeout(curTime int64) {
 			return
 		}
 
-		accountVoteMap, OK := vp.voteMap[vote.fromAccount]
+		accountVoteMap, OK := vp.voteMap[vote.from]
 		if OK {
 			beforeLen := len(accountVoteMap)
 			delete(accountVoteMap, vote.signHash)
 			afterLen := len(accountVoteMap)
 
 			if beforeLen != afterLen {
-				log.INFO(vp.logInfo, "超时删除投票 hash", vote.signHash.TerminalString(),
-					"from", vote.fromAccount.Hex(), "times", (curTime-vote.time)/1000, "删前数量", beforeLen, "删后数量", afterLen)
+				//log.INFO(vp.logInfo, "超时删除投票 hash", vote.signHash.TerminalString(),
+				//"from", vote.sign.Account.Hex(), "times", (curTime-vote.time)/1000, "删前数量", beforeLen, "删后数量", afterLen)
 				if afterLen == 0 {
-					delete(vp.voteMap, vote.fromAccount)
+					delete(vp.voteMap, vote.from)
 				}
 			}
 		}
@@ -187,7 +162,7 @@ func (vp *VotePool) fixPoolByTimeout(curTime int64) {
 	}
 }
 
-func (vp *VotePool) fixPoolByCountLimit(fromAccount common.Address, curTime int64) {
+func (vp *unverifiedVotePool) fixPoolByCountLimit(fromAccount common.Address, curTime int64) {
 	accountVoteMap, OK := vp.voteMap[fromAccount]
 	if !OK {
 		return
@@ -209,8 +184,8 @@ func (vp *VotePool) fixPoolByCountLimit(fromAccount common.Address, curTime int6
 			}
 		}
 
-		log.INFO(vp.logInfo, "数量删除投票 hash", earliest.signHash.TerminalString(),
-			"from", earliest.fromAccount.Hex(), "times", (curTime-earliest.time)/1000, "总数量", len(accountVoteMap))
+		//log.INFO(vp.logInfo, "数量删除投票 hash", earliest.signHash.TerminalString(),
+		//	"from", earliest.sign.Account.Hex(), "times", (curTime-earliest.time)/1000, "总数量", len(accountVoteMap))
 
 		delete(accountVoteMap, earliest.signHash)
 	}
