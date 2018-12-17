@@ -456,7 +456,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	st.gas = 0
 	issendFromContract := false
 	beforAmont:=st.state.GetBalanceByType(common.ContractAddress,common.MainAccount)
-	interest8004 := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)  // Test
+	interestbefor := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)  // Test
 	interset:=big.NewInt(0)
 	if toaddr == nil {//YY
 		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
@@ -501,9 +501,9 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 			log.Info("file state_transition","func rewardTx","ContractAddress 余额与增加的钱不一致")
 			return nil, 0, false, ErrinterestAmont
 		}
-		interest80004 := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)
-		dif := new(big.Int).Sub(interest8004,interest80004)
-		if difAmont.Cmp(dif) == 0{
+		interestafter := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)
+		dif := new(big.Int).Sub(interestafter,interestbefor)
+		if difAmont.Cmp(dif) != 0{
 			log.Info("file state_transition","func rewardTx","InterestRewardAddress 余额与扣除的钱不一致")
 			return nil, 0, false, ErrinterestAmont
 		}
