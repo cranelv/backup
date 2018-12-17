@@ -8,7 +8,6 @@ import (
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"fmt"
 )
 
 type StockElect struct {
@@ -19,41 +18,47 @@ func init() {
 }
 
 func RegInit() baseinterface.ElectionInterface {
-
 	return &StockElect{}
 }
 
 func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("选举种子", "矿工拓扑生成", len(mmrerm.MinerList))
-	nodeElect:=support.NewNodeElect()
-	nodeElect.SetNodeList(mmrerm.MinerList)
-	nodeElect.SetSeqNum(mmrerm.SeqNum)
-	nodeElect.SetRandom(mmrerm.RandSeed)
-	nodeElect.SetElectConfig(mmrerm.ElectConfig)
+	nodeElect:=support.NewElelection(nil,mmrerm.MinerList,mmrerm.ElectConfig,mmrerm.RandSeed,mmrerm.SeqNum)
+	nodeElect.Disorder()
+	nodeElect.Sort()
+	nodeElect.ProcessBlackNode()
+	nodeElect.ProcessWhiteNode()
+	//nodeElect.DisPlayNode()
 
-	value:=nodeElect.CalcValue()
-	Master,_:=support.GetList(value,int(nodeElect.ElectConfig.MinerNum),nodeElect.RandSeed.Int64())
 
-	return nodeElect.MakeMinerAns(Master)
+	value:=nodeElect.GetWeight()
+	//for _,v:=range value{
+	//	fmt.Println(v.Addr.String(),v.Value)
+	//}
+	Master,value:=support.GetList(value,int(nodeElect.EleCfg.MinerNum)-len(nodeElect.WhiteNodeInfo),nodeElect.RandSeed.Int64())
+	Master=append(Master,nodeElect.WhiteNodeInfo...)
+	return support.MakeMinerAns(Master,nodeElect.SeqNum)
 }
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	nodeElect:=support.NewNodeElect()
-	nodeElect.SetNodeList(mvrerm.ValidatorList)
-	nodeElect.SetSeqNum(mvrerm.SeqNum)
-	nodeElect.SetRandom(mvrerm.RandSeed)
-	nodeElect.SetElectConfig(mvrerm.ElectConfig)
+	nodeElect:=support.NewElelection(nil,mvrerm.ValidatorList,mvrerm.ElectConfig,mvrerm.RandSeed,mvrerm.SeqNum)
+	nodeElect.Disorder()
+	nodeElect.Sort()
+	nodeElect.ProcessBlackNode()
+	nodeElect.ProcessWhiteNode()
 
-	value:=nodeElect.CalcValue()
-	for _,v:=range value{
-		fmt.Println(v.Value,v.Addr.String())
-	}
-	Master,value:=support.GetList(value,int(nodeElect.ElectConfig.ValidatorNum),nodeElect.RandSeed.Int64())
 
-	BackUp,value:=support.GetList(value,int(nodeElect.ElectConfig.BackValidator),nodeElect.RandSeed.Int64())
+	value:=nodeElect.GetWeight()
+	//for _,v:=range value{
+	//	fmt.Println(v.Value,v.Addr.String())
+	//}
+	Master,value:=support.GetList(value,int(nodeElect.EleCfg.ValidatorNum)-len(nodeElect.WhiteNodeInfo),nodeElect.RandSeed.Int64())
+
+	BackUp,value:=support.GetList(value,int(nodeElect.EleCfg.BackValidator),nodeElect.RandSeed.Int64())
 
 	Candid,value:=support.GetList(value,len(value),nodeElect.RandSeed.Int64())
+	Master=append(Master,nodeElect.WhiteNodeInfo...)
 
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, Master, BackUp, Candid)
 
