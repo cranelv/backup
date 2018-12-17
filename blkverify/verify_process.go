@@ -524,6 +524,9 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
+	log.Info("miss tree node debug", "验证完成后", "commit后state状态")
+	work.State.MissTrieDebug()
+
 	//root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
 	//if root1 != p.curProcessReq.req.Header.Root {
 	//	log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())

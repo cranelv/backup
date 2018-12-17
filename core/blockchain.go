@@ -1026,6 +1026,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	if root != block.Root() {
 		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+
+		log.Info("miss tree node debug", "入链时", "commit后state状态")
+		state.MissTrieDebug()
+
 		return NonStatTy, errors.New("root not match")
 	}
 
@@ -1400,7 +1404,7 @@ func (r *randSeed) GetSeed(num uint64) *big.Int {
 	}
 	//_, preVrfValue, _ := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
 	//seed := common.BytesToHash(preVrfValue).Big()
-	seed:=big.NewInt(0)
+	seed := big.NewInt(0)
 	return seed
 }
 
