@@ -87,7 +87,6 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	return data, nil
 }
 func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address, online []common.Address) ([]mc.Alternative, error) {
-	//todo 从hash获取state， 得更换信息
 	log.INFO(Module, "GetTopoChange", "start", "hash", hash, "online", online, "offline", offline)
 	defer log.INFO(Module, "GetTopoChange", "end", "hash", hash, "online", online, "offline", offline)
 	height, err := self.GetNumberByHash(hash)

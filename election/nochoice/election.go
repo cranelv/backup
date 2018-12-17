@@ -32,7 +32,7 @@ func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Ma
 	eleCfg := mmrerm.ElectConfig
 	for index, v := range mmrerm.MinerList {
 		MinerTopGenAns.MasterMiner = append(MinerTopGenAns.MasterMiner, support.MakeElectNode(v.Address, index, DefauleStock, common.RoleMiner))
-		if index >= int(eleCfg.MinerNum) {
+		if len(MinerTopGenAns.MasterMiner) >= int(eleCfg.MinerNum) {
 			break
 		}
 	}

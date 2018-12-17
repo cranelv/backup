@@ -4,7 +4,6 @@
 package blkgenor
 
 import (
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -20,6 +19,8 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/baseinterface"
+	"encoding/json"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -129,7 +130,7 @@ func (p *Process) processHeaderGen() error {
 		Signatures:        make([]common.Signature, 0),
 		Version:           parent.Header().Version, //param
 		VersionSignatures: parent.Header().VersionSignatures,
-		VrfValue:          common.GetHeaderVrf(account, vrfValue, vrfProof),
+		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account,vrfValue,vrfProof),
 	}
 	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
 	log.INFO(p.logExtraInfo(), " vrf data headermsg", header.VrfValue, "账户户", account, "vrfValue", vrfValue, "vrfProff", vrfProof, "高度", header.Number.Uint64())
@@ -298,8 +299,9 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
 }
 
+
 func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
-	_, preVrfValue, preVrfProof := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
 	parentMsg := VrfMsg{
 		VrfProof: preVrfProof,
 		VrfValue: preVrfValue,
