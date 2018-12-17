@@ -135,7 +135,6 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 			continue
 		}
 		Deposit = new(big.Int).Add(Deposit, interest)
-		depoistInfo.ResetInterest(state, account)
 	}
 	balance := state.GetBalance(common.InterestRewardAddress)
 	log.INFO(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
