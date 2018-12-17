@@ -712,6 +712,14 @@ type CallArgs struct {
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
 }
+type ManCallArgs struct {
+	From     string  `json:"from"`
+	To       *string `json:"to"`
+	Gas      hexutil.Uint64  `json:"gas"`
+	GasPrice hexutil.Big     `json:"gasPrice"`
+	Value    hexutil.Big     `json:"value"`
+	Data     hexutil.Bytes   `json:"data"`
+}
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
 	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
@@ -739,8 +747,9 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	}
 
 	// Create new call message
-	msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-
+	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
+	msg := types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas , gasPrice, args.Data, 0,0)
+	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
 	var cancel context.CancelFunc
@@ -775,9 +784,20 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	return res, gas, failed, err
 }
 
+func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs) {
+	args.From = base58.Base58DecodeToAddress(manargs.From)
+	args.To = new(common.Address)
+	*args.To = base58.Base58DecodeToAddress(*manargs.To)
+	args.GasPrice = manargs.GasPrice
+	args.Gas = manargs.Gas
+	args.Value = manargs.Value
+	args.Data = manargs.Data
+	return
+}
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
-func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) Call(ctx context.Context, manargs ManCallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	args := ManArgsToCallArgs(manargs)
 	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
 	return (hexutil.Bytes)(result), err
 }
