@@ -220,9 +220,6 @@ func (n *Node) StartSign() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
 	// Short circuit if the node's already running
 	if n.server != nil {
 		return ErrNodeRunning
