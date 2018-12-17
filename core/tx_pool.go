@@ -1652,6 +1652,7 @@ func (bPool *NormalTxPool) ProduceMatrixStateData(block *types.Block, readFn mat
 type Backend interface {
 	BlockChain() *BlockChain
 }
+
 func GetBroadcastTxMap(bc Backend, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
 	state, err := bc.BlockChain().StateAt(root)
 	if err != nil {

@@ -8,6 +8,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/matrix/go-matrix/base58"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -886,7 +887,9 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NoDiscovery = true
 	}
 	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
-		cfg.ManAddress = common.HexToAddress(manAddr)
+		innerAddr := base58.Base58DecodeToAddress(manAddr)
+		cfg.ManAddress = innerAddr
+		cfg.ManAddrStr = manAddr
 	}
 	if manPass := ctx.GlobalString(ManPasswordFlag.Name); manPass != "" {
 		cfg.ManPassword = manPass

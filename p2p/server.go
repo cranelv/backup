@@ -135,6 +135,7 @@ type Config struct {
 	NetWorkId uint64
 
 	// ManAddress
+	ManAddrStr  string
 	ManAddress  common.Address
 	ManPassword string
 	Signature   common.Signature

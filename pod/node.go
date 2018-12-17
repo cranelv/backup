@@ -7,7 +7,6 @@ package pod
 import (
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"io"
@@ -181,7 +180,7 @@ func (n *Node) Signature() (signature common.Signature) {
 		return
 	}
 
-	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: base58.Base58EncodeToString("MAN", n.config.P2P.ManAddress)})
+	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: n.config.P2P.ManAddrStr})
 	if err != nil {
 		n.log.Error("find signature account", "error", err)
 		return
@@ -247,7 +246,6 @@ func (n *Node) Start() error {
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
-	running.Signature = n.Signature()
 
 	// Otherwise copy and specialize the P2P configuration
 	services := make(map[reflect.Type]Service)
@@ -311,6 +309,8 @@ func (n *Node) Start() error {
 	//boot.Run()
 	// start ca
 	go ca.Start(running.Self().ID, n.config.DataDir, n.config.P2P.ManAddress)
+	// get sign account
+	running.Signature = n.Signature()
 
 	// Finish initializing the startup
 	n.services = services
