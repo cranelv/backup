@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
 	"sync"
+	"runtime"
 )
 
 var (
@@ -25,6 +26,23 @@ var (
 type sigCache struct {
 	signer Signer
 	from   common.Address
+}
+//批量解签名
+func BatchSender(txser SelfTransactions) {
+	var waitG = &sync.WaitGroup{}
+	maxProcs := runtime.NumCPU() //获取cpu个数
+	if maxProcs >= 2 {
+		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
+	}
+	for _, tx := range txser {
+		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+			continue
+		}
+		sig := NewEIP155Signer(tx.ChainId())
+		waitG.Add(1)
+		go Sender_self(sig, tx, waitG)
+	}
+	waitG.Wait()
 }
 
 // MakeSigner returns a Signer based on the given chain config and block number.
