@@ -263,6 +263,7 @@ func (p *Process) HandleVote(signHash common.Hash, vote common.Signature, from c
 	if err != nil {
 		// 没有找到请求，将投票存入未验证票池中
 		p.unverifiedVotes.AddVote(signHash, vote, from)
+		return
 	}
 
 	if req.isAccountExistVote(from) {
