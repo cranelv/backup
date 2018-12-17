@@ -1205,7 +1205,12 @@ func (self *StateDB) MissTrieDebug() {
 		return objKeys[i].Big().Cmp(objKeys[j].Big()) <= 0
 	})
 	for i, k := range objKeys {
-		log.Info("miss tree node debug", "object index", i, "address", k.Hex(), "data", types.RlpHash(self.stateObjects[k]).Hex())
+		data, err := rlp.EncodeToBytes(self.stateObjects[k])
+		if err != nil {
+			log.Info("miss tree node debug", "encode data err", err)
+			continue
+		}
+		log.Info("miss tree node debug", "object index", i, "address", k.Hex(), "data", types.RlpHash(data).Hex())
 	}
 
 	log.Info("miss tree node debug", "object dirty amount", len(self.stateObjectsDirty))

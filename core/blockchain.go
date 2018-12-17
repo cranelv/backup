@@ -1016,10 +1016,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
-	log.Info("miss tree node debug", "入链时", "commit前state状态")
-	state.MissTrieDebug()
-
-	intermediateRoot := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
+	//log.Info("miss tree node debug", "入链时", "commit前state状态")
+	//state.MissTrieDebug()
+	//intermediateRoot := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -1027,10 +1026,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	}
 
 	if root != block.Root() {
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "IntermediateRoot", intermediateRoot.Hex())
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
 
-		log.Info("miss tree node debug", "入链时", "commit后state状态")
-		state.MissTrieDebug()
+		//log.Info("miss tree node debug", "入链时", "commit后state状态")
+		//state.MissTrieDebug()
 
 		return NonStatTy, errors.New("root not match")
 	}

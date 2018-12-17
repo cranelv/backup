@@ -513,8 +513,8 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	log.Info("miss tree node debug", "验证完成后", "commit前state状态")
-	work.State.MissTrieDebug()
+	//log.Info("miss tree node debug", "验证完成后", "commit前state状态")
+	//work.State.MissTrieDebug()
 
 	// 运行完matrix state后，生成root
 	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
@@ -525,9 +525,9 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	}
 
 	intermediateRoot := work.State.IntermediateRoot(p.blockChain().Config().IsEIP158(localBlock.Number()))
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "intermediateRoot", intermediateRoot.Hex())
-	log.Info("miss tree node debug", "验证完成后", "commit后state状态")
-	work.State.MissTrieDebug()
+	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "remote root", remoteHeader.Root.Hex())
+	//log.Info("miss tree node debug", "验证完成后", "commit后state状态")
+	//work.State.MissTrieDebug()
 
 	//root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
 	//if root1 != p.curProcessReq.req.Header.Root {
