@@ -25,8 +25,6 @@ See https://github.com/matrix/go-matrix/wiki/JavaScript-Console.`,
 func signature(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	node := makeFullNode(ctx)
-	startNode(ctx, node)
-	defer node.Stop()
-
+	node.StartSign()
 	return nil
 }

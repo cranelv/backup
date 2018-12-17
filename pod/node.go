@@ -215,6 +215,30 @@ func (n *Node) Signature() (signature common.Signature) {
 	return
 }
 
+// StartSign
+func (n *Node) StartSign() error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	// Short circuit if the node's already running
+	if n.server != nil {
+		return ErrNodeRunning
+	}
+	if err := n.openDataDir(); err != nil {
+		return err
+	}
+	n.serverConfig = n.config.P2P
+	n.serverConfig.PrivateKey = n.config.NodeKey()
+	p2p.ServerP2p.Config = n.serverConfig
+	running := p2p.ServerP2p
+	// get sign account
+	running.Signature = n.Signature()
+	return nil
+}
+
 // Start create a live P2P node and starts running it.
 func (n *Node) Start() error {
 	n.lock.Lock()
@@ -245,6 +269,8 @@ func (n *Node) Start() error {
 	}
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
+	// get sign account
+	running.Signature = n.Signature()
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
@@ -309,8 +335,6 @@ func (n *Node) Start() error {
 	//boot.Run()
 	// start ca
 	go ca.Start(running.Self().ID, n.config.DataDir, n.config.P2P.ManAddress)
-	// get sign account
-	running.Signature = n.Signature()
 
 	// Finish initializing the startup
 	n.services = services
