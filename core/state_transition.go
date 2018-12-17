@@ -502,9 +502,10 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 			return nil, 0, false, ErrinterestAmont
 		}
 		interestafter := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)
-		dif := new(big.Int).Sub(interestafter,interestbefor)
+		dif := new(big.Int).Sub(interestbefor,interestafter)
 		if difAmont.Cmp(dif) != 0{
 			log.Info("file state_transition","func rewardTx","InterestRewardAddress 余额与扣除的钱不一致")
+			log.Error("ZH:state_transition","difAmont",difAmont,"dif",dif,"afterAmont",afterAmont,"beforAmont",beforAmont,"interestafter",interestafter,"interestbefor",interestbefor)
 			return nil, 0, false, ErrinterestAmont
 		}
 	}
