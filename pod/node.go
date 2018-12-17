@@ -191,7 +191,15 @@ func (n *Node) Signature() (signature common.Signature) {
 		if account.Address != n.config.P2P.ManAddress {
 			continue
 		}
-		sig, err := wallet.SignHashValidateWithPass(account, n.config.P2P.ManPassword, discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes(), true)
+
+		if n.serverConfig.PrivateKey == nil {
+			n.log.Error("nodekey private key is empty.")
+			return
+		}
+
+		ctn := discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes()
+		signCtn := common.BytesToHash(ctn)
+		sig, err := wallet.SignHashValidateWithPass(account, n.config.P2P.ManPassword, signCtn.Bytes(), true)
 		if err != nil {
 			n.log.Error("signature with account", "error", err)
 			return
