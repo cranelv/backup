@@ -48,8 +48,17 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利息配置反射失败", "")
 		return nil
 	}
-	if StateCfg.(*mc.InterestCfgStruct).PayInterval == 0 || 0 == StateCfg.(*mc.InterestCfgStruct).CalcInterval {
-		log.ERROR(PackageName, "利息周期配置错误，支付周期", StateCfg.(*mc.InterestCfgStruct).PayInterval, "计算周期", StateCfg.(*mc.InterestCfgStruct).CalcInterval)
+	IC, ok := StateCfg.(*mc.InterestCfgStruct)
+	if !ok {
+		log.ERROR(PackageName, "反射失败", "")
+		return nil
+	}
+	if IC.InterestCalc == util.Stop {
+		log.ERROR(PackageName, "停止发放", PackageName)
+		return nil
+	}
+	if IC.PayInterval == 0 || 0 == IC.CalcInterval {
+		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
 		return nil
 	}
 	if StateCfg.(*mc.InterestCfgStruct).PayInterval < StateCfg.(*mc.InterestCfgStruct).CalcInterval {
@@ -135,7 +144,6 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 			continue
 		}
 		Deposit = new(big.Int).Add(Deposit, interest)
-		depoistInfo.ResetInterest(state, account)
 	}
 	balance := state.GetBalance(common.InterestRewardAddress)
 	log.INFO(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())

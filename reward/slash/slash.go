@@ -34,6 +34,24 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
 		return nil
 	}
+	SC, ok := StateCfg.(*mc.SlashCfgStruct)
+	if !ok {
+		log.ERROR(PackageName, "反射失败", "")
+		return nil
+	}
+	if SC.SlashCalc == util.Stop {
+		log.ERROR(PackageName, "停止", PackageName)
+		return nil
+	}
+
+	var SlashRate uint64
+
+	if SC.SlashRate > 100 {
+		SlashRate = 100
+	} else {
+		SlashRate = SC.SlashRate
+	}
+
 	intervalData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
 	if err != nil {
 		log.ERROR(PackageName, "获取广播周期失败", err)
@@ -43,13 +61,6 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 	if err != nil {
 		log.ERROR(PackageName, "创建广播周期数据结构失败", err)
 		return nil
-	}
-	var SlashRate uint64
-
-	if StateCfg.(*mc.SlashCfgStruct).SlashRate > 100 {
-		SlashRate = 100
-	} else {
-		SlashRate = StateCfg.(*mc.SlashCfgStruct).SlashRate
 	}
 	return &BlockSlash{chain: chain, eleMaxOnlineTime: (bcInterval.GetBroadcastInterval() - 3) * 3, SlashRate: SlashRate, bcInterval: bcInterval} //todo 周期固定3倍关系
 }

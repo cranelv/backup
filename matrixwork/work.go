@@ -328,14 +328,21 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		for _, addr := range sorted_keys {
 			k := common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if isfirst {
-				if rewart.RewardTyp == common.RewardInerestType {
-					databytes = append(databytes, depositAbi.Methods["interestAdd"].Id()...)
-					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-					databytes = append(databytes, tmpbytes...)
+			if isfirst{
+				if rewart.RewardTyp == common.RewardInerestType{
+					if k != common.ContractAddress{
+						databytes = append(databytes,depositAbi.Methods["interestAdd"].Id()...)
+						tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+						databytes = append(databytes,tmpbytes...)
+						to = common.ContractAddress
+						value = v
+					}else {
+						continue
+					}
+				}else {
+					to = k
+					value = v
 				}
-				to = k
-				value = v
 				isfirst = false
 				continue
 			}
@@ -344,13 +351,18 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			var kk common.Address = k
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
-			if rewart.RewardTyp == common.RewardInerestType {
-				bytes := make([]byte, 0)
-				bytes = append(bytes, depositAbi.Methods["interestAdd"].Id()...)
-				tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-				bytes = append(bytes, tmpbytes...)
-				b := hexutil.Bytes(bytes)
-				tmp.Input_tr = &b
+			if rewart.RewardTyp == common.RewardInerestType{
+				if kk != common.ContractAddress{
+					bytes := make([]byte,0)
+					bytes = append(bytes,depositAbi.Methods["interestAdd"].Id()...)
+					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+					bytes = append(bytes,tmpbytes...)
+					b := hexutil.Bytes(bytes)
+					tmp.Input_tr = &b
+					tmp.To_tr = &common.ContractAddress
+				}else {
+					continue
+				}
 			}
 			extra = append(extra, tmp)
 		}

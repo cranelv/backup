@@ -40,9 +40,6 @@ type MultiCoinReward struct {
 func New(chain util.ChainReader) *MultiCoinReward {
 
 	RewardMount := &mc.RewardRateCfg{
-		MinersRate:     MinerTxsRewardRate,
-		ValidatorsRate: ValidatorsTxsRewardRate,
-
 		MinerOutRate:        MinerOutRewardRate,
 		ElectedMinerRate:    ElectedMinerRewardRate,
 		FoundationMinerRate: FoundationTxsRewardRate,

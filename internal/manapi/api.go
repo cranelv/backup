@@ -510,30 +510,37 @@ func (s *PublicBlockChainAPI) BlockNumber() *big.Int {
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber) // latest header should always be available
 	return header.Number
 }
-
+type RPCBalanceType struct {
+	AccountType uint32  `json:"accountType"`
+	Balance     *hexutil.Big `json:"balance"`
+}
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (common.BalanceType, error) {
+func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
 	address := base58.Base58DecodeToAddress(strAddress)
+	var balance []RPCBalanceType
 	b := state.GetBalance(address)
 	if b == nil {
-		b = make(common.BalanceType, 0)
-		tmp := new(common.BalanceSlice)
+		tmp := new(RPCBalanceType)
 		var i uint32
 		for i = 0; i <= common.LastAccount; i++ {
 			tmp.AccountType = i
-			tmp.Balance = new(big.Int)
-			b = append(b, *tmp)
+			tmp.Balance = new(hexutil.Big)
+			balance = append(balance, *tmp)
+		}
+	}else{
+		for i:=0;i<len(b);i++{
+			balance = append(balance, RPCBalanceType{b[i].AccountType,(*hexutil.Big)(b[i].Balance)})
 		}
 	}
 
-	//log.Info("GetBalance","余额:",b)
-	return b, state.Error()
+	//log.Info("GetBalance","余额:",balance)
+	return balance, state.Error()
 }
 
 //钱包调用
@@ -1555,9 +1562,9 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Gas = new(hexutil.Uint64)
 		//YY
 		if len(args.ExtraTo) > 0 && args.LockHeight > 0 && args.TxType > 0 {
-			*(*uint64)(args.Gas) = 90000 * uint64(len(args.ExtraTo))
+			*(*uint64)(args.Gas) = 21000 * uint64(len(args.ExtraTo))
 		} else {
-			*(*uint64)(args.Gas) = 90000
+			*(*uint64)(args.Gas) = 21000
 		}
 	}
 	if args.GasPrice == nil {
