@@ -205,12 +205,13 @@ func (n *Node) Signature() (signature common.Signature) {
 			return
 		}
 
-		err = ioutil.WriteFile(datadirManSignature, sig, 0600)
+		xx := common.BytesToHash(sig)
+		err = ioutil.WriteFile(datadirManSignature, []byte(xx.String()), 0644)
 		if err != nil {
 			n.log.Error("signature write fail", "error", err)
 			return
 		}
-		err = ioutil.WriteFile(datadirManAddress, n.config.P2P.ManAddress.Bytes(), 0600)
+		err = ioutil.WriteFile(datadirManAddress, []byte(n.config.P2P.ManAddress.String()), 0644)
 		if err != nil {
 			n.log.Error("man address write fail", "error", err)
 			return
