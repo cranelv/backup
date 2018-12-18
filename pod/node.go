@@ -143,20 +143,22 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 	return nil
 }
 
-func (n *Node) Signature() (signature common.Signature) {
+func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
 	if common.FileExist(datadirManSignature) {
 		buf := make([]byte, 65)
 		fd, err := os.Open(datadirManSignature)
 		if err != nil {
 			n.log.Error("signature open file", "error", err)
-			return common.Signature{}
+			return common.Signature{}, common.Address{}, time.Now()
 		}
 		defer fd.Close()
 		if _, err = io.ReadFull(fd, buf); err != nil {
 			n.log.Error("signature read file", "error", err)
-			return common.Signature{}
+			return common.Signature{}, common.Address{}, time.Now()
 		}
 		signature = common.BytesToSignature(buf[:])
+
+		log.Info("signature", "info", signature)
 
 		info, _ := os.Stat(datadirManSignature)
 		n.config.P2P.SignTime = info.ModTime()
@@ -167,7 +169,7 @@ func (n *Node) Signature() (signature common.Signature) {
 			return
 		}
 		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
-		return
+		return signature, common.HexToAddress(string(addrByte)), info.ModTime()
 	}
 
 	emptyAddress := common.Address{}
@@ -218,7 +220,7 @@ func (n *Node) Signature() (signature common.Signature) {
 		}
 		signature = common.BytesToSignature(sig[:])
 		n.config.P2P.SignTime = time.Now()
-		return
+		return signature, n.config.P2P.ManAddress, time.Now()
 	}
 	n.log.Info("signature account not found")
 	return
@@ -241,7 +243,7 @@ func (n *Node) StartSign() error {
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
 	// get sign account
-	running.Signature = n.Signature()
+	running.Signature, running.ManAddress, running.SignTime = n.Signature()
 	return nil
 }
 
@@ -276,7 +278,7 @@ func (n *Node) Start() error {
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
 	// get sign account
-	running.Signature = n.Signature()
+	running.Signature, running.ManAddress, running.SignTime = n.Signature()
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
