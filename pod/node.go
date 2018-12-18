@@ -156,9 +156,10 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			n.log.Error("signature read file", "error", err)
 			return common.Signature{}, common.Address{}, time.Now()
 		}
-		signature = common.BytesToSignature(buf[:])
 
-		log.Info("signature", "info", signature)
+		log.Info("signature original2", "info", buf[:])
+		signature = common.BytesToSignature(buf[:])
+		log.Info("signature original2", "info2", signature)
 
 		info, _ := os.Stat(datadirManSignature)
 		n.config.P2P.SignTime = info.ModTime()
@@ -207,8 +208,9 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 
-		xx := common.BytesToHash(sig)
-		err = ioutil.WriteFile(datadirManSignature, []byte(xx.String()), 0644)
+		log.Info("signature original", "info", sig)
+
+		err = ioutil.WriteFile(datadirManSignature, sig, 0644)
 		if err != nil {
 			n.log.Error("signature write fail", "error", err)
 			return
@@ -219,6 +221,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 		signature = common.BytesToSignature(sig[:])
+		log.Info("signature original", "info2", signature)
 		n.config.P2P.SignTime = time.Now()
 		return signature, n.config.P2P.ManAddress, time.Now()
 	}
