@@ -1398,16 +1398,15 @@ type randSeed struct {
 	bc *BlockChain
 }
 
-func (r *randSeed) GetSeed(num uint64) *big.Int {
-	parent := r.bc.GetBlockByNumber(num - 1)
+func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
+	parent := r.bc.GetBlockByHash(hash)
 	if parent == nil {
-		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
-		return big.NewInt(0)
+		log.Error("blockchain", "获取父区块错误,hash", hash)
+		return big.NewInt(0), nil
 	}
-	//_, preVrfValue, _ := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	//_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
 	//seed := common.BytesToHash(preVrfValue).Big()
-	seed := big.NewInt(0)
-	return seed
+	return nil, nil
 }
 
 func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval) error {

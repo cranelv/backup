@@ -23,7 +23,15 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		log.ERROR("固定区块奖励", "获取状态树配置错误")
 		return nil
 	}
-
+	RC, ok := Rewardcfg.(*mc.BlkRewardCfg)
+	if !ok {
+		log.ERROR("固定区块奖励", "反射失败", "")
+		return nil
+	}
+	if RC.BlkRewardCalc == util.Stop {
+		log.ERROR("固定区块奖励", "停止发放区块奖励", "")
+		return nil
+	}
 	rewardCfg := cfg.New(Rewardcfg.(*mc.BlkRewardCfg), nil)
 	return rewardexec.New(chain, rewardCfg, st)
 }

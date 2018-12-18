@@ -48,8 +48,17 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利息配置反射失败", "")
 		return nil
 	}
-	if StateCfg.(*mc.InterestCfgStruct).PayInterval == 0 || 0 == StateCfg.(*mc.InterestCfgStruct).CalcInterval {
-		log.ERROR(PackageName, "利息周期配置错误，支付周期", StateCfg.(*mc.InterestCfgStruct).PayInterval, "计算周期", StateCfg.(*mc.InterestCfgStruct).CalcInterval)
+	IC, ok := StateCfg.(*mc.InterestCfgStruct)
+	if !ok {
+		log.ERROR(PackageName, "反射失败", "")
+		return nil
+	}
+	if IC.InterestCalc == util.Stop {
+		log.ERROR(PackageName, "停止发放", PackageName)
+		return nil
+	}
+	if IC.PayInterval == 0 || 0 == IC.CalcInterval {
+		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
 		return nil
 	}
 	if StateCfg.(*mc.InterestCfgStruct).PayInterval < StateCfg.(*mc.InterestCfgStruct).CalcInterval {

@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"github.com/matrix/go-matrix/params"
 	"math/big"
 	"sort"
 
@@ -22,7 +23,6 @@ const (
 	SECOND      = 0 //二等奖数目
 	THIRD       = 0 //三等奖数目
 	PackageName = "彩票奖励"
-	Stop        = "0"
 )
 
 var (
@@ -45,6 +45,7 @@ func (p TxCmpResultList) Less(i, j int) bool { return p[i].CmpResult < p[j].CmpR
 
 type ChainReader interface {
 	GetBlockByNumber(number uint64) *types.Block
+	Config() *params.ChainConfig
 }
 
 type TxsLottery struct {
@@ -78,7 +79,7 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 	}
 
 	cfg := lotteryCfg.(*mc.LotteryCfgStruct)
-	if cfg.LotteryCalc == Stop {
+	if cfg.LotteryCalc == util.Stop {
 		log.ERROR(PackageName, "停止发放彩票奖励", "")
 		return nil
 	}
@@ -114,8 +115,8 @@ func (tlr *TxsLottery) LotteryCalc(parentHash common.Hash, num uint64) map[commo
 		log.ERROR(PackageName, "本周期没有交易不抽奖", "")
 		return nil
 	}
-	LotteryAccount := make(map[common.Address]*big.Int, 0)
 
+	LotteryAccount := make(map[common.Address]*big.Int, 0)
 	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
 
 	if 0 == len(LotteryAccount) {
@@ -224,30 +225,31 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 
 func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryMap map[common.Address]*big.Int) {
 
+	sig := types.NewEIP155Signer(tlr.chain.Config().ChainId)
 	RecordMap := make(map[uint8]uint64)
 	for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 		RecordMap[uint8(i)] = 0
 	}
+
 	for _, txs := range txsCmpResultList {
-		from := txs.Tx.From()
-		if from.Equal(common.Address{}) {
-			log.ERROR(PackageName, "交易地址为空", nil)
+		from, err := types.Sender(sig, txs.Tx)
+		if nil != err {
+			log.Error(PackageName, "解析交易from出错", err)
 			continue
 		}
 		//抽取一等奖
-
+		log.Info(PackageName, "解析交易from", from)
 		for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
-
-			if RecordMap[tlr.lotteryCfg.LotteryInfo[i].PrizeLevel] < tlr.lotteryCfg.LotteryInfo[i].PrizeNum {
-				util.SetAccountRewards(LotteryMap, from, new(big.Int).Div(new(big.Int).SetUint64(tlr.lotteryCfg.LotteryInfo[i].PrizeMoney), util.ManPrice))
-				RecordMap[tlr.lotteryCfg.LotteryInfo[i].PrizeLevel]++
+			prizeLevel := tlr.lotteryCfg.LotteryInfo[i].PrizeLevel
+			prizeNum := tlr.lotteryCfg.LotteryInfo[i].PrizeNum
+			prizeMoney := tlr.lotteryCfg.LotteryInfo[i].PrizeMoney
+			if RecordMap[prizeLevel] < prizeNum {
+				util.SetAccountRewards(LotteryMap, from, new(big.Int).Mul(new(big.Int).SetUint64(prizeMoney), util.ManPrice))
+				RecordMap[prizeLevel]++
 				break
 			}
-
 		}
-
 		break
-
 	}
 
 }
