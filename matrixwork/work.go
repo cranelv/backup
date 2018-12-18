@@ -328,18 +328,18 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		for _, addr := range sorted_keys {
 			k := common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if isfirst{
-				if rewart.RewardTyp == common.RewardInerestType{
-					if k != common.ContractAddress{
-						databytes = append(databytes,depositAbi.Methods["interestAdd"].Id()...)
+			if isfirst {
+				if rewart.RewardTyp == common.RewardInerestType {
+					if k != common.ContractAddress {
+						databytes = append(databytes, depositAbi.Methods["interestAdd"].Id()...)
 						tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-						databytes = append(databytes,tmpbytes...)
+						databytes = append(databytes, tmpbytes...)
 						to = common.ContractAddress
 						value = v
-					}else {
+					} else {
 						continue
 					}
-				}else {
+				} else {
 					to = k
 					value = v
 				}
@@ -351,16 +351,16 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			var kk common.Address = k
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
-			if rewart.RewardTyp == common.RewardInerestType{
-				if kk != common.ContractAddress{
-					bytes := make([]byte,0)
-					bytes = append(bytes,depositAbi.Methods["interestAdd"].Id()...)
+			if rewart.RewardTyp == common.RewardInerestType {
+				if kk != common.ContractAddress {
+					bytes := make([]byte, 0)
+					bytes = append(bytes, depositAbi.Methods["interestAdd"].Id()...)
 					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-					bytes = append(bytes,tmpbytes...)
+					bytes = append(bytes, tmpbytes...)
 					b := hexutil.Bytes(bytes)
 					tmp.Input_tr = &b
 					tmp.To_tr = &common.ContractAddress
-				}else {
+				} else {
 					continue
 				}
 			}
@@ -503,19 +503,18 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	////todo 利息
 	interestReward := interest.New(env.State)
-	if nil != interestReward {
-		interestRewardMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
-		if 0 != len(interestRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
-		}
+	if nil == interestReward {
+		return env.Reverse(rewardList)
 	}
-	//todo 惩罚
+	interestCalcMap, interestPayMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
 
 	slash := slash.New(bc, env.State)
 	if nil != slash {
-		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime)
+		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime, interestCalcMap)
 	}
-
 	return env.Reverse(rewardList)
 }
 

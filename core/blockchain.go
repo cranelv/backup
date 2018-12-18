@@ -1442,17 +1442,17 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 		lottery.ProcessMatrixState(header.Number.Uint64())
 	}
 	interestReward := interest.New(state)
-	if nil != interestReward {
-		interestRewardMap := interestReward.InterestCalc(state, header.Number.Uint64())
-		if 0 != len(interestRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
-		}
+	if nil == interestReward {
+		return nil
 	}
-	//todo 惩罚
+	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
 
 	slash := slash.New(bc, state)
 	if nil != slash {
-		slash.CalcSlash(state, num, bc.upTime)
+		slash.CalcSlash(state, header.Number.Uint64(), bc.upTime, interestCalcMap)
 	}
 
 	return nil
