@@ -539,7 +539,7 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 		}
 	}
 
-	log.Info("GetBalance","余额:",balance)
+	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
 }
 
