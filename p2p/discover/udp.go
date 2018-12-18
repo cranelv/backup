@@ -646,7 +646,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	emptySign := common.Signature{}
 	if req.Address != emptyAddr || req.Signature != emptySign {
 		addr, _, _ := crypto.VerifySignWithValidate(fromID.Bytes(), req.Signature[:])
-		if addr != req.Address {
+		if addr.Hex() != req.Address.Hex() {
 			return errSignature
 		}
 	}
