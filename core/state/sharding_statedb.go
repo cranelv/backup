@@ -11,83 +11,54 @@ import (
 	"math/big"
 	"fmt"
 	"sort"
+	"encoding/json"
 )
 const (
 	sharding_MOUNTS=256
 )
-
+type RangeManage struct {
+	Range   byte
+	State *StateDB
+}
+type CoinManage struct {
+	Cointyp string
+	ValSeg  []RangeManage
+}
 type ShardingStateDB struct {
-	db   Database
-	trie Trie
-	//shardidx uint8			//表示当前sharding所处在的分区		？每次传参还是直接在结构体中记录
-	sharding				map[string][sharding_MOUNTS]*StateDB		//[256]*StateDB		map[uint8]*StateDB	用切片还是用map
-	shardingroothash 		map[string][sharding_MOUNTS]common.Hash	//stateDB的roothash
-	//sharding
-	heightStatus			map[string]uint64	//[coin]区块高度:更新后，标记当前分区高度为该分区的最高高度
-	//statedb	*StateDB
-}
-
-//func (shard *ShardingStateDB)Getstatedb()*StateDB {
-//	return shard.sharding[shard.shardidx]
-//}
-func (shard *ShardingStateDB) SetHeightByIdx(coin string, height uint64) {
-	if height > shard.heightStatus[coin] {
-		shard.heightStatus[coin] = height
-	}
-}
-
-func (shard *ShardingStateDB) GetHeightByIdx(coin string) (uint64) {
-	return shard.heightStatus[coin]
+	db          Database
+	trie        Trie
+	shardings	[]CoinManage
 }
 
 // Create a new state from a given trie.
-func NewSharding(shardidx uint8,root common.Hash, db Database) (*ShardingStateDB, error) {
-	tree, err := db.OpenTrie(root)
+func NewSharding(roots []common.Hash, db Database) (*ShardingStateDB, error) {
+	b,_ := json.Marshal(roots)
+	hash := common.BytesToHash(b)
+	tree, err := db.OpenTrie(hash)
 	if err != nil {
 		return nil, err
 	}
-
-	var (
-		sharding 		map[string][sharding_MOUNTS]*StateDB
-		shardinghash	map[string][sharding_MOUNTS]common.Hash
-	)
-
-
 	return &ShardingStateDB{
 		db:                db,
 		trie:              tree,
-		//shardidx:		   shardidx,
-		//coin:			   coin,
-		sharding:		   sharding,
-		shardingroothash:	   shardinghash,
-
+		shardings:         make([]CoinManage,0),
 	}, nil
 }
 
-//func (shard *ShardingStateDB)setcoin(coin string)  {
-//	shard.coin=coin
-//}
-//func (shard *ShardingStateDB)getcoin()string  {
-//	return shard.coin
-//}
-//func (shard *ShardingStateDB)setshardidx(idx uint8)  {
-//	shard.shardidx=idx
-//}
-//func (shard *ShardingStateDB)getidx()uint8  {
-//	return shard.shardidx
+//func (shard *ShardingStateDB)setError(idx int,err error) {
+//	shard.sharding[idx].setError(err)
+//
 //}
 
-func (shard *ShardingStateDB)setError(idx int,err error) {
-	shard.sharding[idx].setError(err)
-
-}
-
-func (shard *ShardingStateDB)Error(idx int)error  {
-	return shard.sharding[idx].dbErr
-}
+//func (shard *ShardingStateDB)Error(idx int)error  {
+//	return shard.sharding[idx].dbErr
+//}
 //给的根应该是当前分片trie的根hash
 
-func (shard *ShardingStateDB) Reset(idx int,root common.Hash) error {
+func (shard *ShardingStateDB) Reset(root common.Hash) error {
+	b,_ := json.Marshal(roots)
+	hash := common.BytesToHash(b)
+	//tree, err := db.OpenTrie(hash)
 	tr, err := shard.db.OpenTrie(root)
 	if err != nil {
 		return err
