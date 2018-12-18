@@ -16,7 +16,6 @@ type blkreward struct {
 }
 
 func New(chain util.ChainReader, st util.StateDB) reward.Reward {
-	//todo:从状态树读取配置.
 
 	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyBlkRewardCfg, st)
 	if nil != err {

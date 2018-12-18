@@ -346,3 +346,7 @@ type VrfMsg struct {
 	VrfProof []byte
 	Hash     common.Hash
 }
+type EntrustInfo struct {
+	Address  common.Address
+	Password string
+}

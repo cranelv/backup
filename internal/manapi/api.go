@@ -31,12 +31,19 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crc8"
 	"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
+	"encoding/json"
+	"github.com/matrix/go-matrix/console"
+	"io/ioutil"
+	"encoding/base64"
+	"os"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -319,6 +326,76 @@ func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (commo
 	}
 	acc, err := fetchKeystore(s.am).ImportECDSA(key, password)
 	return acc.Address, err
+}
+func GetPassword()(string,error){
+	password, err := console.Stdin.PromptPassword("Passphrase: ")
+	if err != nil {
+		return "", fmt.Errorf("Failed to read passphrase: %v", err)
+	}
+	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
+	if err != nil {
+		return "",fmt.Errorf("Failed to read passphrase confirmation: %v", err)
+	}
+	if password != confirm {
+		return "",fmt.Errorf("Passphrases do not match")
+	}
+	return password,nil
+}
+func (s *PrivateAccountAPI)SetEntrustSignAccount(path string,times int64)bool{
+
+	fmt.Println(times)
+	InputCount:=0
+	var password string
+	var err error
+	for true{
+		InputCount++
+		if InputCount>3{
+			fmt.Println("密码输入次数变多")
+			return false
+		}
+		password,err=GetPassword()
+		if err==nil{
+
+			break
+		}else{
+			fmt.Println("获取密码失败",err)
+		}
+	}
+
+
+
+	f, err := os.Open(path)
+	if err != nil {
+		fmt.Println("文件失败", err, "path", path)
+		return false
+	}
+
+	b, err := ioutil.ReadAll(f)
+	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
+	if err != nil {
+		fmt.Println("解密失败", err)
+		return false
+	}
+	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
+	if err != nil {
+		fmt.Println("AedDecrypt失败", bytesPass, password)
+		return false
+	}
+
+	var anss []mc.EntrustInfo
+	err = json.Unmarshal(tpass, &anss)
+	if err != nil {
+		fmt.Println("加密文件解码失败 密码不正确")
+		return false
+	}
+	entrustValue:=make(map[common.Address]string,0)
+
+	for _, v := range anss {
+		entrustValue[v.Address] = v.Password
+	}
+	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
+	go manparams.SetTimer(times)
+	return true
 }
 
 // UnlockAccount will unlock the account associated with the given address with
@@ -720,12 +797,12 @@ type CallArgs struct {
 	Data     hexutil.Bytes   `json:"data"`
 }
 type ManCallArgs struct {
-	From     string  `json:"from"`
-	To       *string `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice hexutil.Big     `json:"gasPrice"`
-	Value    hexutil.Big     `json:"value"`
-	Data     hexutil.Bytes   `json:"data"`
+	From     string         `json:"from"`
+	To       *string        `json:"to"`
+	Gas      hexutil.Uint64 `json:"gas"`
+	GasPrice hexutil.Big    `json:"gasPrice"`
+	Value    hexutil.Big    `json:"value"`
+	Data     hexutil.Bytes  `json:"data"`
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -755,7 +832,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas , gasPrice, args.Data, 0,0)
+	msg := types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, 0, 0)
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -801,6 +878,7 @@ func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs) {
 	args.Data = manargs.Data
 	return
 }
+
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, manargs ManCallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
@@ -1789,7 +1867,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 		chainID = config.ChainId
 	}
 	tx.Currency = args.Currency
-	signed, err := wallet.SignTxWithPasswd(account, passwd, tx, chainID)
+	signed, err := wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}

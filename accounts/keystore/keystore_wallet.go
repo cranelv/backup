@@ -7,11 +7,9 @@ package keystore
 import (
 	"math/big"
 
-	matrix "github.com/matrix/go-matrix"
+	"github.com/matrix/go-matrix"
 	"github.com/matrix/go-matrix/accounts"
-	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/core/types"
-	"errors"
 )
 
 // keystoreWallet implements the accounts.Wallet interface for the original
@@ -100,21 +98,6 @@ func (w *keystoreWallet) SignTx(account accounts.Account, tx types.SelfTransacti
 	return w.keystore.SignTx(account, tx, chainID)
 }
 
-//func (ks *keystoreWallet) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-//	// Look up the key to sign with and abort if it cannot be found
-//	return nil, nil
-//}
-func (w *keystoreWallet) SignTxWithPasswd(account accounts.Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	if account.Address != w.account.Address {
-		return nil, accounts.ErrUnknownAccount
-	}
-	if account.URL != (accounts.URL{}) && account.URL != w.account.URL {
-		return nil, accounts.ErrUnknownAccount
-	}
-	// Account seems valid, request the keystore to sign
-	return w.keystore.SignTxWithPasswd(account, passwd, tx, chainID)
-}
-
 // SignHashWithPassphrase implements accounts.Wallet, attempting to sign the
 // given hash with the given account using passphrase as extra authentication.
 func (w *keystoreWallet) SignHashWithPassphrase(account accounts.Account, passphrase string, hash []byte) ([]byte, error) {
@@ -141,52 +124,4 @@ func (w *keystoreWallet) SignTxWithPassphrase(account accounts.Account, passphra
 	}
 	// Account seems valid, request the keystore to sign
 	return w.keystore.SignTxWithPassphrase(account, passphrase, tx, chainID)
-}
-
-func (w *keystoreWallet) SignHashValidate(account accounts.Account, hash []byte, validate bool) ([]byte, error) {
-	// Make sure the requested account is contained within
-	if account.Address != w.account.Address {
-		return nil, accounts.ErrUnknownAccount
-	}
-	if account.URL != (accounts.URL{}) && account.URL != w.account.URL {
-		return nil, accounts.ErrUnknownAccount
-	}
-	// Account seems valid, request the keystore to sign
-	return w.keystore.SignHashValidate(account, hash, validate)
-}
-
-func (w *keystoreWallet) SignHashValidateWithPass(account accounts.Account, passphrase string, hash []byte, validate bool) ([]byte, error) {
-	// Make sure the requested account is contained within
-	if account.Address != w.account.Address {
-		return nil, accounts.ErrUnknownAccount
-	}
-	if account.URL != (accounts.URL{}) && account.URL != w.account.URL {
-		return nil, accounts.ErrUnknownAccount
-	}
-	// Account seems valid, request the keystore to sign
-	return w.keystore.SignHashValidateWithPass(account, passphrase, hash, validate)
-}
-func (w *keystoreWallet) SignVrfWithPass(account accounts.Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error) {
-	ks := w.keystore
-	if ks == nil {
-		return []byte{}, []byte{}, []byte{}, errors.New("准备签名vrf失败 w.keystore为空")
-	}
-	key := ks.findSignKeyInTemp(account)
-	if key == nil {
-		var err error
-		ks.mu.Lock()
-		_, key, err = ks.getDecryptedKey(account, passphrase)
-		if err != nil {
-			ks.mu.Unlock()
-			return []byte{}, []byte{}, []byte{}, err
-		}
-		ks.tempPrvKey[account.Address] = key
-		ks.mu.Unlock()
-	}
-
-	vrfValue, vrfProof, err := baseinterface.NewVrf().ComputeVrf(key.PrivateKey, msg)
-	if err != nil {
-		return []byte{}, []byte{}, []byte{}, err
-	}
-	return ECDSAPKCompression(&key.PrivateKey.PublicKey), vrfValue, vrfProof, nil
 }

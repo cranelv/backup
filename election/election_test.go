@@ -17,6 +17,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"strconv"
+	"encoding/json"
 )
 
 func GetDepositDetatil(num int, m int, n int,onlineFlag bool) []vm.DepositDetail {
@@ -362,4 +363,20 @@ func Test7(t *testing.T){
 		common.BigToAddress(big.NewInt(2)),
 	}
 	GOTestM(0,0,white,black,"stock",true)
+}
+
+
+func Test767(t *testing.T){
+	ans:=[]mc.EntrustInfo{}
+	ans=append(ans,mc.EntrustInfo{
+		Address:common.BigToAddress(big.NewInt(1)),
+		Password:"xxx",
+	})
+	ans=append(ans,mc.EntrustInfo{
+		Address:common.BigToAddress(big.NewInt(2)),
+		Password:"xxx",
+	})
+	data,err:=json.Marshal(ans)
+	fmt.Println(string(data),err)
+
 }

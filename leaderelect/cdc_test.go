@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/core"
@@ -16,31 +17,34 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 )
 
-func getTestValidatorList() []mc.TopologyNodeInfo {
-	return []mc.TopologyNodeInfo{
-		{
-			Account:    common.HexToAddress("0x0EAd6cDB8D214389909a535d4Ccc21A393dDdBA9"),
-			Position:   0,
-			Type:       common.RoleValidator,
-			NodeNumber: 0,
-		},
-		{
-			Account:    common.HexToAddress("0x6a3217d128A76e4777403E092bde8362d4117773"),
-			Position:   1,
-			Type:       common.RoleValidator,
-			NodeNumber: 1,
-		},
-		{
-			Account:    common.HexToAddress("0xf9E18AcC86179925353713a4A5D0E9BF381fBc17"),
-			Position:   2,
-			Type:       common.RoleValidator,
-			NodeNumber: 2,
-		},
-		{
-			Account:    common.HexToAddress("0xa121E6670439ba37E7244d4EB18E42bd6724Ef0F"),
-			Position:   3,
-			Type:       common.RoleValidator,
-			NodeNumber: 3,
+func getTestValidatorGraph() *mc.TopologyGraph {
+	return &mc.TopologyGraph{
+		CurNodeNumber: 0,
+		NodeList: []mc.TopologyNodeInfo{
+			{
+				Account:    common.HexToAddress("0x0EAd6cDB8D214389909a535d4Ccc21A393dDdBA9"),
+				Position:   0,
+				Type:       common.RoleValidator,
+				NodeNumber: 0,
+			},
+			{
+				Account:    common.HexToAddress("0x6a3217d128A76e4777403E092bde8362d4117773"),
+				Position:   1,
+				Type:       common.RoleValidator,
+				NodeNumber: 1,
+			},
+			{
+				Account:    common.HexToAddress("0xf9E18AcC86179925353713a4A5D0E9BF381fBc17"),
+				Position:   2,
+				Type:       common.RoleValidator,
+				NodeNumber: 2,
+			},
+			{
+				Account:    common.HexToAddress("0xa121E6670439ba37E7244d4EB18E42bd6724Ef0F"),
+				Position:   3,
+				Type:       common.RoleValidator,
+				NodeNumber: 3,
+			},
 		},
 	}
 }
@@ -69,7 +73,7 @@ func (self *testState) GetMatrixData(hash common.Hash) (val []byte) {
 }
 
 func (self *testState) SetMatrixData(hash common.Hash, val []byte) {
-
+	return
 }
 
 func (self *testState) GetAuthFrom(entrustFrom common.Address, height uint64) common.Address {
@@ -78,6 +82,13 @@ func (self *testState) GetAuthFrom(entrustFrom common.Address, height uint64) co
 
 func (self *testState) GetEntrustFrom(authFrom common.Address, height uint64) []common.Address {
 	return nil
+}
+
+func newTestState() *testState {
+	ts := &testState{}
+	ts.graphData, _ = json.Marshal(getTestValidatorGraph())
+
+	return ts
 }
 
 func Test_cdc_AnalysisState(t *testing.T) {

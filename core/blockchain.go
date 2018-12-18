@@ -1443,17 +1443,17 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 		lottery.ProcessMatrixState(header.Number.Uint64())
 	}
 	interestReward := interest.New(state)
-	if nil != interestReward {
-		interestRewardMap := interestReward.InterestCalc(state, header.Number.Uint64())
-		if 0 != len(interestRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
-		}
+	if nil == interestReward {
+		return nil
 	}
-	//todo 惩罚
+	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
 
 	slash := slash.New(bc, state)
 	if nil != slash {
-		slash.CalcSlash(state, num, bc.upTime)
+		slash.CalcSlash(state, header.Number.Uint64(), bc.upTime, interestCalcMap)
 	}
 
 	return nil
@@ -2500,14 +2500,15 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 		log.INFO(common.SignLog, "检查反射结果", aa.String())
 	}
 
+	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
 	for _, v := range ans {
-		for kk, vv := range manparams.EntrustValue {
+		for kk, vv := range entrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
-			if _, ok := manparams.EntrustValue[kk]; ok {
+			if _, ok := entrustValue[kk]; ok {
 				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
-				return kk, manparams.EntrustValue[kk], nil
+				return kk, entrustValue[kk], nil
 			}
 			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
 			return kk, vv, errors.New("无该密码")

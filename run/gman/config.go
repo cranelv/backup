@@ -17,14 +17,17 @@ import (
 	"encoding/json"
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/dashboard"
+	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/man"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/naoina/toml"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -187,20 +190,22 @@ func CheckEntrust(ctx *cli.Context) error {
 	}
 	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
 	if err != nil {
-		fmt.Println("AedDecrypt失败", bytesPass, password)
+		fmt.Println("AedDecrypt失败")
 		return err
 	}
 
-	var anss []EntrustInfo
+	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
 		fmt.Println("加密文件解码失败 密码不正确")
 		return err
 	}
 
+	entrustValue :=make(map[common.Address]string,0)
 	for _, v := range anss {
-		manparams.EntrustValue[v.Address] = v.Password
+		entrustValue[v.Address] = v.Password
 	}
+	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 	return nil
 }
 
@@ -208,22 +213,39 @@ func ReadDecryptPassword(ctx *cli.Context) (string, error) {
 	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
 		return password, nil
 	}
-
-	ans := ""
-	reader := bufio.NewReader(os.Stdin)
+	var passphrase string
+	var err error
+	InputCount:=0
 
 	for true {
-		fmt.Println("请输入你的解压密码")
-		data, _, _ := reader.ReadLine()
-		if CheckPassword(string(data)) {
-			ans = string(data)
-			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
-			status, _, _ := reader.ReadLine()
-			if string(status) == "y" {
-				break
-			}
-
+		InputCount++
+		if InputCount>3{
+			return "",errors.New("多次输入密码错误")
+		}
+		fmt.Printf("第 %d次密码输入 \n",InputCount)
+		passphrase,err=GetPassword()
+		if err!=nil{
+			fmt.Println("获取密码错误",err)
+			continue
+		}
+		if CheckPassword(passphrase) {
+			break
 		}
 	}
-	return ans, nil
+	return passphrase, nil
+}
+
+func GetPassword()(string,error){
+	password, err := console.Stdin.PromptPassword("Passphrase: ")
+	if err != nil {
+		return "", fmt.Errorf("Failed to read passphrase: %v", err)
+	}
+	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
+	if err != nil {
+		return "",fmt.Errorf("Failed to read passphrase confirmation: %v", err)
+	}
+	if password != confirm {
+		return "",fmt.Errorf("Passphrases do not match")
+	}
+	return password,nil
 }
