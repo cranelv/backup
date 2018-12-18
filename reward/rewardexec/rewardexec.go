@@ -200,8 +200,10 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 	rewards := make(map[common.Address]*big.Int, 0)
 
 	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.ValidatorsRate)
+	log.INFO(PackageName, "验证者奖励总额", validatorsBlkReward)
 	validatorReward := br.getValidatorRewards(validatorsBlkReward, Leader, num)
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
+	log.INFO(PackageName, "矿工奖励总额", validatorsBlkReward)
 	minerRewards := br.getMinerRewards(minersBlkReward, num)
 
 	util.MergeReward(rewards, validatorReward)

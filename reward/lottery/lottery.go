@@ -2,8 +2,9 @@ package lottery
 
 import (
 	"math/big"
-	"math/rand"
 	"sort"
+
+	"github.com/matrix/go-matrix/common/mt19937"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
@@ -55,7 +56,7 @@ type TxsLottery struct {
 }
 
 type LotterySeed interface {
-	GetSeed(num uint64) *big.Int
+	GetRandom(hash common.Hash, Type string) (*big.Int, error)
 }
 
 func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
@@ -101,14 +102,14 @@ func abs(n int64) int64 {
 	return (n ^ y) - y
 }
 
-func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
+func (tlr *TxsLottery) LotteryCalc(parentHash common.Hash, num uint64) map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 
 	if !tlr.canChooseLottery(num) {
 		return nil
 	}
 
-	txsCmpResultList := tlr.getLotteryList(num, len(tlr.lotteryCfg.LotteryInfo))
+	txsCmpResultList := tlr.getLotteryList(parentHash, num, len(tlr.lotteryCfg.LotteryInfo))
 	if 0 == len(txsCmpResultList) {
 		log.ERROR(PackageName, "本周期没有交易不抽奖", "")
 		return nil
@@ -125,28 +126,14 @@ func (tlr *TxsLottery) LotteryCalc(num uint64) map[common.Address]*big.Int {
 }
 
 func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+	if !tlr.ProcessMatrixState(num) {
 		return false
 	}
-	if tlr.bcInterval.IsBroadcastNumber(num) {
-		log.WARN(PackageName, "广播周期不处理", "")
-		return false
-	}
-	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
-	if nil != err {
-		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
-		return false
-	}
-	if latestNum > tlr.bcInterval.GetLastReElectionNumber() {
-		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
-		return false
-	}
-	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+
 	balance := tlr.state.GetBalance(common.LotteryRewardAddress)
 	if len(balance) == 0 {
 		log.ERROR(PackageName, "状态树获取彩票账户余额错误", "")
-		return false
+		//return false
 	}
 	var allPrice uint64
 	for _, v := range tlr.lotteryCfg.LotteryInfo {
@@ -167,18 +154,49 @@ func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 	return true
 }
 
-func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultList {
-	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - 1
+func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
+	if num == 1 {
+		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+		return false
+	}
+	if tlr.bcInterval.IsBroadcastNumber(num) {
+		log.WARN(PackageName, "广播周期不处理", "")
+		return false
+	}
+	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
+	if nil != err {
+		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
+		return false
+	}
+	if latestNum > tlr.bcInterval.GetLastReElectionNumber() {
+		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
+		return false
+	}
+	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+
+	return true
+}
+
+func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum int) TxCmpResultList {
+	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - tlr.bcInterval.GetReElectionInterval()
 
 	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
 	}
-	randSeed := tlr.seed.GetSeed(num)
-	rand.Seed(randSeed.Int64())
+	randSeed, err := tlr.seed.GetRandom(parentHash, "electionseed")
+	if nil != err {
+		log.Error(PackageName, "获取随机数错误", err)
+		return nil
+	}
+
+	log.INFO(PackageName, "随机数种子", randSeed.Int64())
+	rand := mt19937.RandUniformInit(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
 		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
+		log.INFO(PackageName, "交易获取高度", originBlockNum)
 		for _, tx := range txs {
+			log.INFO(PackageName, "交易类型", tx.GetMatrixType())
 			if tx.GetMatrixType() == common.ExtraNormalTxType {
 				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
@@ -192,9 +210,11 @@ func (tlr *TxsLottery) getLotteryList(num uint64, lotteryNum int) TxCmpResultLis
 	}
 	sort.Sort(txsCmpResultList)
 	chooseResultList := make(TxCmpResultList, 0)
+	log.INFO(PackageName, "交易数目", len(txsCmpResultList))
 	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {
-		randUint64 := rand.Uint64()
-		index := randUint64 % (uint64(len(txsCmpResultList)))
+		randomData := uint64(rand.Uniform(0, float64(^uint64(0))))
+		log.INFO(PackageName, "随机数", randomData)
+		index := randomData % (uint64(len(txsCmpResultList)))
 		log.INFO(PackageName, "交易序号", index)
 		chooseResultList = append(chooseResultList, txsCmpResultList[index])
 	}

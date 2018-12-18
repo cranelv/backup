@@ -9,6 +9,7 @@ import (
 
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/signhelper"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
@@ -49,8 +50,9 @@ type Backend interface {
 	SignHelper() *signhelper.SignHelper
 	HD() *msgsend.HD
 	ReElection() *reelection.ReElection
-	FetcherNotify(hash common.Hash, number uint64)
+	FetcherNotify(hash common.Hash, number uint64, addr common.Address)
 	OLConsensus() *olconsensus.TopNodeService
+	Random() *baseinterface.Random
 }
 
 type VrfMsg struct {

@@ -253,11 +253,6 @@ func (self *BlockGenor) consensusBlockMsgHandle(data *mc.BlockLocalVerifyOK) {
 		return
 	}
 
-	//root, _ := data.State.Commit(self.pm.bc.Config().IsEIP158(data.Header.Number))
-	//if root != data.Header.Root {
-	//	log.Error("hyk_miss_trie_1", "root", data.Header.Root.TerminalString(), "state root", root.TerminalString())
-	//}
-
 	process.AddConsensusBlock(data)
 }
 
@@ -267,8 +262,8 @@ func (self *BlockGenor) blockInsertMsgHandle(blockInsert *mc.HD_BlockInsertNotif
 	log.INFO(self.logExtraInfo(), "收到的区块插入消息广播高度", number, "from", blockInsert.From.Hex(), "当前高度", curNumber)
 
 	if number > curNumber {
-		log.INFO(self.logExtraInfo(), "+++++fetch 区块高度", number)
-		self.pm.matrix.FetcherNotify(blockInsert.Header.Hash(), blockInsert.Header.Number.Uint64())
+		log.INFO(self.logExtraInfo(), "+++++fetch 区块高度", number, "from", blockInsert.From.Hex())
+		self.pm.matrix.FetcherNotify(blockInsert.Header.Hash(), blockInsert.Header.Number.Uint64(), blockInsert.From)
 		return
 	}
 

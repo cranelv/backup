@@ -46,6 +46,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
+	//"github.com/matrix/go-matrix/baseinterface"
 )
 
 var (
@@ -1015,16 +1016,22 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
-	log.Info("miss tree node debug", "入链时", "commit前state状态")
-	state.MissTrieDebug()
+	//log.Info("miss tree node debug", "入链时", "commit前state状态")
+	//state.MissTrieDebug()
+	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
+	intermediateRoot := state.IntermediateRoot(deleteEmptyObjects)
 
-	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+	root, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
 		return NonStatTy, err
 	}
 
 	if root != block.Root() {
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "deleteEmptyObjects", deleteEmptyObjects)
+
+		//log.Info("miss tree node debug", "入链时", "commit后state状态")
+		//state.MissTrieDebug()
+
 		return NonStatTy, errors.New("root not match")
 	}
 
@@ -1397,8 +1404,9 @@ func (r *randSeed) GetSeed(num uint64) *big.Int {
 		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
 		return big.NewInt(0)
 	}
-	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	seed := common.BytesToHash(preVrfValue).Big()
+	//_, preVrfValue, _ := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	//seed := common.BytesToHash(preVrfValue).Big()
+	seed := big.NewInt(0)
 	return seed
 }
 
@@ -1430,12 +1438,9 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, state, &randSeed{bc})
+	lottery := lottery.New(bc, state, nil)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
-		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-		}
+		lottery.ProcessMatrixState(header.Number.Uint64())
 	}
 	interestReward := interest.New(state)
 	if nil != interestReward {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"testing"
 )
 
@@ -172,4 +173,13 @@ func Test(t *testing.T) {
 	binary.Read(buf2, binary.BigEndian, sbs)
 	fmt.Println("超级区块序号", len(test))
 
+	rand.Seed(-4522357180955875538)
+	for i := 0; i < 100; i++ {
+		fmt.Println("随机数1", rand.Uint64())
+	}
+
+	rand.Seed(-7711789739634500565)
+	for i := 0; i < 100; i++ {
+		fmt.Println("随机数2", rand.Uint64())
+	}
 }

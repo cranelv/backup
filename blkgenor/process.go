@@ -198,7 +198,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	parentBlock := p.blockChain().GetBlockByHash(blkInsertMsg.Header.ParentHash)
 	if parentBlock == nil {
 		log.WARN(p.logExtraInfo(), "区块插入", "缺少父区块, 进行fetch", "父区块 hash", blkInsertMsg.Header.ParentHash.TerminalString())
-		p.backend().FetcherNotify(blkInsertMsg.Header.ParentHash, p.number)
+		p.backend().FetcherNotify(blkInsertMsg.Header.ParentHash, p.number-1, blkInsertMsg.From)
 		return
 	}
 
@@ -240,8 +240,8 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	}
 
 	if _, err := p.insertAndBcBlock(false, header.Leader, header); err != nil {
-		log.WARN(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString())
-		p.backend().FetcherNotify(blockHash, p.number)
+		log.WARN(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString(), "source", blkInsertMsg.From.Hex())
+		p.backend().FetcherNotify(blockHash, p.number, blkInsertMsg.From)
 	}
 
 	p.saveInsertedBlockHash(blockHash)

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
@@ -29,6 +30,7 @@ type ProcessManage struct {
 	engine      consensus.Engine
 	dposEngine  consensus.DPOSEngine
 	olConsensus *olconsensus.TopNodeService
+	random      *baseinterface.Random
 }
 
 func NewProcessManage(matrix Backend) *ProcessManage {
@@ -44,6 +46,7 @@ func NewProcessManage(matrix Backend) *ProcessManage {
 		engine:      matrix.BlockChain().Engine(),
 		dposEngine:  matrix.BlockChain().DPOSEngine(),
 		olConsensus: matrix.OLConsensus(),
+		random:      matrix.Random(),
 	}
 }
 
