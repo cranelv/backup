@@ -2499,14 +2499,15 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 		log.INFO(common.SignLog, "检查反射结果", aa.String())
 	}
 
+	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
 	for _, v := range ans {
-		for kk, vv := range manparams.EntrustValue {
+		for kk, vv := range entrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
-			if _, ok := manparams.EntrustValue[kk]; ok {
+			if _, ok := entrustValue[kk]; ok {
 				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
-				return kk, manparams.EntrustValue[kk], nil
+				return kk, entrustValue[kk], nil
 			}
 			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
 			return kk, vv, errors.New("无该密码")
