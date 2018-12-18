@@ -23,7 +23,6 @@ const (
 	SECOND      = 0 //二等奖数目
 	THIRD       = 0 //三等奖数目
 	PackageName = "彩票奖励"
-	Stop        = "0"
 )
 
 var (
@@ -80,7 +79,7 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 	}
 
 	cfg := lotteryCfg.(*mc.LotteryCfgStruct)
-	if cfg.LotteryCalc == Stop {
+	if cfg.LotteryCalc == util.Stop {
 		log.ERROR(PackageName, "停止发放彩票奖励", "")
 		return nil
 	}

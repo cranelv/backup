@@ -22,6 +22,7 @@ const (
 )
 const (
 	RewardFullRate = uint64(10000)
+	Stop           = "0"
 )
 
 var (

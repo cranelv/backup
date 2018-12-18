@@ -117,6 +117,7 @@ type RewardRateCfg struct {
 }
 
 type BlkRewardCfg struct {
+	BlkRewardCalc  string
 	MinerMount     uint64 //矿工奖励单位man
 	MinerHalf      uint64 //矿工折半周期
 	ValidatorMount uint64 //验证者奖励 单位man
@@ -125,6 +126,7 @@ type BlkRewardCfg struct {
 }
 
 type TxsRewardCfgStruct struct {
+	TxsRewardCalc  string
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
 	RewardRate     RewardRateCfg
@@ -142,11 +144,13 @@ type LotteryCfgStruct struct {
 }
 
 type InterestCfgStruct struct {
+	InterestCalc string
 	CalcInterval uint64
 	PayInterval  uint64
 }
 
 type SlashCfgStruct struct {
+	SlashCalc string
 	SlashRate uint64
 }
 
