@@ -1020,13 +1020,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	//state.MissTrieDebug()
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
 	intermediateRoot := state.IntermediateRoot(deleteEmptyObjects)
-
+	//fmt.Printf("===ZH1==:%s\n", state.Dump())
 	root, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
 		return NonStatTy, err
 	}
 
 	if root != block.Root() {
+		//fmt.Printf("===ZH2==:%s\n", state.Dump())
 		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "deleteEmptyObjects", deleteEmptyObjects)
 
 		//log.Info("miss tree node debug", "入链时", "commit后state状态")
