@@ -103,7 +103,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		eleNum = 1
 	} else {
 		// 下一个选举+1
-		eleNum = bp.bcInterval.GetLastReElectionNumber() - bp.bcInterval.GetReElectionInterval()
+		eleNum = eleNum - bp.bcInterval.GetBroadcastInterval()
 	}
 
 	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)

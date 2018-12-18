@@ -474,7 +474,7 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 	})
 }
 
-func TestBlockSlash_CalcSlash33(t *testing.T) {
+func TestBlockSlash_CalcSlash44(t *testing.T) {
 	log.InitLog(3)
 
 	Convey("拓扑图为nil", t, func() {
@@ -551,6 +551,110 @@ func TestBlockSlash_CalcSlash33(t *testing.T) {
 		uptime[common.HexToAddress(account2)] = 48
 		uptime[common.HexToAddress(account3)] = 20
 		slash.CalcSlash(statedb, 100, uptime, rewards)
+	})
+}
+
+func TestBlockSlash_CalcSlash55(t *testing.T) {
+	log.InitLog(3)
+	fakeFuntion()
+	bc := &Chain{}
+	slash := New(bc, &State{0})
+	Convey("uptime为nil", t, func() {
+
+		EleList := make([]mc.ElectNodeInfo, 0)
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account0), Position: 8192, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account1), Position: 8193, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account2), Position: 8194, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account3), Position: 8194, Type: common.RoleValidator})
+		//EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		bc.SetGraphByState(nil, &mc.ElectGraph{Number: 4, ElectList: EleList})
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+		rewards := make(map[common.Address]*big.Int, 0)
+		rewards[common.HexToAddress(account0)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account1)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account2)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account3)] = big.NewInt(4e+18)
+		uptime := make(map[common.Address]uint64, 0)
+		uptime[common.HexToAddress(account0)] = 97
+		uptime[common.HexToAddress(account1)] = 75
+		uptime[common.HexToAddress(account2)] = 48
+		uptime[common.HexToAddress(account3)] = 20
+		slash.CalcSlash(statedb, 101, nil, rewards)
+	})
+}
+
+func TestBlockSlash_CalcSlash6(t *testing.T) {
+	log.InitLog(3)
+	fakeFuntion()
+	bc := &Chain{}
+	slash := New(bc, &State{0})
+	Convey("利息为nil", t, func() {
+
+		EleList := make([]mc.ElectNodeInfo, 0)
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account0), Position: 8192, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account1), Position: 8193, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account2), Position: 8194, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account3), Position: 8194, Type: common.RoleValidator})
+		//EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		bc.SetGraphByState(nil, &mc.ElectGraph{Number: 4, ElectList: EleList})
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+		rewards := make(map[common.Address]*big.Int, 0)
+		rewards[common.HexToAddress(account0)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account1)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account2)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account3)] = big.NewInt(4e+18)
+		uptime := make(map[common.Address]uint64, 0)
+		uptime[common.HexToAddress(account0)] = 97
+		uptime[common.HexToAddress(account1)] = 75
+		uptime[common.HexToAddress(account2)] = 48
+		uptime[common.HexToAddress(account3)] = 20
+		slash.CalcSlash(statedb, 101, uptime, nil)
+	})
+
+	Convey("利息值非法", t, func() {
+
+		EleList := make([]mc.ElectNodeInfo, 0)
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account0), Position: 8192, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account1), Position: 8193, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account2), Position: 8194, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account3), Position: 8194, Type: common.RoleValidator})
+		//EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		bc.SetGraphByState(nil, &mc.ElectGraph{Number: 4, ElectList: EleList})
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+		rewards := make(map[common.Address]*big.Int, 0)
+		rewards[common.HexToAddress(account0)] = big.NewInt(-4e+18)
+		rewards[common.HexToAddress(account1)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account2)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account3)] = big.NewInt(4e+18)
+		uptime := make(map[common.Address]uint64, 0)
+		uptime[common.HexToAddress(account0)] = 97
+		uptime[common.HexToAddress(account1)] = 75
+		uptime[common.HexToAddress(account2)] = 48
+		uptime[common.HexToAddress(account3)] = 20
+		slash.CalcSlash(statedb, 101, uptime, rewards)
+	})
+
+	Convey("插入超级区块", t, func() {
+
+		EleList := make([]mc.ElectNodeInfo, 0)
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account0), Position: 8192, Type: common.RoleInnerMiner})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account1), Position: 8193, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account2), Position: 8194, Type: common.RoleValidator})
+		EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress(account3), Position: 8194, Type: common.RoleValidator})
+		//EleList = append(EleList, mc.ElectNodeInfo{Account: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Position: 8195})
+		bc.SetGraphByState(nil, &mc.ElectGraph{Number: 4, ElectList: EleList})
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+		rewards := make(map[common.Address]*big.Int, 0)
+		rewards[common.HexToAddress(account0)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account1)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account2)] = big.NewInt(4e+18)
+		rewards[common.HexToAddress(account3)] = big.NewInt(4e+18)
+		uptime := make(map[common.Address]uint64, 0)
+		uptime[common.HexToAddress(account0)] = 97
+		uptime[common.HexToAddress(account1)] = 75
+		uptime[common.HexToAddress(account2)] = 48
+		uptime[common.HexToAddress(account3)] = 20
+		slash.CalcSlash(statedb, 105, uptime, rewards)
 	})
 }
 
