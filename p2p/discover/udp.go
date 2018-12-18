@@ -754,8 +754,9 @@ func (req *findnodeByAddress) handle(t *udp, from *net.UDPAddr, fromID NodeID, m
 	defer t.mutex.Unlock()
 	if val, ok := t.nodeBindAddress[req.Target]; ok {
 		p.Node = nodeToRPC(val)
+		t.send(from, addrNeighborsPacket, &p)
 	}
-	t.send(from, addrNeighborsPacket, &p)
+	log.Info("node bind address", "map", t.nodeBindAddress)
 	return nil
 }
 
