@@ -1153,7 +1153,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
-			return nil
+			return err
 		}
 		if account.Root != emptyState {
 			s.db.TrieDB().Reference(account.Root, parent)
