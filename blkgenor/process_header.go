@@ -191,8 +191,17 @@ func (p *Process) processHeaderGen() error {
 			From: ca.GetAddress()}
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
-		if len(txs[2:]) > 0 {
-			txpoolCache.MakeStruck(txs[2:], header.HashNoSignsAndNonce(), p.number)
+		if len(txs) > 0 {
+			txlist := make([]types.SelfTransaction,0)
+			for _,tx := range txs{
+				if tx.GetMatrixType() != common.ExtraUnGasTxType{
+					txlist = append(txlist,tx)
+				}
+			}
+			if len(txlist) > 0{
+				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
+			}
+
 		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)

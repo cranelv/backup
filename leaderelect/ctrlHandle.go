@@ -69,15 +69,10 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	self.SetSelfAddress(ca.GetAddress())
 
 	log.INFO(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "isSupper", msg.parentIsSupper, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
-	if err := self.dc.AnalysisState(msg.parentHeader.Hash(), msg.parentIsSupper, msg.parentHeader.Leader, msg.parentStateDB); err != nil {
+	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentIsSupper, msg.parentStateDB); err != nil {
 		log.ERROR(self.logInfo, "开始消息处理", "分析状态树信息错误", "err", err)
 		return
 	}
-
-	//root2, _ := msg.parentStateDB.Commit(self.dc.chain.Config().IsEIP158(msg.parentHeader.Number))
-	//if root2 != msg.parentHeader.Root {
-	//	log.Error("hyk_miss_trie_5", "root", msg.parentHeader.Root.TerminalString(), "state root", root2.TerminalString())
-	//}
 
 	if self.dc.role != common.RoleValidator {
 		log.Debug(self.logInfo, "开始消息处理", "身份错误, 不是验证者", "高度", self.dc.number)
@@ -139,7 +134,7 @@ func (self *controller) timeOutHandle() {
 			"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn,
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
 	default:
-		log.ERROR(self.logInfo, "超时事件", "当前状态错误", self.State(), "轮次", self.curTurnInfo(), "高度", self.Number(),
+		log.ERROR(self.logInfo, "超时事件", "当前状态错误", self.State().String(), "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "当前时间", curTime)
 		return
 	}

@@ -46,6 +46,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
+	//"github.com/matrix/go-matrix/baseinterface"
 )
 
 var (
@@ -1015,16 +1016,22 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
-	log.Info("miss tree node debug", "入链时", "commit前state状态")
-	state.MissTrieDebug()
+	//log.Info("miss tree node debug", "入链时", "commit前state状态")
+	//state.MissTrieDebug()
+	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
+	intermediateRoot := state.IntermediateRoot(deleteEmptyObjects)
 
-	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+	root, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
 		return NonStatTy, err
 	}
 
 	if root != block.Root() {
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "deleteEmptyObjects", deleteEmptyObjects)
+
+		//log.Info("miss tree node debug", "入链时", "commit后state状态")
+		//state.MissTrieDebug()
+
 		return NonStatTy, errors.New("root not match")
 	}
 

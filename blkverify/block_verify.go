@@ -119,6 +119,7 @@ func (self *BlockVerify) update() {
 			go self.handleRecoveryMsg(recoveryMsg)
 
 		case <-self.quitCh:
+			self.processManage.clearProcessMap()
 			return
 		}
 	}

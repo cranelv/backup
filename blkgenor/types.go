@@ -50,7 +50,7 @@ type Backend interface {
 	SignHelper() *signhelper.SignHelper
 	HD() *msgsend.HD
 	ReElection() *reelection.ReElection
-	FetcherNotify(hash common.Hash, number uint64)
+	FetcherNotify(hash common.Hash, number uint64, addr common.Address)
 	OLConsensus() *olconsensus.TopNodeService
 	Random() *baseinterface.Random
 }

@@ -7,22 +7,7 @@ import (
 	"math/big"
 )
 
-//RoleType
-//type RoleType uint32
 
-/*
-const (
-	RoleNil             RoleType = 0x001
-	RoleDefault                  = 0x002
-	RoleBucket                   = 0x004
-	RoleBackupMiner              = 0x008
-	RoleMiner                    = 0x010
-	RoleInnerMiner               = 0x020
-	RoleBackupValidator          = 0x040
-	RoleValidator                = 0x080
-	RoleBackupBroadcast          = 0x100
-	RoleBroadcast                = 0x200
-)*/
 
 type ElectRoleType uint8
 

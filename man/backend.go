@@ -8,12 +8,10 @@ package man
 import (
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/ca"
 	"math/big"
 	"runtime"
 	"sync/atomic"
-	"time"
-
-	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -55,7 +53,9 @@ import (
 	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/trie"
+	"time"
 )
 
 var MsgCenter *mc.Center
@@ -528,20 +528,54 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	//s.broadTx.Start()//YY
 	return nil
 }
-func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
-	ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
-	selfId := p2p.ServerP2p.Self().ID.String()
-	for _, id := range ids {
-		if id.String() == selfId {
-			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", id.String())
-			continue
+
+//func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
+//	ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+//	selfId := p2p.ServerP2p.Self().ID.String()
+//	for _, id := range ids {
+//		if id.String() == selfId {
+//			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", id.String())
+//			continue
+//		}
+//		peer := s.protocolManager.Peers.Peer(id.String()[:16])
+//		if peer == nil {
+//			continue
+//		}
+//		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+//	}
+//}
+func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
+	var nid discover.NodeID
+	if len(addr) == 0 || addr == (common.Address{}) {
+		ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+		selfId := p2p.ServerP2p.Self().ID.String()
+		indexs := p2p.Random(len(ids), 1)
+		if len(indexs) > 0 && indexs[0] <= (len(ids)-1) {
+			nid = ids[indexs[0]]
 		}
-		peer := s.protocolManager.Peers.Peer(id.String()[:16])
-		if peer == nil {
-			continue
+		if nid.String() == selfId {
+			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", nid.String())
+			if indexs[0] == (len(ids) - 1) {
+				nid = ids[indexs[0]-1]
+			} else {
+				nid = ids[indexs[0]+1]
+			}
 		}
-		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+
+	} else {
+		nid, _ = ca.ConvertAddressToNodeId(addr)
 	}
+	if nid.String() == "" {
+		log.Info("file backend func FetcherNotify", "NodeID is nil", nid.String(), "address", addr)
+		return
+	}
+	peer := s.protocolManager.Peers.Peer(nid.String()[:16])
+	if peer == nil {
+		log.Info("file backend func FetcherNotify", "get PeerID is nil by Validator ID:id", nid.String()[:16])
+		return
+	}
+	s.protocolManager.fetcher.Notify(nid.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+
 }
 
 // Stop implements node.Service, terminating all internal goroutines used by the
@@ -549,6 +583,7 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
 func (s *Matrix) Stop() error {
 	s.blockGen.Close()
 	s.blockVerify.Close()
+	s.olConsensus.Close()
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.protocolManager.Stop()

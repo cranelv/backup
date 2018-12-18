@@ -7,25 +7,11 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/mt19937"
 
+	"math/big"
 )
-//func ValNodesSelected(probVal []Stf, seed int64, M int, P int, J int) ([]Strallyint, []Strallyint, []Strallyint) {
-//
-//	probnormalized := Normalize(probVal)
-//
-//	Master,probnormalized:=GetList(probnormalized,M,seed)
-//	Backup,probnormalized:=GetList(probnormalized,P,seed)
-//	Candid:=[]Strallyint{}
-//	for _,v:=range probnormalized{
-//		Candid=append(Candid,Strallyint{Addr:v.Addr,Value:1})
-//	}
-////	fmt.Println("len Master",len(Master),"len Backup",len(Backup),"Cand",len(Candid))
-//	return Master,Backup,Candid
-//
-//}
 
 func GetList(probnormalized []Pnormalized,needNum int,seed int64)([]Strallyint,[]Pnormalized){
 	probnormalized =Normalize(probnormalized)
-	//fmt.Println("len",len(probnormalized),needNum)
 	ans:=[]Strallyint{}
 	RemainingProbNormalizedNodes:=[]Pnormalized{}
 	if needNum>=len(probnormalized){
@@ -101,7 +87,7 @@ func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common
 
 type SelfNodeInfo struct {
 	Address  common.Address
-	Stk      float64
+	Stk      *big.Int
 	Uptime   int
 	Tps      int
 	Coef_tps float64
@@ -143,12 +129,14 @@ func (self *SelfNodeInfo) Last_Time() float64 {
 }
 
 func (self *SelfNodeInfo) Deposit_stake() float64 {
+	temp := big.NewInt(0).Set(self.Stk)
+	deposMan := temp.Div(temp, common.ManValue).Uint64()
 	stake_weight := 1.0
-	if self.Stk >= 40000 {
+	if deposMan >= 40000 {
 		stake_weight = 4.5
-	} else if self.Stk >= 20000 {
+	} else if deposMan >= 20000 {
 		stake_weight = 2.15
-	} else if self.Stk >= 10000 {
+	} else if deposMan >= 10000 {
 		stake_weight = 1.0
 	} else {
 		stake_weight = 0.0
