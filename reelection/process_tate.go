@@ -18,7 +18,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		return nil, err
 	}
 	data, err := readFn(mc.MSKeyElectGraph)
-	log.INFO(Module, "data", data, "err", err)
+	log.DEBUG(Module, "data", data, "err", err, "高度", block.Header().Number.Uint64())
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectGraph, "err", err)
 		return nil, err
@@ -33,7 +33,6 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	currentHash := block.ParentHash()
 	topState, err := self.HandleTopGen(currentHash)
 	if self.IsMinerTopGenTiming(currentHash) {
-		//electStates.NextElect = []mc.ElectNodeInfo{}
 		electStates.NextElect = append(electStates.NextElect, topState.MastM...)
 		electStates.NextElect = append(electStates.NextElect, topState.BackM...)
 		electStates.NextElect = append(electStates.NextElect, topState.CandM...)
@@ -73,17 +72,17 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		electStates.ElectList = append(electStates.ElectList, electList...)
 		electStates.NextElect = []mc.ElectNodeInfo{}
 	}
-
-	return SloveElectStatus(electStates)
+	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
+	return electStates, nil
 }
 
 func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return []byte{}, err
 	}
+	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
+	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
 	height := block.Header().Number.Uint64()
 
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
@@ -120,12 +119,13 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 			tt.Position = common.PosOnline
 			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
 		}
-		return SloveOnlineStatus(&electOnline)
+		log.INFO(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electOnline)
+		return electOnline, nil
 	}
 
 	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
 	data, err := readFn(mc.MSKeyElectOnlineState)
-	log.INFO(Module, "data", data, "err", err)
+	//log.INFO(Module, "data", data, "err", err)
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectOnlineState, "err", err)
 		return []byte{}, err
@@ -151,7 +151,8 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 		electStates.ElectOnline[k].Position = mappStatus[v.Account]
 	}
 
-	return SloveOnlineStatus(electStates)
+	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electStates)
+	return electStates, nil
 }
 
 func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
@@ -198,25 +199,28 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 
 	preBroadcast.BeforeLastStateRoot = preBroadcast.LastStateRoot
 	preBroadcast.LastStateRoot = header.Root
+	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot.String(), "last", preBroadcast.LastStateRoot.String())
 	return preBroadcast, nil
 
 }
 func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProducePreBroadcastStateData CheckBlock err ", err)
+		log.ERROR(Module, "ProduceMinHashData CheckBlock err ", err)
 		return []byte{}, err
 	}
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
+		log.Error(Module, "ProduceMinHashData read broadcast interval err", err)
 		return nil, err
 	}
 	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
+		log.Error(Module, "ProduceMinHashData create broadcast interval err", err)
+		return nil, err
 	}
 	height := block.Number().Uint64()
 	if bcInterval.IsBroadcastNumber(height - 1) {
+		log.ERROR(Module, "ProduceMinHashData", "", "是广播区块后一块", height)
 		return mc.MinHashStruct{MinHash: block.ParentHash()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)
@@ -239,14 +243,18 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 	if nowHash.Cmp(preMinHash.MinHash.Big()) < 0 {
 		preMinHash.MinHash = header.Hash()
 	}
+	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", preMinHash.MinHash.String())
 	return preMinHash, nil
 }
 
 func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProducePreAllTopData CheckBlock err ", err)
 		return []byte{}, err
 	}
+	log.INFO(Module, "ProducePreAllTopData ", "开始", "高度", block.Header().Number.Uint64())
+	defer log.INFO(Module, "ProducePreAllTopData ", "结束", "高度", block.Header().Number.Uint64())
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
 		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
@@ -257,26 +265,18 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
 	}
 	height := block.Header().Number.Uint64()
-	if bcInterval.IsReElectionNumber(height+1) == false {
+	if bcInterval.IsReElectionNumber(height) == false {
 		return nil, nil
 	}
-	data, err := readFn(mc.MSKeyPerAllTop)
-	if err != nil {
-		log.ERROR(Module, "ProducePreAllTopData readFn 失败 key", mc.MSKeyPreBroadcastRoot, "err", err)
-		return nil, err
-	}
-	preAllTop, OK := data.(*mc.PreAllTopStruct)
-	if OK == false || preAllTop == nil {
-		log.ERROR(Module, "ProducePreAllTopData 非法", "反射失败")
-		return nil, err
-	}
+
 	header := self.bc.GetHeaderByHash(block.ParentHash())
 	if header == nil {
 		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
 		return nil, errors.New("header is nil")
 	}
-
+	preAllTop := &mc.PreAllTopStruct{}
 	preAllTop.PreAllTopRoot = header.Root
+	log.INFO("高度", block.Number().Uint64(), "ProducePreAllTopData", "preAllTop.PreAllTopRoot", preAllTop.PreAllTopRoot.String())
 	return preAllTop, nil
 }
 
@@ -285,7 +285,8 @@ func (self *ReElection) ProducePreMinerData(block *types.Block, readFn matrixsta
 		log.ERROR(Module, "ProducePreMinerData CheckBlock err ", err)
 		return nil, err
 	}
-
+	log.INFO(Module, "ProducePreMinerData ", "开始", "高度", block.Header().Number.Uint64())
+	defer log.INFO(Module, "ProducePreMinerData ", "开始", "高度", block.Header().Number.Uint64())
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
 		log.Error(Module, "ProducePreMinerData read broadcast interval err", err)
@@ -294,28 +295,21 @@ func (self *ReElection) ProducePreMinerData(block *types.Block, readFn matrixsta
 	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
 	if err != nil {
 		log.Error(Module, "ProducePreMinerData create broadcast interval err", err)
+		return nil, err
 	}
 
 	height := block.Header().Number.Uint64()
-	if bcInterval.IsBroadcastNumber(height) {
+	if bcInterval.IsBroadcastNumber(height - 1) {
 		return nil, nil
 	}
-	data, err := readFn(mc.MSKeyPreMiner)
-	if err != nil {
-		log.ERROR(Module, "readFn 失败 key", mc.MSKeyPreMiner, "err", err)
-		return nil, err
-	}
-	preMiner, OK := data.(*mc.PreMinerStruct)
-	if OK == false || preMiner == nil {
-		log.ERROR(Module, "PreBroadStateRoot 非法", "反射失败")
-		return nil, err
-	}
+
 	header := self.bc.GetHeaderByHash(block.ParentHash())
 	if header == nil {
 		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
 		return nil, errors.New("header is nil")
 	}
-
+	preMiner := &mc.PreMinerStruct{}
 	preMiner.PreMiner = header.Coinbase
+	log.INFO("高度", block.Number().Uint64(), "ProducePreMinerData", "preMiner.PreMiner", preMiner.PreMiner.String())
 	return preMiner, nil
 }

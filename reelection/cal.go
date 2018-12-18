@@ -48,12 +48,12 @@ func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
 		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
 		return nil, err
 	}
-	vipList,OK:=data.(*[]mc.VIPConfig)
+	vipList, OK := data.(*[]mc.VIPConfig)
 	if OK == false || vipList == nil {
 		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
-	return *vipList,nil
+	return *vipList, nil
 }
 
 func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInterface, error) {
@@ -64,10 +64,58 @@ func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInter
 	}
 	electInfo, OK := data.(*mc.ElectConfigInfo)
 	if OK == false || electInfo == nil {
-		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
+		log.ERROR("ElectConfigInfo", "ElectConfigInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
 	return baseinterface.NewElect(electInfo.ElectPlug), nil
+}
+
+func (self *ReElection) GetBroadcastIntervalByHash(hash common.Hash) (*manparams.BCInterval, error) {
+	data, err := self.bc.GetBroadcastInterval(hash)
+	if err != nil {
+		return nil, err
+	}
+	return manparams.NewBCIntervalWithInterval(data)
+}
+
+func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
+	tHeader := self.bc.GetHeaderByHash(hash)
+	if tHeader == nil {
+		log.Error(Module, "GetNumberByHash 根据hash算header失败 hash", hash.String())
+		return 0, errors.New("根据hash算header失败")
+	}
+	if tHeader.Number == nil {
+		log.Error(Module, "GetNumberByHash header 内的高度获取失败", hash.String())
+		return 0, errors.New("header 内的高度获取失败")
+	}
+	return tHeader.Number.Uint64(), nil
+}
+
+func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (common.Hash, error) {
+	AimHash, err := self.bc.GetAncestorHash(hash, height)
+	if err != nil {
+		log.Error(Module, "获取祖先hash失败 hash", hash.String(), "height", height, "err", err)
+		return common.Hash{}, err
+	}
+	return AimHash, nil
+}
+
+func GetCurrentTopology(hash common.Hash, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
+	return ca.GetTopologyByHash(reqtypes, hash)
+	//return ca.GetTopologyByNumber(reqtypes, height)
+}
+
+func CheckBlock(block *types.Block) error {
+	if block == nil {
+		return errors.New("block为空")
+	}
+	if block.Header() == nil {
+		return errors.New("block.Header()为空")
+	}
+	if block.Header().Number == nil {
+		return errors.New("block.Header.Number为空 ")
+	}
+	return nil
 }
 
 func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.Elect {
@@ -138,71 +186,4 @@ func (self *ReElection) TransferToNetTopologyChgStu(alterInfo []mc.Alternative) 
 	}
 
 	return result
-}
-
-func (self *ReElection) GetBroadcastIntervalByHash(hash common.Hash) (*manparams.BCInterval, error) {
-	data, err := self.bc.GetBroadcastInterval(hash)
-	if err != nil {
-		return nil, err
-	}
-	return manparams.NewBCIntervalWithInterval(data)
-}
-
-func (self *ReElection) GetNumberByHash(hash common.Hash) (uint64, error) {
-	tHeader := self.bc.GetHeaderByHash(hash)
-	if tHeader == nil {
-		log.Error(Module, "GetNumberByHash 根据hash算header失败 hash", hash.String())
-		return 0, errors.New("根据hash算header失败")
-	}
-	if tHeader.Number == nil {
-		log.Error(Module, "GetNumberByHash header 内的高度获取失败", hash.String())
-		return 0, errors.New("header 内的高度获取失败")
-	}
-	return tHeader.Number.Uint64(), nil
-}
-
-func (self *ReElection) GetHeaderHashByNumber(hash common.Hash, height uint64) (common.Hash, error) {
-	AimHash, err := self.bc.GetAncestorHash(hash, height)
-	if err != nil {
-		log.Error(Module, "获取祖先hash失败 hash", hash.String(), "height", height, "err", err)
-		return common.Hash{}, err
-	}
-	return AimHash, nil
-}
-
-func GetCurrentTopology(hash common.Hash, reqtypes common.RoleType) (*mc.TopologyGraph, error) {
-	return ca.GetTopologyByHash(reqtypes, hash)
-	//return ca.GetTopologyByNumber(reqtypes, height)
-}
-
-func CheckBlock(block *types.Block) error {
-	if block == nil {
-		return errors.New("block为空")
-	}
-	if block.Header() == nil {
-		return errors.New("block.Header()为空")
-	}
-	if block.Header().Number == nil {
-		return errors.New("block.Header.Number为空 ")
-	}
-	return nil
-}
-
-func SloveElectStatus(electStates *mc.ElectGraph) (interface{}, error) {
-
-	log.INFO("上树信息", "electStates 高度", electStates.Number)
-	for _, v := range electStates.ElectList {
-		log.INFO("上树信息", "当前拓扑图类型", v.Type, "账户", v.Account.String())
-	}
-	for _, v := range electStates.NextElect {
-		log.INFO("上树信息", "下届拓扑图 类型", v.Type, "账户", v.Account.String())
-	}
-	return electStates, nil
-}
-func SloveOnlineStatus(electonline *mc.ElectOnlineStatus) (interface{}, error) {
-	log.INFO("上树信息", "electonline 高度", electonline.Number)
-	for _, v := range electonline.ElectOnline {
-		log.INFO("上树信息", "当前上下线状态", v.Position, "账户", v.Account.String())
-	}
-	return electonline, nil
 }

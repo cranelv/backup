@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 
@@ -13,18 +13,18 @@ import (
 	"reflect"
 	"unicode"
 
-	cli "gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/crypto/aes"
-	"github.com/matrix/go-matrix/run/utils"
-	"github.com/matrix/go-matrix/dashboard"
-	"github.com/matrix/go-matrix/man"
-	"github.com/matrix/go-matrix/pod"
-	"github.com/matrix/go-matrix/params"
-	"github.com/naoina/toml"
-	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/matrix/go-matrix/crypto/aes"
+	"github.com/matrix/go-matrix/dashboard"
+	"github.com/matrix/go-matrix/man"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/pod"
+	"github.com/matrix/go-matrix/run/utils"
+	"github.com/naoina/toml"
+	cli "gopkg.in/urfave/cli.v1"
+	"io/ioutil"
 )
 
 var (
@@ -91,8 +91,8 @@ func defaultNodeConfig() pod.Config {
 	cfg := pod.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "man","eth", "shh")
-	cfg.WSModules = append(cfg.WSModules, "man","eth", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "man", "eth", "shh")
+	cfg.WSModules = append(cfg.WSModules, "man", "eth", "shh")
 	cfg.IPCPath = "gman.ipc"
 	return cfg
 }
@@ -167,15 +167,12 @@ func dumpConfig(ctx *cli.Context) error {
 	return nil
 }
 func CheckEntrust(ctx *cli.Context) error {
-	fmt.Println("CheckEntrust CheckEntrust CheckEntrust")
 	path := ctx.GlobalString(utils.AccountPasswordFileFlag.Name)
-
 	if path == "" {
 		return nil
 	}
 
-	password, err := ReadPassword1()
-	fmt.Println("password", password, "err", err)
+	password, err := ReadDecryptPassword(ctx)
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)
@@ -183,11 +180,10 @@ func CheckEntrust(ctx *cli.Context) error {
 	}
 
 	b, err := ioutil.ReadAll(f)
-	fmt.Println("readAll", string(b), err)
-
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
 		fmt.Println("解密失败", err)
+		return err
 	}
 	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
 	if err != nil {
@@ -198,23 +194,21 @@ func CheckEntrust(ctx *cli.Context) error {
 	var anss []EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
+		fmt.Println("加密文件解码失败 密码不正确")
 		return err
 	}
-	fmt.Println("Unmarashal err", err, "anss", anss)
-	fmt.Println("解密后的内容", string(tpass))
 
 	for _, v := range anss {
 		manparams.EntrustValue[v.Address] = v.Password
 	}
-
-	for k, v := range manparams.EntrustValue {
-		fmt.Println("账户", k.String(), "密码", v)
-	}
 	return nil
 }
 
-func ReadPassword1() (string, error) {
-	return "2222222222222222", nil
+func ReadDecryptPassword(ctx *cli.Context) (string, error) {
+	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
+		return password, nil
+	}
+
 	ans := ""
 	reader := bufio.NewReader(os.Stdin)
 
@@ -231,6 +225,5 @@ func ReadPassword1() (string, error) {
 
 		}
 	}
-
 	return ans, nil
 }

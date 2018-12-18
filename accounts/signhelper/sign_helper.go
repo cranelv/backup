@@ -15,6 +15,7 @@ import (
 
 	"sync"
 
+	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/log"
 )
@@ -29,9 +30,13 @@ type AuthReader interface {
 }
 
 var (
-	ErrNilAccountManager     = errors.New("account manager is nil")
-	ErrEmptySignAddress      = errors.New("sign address is empty")
-	ErrUnSetSignAccount      = errors.New("The sign account not set yet!")
+	ModeLog              = "签名助手"
+	ErrNilAccountManager = errors.New("account manager is nil")
+	ErrNilKeyStore       = errors.New("key store is nil")
+	ErrKeyStoreCount     = errors.New("key stores is empty")
+	ErrKeyStoreReflect   = errors.New("reflect key stores failed")
+
+	ErrIllegalSignAccount    = errors.New("sign account is illegal")
 	ErrReader                = errors.New("auth reader is nil")
 	ErrHeaderIsNil           = errors.New("header is nil")
 	ErrGetStateDB            = errors.New("error get state db")
@@ -39,17 +44,15 @@ var (
 )
 
 type SignHelper struct {
-	mu sync.RWMutex
-	am *accounts.Manager
-	//signWallet   accounts.Wallet
+	mu         sync.RWMutex
+	keyStore   *keystore.KeyStore
 	authReader AuthReader
 }
 
 func NewSignHelper() *SignHelper {
 	return &SignHelper{
-		am: nil,
-		//signWallet:  nil,
-		//	signAccount: accounts.Account{},
+		keyStore:   nil,
+		authReader: nil,
 	}
 }
 
@@ -61,7 +64,7 @@ func (sh *SignHelper) SetAuthReader(reader AuthReader) error {
 	return nil
 }
 
-func (sh *SignHelper) SetAccountManager(am *accounts.Manager, signAddress common.Address, signPassword string) error {
+func (sh *SignHelper) SetAccountManager(am *accounts.Manager) error {
 	if am == nil {
 		return ErrNilAccountManager
 	}
@@ -69,64 +72,36 @@ func (sh *SignHelper) SetAccountManager(am *accounts.Manager, signAddress common
 	sh.mu.Lock()
 	defer sh.mu.Unlock()
 
-	sh.am = am
-	//sh.signWallet = nil
-	////sh.signAccount = accounts.Account{}
-	//
-	//if (signAddress != common.Address{}) {
-	//	return sh.resetSignAccount(signAddress, signPassword)
-	//}
+	keyStores := am.Backends(keystore.KeyStoreType)
+	if len(keyStores) <= 0 {
+		return ErrKeyStoreCount
+	}
+	ks, OK := keyStores[0].(*keystore.KeyStore)
+	if OK == false || ks == nil {
+		return ErrKeyStoreReflect
+	}
+	sh.keyStore = ks
 
 	return nil
 }
-
-//func (sh *SignHelper) ResetSignAccount(signAddress common.Address, signPassword string) error {
-//	if (signAddress == common.Address{}) {
-//		return ErrEmptySignAddress
-//	}
-//
-//	sh.mu.Lock()
-//	defer sh.mu.Unlock()
-//
-//	if sh.am == nil {
-//		return ErrNilAccountManager
-//	}
-//
-//	return sh.resetSignAccount(signAddress, signPassword)
-//}
-
-//func (sh *SignHelper) resetSignAccount(signAddress common.Address, signPassword string) error {
-//	if signAddress == sh.signAccount.Address {
-//		sh.signPassword = signPassword
-//		return nil
-//	}
-//
-//	sh.signAccount.Address = signAddress
-//	sh.signWallet = nil
-//	wallet, err := sh.am.Find(sh.signAccount)
-//	if err != nil {
-//		return err
-//	}
-//	sh.signWallet = wallet
-//	sh.signPassword = signPassword
-//	return nil
-//}
 
 func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byte, validate bool, blkHash common.Hash) (common.Signature, error) {
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
 
+	if nil == sh.keyStore {
+		return common.Signature{}, ErrNilKeyStore
+	}
+
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(reader, blkHash)
-	log.ERROR("5555555 SignHashWithValidate", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
 	}
-	wallet, err := sh.am.Find(signAccount)
-	if err != nil {
-		return common.Signature{}, err
+	if (signAccount.Address == common.Address{}) {
+		return common.Signature{}, ErrIllegalSignAccount
 	}
 
-	sign, err := wallet.SignHashValidateWithPass(signAccount, signPassword, hash, validate)
+	sign, err := sh.keyStore.SignHashValidateWithPass(signAccount, signPassword, hash, validate)
 	if err != nil {
 		return common.Signature{}, err
 	}
@@ -141,46 +116,43 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
 
-	//if nil == sh.signWallet {
-	//	return nil, ErrUnSetSignAccount
-	//}
+	if nil == sh.keyStore {
+		return nil, ErrNilKeyStore
+	}
 
 	// Sign the requested hash with the wallet
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
-	log.ERROR("5555555 SignTx", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
 	}
-	wallet, err := sh.am.Find(signAccount)
-	if err != nil {
-		return nil, err
+	if (signAccount.Address == common.Address{}) {
+		return nil, ErrIllegalSignAccount
 	}
-	return wallet.SignTxWithPassphrase(signAccount, signPassword, tx, chainID)
+	return sh.keyStore.SignTxWithPassAndTemp(signAccount, signPassword, tx, chainID)
 }
 
 func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, []byte, error) {
 	sh.mu.RLock()
 	defer sh.mu.RUnlock()
-	//if nil==sh.signWallet{
-	//	return []byte{},[]byte{},[]byte{},ErrUnSetSignAccount
-	//}
+	if nil == sh.keyStore {
+		return []byte{}, []byte{}, []byte{}, ErrNilKeyStore
+	}
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
-	log.ERROR("5555555 vrf", "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
+	//log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
 		return []byte{}, []byte{}, []byte{}, ErrGetAccountAndPassword
 	}
-	wallet, err := sh.am.Find(signAccount)
-	if err != nil {
-		return []byte{}, []byte{}, []byte{}, err
+	if (signAccount.Address == common.Address{}) {
+		return []byte{}, []byte{}, []byte{}, ErrIllegalSignAccount
 	}
-	return wallet.SignVrfWithPass(signAccount, signPassword, msg)
+	return sh.keyStore.SignVrfWithPass(signAccount, signPassword, msg)
 }
 
 func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {
 	addr, password, err := reader.GetEntrustSignInfo(ca.GetAddress(), blkHash)
 	account := accounts.Account{}
 	account.Address = addr
-	log.ERROR("555555", "returnaddr", account.Address, "password", password, "err", err)
+	//log.ERROR(ModeLog, "returnaddr", account.Address, "password", password, "err", err)
 	return account, password, err
 }
 
@@ -188,7 +160,7 @@ func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []by
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	authAddr, err := sh.authReader.GetAuthAccount(addr, blkHash)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
 	return authAddr, flag, err
 }
 
@@ -199,6 +171,6 @@ func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	authAddr, err := reader.GetAuthAccount(addr, blkHash)
-	log.ERROR("55555-VerifySignWithValidateDependHash", "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
 	return authAddr, flag, err
 }

@@ -4,7 +4,6 @@
 package blkgenor
 
 import (
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -20,6 +19,8 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/baseinterface"
+	"encoding/json"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -101,7 +102,7 @@ func (p *Process) processHeaderGen() error {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 
-	log.Info(p.logExtraInfo(), "++++++++获取拓扑结果 ", NetTopology, "高度", p.number)
+	log.Info(p.logExtraInfo(), "获取拓扑结果 ", NetTopology, "高度", p.number)
 
 	tstamp := tstart.Unix()
 	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
@@ -110,12 +111,12 @@ func (p *Process) processHeaderGen() error {
 	// this will ensure we're not going off too far in the future
 	if now := time.Now().Unix(); tstamp > now+1 {
 		wait := time.Duration(tstamp-now) * time.Second
-		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+		log.Info(p.logExtraInfo(), "等待时间同步", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
 	account, vrfValue, vrfProof, err := p.getVrfValue(parent)
 	if err != nil {
-		log.INFO(p.logExtraInfo(), "区块生成阶段 获取vrfValue失败 err", err)
+		log.Error(p.logExtraInfo(), "区块生成阶段 获取vrfValue失败 错误", err)
 		return err
 	}
 	header := &types.Header{
@@ -129,7 +130,7 @@ func (p *Process) processHeaderGen() error {
 		Signatures:        make([]common.Signature, 0),
 		Version:           parent.Header().Version, //param
 		VersionSignatures: parent.Header().VersionSignatures,
-		VrfValue:          common.GetHeaderVrf(account, vrfValue, vrfProof),
+		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account,vrfValue,vrfProof),
 	}
 	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
 	log.INFO(p.logExtraInfo(), " vrf data headermsg", header.VrfValue, "账户户", account, "vrfValue", vrfValue, "vrfProff", vrfProof, "高度", header.Number.Uint64())
@@ -169,7 +170,7 @@ func (p *Process) processHeaderGen() error {
 	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true,p.preBlockHash)
+		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -190,8 +191,17 @@ func (p *Process) processHeaderGen() error {
 			From: ca.GetAddress()}
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
-		if len(txs[2:]) > 0 {
-			txpoolCache.MakeStruck(txs[2:], header.HashNoSignsAndNonce(), p.number)
+		if len(txs) > 0 {
+			txlist := make([]types.SelfTransaction,0)
+			for _,tx := range txs{
+				if tx.GetMatrixType() != common.ExtraUnGasTxType{
+					txlist = append(txlist,tx)
+				}
+			}
+			if len(txlist) > 0{
+				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
+			}
+
 		}
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
@@ -204,7 +214,7 @@ func (p *Process) processHeaderGen() error {
 func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
 	//broadcast txs deal,remove no validators txs
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 			return nil, nil, nil, nil, err
@@ -233,7 +243,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 
 	} else {
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 			return nil, nil, nil, nil, err
@@ -298,8 +308,9 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
 }
 
+
 func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
-	_, preVrfValue, preVrfProof := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
 	parentMsg := VrfMsg{
 		VrfProof: preVrfProof,
 		VrfValue: preVrfValue,
@@ -319,5 +330,5 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	} else {
 		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
-	return p.signHelper().SignVrf(vrfmsg,p.preBlockHash)
+	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
 }

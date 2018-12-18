@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package mc
@@ -13,8 +13,8 @@ import (
 //by hezi //YY 2018-08-18由tx_pool.go转移到此
 const (
 	Heartbeat   = "Heartbeat"      // 心跳交易（广播区块Hash对99取余）
-	Publickey   = "SeedPublicKey"  // 公钥交易
-	Privatekey  = "SeedPrivateKey" // 私钥交易
+	Publickey   = "SeedProof"      // 公钥交易
+	Privatekey  = "Seed"            // 私钥交易
 	CallTheRoll = "CallTheRoll"    //点名交易  （广播节点随机连接1000个点）
 )
 

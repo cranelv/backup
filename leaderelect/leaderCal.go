@@ -7,6 +7,7 @@ package leaderelect
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
@@ -14,6 +15,7 @@ import (
 )
 
 type leaderCalculator struct {
+	number      uint64
 	preLeader   common.Address
 	preHash     common.Hash
 	preIsSupper bool
@@ -21,11 +23,12 @@ type leaderCalculator struct {
 	validators  []mc.TopologyNodeInfo
 	specials    *mc.MatrixSpecialAccounts
 	chain       *core.BlockChain
-	cdc         *cdc
+	logInfo     string
 }
 
-func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
+func newLeaderCalculator(chain *core.BlockChain, number uint64, logInfo string) *leaderCalculator {
 	return &leaderCalculator{
+		number:      number,
 		preLeader:   common.Address{},
 		preHash:     common.Hash{},
 		preIsSupper: false,
@@ -33,32 +36,36 @@ func newLeaderCalculator(chain *core.BlockChain, cdc *cdc) *leaderCalculator {
 		validators:  nil,
 		specials:    nil,
 		chain:       chain,
-		cdc:         cdc,
+		logInfo:     logInfo,
 	}
 }
 
-func (self *leaderCalculator) SetValidatorsAndSpecials(preHash common.Hash, preIsSupper bool, preLeader common.Address, validators []mc.TopologyNodeInfo, specials *mc.MatrixSpecialAccounts, bcInterval *manparams.BCInterval) error {
+func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, preIsSupper bool, validators []mc.TopologyNodeInfo, specials *mc.MatrixSpecialAccounts, bcInterval *manparams.BCInterval) error {
 	if validators == nil || specials == nil || bcInterval == nil {
 		return ErrValidatorsIsNil
 	}
 
-	preNumber := self.cdc.number - 1
+	preNumber := self.number - 1
+	preLeader := preHeader.Leader
 	if preIsSupper == false && bcInterval.IsBroadcastNumber(preNumber) && preNumber != 0 {
-		header := self.chain.GetHeaderByNumber(preNumber - 1)
-		if nil == header {
-			log.ERROR("")
-			return errors.Errorf("获取广播区块前一区块(%d)错误!", preNumber-1)
+		headerHash, err := self.chain.GetAncestorHash(preHeader.ParentHash, preNumber-1)
+		if err != nil {
+			return errors.Errorf("获取广播区块OR超级区块前一区块(%d)错误! err = %v", preNumber-1, err)
+		}
+		header := self.chain.GetHeaderByHash(headerHash)
+		if header == nil {
+			return errors.Errorf("获取广播区块OR超级区块前一区块(%s)错误!", headerHash.TerminalString())
 		}
 		preLeader = header.Leader
 	}
-	log.INFO(self.cdc.logInfo, "计算leader列表", "开始", "preLeader", preLeader.Hex(), "前一个区块是否为超级区块", preIsSupper)
+	log.INFO(self.logInfo, "计算leader列表", "开始", "preLeader", preLeader.Hex(), "前一个区块是否为超级区块", preIsSupper)
 	leaderList, err := calLeaderList(preLeader, preNumber, preIsSupper, validators, bcInterval)
 	if err != nil {
 		return err
 	}
 	self.leaderList = leaderList
-	self.preLeader.Set(preLeader)
-	self.preHash.Set(preHash)
+	self.preLeader.Set(preHeader.Leader)
+	self.preHash.Set(preHeader.Hash())
 	self.validators = validators
 	self.preIsSupper = preIsSupper
 	self.specials = specials
@@ -90,7 +97,7 @@ func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInt
 	}
 
 	leaders := &leaderData{}
-	number := self.cdc.number
+	number := self.number
 	if bcInterval.IsReElectionNumber(number) {
 		leaders.leader.Set(self.specials.BroadcastAccount.Address)
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])

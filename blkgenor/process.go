@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 
+	"time"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -19,7 +21,6 @@ import (
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reelection"
-	"time"
 )
 
 type State uint16
@@ -56,7 +57,7 @@ type Process struct {
 	mu                 sync.Mutex
 	curLeader          common.Address
 	nextLeader         common.Address
-	consensusTurn      uint32
+	consensusTurn      mc.ConsensusTurnInfo
 	preBlockHash       common.Hash
 	number             uint64
 	role               common.RoleType
@@ -76,7 +77,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	p := &Process{
 		curLeader:          common.Address{},
 		nextLeader:         common.Address{},
-		consensusTurn:      0,
+		consensusTurn:      mc.ConsensusTurnInfo{},
 		preBlockHash:       common.Hash{},
 		insertBlockHash:    make([]common.Hash, 0),
 		number:             number,
@@ -111,7 +112,7 @@ func (p *Process) Close() {
 	p.state = StateIdle
 	p.curLeader = common.Address{}
 	p.nextLeader = common.Address{}
-	p.consensusTurn = 0
+	p.consensusTurn = mc.ConsensusTurnInfo{}
 	p.preBlockHash = common.Hash{}
 	p.bcInterval = nil
 	p.closeConsensusReqSender()
@@ -127,7 +128,7 @@ func (p *Process) ReInit() {
 	p.state = StateBlockBroadcast
 	p.curLeader = common.Address{}
 	p.nextLeader = common.Address{}
-	p.consensusTurn = 0
+	p.consensusTurn = mc.ConsensusTurnInfo{}
 	p.preBlockHash = common.Hash{}
 	p.closeConsensusReqSender()
 	p.stopMinerPikerTimer()
@@ -139,7 +140,7 @@ func (p *Process) ReInitNextLeader() {
 	p.nextLeader = common.Address{}
 }
 
-func (p *Process) SetCurLeader(leader common.Address, consensusTurn uint32) {
+func (p *Process) SetCurLeader(leader common.Address, consensusTurn mc.ConsensusTurnInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.curLeader == leader && p.consensusTurn == consensusTurn {
@@ -182,28 +183,28 @@ func (p *Process) AddInsertBlockInfo(blockInsert *mc.HD_BlockInsertNotify) {
 
 func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	if blkInsertMsg == nil || blkInsertMsg.Header == nil {
-		log.ERROR(p.logExtraInfo(), "区块插入", "消息为nil")
+		log.WARN(p.logExtraInfo(), "区块插入", "消息为空")
 		return
 	}
 
 	blockHash := blkInsertMsg.Header.Hash()
-	log.INFO(p.logExtraInfo(), "区块插入", "启动", "block hash", blockHash.TerminalString())
+	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString())
 
 	if p.checkRepeatInsert(blockHash) {
-		log.WARN(p.logExtraInfo(), "插入区块已处理", p.number, "block hash", blockHash.TerminalString())
+		log.WARN(p.logExtraInfo(), "插入区块已处理", p.number, "区块 hash", blockHash.TerminalString())
 		return
 	}
 
 	parentBlock := p.blockChain().GetBlockByHash(blkInsertMsg.Header.ParentHash)
 	if parentBlock == nil {
-		log.ERROR(p.logExtraInfo(), "区块插入", "缺少父区块, 进行fetch", "parent hash", blkInsertMsg.Header.ParentHash.TerminalString())
-		p.backend().FetcherNotify(blkInsertMsg.Header.ParentHash, p.number)
+		log.WARN(p.logExtraInfo(), "区块插入", "缺少父区块, 进行fetch", "父区块 hash", blkInsertMsg.Header.ParentHash.TerminalString())
+		p.backend().FetcherNotify(blkInsertMsg.Header.ParentHash, p.number-1, blkInsertMsg.From)
 		return
 	}
 
 	bcInterval, err := manparams.NewBCIntervalByHash(blkInsertMsg.Header.ParentHash)
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期by parent hash err", "err", err)
+		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期错误", "err", err)
 		return
 	}
 
@@ -216,12 +217,12 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		}
 
 		if signAccount != header.Leader {
-			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法, 签名不匹配，签名人", signAccount.Hex(), "Leader", header.Leader.Hex())
+			log.WARN(p.logExtraInfo(), "广播区块插入消息非法, 签名不匹配，签名人", signAccount.Hex(), "Leader", header.Leader.Hex())
 			return
 		}
 
 		if role, _ := ca.GetAccountOriginalRole(signAccount, p.preBlockHash); common.RoleBroadcast != role {
-			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法，签名人别是广播身份, role", role.String())
+			log.WARN(p.logExtraInfo(), "广播区块插入消息非法，签名人不是广播身份, 角色", role.String())
 			return
 		}
 		log.Info(p.logExtraInfo(), "开始插入", "广播区块")
@@ -239,8 +240,8 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	}
 
 	if _, err := p.insertAndBcBlock(false, header.Leader, header); err != nil {
-		log.INFO(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString())
-		p.backend().FetcherNotify(blockHash, p.number)
+		log.WARN(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString(), "source", blkInsertMsg.From.Hex())
+		p.backend().FetcherNotify(blockHash, p.number, blkInsertMsg.From)
 	}
 
 	p.saveInsertedBlockHash(blockHash)
@@ -261,16 +262,16 @@ func (p *Process) startBcBlock() {
 
 	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "广播区块阶段", "获取广播周期by parent hash err", "err", err)
+		log.ERROR(p.logExtraInfo(), "广播区块阶段", "获取广播周期错误", "err", err)
 		return
 	}
 
 	if p.number != 1 { //todo 不好理解
-		log.INFO(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "block hash", parentHash)
+		log.INFO(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "区块 hash", parentHash)
 		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
 	}
 
-	log.INFO("广播区块阶段", "重设广播周期信息, interval", bcInterval.GetBroadcastInterval())
+	log.INFO(p.logExtraInfo(), "广播区块阶段 广播周期信息", bcInterval.GetBroadcastInterval())
 	p.bcInterval = bcInterval
 	p.preBlockHash = parentHash
 	p.state = StateHeaderGen
@@ -287,7 +288,7 @@ func (p *Process) canBcBlock() bool {
 			return false
 		}
 	default:
-		log.ERROR(p.logExtraInfo(), "广播区块阶段, 错误的身份", p.role.String(), "高度", p.number)
+		log.WARN(p.logExtraInfo(), "广播区块阶段, 错误的身份", p.role.String(), "高度", p.number)
 		return false
 	}
 	return true
@@ -337,14 +338,14 @@ func (p *Process) canGenHeader() bool {
 		}
 
 		if p.curLeader != ca.GetAddress() {
-			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "self", ca.GetAddress().Hex(), "leader", p.curLeader.Hex())
+			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetAddress().Hex(), "leader", p.curLeader.Hex())
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
 		}
 
 	default:
-		log.ERROR(p.logExtraInfo(), "错误的身份", p.role.String(), "高度", p.number)
+		log.WARN(p.logExtraInfo(), "错误的身份", p.role.String(), "高度", p.number)
 		return false
 	}
 
@@ -379,7 +380,7 @@ func (p *Process) startMinerPikerTimer(outTime int64) {
 	if p.minerPickTimer != nil {
 		return
 	}
-	log.INFO(p.logExtraInfo(), "开启minerPickTimer,时间", outTime, "高度", p.number)
+	log.INFO(p.logExtraInfo(), "开启minerPickTimer,超时时间", outTime, "高度", p.number)
 	p.minerPickTimer = time.AfterFunc(time.Duration(outTime)*time.Second, func() {
 		p.minerPickTimeout()
 	})

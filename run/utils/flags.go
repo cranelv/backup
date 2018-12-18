@@ -178,11 +178,11 @@ var (
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
 	}
 	AesInputFlag = cli.StringFlag{
-		Name:  "aesinput",
+		Name:  "aesin",
 		Usage: "aes 输入",
 	}
 	AesOutputFlag = cli.StringFlag{
-		Name:  "aesoutput",
+		Name:  "aesout",
 		Usage: "aes 输出",
 	}
 	// Dashboard settings
@@ -347,9 +347,9 @@ var (
 		Name:  "testchangerole",
 		Usage: "change role",
 	}
-	GetCommitFlag=cli.StringFlag{
-		Name:"testgetcommit",
-		Usage:"get commit",
+	GetCommitFlag = cli.StringFlag{
+		Name:  "testgetcommit",
+		Usage: "get commit",
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -365,6 +365,11 @@ var (
 	AccountPasswordFileFlag = cli.StringFlag{
 		Name:  "entrust",
 		Usage: "Password file to entrustment transaction",
+		Value: "",
+	}
+	TestEntrustFlag = cli.StringFlag{
+		Name:  "testmode",
+		Usage: "默认使用2222222222222222解密",
 		Value: "",
 	}
 	VMEnableDebugFlag = cli.BoolFlag{
@@ -809,9 +814,6 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 type EntrustPassword struct {
 	Password map[common.Address]string
 }
-
-
-
 
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {

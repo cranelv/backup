@@ -46,6 +46,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
+	//"github.com/matrix/go-matrix/baseinterface"
 )
 
 var (
@@ -1015,13 +1016,22 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 	}
 
-	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+	//log.Info("miss tree node debug", "入链时", "commit前state状态")
+	//state.MissTrieDebug()
+	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
+	intermediateRoot := state.IntermediateRoot(deleteEmptyObjects)
+
+	root, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
 		return NonStatTy, err
 	}
 
 	if root != block.Root() {
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex())
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "deleteEmptyObjects", deleteEmptyObjects)
+
+		//log.Info("miss tree node debug", "入链时", "commit后state状态")
+		//state.MissTrieDebug()
+
 		return NonStatTy, errors.New("root not match")
 	}
 
@@ -1388,15 +1398,15 @@ type randSeed struct {
 	bc *BlockChain
 }
 
-func (r *randSeed) GetSeed(num uint64) *big.Int {
-	parent := r.bc.GetBlockByNumber(num - 1)
+func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
+	parent := r.bc.GetBlockByHash(hash)
 	if parent == nil {
-		log.Error("blockchain", "获取父区块错误,高度", (num - 1))
-		return big.NewInt(0)
+		log.Error("blockchain", "获取父区块错误,hash", hash)
+		return big.NewInt(0), nil
 	}
-	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	seed := common.BytesToHash(preVrfValue).Big()
-	return seed
+	//_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	//seed := common.BytesToHash(preVrfValue).Big()
+	return nil, nil
 }
 
 func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
@@ -1410,12 +1420,12 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(num)
-		if nil != minersRewardMap {
+		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
-		if nil != validatorsRewardMap {
+		if 0 != len(validatorsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
@@ -1423,22 +1433,21 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 	txsReward := txsreward.New(bc, state)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(big.NewInt(0), header.Leader, header.Number.Uint64())
-		if nil != txsRewardMap {
+		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, state, &randSeed{bc})
+	lottery := lottery.New(bc, state, nil)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(header.Number.Uint64())
-
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-
+		lottery.ProcessMatrixState(header.Number.Uint64())
 	}
 	interestReward := interest.New(state)
 	if nil != interestReward {
-		interestReward.InterestCalc(state, num)
+		interestRewardMap := interestReward.InterestCalc(state, header.Number.Uint64())
+		if 0 != len(interestRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
+		}
 	}
-
 	//todo 惩罚
 
 	slash := slash.New(bc, state)
@@ -2144,7 +2153,7 @@ func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.E
 	return topologyGraph, electGraph, nil
 }
 
-func (bc *BlockChain) GetGraphByState(state *state.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
+func (bc *BlockChain) GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error) {
 	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
 	if err != nil {
 		return nil, nil, err
@@ -2469,45 +2478,42 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
+		log.ERROR(common.SignLog, "根据区块hash获取区块失败 hash", blockHash)
 		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
+		log.ERROR(common.SignLog, "根据区块root获取statedb失败 err", err)
 		return common.Address{}, "", errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 
 	ans := []common.Address{}
-	log.ERROR("5555555555555", "开始调用 authFrom", authFrom, "height", height)
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR("5555555555555", "结束调用", "", "ans", ans)
+	log.ERROR(common.SignLog, "结束调用", "", "authFrom", authFrom, "ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	} else {
-		log.ERROR("55555555", "开始检查反射", ans[0].String(), "height", height)
 		aa := st.GetAuthFrom(ans[0], height)
-		log.ERROR("55555555", "检查反射结果", aa.String())
+		log.INFO(common.SignLog, "检查反射结果", aa.String())
 	}
 
-	log.ERROR("签名助手", "ans", ans, "entrustvalue", manparams.EntrustValue)
 	for _, v := range ans {
 		for kk, vv := range manparams.EntrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
 			if _, ok := manparams.EntrustValue[kk]; ok {
-				log.Info("签名助手", "获取到的账户", v.String(), "高度", height)
-				log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
 				return kk, manparams.EntrustValue[kk], nil
 			}
 			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			log.ERROR("签名助手", "无该密码", kk.String())
 			return kk, vv, errors.New("无该密码")
 
 		}
 	}
-	log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	log.ERROR(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
 	return common.Address{}, "", errors.New("ans为空")
 }
 
@@ -2515,21 +2521,23 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
+		log.ERROR(common.SignLog, "根据区块hash算区块失败", "err")
 		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
+		log.ERROR(common.SignLog, "根据区块root获取状态树失败 err", err)
 		return common.Address{}, errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 	addr := st.GetAuthFrom(signAccount, height)
 	if addr.Equal(common.Address{}) {
-		log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", signAccount)
+		log.WARN(common.SignLog, "解签阶段 无委托 高度", height, "签名账户", signAccount, "真实账户", signAccount)
 		//return signAccount, nil
 		addr = signAccount
 	} else {
-		log.ERROR("存在委托", "signAccount", signAccount, "height", height, "addr", addr)
+		log.WARN(common.SignLog, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
 	}
 	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
 	if common.TopAccountType == common.TopAccountA0 {

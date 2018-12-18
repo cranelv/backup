@@ -135,6 +135,10 @@ func (serv *TopNodeService) subMsg() error {
 	return nil
 }
 
+func (serv *TopNodeService) Close() {
+	close(serv.quitCh)
+}
+
 func (serv *TopNodeService) unSubMsg() {
 	serv.roleUpdateSub.Unsubscribe()
 	serv.leaderChangeSub.Unsubscribe()
@@ -371,7 +375,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 
 	if ok {
 		//投赞成票
-		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), true,serv.msgCheck.blockHash)
+		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), true, serv.msgCheck.blockHash)
 		if err != nil {
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
@@ -379,7 +383,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String())
 	} else {
 		//投反对票
-		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false,serv.msgCheck.blockHash)
+		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false, serv.msgCheck.blockHash)
 		if err != nil {
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed

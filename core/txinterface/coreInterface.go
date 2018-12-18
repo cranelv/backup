@@ -2,9 +2,10 @@ package txinterface
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"math/big"
 	"github.com/matrix/go-matrix/core/types"
+	"math/big"
 )
+
 // Message represents a message sent to a contract.
 type Message interface {
 	From() common.Address

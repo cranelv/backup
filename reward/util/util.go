@@ -4,6 +4,10 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/core/state"
@@ -18,13 +22,14 @@ const (
 )
 const (
 	RewardFullRate = uint64(10000)
+	Stop           = "0"
 )
 
 var (
 	//ValidatorBlockReward  *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block
 	MultilCoinBlockReward *big.Int = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), big.NewInt(0)) // Block reward in wei for successfully mining a block upward from Byzantium
 	//分母10000
-	ByzantiumTxsRewardDen *big.Int = big.NewInt(10000) // Block reward in wei for successfully mining a block upward from Byzantium
+	ByzantiumTxsRewardDen *big.Int = big.NewInt(1000000000) // Block reward in wei for successfully mining a block upward from Byzantium
 	ValidatorsBlockReward *big.Int = big.NewInt(5e+18)
 	MinersBlockReward     *big.Int = big.NewInt(5e+18)
 
@@ -53,10 +58,10 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	State() (*state.StateDB, error)
-	Genesis() *types.Block
 	GetMatrixStateData(key string) (interface{}, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	GetSuperBlockNum() (uint64, error)
+	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 }
 
 type StateDB interface {

@@ -18,6 +18,7 @@ type StateDB interface {
 	SubBalance(uint32, common.Address, *big.Int)
 	AddBalance(uint32, common.Address, *big.Int)
 	GetBalance(common.Address) common.BalanceType
+	GetBalanceByType(addr common.Address, accType uint32) *big.Int
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
@@ -34,8 +35,8 @@ type StateDB interface {
 	SetState(common.Address, common.Hash, common.Hash)
 
 	CommitSaveTx()
-	GetSaveTx(typ byte,key uint32,hash []common.Hash,isdel bool)
-	SaveTx(typ byte,key uint32,data map[common.Hash][]byte)
+	GetSaveTx(typ byte, key uint32, hash []common.Hash, isdel bool)
+	SaveTx(typ byte, key uint32, data map[common.Hash][]byte)
 	NewBTrie(typ byte)
 
 	GetStateByteArray(common.Address, common.Hash) []byte
@@ -58,13 +59,15 @@ type StateDB interface {
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
-	SetMatrixData(hash common.Hash,val []byte)
+	SetMatrixData(hash common.Hash, val []byte)
 	GetMatrixData(hash common.Hash) (val []byte)
-	DeleteMxData(hash common.Hash,val []byte)
+	DeleteMxData(hash common.Hash, val []byte)
 
 	GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
 	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	Dump() []byte
+	Finalise(deleteEmptyObjects bool)
 	GetAllEntrustSignFrom(authFrom common.Address) []common.Address
 	GetAllEntrustGasFrom(authFrom common.Address) []common.Address
 }

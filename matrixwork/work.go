@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/matrix/go-matrix/reward/blkreward"
@@ -24,6 +25,9 @@ import (
 	"sort"
 	"sync"
 
+	"strings"
+
+	"github.com/matrix/go-matrix/accounts/abi"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/core"
@@ -35,12 +39,24 @@ import (
 	"github.com/matrix/go-matrix/params"
 )
 
-var packagename string = "matrixwork"
-
 type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
 }
+
+var packagename string = "matrixwork"
+var (
+	depositDef = ` [{"constant": true,"inputs": [],"name": "getDepositList","outputs": [{"name": "","type": "address[]"}],"payable": false,"stateMutability": "view","type": "function"},
+			{"constant": true,"inputs": [{"name": "addr","type": "address"}],"name": "getDepositInfo","outputs": [{"name": "","type": "uint256"},{"name": "","type": "bytes"},{"name": "","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},
+    		{"constant": false,"inputs": [{"name": "nodeID","type": "bytes"}],"name": "valiDeposit","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
+    		{"constant": false,"inputs": [{"name": "nodeID","type": "bytes"}],"name": "minerDeposit","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
+    		{"constant": false,"inputs": [],"name": "withdraw","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},
+    		{"constant": false,"inputs": [],"name": "refund","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},
+			{"constant": false,"inputs": [{"name": "addr","type": "address"}],"name": "interestAdd","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
+			{"constant": false,"inputs": [{"name": "addr","type": "address"}],"name": "getinterest","outputs": [],"payable": false,"stateMutability": "payable","type": "function"}]`
+
+	depositAbi, Abierr = abi.JSON(strings.NewReader(depositDef))
+)
 
 // Work is the workers current environment and holds
 // all of the current state information
@@ -59,6 +75,7 @@ type Work struct {
 
 	header   *types.Header
 	uptime   map[common.Address]uint64
+	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
 
@@ -112,7 +129,7 @@ func (cu *coingasUse) clearmap() {
 	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
 }
-func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header, random *baseinterface.Random) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
@@ -120,6 +137,7 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		gasPool: gasPool,
 		header:  header,
 		uptime:  make(map[common.Address]uint64, 0),
+		random:  random,
 	}
 	var err error
 
@@ -146,22 +164,12 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			break
 		}
 		if txer.GetTxNLen() == 0 {
-			log.Info("===========tx.N is nil")
+			log.Info("file work func commitTransactions err: tx.N is nil")
 			continue
 		}
-		// Error may be ignored here. The error has already been checked
-		// during transaction acceptance is the transaction pool.
-		//
 		// We use the eip155 signer regardless of the current hf.
 		from, _ := txer.GetTxFrom()
 
-		// Check whether the tx is replay protected. If we're not in the EIP155 hf
-		// phase, start ignoring the sender until we do.
-		//YYY TODO 是否需要当前这个if
-		//if txer.Protected() && !env.config.IsEIP155(env.header.Number) {
-		//	log.Trace("Ignoring reply protected transaction", "hash", txer.Hash(), "eip155", env.config.EIP155Block)
-		//	continue
-		//}
 		// Start executing the transaction
 		env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
 		err, logs := env.commitTransaction(txer, bc, coinbase, env.gasPool)
@@ -224,7 +232,6 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
-
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("file work", "func commitTransaction", err)
@@ -316,13 +323,26 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		extra := make([]*types.ExtraTo_tr, 0)
 		var to common.Address
 		var value *big.Int
+		databytes := make([]byte, 0)
 		isfirst := true
 		for _, addr := range sorted_keys {
 			k := common.HexToAddress(addr)
 			v := rewart.To_Amont[k]
-			if isfirst {
-				to = k
-				value = v
+			if isfirst{
+				if rewart.RewardTyp == common.RewardInerestType{
+					if k != common.ContractAddress{
+						databytes = append(databytes,depositAbi.Methods["interestAdd"].Id()...)
+						tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+						databytes = append(databytes,tmpbytes...)
+						to = common.ContractAddress
+						value = v
+					}else {
+						continue
+					}
+				}else {
+					to = k
+					value = v
+				}
 				isfirst = false
 				continue
 			}
@@ -331,9 +351,22 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			var kk common.Address = k
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
+			if rewart.RewardTyp == common.RewardInerestType{
+				if kk != common.ContractAddress{
+					bytes := make([]byte,0)
+					bytes = append(bytes,depositAbi.Methods["interestAdd"].Id()...)
+					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+					bytes = append(bytes,tmpbytes...)
+					b := hexutil.Bytes(bytes)
+					tmp.Input_tr = &b
+					tmp.To_tr = &common.ContractAddress
+				}else {
+					continue
+				}
+			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr), to, value, 0, new(big.Int), nil, extra, 0, common.ExtraUnGasTxType, 0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		tx.SetTxS(big.NewInt(1))
 		tx.SetTxV(big.NewInt(1))
@@ -428,21 +461,6 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-type randSeed struct {
-	bc *core.BlockChain
-}
-
-func (r *randSeed) GetSeed(num uint64) *big.Int {
-	parent := r.bc.GetBlockByNumber(num - 1)
-	if parent == nil {
-		log.Error(packagename, "获取父区块错误,高度", (num - 1))
-		return big.NewInt(0)
-	}
-	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	seed := common.BytesToHash(preVrfValue).Big()
-	return seed
-}
-
 func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {
@@ -457,12 +475,12 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
-		if nil != minersRewardMap {
+		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(env.header.Leader, env.header.Number.Uint64())
-		if nil != validatorsRewardMap {
+		if 0 != len(validatorsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
@@ -471,22 +489,25 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	txsReward := txsreward.New(bc, env.State)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
-		if nil != txsRewardMap {
+		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, env.State, &randSeed{bc})
+	lottery := lottery.New(bc, env.State, env.random)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
-
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
-
+		lotteryRewardMap := lottery.LotteryCalc(env.header.ParentHash, env.header.Number.Uint64())
+		if 0 != len(lotteryRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+		}
 	}
 
 	////todo 利息
 	interestReward := interest.New(env.State)
 	if nil != interestReward {
-		interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+		interestRewardMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+		if 0 != len(interestRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
+		}
 	}
 	//todo 惩罚
 

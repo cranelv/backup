@@ -8,12 +8,10 @@ package man
 import (
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/ca"
 	"math/big"
 	"runtime"
 	"sync/atomic"
-	"time"
-
-	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -21,7 +19,7 @@ import (
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/blkgenor"
-	"github.com/matrix/go-matrix/blkverify/blkverify"
+	"github.com/matrix/go-matrix/blkverify"
 	"github.com/matrix/go-matrix/broadcastTx"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
@@ -55,7 +53,9 @@ import (
 	//"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/trie"
+	"time"
 )
 
 var MsgCenter *mc.Center
@@ -112,7 +112,7 @@ type Matrix struct {
 	reelection   *reelection.ReElection //换届服务
 	random       *baseinterface.Random
 	olConsensus  *olconsensus.TopNodeService
-	blockgen     *blkgenor.BlockGenor
+	blockGen     *blkgenor.BlockGenor
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
 
@@ -230,8 +230,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	dbDir := ctx.GetConfig().DataDir
-	man.reelection, err = reelection.New(man.blockchain, dbDir, man.random)
+	man.reelection, err = reelection.New(man.blockchain, man.random)
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +241,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner, man.reelection.ProducePreMinerData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, man.txPool.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
@@ -267,7 +267,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 
-	man.blockgen, err = blkgenor.New(man)
+	man.blockGen, err = blkgenor.New(man)
 	if err != nil {
 		return nil, err
 	}
@@ -491,6 +491,7 @@ func (s *Matrix) SignHelper() *signhelper.SignHelper       { return s.signHelper
 func (s *Matrix) ReElection() *reelection.ReElection       { return s.reelection }
 func (s *Matrix) HD() *msgsend.HD                          { return s.hd }
 func (s *Matrix) OLConsensus() *olconsensus.TopNodeService { return s.olConsensus }
+func (s *Matrix) Random() *baseinterface.Random            { return s.random }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
@@ -527,25 +528,62 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	//s.broadTx.Start()//YY
 	return nil
 }
-func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
-	ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
-	selfId := p2p.ServerP2p.Self().ID.String()
-	for _, id := range ids {
-		if id.String() == selfId {
-			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", id.String())
-			continue
+
+//func (s *Matrix) FetcherNotify(hash common.Hash, number uint64) {
+//	ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+//	selfId := p2p.ServerP2p.Self().ID.String()
+//	for _, id := range ids {
+//		if id.String() == selfId {
+//			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", id.String())
+//			continue
+//		}
+//		peer := s.protocolManager.Peers.Peer(id.String()[:16])
+//		if peer == nil {
+//			continue
+//		}
+//		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+//	}
+//}
+func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
+	var nid discover.NodeID
+	if len(addr) == 0 || addr == (common.Address{}) {
+		ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+		selfId := p2p.ServerP2p.Self().ID.String()
+		indexs := p2p.Random(len(ids), 1)
+		if len(indexs) > 0 && indexs[0] <= (len(ids)-1) {
+			nid = ids[indexs[0]]
 		}
-		peer := s.protocolManager.Peers.Peer(id.String()[:16])
-		if peer == nil {
-			continue
+		if nid.String() == selfId {
+			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", nid.String())
+			if indexs[0] == (len(ids) - 1) {
+				nid = ids[indexs[0]-1]
+			} else {
+				nid = ids[indexs[0]+1]
+			}
 		}
-		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+
+	} else {
+		nid, _ = ca.ConvertAddressToNodeId(addr)
 	}
+	if nid.String() == "" {
+		log.Info("file backend func FetcherNotify", "NodeID is nil", nid.String(), "address", addr)
+		return
+	}
+	peer := s.protocolManager.Peers.Peer(nid.String()[:16])
+	if peer == nil {
+		log.Info("file backend func FetcherNotify", "get PeerID is nil by Validator ID:id", nid.String()[:16])
+		return
+	}
+	s.protocolManager.fetcher.Notify(nid.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
+
 }
 
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Matrix protocol.
 func (s *Matrix) Stop() error {
+	s.blockGen.Close()
+	s.blockVerify.Close()
+	s.olConsensus.Close()
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
 	s.protocolManager.Stop()

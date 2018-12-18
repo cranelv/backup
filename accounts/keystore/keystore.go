@@ -1,7 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors 
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
-
 
 // Package keystore implements encrypted storage of secp256k1 private keys.
 //
@@ -27,6 +26,7 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/event"
 
+	"github.com/matrix/go-matrix/baseinterface"
 	"sync"
 )
 
@@ -59,7 +59,7 @@ type KeyStore struct {
 
 	mu sync.RWMutex
 
-	//todo hyk temp data
+	//todo temp data
 	muTemp     sync.RWMutex
 	tempPrvKey map[common.Address]*Key
 }
@@ -283,24 +283,7 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx types.SelfTransaction, chainID
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), unlockedKey.PrivateKey)
 	//YYY===================end=======================
 }
-func (ks *KeyStore) SignTxWithPasswd(a accounts.Account, passwd string,tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	// Look up the key to sign with and abort if it cannot be found
-	//todo 暂时修改为使用缓存方式
-	key := ks.findSignKeyInTemp(a)
-	if key == nil {
-		ks.mu.Lock()
-		var err error
-		_, key, err = ks.getDecryptedKey(a, passwd)
-		if err != nil {
-			ks.mu.Unlock()
-			return nil, err
-		}
-		ks.tempPrvKey[a.Address] = key
-		ks.mu.Unlock()
-	}
 
-	return types.SignTx(tx, types.NewEIP155Signer(chainID), key.PrivateKey)
-}
 // SignHashWithPassphrase signs hash if the private key matching the given address
 // can be decrypted with the given passphrase. The produced signature is in the
 // [R || S || V] format where V is 0 or 1.
@@ -316,25 +299,11 @@ func (ks *KeyStore) SignHashWithPassphrase(a accounts.Account, passphrase string
 // SignTxWithPassphrase signs the transaction if the private key matching the
 // given address can be decrypted with the given passphrase.
 func (ks *KeyStore) SignTxWithPassphrase(a accounts.Account, passphrase string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	//todo 暂时修改为使用缓存方式
-	key := ks.findSignKeyInTemp(a)
-	if key == nil {
-		ks.mu.Lock()
-		var err error
-		_, key, err = ks.getDecryptedKey(a, passphrase)
-		if err != nil {
-			ks.mu.Unlock()
-			return nil, err
-		}
-		ks.tempPrvKey[a.Address] = key
-		ks.mu.Unlock()
-	}
-
-	/*_, key, err := ks.getDecryptedKey(a, passphrase)
+	_, key, err := ks.getDecryptedKey(a, passphrase)
 	if err != nil {
 		return nil, err
 	}
-	defer zeroKey(key.PrivateKey)*/
+	defer zeroKey(key.PrivateKey)
 
 	// Depending on the presence of the chain ID, sign with EIP155 or homestead
 	//if chainID != nil {
@@ -389,6 +358,44 @@ func (ks *KeyStore) SignHashVersionWithPass(a accounts.Account, passphrase strin
 
 	return crypto.SignWithVersion(hash, key.PrivateKey)
 }
+
+func (ks *KeyStore) SignTxWithPassAndTemp(a accounts.Account, passphrase string, tx types.SelfTransaction, chainID *big.Int) (signTx types.SelfTransaction, err error) {
+	key := ks.findSignKeyInTemp(a)
+	if key == nil {
+		ks.mu.Lock()
+		_, key, err = ks.getDecryptedKey(a, passphrase)
+		if err != nil {
+			ks.mu.Unlock()
+			return nil, err
+		}
+		ks.tempPrvKey[a.Address] = key
+		ks.mu.Unlock()
+	}
+
+	return types.SignTx(tx, types.NewEIP155Signer(chainID), key.PrivateKey)
+}
+
+func (ks *KeyStore) SignVrfWithPass(a accounts.Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error) {
+	key := ks.findSignKeyInTemp(a)
+	if key == nil {
+		var err error
+		ks.mu.Lock()
+		_, key, err = ks.getDecryptedKey(a, passphrase)
+		if err != nil {
+			ks.mu.Unlock()
+			return []byte{}, []byte{}, []byte{}, err
+		}
+		ks.tempPrvKey[a.Address] = key
+		ks.mu.Unlock()
+	}
+
+	vrfValue, vrfProof, err := baseinterface.NewVrf().ComputeVrf(key.PrivateKey, msg)
+	if err != nil {
+		return []byte{}, []byte{}, []byte{}, err
+	}
+	return ECDSAPKCompression(&key.PrivateKey.PublicKey), vrfValue, vrfProof, nil
+}
+
 func (ks *KeyStore) findSignKeyInTemp(a accounts.Account) *Key {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()

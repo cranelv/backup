@@ -11,7 +11,7 @@ import (
 )
 
 type turnTimes struct {
-	beginTimes            map[uint32]int64
+	beginTimes            map[mc.ConsensusTurnInfo]int64
 	parentMiningTime      int64 // 预留父区块挖矿时间
 	posOutTime            int64 // 区块POS共识超时时间
 	reelectOutTime        int64 // 重选超时时间
@@ -20,7 +20,7 @@ type turnTimes struct {
 
 func newTurnTimes() *turnTimes {
 	tt := &turnTimes{
-		beginTimes:            make(map[uint32]int64),
+		beginTimes:            make(map[mc.ConsensusTurnInfo]int64),
 		parentMiningTime:      0,
 		posOutTime:            0,
 		reelectOutTime:        0,
@@ -42,7 +42,7 @@ func (tt *turnTimes) SetTimeConfig(config *mc.LeaderConfig) error {
 	return nil
 }
 
-func (tt *turnTimes) SetBeginTime(consensusTurn uint32, time int64) bool {
+func (tt *turnTimes) SetBeginTime(consensusTurn mc.ConsensusTurnInfo, time int64) bool {
 	if oldTime, exist := tt.beginTimes[consensusTurn]; exist {
 		if time <= oldTime {
 			return false
@@ -52,33 +52,26 @@ func (tt *turnTimes) SetBeginTime(consensusTurn uint32, time int64) bool {
 	return true
 }
 
-func (tt *turnTimes) GetBeginTime(consensusTurn uint32) int64 {
+func (tt *turnTimes) GetBeginTime(consensusTurn mc.ConsensusTurnInfo) int64 {
 	if beginTime, exist := tt.beginTimes[consensusTurn]; exist {
 		return beginTime
 	} else {
-		return 0
+		return defaultBeginTime
 	}
 }
 
-func (tt *turnTimes) GetPosEndTime(consensusTurn uint32) int64 {
+func (tt *turnTimes) GetPosEndTime(consensusTurn mc.ConsensusTurnInfo) int64 {
 	_, endTime := tt.CalTurnTime(consensusTurn, 0)
 	return endTime
-
-	posTime := tt.posOutTime
-	if consensusTurn == 0 {
-		posTime += tt.parentMiningTime
-	}
-
-	return tt.GetBeginTime(consensusTurn) + posTime
 }
 
-func (tt *turnTimes) CalState(consensusTurn uint32, time int64) (st stateDef, remainTime int64, reelectTurn uint32) {
+func (tt *turnTimes) CalState(consensusTurn mc.ConsensusTurnInfo, time int64) (st stateDef, remainTime int64, reelectTurn uint32) {
 	if tt.reelectOutTime == 0 {
 		log.Error("critical", "turnTimes", "reelectOutTime == 0")
 		return stReelect, 0, 0
 	}
 	posTime := tt.posOutTime
-	if consensusTurn == 0 {
+	if isFirstConsensusTurn(&consensusTurn) {
 		posTime += tt.parentMiningTime
 	}
 
@@ -94,14 +87,9 @@ func (tt *turnTimes) CalState(consensusTurn uint32, time int64) (st stateDef, re
 	return
 }
 
-func (tt *turnTimes) CalRemainTime(consensusTurn uint32, reelectTurn uint32, time int64) int64 {
-	_, endTime := tt.CalTurnTime(consensusTurn, reelectTurn)
-	return endTime - time
-}
-
-func (tt *turnTimes) CalTurnTime(consensusTurn uint32, reelectTurn uint32) (beginTime int64, endTime int64) {
+func (tt *turnTimes) CalTurnTime(consensusTurn mc.ConsensusTurnInfo, reelectTurn uint32) (beginTime int64, endTime int64) {
 	posTime := tt.posOutTime
-	if consensusTurn == 0 {
+	if isFirstConsensusTurn(&consensusTurn) {
 		posTime += tt.parentMiningTime
 	}
 
@@ -115,7 +103,7 @@ func (tt *turnTimes) CalTurnTime(consensusTurn uint32, reelectTurn uint32) (begi
 	return
 }
 
-func (tt *turnTimes) CheckTimeLegal(consensusTurn uint32, reelectTurn uint32, checkTime int64) error {
+func (tt *turnTimes) CheckTimeLegal(consensusTurn mc.ConsensusTurnInfo, reelectTurn uint32, checkTime int64) error {
 	beginTime, endTime := tt.CalTurnTime(consensusTurn, reelectTurn)
 	if checkTime <= beginTime || checkTime >= endTime {
 		return errors.Errorf("时间(%s)非法,轮次起止时间(%s - %s)",

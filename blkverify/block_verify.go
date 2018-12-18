@@ -5,6 +5,7 @@ package blkverify
 
 import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
@@ -21,6 +22,7 @@ type Matrix interface {
 	SignHelper() *signhelper.SignHelper
 	ReElection() *reelection.ReElection
 	EventMux() *event.TypeMux
+	Random() *baseinterface.Random
 }
 
 type BlockVerify struct {
@@ -93,6 +95,7 @@ func (self *BlockVerify) update() {
 		self.requestSub.Unsubscribe()
 		self.leaderChangeSub.Unsubscribe()
 		self.roleUpdatedMsgSub.Unsubscribe()
+		log.INFO("区块验证模块退出成功")
 	}()
 
 	for {
@@ -116,6 +119,7 @@ func (self *BlockVerify) update() {
 			go self.handleRecoveryMsg(recoveryMsg)
 
 		case <-self.quitCh:
+			self.processManage.clearProcessMap()
 			return
 		}
 	}
@@ -126,7 +130,7 @@ func (self *BlockVerify) handleRoleUpdatedMsg(roleMsg *mc.RoleUpdatedMsg) error 
 	defer log.INFO(self.logExtraInfo(), "CA身份消息", "结束", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String())
 
 	curNumber := roleMsg.BlockNum + 1
-	self.processManage.SetCurNumber(curNumber,roleMsg.IsSuperBlock)
+	self.processManage.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
 	if roleMsg.Role == common.RoleValidator || roleMsg.Role == common.RoleBroadcast {
 		curProcess := self.processManage.GetCurrentProcess()
 		curProcess.StartRunning(roleMsg.Role)
@@ -201,17 +205,17 @@ func (self *BlockVerify) handleVoteMsg(voteMsg *mc.HD_ConsensusVote) {
 		log.ERROR(self.logExtraInfo(), "投票消息处理", "消息为nil")
 		return
 	}
-	log.INFO(self.logExtraInfo(), "投票消息处理", "开始", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
-	defer log.INFO(self.logExtraInfo(), "投票消息处理", "结束", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
-	if err := self.processManage.AddVoteToPool(voteMsg.SignHash, voteMsg.Sign, voteMsg.From, voteMsg.Number); err != nil {
-		log.ERROR(self.logExtraInfo(), "投票消息，加入票池失败", err)
+
+	log.Trace(self.logExtraInfo(), "投票消息处理", "开始", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
+	defer log.Trace(self.logExtraInfo(), "投票消息处理", "结束", "from", voteMsg.From.Hex(), "signHash", voteMsg.SignHash.TerminalString())
+
+	process, err := self.processManage.GetProcess(voteMsg.Number)
+	if err != nil {
+		log.Debug(self.logExtraInfo(), "本地请求消息 获取Process失败", err)
 		return
 	}
 
-	curProcess := self.processManage.GetCurrentProcess()
-	if curProcess != nil {
-		curProcess.ProcessDPOSOnce()
-	}
+	process.HandleVote(voteMsg.SignHash, voteMsg.Sign, voteMsg.From)
 }
 
 func (self *BlockVerify) handleRecoveryMsg(msg *mc.RecoveryStateMsg) {

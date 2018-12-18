@@ -168,7 +168,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 	hash := header.HashNoSignsAndNonce()
 	log.INFO("共识引擎", "VerifyBlock, 签名总数", len(header.Signatures), "hash", hash, "txhash:", header.TxHash.TerminalString())
 
-	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks)
+	_, err = md.VerifyHashWithStocks(reader, hash, header.Signatures, stocks, header.ParentHash)
 	return err
 }
 
@@ -182,10 +182,10 @@ func (md *MtxDPOS) VerifyHashWithBlock(reader consensus.StateReader, signHash co
 		return nil, err
 	}
 
-	return md.VerifyHashWithStocks(reader, signHash, signs, stocks)
+	return md.VerifyHashWithStocks(reader, signHash, signs, stocks, blockHash)
 }
 
-func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) ([]common.Signature, error) {
+func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16, blockHash common.Hash) ([]common.Signature, error) {
 	if len(signHash) != 32 {
 		return nil, errSignHashLenErr
 	}
@@ -201,7 +201,7 @@ func (md *MtxDPOS) VerifyHashWithStocks(reader consensus.StateReader, signHash c
 		return nil, errSignCountErr
 	}
 
-	verifiedSigns := md.verifySigns(signHash, signs, stocks)
+	verifiedSigns := md.verifySigns(reader, signHash, signs, stocks, blockHash)
 	if len(verifiedSigns) < target.targetCount {
 		log.ERROR("共识引擎", "验证后的签名数量不足 size", len(verifiedSigns), "target", target.targetCount)
 		return nil, errSignCountErr
@@ -292,35 +292,41 @@ func (md *MtxDPOS) parseVerifiedSigns(verifiedSigns []*common.VerifiedSign, stoc
 	return verifiedSign
 }
 
-func (md *MtxDPOS) verifySigns(signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16) map[common.Address]*common.VerifiedSign {
+func (md *MtxDPOS) verifySigns(reader consensus.StateReader, signHash common.Hash, signs []common.Signature, stocks map[common.Address]uint16, blockHash common.Hash) map[common.Address]*common.VerifiedSign {
 	verifiedSign := make(map[common.Address]*common.VerifiedSign)
 	signCount := len(signs)
 	for i := 0; i < signCount; i++ {
 		sign := signs[i]
-		account, signValidate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
+		signAccount, signValidate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
 		if err != nil {
 			log.ERROR("共识引擎", "验证签名 错误", err)
 			continue
 		}
 
-		stock, findStock := stocks[account]
-		if findStock == false {
-			// can't find in stock, discard
-			log.ERROR("共识引擎", "验证签名 股权未找到 node", account.Hex(), "签名：", signHash)
+		authAddr, err := reader.GetAuthAccount(signAccount, blockHash)
+		if err != nil {
+			log.ERROR("共识引擎", "get auth account err", err)
 			continue
 		}
 
-		if existData, exist := verifiedSign[account]; exist {
-			log.ERROR("共识引擎", "验证签名 重复签名 node", account.Hex())
+		stock, findStock := stocks[authAddr]
+		if findStock == false {
+			// can't find in stock, discard
+			log.ERROR("共识引擎", "验证签名 股权未找到 node", authAddr.Hex(), "签名：", signHash)
+			continue
+		}
+
+		if existData, exist := verifiedSign[authAddr]; exist {
+			log.ERROR("共识引擎", "验证签名 重复签名 node", authAddr.Hex())
 			//already exist, replace "disagree" sign with "agree" sign
 			if existData.Validate == false && signValidate == true {
 				existData.Sign = sign
-				existData.Account = account
+				existData.Account = authAddr
 				existData.Validate = signValidate
 				existData.Stock = stock
 			}
 		} else {
-			verifiedSign[account] = &common.VerifiedSign{Sign: sign, Account: account, Validate: signValidate, Stock: stock}
+			verifiedSign[authAddr] = &common.VerifiedSign{Sign: sign, Account: authAddr, Validate: signValidate, Stock: stock}
 		}
 	}
 

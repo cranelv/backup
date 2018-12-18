@@ -9,24 +9,25 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 )
 
 var (
-	ErrMsgAccountIsNull  = errors.New("不合法的账户：空账户")
-	ErrValidatorsIsNil   = errors.New("验证者列表为空")
-	ErrSepcialsIsNil     = errors.New("特殊账户为空")
-	ErrValidatorNotFound = errors.New("验证者未找到")
-	ErrMsgExistInCache   = errors.New("缓存中已存在消息")
-	ErrNoMsgInCache      = errors.New("缓存中没有目标消息")
-	ErrParamsIsNil       = errors.New("参数为nil")
-	ErrSelfReqIsNil      = errors.New("self请求不在缓存中")
-	ErrBroadcastIsNil    = errors.New("缓存没有广播消息")
-	ErrPOSResultIsNil    = errors.New("POS结果为nil/header为nil")
-	ErrLeaderResultIsNil = errors.New("leader共识结果为nil")
-	ErrCDCisNil          = errors.New("cdc is nil")
+	ErrMsgAccountIsNull     = errors.New("不合法的账户：空账户")
+	ErrValidatorsIsNil      = errors.New("验证者列表为空")
+	ErrSepcialsIsNil        = errors.New("特殊账户为空")
+	ErrValidatorNotFound    = errors.New("验证者未找到")
+	ErrMsgExistInCache      = errors.New("缓存中已存在消息")
+	ErrNoMsgInCache         = errors.New("缓存中没有目标消息")
+	ErrParamsIsNil          = errors.New("参数为nil")
+	ErrSelfReqIsNil         = errors.New("self请求不在缓存中")
+	ErrPOSResultIsNil       = errors.New("POS结果为nil/header为nil")
+	ErrLeaderResultIsNil    = errors.New("leader共识结果为nil")
+	ErrCDCOrSignHelperisNil = errors.New("cdc or signHelper is nil")
 )
 
 type Matrix interface {
@@ -35,8 +36,18 @@ type Matrix interface {
 	DPOSEngine() consensus.DPOSEngine
 	Engine() consensus.Engine
 	HD() *msgsend.HD
-	FetcherNotify(hash common.Hash, number uint64)
+	FetcherNotify(hash common.Hash, number uint64, addr common.Address)
 }
+
+type StateReader interface {
+	matrixstate.StateDB
+	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
+	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+}
+
+const defaultBeginTime = int64(0)
+
+const mangerCacheMax = 2
 
 type stateDef uint8
 
@@ -79,6 +90,21 @@ func (self *leaderData) copyData() *leaderData {
 }
 
 type startControllerMsg struct {
-	parentHeader  *types.Header
-	parentStateDB *state.StateDB
+	parentIsSupper bool
+	parentHeader   *types.Header
+	parentStateDB  *state.StateDB
+}
+
+func isFirstConsensusTurn(turnInfo *mc.ConsensusTurnInfo) bool {
+	if turnInfo == nil {
+		return false
+	}
+	return turnInfo.PreConsensusTurn == 0 && turnInfo.UsedReelectTurn == 0
+}
+
+func calcNextConsensusTurn(curConsensusTurn mc.ConsensusTurnInfo, curReelectTurn uint32) mc.ConsensusTurnInfo {
+	return mc.ConsensusTurnInfo{
+		PreConsensusTurn: curConsensusTurn.TotalTurns(),
+		UsedReelectTurn:  curReelectTurn,
+	}
 }

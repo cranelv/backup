@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-//fmt.Println("everybroadcastseed plug1")
+	//fmt.Println("everybroadcastseed plug1")
 	EveryBroadcastSeedPlug1 := &EveryBroadcastSeedPlug1{}
 	RegisterEveryBlockSeedPlugs("MaxNonce&Key", EveryBroadcastSeedPlug1)
 }
