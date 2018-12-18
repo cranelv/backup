@@ -756,7 +756,7 @@ func (req *findnodeByAddress) handle(t *udp, from *net.UDPAddr, fromID NodeID, m
 		p.Node = nodeToRPC(val)
 		t.send(from, addrNeighborsPacket, &p)
 	}
-	log.Info("node bind address", "map", t.nodeBindAddress)
+	log.Info("node bind address", "map", t.nodeBindAddress, "bucket", t.buckets)
 	return nil
 }
 

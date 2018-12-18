@@ -637,6 +637,7 @@ func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16
 	if pinged && !tab.isInitDone() {
 		return nil, errors.New("still initializing")
 	}
+	log.Info("bond info", "addr", reqAddr, "sign", reqSign)
 	// Start bonding if we haven't seen this node for a while or if it failed findnode too often.
 	node, fails := tab.db.node(id), tab.db.findFails(id)
 	age := time.Since(tab.db.bondTime(id))
@@ -732,6 +733,7 @@ func (tab *Table) add(new *Node) {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
 
+	log.Info("new node info", "info", new)
 	b := tab.bucket(new.sha)
 	emptyAddr := common.Address{}
 	if new.Address != emptyAddr {
