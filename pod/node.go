@@ -166,7 +166,7 @@ func (n *Node) Signature() (signature common.Signature) {
 			n.log.Error("man address read file", "error", err)
 			return
 		}
-		n.config.P2P.ManAddress = common.BytesToAddress(addrByte)
+		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
 		return
 	}
 
