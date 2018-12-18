@@ -16,22 +16,33 @@ import (
 const (
 	sharding_MOUNTS=256
 )
+type CoinRoot struct {
+	Cointyp string
+	root    common.Hash
+}
+type RangeRootManage struct {
+	Range   byte
+	//	State 	*StateDB
+	root common.Hash
+}
 type RangeManage struct {
 	Range   byte
-	State *StateDB
+	State 	*StateDB
+	//root common.Hash
 }
 type CoinManage struct {
 	Cointyp string
-	ValSeg  []RangeManage
+	ValSeg  []*RangeManage
 }
 type ShardingStateDB struct {
 	db          Database
 	trie        Trie
-	shardings	[]CoinManage
+	shardings	[]*CoinManage
+	coinRoot    []CoinRoot
 }
 
 // Create a new state from a given trie.
-func NewSharding(roots []common.Hash, db Database) (*ShardingStateDB, error) {
+func NewSharding(roots []CoinRoot, db Database) (*ShardingStateDB, error) {
 	b,_ := json.Marshal(roots)
 	hash := common.BytesToHash(b)
 	tree, err := db.OpenTrie(hash)
@@ -41,10 +52,69 @@ func NewSharding(roots []common.Hash, db Database) (*ShardingStateDB, error) {
 	return &ShardingStateDB{
 		db:                db,
 		trie:              tree,
-		shardings:         make([]CoinManage,0),
+		shardings:         make([]*CoinManage,0),
+		coinRoot:          roots,
 	}, nil
 }
+//func (shard *ShardingStateDB) SetStatedb(typ []string,b []byte){
+//
+//}
+func (shard *ShardingStateDB) MakeStatedb(cointyp string,b byte) {
+	//没有对应币种或byte分区的时候，才创建
+	for _,sh := range shard.shardings{
+		if sh.Cointyp == cointyp{
+			for _,st := range sh.ValSeg{
+				if st.Range == b{
+					return
+				}
+			}
+		}
+	}
+	var root common.Hash
+	//获取指定的币种root
+	for _,cr := range shard.coinRoot{
+		if cr.Cointyp == cointyp{
+			root = cr.root
+		}
+	}
+	var root256 []common.Hash
+	err:=json.Unmarshal(root[:],&root256)
+	if err != nil{
+		log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal:root", err)
+		panic(err)
+	}
+	rms := make([]RangeManage,0)
+	for _,rt := range root256{
+		//获取rangemanage
+		rm_b,err := shard.trie.TryGet(rt[:])
+		if err != nil{
+			log.Error("file sharding_statedb","func MakeStatedb",err)
+			panic(err)
+		}
+		var rtm RangeRootManage
+		err = json.Unmarshal(rm_b,&rtm)
+		if err != nil {
+			log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal", err)
+			panic(err)
+		}
+		//isex := false
+		////判断是否有指定range的rangemanage
+		//if rm.Range == b{
+		//	isex = true
+		//}
+		stdb,_ := New(rt,shard.db)
+		rm := RangeManage{Range:rtm.Range,State:stdb}
 
+		//如果没有指定range的rangemanage,创建statedb
+		//if !isex {
+			//通过币种root，创建statedb
+			//stdb,_ = New(root,shard.db)
+		//}
+		//将币种的coinmanage插入shardingdb
+	}
+	shard.shardings = append(shard.shardings,&CoinManage{Cointyp:cointyp,ValSeg:rms})
+
+}
 //func (shard *ShardingStateDB)setError(idx int,err error) {
 //	shard.sharding[idx].setError(err)
 //
@@ -56,78 +126,63 @@ func NewSharding(roots []common.Hash, db Database) (*ShardingStateDB, error) {
 //给的根应该是当前分片trie的根hash
 
 func (shard *ShardingStateDB) Reset(root common.Hash) error {
-	b,_ := json.Marshal(roots)
-	hash := common.BytesToHash(b)
-	//tree, err := db.OpenTrie(hash)
 	tr, err := shard.db.OpenTrie(root)
 	if err != nil {
 		return err
 	}
-	self:=shard.sharding[idx]
-	self.trie = tr
-	self.stateObjects = make(map[common.Address]*stateObject)
-	self.stateObjectsDirty = make(map[common.Address]struct{})
-	self.thash = common.Hash{}
-	self.bhash = common.Hash{}
-	self.txIndex = 0
-	self.logs = make(map[common.Hash][]*types.Log)
-	self.logSize = 0
-	self.preimages = make(map[common.Hash][]byte)
-	self.clearJournalAndRefund()
+	shard.trie = tr
+	shard.shardings = make([]CoinManage,0)
 	return nil
 }
 
-func (shard *ShardingStateDB) AddLog(idx int,log *types.Log) {
-	self:=shard.sharding[idx]
-	//slef:=shard.statedb
-	self.journal.append(addLogChange{txhash: self.thash})
-
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
-	self.logSize++
+func (shard *ShardingStateDB) AddLog(log *types.Log) {
+	//self:=shard.sharding[idx]
+	////slef:=shard.statedb
+	//self.journal.append(addLogChange{txhash: self.thash})
+	//
+	//log.TxHash = self.thash
+	//log.BlockHash = self.bhash
+	//log.TxIndex = uint(self.txIndex)
+	//log.Index = self.logSize
+	//self.logs[self.thash] = append(self.logs[self.thash], log)
+	//self.logSize++
 }
 
-func (shard *ShardingStateDB) GetLogs(idx int,hash common.Hash) []*types.Log {
-
-	return shard.sharding[idx].logs[hash]
+func (shard *ShardingStateDB) GetLogs(hash common.Hash) []*types.Log {
+	return nil //shard.sharding[idx].logs[hash]
 }
 
 func (shard *ShardingStateDB) Logs() []*types.Log {
-	self:=shard.sharding
-	var logs []*types.Log
-	for i:=0;i<sharding_MOUNTS ;i++  {
-		for _, lgs := range self[i].logs {
-			logs = append(logs, lgs...)
-		}
-	}
-	return logs
+	//self:=shard.sharding
+	//var logs []*types.Log
+	//for i:=0;i<sharding_MOUNTS ;i++  {
+	//	for _, lgs := range self[i].logs {
+	//		logs = append(logs, lgs...)
+	//	}
+	//}
+	return nil //logs
 }
-
 
 // AddPreimage records a SHA3 preimage seen by the VM.
 func (shard *ShardingStateDB) AddPreimage(idx int,hash common.Hash, preimage []byte) {
-
-	self:=shard.sharding[idx]
-	if _, ok := self.preimages[hash]; !ok {
-		self.journal.append(addPreimageChange{hash: hash})
-		pi := make([]byte, len(preimage))
-		copy(pi, preimage)
-		self.preimages[hash] = pi
-	}
+	//self:=shard.sharding[idx]
+	//if _, ok := self.preimages[hash]; !ok {
+	//	self.journal.append(addPreimageChange{hash: hash})
+	//	pi := make([]byte, len(preimage))
+	//	copy(pi, preimage)
+	//	self.preimages[hash] = pi
+	//}
 }
 
 // Preimages returns a list of SHA3 preimages that have been submitted.
 func (shard *ShardingStateDB) Preimages(idx int) map[common.Hash][]byte {
-	return shard.sharding[idx].preimages
+	return nil//shard.sharding[idx].preimages
 }
 
 func (shard *ShardingStateDB) AddRefund(idx int,gas uint64) {
-	self:=shard.sharding[idx]
-	self.journal.append(refundChange{prev: self.refund})
-	self.refund += gas
+	//self:=shard.sharding[idx]
+	//self.journal.append(refundChange{prev: self.refund})
+	//self.refund += gas
 }
 
 // Exist reports whether the given account address exists in the state.
