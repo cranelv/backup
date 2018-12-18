@@ -306,13 +306,14 @@ func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
+	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
 	for _, v := range ans {
-		for kk, vv := range manparams.EntrustValue {
+		for kk, vv := range entrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
-			if _, ok := manparams.EntrustValue[kk]; ok {
-				return kk, manparams.EntrustValue[kk], nil
+			if _, ok := entrustValue[kk]; ok {
+				return kk, entrustValue[kk], nil
 			}
 			return kk, vv, errors.New("cdc: 无该密码")
 
