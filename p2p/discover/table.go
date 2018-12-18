@@ -186,6 +186,9 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 
 	for i := 0; i < 3; i++ {
 		randNode, _ := tab.nodeToRevalidate()
+		if randNode == nil {
+			continue
+		}
 		n, err := tab.net.findnodeByAddress(randNode.ID, randNode.addr(), address)
 		if err != nil {
 			log.Error("findnodeByAddress attempt", "target addr", address.Hex(), "error", err)
