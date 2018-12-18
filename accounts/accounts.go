@@ -101,7 +101,7 @@ type Wallet interface {
 	// the needed details via SignTxWithPassphrase, or by other means (e.g. unlock
 	// the account in a keystore).
 	SignTx(account Account, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error)
-	SignTxWithPasswd(account Account, passwd string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error)
+
 	// SignHashWithPassphrase requests the wallet to sign the given hash with the
 	// given passphrase as extra authentication information.
 	//
@@ -115,11 +115,6 @@ type Wallet interface {
 	// It looks up the account specified either solely via its address contained within,
 	// or optionally with the aid of any location metadata from the embedded URL field.
 	SignTxWithPassphrase(account Account, passphrase string, tx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error)
-
-	SignHashValidate(account Account, hash []byte, validate bool) ([]byte, error)
-
-	SignHashValidateWithPass(account Account, passphrase string, hash []byte, validate bool) ([]byte, error)
-	SignVrfWithPass(account Account, passphrase string, msg []byte) ([]byte, []byte, []byte, error)
 }
 
 // Backend is a "wallet provider" that may contain a batch of accounts they can
