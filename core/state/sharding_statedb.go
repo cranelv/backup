@@ -925,5 +925,5 @@ func (self *ShardingStateDB) GetAllEntrustSignFrom(cointyp string,authFrom commo
 }
 
 func (self *ShardingStateDB) GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address{
-
+	return nil
 }
