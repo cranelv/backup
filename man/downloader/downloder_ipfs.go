@@ -2343,9 +2343,10 @@ func (d *Downloader) SynIPFSCheck() {
 
 }
 func (d *Downloader) ClearIpfsQueue() {
-	if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
-		for element := d.dpIpfs.DownRetrans.Front(); element != nil; element = element.Next() {
-			d.dpIpfs.DownRetrans.Remove(element)
-		}
-	}
+	/*
+		if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
+			for element := d.dpIpfs.DownRetrans.Front(); element != nil; element = element.Next() {
+				d.dpIpfs.DownRetrans.Remove(element)
+			}
+		}*/
 }
