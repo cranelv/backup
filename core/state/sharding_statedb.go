@@ -9,7 +9,7 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"math/big"
 	"encoding/json"
-	"github.com/matrix/go-matrix/base58"
+	_"github.com/matrix/go-matrix/base58"
 )
 type RangeManage struct {
 	Range   byte
@@ -107,6 +107,7 @@ func (shard *ShardingStateDB)GetStateDb(cointyp string,address common.Address) *
 			}
 		}
 	}
+	return nil
 }
 
 func (shard *ShardingStateDB) AddLog(cointyp string,address common.Address,log *types.Log) {
