@@ -180,7 +180,7 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			continue
 		}
 		if n.Address == address {
-			tab.add(n)
+			tab.bondall([]*Node{n})
 			return n
 		}
 	}
@@ -195,7 +195,7 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			continue
 		}
 		if n.Address == address {
-			tab.add(n)
+			tab.bondall([]*Node{n})
 			return n
 		}
 	}
