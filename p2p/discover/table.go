@@ -177,9 +177,10 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 		node, _ := ParseNode(boot)
 		n, err := tab.net.findnodeByAddress(node.ID, node.addr(), address)
 		if err != nil {
-			log.Error("findnodeByAddress attempt", "target addr", address.Hex(), "error", err)
+			continue
 		}
 		if n.Address == address {
+			tab.add(n)
 			return n
 		}
 	}
@@ -191,9 +192,10 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 		}
 		n, err := tab.net.findnodeByAddress(randNode.ID, randNode.addr(), address)
 		if err != nil {
-			log.Error("findnodeByAddress attempt", "target addr", address.Hex(), "error", err)
+			continue
 		}
 		if n.Address == address {
+			tab.add(n)
 			return n
 		}
 	}
