@@ -255,8 +255,6 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 		}
 	}
 
-	signHelper := stack.SignalHelper()
-	signHelper.SetAccountManager(stack.AccountManager())
 	wallets := stack.AccountManager().Wallets()
 	if len(wallets) <= 0 {
 		log.Error("无钱包", "请新建钱包", "")

@@ -278,7 +278,11 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Check whether the genesis block is already written.
 	if genesis != nil {
-		hash := genesis.ToBlock(nil).Hash()
+		block, err := genesis.ToBlock(nil)
+		if err != nil {
+			return genesis.Config, common.Hash{}, err
+		}
+		hash := block.Hash()
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
@@ -328,7 +332,7 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
-func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
+func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
@@ -348,17 +352,17 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 		}
 	}
 	if nil == g.MState {
-		log.Error("genesis", "设置matrix状态树错误", "")
-		return nil
+		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
+		return nil, errors.New("MState of genesis is nil")
 	}
 	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
-		log.Error("genesis", "设置matrix状态树错误", err)
-		return nil
+		log.Error("genesis", "MState.setMatrixState err", err)
+		return nil, err
 	}
 
 	if err := g.MState.SetSuperBlkToState(statedb, g.ExtraData, g.Number); err != nil {
-		log.Error("genesis", "设置matrix状态树错误", err)
-		return nil
+		log.Error("genesis", "MState.SetSuperBlkToState err", err)
+		return nil, err
 	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
@@ -392,7 +396,7 @@ func (g *Genesis) ToBlock(db mandb.Database) *types.Block {
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil, nil)
+	return types.NewBlock(head, nil, nil, nil), nil
 }
 
 func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Database, chainCfg *params.ChainConfig) *types.Block {
@@ -487,9 +491,9 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db mandb.Database) (*types.Block, error) {
-	block := g.ToBlock(db)
-	if nil == block {
-		return nil, fmt.Errorf("can't create genesis block")
+	block, err := g.ToBlock(db)
+	if err != nil || nil == block {
+		return nil, fmt.Errorf("can't create genesis block, err = %v", err)
 	}
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
