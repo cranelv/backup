@@ -122,6 +122,7 @@ type ShardingStateDBer interface {
 	Snapshot(cointyp string) int
 	AddLog(cointyp string,address common.Address,log *types.Log)
 	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
+	Logs(cointyp string,roots []common.Hash) []*types.Log
 	AddPreimage(cointyp string,addr common.Hash, b []byte)
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 	SetMatrixData_sh(hash common.Hash, val []byte)

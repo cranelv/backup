@@ -68,15 +68,6 @@ func (shard *ShardingStateDB) MakeStatedb(cointyp string,b byte) {
 	cm := &CoinManage{Cointyp:cointyp,Rmanage:rms}
 	shard.shardings = append(shard.shardings,cm)
 }
-//func (shard *ShardingStateDB)setError(idx int,err error) {
-//	shard.sharding[idx].setError(err)
-//
-//}
-
-//func (shard *ShardingStateDB)Error(idx int)error  {
-//	return shard.sharding[idx].dbErr
-//}
-//给的根应该是当前分片trie的根hash
 
 func (shard *ShardingStateDB) Reset(roots []common.CoinRoot) error {
 	for _,cr := range roots{
@@ -104,32 +95,61 @@ func (shard *ShardingStateDB) Reset(roots []common.CoinRoot) error {
 	return nil
 }
 
+func (shard *ShardingStateDB)GetStateDb(cointyp string,address common.Address) *StateDB {
+	cms := shard.shardings
+	for _, cm := range cms {
+		if cm.Cointyp == cointyp {
+			rms := cm.Rmanage
+			for _, rm := range rms {
+				if rm.Range == address[1] {
+					return rm.State
+				}
+			}
+		}
+	}
+}
+
 func (shard *ShardingStateDB) AddLog(cointyp string,address common.Address,log *types.Log) {
-	//self:=shard.sharding[idx]
-	////slef:=shard.statedb
-	//self.journal.append(addLogChange{txhash: self.thash})
-	//
-	//log.TxHash = self.thash
-	//log.BlockHash = self.bhash
-	//log.TxIndex = uint(self.txIndex)
-	//log.Index = self.logSize
-	//self.logs[self.thash] = append(self.logs[self.thash], log)
-	//self.logSize++
+	self:=shard.GetStateDb(cointyp,address)
+	self.journal.append(addLogChange{txhash: self.thash})
+
+	log.TxHash = self.thash
+	log.BlockHash = self.bhash
+	log.TxIndex = uint(self.txIndex)
+	log.Index = self.logSize
+	self.logs[self.thash] = append(self.logs[self.thash], log)
+	self.logSize++
 }
 
 func (shard *ShardingStateDB) GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log {
-	return nil //shard.sharding[idx].logs[hash]
+	sd:=shard.GetStateDb(cointyp,address)
+	return sd.logs[hash]
+
 }
 
-func (shard *ShardingStateDB) Logs() []*types.Log {
+func (shard *ShardingStateDB) Logs(cointyp string,roots []common.Hash) []*types.Log {
+	cms:=shard.shardings
+	var logs []*types.Log
+	for _,cm:=range cms {
+		if cm.Cointyp==cointyp {
+			rms:=cm.Rmanage
+			for _,rm :=range rms{
+				log:=rm.State.logs
+				for _,l:=range log  {
+					logs=append(logs,l...)
+				}
+
+			}
+		}
+	}
 	//self:=shard.sharding
-	//var logs []*types.Log
+	//
 	//for i:=0;i<sharding_MOUNTS ;i++  {
 	//	for _, lgs := range self[i].logs {
 	//		logs = append(logs, lgs...)
 	//	}
 	//}
-	return nil //logs
+	return logs //logs
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -562,10 +582,6 @@ func (shard *ShardingStateDB) RevertToSnapshot(cointyp string,revid int) {
 	//self.validRevisions = self.validRevisions[:idx]
 }
 
-// GetRefund returns the current value of the refund counter.
-func (shard *ShardingStateDB) GetRefund(idx int) uint64 {
-	return 0
-}
 
 // Finalise finalises the state by removing the self destructed objects
 // and clears the journal as well as the refunds.
