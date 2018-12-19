@@ -107,23 +107,19 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*D
 	return result
 }
 
-func (ic *interest) InterestCalc(state vm.StateDB, num uint64) map[common.Address]*big.Int {
-	//todo:状态树读取利息计算的周期、支付的周期、利率
-
+func (ic *interest) InterestCalc(state vm.StateDB, num uint64) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
 	if nil == state {
 		log.ERROR(PackageName, "状态树是空", state)
-		return nil
+		return nil, nil
 	}
 	if num == 1 {
 		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
 		matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
 		log.INFO(PackageName, "初始化利息状态树高度", num)
-		return nil
+		return nil, nil
 	}
 
-	ic.calcInterest(ic.CalcInterval, num, state)
-
-	return ic.payInterest(ic.PayInterval, num, state)
+	return ic.calcInterest(ic.CalcInterval, num, state), ic.payInterest(ic.PayInterval, num, state)
 }
 
 func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.StateDB) map[common.Address]*big.Int {
@@ -177,16 +173,16 @@ func (ic *interest) getLastInterestNumber(number uint64, InterestInterval uint64
 	return ans
 }
 
-func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state vm.StateDB) {
+func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state vm.StateDB) map[common.Address]*big.Int {
 	if !ic.canCalcInterest(state, num, calcInterestInterval) {
-		return
+		return nil
 	}
 
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
 		if v.MinMoney < 0 {
 			log.ERROR(PackageName, "最小金额设置非法", "")
-			return
+			return nil
 		}
 		deposit := new(big.Int).Mul(new(big.Int).SetUint64(v.MinMoney), util.ManPrice)
 		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{deposit, big.NewRat(int64(v.InterestRate), Denominator)})
@@ -196,13 +192,14 @@ func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state 
 	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
 	if nil != err {
 		log.ERROR(PackageName, "获取的抵押列表错误", err)
-		return
+		return nil
 	}
 	if 0 == len(depositNodes) {
 		log.ERROR(PackageName, "获取的抵押列表为空", "")
-		return
+		return nil
 	}
 	log.INFO(PackageName, "计算利息,高度", num)
+	InterestMap := make(map[common.Address]*big.Int)
 	for _, v := range depositNodes {
 
 		result := ic.calcNodeInterest(v.Deposit, depositInterestRateList)
@@ -211,8 +208,10 @@ func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state 
 			continue
 		}
 		depoistInfo.AddInterest(state, v.Address, result)
+		InterestMap[v.Address] = result
 		log.INFO(PackageName, "账户", v.Address.String(), "deposit", v.Deposit.String(), "利息", result.String())
 	}
+	return InterestMap
 
 }
 

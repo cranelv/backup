@@ -69,3 +69,4 @@ var (
 	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 )
+
