@@ -253,6 +253,12 @@ type Block struct {
 	ReceivedFrom interface{}
 }
 
+type BlockAllSt struct {
+	Sblock   *Block
+	SReceipt Receipts //`rlp:"sreceipt"`
+	Pading   uint64
+}
+
 // DeprecatedTd is an old relic for extracting the TD of a block. It is in the
 // code solely to facilitate upgrading the database from the old format to the
 // new, after which it should be deleted. Do not use!

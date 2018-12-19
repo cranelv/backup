@@ -17,7 +17,6 @@ import (
 )
 
 const (
-
 	LRSParentMiningTime = int64(20)
 	LRSPOSOutTime       = int64(20)
 	LRSReelectOutTime   = int64(40)
@@ -40,17 +39,17 @@ const (
 )
 
 const (
-	ElectionSeed="electionseed"
-	ElectionSeed_Plug_MinHash ="MinHash"
-	EveryBlockSeed="everyblockseed"
-	EveryBlockSeed_Plug_NonceAndCoinbase="NonceAndCoinbase"
-	EveryBroadcastSeed="everybroadcastseed"
-	EveryBroadcastSeed_Plug_MaxNonce="MaxNonce"
+	ElectionSeed                         = "electionseed"
+	ElectionSeed_Plug_MinHash            = "MinHash"
+	EveryBlockSeed                       = "everyblockseed"
+	EveryBlockSeed_Plug_NonceAndCoinbase = "NonceAndCoinbase"
+	EveryBroadcastSeed                   = "everybroadcastseed"
+	EveryBroadcastSeed_Plug_MaxNonce     = "MaxNonce"
 )
 
 var (
 	//随机数相关
-	RandomConfig              = DefaultRandomConfig   //man.json配置中读的
+	RandomConfig              = DefaultRandomConfig //man.json配置中读的
 	RandomServiceName         = []string{ElectionSeed, EveryBlockSeed, EveryBroadcastSeed}
 	RandomServicePlugs        = make(map[string][]string, 0) //子服务对应的插件名
 	RandomServiceDefaultPlugs = make(map[string]string, 0)

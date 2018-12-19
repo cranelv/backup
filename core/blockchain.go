@@ -912,8 +912,13 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		rawdb.WriteTxLookupEntries(batch, block)
 		//lb
 		if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-
-			bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+			tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
+			//copy(tmpBlock.SReceipt, receipts)
+			tmpBlock.SReceipt = receipts
+			tmpBlock.Pading = uint64(len(block.Body().Transactions))
+			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
+			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 		}
 		stats.processed++
 
@@ -1013,7 +1018,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, block)
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+		//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+		tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
+		//copy(tmpBlock.SReceipt, receipts)
+		//tmpBlock.SReceipt = receipts
+		tmpBlock.Pading = uint64(len(block.Body().Transactions))
+		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 	}
 
 	//log.Info("miss tree node debug", "入链时", "commit前state状态")
