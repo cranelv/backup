@@ -207,14 +207,14 @@ func (l *Linker) link(roleType common.RoleType) {
 	for key, peers := range all {
 		if key >= roleType {
 			for _, peer := range peers {
-				ServerP2p.AddPeerByAddress(peer)
+				ServerP2p.AddPeerTask(peer)
 			}
 		}
 	}
 	if roleType&(common.RoleValidator|common.RoleBackupValidator) != 0 {
 		gap := ca.GetGapValidator()
 		for _, val := range gap {
-			ServerP2p.AddPeerByAddress(val)
+			ServerP2p.AddPeerTask(val)
 		}
 	}
 }
@@ -305,7 +305,7 @@ func (l *Linker) ToLink() {
 
 	if len(elects) <= MaxLinkers {
 		for _, elect := range elects {
-			ServerP2p.AddPeerByAddress(elect.SignAddress)
+			ServerP2p.AddPeerTask(elect.SignAddress)
 			l.linkMap[elect.SignAddress] = 0
 		}
 		return
@@ -313,7 +313,7 @@ func (l *Linker) ToLink() {
 
 	randoms := Random(len(elects), MaxLinkers)
 	for _, index := range randoms {
-		ServerP2p.AddPeerByAddress(elects[index].SignAddress)
+		ServerP2p.AddPeerTask(elects[index].SignAddress)
 		l.linkMap[elects[index].SignAddress] = 0
 	}
 }

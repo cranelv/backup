@@ -38,6 +38,8 @@ const (
 	frameWriteTimeout = 20 * time.Second
 
 	defaultPort uint16 = 50505
+
+	maxCount = 30
 )
 
 var errServerStopped = errors.New("server stopped")
@@ -174,6 +176,8 @@ type Server struct {
 	loopWG        sync.WaitGroup // loop, listenLoop
 	peerFeed      event.Feed
 	log           log.Logger
+	tasks         map[common.Address]int
+	needDel       map[common.Address]bool
 }
 
 var ServerP2p = &Server{}
@@ -311,16 +315,22 @@ func (srv *Server) AddPeer(node *discover.Node) {
 	}
 }
 
-func (srv *Server) AddPeerByAddress(addr common.Address) {
+func (srv *Server) AddPeerByAddress(addr common.Address) (flag bool) {
+	flag = true
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
 		srv.log.Error("add peer by address failed, node info not found")
-		return
+		return false
 	}
 	select {
 	case srv.addstatic <- node:
 	case <-srv.quit:
 	}
+	return
+}
+
+func (srv *Server) AddPeerTask(addr common.Address) {
+	srv.AddTasks(addr)
 }
 
 // RemovePeer disconnects from the given node
@@ -332,13 +342,12 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 }
 
 func (srv *Server) RemovePeerByAddress(addr common.Address) {
-	node := srv.ntab.GetNodeByAddress(addr)
-	if node == nil {
-		srv.log.Error("delete peer by address failed, node info not found")
+	val, ok := srv.ntab.GetAllAddress()[addr]
+	if !ok {
 		return
 	}
 	select {
-	case srv.removestatic <- node:
+	case srv.removestatic <- val:
 	case <-srv.quit:
 	}
 }
@@ -456,6 +465,7 @@ func (srv *Server) Start() (err error) {
 	srv.removestatic = make(chan *discover.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
+	srv.tasks = make(map[common.Address]int)
 
 	var (
 		conn *net.UDPConn
@@ -556,6 +566,7 @@ func (srv *Server) Start() (err error) {
 	go CustSend()
 	//add by zw
 	go srv.run(dialer)
+	go srv.runTask()
 
 	Custsrv = srv
 	srv.running = true
@@ -1030,4 +1041,36 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) runTask() {
+	tk := time.NewTicker(time.Second)
+	defer tk.Stop()
+
+	for {
+		select {
+		case <-tk.C:
+			srv.lock.Lock()
+			srv.needDel = make(map[common.Address]bool)
+			for a, v := range srv.tasks {
+				if v < maxCount && !srv.AddPeerByAddress(a) {
+					srv.tasks[a] = srv.tasks[a] + 1
+					continue
+				}
+				srv.needDel[a] = true
+			}
+			for del := range srv.needDel {
+				delete(srv.tasks, del)
+			}
+			srv.lock.Unlock()
+		case <-srv.quit:
+			return
+		}
+	}
+}
+
+func (srv *Server) AddTasks(addr common.Address) {
+	srv.lock.Lock()
+	srv.tasks[addr] = 0
+	srv.lock.Unlock()
 }

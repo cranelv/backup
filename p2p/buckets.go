@@ -338,7 +338,7 @@ func (b *Bucket) inner(num int, bucket int64) {
 
 	for _, value := range peers {
 		b.log.Info("peer", "p2p", value)
-		ServerP2p.AddPeerByAddress(value)
+		ServerP2p.AddPeerTask(value)
 	}
 }
 
@@ -351,7 +351,7 @@ func (b *Bucket) outer(num int, ids []common.Address) {
 
 	for _, value := range peers {
 		b.log.Info("peer", "p2p", value)
-		ServerP2p.AddPeerByAddress(value)
+		ServerP2p.AddPeerTask(value)
 	}
 }
 
