@@ -20,7 +20,6 @@ import (
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/man/wizard"
 
-	"bufio"
 	"encoding/base64"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
@@ -33,6 +32,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -792,26 +792,21 @@ func signVersion(ctx *cli.Context) error {
 	return nil
 }
 func aesEncrypt(ctx *cli.Context) error {
-	//fmt.Println(ctx.Args())
 	Inpath := ctx.GlobalString(utils.AesInputFlag.Name)
-	fmt.Println("输入文件", Inpath)
+	fmt.Println("输入的文件是", Inpath)
 	JsonParse := NewJsonStruct()
-	fileValue := []EntrustInfo{}
+	fileValue := []mc.EntrustInfo{}
 	JsonParse.Load(Inpath, &fileValue)
 
 	dataV, err := json.Marshal(fileValue)
 	if err != nil {
 		return errors.New("对文本内容进行Marshal失败")
 	}
-	entrustPassword, err := ReadEncryptionPassword(fileValue)
+	entrustPassword, err := ReadDecryptPassword(ctx)
 	if err != nil {
 		return err
 	}
-	//fmt.Println("您的密码是", entrustPassword)
-	//fmt.Println("您的文本内容是")
-	//	for _,v:=range fileValue{
-	//		fmt.Println("账户",v.Address.String(),"密码",v.Password)
-	//	}
+
 	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
 	if err != nil {
 		return errors.New("加密失败")
@@ -833,40 +828,8 @@ func CheckPassword(password string) bool {
 	if len(password) == 16 {
 		return true
 	}
-	fmt.Println("你的密码不符合规则 请重新输入", "密码", password, "密码长度", len(password))
+	fmt.Println("你的密码不符合规则 请重新输入")
 	return false
-}
-func ReadEncryptionPassword(FileData []EntrustInfo) (string, error) {
-	ans := ""
-	reader := bufio.NewReader(os.Stdin)
-
-	for true {
-		fmt.Println("请输入你的委托交易密码 密码暂定需要16位")
-		data, _, _ := reader.ReadLine()
-		if CheckPassword(string(data)) {
-			ans = string(data)
-			fmt.Println("请确认你的密码:", ans, "输入y继续 其他重新输入")
-			status, _, _ := reader.ReadLine()
-			if string(status) == "y" {
-				for _, v := range FileData {
-					fmt.Println("账户", v.Address.String(), "密码", v.Password)
-				}
-				fmt.Println("请确认你的初始文本的账户和密码", "输入y继续，其他重新输入")
-				Isok, _, _ := reader.ReadLine()
-				if string(Isok) == "y" {
-					break
-				}
-			}
-
-		}
-	}
-
-	return ans, nil
-}
-
-type EntrustInfo struct {
-	Address  common.Address
-	Password string
 }
 
 type JsonStruct struct {
@@ -885,7 +848,7 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 	}
 	err = json.Unmarshal(data, v)
 	if err != nil {
-		fmt.Println("通用配置文件数据获取失败 err", err)
+		fmt.Println("通用配置文件数据获取失败 err", err, "filename", filename)
 		os.Exit(-1)
 		return
 	}

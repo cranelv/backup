@@ -115,6 +115,11 @@ func New(conf *Config) (*Node, error) {
 		return nil, err
 	}
 	signHelper := signhelper.NewSignHelper()
+	err = signHelper.SetAccountManager(am)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Node{
 		accman:            am,
 		ephemeralKeystore: ephemeralKeystore,
@@ -202,7 +207,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 
 		ctn := discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes()
 		signCtn := common.BytesToHash(ctn)
-		sig, err := wallet.SignHashValidateWithPass(account, n.config.P2P.ManPassword, signCtn.Bytes(), true)
+		sig, err := wallet.SignHashWithPassphrase(account, n.config.P2P.ManPassword, signCtn.Bytes())
 		if err != nil {
 			n.log.Error("signature with account", "error", err)
 			return

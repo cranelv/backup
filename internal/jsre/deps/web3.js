@@ -3696,6 +3696,13 @@ var outputBigNumberFormatter = function (number) {
     return utils.toBigNumber(number);
 };
 
+var outputNewBigNumberFormatter = function (params) {
+  for(var i = 0, length = params.length; i < length; i++) {
+      params[i].balance = utils.toBigNumber(params[i].balance);
+  }
+  return params;
+};
+
 var isPredefinedBlockNumber = function (blockNumber) {
     return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
 };
@@ -3994,6 +4001,7 @@ module.exports = {
     inputAddressFormatter: inputAddressFormatter,
     inputPostFormatter: inputPostFormatter,
     outputBigNumberFormatter: outputBigNumberFormatter,
+    outputNewBigNumberFormatter: outputNewBigNumberFormatter,
     outputTransactionFormatter: outputTransactionFormatter,
     outputTransactionReceiptFormatter: outputTransactionReceiptFormatter,
     outputBlockFormatter: outputBlockFormatter,
@@ -5315,7 +5323,7 @@ var methods = function () {
         call: 'eth_getBalance',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
-        //outputFormatter: formatters.outputBigNumberFormatter
+        outputFormatter: formatters.outputNewBigNumberFormatter
     });
 
     var getEntrustList = new Method({
@@ -5748,9 +5756,15 @@ var methods = function () {
 
     var importRawKey = new Method({
         name: 'importRawKey',
-		call: 'personal_importRawKey',
-		params: 2
+        call: 'personal_importRawKey',
+        params: 2
     });
+    var setEntrustSignAccount = new Method({
+        name: 'setEntrustSignAccount',
+        call: 'personal_setEntrustSignAccount',
+        params: 2
+    });
+
 
     var sign = new Method({
         name: 'sign',
@@ -5789,6 +5803,7 @@ var methods = function () {
     return [
         newAccount,
         importRawKey,
+        setEntrustSignAccount,
         unlockAccount,
         ecRecover,
         sign,

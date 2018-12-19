@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
@@ -35,7 +36,13 @@ type Matrix interface {
 	DPOSEngine() consensus.DPOSEngine
 	Engine() consensus.Engine
 	HD() *msgsend.HD
-	FetcherNotify(hash common.Hash, number uint64)
+	FetcherNotify(hash common.Hash, number uint64, addr common.Address)
+}
+
+type StateReader interface {
+	matrixstate.StateDB
+	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
+	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
 }
 
 const defaultBeginTime = int64(0)
@@ -88,7 +95,10 @@ type startControllerMsg struct {
 	parentStateDB  *state.StateDB
 }
 
-func isFirstConsensusTurn(turnInfo mc.ConsensusTurnInfo) bool {
+func isFirstConsensusTurn(turnInfo *mc.ConsensusTurnInfo) bool {
+	if turnInfo == nil {
+		return false
+	}
 	return turnInfo.PreConsensusTurn == 0 && turnInfo.UsedReelectTurn == 0
 }
 

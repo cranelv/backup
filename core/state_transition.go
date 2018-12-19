@@ -455,15 +455,15 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	st.gas = 0
 	issendFromContract := false
 	beforAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
+	interestbefor := st.state.GetBalanceByType(common.InterestRewardAddress, common.MainAccount) // Test
 	interset := big.NewInt(0)
 	if toaddr == nil { //YY
 		log.Error("file state_transition", "func CallUnGasNormalTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
-		if st.To() != common.ContractAddress {
+		if st.To() == common.ContractAddress {
 			interset = new(big.Int).Add(interset, st.value)
-		} else {
 			issendFromContract = true
 		}
 		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
@@ -475,9 +475,8 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 				log.Error("file state_transition", "func CallUnGasNormalTx()", "Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
-				if *ex.Recipient != common.ContractAddress {
+				if *ex.Recipient == common.ContractAddress {
 					interset = new(big.Int).Add(interset, ex.Amount)
-				} else {
 					issendFromContract = true
 				}
 				// Increment the nonce for the next transaction
@@ -498,6 +497,14 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		afterAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
 		difAmont := new(big.Int).Sub(afterAmont, beforAmont)
 		if difAmont.Cmp(interset) != 0 {
+			log.Info("file state_transition", "func rewardTx", "ContractAddress 余额与增加的钱不一致")
+			return nil, 0, false, ErrinterestAmont
+		}
+		interestafter := st.state.GetBalanceByType(common.InterestRewardAddress, common.MainAccount)
+		dif := new(big.Int).Sub(interestbefor, interestafter)
+		if difAmont.Cmp(dif) != 0 {
+			log.Info("file state_transition", "func rewardTx", "InterestRewardAddress 余额与扣除的钱不一致")
+			log.Error("ZH:state_transition", "difAmont", difAmont, "dif", dif, "afterAmont", afterAmont, "beforAmont", beforAmont, "interestafter", interestafter, "interestbefor", interestbefor)
 			return nil, 0, false, ErrinterestAmont
 		}
 	}

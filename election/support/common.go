@@ -131,7 +131,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	}
 	//fmt.Println("mapMaster",mapMaster,"len",len(mapMaster))
 	//fmt.Println("mapBackup",mapBackup,"len",len(mapBackup))
-	for index := 0; index < common.MasterValidatorNum; index++ { //用一级在线去补
+	for index := 0; index < int(allNative.ElectInfo.ValidatorNum); index++ { //用一级在线去补
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		_, ok := mapMaster[k]
 		if ok == true {
@@ -158,7 +158,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 		delete(mapBackup, trans)
 
 	}
-	for index := 0; index < common.MasterValidatorNum; index++ { //用buff去补
+	for index := 0; index < int(allNative.ElectInfo.ValidatorNum); index++ { //用buff去补
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		_, ok := mapMaster[k]
 		if ok == true {
@@ -176,7 +176,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 		mapMaster[k] = addr
 		//	fmt.Println("用buff去补",addr,k)
 	}
-	for index := 0; index < common.BackupValidatorNum; index++ {
+	for index := 0; index < int(allNative.ElectInfo.BackValidator); index++ {
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidatorBackUp)
 		_, ok := mapBackup[k]
 		if ok == true {
@@ -194,7 +194,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 		mapBackup[k] = addr
 	}
 
-	for index := 0; index < common.MasterValidatorNum; index++ { //算一级下线
+	for index := 0; index < int(allNative.ElectInfo.ValidatorNum); index++ { //算一级下线
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		if KInTop(k, topoG) == false {
 			fmt.Println("一级 该点不在顶层内", "不处理")
@@ -208,7 +208,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 			})
 		}
 	}
-	for index := 0; index < common.BackupValidatorNum; index++ { //算二级下线
+	for index := 0; index < int(allNative.ElectInfo.BackValidator); index++ { //算二级下线
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidatorBackUp)
 		//fmt.Println("222222222---k",k)
 		if KInTop(k, topoG) == false {

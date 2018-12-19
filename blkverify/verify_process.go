@@ -263,6 +263,7 @@ func (p *Process) HandleVote(signHash common.Hash, vote common.Signature, from c
 	if err != nil {
 		// 没有找到请求，将投票存入未验证票池中
 		p.unverifiedVotes.AddVote(signHash, vote, from)
+		return
 	}
 
 	if req.isAccountExistVote(from) {
@@ -480,7 +481,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	localHeader := types.CopyHeader(remoteHeader)
 	localHeader.GasUsed = 0
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，创建work失败!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
@@ -512,9 +513,6 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	log.Info("miss tree node debug", "验证完成后", "commit前state状态")
-	work.State.MissTrieDebug()
-
 	// 运行完matrix state后，生成root
 	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
 	if err != nil {
@@ -523,10 +521,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	//root1, _ := work.State.Commit(p.blockChain().Config().IsEIP158(p.curProcessReq.req.Header.Number))
-	//if root1 != p.curProcessReq.req.Header.Root {
-	//	log.Error("hyk_miss_trie_0", "root", p.curProcessReq.req.Header.Root.TerminalString(), "state root", root1.TerminalString())
-	//}
+	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
 
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {

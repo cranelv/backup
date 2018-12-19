@@ -71,7 +71,7 @@ func (tt *turnTimes) CalState(consensusTurn mc.ConsensusTurnInfo, time int64) (s
 		return stReelect, 0, 0
 	}
 	posTime := tt.posOutTime
-	if isFirstConsensusTurn(consensusTurn) {
+	if isFirstConsensusTurn(&consensusTurn) {
 		posTime += tt.parentMiningTime
 	}
 
@@ -89,7 +89,7 @@ func (tt *turnTimes) CalState(consensusTurn mc.ConsensusTurnInfo, time int64) (s
 
 func (tt *turnTimes) CalTurnTime(consensusTurn mc.ConsensusTurnInfo, reelectTurn uint32) (beginTime int64, endTime int64) {
 	posTime := tt.posOutTime
-	if isFirstConsensusTurn(consensusTurn) {
+	if isFirstConsensusTurn(&consensusTurn) {
 		posTime += tt.parentMiningTime
 	}
 

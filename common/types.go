@@ -443,7 +443,7 @@ const (
 	ExtraSuperBlockTx  byte = 120 //超级区块交易
 )
 
-var WhiteAddrlist = [1]Address{TxGasRewardAddress}
+var WhiteAddrlist = [1]Address{InterestRewardAddress}
 
 const (
 	RewardNomalType   byte = 0 //奖励通过普通交易发放

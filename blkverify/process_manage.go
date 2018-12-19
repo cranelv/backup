@@ -6,6 +6,8 @@ package blkverify
 import (
 	"sync"
 
+	"github.com/matrix/go-matrix/baseinterface"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
@@ -25,6 +27,7 @@ type ProcessManage struct {
 	txPool     *core.TxPoolManager //YYY
 	reElection *reelection.ReElection
 	event      *event.TypeMux
+	random     *baseinterface.Random
 }
 
 func NewProcessManage(matrix Matrix) *ProcessManage {
@@ -37,6 +40,7 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 		txPool:     matrix.TxPool(),
 		reElection: matrix.ReElection(),
 		event:      matrix.EventMux(),
+		random:     matrix.Random(),
 	}
 }
 

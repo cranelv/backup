@@ -5,6 +5,7 @@ package reelection
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/election/support"
@@ -97,6 +98,18 @@ func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.Topology
 		log.ERROR(Module, "获取选举插件")
 		return []mc.Alternative{}, err
 	}
+
+	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	if err != nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
+	}
+	electInfo, OK := data.(*mc.ElectConfigInfo)
+	if OK == false || electInfo == nil {
+		log.ERROR("ElectConfigInfo", "ElectConfigInfo ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
+	}
+	allNative.ElectInfo = electInfo
 	return elect.ToPoUpdate(allNative, top), nil
 }
 

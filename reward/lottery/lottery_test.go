@@ -1,16 +1,19 @@
 package lottery
 
 import (
+	"bou.ke/monkey"
+	"crypto/ecdsa"
 	"fmt"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
 	"strconv"
 	"testing"
 
-	"github.com/bouk/monkey"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 )
@@ -21,9 +24,9 @@ type Chain struct {
 type randSeed struct {
 }
 
-func (r *randSeed) GetSeed(num uint64) *big.Int {
+func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 
-	return big.NewInt(1000)
+	return big.NewInt(2000), nil
 }
 
 type State struct {
@@ -45,14 +48,20 @@ func (st *State) SetMatrixData(hash common.Hash, val []byte) {
 func (chain *Chain) GetBlockByNumber(num uint64) *types.Block {
 	header := &types.Header{}
 	txs := make([]types.SelfTransaction, 0)
+	key1, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	key2, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+	key3, _ := crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+	key := []*ecdsa.PrivateKey{key1, key2, key3}
 	if num == 298 {
 		for i := 0; i < 3; i++ {
 
-			tx := types.NewTransactions(uint64(i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(100)), nil, nil, 0, common.ExtraNormalTxType)
+			tx := types.NewTransactions(uint64(i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(100)), nil, nil, 0, common.ExtraNormalTxType, 0)
 			addr := common.Address{}
 			addr.SetString(strconv.Itoa(i))
 			tx.SetFromLoad(addr)
-			txs = append(txs, tx)
+			tx.SetTxV(big.NewInt(1))
+			tx1, _ := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(1)), key[i])
+			txs = append(txs, tx1)
 
 		}
 	}
@@ -60,50 +69,202 @@ func (chain *Chain) GetBlockByNumber(num uint64) *types.Block {
 	return types.NewBlockWithTxs(header, txs)
 }
 func (chain *Chain) Config() *params.ChainConfig {
-	return &params.ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil}
+	return &params.ChainConfig{ChainId: big.NewInt(1), EIP155Block: big.NewInt(2), HomesteadBlock: new(big.Int)}
 }
 
 func TestTxsLottery_LotteryCalc(t *testing.T) {
 	log.InitLog(3)
-	monkey.Patch(depoistInfo.GetOnlineTime, func(stateDB vm.StateDB, address common.Address) (*big.Int, error) {
-		fmt.Println("use monkey  ca.GetOnlineTime")
-		onlineTime := big.NewInt(291)
-		if stateDB == statedb {
-			switch {
-			case address.Equal(common.HexToAddress(account0)):
-				onlineTime = big.NewInt(291 * 2) //100%
-			case address.Equal(common.HexToAddress(account1)):
-				onlineTime = big.NewInt(291) //0%
-			case address.Equal(common.HexToAddress(account2)):
-				onlineTime = big.NewInt(291 + 291/2) //50%
-			case address.Equal(common.HexToAddress(account3)):
-				onlineTime = big.NewInt(291 + 291/4) //25%
+	monkey.Patch(manparams.IsBroadcastNumber, func(number uint64, stateNumber uint64) bool {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
 
-			}
-
-		}
-
-		return onlineTime, nil
+		return false
 	})
 
+	monkey.Patch(matrixstate.GetDataByState, func(key string, state matrixstate.StateDB) (interface{}, error) {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+		if key == mc.MSKeyBroadcastInterval {
+			return &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}, nil
+		}
+		if key == mc.MSKeyLotteryCfg {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		if key == mc.MSKEYLotteryNum {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		return nil, nil
+	})
+
+	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
+
+		return uint64(3), nil
+	})
+
+	monkey.Patch(manparams.NewBCIntervalByNumber, func(blockNumber uint64) (*manparams.BCInterval, error) {
+		fmt.Println("use monkey NewBCIntervalByNumber")
+
+		inteval1 := &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}
+
+		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
+		return interval2, nil
+	})
 	lotterytest := New(&Chain{}, &State{0}, &randSeed{})
-	lotterytest.LotteryCalc(299)
+	lotterytest.LotteryCalc(common.Hash{}, 3)
+}
+
+func TestTxsLottery_LotteryCalc1(t *testing.T) {
+	log.InitLog(3)
+	monkey.Patch(manparams.IsBroadcastNumber, func(number uint64, stateNumber uint64) bool {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+
+		return false
+	})
+
+	monkey.Patch(matrixstate.GetDataByState, func(key string, state matrixstate.StateDB) (interface{}, error) {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+		if key == mc.MSKeyBroadcastInterval {
+			return &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}, nil
+		}
+		if key == mc.MSKeyLotteryCfg {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		if key == mc.MSKEYLotteryNum {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		return nil, nil
+	})
+
+	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
+
+		return uint64(3), nil
+	})
+
+	monkey.Patch(manparams.NewBCIntervalByNumber, func(blockNumber uint64) (*manparams.BCInterval, error) {
+		fmt.Println("use monkey NewBCIntervalByNumber")
+
+		inteval1 := &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}
+
+		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
+		return interval2, nil
+	})
+	lotterytest := New(&Chain{}, &State{0}, &randSeed{})
+	lotterytest.LotteryCalc(common.Hash{}, 299)
 }
 
 func TestTxsLottery_LotteryCalc2(t *testing.T) {
 	log.InitLog(3)
-	lotterytest := New(&Chain{}, &randSeed{})
-	lotterytest.LotteryCalc(&State{-1}, 299)
+	monkey.Patch(manparams.IsBroadcastNumber, func(number uint64, stateNumber uint64) bool {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+
+		return false
+	})
+
+	monkey.Patch(matrixstate.GetDataByState, func(key string, state matrixstate.StateDB) (interface{}, error) {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+		if key == mc.MSKeyBroadcastInterval {
+			return &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}, nil
+		}
+		if key == mc.MSKeyLotteryCfg {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		if key == mc.MSKEYLotteryNum {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		return nil, nil
+	})
+
+	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
+
+		return uint64(3), nil
+	})
+
+	monkey.Patch(manparams.NewBCIntervalByNumber, func(blockNumber uint64) (*manparams.BCInterval, error) {
+		fmt.Println("use monkey NewBCIntervalByNumber")
+
+		inteval1 := &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}
+
+		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
+		return interval2, nil
+	})
+	lotterytest := New(&Chain{}, &State{0}, &randSeed{})
+	lotterytest.LotteryCalc(common.Hash{}, 300)
 }
 
 func TestTxsLottery_LotteryCalc3(t *testing.T) {
 	log.InitLog(3)
-	lotterytest := New(&Chain{}, &randSeed{})
-	lotterytest.LotteryCalc(&State{3e18}, 299)
+	monkey.Patch(manparams.IsBroadcastNumber, func(number uint64, stateNumber uint64) bool {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+
+		return false
+	})
+
+	monkey.Patch(matrixstate.GetDataByState, func(key string, state matrixstate.StateDB) (interface{}, error) {
+		fmt.Println("use monkey  manparams.IsBroadcastNumber")
+		if key == mc.MSKeyBroadcastInterval {
+			return &mc.BCIntervalInfo{LastBCNumber: 300, LastReelectNumber: 300, BCInterval: 100}, nil
+		}
+		if key == mc.MSKeyLotteryCfg {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		if key == mc.MSKEYLotteryNum {
+			info := make([]mc.LotteryInfo, 0)
+			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
+			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+		}
+		return nil, nil
+	})
+
+	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
+
+		return uint64(3), nil
+	})
+
+	monkey.Patch(manparams.NewBCIntervalByNumber, func(blockNumber uint64) (*manparams.BCInterval, error) {
+		fmt.Println("use monkey NewBCIntervalByNumber")
+
+		inteval1 := &mc.BCIntervalInfo{LastBCNumber: 300, LastReelectNumber: 300, BCInterval: 100}
+
+		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
+		return interval2, nil
+	})
+	lotterytest := New(&Chain{}, &State{6e18}, &randSeed{})
+	lotterytest.LotteryCalc(common.Hash{}, 301)
 }
 
-func TestTxsLottery_LotteryCalc4(t *testing.T) {
-	log.InitLog(3)
-	lotterytest := New(&Chain{}, &randSeed{})
-	lotterytest.LotteryCalc(&State{6e18}, 299)
-}
+//
+//func TestTxsLottery_LotteryChoose(t *testing.T) {
+//	log.InitLog(3)
+//	lotterytest := New(&Chain{}, &State{0}, &randSeed{})
+//	TxCmpResultList
+//}
+
+//func TestTxsLottery_LotteryCalc2(t *testing.T) {
+//	log.InitLog(3)
+//	lotterytest := New(&Chain{}, &randSeed{})
+//	lotterytest.LotteryCalc(&State{-1}, 299)
+//}
+//
+//func TestTxsLottery_LotteryCalc3(t *testing.T) {
+//	log.InitLog(3)
+//	lotterytest := New(&Chain{}, &randSeed{})
+//	lotterytest.LotteryCalc(&State{3e18}, 299)
+//}
+//
+//func TestTxsLottery_LotteryCalc4(t *testing.T) {
+//	log.InitLog(3)
+//	lotterytest := New(&Chain{}, &randSeed{})
+//	lotterytest.LotteryCalc(&State{6e18}, 299)
+//}

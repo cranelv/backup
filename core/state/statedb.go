@@ -856,7 +856,8 @@ func (self *StateDB) DeleteMxData(hash common.Hash, val []byte) {
 
 /************************11************************************************/
 func (self *StateDB) updateMatrixData(hash common.Hash, val []byte) {
-	self.setError(self.trie.TryUpdate(hash[:], val))
+	vl := append([]byte("MAN-"), val...)
+	self.setError(self.trie.TryUpdate(hash[:], vl))
 }
 
 func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
@@ -864,24 +865,23 @@ func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-	if val = self.matrixData[hash]; val != nil {
+	val, exist := self.matrixData[hash]
+	if exist {
 		return val
 	}
 
 	// Load the data from the database.
-	val, err := self.trie.TryGet(hash[:])
-	if len(val) == 0 {
+	tmpval, err := self.trie.TryGet(hash[:])
+	if len(tmpval) == 0 {
 		self.setError(err)
 		return nil
 	}
+	val = tmpval[4:] //去掉"MAN-"前綴
+	self.matrixData[hash] = val
 	return
 }
 
 func (self *StateDB) SetMatrixData(hash common.Hash, val []byte) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
 	self.journal.append(addMatrixDataChange{hash: hash})
 	self.matrixData[hash] = val
 	self.matrixDataDirty[hash] = val
@@ -1154,7 +1154,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
-			return nil
+			return err
 		}
 		if account.Root != emptyState {
 			s.db.TrieDB().Reference(account.Root, parent)

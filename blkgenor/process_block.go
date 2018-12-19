@@ -130,7 +130,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: rsp.Header,
-		State:  stateDB,
+		State:  stateDB.Copy(),
 	}
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
@@ -147,7 +147,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	localHeader := types.CopyHeader(header)
 	localHeader.GasUsed = 0
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
 	if err != nil {
 		return nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
@@ -242,11 +242,6 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		return
 	}
 
-	//root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
-	//if root != blockData.block.Header.Root {
-	//	log.Error("hyk_miss_trie_2", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
-	//}
-
 	if blockData.state == blockStateLocalVerified {
 		diff := big.NewInt(blockData.block.Header.Difficulty.Int64())
 		results, err := p.powPool.GetMinerResults(blockData.block.BlockHash, diff)
@@ -281,15 +276,10 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	p.stopMinerPikerTimer()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
-		State:  blockData.block.State,
+		State:  blockData.block.State.Copy(),
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
-
-	//root2, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
-	//if root2 != blockData.block.Header.Root {
-	//	log.Error("hyk_miss_trie_4", "root", blockData.block.Header.Root.TerminalString(), "state root", root2.TerminalString())
-	//}
 
 	p.state = StateBlockInsert
 	p.processBlockInsert(p.curLeader)

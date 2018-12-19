@@ -128,14 +128,14 @@ func (md *MatrixDeposit) interestAdd(in []byte, contract *Contract, evm *EVM) ([
 	if err != nil || len(addr) != 20 {
 		return nil, errInterestAddrEmpty
 	}
-	isok := true
+	isok := false
 	for _, from := range common.WhiteAddrlist {
-		if from == addr {
+		if from == contract.caller.Address() {
 			isok = true
 		}
 	}
 	if isok {
-		err = md.AddInterest(contract, evm.StateDB, addr, contract.value)
+		err = md.AddDeposit(contract, evm.StateDB, addr)
 	} else {
 		err = errors.New("This from can not Send interest Transaction")
 	}
@@ -264,14 +264,14 @@ func (md *MatrixDeposit) setDeposit(contract *Contract, stateDB StateDB, dep *bi
 	return nil
 }
 
-func (md *MatrixDeposit) getDepositWithNoAddress(contract *Contract, stateDB StateDB) *big.Int {
-	depositKey := append(contract.CallerAddress[:], 'D')
-	info := stateDB.GetState(contract.Address(), common.BytesToHash(depositKey))
-	if info != emptyHash {
-		return info.Big()
-	}
-	return big.NewInt(0)
-}
+//func (md *MatrixDeposit) getDepositWithNoAddress(contract *Contract, stateDB StateDB) *big.Int {
+//	depositKey := append(contract.CallerAddress[:], 'D')
+//	info := stateDB.GetState(contract.Address(), common.BytesToHash(depositKey))
+//	if info != emptyHash {
+//		return info.Big()
+//	}
+//	return big.NewInt(0)
+//}
 
 func (md *MatrixDeposit) getAddress(contract *Contract, stateDB StateDB, addr common.Address) common.Address {
 	// get signature address
@@ -549,7 +549,7 @@ func (md *MatrixDeposit) modifyRefundState(contract *Contract, evm *EVM) (*big.I
 	if withdrawHeight == nil || withdrawHeight.Sign() == 0 {
 		return nil, errDeposit
 	}
-	withdrawHeight.Add(withdrawHeight, big.NewInt(1))
+	withdrawHeight.Add(withdrawHeight, big.NewInt(600))
 	if withdrawHeight.Cmp(evm.BlockNumber) > 0 {
 		return nil, errDeposit
 	}
@@ -656,18 +656,26 @@ func (md *MatrixDeposit) SetInterest(contract *Contract, stateDB StateDB, addr c
 	return nil
 }
 
-// GetDeposit get deposit with address.
-func (md *MatrixDeposit) GetDepositWithAddress(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
-	return md.getDeposit(contract, stateDB, addr)
-}
-
 // SetDeposit set deposit.
-func (md *MatrixDeposit) SetDeposit(contract *Contract, stateDB StateDB, deposit *big.Int) error {
-	md.setDeposit(contract, stateDB, deposit)
+func (md *MatrixDeposit) SetDeposit(contract *Contract, stateDB StateDB, address common.Address) error {
+	depositKey := append(address[:], 'D')
+	stateDB.SetState(contract.Address(), common.BytesToHash(depositKey), common.BigToHash(contract.value))
 	return nil
 }
 
 // GetDeposit get deposit.
-func (md *MatrixDeposit) GetDeposit(contract *Contract, stateDB StateDB) *big.Int {
-	return md.getDepositWithNoAddress(contract, stateDB)
+func (md *MatrixDeposit) GetDeposit(contract *Contract, stateDB StateDB, address common.Address) *big.Int {
+	return md.getDeposit(contract, stateDB, address)
+}
+
+// AddDeposit add deposit.
+func (md *MatrixDeposit) AddDeposit(contract *Contract, stateDB StateDB, address common.Address) error {
+	dep := md.getDeposit(contract, stateDB, address)
+	dep.Add(dep, contract.value)
+	if len(dep.Bytes()) > 32 {
+		return errOverflow
+	}
+	depositKey := append(address[:], 'D')
+	stateDB.SetState(contract.Address(), common.BytesToHash(depositKey), common.BigToHash(dep))
+	return md.ResetInterest(contract, stateDB, address)
 }

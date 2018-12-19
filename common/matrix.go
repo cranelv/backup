@@ -4,26 +4,8 @@
 package common
 
 import (
-	"bytes"
 	"math/big"
 )
-
-//RoleType
-//type RoleType uint32
-
-/*
-const (
-	RoleNil             RoleType = 0x001
-	RoleDefault                  = 0x002
-	RoleBucket                   = 0x004
-	RoleBackupMiner              = 0x008
-	RoleMiner                    = 0x010
-	RoleInnerMiner               = 0x020
-	RoleBackupValidator          = 0x040
-	RoleValidator                = 0x080
-	RoleBackupBroadcast          = 0x100
-	RoleBroadcast                = 0x200
-)*/
 
 type ElectRoleType uint8
 
@@ -67,58 +49,10 @@ func GetRoleTypeFromPosition(position uint16) RoleType {
 }
 
 func GeneratePosition(index uint16, electRole ElectRoleType) uint16 {
-	if electRole >= ElectRoleValidatorBackUp {
+	if electRole >= ElectRoleNil {
 		return 0xffff
 	}
 	return uint16(electRole)<<12 + index
-}
-
-const (
-	MasterValidatorNum = 11
-	BackupValidatorNum = 3
-)
-
-type VrfMsg struct {
-	VrfValue []byte
-	VrfProof []byte
-	Hash     Hash
-}
-
-func GetHeaderVrf(account []byte, vrfvalue []byte, vrfproof []byte) []byte {
-	var buf bytes.Buffer
-	buf.Write(account)
-	buf.Write(vrfvalue)
-	buf.Write(vrfproof)
-
-	return buf.Bytes()
-
-}
-
-func GetVrfInfoFromHeader(headerVrf []byte) ([]byte, []byte, []byte) {
-	var account, vrfvalue, vrfproof []byte
-	if len(headerVrf) >= 33 {
-		account = headerVrf[0:33]
-	}
-	if len(headerVrf) >= 33+65 {
-		vrfvalue = headerVrf[33 : 33+65]
-	}
-	if len(headerVrf) >= 33+65+64 {
-		vrfproof = headerVrf[33+65 : 33+65+64]
-	}
-
-	return account, vrfvalue, vrfproof
-}
-
-func GetRoleVipGrade(aim uint64) int {
-	switch {
-	case aim >= 10000000:
-		return 1
-	case aim > 1000000 && aim < 10000000:
-		return 2
-	default:
-		return 0
-
-	}
 }
 
 type Echelon struct {
@@ -129,19 +63,4 @@ type Echelon struct {
 
 var (
 	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-
-//	vip1          = new(big.Int).Mul(big.NewInt(10000000), ManValue)
-//	vip2          = new(big.Int).Mul(big.NewInt(1000000), ManValue)
-//EchelonArrary = []Echelon{
-//	Echelon{
-//		MinMoney: vip1,
-//		MaxNum:   5,
-//		Ratio:   1000,
-//	},
-//	Echelon{
-//		MinMoney: vip2,
-//		MaxNum:   3,
-//		Ratio:    500,
-//	},
-//}
 )

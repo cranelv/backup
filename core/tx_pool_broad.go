@@ -223,6 +223,9 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 	tval := curBlockNum / bcInterval.GetBroadcastInterval()
 	strVal := fmt.Sprintf("%v", tval+1)
 	index := strings.Index(keydata, strVal)
+	if index < 0 {
+		return false
+	}
 	numStr := keydata[index:]
 	if numStr != strVal {
 		log.Error("Future broadCast block Height error.(func filter())")

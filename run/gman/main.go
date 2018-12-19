@@ -259,20 +259,12 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 		}
 	}
 
-	signHelper := stack.SignalHelper()
 	wallets := stack.AccountManager().Wallets()
-
-	if len(wallets) > 0 && len(wallets[0].Accounts()) > 0 && len(passwords) > 0 {
-		signHelper.SetAccountManager(stack.AccountManager(), wallets[0].Accounts()[0].Address, passwords[0])
-	}
 	if len(wallets) <= 0 {
 		log.Error("无钱包", "请新建钱包", "")
 	}
 	if len(wallets) > 0 && len(wallets[0].Accounts()) <= 0 {
 		log.Error("钱包无账户", "请新建账户", "")
-	}
-	if len(passwords) <= 0 {
-		log.Error("password无密码", "请重启时输入密码", "")
 	}
 
 	// Register wallet event handlers to open and auto-derive wallets

@@ -18,33 +18,48 @@ func init() {
 }
 
 func RegInit() baseinterface.ElectionInterface {
-
 	return &StockElect{}
 }
 
 func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("选举种子", "矿工拓扑生成", len(mmrerm.MinerList))
-	return support.MinerTopGen(mmrerm)
+	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum)
+	nodeElect.Disorder()
+	nodeElect.Sort()
+	nodeElect.ProcessBlackNode()
+	nodeElect.ProcessWhiteNode()
+	//nodeElect.DisPlayNode()
+
+	value := nodeElect.GetWeight()
+	//for _,v:=range value{
+	//	fmt.Println(v.Addr.String(),v.Value)
+	//}
+	Master, value := support.GetList(value, int(nodeElect.EleCfg.MinerNum)-len(nodeElect.WhiteNodeInfo), nodeElect.RandSeed.Int64())
+	Master = append(Master, nodeElect.WhiteNodeInfo...)
+	return support.MakeMinerAns(Master, nodeElect.SeqNum)
 }
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	MaxValidator := int(mvrerm.ElectConfig.ValidatorNum)
-	MaxBackValidator := int(mvrerm.ElectConfig.BackValidator)
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	validatorList := support.CheckData(mvrerm.ValidatorList)
+	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum)
+	nodeElect.Disorder()
+	nodeElect.Sort()
+	nodeElect.ProcessBlackNode()
+	nodeElect.ProcessWhiteNode()
 
-	var master, backup, candiate []support.Strallyint
-	var value []support.Stf
-	if len(mvrerm.FoundationValidatorList) == 0 {
-		value = support.CalcAllValueFunction(validatorList)
-		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, 0) //mvrerm.RandSeed.Int64(), 11, 5, 0) //0x12217)
-	} else {
-		value = support.CalcAllValueFunction(validatorList)
-		valuefound := support.CalcAllValueFunction(mvrerm.FoundationValidatorList)
-		master, backup, candiate = support.ValNodesSelected(value, mvrerm.RandSeed.Int64(), MaxValidator, MaxBackValidator, len(mvrerm.FoundationValidatorList)) //0x12217)
-		master = support.CommbineFundNodesAndPricipal(value, valuefound, master, 0.25, 4.0)
-	}
-	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, master, backup, candiate)
+	value := nodeElect.GetWeight()
+	//for _,v:=range value{
+	//	fmt.Println(v.Value,v.Addr.String())
+	//}
+	Master, value := support.GetList(value, int(nodeElect.EleCfg.ValidatorNum)-len(nodeElect.WhiteNodeInfo), nodeElect.RandSeed.Int64())
+
+	BackUp, value := support.GetList(value, int(nodeElect.EleCfg.BackValidator), nodeElect.RandSeed.Int64())
+
+	Candid, value := support.GetList(value, len(value), nodeElect.RandSeed.Int64())
+	Master = append(Master, nodeElect.WhiteNodeInfo...)
+
+	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, Master, BackUp, Candid)
+
 }
 
 func (self *StockElect) ToPoUpdate(allNative support.AllNative, topoG *mc.TopologyGraph) []mc.Alternative {

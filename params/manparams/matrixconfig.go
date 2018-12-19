@@ -47,10 +47,6 @@ const (
 )
 
 var (
-	EntrustValue = make(map[common.Address]string, 0) //委托交易的账户密码
-)
-
-var (
 	//随机数相关
 	RandomConfig              = make(map[string]string, 0)   //man.json配置中读的
 	RandomServiceName         = []string{}                   //子服务的名字

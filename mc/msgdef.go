@@ -117,7 +117,6 @@ type MasterValidatorReElectionReqMsg struct {
 type MasterMinerReElectionRsp struct {
 	SeqNum      uint64
 	MasterMiner []ElectNodeInfo
-	BackUpMiner []ElectNodeInfo
 }
 
 //验证者主节点生成响应
@@ -341,4 +340,13 @@ type HD_FullBlockRspMsg struct {
 type EveryBlockSeedRspMsg struct {
 	PublicKey []byte
 	Private   []byte
+}
+type VrfMsg struct {
+	VrfValue []byte
+	VrfProof []byte
+	Hash     common.Hash
+}
+type EntrustInfo struct {
+	Address  common.Address
+	Password string
 }

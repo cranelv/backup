@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/matrix/go-matrix/reward/blkreward"
@@ -74,6 +75,7 @@ type Work struct {
 
 	header   *types.Header
 	uptime   map[common.Address]uint64
+	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
 
@@ -128,7 +130,7 @@ func (cu *coingasUse) clearmap() {
 	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
 }
-func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header, random *baseinterface.Random) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
@@ -136,6 +138,7 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		gasPool: gasPool,
 		header:  header,
 		uptime:  make(map[common.Address]uint64, 0),
+		random:  random,
 	}
 	var err error
 
@@ -329,12 +332,19 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			v := rewart.To_Amont[k]
 			if isfirst {
 				if rewart.RewardTyp == common.RewardInerestType {
-					databytes = append(databytes, depositAbi.Methods["interestAdd"].Id()...)
-					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-					databytes = append(databytes, tmpbytes...)
+					if k != common.ContractAddress {
+						databytes = append(databytes, depositAbi.Methods["interestAdd"].Id()...)
+						tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+						databytes = append(databytes, tmpbytes...)
+						to = common.ContractAddress
+						value = v
+					} else {
+						continue
+					}
+				} else {
+					to = k
+					value = v
 				}
-				to = k
-				value = v
 				isfirst = false
 				continue
 			}
@@ -344,12 +354,17 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			tmp.To_tr = &kk
 			tmp.Value_tr = (*hexutil.Big)(vv)
 			if rewart.RewardTyp == common.RewardInerestType {
-				bytes := make([]byte, 0)
-				bytes = append(bytes, depositAbi.Methods["interestAdd"].Id()...)
-				tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
-				bytes = append(bytes, tmpbytes...)
-				b := hexutil.Bytes(bytes)
-				tmp.Input_tr = &b
+				if kk != common.ContractAddress {
+					bytes := make([]byte, 0)
+					bytes = append(bytes, depositAbi.Methods["interestAdd"].Id()...)
+					tmpbytes, _ := depositAbi.Methods["interestAdd"].Inputs.Pack(k)
+					bytes = append(bytes, tmpbytes...)
+					b := hexutil.Bytes(bytes)
+					tmp.Input_tr = &b
+					tmp.To_tr = &common.ContractAddress
+				} else {
+					continue
+				}
 			}
 			extra = append(extra, tmp)
 		}
@@ -449,21 +464,6 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-type randSeed struct {
-	bc *core.BlockChain
-}
-
-func (r *randSeed) GetSeed(num uint64) *big.Int {
-	parent := r.bc.GetBlockByNumber(num - 1)
-	if parent == nil {
-		log.Error(packagename, "获取父区块错误,高度", (num - 1))
-		return big.NewInt(0)
-	}
-	_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
-	seed := common.BytesToHash(preVrfValue).Big()
-	return seed
-}
-
 func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {
@@ -496,9 +496,9 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(bc, env.State, &randSeed{bc})
+	lottery := lottery.New(bc, env.State, env.random)
 	if nil != lottery {
-		lotteryRewardMap := lottery.LotteryCalc(env.header.Number.Uint64())
+		lotteryRewardMap := lottery.LotteryCalc(env.header.ParentHash, env.header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}
@@ -506,19 +506,18 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	////todo 利息
 	interestReward := interest.New(env.State)
-	if nil != interestReward {
-		interestRewardMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
-		if 0 != len(interestRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInerestType})
-		}
+	if nil == interestReward {
+		return env.Reverse(rewardList)
 	}
-	//todo 惩罚
+	interestCalcMap, interestPayMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
 
 	slash := slash.New(bc, env.State)
 	if nil != slash {
-		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime)
+		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime, interestCalcMap)
 	}
-
 	return env.Reverse(rewardList)
 }
 
