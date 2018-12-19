@@ -62,7 +62,7 @@ func (shard *ShardingStateDB) MakeStatedb(cointyp string,b byte) {
 		panic(err)
 	}
 	root,err := shard.trie.TryGet(bs)
-	stdb,_ := New(common.BytesToHash(root),shard.db)
+	stdb,_ := newStatedb(common.BytesToHash(root),shard.db)
 	rms := make([]*RangeManage,0)
 	rms = append(rms,&RangeManage{Range:b,State:stdb})
 	cm := &CoinManage{Cointyp:cointyp,Rmanage:rms}
@@ -154,6 +154,7 @@ func (shard *ShardingStateDB) Logs(cointyp string,roots []common.Hash) []*types.
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
+//TODO	只区分币种？还要区分256么
 func (shard *ShardingStateDB) AddPreimage(cointyp string,hash common.Hash, preimage []byte) {
 	//self:=shard.sharding[idx]
 	//if _, ok := self.preimages[hash]; !ok {
@@ -165,10 +166,12 @@ func (shard *ShardingStateDB) AddPreimage(cointyp string,hash common.Hash, preim
 }
 
 // Preimages returns a list of SHA3 preimages that have been submitted.
+//TODO	取所有的，还是某个statedb的
 func (shard *ShardingStateDB) Preimages() map[common.Hash][]byte {
+
 	return nil//shard.sharding[idx].preimages
 }
-
+//TODO 退款是某一个staetdb的？还是要在shardingdb上加上退款成员变量
 func (shard *ShardingStateDB) AddRefund(gas uint64) {
 	//self:=shard.sharding[idx]
 	//self.journal.append(refundChange{prev: self.refund})
@@ -180,7 +183,17 @@ func (self *ShardingStateDB) GetRefund() uint64 {
 // Exist reports whether the given account address exists in the state.
 // Notably this also returns true for suicided accounts.
 func (shard *ShardingStateDB) Exist(cointyp string,addr common.Address) bool {
-	return shard.getStateObject(addr) != nil
+	sd:=shard.GetStateDb(cointyp,addr)
+	//cms:=shard.shardings
+	//for _,cm:=range cms {
+	//	rms:=cm.Rmanage
+	//	for _,rm:=range rms{
+	//		if rm.Range==addr[1] {
+	//			return rm.State.getStateObject(addr)!=nil
+	//		}
+	//	}
+	//}
+	return sd.getStateObject(addr)!=nil
 }
 
 
