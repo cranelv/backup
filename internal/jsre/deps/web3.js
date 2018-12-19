@@ -5756,9 +5756,15 @@ var methods = function () {
 
     var importRawKey = new Method({
         name: 'importRawKey',
-		call: 'personal_importRawKey',
-		params: 2
+        call: 'personal_importRawKey',
+        params: 2
     });
+    var setEntrustSignAccount = new Method({
+        name: 'setEntrustSignAccount',
+        call: 'personal_setEntrustSignAccount',
+        params: 2
+    });
+
 
     var sign = new Method({
         name: 'sign',
@@ -5797,6 +5803,7 @@ var methods = function () {
     return [
         newAccount,
         importRawKey,
+        setEntrustSignAccount,
         unlockAccount,
         ecRecover,
         sign,

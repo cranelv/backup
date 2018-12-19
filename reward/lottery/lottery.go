@@ -184,7 +184,7 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
 	}
-	randSeed, err := tlr.seed.GetRandom(parentHash, "electionseed")
+	randSeed, err := tlr.seed.GetRandom(parentHash, manparams.ElectionSeed)
 	if nil != err {
 		log.Error(PackageName, "获取随机数错误", err)
 		return nil

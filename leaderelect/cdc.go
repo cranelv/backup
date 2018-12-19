@@ -284,13 +284,15 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
-func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
 	if blockHash.Equal(common.Hash{}) {
+		log.Error(common.SignLog, "获取签名账户阶段","cdc 最终结果","输入数据err","区块hash为空")
 		return common.Address{}, "", errors.New("cdc:输入hash为空")
 	}
 
 	if blockHash != dc.leaderCal.preHash {
-		return dc.chain.GetEntrustSignInfo(authFrom, blockHash)
+		log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","调blockchain接口","")
+		return dc.chain.GetSignAccount(authFrom, blockHash)
 	}
 
 	if common.TopAccountType == common.TopAccountA0 {
@@ -298,6 +300,7 @@ func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash
 	}
 
 	if nil == dc.parentState {
+		log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","err","dc.parentState是空")
 		return common.Address{}, "", errors.New("cdc: parent stateDB is nil, can't reader data")
 	}
 
@@ -306,47 +309,48 @@ func (dc *cdc) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
+	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
 	for _, v := range ans {
-		for kk, vv := range manparams.EntrustValue {
+		for kk, vv := range entrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
-			if _, ok := manparams.EntrustValue[kk]; ok {
-				return kk, manparams.EntrustValue[kk], nil
+			if _, ok := entrustValue[kk]; ok {
+				log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
+				return kk, entrustValue[kk], nil
 			}
+			log.ERROR(common.SignLog, "获取签名账户阶段","cdc 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
 			return kk, vv, errors.New("cdc: 无该密码")
 
 		}
 	}
-	//log.Info(dc.logInfo, "GetEntrustSignInfo", "失败", "高度", height, "真实账户", authFrom.String())
+	log.ERROR(common.SignLog, "获取签名账户阶段","cdc 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
 	return common.Address{}, "", errors.New("cdc: ans为空")
 }
 
 func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
 	if hash.Equal(common.Hash{}) {
+		log.ERROR(common.SignLog, "获取委托账户阶段","cdc 最终结果","输入的hash err", "hash为空")
 		return common.Address{}, errors.New("cdc: 输入hash为空")
 	}
 	if hash == dc.leaderCal.preHash {
 		if nil == dc.parentState {
+			log.ERROR(common.SignLog, "获取委托账户阶段","cdc 最终结果","dc.parentState err", "preentState is nil")
 			return common.Address{}, errors.New("cdc: parent stateDB is nil, can't reader data")
 		}
 
 		preHeight := dc.number - 1
 		addr := dc.parentState.GetAuthFrom(signAccount, preHeight)
 		if addr.Equal(common.Address{}) {
-			//log.ERROR(dc.logInfo, "GetSignAccount", "state.GetAuthFrom,真实账户为空,不存在委托", "高度", preHeight, "签名账户", addr)
-			//return signAccount, nil
 			addr = signAccount
-		} else {
-			//log.ERROR(dc.logInfo, "GetSignAccount", "存在委托", "signAccount", signAccount, "height", preHeight, "addr", addr)
 		}
-		//log.ERROR(common.SignLog, "解签阶段", "", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
 		if common.TopAccountType == common.TopAccountA0 {
 			//TODO 利用CA接口将A1转换为A0
 		}
 
-		//log.Info("cdc", "preHeight", preHeight, "signAccount", signAccount, "addr", addr)
+		log.Info(common.SignLog, "获取委托账户阶段","cdc 最终结果", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
 		return addr, nil
 	}
+	log.Warn(common.SignLog, "获取委托账户阶段","cdc 最终结果", "采用blockchain的接口 hash",hash.String())
 	return dc.chain.GetAuthAccount(signAccount, hash)
 }

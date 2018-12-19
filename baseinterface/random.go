@@ -4,7 +4,6 @@
 package baseinterface
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
@@ -13,10 +12,11 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
+	"fmt"
 )
 
 const (
-	ModuleRandom = "随机数服务"
+	ModuleRandom = "随机数接口服务"
 )
 
 var (
@@ -24,7 +24,6 @@ var (
 )
 
 func RegRandom(name string, fun func(string, RandomChainSupport) (RandomSubService, error)) {
-	//fmt.Println("随机数服务注册函数", "name", name)
 	mapReg[name] = fun
 }
 
@@ -42,8 +41,14 @@ type RandomSubService interface {
 	Prepare(uint64) error
 	CalcData(data common.Hash) (*big.Int, error)
 }
-
+func checkDataValidity(support interface{})bool{
+	return common.IsNil(support)
+}
 func NewRandom(support RandomChainSupport) (*Random, error) {
+	//if checkDataValidity(support)==false{
+	//	log.Error(ModuleRandom,"创建随机数服务阶段,输入不合法","输入为空接口")
+	//	return nil,errors.New("创建随机数服务阶段,输入不合法")
+	//}
 	random := &Random{
 		roleUpdateCh:  make(chan *mc.RoleUpdatedMsg, 1),
 		quitChan:      make(chan struct{}, 1),
@@ -52,20 +57,20 @@ func NewRandom(support RandomChainSupport) (*Random, error) {
 	for _, name := range manparams.RandomServiceName {
 		Plug, needNewSubService := getSubServicePlug(name)
 		if needNewSubService == false {
-			log.WARN(ModuleRandom, "新建子服务阶段", "", "子服务不需要被创建 名称", name)
+			log.Warn(ModuleRandom, "新建子服务阶段,子服务不需要被创建 名称", name)
 			continue
 		}
-		if err := random.NewSubServer(name, Plug, support); err != nil {
-			log.Error(ModuleRandom, "新建子服务阶段", "", "子服务Set失败 名称", name)
+		if err := random.newSubServer(name, Plug, support); err != nil {
+			log.Error(ModuleRandom, "新建子服务阶段,子服务创建失败 名称", name)
 			return nil, err
 		}
-		log.Error(ModuleRandom, "新建子服务阶段", "", "子服务创建成功 名称", name)
+		log.Info(ModuleRandom, "新建子服务阶段,子服务创建成功 名称", name)
 	}
 
 	var err error
-	random.roleUpdateSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, random.roleUpdateCh)
+	random.roleUpdateSub, err= mc.SubscribeEvent(mc.CA_RoleUpdated, random.roleUpdateCh)
 	if err != nil {
-		log.Error(ModuleRandom, "订阅CA消息阶段", "", "CA消息订阅失败 err", err)
+		log.Error(ModuleRandom, "订阅CA消息阶段,CA消息订阅失败 err", err)
 		return nil, err
 	}
 	go random.update()
@@ -93,44 +98,41 @@ func (self *Random) processRoleUpdateData(data *mc.RoleUpdatedMsg) {
 	}
 }
 
-func (self *Random) NewSubServer(name string, plugConfig string, support RandomChainSupport) error {
+func (self *Random) newSubServer(name string, plugConfig string, support RandomChainSupport) error {
 	var err error
 	if _, ok := mapReg[name]; ok == false {
-		log.Error(ModuleRandom, "该子服务未注册", name)
-		return errors.New("mapSubService[name]")
+		log.Error(ModuleRandom, "新建子服务阶段,该子服务未注册", name)
+		return fmt.Errorf("该子服务未注册 %v",name)
 	}
 	if self.mapSubService[name], err = mapReg[name](plugConfig, support); err != nil {
-		log.Error(ModuleRandom, "新建子服务阶段", "", "该服务新建失败 err", err)
+		log.Error(ModuleRandom, "新建子服务阶段,该子服务新建失败",name,"err",err)
 	}
-	log.INFO(ModuleRandom, "新建子服务阶段", "", "服务创建成功 index", name)
+	log.Info(ModuleRandom, "新建子服务阶段,该子服务创建成功 index", name)
 	return nil
 }
 
 func (self *Random) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
-
 	return self.mapSubService[Type].CalcData(hash)
-
 }
 
 func getSubServicePlug(name string) (string, bool) {
 	plug, ok := manparams.RandomConfig[name]
 	if ok == false {
-		log.WARN(ModuleRandom, "获取插件状态", "", "配置中无该名字", manparams.RandomConfig[name])
+		log.Warn(ModuleRandom, "获取插件阶段,配置中无该子服务,不需要开启", name)
 		return "", false
 	}
-	//检查配置中的插件正确性
+
 	plugs, ok := manparams.RandomServicePlugs[name]
 	if ok == false {
-		//	fmt.Println("无该自服务名", name)
-		log.ERROR(ModuleRandom, "获取插件阶段", "", "无该子服务 服务名称", name)
+		log.Error(ModuleRandom, "获取插件阶段 无该子服务 服务名称", name)
 		return "", false
 	}
 	for _, v := range plugs {
 		if v == plug {
-			log.ERROR(ModuleRandom, "获取插件阶段", "", "插件列表中有该插件", plug)
+			log.Info(ModuleRandom, "获取插件阶段", "", "插件列表中有该插件", plug)
 			return v, true
 		}
 	}
-	log.ERROR(ModuleRandom, "获取插件阶段", "", "配置中的插件不合法，使用默认插件 名称", manparams.RandomServiceDefaultPlugs[name])
+	log.Warn(ModuleRandom, "获取插件阶段,配置中的插件不合法，使用默认插件 名称", manparams.RandomServiceDefaultPlugs[name])
 	return manparams.RandomServiceDefaultPlugs[name], true
 }
