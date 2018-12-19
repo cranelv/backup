@@ -2483,19 +2483,19 @@ func ProduceBroadcastIntervalData(block *types.Block, readFn matrixstate.PreStat
 	}
 }
 
-func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (bc *BlockChain) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
 	if common.TopAccountType == common.TopAccountA0 {
 		//TODO 暂定根据ca提供的接口获取委托账户，
 	}
 
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog, "根据区块hash获取区块失败 hash", blockHash)
+		log.ERROR(common.SignLog, "获取签名账户阶段","BlockChain 最终结果","根据区块hash获取区块失败 hash", blockHash)
 		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog, "根据区块root获取statedb失败 err", err)
+		log.ERROR(common.SignLog, "获取签名账户阶段","BlockChain 最终结果","根据区块root获取statedb失败 err", err)
 		return common.Address{}, "", errors.New("获取stateDB失败")
 	}
 
@@ -2503,12 +2503,9 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	ans := []common.Address{}
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR(common.SignLog, "结束调用", "", "authFrom", authFrom, "ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
-	} else {
-		aa := st.GetAuthFrom(ans[0], height)
-		log.INFO(common.SignLog, "检查反射结果", aa.String())
+		log.INFO(common.SignLog, "获取签名账户阶段","BlockChain","无委托交易,使用本地账户",authFrom.String())
 	}
 
 	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
@@ -2518,15 +2515,15 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 				continue
 			}
 			if _, ok := entrustValue[kk]; ok {
-				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				log.Info(common.SignLog, "获取签名账户阶段","BlockChain 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
 				return kk, entrustValue[kk], nil
 			}
-			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
+			log.ERROR(common.SignLog, "获取签名账户阶段","BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
 			return kk, vv, errors.New("无该密码")
 
 		}
 	}
-	log.ERROR(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	log.Info(common.SignLog, "获取签名账户阶段","BlockChain 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
 	return common.Address{}, "", errors.New("ans为空")
 }
 
@@ -2534,25 +2531,24 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog, "根据区块hash算区块失败", "err")
+		log.ERROR(common.SignLog, "获取委托账户阶段","BlockChain 最终结果","根据区块hash算区块失败", "err")
 		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog, "根据区块root获取状态树失败 err", err)
+		log.ERROR(common.SignLog, "获取委托账户阶段","BlockChain 最终结果","根据区块root获取状态树失败 err", err)
 		return common.Address{}, errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 	addr := st.GetAuthFrom(signAccount, height)
 	if addr.Equal(common.Address{}) {
-		log.WARN(common.SignLog, "解签阶段 无委托 高度", height, "签名账户", signAccount, "真实账户", signAccount)
-		//return signAccount, nil
 		addr = signAccount
+		log.WARN(common.SignLog, "获取委托账户阶段","BlockChain","不存在委托账户 signAccount",signAccount,"高度", height,"委托账户", addr)
 	} else {
-		log.WARN(common.SignLog, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
+		log.WARN(common.SignLog, "获取委托账户阶段","BlockChain","存在委托 signAccount", signAccount, "height", height, "addr", addr)
 	}
-	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
+	log.Info(common.SignLog, "获取委托账户阶段","BlockChain 最终结果", "高度", height, "签名账户", signAccount, "真实账户", addr)
 	if common.TopAccountType == common.TopAccountA0 {
 		//TODO 利用CA接口将A1转换为A0
 	}
