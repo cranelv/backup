@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -22,7 +23,7 @@ type ElectSeedPlugs interface {
 }
 
 func init() {
-	baseinterface.RegRandom("electionseed", NewSubService)
+	baseinterface.RegRandom(manparams.ElectionSeed, NewSubService)
 }
 func NewSubService(plug string, support baseinterface.RandomChainSupport) (baseinterface.RandomSubService, error) {
 	electSeed := &ElectionSeed{
@@ -43,13 +44,13 @@ func RegisterElectSeedPlugs(name string, plug ElectSeedPlugs) {
 
 func (self *ElectionSeed) CalcData(calcData common.Hash) (*big.Int, error) {
 	ans, err := mapElectSeedPlugs[self.plug].CalcSeed(calcData, self.support)
-	log.INFO(ModuleElectSeed, "计算阶段", "", "收到的数据", calcData, "结果", ans, "err", err)
+	log.INFO(ModuleElectSeed, "计算阶段,收到的数据", calcData, "结果", ans, "err", err)
 	return ans, err
 
 }
 
 func (self *ElectionSeed) Prepare(height uint64) error {
 	err := mapElectSeedPlugs[self.plug].Prepare(height, self.support)
-	log.INFO(ModuleElectSeed, "准备阶段", "", "高度", height, "使用的插件", self.plug)
+	log.INFO(ModuleElectSeed, "准备阶段,高度", height, "使用的插件", self.plug)
 	return err
 }

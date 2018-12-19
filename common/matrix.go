@@ -5,6 +5,7 @@ package common
 
 import (
 	"math/big"
+	"reflect"
 )
 
 
@@ -70,3 +71,11 @@ var (
 
 )
 
+func IsNil(i interface{})bool{
+	vi:=reflect.ValueOf(i)
+	if vi.Kind()==reflect.Ptr{
+		flag:=vi.IsNil()
+		return flag
+	}
+	return false
+}

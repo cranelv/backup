@@ -4,7 +4,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"sync"
 	"time"
-	"fmt"
 	"github.com/matrix/go-matrix/log"
 )
 
@@ -46,6 +45,5 @@ func SetTimer(times int64){
 		EntrustAccountValue.entrustValue=make(map[common.Address]string,0)
 	}
 	log.Warn("修改委托签名账户","数据已失效 ,上次设置的有效期",times)
-	fmt.Println("修改委托签名账户","数据已失效 ,上次设置的有效期",times)
 
 }
