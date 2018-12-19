@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/trie"
 	"math/big"
 	"encoding/json"
+	"github.com/matrix/go-matrix/base58"
 )
 type RangeManage struct {
 	Range   byte
@@ -103,7 +104,7 @@ func (shard *ShardingStateDB) Reset(roots []common.CoinRoot) error {
 	return nil
 }
 
-func (shard *ShardingStateDB) AddLog(cointyp string,log *types.Log) {
+func (shard *ShardingStateDB) AddLog(cointyp string,address common.Address,log *types.Log) {
 	//self:=shard.sharding[idx]
 	////slef:=shard.statedb
 	//self.journal.append(addLogChange{txhash: self.thash})
@@ -116,7 +117,7 @@ func (shard *ShardingStateDB) AddLog(cointyp string,log *types.Log) {
 	//self.logSize++
 }
 
-func (shard *ShardingStateDB) GetLogs(cointyp string,hash common.Hash) []*types.Log {
+func (shard *ShardingStateDB) GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log {
 	return nil //shard.sharding[idx].logs[hash]
 }
 
@@ -152,7 +153,9 @@ func (shard *ShardingStateDB) AddRefund(gas uint64) {
 	//self.journal.append(refundChange{prev: self.refund})
 	//self.refund += gas
 }
-
+func (self *ShardingStateDB) GetRefund() uint64 {
+	return uint64(0)//self.refund
+}
 // Exist reports whether the given account address exists in the state.
 // Notably this also returns true for suicided accounts.
 func (shard *ShardingStateDB) Exist(cointyp string,addr common.Address) bool {
@@ -177,7 +180,21 @@ func (shard *ShardingStateDB) GetBalance(cointyp string,addr common.Address) com
 	}
 	return nil
 }
+func (shard *ShardingStateDB)GetBalanceAll(common.Address) common.BalanceType{
+	return nil
+}
+func (self *ShardingStateDB)GetBalanceByType(cointyp string,addr common.Address, accType uint32) *big.Int{
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		for _, tAccount := range stateObject.data.Balance {
+			if tAccount.AccountType == accType {
+				return tAccount.Balance
+			}
+		}
+	}
 
+	return big.NewInt(0)
+}
 func (shard *ShardingStateDB) GetNonce(cointyp string,addr common.Address) uint64 {
 	stateObject := shard.getStateObject(addr)
 	if stateObject != nil {
@@ -277,17 +294,17 @@ func (shard *ShardingStateDB) AddBalance(cointyp string,accountType uint32, addr
 }
 
 // SubBalance subtracts amount from the account associated with addr.
-func (shard *ShardingStateDB) SubBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int) {
+func (shard *ShardingStateDB) SubBalance(cointyp string,idx uint32,addr common.Address,am *big.Int) {
 	stateObject := shard.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SubBalance(accountType, amount)
+		//stateObject.SubBalance(accountType, amount)
 	}
 }
 
-func (shard *ShardingStateDB) SetBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int) {
+func (shard *ShardingStateDB) SetBalance(cointyp string,idx uint32, addr common.Address, am *big.Int) {
 	stateObject := shard.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetBalance(accountType, amount)
+		//stateObject.SetBalance(accountType, amount)
 	}
 }
 
@@ -520,7 +537,7 @@ func (shard *ShardingStateDB) Copy(idx int) *StateDB {
 }
 
 // Snapshot returns an identifier for the current revision of the state.
-func (shard *ShardingStateDB) Snapshot(cointyp string,idx int) int {
+func (shard *ShardingStateDB) Snapshot(cointyp string) int {
 	//self:=shard.sharding[idx]
 	//id := self.nextRevisionId
 	//self.nextRevisionId++
@@ -651,4 +668,245 @@ func (shard *ShardingStateDB) Commit(deleteEmptyObjects bool) (root common.Hash,
 	//})
 	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return
+}
+
+func (self *ShardingStateDB) CommitSaveTx() {
+	//var typ byte
+	//for _, btree := range self.btreeMap {
+	//	var hash common.Hash
+	//	//var btrie *trie.BTree
+	//	log.Info("file statedb", "func CommitSaveTx:Key", btree.Key, "mapData", btree.Data)
+	//	switch btree.Typ {
+	//	case common.StateDBRevocableBtree:
+	//		if len(btree.Data) > 0 {
+	//			self.revocablebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key, btree.Data})
+	//		}
+	//		tmproot := self.revocablebtrie.Root()
+	//		hash = trie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraRevocable)
+	//		b := []byte(common.StateDBRevocableBtree)
+	//		err := self.trie.TryUpdate(b, hash.Bytes())
+	//		if err != nil {
+	//			log.Error("file statedb", "func CommitSaveTx:err2", err)
+	//		}
+	//	case common.StateDBTimeBtree:
+	//		if len(btree.Data) > 0 {
+	//			self.timebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key, btree.Data})
+	//		}
+	//		tmproot := self.timebtrie.Root()
+	//		hash = trie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraTimeTxType)
+	//		b := []byte(common.StateDBTimeBtree)
+	//		err := self.trie.TryUpdate(b, hash.Bytes())
+	//		if err != nil {
+	//			log.Error("file statedb", "func CommitSaveTx:err2", err)
+	//		}
+	//	default:
+	//
+	//	}
+	//}
+	//self.btreeMap = make([]BtreeDietyStruct, 0)
+	//self.btreeMapDirty = make([]BtreeDietyStruct, 0)
+}
+
+func (self *ShardingStateDB) NewBTrie(typ byte) {
+	//switch typ {
+	//case common.ExtraRevocable:
+	//	self.revocablebtrie = *trie.NewBtree(2, self.db.TrieDB())
+	//case common.ExtraTimeTxType:
+	//	self.timebtrie = *trie.NewBtree(2, self.db.TrieDB())
+	//}
+}
+//isdel:true 表示需要从map中删除hash，false 表示不需要删除
+func (self *ShardingStateDB) GetSaveTx(typ byte, key uint32, hashlist []common.Hash, isdel bool) {
+	//var str string
+	//data := make(map[common.Hash][]byte)
+	//
+	//switch typ {
+	//case common.ExtraRevocable:
+	//	log.Info("file statedb", "func GetSaveTx:ExtraRevocable", key)
+	//	item := self.revocablebtrie.Get(trie.SpcialTxData{key, nil})
+	//	std, ok := item.(trie.SpcialTxData)
+	//	if !ok {
+	//		log.Info("file statedb", "func GetSaveTx:ExtraRevocable", "item is nil")
+	//		return
+	//	}
+	//	self.revocablebtrie.Root().Printree(2)
+	//	delitem := self.revocablebtrie.Delete(item)
+	//	self.revocablebtrie.Root().Printree(2)
+	//
+	//	log.Info("file statedb", "revocablebtrie func GetSaveTx:del item key", delitem.(trie.SpcialTxData).Key_Time, "len(delitem.(trie.SpcialTxData).Value_Tx)", len(delitem.(trie.SpcialTxData).Value_Tx))
+	//	log.Info("file statedb", "revocablebtrie func GetSaveTx:del item key", std.Key_Time)
+	//	if isdel {
+	//		log.Info("file statedb", "revocablebtrie func GetSaveTx:del item val:begin", len(std.Value_Tx))
+	//		for _, hash := range hashlist {
+	//			delete(std.Value_Tx, hash)
+	//		}
+	//		data = std.Value_Tx
+	//		log.Info("file statedb", "revocablebtrie func GetSaveTx:del item val:end", len(std.Value_Tx))
+	//	}
+	//	str = common.StateDBRevocableBtree
+	//case common.ExtraTimeTxType:
+	//	log.Info("file statedb", "func GetSaveTx:ExtraTimeTxType:Key", key)
+	//	item := self.timebtrie.Get(trie.SpcialTxData{key, nil})
+	//	std, ok := item.(trie.SpcialTxData)
+	//	if !ok {
+	//		log.Info("file statedb", "func GetSaveTx:ExtraTimeTxType", "item is nil")
+	//		return
+	//	}
+	//	self.timebtrie.Root().Printree(2)
+	//	delitem := self.timebtrie.Delete(item)
+	//	self.timebtrie.Root().Printree(2)
+	//
+	//	log.Info("file statedb", "timebtrie func GetSaveTx:del item key", delitem.(trie.SpcialTxData).Key_Time, "len(delitem.(trie.SpcialTxData).Value_Tx)", len(delitem.(trie.SpcialTxData).Value_Tx))
+	//	log.Info("file statedb", "timebtrie func GetSaveTx:del item key", std.Key_Time)
+	//	if isdel {
+	//		log.Info("file statedb", "timebtrie func GetSaveTx:del item val:begin", len(std.Value_Tx))
+	//		for _, hash := range hashlist {
+	//			delete(std.Value_Tx, hash)
+	//		}
+	//		data = std.Value_Tx
+	//		log.Info("file statedb", "timebtrie func GetSaveTx:del item val:end", len(std.Value_Tx))
+	//	}
+	//	str = common.StateDBTimeBtree
+	//default:
+	//
+	//}
+	//var tmpB BtreeDietyStruct
+	//tmpB.Typ = str
+	//tmpB.Key = key
+	//tmpB.Data = data
+	//self.btreeMap = append(self.btreeMap, tmpB)
+	//var tmpBD BtreeDietyStruct
+	//tmpBD.Typ = str
+	//tmpBD.Key = key
+	//tmpBD.Data = data
+	//self.btreeMapDirty = append(self.btreeMapDirty, tmpBD)
+	//self.journal.append(addBtreeChange{typ: str, key: key})
+
+	self.CommitSaveTx()
+	return
+}
+func (self *ShardingStateDB) SaveTx(typ byte, key uint32, data map[common.Hash][]byte) {
+	//var str string
+	//switch typ {
+	//case common.ExtraRevocable:
+	//	str = common.StateDBRevocableBtree
+	//case common.ExtraTimeTxType:
+	//	str = common.StateDBTimeBtree
+	//default:
+	//
+	//}
+	//var tmpB BtreeDietyStruct
+	//tmpB.Typ = str
+	//tmpB.Key = key
+	//tmpB.Data = data
+	//self.btreeMap = append(self.btreeMap, tmpB)
+	//var tmpBD BtreeDietyStruct
+	//tmpBD.Typ = str
+	//tmpBD.Key = key
+	//tmpBD.Data = data
+	//self.btreeMapDirty = append(self.btreeMapDirty, tmpBD)
+	//self.journal.append(addBtreeChange{typ: str, key: key})
+}
+
+func (self *ShardingStateDB) SetMatrixData_sh(hash common.Hash, val []byte) {
+	//self.lock.Lock()
+	//defer self.lock.Unlock()
+	//self.journal.append(addMatrixDataChange{hash: hash})
+	//self.matrixData[hash] = val
+	//self.matrixDataDirty[hash] = val
+}
+
+func (self *ShardingStateDB) GetMatrixData_sh(hash common.Hash) (val []byte) {
+	//self.lock.Lock()
+	//defer self.lock.Unlock()
+	//if val = self.matrixData[hash]; val != nil {
+	//	return val
+	//}
+	//
+	//// Load the data from the database.
+	//val, err := self.trie.TryGet(hash[:])
+	//if len(val) == 0 {
+	//	self.setError(err)
+	//	return nil
+	//}
+	return
+}
+func (self *ShardingStateDB) DeleteMxData_sh(hash common.Hash, val []byte) {
+	//self.deleteMatrixData(hash, val)
+}
+//根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *ShardingStateDB) GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
+	//AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
+	//if len(AuthMarsha1Data) == 0 {
+	//	return common.Address{}
+	//}
+	//AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	//err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	//if err != nil {
+	//	return common.Address{}
+	//}
+	//for _, AuthData := range AuthDataList {
+	//	if AuthData.EnstrustSetType == params.EntrustByTime && AuthData.IsEntrustGas == true && AuthData.StartTime <= time && AuthData.EndTime >= time {
+	//		return AuthData.AuthAddres
+	//	}
+	//}
+	return common.Address{}
+}
+func (self *ShardingStateDB) GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
+	//AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
+	//if len(AuthMarsha1Data) == 0 {
+	//	return common.Address{}
+	//}
+	//AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	//err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	//if err != nil {
+	//	return common.Address{}
+	//}
+	//for _, AuthData := range AuthDataList {
+	//	if AuthData.EnstrustSetType == params.EntrustByHeight && AuthData.IsEntrustSign == true && AuthData.StartHeight <= height && AuthData.EndHeight >= height {
+	//		return AuthData.AuthAddres
+	//	}
+	//}
+	return common.Address{}
+}
+//根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名)
+func (self *ShardingStateDB) GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address {
+	//EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	//if len(EntrustMarsha1Data) == 0 {
+	//	return nil
+	//}
+	//entrustDataList := make([]common.EntrustType, 0)
+	//err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	//if err != nil {
+	//	return nil
+	//}
+	//addressList := make([]common.Address, 0)
+	//for _, entrustData := range entrustDataList {
+	//	if entrustData.EnstrustSetType == params.EntrustByHeight && entrustData.IsEntrustSign == true && entrustData.StartHeight <= height && entrustData.EndHeight >= height {
+	//		entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
+	//		addressList = append(addressList, entrustFrom)
+	//	}
+	//} addressList
+	return nil
+}
+//根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
+func (self *ShardingStateDB) GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address {
+	//EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
+	//entrustDataList := make([]common.EntrustType, 0)
+	//err := json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	//if err != nil {
+	//	return nil
+	//}
+	//addressList := make([]common.Address, 0)
+	//for _, entrustData := range entrustDataList {
+	//	if entrustData.IsEntrustSign == true {
+	//		entrustFrom := base58.Base58DecodeToAddress(entrustData.EntrustAddres) //string地址转0x地址
+	//		addressList = append(addressList, entrustFrom)
+	//	}
+	//}
+	return nil //addressList
+}
+
+func (self *ShardingStateDB) GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address{
+
 }
