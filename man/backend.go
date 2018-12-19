@@ -547,23 +547,23 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
 	var nid discover.NodeID
 	if len(addr) == 0 || addr == (common.Address{}) {
-		ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+		addrs := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
 		selfId := p2p.ServerP2p.Self().ID.String()
-		indexs := p2p.Random(len(ids), 1)
-		if len(indexs) > 0 && indexs[0] <= (len(ids)-1) {
-			nid = ids[indexs[0]]
+		indexs := p2p.Random(len(addrs), 1)
+		if len(indexs) > 0 && indexs[0] <= (len(addrs)-1) {
+			nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]])
 		}
 		if nid.String() == selfId {
 			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", nid.String())
-			if indexs[0] == (len(ids) - 1) {
-				nid = ids[indexs[0]-1]
+			if indexs[0] == (len(addrs) - 1) {
+				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]-1])
 			} else {
-				nid = ids[indexs[0]+1]
+				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]+1])
 			}
 		}
 
 	} else {
-		nid, _ = ca.ConvertAddressToNodeId(addr)
+		nid = p2p.ServerP2p.ConvertAddressToId(addr)
 	}
 	if nid.String() == "" {
 		log.Info("file backend func FetcherNotify", "NodeID is nil", nid.String(), "address", addr)
