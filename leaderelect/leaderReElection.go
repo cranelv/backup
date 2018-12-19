@@ -144,7 +144,7 @@ func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 	startMsg := &startControllerMsg{
 		parentIsSupper: msg.Header.IsSuperHeader(),
 		parentHeader:   msg.Header,
-		parentStateDB:  msg.State.Copy(),
+		parentStateDB:  msg.State,
 	}
 	self.ctrlManager.StartController(curNumber+1, startMsg)
 }
