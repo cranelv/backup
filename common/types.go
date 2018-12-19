@@ -512,3 +512,7 @@ type AuthType struct {
 	StartTime       uint64
 	EndTime         uint64
 }
+type CoinRoot struct {
+	Cointyp string
+	Root    Hash
+}

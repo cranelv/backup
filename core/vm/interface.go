@@ -84,3 +84,64 @@ type CallContext interface {
 	// Create a new contract
 	Create(env *EVM, me ContractRef, data []byte, gas, value *big.Int) ([]byte, common.Address, error)
 }
+
+type ShardingStateDBer interface {
+	CreateAccount(cointyp string,addr common.Address)
+
+	SubBalance(cointyp string,idx uint32,addr common.Address,am *big.Int)
+	AddBalance(cointyp string,idx uint32,addr common.Address,am *big.Int)
+	GetBalanceAll(common.Address) common.BalanceType
+	GetBalance(cointyp string,addr common.Address) common.BalanceType
+	GetBalanceByType(cointyp string,addr common.Address, accType uint32) *big.Int
+
+	GetNonce(cointyp string,addr common.Address) uint64
+	SetNonce(cointyp string,addr common.Address,noc uint64)
+
+	GetCodeHash(cointyp string,addr common.Address) common.Hash
+	GetCode(cointyp string,addr common.Address) []byte
+	SetCode(cointyp string,addr common.Address,b []byte)
+	GetCodeSize(cointyp string,addr common.Address) int
+
+	AddRefund(uint64)
+	GetRefund() uint64
+
+	GetState(cointyp string,addr common.Address,hash  common.Hash) common.Hash
+	SetState(cointyp string,addr common.Address, hash,hash2 common.Hash)
+
+	CommitSaveTx()
+	GetSaveTx(typ byte, key uint32, hash []common.Hash, isdel bool)
+	SaveTx(typ byte, key uint32, data map[common.Hash][]byte)
+	NewBTrie(typ byte)
+
+	GetStateByteArray(cointyp string,addr common.Address,hash  common.Hash) []byte
+	SetStateByteArray(cointyp string,addr common.Address,hash  common.Hash,b []byte)
+	Suicide(common.Address) bool
+	HasSuicided(common.Address) bool
+
+	// Exist reports whether the given account exists in state.
+	// Notably this should also return true for suicided accounts.
+	Exist(cointyp string,addr common.Address) bool
+	// Empty returns whether the given account is empty. Empty
+	// is defined according to EIP161 (balance = nonce = code = 0).
+	Empty(cointyp string,addr common.Address) bool
+
+	RevertToSnapshot(cointyp string,id int)
+	Snapshot(cointyp string) int
+
+	AddLog(cointyp string,address common.Address,log *types.Log)
+	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
+	AddPreimage(cointyp string,addr common.Hash, b []byte)
+
+	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	SetMatrixData_sh(hash common.Hash, val []byte)
+	GetMatrixData_sh(hash common.Hash) (val []byte)
+	DeleteMxData_sh(hash common.Hash, val []byte)
+
+	GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
+	GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
+	GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address
+	Dump() []byte
+	Finalise(deleteEmptyObjects bool)
+	GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address
+	GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address
+}
