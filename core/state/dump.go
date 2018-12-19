@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"bytes"
+	"strconv"
 )
 
 type DumpAccount struct {
@@ -51,16 +52,16 @@ func (self *StateDB) RawDump() Dump {
 		}
 
 		tBalance := new(big.Int)
+		var total_balance string
 		for _,tAccount := range data.Balance{
-			if tAccount.AccountType == common.MainAccount {
-				tBalance = tAccount.Balance
-				break
-			}
+			tBalance = tAccount.Balance
+			str_account := strconv.Itoa(int(tAccount.AccountType))
+			str_balance := str_account+":"+tBalance.String()
+			total_balance += str_balance  + ","
 		}
 		obj := newObject(nil, common.BytesToAddress(addr), data)
 		account := DumpAccount{
-			//Balance:  data.Balance.String(),
-			Balance:  tBalance.String(),
+			Balance: total_balance[:len(total_balance)-1],
 			Nonce:    data.Nonce,
 			Root:     common.Bytes2Hex(data.Root[:]),
 			CodeHash: common.Bytes2Hex(data.CodeHash),
