@@ -60,19 +60,12 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInte
 }
 func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
 
-	log.INFO(ModuleName, "获取所有心跳交易", "")
-	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, num-1)
-	if err != nil {
-		log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
-		return nil, nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
-	}
-	log.INFO(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
-	heatBeatUnmarshallMMap, error := GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.Heartbeat)
+	heatBeatUnmarshallMMap, error := GetBroadcastTxMap(bc, root, mc.Heartbeat)
 	if nil != error {
 		log.WARN(ModuleName, "获取主动心跳交易错误", error)
 	}
 	//每个广播周期发一次
-	calltherollUnmarshall, error := GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.CallTheRoll)
+	calltherollUnmarshall, error := GetBroadcastTxMap(bc, root, mc.CallTheRoll)
 	if nil != error {
 		log.ERROR(ModuleName, "获取点名心跳交易错误", error)
 		return nil, nil, error
@@ -92,8 +85,8 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64) (map[common.Ad
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
-func (bc *BlockChain) handleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	HeartBeatMap := bc.getHeatBeatAccount(bcInterval, blockNum, accounts, heatBeatAccounts)
+func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
+	HeartBeatMap := bc.getHeatBeatAccount(BeforeLastStateRoot, bcInterval, blockNum, accounts, heatBeatAccounts)
 
 	originValidatorMap, originMinerMap, err := bc.getElectMap(blockNum, bcInterval)
 	if nil != err {
@@ -139,18 +132,12 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInter
 	return originValidatorMap, originMinerMap, nil
 }
 
-func (bc *BlockChain) getHeatBeatAccount(bcInterval *manparams.BCInterval, blockNum uint64, accounts []common.Address, heatBeatAccounts map[common.Address][]byte) map[common.Address]bool {
-	var blockHash common.Hash
+func (bc *BlockChain) getHeatBeatAccount(beforeLastStateRoot common.Hash, bcInterval *manparams.BCInterval, blockNum uint64, accounts []common.Address, heatBeatAccounts map[common.Address][]byte) map[common.Address]bool {
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := bcInterval.GetLastBroadcastNumber()
-	if blockNum < bcInterval.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-		blockHash = bc.genesisBlock.Hash() //创世区块的hash
-	} else {
-		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-	}
-	broadcastBlock := blockHash.Big()
+
+	broadcastBlock := beforeLastStateRoot.Big()
 	val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
 	for _, v := range accounts {
 		currentAcc := v.Big()
@@ -300,12 +287,19 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) 
 			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
 			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
 		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := bc.getUpTimeData(header.Root, header.Number.Uint64())
+			log.INFO(ModuleName, "获取所有心跳交易", "")
+			preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+			if err != nil {
+				log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
+				return fmt.Errorf("从状态树获取前2个广播区块root失败")
+			}
+			log.INFO(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex(), "上一个root", preBroadcastRoot.BeforeLastStateRoot)
+
+			calltherollMap, heatBeatUnmarshallMMap, err := bc.getUpTimeData(preBroadcastRoot.LastStateRoot, header.Number.Uint64())
 			if err != nil {
 				log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 			}
-
-			err = bc.handleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
+			err = bc.handleUpTime(preBroadcastRoot.BeforeLastStateRoot, state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
 			if nil != err {
 				log.ERROR("core", "处理uptime错误", err)
 				return err

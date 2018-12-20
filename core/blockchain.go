@@ -8,6 +8,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/matrix/go-matrix/common/readstatedb"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -1670,17 +1671,18 @@ func (bc *BlockChain) sendBroadTx() {
 	//没验证过心跳交易
 	if !viSendHeartTx {
 		viSendHeartTx = true
-		//广播区块的hash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
-		if len(saveBroacCastblockHash) <= 0 { //如果长度为0说明是第一次执行
-			if blockNum.Cmp(big.NewInt(int64(bcInterval.BCInterval))) < 0 { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-				saveBroacCastblockHash = bc.genesisBlock.Hash() //创世区块的hash
-			} else {
-				saveBroacCastblockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-			}
+		//广播区块的roothash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
+
+		log.INFO(ModuleName, "sendBroadTx获取所有心跳交易", "")
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, blockNum.Uint64())
+		if err != nil {
+			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
+			return
 		}
+		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
 		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
-		broadcastBlock := saveBroacCastblockHash.Big()
+		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
 		if ret.Cmp(val) == 0 {
 			height := new(big.Int).Add(new(big.Int).SetUint64(subVal), big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
