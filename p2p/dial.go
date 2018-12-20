@@ -156,15 +156,15 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	}
 
 	var newtasks []task
-	addDial := func(flag connFlag, n *discover.Node) bool {
-		if err := s.checkDial(n, peers); err != nil {
-			log.Trace("Skipping dial candidate", "id", n.ID, "addr", &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}, "err", err)
-			return false
-		}
-		s.dialing[n.ID] = flag
-		newtasks = append(newtasks, &dialTask{flags: flag, dest: n})
-		return true
-	}
+	//addDial := func(flag connFlag, n *discover.Node) bool {
+	//	if err := s.checkDial(n, peers); err != nil {
+	//		log.Trace("Skipping dial candidate", "id", n.ID, "addr", &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}, "err", err)
+	//		return false
+	//	}
+	//	s.dialing[n.ID] = flag
+	//	newtasks = append(newtasks, &dialTask{flags: flag, dest: n})
+	//	return true
+	//}
 
 	// Compute number of dynamic dials necessary at this point.
 	needDynDials := s.maxDynDials
@@ -194,43 +194,43 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 			newtasks = append(newtasks, t)
 		}
 	}
-	//If we don't have any peers whatsoever, try to dial a random bootnode. This
-	//scenario is useful for the testnet (and private networks) where the discovery
-	//table might be full of mostly bad peers, making it hard to find good ones.
-	if len(peers) == 0 && len(s.bootnodes) > 0 && needDynDials > 0 && now.Sub(s.start) > fallbackInterval {
-		bootnode := s.bootnodes[0]
-		s.bootnodes = append(s.bootnodes[:0], s.bootnodes[1:]...)
-		s.bootnodes = append(s.bootnodes, bootnode)
-
-		if addDial(dynDialedConn, bootnode) {
-			needDynDials--
-		}
-	}
-	// Use random nodes from the table for half of the necessary
-	// dynamic dials.
-	randomCandidates := needDynDials / 2
-	if randomCandidates > 0 {
-		n := s.ntab.ReadRandomNodes(s.randomNodes)
-		for i := 0; i < randomCandidates && i < n; i++ {
-			if addDial(dynDialedConn, s.randomNodes[i]) {
-				needDynDials--
-			}
-		}
-	}
-	// Create dynamic dials from random lookup results, removing tried
-	// items from the result buffer.
-	i := 0
-	for ; i < len(s.lookupBuf) && needDynDials > 0; i++ {
-		if addDial(dynDialedConn, s.lookupBuf[i]) {
-			needDynDials--
-		}
-	}
-	s.lookupBuf = s.lookupBuf[:copy(s.lookupBuf, s.lookupBuf[i:])]
-	// Launch a discovery lookup if more candidates are needed.
-	if len(s.lookupBuf) < needDynDials && !s.lookupRunning {
-		s.lookupRunning = true
-		newtasks = append(newtasks, &discoverTask{})
-	}
+	// If we don't have any peers whatsoever, try to dial a random bootnode. This
+	// scenario is useful for the testnet (and private networks) where the discovery
+	// table might be full of mostly bad peers, making it hard to find good ones.
+	//if len(peers) == 0 && len(s.bootnodes) > 0 && needDynDials > 0 && now.Sub(s.start) > fallbackInterval {
+	//	bootnode := s.bootnodes[0]
+	//	s.bootnodes = append(s.bootnodes[:0], s.bootnodes[1:]...)
+	//	s.bootnodes = append(s.bootnodes, bootnode)
+	//
+	//	if addDial(dynDialedConn, bootnode) {
+	//		needDynDials--
+	//	}
+	//}
+	//// Use random nodes from the table for half of the necessary
+	//// dynamic dials.
+	//randomCandidates := needDynDials / 2
+	//if randomCandidates > 0 {
+	//	n := s.ntab.ReadRandomNodes(s.randomNodes)
+	//	for i := 0; i < randomCandidates && i < n; i++ {
+	//		if addDial(dynDialedConn, s.randomNodes[i]) {
+	//			needDynDials--
+	//		}
+	//	}
+	//}
+	//// Create dynamic dials from random lookup results, removing tried
+	//// items from the result buffer.
+	//i := 0
+	//for ; i < len(s.lookupBuf) && needDynDials > 0; i++ {
+	//	if addDial(dynDialedConn, s.lookupBuf[i]) {
+	//		needDynDials--
+	//	}
+	//}
+	//s.lookupBuf = s.lookupBuf[:copy(s.lookupBuf, s.lookupBuf[i:])]
+	//// Launch a discovery lookup if more candidates are needed.
+	//if len(s.lookupBuf) < needDynDials && !s.lookupRunning {
+	//	s.lookupRunning = true
+	//	newtasks = append(newtasks, &discoverTask{})
+	//}
 
 	// Launch a timer to wait for the next node to expire if all
 	// candidates have been tried and no task is currently active.
