@@ -65,7 +65,7 @@ type ChainReader interface {
 }
 
 type StateDB interface {
-	GetBalance(common.Address) common.BalanceType
+	GetBalance(typ string,addr common.Address) common.BalanceType
 	GetMatrixData(hash common.Hash) (val []byte)
 	SetMatrixData(hash common.Hash, val []byte)
 }
