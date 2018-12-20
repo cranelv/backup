@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"time"
 
+	"encoding/json"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
@@ -19,8 +21,6 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/baseinterface"
-	"encoding/json"
 )
 
 func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
@@ -61,7 +61,7 @@ func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) err
 			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
 			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
 		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
+			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(p.blockChain(), header.Root, header.Number.Uint64())
 			if err != nil {
 				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 			}
@@ -130,7 +130,7 @@ func (p *Process) processHeaderGen() error {
 		Signatures:        make([]common.Signature, 0),
 		Version:           parent.Header().Version, //param
 		VersionSignatures: parent.Header().VersionSignatures,
-		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account,vrfValue,vrfProof),
+		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof),
 	}
 	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
 	log.INFO(p.logExtraInfo(), " vrf data headermsg", header.VrfValue, "账户户", account, "vrfValue", vrfValue, "vrfProff", vrfProof, "高度", header.Number.Uint64())
@@ -192,13 +192,13 @@ func (p *Process) processHeaderGen() error {
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
 		if len(txs) > 0 {
-			txlist := make([]types.SelfTransaction,0)
-			for _,tx := range txs{
-				if tx.GetMatrixType() != common.ExtraUnGasTxType{
-					txlist = append(txlist,tx)
+			txlist := make([]types.SelfTransaction, 0)
+			for _, tx := range txs {
+				if tx.GetMatrixType() != common.ExtraUnGasTxType {
+					txlist = append(txlist, tx)
 				}
 			}
-			if len(txlist) > 0{
+			if len(txlist) > 0 {
 				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
 			}
 
@@ -307,7 +307,6 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", len(req.TxsCode), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
 }
-
 
 func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
 	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)

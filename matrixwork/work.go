@@ -6,6 +6,8 @@ package matrixwork
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/matrix/go-matrix/common/readstatedb"
 	"math/big"
 	"time"
 
@@ -42,6 +44,7 @@ import (
 type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 var packagename string = "matrixwork"
@@ -540,12 +543,12 @@ func (env *Work) getGas() *big.Int {
 func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) ([]common.Address, error) {
 	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
 	if err != nil {
-		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
+		log.ERROR(packagename, "获取选举生成点配置失败 err", err)
 		return nil, err
 	}
 	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
 	if Ok == false {
-		log.ERROR("blockchain", "选举生成点信息失败 err", err)
+		log.ERROR(packagename, "选举生成点信息失败 err", err)
 		return nil, err
 	}
 
@@ -562,7 +565,7 @@ func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *
 
 	for _, v := range ans {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
+		log.INFO(packagename, "矿工节点账户", v.Address.Hex())
 	}
 	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
 	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
@@ -572,21 +575,29 @@ func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *
 	}
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "验证者节点账户", v.Address.Hex())
+		log.INFO(packagename, "验证者节点账户", v.Address.Hex())
 	}
 	return upTimeAccounts, nil
 }
 
-func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
+func (env *Work) GetUpTimeData(bc ChainReader, root common.Hash, num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
 
 	log.INFO(packagename, "获取所有心跳交易", "")
 	//%99
-	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(hash, mc.Heartbeat)
+	//
+
+	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, num-1)
+	if err != nil {
+		log.Error(packagename, "获取之前广播区块的root值失败 err", err)
+		return nil, nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
+	}
+	log.INFO(packagename, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
+	heatBeatUnmarshallMMap, error := core.GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.Heartbeat)
 	if nil != error {
 		log.WARN(packagename, "获取主动心跳交易错误", error)
 	}
 	//每个广播周期发一次
-	calltherollUnmarshall, error := core.GetBroadcastTxs(hash, mc.CallTheRoll)
+	calltherollUnmarshall, error := core.GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.CallTheRoll)
 	if nil != error {
 		log.ERROR(packagename, "获取点名心跳交易错误", error)
 		return nil, nil, error
@@ -644,14 +655,33 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	}
 
 	var upTime uint64
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
+
+	var eleNum uint64
+	if blockNum < bcInterval.GetReElectionInterval()+2 {
+		eleNum = 1
+	} else {
+		// 下一个选举+1
+		eleNum = blockNum - bcInterval.GetBroadcastInterval()
 	}
+
+	electGraph, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
+	if err != nil {
+		log.Error(packagename, "获取拓扑图错误", err)
+		return errors.New("获取拓扑图错误")
+	}
+	if electGraph == nil {
+		log.Error(packagename, "获取拓扑图反射错误")
+		return errors.New("获取拓扑图反射错误")
+	}
+	originElectNodes := electGraph.(*mc.ElectGraph)
+	if 0 == len(originElectNodes.ElectList) {
+		log.Error(packagename, "get获取初选列表为空", "")
+		return errors.New("get获取初选列表为空")
+	}
+	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
+
 	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
+	for _, v := range originElectNodes.ElectList {
 		originTopologyMap[v.Account] = 0
 	}
 	for _, account := range accounts {

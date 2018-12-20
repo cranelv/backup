@@ -103,12 +103,16 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		eleNum = 1
 	} else {
 		// 下一个选举+1
-		eleNum = eleNum - bp.bcInterval.GetBroadcastInterval()
+		eleNum = num - bp.bcInterval.GetBroadcastInterval()
 	}
 
 	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
+		return
+	}
+	if electGraph == nil {
+		log.Error(PackageName, "获取拓扑图反射错误")
 		return
 	}
 	originElectNodes := electGraph.(*mc.ElectGraph)
