@@ -156,10 +156,6 @@ func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 }
 
 func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
-		return false
-	}
 	if tlr.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return false
@@ -184,7 +180,7 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
 	}
-	randSeed, err := tlr.seed.GetRandom(parentHash, "electionseed")
+	randSeed, err := tlr.seed.GetRandom(parentHash, manparams.ElectionSeed)
 	if nil != err {
 		log.Error(PackageName, "获取随机数错误", err)
 		return nil

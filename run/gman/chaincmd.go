@@ -32,11 +32,11 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/mc"
 )
 
 var (
@@ -251,7 +251,7 @@ It expects the genesis file as argument.`,
 
 	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
-		Name:      "sighverison",
+		Name:      "signverison",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
@@ -832,9 +832,6 @@ func CheckPassword(password string) bool {
 	return false
 }
 
-
-
-
 type JsonStruct struct {
 }
 
@@ -851,7 +848,7 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 	}
 	err = json.Unmarshal(data, v)
 	if err != nil {
-		fmt.Println("通用配置文件数据获取失败 err", err,"filename",filename)
+		fmt.Println("通用配置文件数据获取失败 err", err, "filename", filename)
 		os.Exit(-1)
 		return
 	}

@@ -7,14 +7,17 @@ package downloader
 import (
 	"bytes"
 	"container/list"
+	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,10 +30,13 @@ import (
 )
 
 const (
-	IpfsHashLen           = 46
-	LastestBlockStroeNum  = 100   //100
-	Cache2StoreHashMaxNum = 2000  //2628000 //24 hour* (3600 second /12 second）*365
-	Cache1StoreCache2Num  = 10000 //
+	IpfsHashLen                 = 46
+	LastestBlockStroeNum        = 100   //100
+	Cache2StoreHashMaxNum       = 2000  //要改成月216000 //2628000 //24 hour* (3600 second /12 second）*365
+	Cache1StoreCache2Num        = 10000 //改成12000 1000年
+	Cache2StoreBatchBlockMaxNum = 20    //要改为8800//约年 产生 的 300单位的区块
+	Cache1StoreBatchCache2Num   = 100   // 要改为1000  年
+	BATCH_NUM                   = 300
 )
 
 //var logPrint bool = false
@@ -42,7 +48,8 @@ type BlockStore struct {
 	Numberstore map[uint64]NumberMapingCoupledHash
 }
 type NumberMapingCoupledHash struct {
-	Blockhash map[common.Hash]string
+	//Blockhash map[common.Hash]string
+	Blockhash map[string]string
 }
 
 // lastest 100
@@ -62,14 +69,18 @@ type Caches2CfgMap struct {
 
 //cache1
 type Cache1StoreCfg struct {
-	OriginBlockNum  uint64
-	CurrentBlockNum uint64
-	Cache2FileNum   uint32
-	StCahce2Hash    [Cache1StoreCache2Num]string
+	OriginBlockNum    uint64
+	CurrentBlockNum   uint64
+	Cache2FileNum     uint32
+	StCahce2Hash      [Cache1StoreCache2Num]string
+	StBatchCahce2Hash [Cache1StoreBatchCache2Num]string
 }
 type DownloadRetry struct {
-	header  *types.Header
-	downNum int
+	header     *types.Header
+	flag       int
+	ReqPendflg int
+	coinstr    string
+	downNum    int
 }
 type IPfsDownloader struct {
 	BIpfsIsRunning      bool
@@ -79,16 +90,18 @@ type IPfsDownloader struct {
 	StrIPFSLocationPath string
 	StrIPFSServerInfo   string
 	StrIPFSExecName     string
-	HeaderIpfsCh        chan []*types.Header
-	BlockRcvCh          chan *types.Block
-	DownMutex           *sync.Mutex
-	DownRetrans         *list.List //*prque.Prque // []DownloadRetry prque.New()
+	HeaderIpfsCh        chan []BlockIpfsReq //[]*types.Header
+	//	BlockRcvCh          chan *types.Block
+	DownMutex    *sync.Mutex
+	DownRetrans  *list.List //*prque.Prque // []DownloadRetry prque.New()
+	BatchStBlock *BatchBlockSt
 }
 
 type listBlockInfo struct {
 	blockNum      uint64
-	blockHeadHash common.Hash
-	blockIpfshash Hash
+	blockHeadHash string   //common.Hash
+	coinKind      []string //多币种
+	blockIpfshash []string //Hash
 }
 
 //var HeaderIpfsCh chan []*types.Header
@@ -99,18 +112,29 @@ var (
 	strCacheDirectory    = "ipfsCachecommon"     //发布的目录
 	strTmpCache2File     = "secondCacheInfo.gb"  //暂时存放查询的二级缓存文件
 	strNewBlockStoreFile = "NewTmpBlcok.rp"      //新来的block 暂时保存文件
-//	StrIpfspeerID        = "QmPXtaMvY6ZB67Xgeb8M2D8KuyPBXbyVEyTzaxs5TpjuNi" //peer id
-
+	//	StrIpfspeerID        = "QmPXtaMvY6ZB67Xgeb8M2D8KuyPBXbyVEyTzaxs5TpjuNi" //peer id
+	strBatchHeaderFile    = "batchheader.rp"
+	strBatchBodyFile      = "batchbody.rp"
+	strBatchReceiptFile   = "batchreceipt.rp"
+	strTmpBatchCache2File = "secondBatchCacheInfo.gb"
 )
+var HeadBatchFlag uint64 = 0x12345678
+var BodyBatchFlag uint64 = 0x23456781
+var ReceiptBatchFlag uint64 = 0x34567812
 
 type GetIpfsCache struct {
-	bassign       bool
-	lastestCache  *LastestBlcokCfg
-	lastestNum    uint64
-	getipfsCache1 *Cache1StoreCfg
-	getipfsCache2 *Caches2CfgMap
+	bassign            bool
+	lastestCache       *LastestBlcokCfg
+	lastestNum         uint64
+	getipfsCache1      *Cache1StoreCfg
+	getipfsCache2      *Caches2CfgMap
+	getipfsBatchCache2 *Caches2CfgMap
 }
-
+type StoreIpfsCache struct {
+	curBlockPos      uint32
+	curBatchBlockPos uint32
+	storeipfsCache1  *Cache1StoreCfg
+}
 type DownloadFileInfo struct {
 	Downloadflg          bool
 	IpfsPath             string
@@ -122,7 +146,20 @@ type DownloadFileInfo struct {
 	SecondaryDescription string
 }
 
+type BatchBlockSt struct {
+	curBlockNum        uint64
+	ExpectBeginNum     uint64
+	ExpectBeginNumhash common.Hash
+	minBlockNum        uint64
+	minBlockNumHash    common.Hash
+	fileflag           int
+	headerStoreFile    *os.File
+	bodyStoreFile      *os.File
+	receiptStoreFile   *os.File
+}
+
 var gIpfsCache GetIpfsCache
+var gIpfsStoreCache StoreIpfsCache
 var IpfsInfo DownloadFileInfo
 var logMap bool
 var listPeerId [2]string
@@ -151,10 +188,11 @@ func newIpfsDownload() *IPfsDownloader {
 
 	return &IPfsDownloader{
 		BIpfsIsRunning: false,
-		HeaderIpfsCh:   make(chan []*types.Header, 1),
-		BlockRcvCh:     make(chan *types.Block, 1),
-		DownRetrans:    list.New(), //prque.New(), //make([]DownloadRetry, 6),
-		DownMutex:      new(sync.Mutex),
+		HeaderIpfsCh:   make(chan []BlockIpfsReq, 1), //*types.Header, 1),
+		//	BlockRcvCh:     make(chan *types.Block, 1),
+		DownRetrans:  list.New(), //prque.New(), //make([]DownloadRetry, 6),
+		DownMutex:    new(sync.Mutex),
+		BatchStBlock: new(BatchBlockSt),
 	}
 
 }
@@ -216,7 +254,7 @@ func (d *Downloader) IpfsDownloadInit() error {
 	}
 	fmt.Println("peer ID ", listPeerId[0], listPeerId[1])
 	log.Warn("ipfs Downloader init", "peerid0", listPeerId[0], "peerid1", listPeerId[1])
-
+	//d.dpIpfs.BatchStBlock = new(BatchBlockSt)
 	out.Reset()
 	outerr.Reset()
 	c := exec.Command(d.dpIpfs.StrIPFSExecName, "init")
@@ -396,12 +434,12 @@ func IpfsAddNewFile(filePath string) (Hash, error) {
 
 //IpfsGetFileCache2ByHash
 
-func IpfsGetFileCache2ByHash(strhash string) (*os.File, bool, error) {
+func IpfsGetFileCache2ByHash(strhash, objfileName string) (*os.File, bool, error) {
 	var out bytes.Buffer
 	var outerr bytes.Buffer
 	if strhash == "" {
 		//var errf error = nil
-		tmpBlockFile, errf := os.OpenFile(strTmpCache2File, os.O_WRONLY|os.O_CREATE, 0644) //"secondCacheInfo.gb"
+		tmpBlockFile, errf := os.OpenFile(objfileName, os.O_WRONLY|os.O_CREATE, 0644) //"secondCacheInfo.gb"
 		if errf != nil {
 			return nil, false, fmt.Errorf("ipfs error IpfsGetFileCache2ByHash OpenFile error")
 		} else {
@@ -411,7 +449,9 @@ func IpfsGetFileCache2ByHash(strhash string) (*os.File, bool, error) {
 
 	//tmp := []byte(strhash)
 	//strhash2 := string(tmp[0:IpfsHashLen])
-	c := exec.Command(gStrIpfsName, "get", "-o=secondCacheInfo.gb", strhash) //strhash)
+	strFile := "-o=" + objfileName
+	c := exec.Command(gStrIpfsName, "get", strFile, strhash)
+	//c := exec.Command(gStrIpfsName, "get", "-o=secondCacheInfo.gb", strhash) //strhash)
 	c.Stdout = &out
 	c.Stderr = &outerr
 	err := c.Run()
@@ -423,7 +463,7 @@ func IpfsGetFileCache2ByHash(strhash string) (*os.File, bool, error) {
 		return nil, false, err
 	}
 
-	tmpBlockFile, errf := os.OpenFile(strTmpCache2File, os.O_RDWR /*os.O_APPEND*/, 0644)
+	tmpBlockFile, errf := os.OpenFile(objfileName, os.O_RDWR /*os.O_APPEND*/, 0644)
 
 	return tmpBlockFile, false, errf
 }
@@ -469,7 +509,7 @@ func (d *Downloader) IpsfAddNewBlockBatchToCache(stCfg *Cache1StoreCfg, blockLis
 				log.Debug("ipfs Debug IpsfAddNewBlockBatchToCache IpfsAddNewFile", "calArrayPos", calArrayPos, "lastArrayPos", lastArrayPos, "ipfs hash", stCfg.StCahce2Hash[lastArrayPos])
 			}
 
-			tmpCache2File, newFileFlg, err = IpfsGetFileCache2ByHash(stCfg.StCahce2Hash[calArrayPos]) //"secondCacheInfo.gb"
+			tmpCache2File, newFileFlg, err = IpfsGetFileCache2ByHash(stCfg.StCahce2Hash[calArrayPos], strTmpCache2File) //"secondCacheInfo.gb"
 			if err != nil {
 				tmpCache2File.Close()
 				log.Error("ipfs IpsfAddNewBlockToCache use IpfsGetFileCache2ByHash error", "error", err)
@@ -512,9 +552,12 @@ func (d *Downloader) IpsfAddNewBlockBatchToCache(stCfg *Cache1StoreCfg, blockLis
 		log.Trace("ipfs Debug IpsfAddNewBlockBatchToCache insertNewValue", "blockNum", tmpBlock.blockNum)
 
 		//err1, newNumber
-		err1, _ := insertNewValue(tmpBlock.blockNum, tmpBlock.blockHeadHash, tmpBlock.blockIpfshash, &cache2st.MapList)
-		if err1 != nil {
-			continue
+		for i, tmp := range tmpBlock.coinKind {
+			newheadhash := tmp + ":" + tmpBlock.blockHeadHash //全block 为 0:headhash
+			err1, _ := insertNewValue(tmpBlock.blockNum, newheadhash, tmpBlock.blockIpfshash[i], &cache2st.MapList)
+			if err1 != nil {
+				continue
+			}
 		}
 		//if newNumber {
 		cache2st.NumHashStore++
@@ -523,6 +566,9 @@ func (d *Downloader) IpsfAddNewBlockBatchToCache(stCfg *Cache1StoreCfg, blockLis
 		lastArrayPos = calArrayPos
 		stCfg.CurrentBlockNum = tmpBlock.blockNum
 	}
+	gIpfsStoreCache.curBlockPos = calArrayPos
+	//gIpfsStoreCache.storeipfsCache1 = stCfg
+
 	storeCache(cache2st, tmpCache2File)
 	tmpCache2File.Close()
 	newHash, err := IpfsAddNewFile(strTmpCache2File)
@@ -540,7 +586,7 @@ func (d *Downloader) IpsfAddNewBlockBatchToCache(stCfg *Cache1StoreCfg, blockLis
 }
 
 //IpsfAddNewBlockToCache
-func (d *Downloader) IpsfAddNewBlockToCache(stCfg *Cache1StoreCfg, blockNum uint64, headHash common.Hash, fhash Hash) error {
+func (d *Downloader) IpsfAddNewBlockToCache(stCfg *Cache1StoreCfg, blockNum uint64, headHash common.Hash, fhash string) error {
 
 	var calArrayPos uint32 = 0
 	if blockNum < stCfg.OriginBlockNum {
@@ -553,6 +599,7 @@ func (d *Downloader) IpsfAddNewBlockToCache(stCfg *Cache1StoreCfg, blockNum uint
 		//return
 		log.Error("ipfs error IpsfAddNewBlockToCache calc error", "calArrayPos", calArrayPos, "Cache2FileNum ", stCfg.Cache2FileNum)
 	}*/
+	gIpfsStoreCache.storeipfsCache1 = stCfg
 
 	if calArrayPos >= Cache1StoreCache2Num {
 		log.Error("ipfs error IpsfAddNewBlockToCache calc error,calArrayPos exeeed capacity", "calArrayPos", calArrayPos)
@@ -561,7 +608,7 @@ func (d *Downloader) IpsfAddNewBlockToCache(stCfg *Cache1StoreCfg, blockNum uint
 
 	//var tmpBlockFile *os.File
 
-	tmpBlockFile, newFileFlg, err := IpfsGetFileCache2ByHash(stCfg.StCahce2Hash[calArrayPos]) //stCfg.Cache2FileNum]) //.CurCachehash)
+	tmpBlockFile, newFileFlg, err := IpfsGetFileCache2ByHash(stCfg.StCahce2Hash[calArrayPos], strTmpCache2File) //stCfg.Cache2FileNum]) //.CurCachehash)
 	if err != nil {
 		tmpBlockFile.Close()
 		log.Error("ipfs IpsfAddNewBlockToCache use IpfsGetFileCache2ByHash error", "error", err)
@@ -614,7 +661,7 @@ func (d *Downloader) IpsfAddNewBlockToCache(stCfg *Cache1StoreCfg, blockNum uint
 }
 
 //IpfsSyncSaveSecondCache
-func (d *Downloader) IpfsSyncSaveSecondCache(newFlg bool, blockNum uint64, headHash common.Hash, fhash Hash, file *os.File) error {
+func (d *Downloader) IpfsSyncSaveSecondCache(newFlg bool, blockNum uint64, headHash common.Hash, fhash string, file *os.File) error {
 	var cache2st = new(Caches2CfgMap)
 	//var tgh bool = false
 
@@ -640,7 +687,7 @@ func (d *Downloader) IpfsSyncSaveSecondCache(newFlg bool, blockNum uint64, headH
 	}
 
 	//insert
-	err, newNumber := insertNewValue(blockNum, headHash, fhash, &cache2st.MapList)
+	err, newNumber := insertNewValue(blockNum, string(headHash[:]), fhash, &cache2st.MapList)
 
 	/*if cache2st.NumHashStore == 0 {
 		cache2st.CurCacheBeignNum = blockNum
@@ -776,7 +823,7 @@ func (d *Downloader) IpfsSyncGetLatestBlock(index int) (*LastestBlcokCfg, uint64
 }
 
 //insertNewValue
-func insertNewValue(blockNum uint64, headHash common.Hash, blockhash Hash, newBlock *BlockStore) (error, bool) {
+func insertNewValue(blockNum uint64, headHash string /*common.Hash*/, strblockhash string, newBlock *BlockStore) (error, bool) {
 	var BnumberNoExist bool = false
 
 	if newBlock.Numberstore == nil {
@@ -786,7 +833,7 @@ func insertNewValue(blockNum uint64, headHash common.Hash, blockhash Hash, newBl
 	if ok == false {
 		//newBlock.Numberstore = make(map[uint64]NumberMapingCoupledHash)
 		var tmpH NumberMapingCoupledHash
-		tmpH.Blockhash = make(map[common.Hash]string)
+		tmpH.Blockhash = make(map[string]string)
 		(newBlock.Numberstore)[blockNum] = tmpH
 		//log.Trace("insertNewValue  not exist head hash", "blocknum", blockNum)
 		BnumberNoExist = true
@@ -798,8 +845,8 @@ func insertNewValue(blockNum uint64, headHash common.Hash, blockhash Hash, newBl
 			//return fmt.Errorf("block hash already exist")
 		}
 	}
-	newBlock.Numberstore[blockNum].Blockhash[headHash] = string(blockhash[0:IpfsHashLen])
-	log.Trace("ipfs insertNewValue  head hash", "blocknum", blockNum, "headHash", headHash, "blockhash", string(blockhash[0:IpfsHashLen]))
+	newBlock.Numberstore[blockNum].Blockhash[headHash] = strblockhash                                                  //string(blockhash[0:IpfsHashLen])
+	log.Trace("ipfs insertNewValue  head hash", "blocknum", blockNum, "headHash", headHash, "blockhash", strblockhash) //string(blockhash[0:IpfsHashLen]))
 
 	return nil, BnumberNoExist
 }
@@ -807,7 +854,8 @@ func insertNewValue(blockNum uint64, headHash common.Hash, blockhash Hash, newBl
 func (d *Downloader) addNewBlockBatchToLastest(curLastestInfo *LastestBlcokCfg, blockList []listBlockInfo) error {
 	for _, tmpBlock := range blockList {
 		curLastestInfo.CurrentNum = tmpBlock.blockNum
-		_, newNumber := insertNewValue(tmpBlock.blockNum, tmpBlock.blockHeadHash, tmpBlock.blockIpfshash, &curLastestInfo.MapList) //
+		//最近的不考虑多币种
+		_, newNumber := insertNewValue(tmpBlock.blockNum, tmpBlock.blockHeadHash, tmpBlock.blockIpfshash[0], &curLastestInfo.MapList) //
 		if newNumber {
 			curLastestInfo.HashNum++
 		}
@@ -834,7 +882,7 @@ func (d *Downloader) addNewBlockBatchToLastest(curLastestInfo *LastestBlcokCfg, 
 }
 
 //IpfsSynInsertNewBlockHashToLastest
-func (d *Downloader) IpfsSynInsertNewBlockHashToLastest(curLastestInfo *LastestBlcokCfg, blockNum uint64, headHash common.Hash, blockhash Hash) error {
+func (d *Downloader) IpfsSynInsertNewBlockHashToLastest(curLastestInfo *LastestBlcokCfg, blockNum uint64, headHash common.Hash, blockhash string) error {
 	//
 	//curLastestInfo := LastestBlcokCfg{}
 	//loadCache(&curLastestInfo, 0)
@@ -875,7 +923,7 @@ func (d *Downloader) IpfsSynInsertNewBlockHashToLastest(curLastestInfo *LastestB
 	//3
 
 	curLastestInfo.CurrentNum = blockNum
-	err, newNumber := insertNewValue(blockNum, headHash, blockhash, &curLastestInfo.MapList) //
+	err, newNumber := insertNewValue(blockNum, string(headHash[:]), blockhash, &curLastestInfo.MapList) //
 	if newNumber {
 		curLastestInfo.HashNum++
 	}
@@ -923,7 +971,7 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 	// block number
 	//curBlockNum := newBlock.NumberU64()
 
-	log.Warn("~~~~~ ipfs RecvBlockToDeal recv new block ~~~~~~", "blockNum=", blockqueue.Size())
+	log.Warn("~~~~~ ipfs RecvBlockToDeal recv new block ~~~~~~", "blockNumSzie=", blockqueue.Size())
 
 	stCache1Cfg, _, err := d.IpfsSyncGetLatestBlock(0) //"lastestblockInfo.gb"
 
@@ -934,36 +982,56 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		//return err
 		//}
 	}
-
+	var bNeedBatch bool = false
 	curlistBlockInfo := make([]listBlockInfo, 0)
 	for {
 		var tmplistBlockInfo listBlockInfo //:= new(listBlockInfo)
 		if blockqueue.Empty() {
 			break
 		}
-		newBlock := blockqueue.PopItem().(*types.Block)
+		stBlock := blockqueue.PopItem().(*types.BlockAllSt) //(*types.Block)
+		newBlock := stBlock.Sblock
 		if newBlock == nil {
 			break
 		}
+		tmplistBlockInfo.coinKind = make([]string, 0, 8)
+		tmplistBlockInfo.blockIpfshash = make([]string, 0, 8)
 		tmplistBlockInfo.blockNum = newBlock.NumberU64()
 
-		tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_WRONLY|os.O_CREATE, 0644) //"NewTmpBlcok.rp"
+		tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
 		if errf != nil {
 			log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
 			return errf
 		}
 
-		errd := rlp.Encode(tmpBlockFile, newBlock)
+		//errd := rlp.Encode(tmpBlockFile, newBlock)
+		errd := rlp.Encode(tmpBlockFile, stBlock)
+
 		log.Debug("ipfs block encode info", "error", errd, "blockNum", tmplistBlockInfo.blockNum)
 		tmpBlockFile.Close()
 		err = nil
-		tmplistBlockInfo.blockIpfshash, err = IpfsAddNewFile(strNewBlockStoreFile)
+		hashs, err := IpfsAddNewFile(strNewBlockStoreFile)
 		if err != nil {
 			log.Error("ipfs RecvBlockToDeal error IpfsAddNewFile  ", "error=", err)
-			return err
+
+			// 先不返回，便于后面写进batch  return err
 		}
-		tmplistBlockInfo.blockHeadHash = newBlock.Hash()
+		//待增加多币种
+		tmplistBlockInfo.coinKind = append(tmplistBlockInfo.coinKind, "0") //0：默认去不区块类型   map变为 coinkind：+headhash
+		tmplistBlockInfo.blockIpfshash = append(tmplistBlockInfo.blockIpfshash, string(hashs[0:IpfsHashLen]))
+		tmpHash := newBlock.Hash()
+		tmplistBlockInfo.blockHeadHash = string(tmpHash[:])
+
 		curlistBlockInfo = append(curlistBlockInfo, tmplistBlockInfo)
+
+		{
+			d.BatchStoreAllBlock(stBlock)
+		}
+		if tmplistBlockInfo.blockNum%BATCH_NUM == 0 {
+			log.Debug("ipfs RecvBlockToDeal get mod 300 =0")
+			bNeedBatch = true
+			break
+		}
 	}
 	if len(curlistBlockInfo) == 0 {
 		return fmt.Errorf("curlistBlockInfo len = 0")
@@ -974,16 +1042,20 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 	//go func() error {
 	dealcacheFunc := func() error {
 		//readCacheCg := Cache1StoreCfg{}	//readCache =(*Cache1StoreCfg)readCacheCfg
-		readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
-		if err != nil {
-			fmt.Println("cache1 is nil, create it", err)
-			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  cache1 is nil, create it  ", "error=", err)
-			//readCacheCfg2 := Cache1StoreCfg{}
-			readCacheCfg.OriginBlockNum = curlistBlockInfo[0].blockNum
-			readCacheCfg.CurrentBlockNum = curlistBlockInfo[0].blockNum
-			readCacheCfg.Cache2FileNum = 0
+		if gIpfsStoreCache.storeipfsCache1 == nil {
+			readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
+			if err != nil {
+				fmt.Println("cache1 is nil, create it", err)
+				log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  cache1 is nil, create it  ", "error=", err)
+				//readCacheCfg2 := Cache1StoreCfg{}
+				readCacheCfg.OriginBlockNum = curlistBlockInfo[0].blockNum
+				readCacheCfg.CurrentBlockNum = curlistBlockInfo[0].blockNum
+				readCacheCfg.Cache2FileNum = 0
+			}
+			gIpfsStoreCache.storeipfsCache1 = readCacheCfg
 		}
-		return d.IpsfAddNewBlockBatchToCache(readCacheCfg, curlistBlockInfo)
+
+		return d.IpsfAddNewBlockBatchToCache(gIpfsStoreCache.storeipfsCache1, curlistBlockInfo)
 
 	} //()
 	err = dealcacheFunc()
@@ -993,9 +1065,15 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 	} else {
 		log.Error("ipfs RecvBlockToDeal add ipfs error ")
 	}
+
+	if bNeedBatch == true {
+		d.AddNewBatchBlockToIpfs()
+	}
+
 	testShowlog++
 
-	if testShowlog == 6 || testShowlog == 18 || testShowlog == 30 || testShowlog == 50 || testShowlog == 70 {
+	//if testShowlog == 6 || testShowlog == 18 || testShowlog == 30 || testShowlog == 50 || testShowlog == 70 {
+	if testShowlog == 0 {
 		log.Trace("********lastest begin *********```\n")
 		ffile, _ := os.OpenFile(path.Join(strCacheDirectory, strLastestBlockFile), os.O_RDWR, 0644)
 		lastest := new(LastestBlcokCfg)
@@ -1019,7 +1097,7 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		log.Trace("tmpCache1", "OriginBlockNum", tmpCache1.OriginBlockNum, "CurrentBlockNum", tmpCache1.CurrentBlockNum, "Cache2FileNum", tmpCache1.Cache2FileNum)
 		for idx := 0; idx < int(tmpCache1.Cache2FileNum); idx++ {
 			log.Trace("tmpCache1 ", "index", idx, "hash", tmpCache1.StCahce2Hash[idx])
-			tmpCache2File, _, _ := IpfsGetFileCache2ByHash(tmpCache1.StCahce2Hash[idx]) //secondCacheInfo.gb
+			tmpCache2File, _, _ := IpfsGetFileCache2ByHash(tmpCache1.StCahce2Hash[idx], strTmpCache2File) //secondCacheInfo.gb
 			cache2st := new(Caches2CfgMap)
 			loadCache(cache2st, 0, tmpCache2File)
 			for key, value := range cache2st.MapList.Numberstore {
@@ -1072,7 +1150,7 @@ func (d *Downloader) RecvBlockToDeal(newBlock *types.Block) error {
 
 	headHash := newBlock.Hash()
 
-	d.IpfsSynInsertNewBlockHashToLastest(stCache1Cfg, curBlockNum, headHash, bHash[0:IpfsHashLen])
+	d.IpfsSynInsertNewBlockHashToLastest(stCache1Cfg, curBlockNum, headHash, string(bHash[0:IpfsHashLen]))
 
 	//go func() error {
 	dealcacheFunc := func() error {
@@ -1086,7 +1164,8 @@ func (d *Downloader) RecvBlockToDeal(newBlock *types.Block) error {
 			readCacheCfg.CurrentBlockNum = curBlockNum
 			readCacheCfg.Cache2FileNum = 0
 		}
-		return d.IpsfAddNewBlockToCache(readCacheCfg, curBlockNum, headHash, bHash[0:IpfsHashLen]) /* &readCacheCfg,*/
+		gIpfsStoreCache.storeipfsCache1 = readCacheCfg
+		return d.IpsfAddNewBlockToCache(readCacheCfg, curBlockNum, headHash, string(bHash[0:IpfsHashLen])) /* &readCacheCfg,*/
 
 	} //()
 	err = dealcacheFunc()
@@ -1109,23 +1188,25 @@ func (d *Downloader) GetBlockAndAnalysisSend(blockhash string, stype string) boo
 		return false
 	}
 	//
-	obj := new(types.Block)
+	obj := new(types.BlockAllSt) //types.Block)
 	errd := rlp.Decode(blockFile, obj)
 
-	log.Info("ipfs dencode block info from GetBlockAndAnalysis", "err", errd, "stype", stype, "obj.Header", obj.NumberU64())
+	log.Info("ipfs dencode block info from GetBlockAndAnalysis", "err", errd, "stype", stype, "obj.Header", obj.Sblock.NumberU64())
 
 	if errd != nil {
 		return false
 	}
-	d.SynOrignDownload(obj)
+	d.SynOrignDownload(obj, 0, 0)
 	return true
 }
 
-func (d *Downloader) GetBlockHashFromCache(headhash common.Hash, headNumber uint64) bool {
+func (d *Downloader) GetBlockHashFromCache(headhash string /*common.Hash*/, coinstr string, headNumber uint64) bool {
+	//strHeadHash := string(headhash[:])
 	if gIpfsCache.lastestCache == nil {
 		log.Info("ipfs GetBlockHashFromCache lastestCache = nil")
 		return false
 	}
+
 	if gIpfsCache.lastestNum-headNumber < LastestBlockStroeNum {
 
 		_, ok := gIpfsCache.lastestCache.MapList.Numberstore[headNumber]
@@ -1143,16 +1224,17 @@ func (d *Downloader) GetBlockHashFromCache(headhash common.Hash, headNumber uint
 		log.Info("ipfs GetBlockHashFromCache getipfsCache2 = nil")
 		return false
 	}
+	newheadHash := coinstr + ":" + headhash
 	if headNumber >= gIpfsCache.getipfsCache2.CurCacheBeignNum && gIpfsCache.getipfsCache2.CurCacheBlockNum >= headNumber {
 		//map
 		_, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber]
 		if ok {
-			blockhash, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber].Blockhash[headhash]
+			blockhash, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber].Blockhash[newheadHash]
 			if ok {
 				log.Info("ipfs GetBlockHashFromCache download block from Cache2")
 				return d.GetBlockAndAnalysisSend(blockhash, "secondCache")
 			} else {
-				log.Error("ipfs GetBlockHashFromCache  error map Blockhash", "headNumber", headNumber, "headhash", headhash)
+				log.Error("ipfs GetBlockHashFromCache  error map Blockhash", "headNumber", headNumber, "headhash", newheadHash)
 				return false
 			}
 		} else {
@@ -1164,13 +1246,16 @@ func (d *Downloader) GetBlockHashFromCache(headhash common.Hash, headNumber uint
 	return false
 }
 
+//下载区块
 // SyncBlockFromIpfs
-func (d *Downloader) SyncBlockFromIpfs(headhash common.Hash, headNumber uint64, index int) int {
+func (d *Downloader) SyncBlockFromIpfs(headhash common.Hash, headNumber uint64, coin string, index int) int {
 	//curBlock := (*core.BlockChain).CurrentBlock()
 	//CurLocalBlocknum := d.blockchain.CurrentBlock().NumberU64()
+	strHeadHash := string(headhash[:])
 	log.Debug(" *** ipfs get download block ***  ", "number", headNumber, "headhash", headhash, "gIpfsCache.bassign", gIpfsCache.bassign)
 	if gIpfsCache.bassign {
-		bfind := d.GetBlockHashFromCache(headhash, headNumber)
+		//bfind := d.GetBlockHashFromCache(coin+":"+strHeadHash, headNumber)
+		bfind := d.GetBlockHashFromCache(strHeadHash, coin, headNumber)
 		if bfind {
 			return 0
 		}
@@ -1178,6 +1263,10 @@ func (d *Downloader) SyncBlockFromIpfs(headhash common.Hash, headNumber uint64, 
 
 	log.Debug(" ****** ipfs get download block number over ipfs  ******  ", "number", headNumber)
 	var err error
+
+	if coin != "0" {
+		goto secondCache
+	}
 	gIpfsCache.lastestCache, gIpfsCache.lastestNum, err = d.IpfsSyncGetLatestBlock(index)
 	if err != nil {
 
@@ -1199,6 +1288,7 @@ func (d *Downloader) SyncBlockFromIpfs(headhash common.Hash, headNumber uint64, 
 			}
 		}
 	}
+	gIpfsCache.bassign = true
 	if gIpfsCache.lastestNum-headNumber < LastestBlockStroeNum {
 
 		if logMap {
@@ -1220,7 +1310,7 @@ func (d *Downloader) SyncBlockFromIpfs(headhash common.Hash, headNumber uint64, 
 		_, ok := gIpfsCache.lastestCache.MapList.Numberstore[headNumber]
 		if ok {
 			//  block hash
-			blockhash, ok := gIpfsCache.lastestCache.MapList.Numberstore[headNumber].Blockhash[headhash]
+			blockhash, ok := gIpfsCache.lastestCache.MapList.Numberstore[headNumber].Blockhash[strHeadHash]
 			if ok {
 
 				log.Debug(" ipfs  SyncBlockFromIpfs get new block form ipfs use by getlastest", "blockNum", headNumber)
@@ -1304,11 +1394,12 @@ secondCache:
 		}
 
 		_, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber]
+		newStrHeadhash := coin + ":" + strHeadHash
 		if ok {
-			blockhash, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber].Blockhash[headhash]
+			blockhash, ok := gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber].Blockhash[newStrHeadhash]
 			if ok {
 
-				log.Debug(" ipfs  SyncBlockFromIpfs get new block form ipfs use by getCache2", "blockNum", headNumber)
+				log.Debug(" ipfs  SyncBlockFromIpfs get new block form ipfs use by getCache2", "blockNum", headNumber, "newStrHeadhash", newStrHeadhash)
 				d.GetBlockAndAnalysisSend(blockhash, "getCache2")
 				return 0
 			} else {
@@ -1324,14 +1415,33 @@ secondCache:
 	//return 1
 	//SynTest()
 }
-func (d *Downloader) SynOrignDownload(obj *types.Block) {
+func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64) { //(obj *types.Block) {
 
 	tmp := new(BlockIpfs)
-	tmp.Headeripfs = obj.Header()
-	tmp.Transactionsipfs = obj.Transactions()
-	tmp.Unclesipfs = obj.Uncles()
+	tmp.Flag = flag
+	tmp.BlockNum = blockNum
+	switch flag {
+	case 0:
+		obj := out.(*types.BlockAllSt)
+		tmp.Headeripfs = obj.Sblock.Header()
+		tmp.Transactionsipfs = obj.Sblock.Transactions()
+		tmp.Unclesipfs = obj.Sblock.Uncles()
+		tmp.Receipt = obj.SReceipt
+		tmp.BlockNum = blockNum
+		log.Debug(" ipfs send new block to syn BlockAllSt ", "flag", flag, "blockNum", tmp.Headeripfs.Number.Uint64())
+	case 1:
+	case 2:
+		obj := out.(*types.Body)
+		tmp.Transactionsipfs = obj.Transactions
+		tmp.Unclesipfs = obj.Uncles
+		log.Debug(" ipfs send new block to syn Body", "flag", flag, "blockNum", blockNum)
+	case 3:
+		obj := out.(*types.Receipts)
+		tmp.Receipt = *obj
+		log.Debug(" ipfs send new block to syn Receipts", "flag", flag, "blockNum", blockNum)
+	}
 
-	log.Debug(" ipfs send new block to syn", "number=%d", tmp.Headeripfs.Number.Uint64())
+	//log.Debug(" ipfs send new block to syn", "number=%d", tmp.Headeripfs.Number.Uint64(), "flag", flag, "blockNum", blockNum)
 
 	d.ipfsBodyCh <- *tmp
 }
@@ -1345,19 +1455,30 @@ func (d *Downloader) IpfsProcessRcvHead() {
 	for {
 		select {
 		//case headers := <-HeaderIpfsCh:
-		case headers := <-d.dpIpfs.HeaderIpfsCh: //
-			log.Debug(" ipfs proc recv block headers", "len", len(headers))
+		case reqs := <-d.dpIpfs.HeaderIpfsCh: //
+			log.Debug(" ipfs proc recv block headers", "len", len(reqs))
 			//gIpfsCache.bassign = false
 			d.dpIpfs.DownMutex.Lock()
-			for _, headerd := range headers {
-				flg = d.SyncBlockFromIpfs(headerd.Hash(), headerd.Number.Uint64(), 0)
+			for _, req := range reqs {
+				if req.Flag == 1 {
+					flg = d.SyncBlockFromIpfs(req.HeadReqipfs.Hash(), req.HeadReqipfs.Number.Uint64(), req.coinstr, 0)
+				} else if req.Flag == 2 {
+					flg = d.DownloadBatchBlock(req.HeadReqipfs.Hash(), req.HeadReqipfs.Number.Uint64(), req.ReqPendflg, 0)
+				}
 				if flg == 1 {
 					failReTrans := &DownloadRetry{
-						header:  headerd,
-						downNum: 1,
-					}
-					log.Debug(" ipfs get block from  add retrans", "number", headerd.Number.Uint64())
+						header:     req.HeadReqipfs,
+						flag:       req.Flag,
+						ReqPendflg: req.ReqPendflg,
+						coinstr:    req.coinstr,
+						downNum:    1,
+					} // 放入同步过程，要重新发送的
+					log.Debug(" ipfs get block from  add retrans", "number", req.HeadReqipfs.Number.Uint64())
 					d.dpIpfs.DownRetrans.PushBack(failReTrans)
+					//d.queue.BlockRegetByOld(req.ReqPendflg, req.HeadReqipfs)
+				}
+				if flg == 0 {
+					d.queue.BlockIpfsdeletePool(req.HeadReqipfs.Number.Uint64())
 				}
 			}
 			d.dpIpfs.DownMutex.Unlock()
@@ -1368,8 +1489,774 @@ func (d *Downloader) IpfsProcessRcvHead() {
 	}
 	log.Debug(" ipfs proc go IpfsProcessRcvHead out")
 }
+func (d *Downloader) IpfsSyncSaveBatchSecondCache(newFlg bool, blockNum uint64, headHash string /*common.Hash*/, fhash string, file *os.File) error {
+	var cache2st = new(Caches2CfgMap)
+	//var tgh bool = false
+
+	if newFlg { //
+		cache2st.CurCacheBeignNum = blockNum
+		cache2st.CurCacheBlockNum = blockNum
+		cache2st.NumHashStore = 0
+		cache2st.MapList.Numberstore = make(map[uint64]NumberMapingCoupledHash)
+
+	} else {
+
+		err := loadCache(cache2st, 0, file)
+		if err != nil {
+			log.Error("ipfs IpfsSyncSaveSecondCache loadCache error", "error", err)
+			file.Close()
+			return err
+		}
+
+		file.Close()
+		//tgh = true
+		file, _ = os.OpenFile(file.Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644) //strTmpCache2File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644) //O_TRUNC
+
+	}
+
+	//insert
+	err, newNumber := insertNewValue(blockNum, headHash, fhash, &cache2st.MapList)
+
+	/*if cache2st.NumHashStore == 0 {
+		cache2st.CurCacheBeignNum = blockNum
+	}*/
+	if newNumber {
+		cache2st.NumHashStore++
+		cache2st.CurCacheBlockNum = blockNum
+	}
+	if err == nil {
+		//err2 := storeCache(cache2st, file)
+		return storeCache(cache2st, file)
+		//return file.Close()
+	} else {
+		//file.Close()
+		return nil
+	}
+
+}
+
+//IpsfAddNewBlockToCache
+func (d *Downloader) IpsfAddNewBatchBlockToCache(stCfg *Cache1StoreCfg, blockNum uint64, headHash common.Hash, fhash string) error {
+
+	var calArrayPos uint32 = 0
+	if blockNum < stCfg.OriginBlockNum {
+		calArrayPos = 0
+	} else {
+		calArrayPos = uint32(blockNum / BATCH_NUM / Cache2StoreBatchBlockMaxNum)
+	}
+
+	log.Warn("ipfs IpsfAddNewBatchBlockToCache&2 batch", "calArrayPos", calArrayPos, "Cache2FileNum ", stCfg.Cache2FileNum, "blockNum", blockNum)
+
+	if calArrayPos >= Cache1StoreBatchCache2Num {
+		log.Error("ipfs error IpsfAddNewBatchBlockToCache calc error,calArrayPos exeeed capacity", "calArrayPos", calArrayPos)
+		return fmt.Errorf("calArrayPos > IpsfAddNewBatchBlockToCache")
+	}
+
+	//var tmpBlockFile *os.File
+
+	tmpBlockFile, newFileFlg, err := IpfsGetFileCache2ByHash(stCfg.StBatchCahce2Hash[calArrayPos], strTmpBatchCache2File)
+
+	if err != nil {
+		tmpBlockFile.Close()
+		log.Error("ipfs IpsfAddNewBatchBlockToCache use IpfsGetFileCache2ByHash error", "error", err)
+		return err
+	}
+
+	err = d.IpfsSyncSaveBatchSecondCache(newFileFlg, blockNum, string(headHash[:]), fhash, tmpBlockFile)
+	if err != nil {
+		tmpBlockFile.Close()
+		log.Error("ipfs IpsfAddNewBatchBlockToCache use IpfsSyncSaveSecondCache error", "error", err)
+		return err
+	}
+	tmpBlockFile.Close()
+
+	if logMap {
+		log.Trace("`^^^^^^IpsfAddNewBatchBlockToCache cache begin^^^^^^^```")
+		ffile, _ := os.OpenFile(strTmpBatchCache2File, os.O_RDWR, 0644)
+		cache2st := new(Caches2CfgMap)
+		cache2st.MapList.Numberstore = make(map[uint64]NumberMapingCoupledHash)
+		loadCache(cache2st, 0, ffile)
+		for key, value := range cache2st.MapList.Numberstore {
+
+			log.Trace("SaveSecondCache info key", "key", key)
+			for key2, value2 := range value.Blockhash {
+				log.Trace("key-value", "key2", key2, "value:", value2, "k-v", cache2st.MapList.Numberstore[key].Blockhash[key2])
+			}
+
+		}
+		ffile.Close()
+		log.Trace("`^^^^^^cache end^^^^^^^```\n")
+
+	}
+
+	// add file
+	newHash, err := IpfsAddNewFile(strTmpBatchCache2File)
+
+	stCfg.StBatchCahce2Hash[calArrayPos] = string(newHash[0:IpfsHashLen])
+	err = WriteJsFile(path.Join(strCacheDirectory, strCache1BlockFile), stCfg)
+	if err != nil {
+		log.Error("ipfs IpsfAddNewBatchBlockToCache WriteJsFile error", "error", err)
+		return err
+	}
+	return nil
+	//return d.IPfsDirectoryUpdate()
+	//return nil
+
+}
+
+func (d *Downloader) AddNewBatchBlockToIpfs() {
+	/*d.dpIpfs.BatchStBlock.headerStoreFile
+	d.dpIpfs.BatchStBlock.bodyStoreFile
+	d.dpIpfs.BatchStBlock.receiptStoreFile*/
+	if d.dpIpfs.BatchStBlock.curBlockNum%BATCH_NUM != 0 {
+		log.Error(" ipfs AddNewBatchBlockToIpfs error ", "blockNum", d.dpIpfs.BatchStBlock.curBlockNum)
+
+	}
+	d.dpIpfs.BatchStBlock.headerStoreFile.Close()
+	d.dpIpfs.BatchStBlock.bodyStoreFile.Close()
+	d.dpIpfs.BatchStBlock.receiptStoreFile.Close()
+
+	bHeadHash, err1 := IpfsAddNewFile(strBatchHeaderFile)
+	if err1 != nil {
+		log.Error(" ipfs AddNewBatchBlockToIpfs error strBatchHeaderFile", bHeadHash)
+	}
+	bBodyHash, err1 := IpfsAddNewFile(strBatchBodyFile)
+	if err1 != nil {
+		log.Error(" ipfs AddNewBatchBlockToIpfs error strBatchBodyFile", bBodyHash)
+	}
+	bReceiptHash, err1 := IpfsAddNewFile(strBatchReceiptFile)
+	if err1 != nil {
+		log.Error(" ipfs AddNewBatchBlockToIpfs error strBatchReceiptFile", bReceiptHash)
+	}
+	strAllHash := "1:" + string(bHeadHash[0:IpfsHashLen]) + ",2:" + string(bBodyHash[0:IpfsHashLen]) + ",3:" + string(bReceiptHash[0:IpfsHashLen]) + ","
+
+	if gIpfsStoreCache.storeipfsCache1 == nil {
+		readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
+		if err != nil {
+			fmt.Println("cache1 is nil, create it", err)
+			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  cache1 is nil, create it  ", "error=", err)
+			//readCacheCfg2 := Cache1StoreCfg{}
+			readCacheCfg.OriginBlockNum = 0
+			readCacheCfg.CurrentBlockNum = 0
+			readCacheCfg.Cache2FileNum = 0
+		}
+		gIpfsStoreCache.storeipfsCache1 = readCacheCfg
+	}
+
+	if d.dpIpfs.BatchStBlock.ExpectBeginNum%BATCH_NUM == 1 {
+		d.IpsfAddNewBatchBlockToCache(gIpfsStoreCache.storeipfsCache1, d.dpIpfs.BatchStBlock.ExpectBeginNum, d.dpIpfs.BatchStBlock.ExpectBeginNumhash, strAllHash)
+	} else {
+		d.IpsfAddNewBatchBlockToCache(gIpfsStoreCache.storeipfsCache1, d.dpIpfs.BatchStBlock.minBlockNum, d.dpIpfs.BatchStBlock.minBlockNumHash, strAllHash)
+	}
+	log.Debug("ipfs AddNewBatchBlockToIpfs sucess ", "blockNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
+
+	//file test
+	if d.dpIpfs.BatchStBlock.ExpectBeginNum == 1 {
+		compareFiletoBatchBlock()
+	}
+	d.BatchBlockStoreInit(true)
+}
+
+var headerBatchBuf [][]byte = make([][]byte, 302, 302)
+var bodyBatchBuf [][]byte = make([][]byte, 302, 302)
+var receiptBatchBuf [][]byte = make([][]byte, 302, 302)
+
+func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
+
+	/*rlp.Encode(d.dpIpfs.BatchStBlock.headerStoreFile, stBlock.Sblock.Header())
+	rlp.Encode(d.dpIpfs.BatchStBlock.bodyStoreFile, stBlock.Sblock.Body())
+	rlp.Encode(d.dpIpfs.BatchStBlock.receiptStoreFile, stBlock.SReceipt)*/
+	var offset uint64 = 0
+
+	blockNum := stBlock.Sblock.NumberU64()
+	d.dpIpfs.BatchStBlock.curBlockNum = blockNum
+	blockNumint := int(blockNum) //file test
+	/*if blockNum == 1 {
+		log.Debug(" ipfs BatchStoreAllBlock write ExpectBeginNum ", "blockNum", blockNum)
+		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
+		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
+		d.dpIpfs.BatchStBlock.minBlockNum = blockNum
+		d.dpIpfs.BatchStBlock.minBlockNumHash = stBlock.Sblock.Header().Hash()
+	} else if blockNum%BATCH_NUM == 0 {
+		log.Debug(" ipfs BatchStoreAllBlock write ExpectBeginNum ", "blockNum", blockNum)
+		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
+		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
+	}*/
+	if blockNum%BATCH_NUM == 1 {
+		log.Debug(" ipfs BatchStoreAllBlock write ExpectBeginNum ", "blockNum", blockNum)
+		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
+		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
+	}
+	if d.dpIpfs.BatchStBlock.minBlockNum == 0 {
+		log.Debug(" ipfs BatchStoreAllBlock write minBlockNum ", "blockNum", blockNum)
+		d.dpIpfs.BatchStBlock.minBlockNum = blockNum
+		d.dpIpfs.BatchStBlock.minBlockNumHash = stBlock.Sblock.Header().Hash()
+	}
+
+	bhead, err := rlp.EncodeToBytes(stBlock.Sblock.Header())
+	if err != nil {
+		log.Error(" ipfs BatchStoreAllBlock error rlp.EncodeToBytes", "blockNum", blockNum)
+		return false
+	}
+	//file test
+	if blockNum <= 300 {
+		headerBatchBuf[blockNumint] = make([]byte, len(bhead))
+		copy(headerBatchBuf[blockNum], bhead)
+	}
+
+	offset = uint64(len(bhead))
+	log.Debug(" ipfs BatchStoreAllBlock write header ", "blockNum", blockNum, "offset", offset)
+	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, HeadBatchFlag)
+	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, offset)
+	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, blockNum)
+	d.dpIpfs.BatchStBlock.headerStoreFile.Write(bhead)
+
+	if len(stBlock.Sblock.Body().Transactions) == 0 {
+		return true
+	}
+
+	bbody, err := rlp.EncodeToBytes(stBlock.Sblock.Body())
+	if err != nil {
+		log.Error(" ipfs BatchStoreAllBlock error bbody  rlp.EncodeToBytes", "blockNum", blockNum)
+	}
+	//file test
+	if blockNum <= 300 {
+		bodyBatchBuf[blockNumint] = make([]byte, len(bbody))
+		copy(bodyBatchBuf[blockNum], bbody)
+	}
+
+	offset = uint64(len(bbody))
+	log.Debug(" ipfs BatchStoreAllBlock write body ", "blockNum", blockNum, "offset", offset)
+	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, BodyBatchFlag)
+	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, offset)
+	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, blockNum)
+	d.dpIpfs.BatchStBlock.bodyStoreFile.Write(bbody)
+	breceipt, err := rlp.EncodeToBytes(stBlock.SReceipt)
+	if err != nil {
+		log.Error(" ipfs BatchStoreAllBlock error breceipt rlp.EncodeToBytes", "blockNum", blockNum)
+	}
+	//file test
+	if blockNum <= 300 {
+		receiptBatchBuf[blockNumint] = make([]byte, len(breceipt))
+		copy(receiptBatchBuf[blockNum], breceipt)
+	}
+
+	offset = uint64(len(breceipt))
+	log.Debug(" ipfs BatchStoreAllBlock write receipt ", "blockNum", blockNum, "offset", offset)
+
+	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, ReceiptBatchFlag)
+	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, offset)
+	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, blockNum)
+	d.dpIpfs.BatchStBlock.receiptStoreFile.Write(breceipt)
+
+	return true
+}
+func compareFiletoBatchBlock() {
+	var err error = nil
+
+	var blockNum, offset uint64
+	var errb error = nil
+	headerStoreFile, err := os.OpenFile(strBatchHeaderFile, os.O_RDWR, 0644)
+	if err != nil {
+		log.Error(" ipfs  error headerStoreFile")
+	}
+	bodyStoreFile, err := os.OpenFile(strBatchBodyFile, os.O_RDWR, 0644)
+	if err != nil {
+		log.Error(" ipfs  error bodyStoreFile")
+	}
+	receiptStoreFile, err := os.OpenFile(strBatchReceiptFile, os.O_RDWR, 0644)
+	if err != nil {
+		log.Error(" ipfs  error receiptStoreFile")
+	}
+	log.Info(" compareFiletoBatchBlock begin header")
+	var offsetflag uint64
+	for {
+		errb = binary.Read(headerStoreFile, binary.BigEndian, &offsetflag)
+		if offsetflag != HeadBatchFlag {
+			log.Info(" compareFiletoBatchBlock  header offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+
+		errb = binary.Read(headerStoreFile, binary.BigEndian, &offset)
+		if errb == io.EOF || offset > 1024000000 {
+			log.Debug(" file over")
+			break
+		}
+		errb = binary.Read(headerStoreFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" file over")
+			break
+		}
+		log.Info(" compareFiletoBatchBlock begin header", "offset", offset, "blockNum", blockNum)
+		//offset = 64
+		blockBuf := make([]byte, int(offset))
+		leng, errb := headerStoreFile.Read(blockBuf)
+		log.Debug(" file flag", "err", errb, "leng", leng)
+		fmt.Println(errb, len(blockBuf))
+		/*leng, errb = headerStoreFile.ReadAt(blockBuf, 16)
+		log.Debug(" file flag", "err", errb, "leng", leng)
+		fmt.Println(errb, len(blockBuf))*/
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" file over")
+			break
+		}
+		obj := new(types.Header)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchHeader", "err", errd)
+		}
+		//d.SynOrignDownload(obj,1,blockNum)
+		//headerStoreFile.ReadAt
+		if bytes.Equal(blockBuf, headerBatchBuf[int(blockNum)]) {
+			log.Warn(" compareFiletoBatchBlock head is equal ", "len", len(blockBuf), "blockNum", blockNum, "objblockNum", obj.Number.Uint64())
+		} else {
+			log.Warn(" compareFiletoBatchBlock head is not not equal ", "len", len(blockBuf), "blockNum", blockNum, "objblockNum", obj.Number.Uint64())
+		}
+		if blockNum == 300 {
+			break
+		}
+
+	}
+	log.Info(" compareFiletoBatchBlock begin body")
+	for {
+
+		errb = binary.Read(bodyStoreFile, binary.BigEndian, &offsetflag)
+		if offsetflag != BodyBatchFlag {
+			log.Info(" compareFiletoBatchBlock  body offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+
+		errb = binary.Read(bodyStoreFile, binary.BigEndian, &offset)
+		if errb == io.EOF {
+			log.Debug(" file over")
+			break
+		}
+		errb = binary.Read(bodyStoreFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" file over")
+			break
+		}
+		blockBuf := make([]byte, offset)
+		leng, errb := bodyStoreFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" file over")
+			break
+		}
+		obj := new(types.Body)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchHeader", "err", errd)
+		}
+
+		if bytes.Equal(blockBuf, bodyBatchBuf[int(blockNum)]) {
+			log.Warn(" compareFiletoBatchBlock body is equal ", "len", len(blockBuf), "blockNum", blockNum)
+		} else {
+			log.Warn(" compareFiletoBatchBlock body is not not equal ", "len", len(blockBuf), "blockNum", blockNum)
+		}
+		if blockNum == 300 {
+			break
+		}
+	}
+	log.Info(" compareFiletoBatchBlock begin receipt")
+	for {
+		errb = binary.Read(receiptStoreFile, binary.BigEndian, &offsetflag)
+		if offsetflag != ReceiptBatchFlag {
+			log.Info(" compareFiletoBatchBlock  body offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+
+		errb = binary.Read(receiptStoreFile, binary.BigEndian, &offset)
+		if errb == io.EOF {
+			log.Debug(" file over")
+			break
+		}
+		errb = binary.Read(receiptStoreFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" file over")
+			break
+		}
+		blockBuf := make([]byte, offset)
+		leng, errb := receiptStoreFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" file over")
+			break
+		}
+		obj := new(types.Receipts)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchHeader", "err", errd)
+		}
+		if bytes.Equal(blockBuf, receiptBatchBuf[int(blockNum)]) {
+			log.Warn(" compareFiletoBatchBlock receipt is equal ", "len", len(blockBuf), "blockNum", blockNum)
+		} else {
+			log.Warn(" compareFiletoBatchBlock receipt is not not equal ", "len", len(blockBuf), "blockNum", blockNum)
+		}
+		if blockNum == 300 {
+			break
+		}
+		//d.SynOrignDownload(obj,1,blockNum)
+	}
+	headerStoreFile.Close()
+	bodyStoreFile.Close()
+	receiptStoreFile.Close()
+}
+func (d *Downloader) BatchBlockStoreInit(bNeedClear bool) {
+	var err error = nil
+	var fileFlg int
+	d.dpIpfs.BatchStBlock.curBlockNum = 0
+	d.dpIpfs.BatchStBlock.ExpectBeginNum = 0
+	d.dpIpfs.BatchStBlock.minBlockNum = 0
+	if bNeedClear == true {
+		fileFlg = os.O_CREATE | os.O_TRUNC | os.O_RDWR
+	} else {
+		fileFlg = os.O_CREATE | os.O_RDWR
+	}
+	d.dpIpfs.BatchStBlock.headerStoreFile, err = os.OpenFile(strBatchHeaderFile, fileFlg, 0644)
+	if err != nil {
+		log.Error(" ipfs BatchBlockStoreInit error headerStoreFile")
+	}
+	d.dpIpfs.BatchStBlock.bodyStoreFile, err = os.OpenFile(strBatchBodyFile, fileFlg, 0644)
+	if err != nil {
+		log.Error(" ipfs BatchBlockStoreInit error bodyStoreFile")
+	}
+	d.dpIpfs.BatchStBlock.receiptStoreFile, err = os.OpenFile(strBatchReceiptFile, fileFlg, 0644)
+	if err != nil {
+		log.Error(" ipfs BatchBlockStoreInit error receiptStoreFile")
+	}
+	if bNeedClear == true {
+		return
+	}
+	if GetFileSize(strBatchHeaderFile) == 0 {
+		log.Error(" ipfs BatchBlockStoreInit error file is zero")
+		return
+	}
+	hflg, hbegin, hhash, hlast := d.checkStoreFile(d.dpIpfs.BatchStBlock.headerStoreFile, HeadBatchFlag, true)
+	bflg, bbegin, _, blast := d.checkStoreFile(d.dpIpfs.BatchStBlock.bodyStoreFile, BodyBatchFlag, false)
+	fflg, rbegin, _, rlast := d.checkStoreFile(d.dpIpfs.BatchStBlock.receiptStoreFile, ReceiptBatchFlag, false)
+	log.Debug(" ipfs BatchBlockStoreInit", "hflg", hflg, "bflg", bflg, "fflg", fflg, "hbegin", hbegin, "bbegin", bbegin, "rbegin", rbegin, "hlast", hlast, "blast", blast, "rlast", rlast)
+	if hflg && hbegin == bbegin && bbegin == rbegin {
+		log.Debug(" ipfs BatchBlockStoreInit ExpectBeginNum", "bbegin", bbegin, "hash", hhash)
+		if bbegin%BATCH_NUM != 1 {
+			log.Error(" ipfs BatchBlockStoreInit  read file error")
+			return
+		}
+		d.dpIpfs.BatchStBlock.ExpectBeginNum = bbegin
+		d.dpIpfs.BatchStBlock.minBlockNum = bbegin
+		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = hhash
+		d.dpIpfs.BatchStBlock.minBlockNumHash = hhash
+	}
+	if hlast == blast && blast == rlast {
+		log.Debug(" ipfs BatchBlockStoreInit ExpectBeginNum", "bbegin", bbegin)
+		d.dpIpfs.BatchStBlock.curBlockNum = blast
+	}
+}
+func (d *Downloader) checkStoreFile(blockFile *os.File, BatchFlag uint64, headFlg bool) (bool, uint64, common.Hash, uint64) {
+	var errb error = nil
+	var blockNum, offset, offsetflag, beginNum, lastestblock uint64
+	var headHash common.Hash
+	var okFlg bool = false
+	for {
+		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
+		if errb == io.EOF {
+			log.Info(" checkStoreFile  head normal over")
+			okFlg = true
+			break
+		}
+
+		if offsetflag != BatchFlag {
+			log.Info(" checkStoreFile  head offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &offset)
+		if errb == io.EOF || offset > 1024000000 {
+			log.Debug(" checkStoreFile file over", "offset", offset)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" checkStoreFile file over", "blockNum", blockNum)
+			break
+		}
+
+		lastestblock = blockNum
+
+		blockBuf := make([]byte, offset)
+		leng, errb := blockFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" checkStoreFile file over", "length", leng, "blockNum", blockNum)
+			break
+		}
+		if beginNum == 0 {
+			beginNum = blockNum
+			if headFlg {
+				obj := new(types.Header)
+				errd := rlp.DecodeBytes(blockBuf, obj)
+				if blockNum != obj.Number.Uint64() {
+					log.Error("checkStoreFile DecodeBytes number error", "blockNum", blockNum, "packetblocknum", obj.Number.Uint64())
+					break
+				} else if errd == nil {
+					headHash = obj.Hash()
+				}
+			}
+
+		}
+	}
+
+	return okFlg, beginNum, headHash, lastestblock
+}
+func (d *Downloader) ParseBatchHeader() bool {
+	var batchblockhash string
+	var blockNum, offset, offsetflag uint64
+	blockFile, err := IpfsGetBlockByHash(batchblockhash)
+	defer func() {
+		blockFile.Close()
+		os.Remove(batchblockhash)
+	}()
+	if err != nil {
+		log.Debug(" ParseBatchHeader error in IpfsGetBlockByHash", "error", err)
+		return false
+	}
+	log.Debug("ipfs  ParseBatchHeader begin")
+	var errb error = nil
+	for {
+		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
+		if errb == io.EOF {
+			log.Info(" ParseBatchHeader  head normal over")
+			break
+		}
+		if offsetflag != HeadBatchFlag {
+			log.Info(" ParseBatchHeader  head offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &offset)
+		if errb == io.EOF || offset > 1024000000 {
+			log.Debug(" ParseBatchHeader file over", "offset", offset)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" ParseBatchHeader file over", "blockNum", blockNum)
+			break
+		}
+		blockBuf := make([]byte, offset)
+		leng, errb := blockFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" ParseBatchHeader file over", "length", leng, "blockNum", blockNum)
+			break
+		}
+		obj := new(types.Header)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchHeader", "err", errd, "blockNum", blockNum)
+		}
+		if blockNum != obj.Number.Uint64() {
+			log.Error("ipfs dencode block info error", "blockNum", blockNum, "packetblocknum", obj.Number.Uint64())
+		}
+		d.SynOrignDownload(obj, 1, obj.Number.Uint64())
+	}
+
+	return true
+}
+func (d *Downloader) ParseBatchBody(batchblockhash string) bool {
+
+	var blockNum, offset, offsetflag uint64
+	blockFile, err := IpfsGetBlockByHash(batchblockhash)
+	defer func() {
+		blockFile.Close()
+		os.Remove(batchblockhash)
+	}()
+	if err != nil {
+		log.Debug(" ParseBatchBody error in IpfsGetBlockByHash", "error", err)
+		return false
+	}
+	log.Debug("ipfs  ParseBatchBody begin")
+	var errb error = nil
+	for {
+		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
+		if errb == io.EOF {
+			log.Info(" ParseBatchBody  head normal over")
+			break
+		}
+		if offsetflag != BodyBatchFlag {
+			log.Info(" ParseBatchBody  body offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+
+		errb = binary.Read(blockFile, binary.BigEndian, &offset)
+		if errb == io.EOF || offset > 102400000000 {
+			log.Debug(" ParseBatchBody file over", "offset", offset)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" ParseBatchBody file over", "blockNum", blockNum)
+			break
+		}
+		blockBuf := make([]byte, offset)
+		leng, errb := blockFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" ParseBatchBody file over", "length", leng, "blockNum", blockNum)
+			break
+		}
+		obj := new(types.Body)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchBody", "err", errd, "blockNum", blockNum)
+		}
+		d.SynOrignDownload(obj, 2, blockNum)
+	}
+	return true
+}
+func (d *Downloader) ParseBatchReceipt(batchblockhash string) bool {
+
+	var blockNum, offset, offsetflag uint64
+	blockFile, err := IpfsGetBlockByHash(batchblockhash)
+	defer func() {
+		blockFile.Close()
+		os.Remove(batchblockhash)
+	}()
+	if err != nil {
+		log.Debug(" ParseBatchReceipt error in IpfsGetBlockByHash", "error", err)
+		return false
+	}
+	log.Debug("ipfs  ParseBatchReceipt begin")
+	var errb error = nil
+	for {
+
+		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
+		if errb == io.EOF {
+			log.Info(" ParseBatchReceipt  head normal over")
+			break
+		}
+		if offsetflag != ReceiptBatchFlag {
+			log.Info(" ParseBatchReceipt  receipt offset flag error ", "offsetflag", offsetflag)
+			break
+		}
+
+		errb = binary.Read(blockFile, binary.BigEndian, &offset)
+		if errb == io.EOF || offset > 1024000000 {
+			log.Debug(" ParseBatchReceipt file over", "offset", offset)
+			break
+		}
+		errb = binary.Read(blockFile, binary.BigEndian, &blockNum)
+		if errb == io.EOF {
+			log.Debug(" ParseBatchReceipt file over", "blockNum", blockNum)
+			break
+		}
+		blockBuf := make([]byte, offset)
+		leng, errb := blockFile.Read(blockBuf)
+		if errb == io.EOF || leng != len(blockBuf) {
+			log.Debug(" ParseBatchReceipt file over", "length", leng, "blockNum", blockNum)
+			break
+		}
+		obj := new(types.Receipts)
+		//errd := rlp.Decode(blockFile, obj)
+		errd := rlp.DecodeBytes(blockBuf, obj)
+		if errd != nil {
+			log.Error("ipfs dencode block info from ParseBatchReceipt", "err", errd, "blockNum", blockNum)
+		}
+		d.SynOrignDownload(obj, 3, blockNum)
+	}
+	return true
+}
+
+func (d *Downloader) DownloadBatchBlock(headhash common.Hash, headNumber uint64, pendflag, index int) int {
+	//  后续需要 优化获取cache 流程
+	strHeadhash := string(headhash[:])
+	log.Debug(" *** ipfs  DownloadBatchBlock begin in IpfsSyncGetFirstCache &&&", "headnumber", headNumber, "pendingflg", pendflag)
+	var err error = nil
+	gIpfsCache.getipfsCache1, err = d.IpfsSyncGetFirstCache(index)
+	//readCache =(*Cache1StoreCfg)readCacheCfg//readCache1Info
+	if err != nil {
+		log.Error(" ipfs  DownloadBatchBlock error in IpfsSyncGetFirstCache")
+		return 1
+	}
+	//
+	calArrayPos := uint32(headNumber / BATCH_NUM / Cache2StoreBatchBlockMaxNum)
+	//arrayIndex := uint32((headNumber - gIpfsCache.getipfsCache1.OriginBlockNum) / Cache2StoreHashMaxNum) //
+	if calArrayPos >= Cache1StoreBatchCache2Num {
+		log.Error(" ipfs error DownloadBatchBlock exceed capacity", "arrayIndex", calArrayPos, "Cache1StoreCache2Num", Cache1StoreBatchCache2Num)
+		return 2
+	}
+	stCache2Infohash := gIpfsCache.getipfsCache1.StBatchCahce2Hash[calArrayPos]
+	//
+	cache2File, err := IpfsGetBlockByHash(stCache2Infohash)
+	if err != nil {
+		log.Error(" ipfs  DownloadBatchBlock error IpfsGetBlockByHash cache2File", "error", err)
+		return 1
+	}
+	defer cache2File.Close()
+
+	//cache2st := new(Caches2CfgMap) //eof
+	gIpfsCache.getipfsBatchCache2 = new(Caches2CfgMap)
+	//for {
+	err = loadCache(gIpfsCache.getipfsBatchCache2, 0, cache2File)
+	if err != nil {
+		log.Error("ipfs DownloadBatchBlock loadCache error", "error", err)
+		return 1
+	}
+
+	//gIpfsCache.bassign = true
+	//
+	if logMap {
+		log.Debug("********linshi lastest begin *********```\n")
+		//for key, value := range gIpfsCache.getipfsCache2.MapList.Numberstore[headNumber] {
+		for key, value := range gIpfsCache.getipfsBatchCache2.MapList.Numberstore {
+			//fmt.Println(i.CurrentNum, i.HashNum)
+			log.Trace("Lastest curLastestInfo key", "key", key)
+			//if key == headNumber
+			{
+				for key2, value2 := range value.Blockhash {
+					log.Debug("key-value", "key2:", key2, "value:", value2, "value2", gIpfsCache.getipfsBatchCache2.MapList.Numberstore[key].Blockhash[key2])
+				}
+			}
+
+		}
+
+		log.Debug("```linshi lastest end`````\n")
+	}
+
+	_, ok := gIpfsCache.getipfsBatchCache2.MapList.Numberstore[headNumber]
+	if ok {
+
+		blockhash, ok := gIpfsCache.getipfsBatchCache2.MapList.Numberstore[headNumber].Blockhash[strHeadhash] // 1:hash,2:hash,3:hash
+		if ok {
+			strSet := strings.Split(blockhash, ",")
+			for _, str := range strSet {
+				hstr := string([]byte(str)[:2])
+				if hstr == "2:" {
+					log.Debug(" ipfs  DownloadBatchBlock get new batchblock body form ipfs use by getCache2", "blockNum", headNumber)
+					d.ParseBatchBody(string([]byte(str)[2:]))
+				} else if hstr == "3:" && pendflag == 2 {
+					log.Debug(" ipfs  DownloadBatchBlock get new batchblock receipt form ipfs use by getCache2", "blockNum", headNumber)
+					d.ParseBatchReceipt(string([]byte(str)[2:]))
+				}
+			}
+			//strings.Index()
+			//d.queue.BlockIpfsdeletePool(headNumber)
+
+			return 0
+		} else {
+			log.Error("ipfs  DownloadBatchBlock  error map Blockhash", "headNumber", headNumber, "headhash", headhash)
+			return 1
+		}
+	} else {
+		log.Error("ipfs  DownloadBatchBlock  error map ", "headNumber", headNumber, "headhash", headhash)
+		return 1
+	}
+
+}
+
 func (d *Downloader) SynBlockFormBlockchain() {
 	log.Debug(" ipfs proc go SynBlockFormBlockchain enter")
+
+	d.BatchBlockStoreInit(false)
+
 	recvSync := time.NewTicker(5 * time.Second)
 	defer recvSync.Stop()
 	for {
@@ -1380,6 +2267,8 @@ func (d *Downloader) SynBlockFormBlockchain() {
 		}
 	}
 }
+
+//存储过程
 func (d *Downloader) SynDealblock() {
 
 	if !atomic.CompareAndSwapInt32(&d.dpIpfs.IpfsDealBlocking, 0, 1) {
@@ -1420,18 +2309,29 @@ func (d *Downloader) SynIPFSCheck() {
 					//for index := 0; index < lsize; index++ {
 					for element := d.dpIpfs.DownRetrans.Front(); element != nil; element = element.Next() {
 						//tmp := d.dpIpfs.DownRetrans.PopItem().(*DownloadRetry)
+						var res int
 						tmpReq := element.Value.(*DownloadRetry)
-						res := d.SyncBlockFromIpfs(tmpReq.header.Hash(), tmpReq.header.Number.Uint64(), tmpReq.downNum%2)
+						//res := d.SyncBlockFromIpfs(tmpReq.header.Hash(), tmpReq.header.Number.Uint64(), tmpReq.downNum%2)
+						if tmpReq.flag == 1 {
+							res = d.SyncBlockFromIpfs(tmpReq.header.Hash(), tmpReq.header.Number.Uint64(), tmpReq.coinstr, 0)
+						} else if tmpReq.flag == 2 {
+							res = d.DownloadBatchBlock(tmpReq.header.Hash(), tmpReq.header.Number.Uint64(), tmpReq.ReqPendflg, 0)
+						}
+
 						log.Debug(" ipfs get block from  retrans SyncBlockFromIpfs ", "res", res, "downNum", tmpReq.downNum, "blockNum", tmpReq.header.Number.Uint64())
 						if res == 1 {
-							if tmpReq.downNum < 50 {
+							if tmpReq.downNum < 1 {
 								//d.dpIpfs.DownRetrans.PushBack(tmp)
 								//log.Debug(" ipfs get block from  retrans again", "num", tmp.downNum, "blockNum", tmp.header.Number.Uint64())
 							} else {
 								d.dpIpfs.DownRetrans.Remove(element)
+								//加入原始下载方式
+								d.queue.BlockRegetByOld(tmpReq.ReqPendflg, tmpReq.header)
+								//lb d.queue.BlockIpfsdeletePool(tmpReq.header.Number.Uint64())
 							}
 							tmpReq.downNum++
 						} else if res == 0 {
+							//lb d.queue.BlockIpfsdeletePool(tmpReq.header.Number.Uint64())
 							d.dpIpfs.DownRetrans.Remove(element)
 						}
 					}
@@ -1441,4 +2341,12 @@ func (d *Downloader) SynIPFSCheck() {
 		}
 	}
 
+}
+func (d *Downloader) ClearIpfsQueue() {
+	/*
+		if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
+			for element := d.dpIpfs.DownRetrans.Front(); element != nil; element = element.Next() {
+				d.dpIpfs.DownRetrans.Remove(element)
+			}
+		}*/
 }

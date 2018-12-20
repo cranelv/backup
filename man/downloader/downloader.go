@@ -32,8 +32,8 @@ import (
 var (
 	MaxHashFetch    = 512 // Amount of hashes to be fetched per retrieval request
 	MaxBlockFetch   = 128 // Amount of blocks to be fetched per retrieval request
-	MaxHeaderFetch  = 192 // Amount of block headers to be fetched per retrieval request
-	MaxSkeletonSize = 128 // Number of header fetches to need for a skeleton assembly
+	MaxHeaderFetch  = 100 //192 // Amount of block headers to be fetched per retrieval request
+	MaxSkeletonSize = 100 //128 // Number of header fetches to need for a skeleton assembly
 	MaxBodyFetch    = 128 // Amount of block bodies to be fetched per retrieval request
 	MaxReceiptFetch = 256 // Amount of transaction receipts to allow fetching per request
 	MaxStateFetch   = 384 // Amount of node state values to allow fetching per request
@@ -49,9 +49,9 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [man/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 2048      // Number of content download results to import at once into the chain
+	maxQueuedHeaders  = 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess = 1024      //2048      // Number of header download results to import at once into the chain
+	maxResultsProcess = 396       //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
@@ -144,14 +144,25 @@ type Downloader struct {
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 
 	//lb ipfs
+	curOrigin     uint64
+	curRemote     uint64
 	dpIpfs        *IPfsDownloader
 	ipfsBodyCh    chan BlockIpfs //result
 	bIpfsDownload int
 }
 type BlockIpfs struct {
+	Flag             int
+	BlockNum         uint64
 	Headeripfs       *types.Header
 	Unclesipfs       []*types.Header
-	Transactionsipfs types.SelfTransactions
+	Transactionsipfs []types.SelfTransaction //Transactions//SelfTransaction?????
+	Receipt          types.Receipts
+}
+type BlockIpfsReq struct {
+	ReqPendflg  int
+	Flag        int
+	coinstr     string
+	HeadReqipfs *types.Header
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -219,7 +230,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 	if lightchain == nil {
 		lightchain = chain
 	}
-
+	log.Trace("Downloader New enter in")
 	dl := &Downloader{
 		IpfsMode:       GetIpfsMode(), //true,   //false,
 		mode:           mode,
@@ -526,6 +537,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 	d.syncStatsChainHeight = height
 	d.syncStatsLock.Unlock()
 
+	d.curOrigin = origin
+	d.curRemote = height
 	// Ensure our origin point is below any fast sync pivot point
 	pivot := uint64(0)
 	if d.mode == FastSync {
@@ -585,6 +598,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 	}
 	d.queue.Close()
+	d.ClearIpfsQueue()
 	d.Cancel()
 	return err
 }
@@ -1234,9 +1248,14 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			}
 			//log.Trace("Data fetching 2", "type", kind, "cont", finished, "len", inFlight())
 			// If there's nothing more to fetch, wait or terminate
-			if d.bIpfsDownload == 2 && kind == "bodies" && bchecked {
-				d.queue.checkIpfsPool()
-				if d.queue.BlockIpfsPoolBlocksNum() == 0 {
+			//if d.bIpfsDownload == 2 && kind == "bodies" && bchecked {
+			if d.bIpfsDownload == 2 && kind != "headers" && bchecked {
+				find, ipfsnum, list := d.queue.checkIpfsPool()
+				if find {
+					d.queue.BlockIpfsdeleteBatch(list)
+				}
+				//if d.queue.BlockIpfsPoolBlocksNum() == 0
+				if ipfsnum == 0 {
 					log.Debug("fetchParts Data fetching completed ipfs block", "type", kind)
 					//return nil
 					bCheckIpfsOver = true
@@ -1257,7 +1276,8 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 						} else {
 							return nil
 						}*/
-					if d.bIpfsDownload == 2 && kind == "bodies" {
+					//if d.bIpfsDownload == 2 && kind == "bodies" {
+					if d.bIpfsDownload == 2 && kind != "headers" {
 						if bCheckIpfsOver == true {
 							log.Debug("Data fetching completed ipfs and syn block body part", "type", kind)
 							return nil
@@ -1452,7 +1472,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int, pS
 					limit = len(headers)
 				}
 				chunk := headers[:limit]
-				log.Debug("download  processHeaders  recv header then deal ", "head number", chunk[0].Number.Uint64())
+				log.Debug("download  processHeaders  recv header then deal ", "begin head number", chunk[0].Number.Uint64())
 				// In case of header only syncing, validate the chunk immediately
 				if d.mode == FastSync || d.mode == LightSync {
 					// Collect the yet unknown headers to mark them as uncertain
@@ -1503,8 +1523,17 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, td *big.Int, pS
 				if d.bIpfsDownload == 2 && (d.mode == FullSync || d.mode == FastSync) {
 					//ChIpfs <- headers://processHeaders
 					//
-					sender, err := d.queue.Reserveipfs(chunk) //Reserveipfs
+
+					sender, err := d.queue.Reserveipfs(chunk, d.curOrigin, d.curRemote) //Reserveipfs
 					log.Warn("download recv skeleton header send to ipfs", "len chunk", len(chunk), "real send =", len(sender))
+
+					/*	for _, header := range sender {
+						number := header.Number.Int64()
+						if number%300 == 1 {
+							if d.curOrigin%300 == 1 {
+							}
+						}
+					}*/
 					if err == nil {
 						d.dpIpfs.HeaderIpfsCh <- sender
 					}
@@ -1867,7 +1896,7 @@ func (d *Downloader) WaitBlockInfoFromIpfs() {
 		select {
 		//case headers := <-HeaderIpfsCh:
 		case block := <-d.ipfsBodyCh:
-			log.Debug("downloader WaitBlockInfoFromIpfs recv block info from ipfs", "head num", block.Headeripfs.Number.Int64())
+			log.Debug("downloader WaitBlockInfoFromIpfs recv block info from ipfs", "head num", block.BlockNum)
 			d.queue.recvIpfsBody(&block)
 			//case cancel
 		}

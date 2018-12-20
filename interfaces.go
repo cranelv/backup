@@ -196,3 +196,9 @@ type GasEstimator interface {
 type PendingStateEventer interface {
 	SubscribePendingTransactions(ctx context.Context, ch chan<- *types.Transaction) (Subscription, error)
 }
+
+
+
+type StateReader interface {
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+}

@@ -56,7 +56,6 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		nextElect := electStates.NextElect
 		electList := []mc.ElectNodeInfo{}
 		for _, v := range nextElect {
-
 			switch v.Type {
 			case common.RoleBackupValidator:
 				electList = append(electList, v)
@@ -219,32 +218,35 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 		return nil, err
 	}
 	height := block.Number().Uint64()
+	preHeader := self.bc.GetHeaderByHash(block.ParentHash())
+	if preHeader == nil {
+		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
+		return nil, errors.New("header is nil")
+	}
 	if bcInterval.IsBroadcastNumber(height - 1) {
 		log.ERROR(Module, "ProduceMinHashData", "", "是广播区块后一块", height)
-		return mc.MinHashStruct{MinHash: block.ParentHash()}, nil
+		return mc.RandomInfoStruct{MinHash: block.ParentHash(),MaxNonce:preHeader.Nonce.Uint64()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyMinHash, "err", err)
 		return nil, err
 	}
-	preMinHash, OK := data.(*mc.MinHashStruct)
-	if OK == false || preMinHash == nil {
+	randomInfo, OK := data.(*mc.RandomInfoStruct)
+	if OK == false || randomInfo == nil {
 		log.ERROR(Module, "PreBroadStateRoot 非法", "反射失败")
 		return nil, err
 	}
-	header := self.bc.GetHeaderByHash(block.ParentHash())
-	if header == nil {
-		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
-		return nil, errors.New("header is nil")
-	}
 
-	nowHash := header.Hash().Big()
-	if nowHash.Cmp(preMinHash.MinHash.Big()) < 0 {
-		preMinHash.MinHash = header.Hash()
+	nowHash := preHeader.Hash().Big()
+	if nowHash.Cmp(randomInfo.MinHash.Big()) < 0 {
+		randomInfo.MinHash = preHeader.Hash()
 	}
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", preMinHash.MinHash.String())
-	return preMinHash, nil
+	if preHeader.Nonce.Uint64()>randomInfo.MaxNonce{
+		randomInfo.MaxNonce=preHeader.Nonce.Uint64()
+	}
+	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
+	return randomInfo, nil
 }
 
 func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {

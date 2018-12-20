@@ -50,7 +50,7 @@ type ChainReader interface {
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
-func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, []common.Address, []vm.DepositDetail, error) {
+func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, []vm.DepositDetail, error) {
 
 	currentTop, originElectNodes, err := chain.GetGraphByState(state)
 	if err != nil {
@@ -75,10 +75,10 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.St
 		}
 	}
 
-	eletNodes := make([]common.Address, 0)
+	electNodes := make(map[common.Address]uint16, 0)
 	for _, node := range originElectNodes.ElectList {
 		if node.Type == node.Type&roleType {
-			eletNodes = append(eletNodes, node.Account)
+			electNodes[node.Account] = node.Stock
 		}
 	}
 	var depositNum uint64
@@ -113,7 +113,7 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.St
 		log.ERROR(PackageName, "获取抵押列表为空", "")
 		return nil, nil, nil, errors.New("获取抵押列表为空 ")
 	}
-	return topNodes, eletNodes, depositNodes, nil
+	return topNodes, electNodes, depositNodes, nil
 }
 
 func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, currentNum uint64, rate uint64) map[common.Address]*big.Int {
@@ -140,13 +140,13 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 
 }
 
-func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originElectNodes []common.Address, depositNodes []vm.DepositDetail, rewardRate uint64) map[common.Address]*big.Int {
+func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originElectNodes map[common.Address]uint16, depositNodes []vm.DepositDetail, rewardRate uint64) map[common.Address]util.DepositInfo {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph {
 		NodesRewardMap[nodelist] = rewardRate
 		log.INFO(PackageName, "当前节点", nodelist.Hex())
 	}
-	for _, electList := range originElectNodes {
+	for electList := range originElectNodes {
 		if _, ok := NodesRewardMap[electList]; ok {
 			NodesRewardMap[electList] = util.RewardFullRate
 		} else {
@@ -155,7 +155,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 		log.INFO(PackageName, "初选节点", electList.Hex(), "比例", NodesRewardMap[electList])
 	}
 
-	selectedNodesDeposit := make(map[common.Address]*big.Int, 0)
+	selectedNodesDeposit := make(map[common.Address]util.DepositInfo, 0)
 
 	for _, v := range depositNodes {
 
@@ -165,7 +165,13 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 				return nil
 			}
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
-			selectedNodesDeposit[v.Address] = deposit
+			var finalStock uint16
+			if stock, ok := originElectNodes[v.Address]; ok {
+				finalStock = stock
+			} else {
+				finalStock = 1
+			}
+			selectedNodesDeposit[v.Address] = util.DepositInfo{Deposit: deposit, Stock: finalStock}
 			log.INFO(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit)
 		}
 	}

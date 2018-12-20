@@ -1649,11 +1649,12 @@ func (bPool *NormalTxPool) ProduceMatrixStateData(block *types.Block, readFn mat
 	return nil, errors.New("without broadcatTxs")
 }
 
-type Backend interface {
-	BlockChain() *BlockChain
+type ChainReader interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
 }
-func GetBroadcastTxMap(bc Backend, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
-	state, err := bc.BlockChain().StateAt(root)
+
+func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+	state, err := bc.StateAt(root)
 	if err != nil {
 		log.Error("GetBroadcastTxMap StateAt err")
 		return nil, err

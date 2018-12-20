@@ -70,6 +70,11 @@ type StateDB interface {
 	SetMatrixData(hash common.Hash, val []byte)
 }
 
+type DepositInfo struct {
+	Deposit *big.Int
+	Stock   uint16
+}
+
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {
 
 	if 0 == reward.Cmp(big.NewInt(0)) {
@@ -94,7 +99,7 @@ func CalcRateReward(rewardAmount *big.Int, rate uint64) *big.Int {
 	return new(big.Int).Div(temp, new(big.Int).SetUint64(RewardFullRate))
 }
 
-func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]*big.Int) map[common.Address]*big.Int {
+func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]DepositInfo) map[common.Address]*big.Int {
 
 	if 0 == len(depositNodes) {
 		log.ERROR(PackageName, "抵押列表为空", "")
@@ -105,7 +110,7 @@ func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]*big.Int) 
 	depositNodesFix := make(map[common.Address]*big.Int)
 
 	for k, v := range depositNodes {
-		depositTemp := new(big.Int).Div(v, big.NewInt(1e18))
+		depositTemp := new(big.Int).Div(v.Deposit, big.NewInt(1e18))
 		if depositTemp.Cmp(big.NewInt(0)) <= 0 {
 			log.ERROR(PackageName, "定点化的抵押值错误", depositTemp)
 			return nil

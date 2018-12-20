@@ -8,6 +8,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/matrix/go-matrix/common/readstatedb"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -32,7 +33,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
@@ -65,6 +65,7 @@ const (
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	BlockChainVersion = 3
+	ModuleName        = "blockchain"
 )
 
 // CacheConfig contains the configuration values for the trie caching/pruning
@@ -236,7 +237,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 			}
 		}(bc, reqCh, sub)
 	} else {
-		log.ERROR("BlockChain", "订阅CA请求当前区块事件失败", err)
+		log.ERROR(ModuleName, "订阅CA请求当前区块事件失败", err)
 	}
 
 	manparams.SetStateReader(bc)
@@ -545,7 +546,7 @@ func (bc *BlockChain) insert(block *types.Block) {
 		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
 
 		if currentblock.NumberU64() > block.NumberU64() {
-			log.INFO("blockchain", "rewind to", block.NumberU64()-1)
+			log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
 			bc.bodyCache.Purge()
 			bc.bodyRLPCache.Purge()
 			bc.blockCache.Purge()
@@ -912,8 +913,13 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		rawdb.WriteTxLookupEntries(batch, block)
 		//lb
 		if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-
-			bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+			tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
+			//copy(tmpBlock.SReceipt, receipts)
+			tmpBlock.SReceipt = receipts
+			tmpBlock.Pading = uint64(len(block.Body().Transactions))
+			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
+			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 		}
 		stats.processed++
 
@@ -1013,7 +1019,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, block)
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-		bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+		//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+		tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
+		//copy(tmpBlock.SReceipt, receipts)
+		//tmpBlock.SReceipt = receipts
+		tmpBlock.Pading = uint64(len(block.Body().Transactions))
+		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 	}
 
 	//log.Info("miss tree node debug", "入链时", "commit前state状态")
@@ -1152,248 +1164,6 @@ func (bc *BlockChain) InsertChainNotify(chain types.Blocks, notify bool) (int, e
 	}
 	return n, err
 }
-func (bc *BlockChain) GetUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {
-	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
-	if err != nil {
-		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
-		return nil, err
-	}
-	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
-	if Ok == false {
-		log.ERROR("blockchain", "选举生成点信息失败 err", err)
-		return nil, err
-	}
-
-	log.INFO("blockchain", "获取所有参与uptime点名高度", num)
-
-	upTimeAccounts := make([]common.Address, 0)
-
-	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
-	log.INFO("blockchain", "参选矿工节点uptime高度", minerNum)
-	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
-	if err != nil {
-		return nil, err
-	}
-
-	log.INFO("getUpTimeAccounts", "ans", ans)
-	for _, v := range ans {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
-	}
-	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
-	log.INFO("blockchain", "参选验证节点uptime高度", validatorNum)
-	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
-	if err != nil {
-		return upTimeAccounts, err
-	}
-	for _, v := range ans1 {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
-	}
-	log.INFO("blockchain", "获取所有uptime账户为", upTimeAccounts)
-	return upTimeAccounts, nil
-}
-
-func (bc *BlockChain) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO("blockchain", "获取所有心跳交易", "")
-	heatBeatUnmarshallMMap, error := GetBroadcastTxs(hash, mc.Heartbeat)
-	if nil != error {
-		log.WARN("blockchain", "获取主动心跳交易错误", error)
-	}
-
-	calltherollUnmarshall, error := GetBroadcastTxs(hash, mc.CallTheRoll)
-	if nil != error {
-		log.ERROR("blockchain", "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		temp := make(map[string]uint32, 0)
-		error := json.Unmarshal(v, &temp)
-		if nil != error {
-			log.ERROR("blockchain", "序列化点名心跳交易错误", error)
-			return nil, nil, error
-		}
-		log.INFO("blockchain", "++++++++点名心跳交易++++++++", temp)
-		for k, v := range temp {
-			calltherollMap[common.HexToAddress(k)] = v
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
-}
-
-func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	var blockHash common.Hash
-	HeatBeatReqAccounts := make([]common.Address, 0)
-	HeartBeatMap := make(map[common.Address]bool, 0)
-	blockNumRem := blockNum % bcInterval.GetBroadcastInterval()
-
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := blockNum - blockNumRem
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal = subVal
-	if blockNum < bcInterval.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
-	} else {
-		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-	}
-	// todo: remove
-	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
-	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % ((bcInterval.GetBroadcastInterval()) - 1)
-
-	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
-		ret := currentAcc.Uint64() % (bcInterval.GetBroadcastInterval() - 1)
-		if ret == val {
-			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
-			if _, ok := heatBeatAccounts[v]; ok {
-				HeartBeatMap[v] = true
-			} else {
-				HeartBeatMap[v] = false
-
-			}
-			log.Info("blockchain", "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
-		}
-	}
-
-	var upTime uint64
-	originTopologyNum := blockNum - blockNum%bcInterval.GetBroadcastInterval() - 1
-	log.Info("blockchain", "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-		onlineBlockNum, ok := calltherollRspAccounts[account]
-		if ok { //被点名,使用点名的uptime
-			upTime = uint64(onlineBlockNum)
-			log.INFO("blockchain", "点名账号", account, "uptime", upTime)
-
-		} else { //没被点名，没有主动上报，则为最大值，
-			if v, ok := HeartBeatMap[account]; ok { //有主动上报
-				if v {
-					upTime = bcInterval.GetBroadcastInterval() - 3
-					log.INFO("blockchain", "没被点名，有主动上报有响应", account, "uptime", upTime)
-				} else {
-					upTime = 0
-					log.INFO("blockchain", "没被点名，有主动上报无响应", account, "uptime", upTime)
-				}
-			} else { //没被点名和主动上报
-				upTime = bcInterval.GetBroadcastInterval() - 3
-				log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
-
-			}
-		}
-		// todo: add
-		bc.upTime[account] = upTime
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		if nil == err {
-			log.INFO("blockchain", "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO("blockchain", "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-
-		upTime := broadcastInterval - 3
-		log.INFO("blockchain", "没被点名，没要求主动上报", account, "uptime", upTime)
-
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		bc.upTime[account] = upTime
-		if nil == err {
-			log.INFO("blockchain", "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO("blockchain", "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-	return nil
-
-}
-
-func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
-	header := block.Header()
-	if header.Number.Uint64() == 1 {
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
-		return nil
-	}
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
-	if nil != err {
-		return err
-	}
-
-	bcInterval, err := manparams.NewBCIntervalByHash(block.ParentHash())
-	if err != nil {
-		log.Error("blockchain", "获取广播周期失败", err)
-		return err
-	}
-
-	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
-		return nil
-	}
-	sbh, err := bc.GetSuperBlockNum()
-	if nil != err {
-		return errors.Errorf("get super seq error")
-	}
-	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		log.INFO("blockchain", "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
-		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64(), bcInterval)
-		if err != nil {
-			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		if sbh < bcInterval.GetLastBroadcastNumber() &&
-			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
-			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
-		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.ParentHash)
-			if err != nil {
-				log.WARN("co"+
-					"re", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-			}
-
-			err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
-			if nil != err {
-				log.ERROR("core", "处理uptime错误", err)
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
 
 type randSeed struct {
 	bc *BlockChain
@@ -1402,7 +1172,7 @@ type randSeed struct {
 func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	parent := r.bc.GetBlockByHash(hash)
 	if parent == nil {
-		log.Error("blockchain", "获取父区块错误,hash", hash)
+		log.Error(ModuleName, "获取父区块错误,hash", hash)
 		return big.NewInt(0), nil
 	}
 	//_, preVrfValue, _ := common.GetVrfInfoFromHeader(parent.Header().VrfValue)
@@ -1633,7 +1403,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 
-			err = bc.ProcessUpTime(state, block)
+			err = bc.ProcessUpTime(state, block.Header())
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
@@ -1896,33 +1666,34 @@ func (bc *BlockChain) sendBroadTx() {
 	}
 
 	blockNum := block.Number()
-	blockNumRem := new(big.Int).Rem(block.Number(), big.NewInt(int64(bcInterval.BCInterval)))
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := new(big.Int).Sub(blockNum, blockNumRem)
+	subVal := bcInterval.LastBCNumber
+	log.Info("sendBroadTx", "获取广播高度", subVal)
 	//没验证过心跳交易
 	if !viSendHeartTx {
 		viSendHeartTx = true
-		//广播区块的hash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
-		if len(saveBroacCastblockHash) <= 0 { //如果长度为0说明是第一次执行
-			if blockNum.Cmp(big.NewInt(int64(bcInterval.BCInterval))) < 0 { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-				saveBroacCastblockHash = bc.GetBlockByNumber(1).Hash() //创世区块的hash
-			} else {
-				saveBroacCastblockHash = bc.GetBlockByNumber(subVal.Uint64()).Hash() //获取最近的广播区块的hash
-			}
+		//广播区块的roothash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
+
+		log.INFO(ModuleName, "sendBroadTx获取所有心跳交易", "")
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, blockNum.Uint64())
+		if err != nil {
+			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
+			return
 		}
+		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
 		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
-		broadcastBlock := saveBroacCastblockHash.Big()
+		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
 		if ret.Cmp(val) == 0 {
-			height := new(big.Int).Add(subVal, big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
+			height := new(big.Int).Add(new(big.Int).SetUint64(subVal), big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
 			data := new([]byte)
 			mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{mc.Heartbeat, height, *data})
 			log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 		}
 		log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 	}
-	if blockNumRem.Int64() == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易
+
+	if blockNum.Uint64()%bcInterval.BCInterval == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易
 		saveBroacCastblockHash = block.Hash()
 		viSendHeartTx = false
 	}
@@ -2340,7 +2111,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	superBlock := bc.GetBlockByNumber(sbh)
 	if nil != superBlock {
 		if block.Hash() == superBlock.Hash() {
-			log.WARN("blockchain", "has the same super block", "")
+			log.WARN(ModuleName, "has the same super block", "")
 			return block, nil
 		}
 	}
@@ -2472,19 +2243,19 @@ func ProduceBroadcastIntervalData(block *types.Block, readFn matrixstate.PreStat
 	}
 }
 
-func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (bc *BlockChain) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
 	if common.TopAccountType == common.TopAccountA0 {
 		//TODO 暂定根据ca提供的接口获取委托账户，
 	}
 
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog, "根据区块hash获取区块失败 hash", blockHash)
+		log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "根据区块hash获取区块失败 hash", blockHash)
 		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog, "根据区块root获取statedb失败 err", err)
+		log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "根据区块root获取statedb失败 err", err)
 		return common.Address{}, "", errors.New("获取stateDB失败")
 	}
 
@@ -2492,30 +2263,27 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 
 	ans := []common.Address{}
 	ans = st.GetEntrustFrom(authFrom, height)
-	log.ERROR(common.SignLog, "结束调用", "", "authFrom", authFrom, "ans", ans)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
-	} else {
-		aa := st.GetAuthFrom(ans[0], height)
-		log.INFO(common.SignLog, "检查反射结果", aa.String())
+		log.INFO(common.SignLog, "获取签名账户阶段", ModuleName, "无委托交易,使用本地账户", authFrom.String())
 	}
 
-	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
+	entrustValue := manparams.EntrustAccountValue.GetEntrustValue()
 	for _, v := range ans {
 		for kk, vv := range entrustValue {
 			if v.Equal(kk) == false {
 				continue
 			}
 			if _, ok := entrustValue[kk]; ok {
-				log.Info(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String())
+				log.Info(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
 				return kk, entrustValue[kk], nil
 			}
-			log.ERROR(common.SignLog, "签名阶段", "", "高度", height, "真实账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
+			log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
 			return kk, vv, errors.New("无该密码")
 
 		}
 	}
-	log.ERROR(common.SignLog, "高度", height, "真实账户", authFrom.String(), "签名账户", common.Address{})
+	log.Info(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
 	return common.Address{}, "", errors.New("ans为空")
 }
 
@@ -2523,25 +2291,24 @@ func (bc *BlockChain) GetEntrustSignInfo(authFrom common.Address, blockHash comm
 func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
-		log.ERROR(common.SignLog, "根据区块hash算区块失败", "err")
+		log.ERROR(common.SignLog, "获取委托账户阶段", "BlockChain 最终结果", "根据区块hash算区块失败", "err")
 		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
-		log.ERROR(common.SignLog, "根据区块root获取状态树失败 err", err)
+		log.ERROR(common.SignLog, "获取委托账户阶段", "BlockChain 最终结果", "根据区块root获取状态树失败 err", err)
 		return common.Address{}, errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
 	addr := st.GetAuthFrom(signAccount, height)
 	if addr.Equal(common.Address{}) {
-		log.WARN(common.SignLog, "解签阶段 无委托 高度", height, "签名账户", signAccount, "真实账户", signAccount)
-		//return signAccount, nil
 		addr = signAccount
+		log.WARN(common.SignLog, "获取委托账户阶段", ModuleName, "不存在委托账户 signAccount", signAccount, "高度", height, "委托账户", addr)
 	} else {
-		log.WARN(common.SignLog, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
+		log.WARN(common.SignLog, "获取委托账户阶段", ModuleName, "存在委托 signAccount", signAccount, "height", height, "addr", addr)
 	}
-	log.ERROR(common.SignLog, "解签阶段", "", "高度", height, "签名账户", signAccount, "真实账户", addr)
+	log.Info(common.SignLog, "获取委托账户阶段", "BlockChain 最终结果", "高度", height, "签名账户", signAccount, "真实账户", addr)
 	if common.TopAccountType == common.TopAccountA0 {
 		//TODO 利用CA接口将A1转换为A0
 	}
