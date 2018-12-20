@@ -30,6 +30,9 @@ type StateDBManage struct {
 
 // Create a new state from a given trie.
 func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, error) {
+	if len(roots) == 0{
+		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
+	}
 	return &StateDBManage{
 		db:                db,
 		shardings:         make([]*CoinManage,0),

@@ -268,8 +268,9 @@ func (bc *BlockChain) loadLastState() error {
 		return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
-	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
-		log.INFO("Get State Err", "root", currentBlock.Root().TerminalString(), "err", err)
+	if _, err := state.NewSharding(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
+		log.INFO("Get State Err",  "err", err)
+		//log.INFO("Get State Err", "root", currentBlock.Root().TerminalString(), "err", err)
 		// Dangling block without a state associated, init from scratch
 		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash())
 		if err := bc.repair(&currentBlock); err != nil {
@@ -338,7 +339,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		bc.currentBlock.Store(bc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
 	}
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil {
-		if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
+		if _, err := state.NewSharding(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
 			// Rewound state missing, rolled back to before pivot, reset to genesis
 			bc.currentBlock.Store(bc.genesisBlock)
 		}
@@ -371,7 +372,8 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x…]", hash[:4])
 	}
-	if _, err := trie.NewSecure(block.Root(), bc.stateCache.TrieDB(), 0); err != nil {
+	b,_:= json.Marshal(block.Root())  //ShardingYY
+	if _, err := trie.NewSecure(common.BytesToHash(b), bc.stateCache.TrieDB(), 0); err != nil {  //ShardingYY
 		return err
 	}
 	// If all checks out, manually set the head block
@@ -437,16 +439,16 @@ func (bc *BlockChain) Processor() Processor {
 }
 
 // State returns a new mutable state based on the current HEAD block.
-func (bc *BlockChain) State() (*state.StateDB, error) {
+func (bc *BlockChain) State() (*state.ShardingStateDB, error) { //ShardingYY
 	return bc.StateAt(bc.CurrentBlock().Root())
 }
 
 // StateAt returns a new mutable state based on a particular point in time.
-func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
-	return state.New(root, bc.stateCache)
+func (bc *BlockChain) StateAt(root []common.CoinRoot) (*state.ShardingStateDB, error) {
+	return state.NewSharding(root, bc.stateCache)
 }
 
-func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDB, error) {
+func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.ShardingStateDB, error) { //ShardingYY
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
 		return nil, errors.New("can't find block by hash")
@@ -494,7 +496,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
-		if _, err := state.New((*head).Root(), bc.stateCache); err == nil {
+		if _, err := state.NewSharding((*head).Root(), bc.stateCache); err == nil { //ShardingYY
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
@@ -648,7 +650,8 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	if block == nil {
 		return false
 	}
-	return bc.HasState(block.Root())
+	b,_:= json.Marshal(block.Root()) //ShardingYY
+	return bc.HasState(common.BytesToHash(b)) //ShardingYY
 }
 
 // GetBlock retrieves a block from the database by hash and number,
@@ -757,7 +760,8 @@ func (bc *BlockChain) Stop() {
 				recent := bc.GetBlockByNumber(number - offset)
 
 				log.Info("Writing cached state to disk", "block", recent.Number(), "hash", recent.Hash(), "root", recent.Root())
-				if err := triedb.Commit(recent.Root(), true); err != nil {
+				b,_:= json.Marshal(recent.Root()) //ShardingYY
+				if err := triedb.Commit(common.BytesToHash(b), true); err != nil { //ShardingYY
 					log.Error("Failed to commit recent state trie", "err", err)
 				}
 			}
@@ -1084,7 +1088,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				}
 				// If optimum or critical limits reached, write to disk
 				if chosen >= lastWrite+triesInMemory || size >= 2*limit || bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-					triedb.Commit(header.Root, true)
+					b,_ := json.Marshal(header.Roots)
+					triedb.Commit(common.BytesToHash(b), true) //ShardingYY
 					lastWrite = chosen
 					bc.gcproc = 0
 				}
@@ -1421,7 +1426,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	return nil, nil
 }
 
-func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) ProcessReward(state *state.ShardingStateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
 
 	num := header.Number.Uint64()
 	if bcInterval.IsBroadcastNumber(num) {
@@ -1567,7 +1572,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			var winner []*types.Block
 
 			parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-			for !bc.HasState(parent.Root()) {
+			b,_ := json.Marshal(parent.Root())
+			for !bc.HasState(common.BytesToHash(b)) {  //shardingYY
 				winner = append(winner, parent)
 				parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
 			}
@@ -1596,7 +1602,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return 0, nil, nil, fmt.Errorf("insert block dpos error")
 		}
 
-		// Create a new statedb using the parent block and report an
+		// Create a new ShardingStateDB using the parent block and report an
 		// error if it fails.
 		var parent *types.Block
 		if i == 0 {
@@ -1605,7 +1611,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		// Process block using the parent state as reference point.
-		state, err := state.New(parent.Root(), bc.stateCache)
+		state, err := state.NewSharding(parent.Root(), bc.stateCache) //ShardingYY
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -2177,7 +2183,7 @@ func (bc *BlockChain) GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGr
 	return topologyGraph.(*mc.TopologyGraph), electGraph.(*mc.ElectGraph), nil
 }
 
-func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.ShardingStateDB) error {
 	return bc.matrixState.ProcessMatrixState(block, state)
 }
 
@@ -2307,7 +2313,7 @@ func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
 
 	return superBlkCfg, nil
 }
-func (bc *BlockChain) getBCIntervalByState(st *state.StateDB) (*manparams.BCInterval, error) {
+func (bc *BlockChain) getBCIntervalByState(st *state.ShardingStateDB) (*manparams.BCInterval, error) {
 	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
 	if err != nil {
 		return nil, err
@@ -2382,7 +2388,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	return block, nil
 }
 
-func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.StateDB) error {
+func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.ShardingStateDB) error {
 	if nil == block || nil == stateDB {
 		return errors.New("param is nil")
 	}

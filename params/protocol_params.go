@@ -85,7 +85,9 @@ const (
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64
 )
-
+const (
+	MAN_COIN     string = "MAN"   //ShardingYY
+)
 var (
 	DifficultyBoundDivisor = big.NewInt(10)  // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(10)  // Difficulty of the Genesis block.
