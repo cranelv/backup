@@ -799,23 +799,17 @@ func (self *StateDBManage) DeleteMxData(hash common.Hash, val []byte) {
 	}
 }
 
-func (self *StateDBManage) UpdateTxForBtree(cointyp string,key uint32){
+func (self *StateDBManage) UpdateTxForBtree(key uint32){
 	for _,cm:=range self.shardings{
-		if cm.Cointyp==cointyp{
-			for _,rm:=range cm.Rmanage  {
-				rm.State.UpdateTxForBtree(key)
-			}
-			break
+		for _,rm:=range cm.Rmanage  {
+			rm.State.UpdateTxForBtree(key)
 		}
 	}
 }
-func (self *StateDBManage) UpdateTxForBtreeBytime(cointyp string,key uint32){
+func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32){
 	for _,cm:=range self.shardings{
-		if cm.Cointyp==cointyp{
-			for _,rm:=range cm.Rmanage  {
-				rm.State.UpdateTxForBtreeBytime(key)
-			}
-			break
+		for _,rm:=range cm.Rmanage  {
+			rm.State.UpdateTxForBtreeBytime(key)
 		}
 	}
 }

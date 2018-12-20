@@ -135,8 +135,8 @@ type StateDBManager interface {
 	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
 	Logs(cointyp string,roots []common.Hash) []*types.Log
 
-	//AddPreimage(hash common.Hash, preimage []byte)
-	//Preimages() map[common.Hash][]byte
+	AddPreimage(hash common.Hash, preimage []byte)
+	Preimages() map[common.Hash][]byte
 
 	ForEachStorage(cointyp string,addr common.Address, cb func(key, value common.Hash) bool)
 	IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot
@@ -147,8 +147,8 @@ type StateDBManager interface {
 	GetMatrixData(hash common.Hash) (val []byte)
 	DeleteMxData(hash common.Hash, val []byte)
 
-	UpdateTxForBtree(cointyp string,key uint32)
-	UpdateTxForBtreeBytime(cointyp string,key uint32)
+	UpdateTxForBtree(key uint32)
+	UpdateTxForBtreeBytime(key uint32)
 
 	GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address

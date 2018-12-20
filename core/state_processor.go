@@ -8,7 +8,7 @@ import (
 	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
-	"github.com/matrix/go-matrix/consensus/misc"
+	_"github.com/matrix/go-matrix/consensus/misc"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
@@ -17,6 +17,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"runtime"
 	"sync"
+	"encoding/json"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -45,7 +46,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -54,9 +55,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 	// Mutate the the block and state according to any hard-fork specs
-	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
-		misc.ApplyDAOHardFork(statedb)
-	}
+	//if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
+	//	misc.ApplyDAOHardFork(statedb)
+	//}
 	// Iterate over and process the individual transactions
 	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
@@ -128,7 +129,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDBManage, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
@@ -136,7 +137,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	}
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
-	vmenv := vm.NewEVM(context, statedb, config, cfg)
+	vmenv := vm.NewEVM(context, statedb, config, cfg,tx.GetTxCurrency())
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64
 	var failed bool
@@ -162,9 +163,9 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(true)
+		statedb.Finalise(tx.GetTxCurrency(),true)
 	} else {
-		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
+		root,_ = json.Marshal(statedb.IntermediateRoot(config.IsEIP158(header.Number)))
 	}
 	*usedGas += gas
 
@@ -178,7 +179,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+	receipt.Logs = statedb.GetLogs(tx.GetTxCurrency(),tx.From(),tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
 	return receipt, gas, err

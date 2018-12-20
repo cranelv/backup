@@ -37,15 +37,15 @@ func NewDepositInfo(manApi manBackend) {
 }
 
 func AddOnlineTime(stateDB vm.StateDBManager, address common.Address, ot *big.Int) error {
-	return depositInfo.MatrixDeposit.AddOnlineTime(depositInfo.Contract, stateDB, address, ot,params.MAN_COIN)
+	return depositInfo.MatrixDeposit.AddOnlineTime(depositInfo.Contract, stateDB, address, ot)
 }
 
 func GetOnlineTime(stateDB vm.StateDBManager, address common.Address) (*big.Int, error) {
-	return depositInfo.MatrixDeposit.GetOnlineTime(depositInfo.Contract, stateDB, address,params.MAN_COIN), nil
+	return depositInfo.MatrixDeposit.GetOnlineTime(depositInfo.Contract, stateDB, address), nil
 }
 
 func SetOnlineTime(stateDB vm.StateDBManager, address common.Address, ot *big.Int) error {
-	return depositInfo.MatrixDeposit.SetOnlineTime(depositInfo.Contract, stateDB, address, ot,params.MAN_COIN)
+	return depositInfo.MatrixDeposit.SetOnlineTime(depositInfo.Contract, stateDB, address, ot)
 }
 
 func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail, error) {
@@ -53,7 +53,7 @@ func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail
 	if err != nil {
 		return nil, err
 	}
-	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000,params.MAN_COIN)
 	//var depositList []vm.DepositDetail
 	depositList := make([]vm.DepositDetail, 0)
 	if common.RoleValidator == common.RoleValidator&getDeposit {
@@ -62,7 +62,7 @@ func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail
 	}
 
 	if common.RoleMiner == common.RoleMiner&getDeposit {
-		depositList = append(depositList, depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)...)
+		depositList = append(depositList, depositInfo.MatrixDeposit.GetMinerDepositList(contract, db,)...)
 	}
 	return depositList, nil
 }
@@ -72,7 +72,7 @@ func GetDepositAndWithDrawList(tm *big.Int) ([]vm.DepositDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000,params.MAN_COIN)
 	var depositList []vm.DepositDetail
 	depositList = depositInfo.MatrixDeposit.GetAllDepositList(contract, db, true)
 	return depositList, nil
@@ -83,14 +83,14 @@ func GetAllDeposit(tm *big.Int) ([]vm.DepositDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000,params.MAN_COIN)
 	var depositList []vm.DepositDetail
 	depositList = depositInfo.MatrixDeposit.GetAllDepositList(contract, db, false)
 	return depositList, nil
 }
 
 func getDepositInfo(tm *big.Int) (db vm.StateDBManager, err error) {
-	depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0)
+	depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0,params.MAN_COIN)
 	var c context.Context
 	var h rpc.BlockNumber
 	encode := hexutil.EncodeBig(tm)

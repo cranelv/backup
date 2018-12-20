@@ -64,7 +64,7 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 	return &BlockSlash{chain: chain, eleMaxOnlineTime: bcInterval.GetBroadcastInterval() - 3, SlashRate: SlashRate, bcInterval: bcInterval} //todo 周期固定3倍关系
 }
 
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
 	var eleNum uint64
 
 	if num == 1 {

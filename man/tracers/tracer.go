@@ -165,7 +165,7 @@ func (sw *stackWrapper) pushObject(vm *duktape.Context) {
 
 // dbWrapper provides a JavaScript wrapper around vm.Database.
 type dbWrapper struct {
-	db vm.StateDB
+	db vm.StateDBManager
 }
 
 // pushObject assembles a JSVM object wrapping a swappable database and pushes it
