@@ -25,6 +25,7 @@ type Message interface {
 	TxType() byte
 	IsEntrustTx() bool
 	GetCreateTime() uint32
+	GetTxCurrency() string
 }
 
 type StateTransitioner interface {
