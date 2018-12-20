@@ -8,7 +8,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/common/readstatedb"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -33,7 +32,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
-	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
@@ -1165,272 +1163,6 @@ func (bc *BlockChain) InsertChainNotify(chain types.Blocks, notify bool) (int, e
 	}
 	return n, err
 }
-func (bc *BlockChain) GetUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {
-	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
-	if err != nil {
-		log.ERROR(ModuleName, "获取选举生成点配置失败 err", err)
-		return nil, err
-	}
-	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
-	if Ok == false {
-		log.ERROR(ModuleName, "选举生成点信息失败 err", err)
-		return nil, err
-	}
-
-	log.INFO(ModuleName, "获取所有参与uptime点名高度", num)
-
-	upTimeAccounts := make([]common.Address, 0)
-
-	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
-	log.INFO(ModuleName, "参选矿工节点uptime高度", minerNum)
-	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
-	if err != nil {
-		return nil, err
-	}
-
-	log.INFO("getUpTimeAccounts", "ans", ans)
-	for _, v := range ans {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
-	}
-	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
-	log.INFO(ModuleName, "参选验证节点uptime高度", validatorNum)
-	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
-	if err != nil {
-		return upTimeAccounts, err
-	}
-	for _, v := range ans1 {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
-	}
-	log.INFO(ModuleName, "获取所有uptime账户为", upTimeAccounts)
-	return upTimeAccounts, nil
-}
-
-func (bc *BlockChain) GetUpTimeData(root common.Hash, num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO(ModuleName, "获取所有心跳交易", "")
-	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, num-1)
-	if err != nil {
-		log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
-		return nil, nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
-	}
-	log.INFO(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
-	heatBeatUnmarshallMMap, error := GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.Heartbeat)
-	if nil != error {
-		log.WARN(ModuleName, "获取主动心跳交易错误", error)
-	}
-	//每个广播周期发一次
-	calltherollUnmarshall, error := GetBroadcastTxMap(bc, preBroadcastRoot.LastStateRoot, mc.CallTheRoll)
-	if nil != error {
-		log.ERROR(ModuleName, "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		temp := make(map[string]uint32, 0)
-		error := json.Unmarshal(v, &temp)
-		if nil != error {
-			log.ERROR(ModuleName, "序列化点名心跳交易错误", error)
-			return nil, nil, error
-		}
-		log.INFO(ModuleName, "点名心跳交易", temp)
-		for k, v := range temp {
-			calltherollMap[common.HexToAddress(k)] = v
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
-}
-
-func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	var blockHash common.Hash
-	HeatBeatReqAccounts := make([]common.Address, 0)
-	HeartBeatMap := make(map[common.Address]bool, 0)
-	blockNumRem := blockNum % bcInterval.GetBroadcastInterval()
-
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := blockNum - blockNumRem
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal = subVal
-	if blockNum < bcInterval.GetBroadcastInterval() { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
-	} else {
-		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-	}
-	// todo: remove
-	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
-	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % ((bcInterval.GetBroadcastInterval()) - 1)
-
-	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
-		ret := currentAcc.Uint64() % (bcInterval.GetBroadcastInterval() - 1)
-		if ret == val {
-			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
-			if _, ok := heatBeatAccounts[v]; ok {
-				HeartBeatMap[v] = true
-			} else {
-				HeartBeatMap[v] = false
-
-			}
-			log.Info(ModuleName, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
-		}
-	}
-
-	var upTime uint64
-
-	var eleNum uint64
-	if blockNum < bcInterval.GetReElectionInterval()+2 {
-		eleNum = 1
-	} else {
-		// 下一个选举+1
-		eleNum = blockNum - bcInterval.GetBroadcastInterval()
-	}
-
-	electGraph, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
-	if err != nil {
-		log.Error(ModuleName, "获取拓扑图错误", err)
-		return errors.New("获取拓扑图错误")
-	}
-	if electGraph == nil {
-		log.Error(ModuleName, "获取拓扑图反射错误")
-		return errors.New("获取拓扑图反射错误")
-	}
-	originElectNodes := electGraph.(*mc.ElectGraph)
-	if 0 == len(originElectNodes.ElectList) {
-		log.Error(ModuleName, "get获取初选列表为空", "")
-		return errors.New("get获取初选列表为空")
-	}
-	log.Info(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
-
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originElectNodes.ElectList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-		onlineBlockNum, ok := calltherollRspAccounts[account]
-		if ok { //被点名,使用点名的uptime
-			upTime = uint64(onlineBlockNum)
-			log.INFO(ModuleName, "点名账号", account, "uptime", upTime)
-
-		} else { //没被点名，没有主动上报，则为最大值，
-			if v, ok := HeartBeatMap[account]; ok { //有主动上报
-				if v {
-					upTime = bcInterval.GetBroadcastInterval() - 3
-					log.INFO(ModuleName, "没被点名，有主动上报有响应", account, "uptime", upTime)
-				} else {
-					upTime = 0
-					log.INFO(ModuleName, "没被点名，有主动上报无响应", account, "uptime", upTime)
-				}
-			} else { //没被点名和主动上报
-				upTime = bcInterval.GetBroadcastInterval() - 3
-				log.INFO(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-			}
-		}
-		// todo: add
-		bc.upTime[account] = upTime
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		if nil == err {
-			log.INFO(ModuleName, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-
-		upTime := broadcastInterval - 3
-		log.INFO(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		bc.upTime[account] = upTime
-		if nil == err {
-			log.INFO(ModuleName, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-	return nil
-
-}
-
-func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
-	header := block.Header()
-	if header.Number.Uint64() == 1 {
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
-		return nil
-	}
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
-	if nil != err {
-		return err
-	}
-
-	bcInterval, err := manparams.NewBCIntervalByHash(block.ParentHash())
-	if err != nil {
-		log.Error(ModuleName, "获取广播周期失败", err)
-		return err
-	}
-
-	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
-		return nil
-	}
-	sbh, err := bc.GetSuperBlockNum()
-	if nil != err {
-		return errors.Errorf("get super seq error")
-	}
-	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		log.INFO(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
-		upTimeAccounts, err := bc.GetUpTimeAccounts(header.Number.Uint64(), bcInterval)
-		if err != nil {
-			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		if sbh < bcInterval.GetLastBroadcastNumber() &&
-			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
-			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
-		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := bc.GetUpTimeData(header.Root, header.Number.Uint64())
-			if err != nil {
-				log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-			}
-
-			err = bc.HandleUpTime(state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
-			if nil != err {
-				log.ERROR("core", "处理uptime错误", err)
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
 
 type randSeed struct {
 	bc *BlockChain
@@ -1670,7 +1402,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 
-			err = bc.ProcessUpTime(state, block)
+			err = bc.ProcessUpTime(state, block.Header())
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
@@ -1933,18 +1665,17 @@ func (bc *BlockChain) sendBroadTx() {
 	}
 
 	blockNum := block.Number()
-	blockNumRem := new(big.Int).Rem(block.Number(), big.NewInt(int64(bcInterval.BCInterval)))
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := new(big.Int).Sub(blockNum, blockNumRem)
+	subVal := bcInterval.LastBCNumber
+	log.Info("sendBroadTx", "获取广播高度", subVal)
 	//没验证过心跳交易
 	if !viSendHeartTx {
 		viSendHeartTx = true
 		//广播区块的hash与99取余如果与广播账户与99取余的结果一样那么发送广播交易
 		if len(saveBroacCastblockHash) <= 0 { //如果长度为0说明是第一次执行
 			if blockNum.Cmp(big.NewInt(int64(bcInterval.BCInterval))) < 0 { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-				saveBroacCastblockHash = bc.GetBlockByNumber(1).Hash() //创世区块的hash
+				saveBroacCastblockHash = bc.genesisBlock.Hash() //创世区块的hash
 			} else {
-				saveBroacCastblockHash = bc.GetBlockByNumber(subVal.Uint64()).Hash() //获取最近的广播区块的hash
+				saveBroacCastblockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
 			}
 		}
 		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
@@ -1952,14 +1683,15 @@ func (bc *BlockChain) sendBroadTx() {
 		broadcastBlock := saveBroacCastblockHash.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
 		if ret.Cmp(val) == 0 {
-			height := new(big.Int).Add(subVal, big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
+			height := new(big.Int).Add(new(big.Int).SetUint64(subVal), big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
 			data := new([]byte)
 			mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{mc.Heartbeat, height, *data})
 			log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 		}
 		log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 	}
-	if blockNumRem.Int64() == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易
+
+	if blockNum.Uint64()%bcInterval.BCInterval == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易
 		saveBroacCastblockHash = block.Hash()
 		viSendHeartTx = false
 	}

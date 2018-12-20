@@ -7,10 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/matrix/go-matrix/params/manparams"
-
-	"github.com/matrix/go-matrix/core/matrixstate"
-
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -487,8 +483,8 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
-	p.processUpTime(work, localHeader)
 
+	p.blockChain().ProcessUpTime(work.State, localHeader)
 	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, true)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
@@ -604,60 +600,6 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 
 	p.state = StateDPOSVerify
 	p.processDPOSOnce()
-}
-
-func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
-
-	if p.number == 1 {
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
-		return nil
-	}
-
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
-	if nil != err {
-		return err
-	}
-	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
-		return err
-	}
-	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
-		return nil
-	}
-
-	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		sbh, err := p.blockChain().GetSuperBlockNum()
-		if nil != err {
-			log.Error(p.logExtraInfo(), "获取超级区块高度错误", err)
-			return err
-		}
-		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain(), bcInterval)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		//在上一个广播周期中插入超级区块
-		if sbh < bcInterval.GetLastBroadcastNumber() &&
-			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
-			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
-		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(p.blockChain(), header.Root, p.number)
-			if err != nil {
-				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-			}
-
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
-			if nil != err {
-				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func (p *Process) processDPOSOnce() {
