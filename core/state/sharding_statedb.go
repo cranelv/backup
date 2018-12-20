@@ -848,7 +848,7 @@ func (self *StateDBManage) SaveTx(typ byte, key uint32, data map[common.Hash][]b
 	//self.journal.append(addBtreeChange{typ: str, key: key})
 }
 
-func (self *StateDBManage) SetMatrixData_sh(hash common.Hash, val []byte) {
+func (self *StateDBManage) SetMatrixData(hash common.Hash, val []byte) {
 	//self.lock.Lock()
 	//defer self.lock.Unlock()
 	//self.journal.append(addMatrixDataChange{hash: hash})
@@ -856,7 +856,7 @@ func (self *StateDBManage) SetMatrixData_sh(hash common.Hash, val []byte) {
 	//self.matrixDataDirty[hash] = val
 }
 
-func (self *StateDBManage) GetMatrixData_sh(hash common.Hash) (val []byte) {
+func (self *StateDBManage) GetMatrixData(hash common.Hash) (val []byte) {
 	//self.lock.Lock()
 	//defer self.lock.Unlock()
 	//if val = self.matrixData[hash]; val != nil {
@@ -871,9 +871,18 @@ func (self *StateDBManage) GetMatrixData_sh(hash common.Hash) (val []byte) {
 	//}
 	return
 }
-func (self *StateDBManage) DeleteMxData_sh(hash common.Hash, val []byte) {
+func (self *StateDBManage) DeleteMxData(hash common.Hash, val []byte) {
 	//self.deleteMatrixData(hash, val)
 }
+
+func (self *StateDBManage) UpdateTxForBtree(cointyp string,key uint32){
+
+}
+func (self *StateDBManage) UpdateTxForBtreeBytime(cointyp string,key uint32){
+
+}
+
+
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDBManage) GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
 	//AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
