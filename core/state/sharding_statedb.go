@@ -643,8 +643,8 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
-func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []*common.CoinRoot {
-	var cr []*common.CoinRoot
+func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot {
+	var cr []common.CoinRoot
 	var Roots []common.Hash
 	for _,cm:=range shard.shardings  {
 			for _,rm:=range cm.Rmanage{
@@ -657,7 +657,7 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []*common.
 			panic(err)
 		}
 		bh:=common.BytesToHash(bs)
-		cr=append(cr,&common.CoinRoot{
+		cr=append(cr,common.CoinRoot{
 			Cointyp:cm.Cointyp,
 			Root:bh,
 		})
@@ -685,7 +685,7 @@ func (shard *StateDBManage) clearJournalAndRefund(idx int) {
 }
 //TODO	===============================
 // Commit writes the state to the underlying in-memory trie database.
-func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []*common.CoinRoot, err error) {
+func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []common.CoinRoot, err error) {
 	var Roots []common.Hash
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage{
@@ -702,7 +702,7 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []*common.CoinRo
 			panic(err)
 		}
 		bh:=common.BytesToHash(bs)
-		cr=append(cr,&common.CoinRoot{
+		cr=append(cr,common.CoinRoot{
 			Cointyp:cm.Cointyp,
 			Root:bh,
 		})
