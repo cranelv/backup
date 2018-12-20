@@ -19,8 +19,8 @@ import (
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 type (
-	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
-	TransferFunc    func(StateDB, common.Address, common.Address, *big.Int)
+	CanTransferFunc func(StateDBManager, common.Address, *big.Int,string) bool
+	TransferFunc    func(StateDBManager, common.Address, common.Address, *big.Int,string)
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
@@ -75,7 +75,7 @@ type EVM struct {
 	// Context provides auxiliary blockchain related information
 	Context
 	// StateDB gives access to the underlying state
-	StateDB StateDB
+	StateDB StateDBManager
 	// Depth is the current call stack
 	depth int
 
@@ -96,17 +96,19 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+	Cointyp string
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config,typ string) *EVM {
 	evm := &EVM{
 		Context:     ctx,
 		StateDB:     statedb,
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.Rules(ctx.BlockNumber),
+		Cointyp :    typ,
 	}
 	evm.interpreter = NewInterpreter(evm, vmConfig)
 	return evm
@@ -132,7 +134,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		return nil, gas, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value,evm.Cointyp) {
 		return nil, gas, ErrInsufficientBalance
 	}
 
@@ -152,7 +154,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
-	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
+	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value,evm.Cointyp)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
@@ -200,7 +202,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		return nil, gas, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !evm.CanTransfer(evm.StateDB, caller.Address(), value,evm.Cointyp) {
 		return nil, gas, ErrInsufficientBalance
 	}
 
@@ -308,7 +310,7 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, common.Address{}, gas, ErrDepth
 	}
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !evm.CanTransfer(evm.StateDB, caller.Address(), value,evm.Cointyp) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
 	}
 	// Ensure there's no existing contract already at the designated address
@@ -326,7 +328,7 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if evm.ChainConfig().IsEIP158(evm.BlockNumber) {
 		evm.StateDB.SetNonce(contractAddr, 1)
 	}
-	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value)
+	evm.Transfer(evm.StateDB, caller.Address(), contractAddr, value,evm.Cointyp)
 
 	// initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context

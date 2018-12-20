@@ -48,7 +48,7 @@ type GenesisMState1 struct {
 	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.ShardingStateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (ms *GenesisMState) setMatrixState(state *state.ShardingStateDB, netTopolog
 	return nil
 }
 
-func (g *GenesisMState) setElectTime(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setElectTime(state *state.StateDBManage, num uint64) error {
 	if g.EleTimeCfg == nil {
 		if num == 0 {
 			return errors.New("选举配置信息为nil")
@@ -118,7 +118,7 @@ func (g *GenesisMState) setElectTime(state *state.ShardingStateDB, num uint64) e
 	log.Info("Geneis", "electime", g.EleTimeCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.EleTimeCfg, state)
 }
-func (g *GenesisMState) setElectInfo(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setElectInfo(state *state.StateDBManage, num uint64) error {
 	if g.EleInfoCfg == nil {
 		if num == 0 {
 			return errors.New("electconfig配置信息为nil")
@@ -132,7 +132,7 @@ func (g *GenesisMState) setElectInfo(state *state.ShardingStateDB, num uint64) e
 	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.EleInfoCfg, state)
 }
 
-func (g *GenesisMState) setTopologyToState(state *state.ShardingStateDB, genesisNt common.NetTopology, num uint64) error {
+func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt common.NetTopology, num uint64) error {
 	if genesisNt.Type != common.NetTopoTypeAll {
 		return nil
 	}
@@ -169,7 +169,7 @@ func (g *GenesisMState) setTopologyToState(state *state.ShardingStateDB, genesis
 	return matrixstate.SetDataToState(mc.MSKeyTopologyGraph, newGraph, state)
 }
 
-func (g *GenesisMState) setElectToState(state *state.ShardingStateDB, gensisElect []common.Elect, num uint64) error {
+func (g *GenesisMState) setElectToState(state *state.StateDBManage, gensisElect []common.Elect, num uint64) error {
 	if len(gensisElect) == 0 {
 		return nil
 	}
@@ -223,7 +223,7 @@ func (g *GenesisMState) setElectToState(state *state.ShardingStateDB, gensisElec
 	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
 }
 
-func (g *GenesisMState) setSpecialNodeToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setSpecialNodeToState(state *state.StateDBManage, num uint64) error {
 	var specialNodes *mc.MatrixSpecialAccounts
 	if num == 0 {
 		if (nil == g.Broadcast || g.Broadcast.Address == common.Address{}) {
@@ -277,7 +277,7 @@ func (g *GenesisMState) setSpecialNodeToState(state *state.ShardingStateDB, num 
 	}
 }
 
-func (g *GenesisMState) setBlkRewardCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDBManage, num uint64) error {
 
 	if g.BlkRewardCfg == nil {
 		if num == 0 {
@@ -307,7 +307,7 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.ShardingStateDB, num
 	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.BlkRewardCfg, state)
 }
 
-func (g *GenesisMState) setTxsRewardCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDBManage, num uint64) error {
 	if g.TxsRewardCfg == nil {
 		if num == 0 {
 			return errors.New("交易费区块配置信息为nil")
@@ -340,7 +340,7 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.ShardingStateDB, num
 	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.TxsRewardCfg, state)
 }
 
-func (g *GenesisMState) setLotteryCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setLotteryCfgToState(state *state.StateDBManage, num uint64) error {
 	if g.LotteryCfg == nil {
 		if num == 0 {
 			return errors.New("彩票费配置信息为nil")
@@ -353,7 +353,7 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.ShardingStateDB, num u
 	return matrixstate.SetDataToState(mc.MSKeyLotteryCfg, g.LotteryCfg, state)
 }
 
-func (g *GenesisMState) setInterestCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setInterestCfgToState(state *state.StateDBManage, num uint64) error {
 	if g.InterestCfg == nil {
 		if num == 0 {
 			return errors.New("利息配置信息为nil")
@@ -373,7 +373,7 @@ func (g *GenesisMState) setInterestCfgToState(state *state.ShardingStateDB, num 
 	return matrixstate.SetDataToState(mc.MSKeyInterestCfg, g.InterestCfg, state)
 }
 
-func (g *GenesisMState) setSlashCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setSlashCfgToState(state *state.StateDBManage, num uint64) error {
 	if g.SlashCfg == nil {
 		if num == 0 {
 			return errors.New("惩罚配置信息为nil")
@@ -387,7 +387,7 @@ func (g *GenesisMState) setSlashCfgToState(state *state.ShardingStateDB, num uin
 	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.SlashCfg, state)
 }
 
-func (g *GenesisMState) setVIPCfgToState(state *state.ShardingStateDB, number uint64) error {
+func (g *GenesisMState) setVIPCfgToState(state *state.StateDBManage, number uint64) error {
 	if g.VIPCfg == nil {
 		if number == 0 {
 			return errors.New("VIP配置信息为nil")
@@ -407,7 +407,7 @@ func (g *GenesisMState) setVIPCfgToState(state *state.ShardingStateDB, number ui
 	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.VIPCfg, state)
 }
 
-func (g *GenesisMState) setLeaderCfgToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setLeaderCfgToState(state *state.StateDBManage, num uint64) error {
 	if g.LeaderCfg == nil {
 		if num == 0 {
 			return errors.New("leader配置信息为nil")
@@ -434,7 +434,7 @@ func (g *GenesisMState) setLeaderCfgToState(state *state.ShardingStateDB, num ui
 	return matrixstate.SetDataToState(mc.MSKeyLeaderConfig, g.LeaderCfg, state)
 }
 
-func (g *GenesisMState) SetSuperBlkToState(state *state.ShardingStateDB, extra []byte, num uint64) error {
+func (g *GenesisMState) SetSuperBlkToState(state *state.StateDBManage, extra []byte, num uint64) error {
 	var superBlkCfg *mc.SuperBlkCfg
 	if num == 0 {
 		superBlkCfg = &mc.SuperBlkCfg{Seq: 0, Num: 0}
@@ -451,7 +451,7 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.ShardingStateDB, extra [
 	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
 }
 
-func (g *GenesisMState) setBCIntervalToState(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setBCIntervalToState(state *state.StateDBManage, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
 		if nil == g.BCICfg {
@@ -510,9 +510,9 @@ func (g *GenesisMState) setBCIntervalToState(state *state.ShardingStateDB, num u
 	return nil
 }
 
-func (g *GenesisMState) setPreMinHashToStat(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setPreMinHashToStat(state *state.StateDBManage, num uint64) error {
 	return matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.RandomInfoStruct{}, state)
 }
-func (g *GenesisMState) setPreBroadcastRootToStat(state *state.ShardingStateDB, num uint64) error {
+func (g *GenesisMState) setPreBroadcastRootToStat(state *state.StateDBManage, num uint64) error {
 	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot, &mc.PreBroadStateRoot{}, state)
 }

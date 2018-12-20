@@ -737,7 +737,11 @@ func (tx *Transaction) SetTxCurrency(currency string) {
 	tx.Currency = currency
 }
 func (tx *Transaction) GetTxCurrency() string {
-	return tx.Currency
+	str := tx.Currency
+	if str == ""{
+		str = params.MAN_COIN
+	}
+	return str
 }
 
 //func (tx *Transaction) SetTxN(N uint32) {tx.data.N = N}

@@ -268,7 +268,7 @@ func (bc *BlockChain) loadLastState() error {
 		return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
-	if _, err := state.NewSharding(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
+	if _, err := state.NewStateDBManage(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
 		log.INFO("Get State Err",  "err", err)
 		//log.INFO("Get State Err", "root", currentBlock.Root().TerminalString(), "err", err)
 		// Dangling block without a state associated, init from scratch
@@ -339,7 +339,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		bc.currentBlock.Store(bc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
 	}
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil {
-		if _, err := state.NewSharding(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
+		if _, err := state.NewStateDBManage(currentBlock.Root(), bc.stateCache); err != nil { //ShardingYY
 			// Rewound state missing, rolled back to before pivot, reset to genesis
 			bc.currentBlock.Store(bc.genesisBlock)
 		}
@@ -439,16 +439,16 @@ func (bc *BlockChain) Processor() Processor {
 }
 
 // State returns a new mutable state based on the current HEAD block.
-func (bc *BlockChain) State() (*state.ShardingStateDB, error) { //ShardingYY
+func (bc *BlockChain) State() (*state.StateDBManage, error) { //ShardingYY
 	return bc.StateAt(bc.CurrentBlock().Root())
 }
 
 // StateAt returns a new mutable state based on a particular point in time.
-func (bc *BlockChain) StateAt(root []common.CoinRoot) (*state.ShardingStateDB, error) {
-	return state.NewSharding(root, bc.stateCache)
+func (bc *BlockChain) StateAt(root []common.CoinRoot) (*state.StateDBManage, error) {
+	return state.NewStateDBManage(root, bc.stateCache)
 }
 
-func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.ShardingStateDB, error) { //ShardingYY
+func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDBManage, error) { //ShardingYY
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
 		return nil, errors.New("can't find block by hash")
@@ -496,7 +496,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
-		if _, err := state.NewSharding((*head).Root(), bc.stateCache); err == nil { //ShardingYY
+		if _, err := state.NewStateDBManage((*head).Root(), bc.stateCache); err == nil { //ShardingYY
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
@@ -994,7 +994,7 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (e
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
-func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) (status WriteStatus, err error) {
+func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDBManage) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1040,10 +1040,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return NonStatTy, err
 	}
-
-	if root != block.Root() {
+	b2,_:= json.Marshal(intermediateRoot) //ShardingYY
+	intermediateroothash := common.BytesToHash(b2)
+	b,_:= json.Marshal(root) //ShardingYY
+	roothash := common.BytesToHash(b)
+	b1,_:= json.Marshal(block.Root())
+	blockroothash := common.BytesToHash(b1)
+	if roothash != blockroothash{
 		//fmt.Printf("===ZH2==:%s\n", state.Dump())
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", root.Hex(), "header root", block.Root().Hex(), "intermediateRoot", intermediateRoot.Hex(), "deleteEmptyObjects", deleteEmptyObjects)
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", intermediateroothash, "deleteEmptyObjects", deleteEmptyObjects)
 
 		//log.Info("miss tree node debug", "入链时", "commit后state状态")
 		//state.MissTrieDebug()
@@ -1056,13 +1061,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		log.Info("file blockchain", "gcmode modify archive", "")
-		if err := triedb.Commit(root, false); err != nil {
+		if err := triedb.Commit(roothash, false); err != nil {
 			return NonStatTy, err
 		}
 	} else {
 		// Full but not archive node, do proper garbage collection
-		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
-		bc.triegc.Push(root, -float32(block.NumberU64()))
+		triedb.Reference(roothash, common.Hash{}) // metadata reference to keep trie alive
+		bc.triegc.Push(roothash, -float32(block.NumberU64()))
 
 		if current := block.NumberU64(); current > triesInMemory {
 			// Find the next state trie we need to commit
@@ -1239,7 +1244,7 @@ func (bc *BlockChain) GetUpTimeData(hash common.Hash) (map[common.Address]uint32
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
 
-func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) HandleUpTime(state *state.StateDBManage, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
@@ -1323,7 +1328,7 @@ func (bc *BlockChain) HandleUpTime(state *state.StateDB, accounts []common.Addre
 	return nil
 }
 
-func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDBManage, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
 	broadcastInterval := bcInterval.GetBroadcastInterval()
 	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
@@ -1357,7 +1362,7 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts 
 
 }
 
-func (bc *BlockChain) ProcessUpTime(state *state.StateDB, block *types.Block) error {
+func (bc *BlockChain) ProcessUpTime(state *state.StateDBManage, block *types.Block) error {
 	header := block.Header()
 	if header.Number.Uint64() == 1 {
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
@@ -1426,7 +1431,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	return nil, nil
 }
 
-func (bc *BlockChain) ProcessReward(state *state.ShardingStateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) ProcessReward(state *state.StateDBManage, header *types.Header, bcInterval *manparams.BCInterval) error {
 
 	num := header.Number.Uint64()
 	if bcInterval.IsBroadcastNumber(num) {
@@ -1602,7 +1607,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return 0, nil, nil, fmt.Errorf("insert block dpos error")
 		}
 
-		// Create a new ShardingStateDB using the parent block and report an
+		// Create a new StateDBManage using the parent block and report an
 		// error if it fails.
 		var parent *types.Block
 		if i == 0 {
@@ -1611,7 +1616,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		// Process block using the parent state as reference point.
-		state, err := state.NewSharding(parent.Root(), bc.stateCache) //ShardingYY
+		state, err := state.NewStateDBManage(parent.Root(), bc.stateCache) //ShardingYY
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -2183,7 +2188,7 @@ func (bc *BlockChain) GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGr
 	return topologyGraph.(*mc.TopologyGraph), electGraph.(*mc.ElectGraph), nil
 }
 
-func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.ShardingStateDB) error {
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDBManage) error {
 	return bc.matrixState.ProcessMatrixState(block, state)
 }
 
@@ -2313,7 +2318,7 @@ func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
 
 	return superBlkCfg, nil
 }
-func (bc *BlockChain) getBCIntervalByState(st *state.ShardingStateDB) (*manparams.BCInterval, error) {
+func (bc *BlockChain) getBCIntervalByState(st *state.StateDBManage) (*manparams.BCInterval, error) {
 	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
 	if err != nil {
 		return nil, err
@@ -2388,7 +2393,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	return block, nil
 }
 
-func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.ShardingStateDB) error {
+func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.StateDBManage) error {
 	if nil == block || nil == stateDB {
 		return errors.New("param is nil")
 	}
@@ -2412,11 +2417,11 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	for addr, account := range alloc {
-		stateDB.SetBalance(common.MainAccount, addr, account.Balance)
-		stateDB.SetCode(addr, account.Code)
-		stateDB.SetNonce(addr, account.Nonce)
+		stateDB.SetBalance(tx.GetTxCurrency(),common.MainAccount, addr, account.Balance)
+		stateDB.SetCode(tx.GetTxCurrency(),addr, account.Code)
+		stateDB.SetNonce(tx.GetTxCurrency(),addr, account.Nonce)
 		for key, value := range account.Storage {
-			stateDB.SetState(addr, key, value)
+			stateDB.SetState(tx.GetTxCurrency(),addr, key, value)
 		}
 	}
 	mState := new(GenesisMState)

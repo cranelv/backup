@@ -325,6 +325,10 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			log.Error("file state_transition", "func CallRevertNormalTx,Unmarshal err", errRT)
 			continue
 		}
+		if rt.From != from{
+			log.Error("file state_transition", "func CallRevertNormalTx, err", "Revert tx from different Revocable tx from")
+			continue
+		}
 		if rt.Typ != common.ExtraRevocable {
 			log.Info("file state_transition", "func CallRevertNormalTx:err:type is ", rt.Typ, "Revert tx type should ", common.ExtraRevocable)
 			continue
