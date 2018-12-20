@@ -62,7 +62,7 @@ type Header struct {
 	UncleHash   common.Hash        `json:"sha3Uncles"       gencodec:"required"`
 	Leader      common.Address     `json:"leader"            gencodec:"required"`
 	Coinbase    common.Address     `json:"miner"            gencodec:"required"`
-	Root        common.Hash        `json:"stateRoot"        gencodec:"required"`
+	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash        `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash        `json:"receiptsRoot"     gencodec:"required"`
 	Bloom       Bloom              `json:"logsBloom"        gencodec:"required"`
@@ -106,7 +106,7 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.ParentHash,
 		h.UncleHash,
 		h.Leader,
-		h.Root,
+		h.Roots,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -129,7 +129,7 @@ func (h *Header) HashNoSigns() common.Hash {
 		h.UncleHash,
 		h.Leader,
 		h.Coinbase,
-		h.Root,
+		h.Roots,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -152,7 +152,7 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.ParentHash,
 		h.UncleHash,
 		h.Leader,
-		h.Root,
+		h.Roots,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -459,7 +459,7 @@ func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
 func (b *Block) Nonce() uint64            { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
-func (b *Block) Root() common.Hash        { return b.header.Root }
+func (b *Block) Root() []common.CoinRoot  { return b.header.Roots }
 func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
 func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }

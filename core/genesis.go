@@ -336,19 +336,19 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	statedb, _ := state.NewStateDBManage(nil, state.NewDatabase(db)) //ShardingYY
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(common.MainAccount, addr, account.Balance)
+		statedb.AddBalance(params.MAN_COIN,common.MainAccount, addr, account.Balance) //ShardingYY
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
 		//statedb.AddBalance(common.EntrustAccount,addr, account.Balance)
 		//statedb.AddBalance(common.FreezeAccount,addr, account.Balance)
 		///*******************************************************/
-		statedb.SetCode(addr, account.Code)
-		statedb.SetNonce(addr, account.Nonce)
+		statedb.SetCode(params.MAN_COIN,addr, account.Code) //ShardingYY
+		statedb.SetNonce(params.MAN_COIN,addr, account.Nonce) //ShardingYY
 		for key, value := range account.Storage {
-			statedb.SetState(addr, key, value)
+			statedb.SetState(params.MAN_COIN,addr, key, value) //ShardingYY
 		}
 	}
 	if nil == g.MState {
@@ -383,7 +383,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Difficulty:        g.Difficulty,
 		MixDigest:         g.Mixhash,
 		Coinbase:          g.Coinbase,
-		Root:              root,
+		Roots:             root, //ShardingYY
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -394,7 +394,8 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
-	statedb.Database().TrieDB().Commit(root, true)
+	b,_ := json.Marshal(root)
+	statedb.Database().TrieDB().Commit(common.BytesToHash(b), true) //ShardingYY  TODO
 
 	return types.NewBlock(head, nil, nil, nil), nil
 }
@@ -405,18 +406,18 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		return nil
 	}
 
-	stateDB, err := state.New(parentHeader.Root, stateCache)
+	stateDB, err := state.NewStateDBManage(parentHeader.Roots, stateCache)
 	if err != nil {
 		log.Error("genesis super block", "get parent state db err", err)
 		return nil
 	}
 
 	for addr, account := range g.Alloc {
-		stateDB.SetBalance(common.MainAccount, addr, account.Balance)
-		stateDB.SetCode(addr, account.Code)
-		stateDB.SetNonce(addr, account.Nonce)
+		stateDB.SetBalance(params.MAN_COIN,common.MainAccount, addr, account.Balance)
+		stateDB.SetCode(params.MAN_COIN,addr, account.Code)
+		stateDB.SetNonce(params.MAN_COIN,addr, account.Nonce)
 		for key, value := range account.Storage {
-			stateDB.SetState(addr, key, value)
+			stateDB.SetState(params.MAN_COIN,addr, key, value)
 		}
 	}
 	if nil != g.MState {
@@ -449,7 +450,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		Coinbase:          g.Coinbase,
 	}
 
-	head.Root = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number))
+	head.Roots = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
 
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
