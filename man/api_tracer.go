@@ -558,7 +558,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message txinterface.Mes
 			}
 		}
 		// Constuct the JavaScript tracer to execute with
-		if tracer, err = tracers.New(*config.Tracer); err != nil {
+		if tracer, err = tracers.New(message.GetTxCurrency(),*config.Tracer); err != nil {
 			return nil, err
 		}
 		// Handle timeouts and RPC cancellations

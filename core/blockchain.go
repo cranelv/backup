@@ -2223,12 +2223,12 @@ func (bc *BlockChain) GetMatrixStateDataByHash(key string, hash common.Hash) (in
 	if header == nil {
 		return nil, errors.Errorf("can't find block by hash(%s)", hash.Hex())
 	}
-	state, err := bc.StateAt(header.Root)
+	state, err := bc.StateAt(header.Roots)
 	if err != nil {
-		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Roots.TerminalString(), err)
 	}
 	if state == nil {
-		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+		return nil, errors.Errorf("state of root(%s) is nil", header.Roots.TerminalString())
 	}
 	return matrixstate.GetDataByState(key, state)
 }
@@ -2238,12 +2238,12 @@ func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (int
 	if header == nil {
 		return nil, errors.Errorf("can't find block by number(%d)", number)
 	}
-	state, err := bc.StateAt(header.Root)
+	state, err := bc.StateAt(header.Roots)
 	if err != nil {
-		return nil, errors.Errorf("can't find state by root(%s): %v", header.Root.TerminalString(), err)
+		return nil, errors.Errorf("can't find state by root(%s): %v", header.Roots.TerminalString(), err)
 	}
 	if state == nil {
-		return nil, errors.Errorf("state of root(%s) is nil", header.Root.TerminalString())
+		return nil, errors.Errorf("state of root(%s) is nil", header.Roots.TerminalString())
 	}
 	return matrixstate.GetDataByState(key, state)
 }
@@ -2352,8 +2352,8 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	if !block.IsSuperBlock() {
 		return nil, errors.New("err, genesis block is not super block!")
 	}
-	if block.Root() != superBlockGen.Root {
-		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", block.Root().TerminalString(), superBlockGen.Root.TerminalString())
+	if block.Root() != superBlockGen.Roots {
+		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", block.Root().TerminalString(), superBlockGen.Roots.TerminalString())
 	}
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())

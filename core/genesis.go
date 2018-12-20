@@ -60,7 +60,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
-	Root       common.Hash `json:"stateRoot,omitempty"`
+	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 
