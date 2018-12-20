@@ -836,14 +836,13 @@ func (self *StateDBManage) GetAllEntrustGasFrom(cointyp string,authFrom common.A
 }
 
 func (self *StateDBManage) GetEntrustFromByTime(cointyp string,authFrom common.Address, time uint64) []common.Address {
-	var aa []common.Address
-	return aa
+
+	return self.GetStateDb(cointyp,authFrom).GetEntrustFromByTime(authFrom,time)
 }
 
 func (self *StateDBManage) GetIsEntrustByTime(cointyp string,entrustFrom common.Address, time uint64) bool {
-	return false
+	return self.GetStateDb(cointyp,entrustFrom).GetIsEntrustByTime(entrustFrom,time)
 }
 func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Address) []common.EntrustType {
-	var aa []common.EntrustType
-	return  aa
+	return  self.GetStateDb(cointyp,authFrom).GetAllEntrustList(authFrom)
 }
