@@ -17,6 +17,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
+	"encoding/base64"
+	"encoding/json"
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/base58"
@@ -25,6 +27,7 @@ import (
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
 	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/types"
@@ -36,14 +39,11 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
-	"encoding/json"
-	"github.com/matrix/go-matrix/console"
 	"io/ioutil"
-	"encoding/base64"
 	"os"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -327,42 +327,21 @@ func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (commo
 	acc, err := fetchKeystore(s.am).ImportECDSA(key, password)
 	return acc.Address, err
 }
-func GetPassword()(string,error){
+func GetPassword() (string, error) {
 	password, err := console.Stdin.PromptPassword("Passphrase: ")
 	if err != nil {
 		return "", fmt.Errorf("Failed to read passphrase: %v", err)
 	}
 	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
 	if err != nil {
-		return "",fmt.Errorf("Failed to read passphrase confirmation: %v", err)
+		return "", fmt.Errorf("Failed to read passphrase confirmation: %v", err)
 	}
 	if password != confirm {
-		return "",fmt.Errorf("Passphrases do not match")
+		return "", fmt.Errorf("Passphrases do not match")
 	}
-	return password,nil
+	return password, nil
 }
-func (s *PrivateAccountAPI)SetEntrustSignAccount(path string,times int64)bool{
-
-	fmt.Println(times)
-	InputCount:=0
-	var password string
-	var err error
-	for true{
-		InputCount++
-		if InputCount>3{
-			fmt.Println("密码输入次数变多")
-			return false
-		}
-		password,err=GetPassword()
-		if err==nil{
-
-			break
-		}else{
-			fmt.Println("获取密码失败",err)
-		}
-	}
-
-
+func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, times int64) bool {
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -388,7 +367,7 @@ func (s *PrivateAccountAPI)SetEntrustSignAccount(path string,times int64)bool{
 		fmt.Println("加密文件解码失败 密码不正确")
 		return false
 	}
-	entrustValue:=make(map[common.Address]string,0)
+	entrustValue := make(map[common.Address]string, 0)
 
 	for _, v := range anss {
 		entrustValue[v.Address] = v.Password
@@ -587,10 +566,12 @@ func (s *PublicBlockChainAPI) BlockNumber() *big.Int {
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber) // latest header should always be available
 	return header.Number
 }
+
 type RPCBalanceType struct {
-	AccountType uint32  `json:"accountType"`
+	AccountType uint32       `json:"accountType"`
 	Balance     *hexutil.Big `json:"balance"`
 }
+
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
@@ -610,9 +591,9 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 			tmp.Balance = new(hexutil.Big)
 			balance = append(balance, *tmp)
 		}
-	}else{
-		for i:=0;i<len(b);i++{
-			balance = append(balance, RPCBalanceType{b[i].AccountType,(*hexutil.Big)(b[i].Balance)})
+	} else {
+		for i := 0; i < len(b); i++ {
+			balance = append(balance, RPCBalanceType{b[i].AccountType, (*hexutil.Big)(b[i].Balance)})
 		}
 	}
 
