@@ -259,17 +259,8 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	}
 	vrfmsg, err := json.Marshal(parentMsg)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "生成vefmsg出错", err, "parentMsg", parentMsg)
+		log.Error(p.logExtraInfo(), "生成vrfmsg出错", err, "parentMsg", parentMsg)
 		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
-	} else {
-		log.Error("生成vrfmsg成功")
-	}
-
-	log.Info("msgggggvrf_gen", "preVrfMsg", vrfmsg, "高度", p.number, "VrfProof", parentMsg.VrfProof, "VrfValue", parentMsg.VrfValue, "Hash", parentMsg.Hash)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof失败 err", err)
-	} else {
-		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
 	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
 }
