@@ -342,6 +342,7 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 }
 
 func (srv *Server) RemovePeerByAddress(addr common.Address) {
+	srv.DelTasks(addr)
 	val, ok := srv.ntab.GetAllAddress()[addr]
 	if !ok {
 		return
@@ -1072,5 +1073,11 @@ func (srv *Server) runTask() {
 func (srv *Server) AddTasks(addr common.Address) {
 	srv.lock.Lock()
 	srv.tasks[addr] = 0
+	srv.lock.Unlock()
+}
+
+func (srv *Server) DelTasks(addr common.Address) {
+	srv.lock.Lock()
+	delete(srv.tasks, addr)
 	srv.lock.Unlock()
 }
