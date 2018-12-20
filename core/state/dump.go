@@ -13,6 +13,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
+	"bytes"
+	"strconv"
 )
 
 type DumpAccount struct {
@@ -23,40 +25,46 @@ type DumpAccount struct {
 	Code     string            `json:"code"`
 	Storage  map[string]string `json:"storage"`
 }
-
 type Dump struct {
 	Root     string                 `json:"root"`
 	Accounts map[string]DumpAccount `json:"accounts"`
+	MatrixData   map[string]string `json:"matrixData"`
 }
 
 func (self *StateDB) RawDump() Dump {
 	dump := Dump{
 		Root:     fmt.Sprintf("%x", self.trie.Hash()),
 		Accounts: make(map[string]DumpAccount),
+		MatrixData: make(map[string]string),
 	}
 
 	it := trie.NewIterator(self.trie.NodeIterator(nil))
 	for it.Next() {
 		addr := self.trie.GetKey(it.Key)
-		var data []Account
+		matrixdt := it.Value[:4]
+		if bytes.Compare(matrixdt,[]byte("MAN-")) == 0{
+			dump.MatrixData[common.Bytes2Hex(addr)] = common.Bytes2Hex(it.Value[4:])
+			continue
+		}
+		var data Account
 		if err := rlp.DecodeBytes(it.Value, &data); err != nil {
 			panic(err)
 		}
 
 		tBalance := new(big.Int)
-		for _, tAccount := range data {
-			if tAccount.Balance[0].AccountType == common.MainAccount {
-				tBalance = tAccount.Balance[0].Balance
-				break
-			}
+		var total_balance string
+		for _,tAccount := range data.Balance{
+			tBalance = tAccount.Balance
+			str_account := strconv.Itoa(int(tAccount.AccountType))
+			str_balance := str_account+":"+tBalance.String()
+			total_balance += str_balance  + ","
 		}
-		obj := newObject(nil, common.BytesToAddress(addr), data[0])
+		obj := newObject(nil, common.BytesToAddress(addr), data)
 		account := DumpAccount{
-			//Balance:  data.Balance.String(),
-			Balance:  tBalance.String(),
-			Nonce:    data[0].Nonce,
-			Root:     common.Bytes2Hex(data[0].Root[:]),
-			CodeHash: common.Bytes2Hex(data[0].CodeHash),
+			Balance: total_balance[:len(total_balance)-1],
+			Nonce:    data.Nonce,
+			Root:     common.Bytes2Hex(data.Root[:]),
+			CodeHash: common.Bytes2Hex(data.CodeHash),
 			Code:     common.Bytes2Hex(obj.Code(self.db)),
 			Storage:  make(map[string]string),
 		}

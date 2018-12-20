@@ -311,7 +311,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
 		rw.Init(p.version)
 	}
-	p.Log().Debug("Ethereum handshake with peer sucess ", "peerid=%d", pm.networkId)
+	p.Log().Debug("Matrix handshake with peer sucess ", "peerid=%d", pm.networkId)
 	// Register the peer locally
 	//	if err := pm.peers.Register(p); err != nil {
 	if err := pm.Peers.Register(p); err != nil {

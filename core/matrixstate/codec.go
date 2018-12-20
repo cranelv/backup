@@ -418,7 +418,7 @@ func (MSKeyMinHashCodec) encodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (MSKeyMinHashCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.MinHashStruct)
+	msg := new(mc.RandomInfoStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -17,18 +16,15 @@ import (
 )
 
 func init() {
-	electSeedPlug1 := &ElectSeedPlug1{privatekey: big.NewInt(0)}
-	RegisterElectSeedPlugs("Minhash&Key", electSeedPlug1)
+	minHash := &MinHashPlug{privatekey: big.NewInt(0)}
+	RegisterElectSeedPlugs(manparams.ElectionSeed_Plug_MinHash, minHash)
 }
 
-type ElectSeedPlug1 struct {
+type MinHashPlug struct {
 	privatekey *big.Int
 }
 
-func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
-	log.INFO(ModuleElectSeed, "生成随机种子准备阶段", "开始", "height", height)
-	defer log.INFO(ModuleElectSeed, "生成随机种子准备阶段", "结束", "height", height)
-
+func (self *MinHashPlug) Prepare(height uint64, support baseinterface.RandomChainSupport) error {
 	data, err := commonsupport.GetElectGenTimes(support.BlockChain(), height)
 	if err != nil {
 		log.ERROR(ModuleElectSeed, "获取通用配置失败 err", err)
@@ -40,19 +36,19 @@ func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomC
 		log.INFO(ModuleElectSeed, "RoleUpdateMsgHandle", "当前不是投票点,忽略")
 		return nil
 	}
-	if NeedVote(height) == false {
+	if CanVote(height) == false {
 		log.WARN(ModuleElectSeed, "不需要投票  账户不存在抵押交易 高度", height)
 		return nil
 	}
-	privatekey, publickeySend, err := commonsupport.Getkey()
-	privatekeySend := common.BigToHash(self.privatekey).Bytes()
+	privatekey, publickeySend, err := commonsupport.GetVoteData()
 	if err != nil {
-		log.INFO(ModuleElectSeed, "获取公私钥失败 err", err)
+		log.INFO(ModuleElectSeed, "获取投票数据失败 err", err)
 		return err
 	}
+	privatekeySend := common.BigToHash(self.privatekey).Bytes()
 
-	log.INFO(ModuleElectSeed, "公钥 高度", (height + voteBeforeTime))
-	log.INFO(ModuleElectSeed, "私钥 高度", (height + voteBeforeTime))
+
+	log.INFO(ModuleElectSeed, "投票高度", (height + voteBeforeTime))
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: publickeySend})
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: privatekeySend})
 
@@ -60,31 +56,36 @@ func (self *ElectSeedPlug1) Prepare(height uint64, support baseinterface.RandomC
 	return nil
 }
 
-func (self *ElectSeedPlug1) CalcSeed(hash common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error) {
-	ans, err := commonsupport.GetCurrentKeys(hash, support)
+func (self *MinHashPlug) CalcSeed(hash common.Hash, support baseinterface.RandomChainSupport) (*big.Int, error) {
+	SeedSum, err := commonsupport.GetValidVoteSum(hash, support)
 	if err != nil {
 		log.ERROR(ModuleElectSeed, "计算阶段", "", "获取有效私钥出错 err", err)
 		return nil, err
 	}
-	minHash := commonsupport.GetMinHash(hash, support)
-	ans.Add(ans, minHash.Big())
-	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果为", ans, "高度hash", hash.String())
-	return ans, nil
+	log.Info(ModuleElectSeed,"计算阶段,有效私钥之和",SeedSum)
+	minHash ,err:= commonsupport.GetMinHash(hash, support)
+	if err!=nil{
+		log.Error(ModuleElectSeed,"计算阶段,获取最小hash错误 err",err)
+		return nil,err
+	}
+	SeedSum.Add(SeedSum, minHash.Big())
+	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果为", SeedSum, "高度hash", hash.String())
+	return SeedSum, nil
 }
 
-func NeedVote(height uint64) bool {
-	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(height)), common.RoleValidator)
+func CanVote(height uint64) bool {
+	depositList, err := commonsupport.GetDepositListByHeightAndRole(big.NewInt(int64(height)), common.RoleValidator)
 	if err != nil {
 		log.Error(ModuleElectSeed, "投票失敗", "获取验证者身份列表失败", "高度", height)
 		return false
 	}
-	selfAddress := ca.GetAddress()
-	for _, v := range ans {
+	selfAddress := commonsupport.GetSelfAddress()
+	for _, v := range depositList {
 		if v.Address == selfAddress {
-			log.INFO(ModuleElectSeed, "具备投票身份 账户", selfAddress)
+			log.Info(ModuleElectSeed, "具备投票身份 账户", selfAddress)
 			return true
 		}
 	}
-	log.Error(ModuleElectSeed, "不具备投票身份,不存在抵押列表里 账户", selfAddress)
+	log.Info(ModuleElectSeed, "不具备投票身份,不存在抵押列表里 账户", selfAddress)
 	return false
 }

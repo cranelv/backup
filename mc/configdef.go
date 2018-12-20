@@ -159,8 +159,9 @@ type SuperBlkCfg struct {
 	Num uint64
 }
 
-type MinHashStruct struct {
+type RandomInfoStruct struct {
 	MinHash common.Hash
+	MaxNonce uint64
 }
 type PreAllTopStruct struct {
 	PreAllTopRoot common.Hash

@@ -25,21 +25,18 @@ type MatrixEth interface {
 }
 
 type AuthReader interface {
-	GetEntrustSignInfo(authFrom common.Address, blockHash common.Hash) (common.Address, string, error)
+	GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error)
 	GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
 }
 
 var (
-	ModeLog              = "签名助手"
-	ErrNilAccountManager = errors.New("account manager is nil")
-	ErrNilKeyStore       = errors.New("key store is nil")
-	ErrKeyStoreCount     = errors.New("key stores is empty")
-	ErrKeyStoreReflect   = errors.New("reflect key stores failed")
-
+	ModeLog                  = "签名助手"
+	ErrNilAccountManager     = errors.New("account manager is nil")
+	ErrNilKeyStore           = errors.New("key store is nil")
+	ErrKeyStoreCount         = errors.New("key stores is empty")
+	ErrKeyStoreReflect       = errors.New("reflect key stores failed")
 	ErrIllegalSignAccount    = errors.New("sign account is illegal")
 	ErrReader                = errors.New("auth reader is nil")
-	ErrHeaderIsNil           = errors.New("header is nil")
-	ErrGetStateDB            = errors.New("error get state db")
 	ErrGetAccountAndPassword = errors.New("get account and password  error")
 )
 
@@ -86,13 +83,6 @@ func (sh *SignHelper) SetAccountManager(am *accounts.Manager) error {
 }
 
 func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byte, validate bool, blkHash common.Hash) (common.Signature, error) {
-	sh.mu.RLock()
-	defer sh.mu.RUnlock()
-
-	if nil == sh.keyStore {
-		return common.Signature{}, ErrNilKeyStore
-	}
-
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(reader, blkHash)
 	if err != nil {
 		return common.Signature{}, ErrGetAccountAndPassword
@@ -101,6 +91,11 @@ func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byt
 		return common.Signature{}, ErrIllegalSignAccount
 	}
 
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+	if nil == sh.keyStore {
+		return common.Signature{}, ErrNilKeyStore
+	}
 	sign, err := sh.keyStore.SignHashValidateWithPass(signAccount, signPassword, hash, validate)
 	if err != nil {
 		return common.Signature{}, err
@@ -113,13 +108,6 @@ func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash c
 }
 
 func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash) (types.SelfTransaction, error) {
-	sh.mu.RLock()
-	defer sh.mu.RUnlock()
-
-	if nil == sh.keyStore {
-		return nil, ErrNilKeyStore
-	}
-
 	// Sign the requested hash with the wallet
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
 	if err != nil {
@@ -128,15 +116,15 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 	if (signAccount.Address == common.Address{}) {
 		return nil, ErrIllegalSignAccount
 	}
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+	if nil == sh.keyStore {
+		return nil, ErrNilKeyStore
+	}
 	return sh.keyStore.SignTxWithPassAndTemp(signAccount, signPassword, tx, chainID)
 }
 
 func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, []byte, error) {
-	sh.mu.RLock()
-	defer sh.mu.RUnlock()
-	if nil == sh.keyStore {
-		return []byte{}, []byte{}, []byte{}, ErrNilKeyStore
-	}
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
 	//log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
 	if err != nil {
@@ -145,11 +133,17 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	if (signAccount.Address == common.Address{}) {
 		return []byte{}, []byte{}, []byte{}, ErrIllegalSignAccount
 	}
+
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+	if nil == sh.keyStore {
+		return []byte{}, []byte{}, []byte{}, ErrNilKeyStore
+	}
 	return sh.keyStore.SignVrfWithPass(signAccount, signPassword, msg)
 }
 
 func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {
-	addr, password, err := reader.GetEntrustSignInfo(ca.GetAddress(), blkHash)
+	addr, password, err := reader.GetSignAccount(ca.GetAddress(), blkHash)
 	account := accounts.Account{}
 	account.Address = addr
 	//log.ERROR(ModeLog, "returnaddr", account.Address, "password", password, "err", err)

@@ -94,7 +94,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 
 		readyMsg := &mc.NewBlockReadyMsg{
 			Header: result.Header,
-			State:  work.State,
+			State:  work.State.Copy(),
 		}
 		log.INFO(p.logExtraInfo(), "广播区块验证完成", "发送新区块准备完毕消息", "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)

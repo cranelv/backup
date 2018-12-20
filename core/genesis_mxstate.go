@@ -511,7 +511,7 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) e
 }
 
 func (g *GenesisMState) setPreMinHashToStat(state *state.StateDB, num uint64) error {
-	return matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.MinHashStruct{}, state)
+	return matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.RandomInfoStruct{}, state)
 }
 func (g *GenesisMState) setPreBroadcastRootToStat(state *state.StateDB, num uint64) error {
 	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot, &mc.PreBroadStateRoot{}, state)

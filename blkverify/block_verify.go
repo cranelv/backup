@@ -95,7 +95,6 @@ func (self *BlockVerify) update() {
 		self.requestSub.Unsubscribe()
 		self.leaderChangeSub.Unsubscribe()
 		self.roleUpdatedMsgSub.Unsubscribe()
-		log.INFO("区块验证模块退出成功")
 	}()
 
 	for {
@@ -125,9 +124,12 @@ func (self *BlockVerify) update() {
 	}
 }
 
-func (self *BlockVerify) handleRoleUpdatedMsg(roleMsg *mc.RoleUpdatedMsg) error {
-	log.INFO(self.logExtraInfo(), "CA身份消息处理", "开始", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String())
-	defer log.INFO(self.logExtraInfo(), "CA身份消息", "结束", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String())
+func (self *BlockVerify) handleRoleUpdatedMsg(roleMsg *mc.RoleUpdatedMsg) {
+	if nil == roleMsg {
+		log.Error(self.logExtraInfo(), "CA身份消息异常", "消息为nil")
+		return
+	}
+	log.Info(self.logExtraInfo(), "CA身份消息", "开始处理", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String(), "区块hash", roleMsg.BlockHash.TerminalString())
 
 	curNumber := roleMsg.BlockNum + 1
 	self.processManage.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
@@ -136,17 +138,16 @@ func (self *BlockVerify) handleRoleUpdatedMsg(roleMsg *mc.RoleUpdatedMsg) error 
 		curProcess.StartRunning(roleMsg.Role)
 	}
 
-	return nil
+	return
 }
 
 func (self *BlockVerify) handleLeaderChangeNotify(leaderMsg *mc.LeaderChangeNotify) {
 	if nil == leaderMsg {
-		log.ERROR(self.logExtraInfo(), "leader变更消息异常", "消息为nil")
+		log.Error(self.logExtraInfo(), "leader变更消息异常", "消息为nil")
 		return
 	}
-	log.INFO(self.logExtraInfo(), "Leader变更消息处理", "开始", "高度", leaderMsg.Number, "共识轮次",
-		leaderMsg.ConsensusTurn, "有效", leaderMsg.ConsensusState, "leader", leaderMsg.Leader.Hex(), "next leader", leaderMsg.NextLeader.Hex())
-	defer log.INFO(self.logExtraInfo(), "Leader变更消息处理", "结束", "高度", leaderMsg.Number, "共识轮次", leaderMsg.ConsensusTurn, "有效", leaderMsg.ConsensusState)
+	log.Info(self.logExtraInfo(), "Leader变更消息", "开始处理", "高度", leaderMsg.Number, "共识轮次",
+		leaderMsg.ConsensusTurn.String(), "共识状态", leaderMsg.ConsensusState, "leader", leaderMsg.Leader.Hex(), "next leader", leaderMsg.NextLeader.Hex())
 
 	msgNumber := leaderMsg.Number
 	process, err := self.processManage.GetProcess(msgNumber)
@@ -160,11 +161,10 @@ func (self *BlockVerify) handleLeaderChangeNotify(leaderMsg *mc.LeaderChangeNoti
 
 func (self *BlockVerify) handleRequestMsg(reqMsg *mc.HD_BlkConsensusReqMsg) {
 	if nil == reqMsg || nil == reqMsg.Header {
-		log.WARN(self.logExtraInfo(), "请求消息", "msg is nil")
+		log.Warn(self.logExtraInfo(), "区块共识请求消息", "msg is nil")
 		return
 	}
-	log.INFO(self.logExtraInfo(), "请求消息处理", "开始", "高度", reqMsg.Header.Number, "共识轮次", reqMsg.ConsensusTurn, "Leader", reqMsg.Header.Leader.Hex())
-	defer log.INFO(self.logExtraInfo(), "请求消息处理", "结束", "高度", reqMsg.Header.Number, "共识轮次", reqMsg.ConsensusTurn, "Leader", reqMsg.Header.Leader.Hex())
+	log.INFO(self.logExtraInfo(), "区块共识请求消息", "开始处理", "高度", reqMsg.Header.Number, "共识轮次", reqMsg.ConsensusTurn.String(), "Leader", reqMsg.Header.Leader.Hex())
 	if (reqMsg.Header.Leader == common.Address{}) {
 		log.WARN(self.logExtraInfo(), "请求消息", "leader is nil")
 		return

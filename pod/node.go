@@ -110,6 +110,11 @@ func New(conf *Config) (*Node, error) {
 		return nil, err
 	}
 	signHelper := signhelper.NewSignHelper()
+	err = signHelper.SetAccountManager(am)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Node{
 		accman:            am,
 		ephemeralKeystore: ephemeralKeystore,
