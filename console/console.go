@@ -170,8 +170,12 @@ func (c *Console) init(preload []string) error {
 			if _, err = c.jsre.Run(`jman.sign = personal.sign;`); err != nil {
 				return fmt.Errorf("personal.sign: %v", err)
 			}
+			if _, err = c.jsre.Run(`jman.setEntrustSignAccount = personal.setEntrustSignAccount;`); err != nil {
+				return fmt.Errorf("personal.setEntrustSignAccount:%v", err)
+			}
 			obj.Set("openWallet", bridge.OpenWallet)
 			obj.Set("unlockAccount", bridge.UnlockAccount)
+			obj.Set("setEntrustSignAccount", bridge.SetEntrustSignAccount)
 			obj.Set("newAccount", bridge.NewAccount)
 			obj.Set("sign", bridge.Sign)
 		}

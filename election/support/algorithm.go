@@ -6,19 +6,17 @@ package support
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/mt19937"
-
-	"math/big"
 )
 
-func GetList(probnormalized []Pnormalized,needNum int,seed int64)([]Strallyint,[]Pnormalized){
-	probnormalized =Normalize(probnormalized)
-	ans:=[]Strallyint{}
-	RemainingProbNormalizedNodes:=[]Pnormalized{}
-	if needNum>=len(probnormalized){
-		for _,v:=range probnormalized{
-			ans=append(ans,Strallyint{Addr:v.Addr,Value:1})
+func GetList(probnormalized []Pnormalized, needNum int, seed int64) ([]Strallyint, []Pnormalized) {
+	probnormalized = Normalize(probnormalized)
+	ans := []Strallyint{}
+	RemainingProbNormalizedNodes := []Pnormalized{}
+	if needNum >= len(probnormalized) {
+		for _, v := range probnormalized {
+			ans = append(ans, Strallyint{Addr: v.Addr, Value: 1})
 		}
-		return ans,[]Pnormalized{}
+		return ans, []Pnormalized{}
 	}
 	rand := mt19937.RandUniformInit(seed)
 	dict := make(map[common.Address]int)
@@ -44,15 +42,7 @@ func GetList(probnormalized []Pnormalized,needNum int,seed int64)([]Strallyint,[
 			ans = append(ans, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
 		}
 	}
-	return ans,RemainingProbNormalizedNodes
-}
-
-
-
-
-type Pnormalized struct {
-	Value float64
-	Addr  common.Address
+	return ans, RemainingProbNormalizedNodes
 }
 
 func Normalize(probVal []Pnormalized) []Pnormalized {
@@ -80,66 +70,4 @@ func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common
 		}
 	}
 	return probnormalized[0].Addr
-}
-
-
-
-
-type SelfNodeInfo struct {
-	Address  common.Address
-	Stk      *big.Int
-	Uptime   int
-	Tps      int
-	Coef_tps float64
-	Coef_stk float64
-}
-
-func (self *SelfNodeInfo) TPS_POWER() float64 {
-	tps_weight := 1.0
-	if self.Tps >= 16000 {
-		tps_weight = 5.0
-	} else if self.Tps >= 8000 {
-		tps_weight = 4.0
-	} else if self.Tps >= 4000 {
-		tps_weight = 3.0
-	} else if self.Tps >= 2000 {
-		tps_weight = 2.0
-	} else if self.Tps >= 1000 {
-		tps_weight = 1.0
-	} else {
-		tps_weight = 0.0
-	}
-	return tps_weight
-}
-
-func (self *SelfNodeInfo) Last_Time() float64 {
-	CandidateTime_weight := 4.0
-	if self.Uptime <= 64 {
-		CandidateTime_weight = 0.25
-	} else if self.Uptime <= 128 {
-		CandidateTime_weight = 0.5
-	} else if self.Uptime <= 256 {
-		CandidateTime_weight = 1
-	} else if self.Uptime <= 512 {
-		CandidateTime_weight = 2
-	} else {
-		CandidateTime_weight = 4
-	}
-	return CandidateTime_weight
-}
-
-func (self *SelfNodeInfo) Deposit_stake() float64 {
-	temp := big.NewInt(0).Set(self.Stk)
-	deposMan := temp.Div(temp, common.ManValue).Uint64()
-	stake_weight := 1.0
-	if deposMan >= 40000 {
-		stake_weight = 4.5
-	} else if deposMan >= 20000 {
-		stake_weight = 2.15
-	} else if deposMan >= 10000 {
-		stake_weight = 1.0
-	} else {
-		stake_weight = 0.0
-	}
-	return stake_weight
 }

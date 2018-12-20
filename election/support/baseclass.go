@@ -4,27 +4,23 @@
 package support
 
 import (
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/core/vm"
-	"math/big"
 	"fmt"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/mc"
+	"math/big"
 	"math/rand"
 	"sort"
 )
 
-const (
-	MaxSample         = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值
-	J                 = 0    //基金会验证节点个数tps_weight
-	DefaultStock      = 1
-)
-
-const (
-	DefaultNodeConfig       = 0
-	MaxVipEleLevelNum       = 2
-	DefaultRatio            = 1000
-	DefaultRatioDenominator = 1000
-)
+type RatioList struct {
+	MinNum uint64
+	Ratio  float64
+}
+type Pnormalized struct {
+	Value float64
+	Addr  common.Address
+}
 type AllNative struct {
 	Master    []mc.ElectNodeInfo //验证者主节点
 	BackUp    []mc.ElectNodeInfo //验证者备份
@@ -33,10 +29,8 @@ type AllNative struct {
 	MasterQ    []common.Address //第一梯队候选
 	BackUpQ    []common.Address //第二梯队候选
 	CandidateQ []common.Address //第三梯队候选
-	ElectInfo *mc.ElectConfigInfo
-
+	ElectInfo  *mc.ElectConfigInfo
 }
-
 
 type Strallyint struct {
 	Value int
@@ -54,13 +48,12 @@ type Node struct {
 	Usable     bool
 }
 
-
 type Electoion struct {
-	SeqNum uint64
+	SeqNum        uint64
 	RandSeed      *big.Int
 	MaxLevelNum   int
 	VipLevelCfg   []mc.VIPConfig
-	NodeList  []Node
+	NodeList      []Node
 	EleCfg        mc.ElectConfigInfo
 	WhiteNodeInfo []Strallyint
 }
@@ -104,9 +97,9 @@ func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
 	}
 }
 
-func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo, randseed *big.Int,seqNum uint64) *Electoion {
+func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo, randseed *big.Int, seqNum uint64) *Electoion {
 	var vip Electoion
-	vip.SeqNum=seqNum
+	vip.SeqNum = seqNum
 	vip.RandSeed = randseed
 	vip.MaxLevelNum = len(VipLevelCfg) + 1
 	vip.EleCfg = EleCfg
@@ -151,7 +144,7 @@ func (vip *Electoion) ProcessWhiteNode() {
 			continue
 		}
 		if FindAddress(v.Address, vip.EleCfg.WhiteList) {
-			vip.WhiteNodeInfo = append(vip.WhiteNodeInfo, Strallyint{Addr:v.Address,Value:DefaultStock})
+			vip.WhiteNodeInfo = append(vip.WhiteNodeInfo, Strallyint{Addr: v.Address, Value: DefaultStock})
 			vip.NodeList[k].SetUsable(false)
 		}
 	}
@@ -190,24 +183,28 @@ func (vip *Electoion) GetLastNode() []Node {
 	return remainNodeList
 }
 
-func (vip *Electoion) GetWeight() []Pnormalized {
-	lastnode:=vip.GetLastNode()
-	var CapitalMap []Pnormalized
-	for _, item := range lastnode {
-		self := SelfNodeInfo{Address: item.Address, Stk: item.Deposit, Uptime: int(item.OnlineTime.Uint64()), Tps: 1000, Coef_tps: 0.2, Coef_stk: 0.25}
-		value := self.Last_Time() * (self.TPS_POWER()*self.Coef_tps + self.Deposit_stake()*self.Coef_stk)
-		value = value * (float64(item.Ratio) / float64(DefaultRatioDenominator))
-		CapitalMap = append(CapitalMap, Pnormalized{Addr: self.Address, Value: float64(value)})
-	}
-	return CapitalMap
+func (vip *Electoion) GetWeight(role common.RoleType) []Pnormalized {
+	lastnode := vip.GetLastNode()
+	return CalcValue(lastnode, role)
 }
 
-func (vip *Electoion)Disorder(){
-	vip.NodeList=Knuth_Fisher_Yates_Algorithm(vip.NodeList,vip.RandSeed)
+func (vip *Electoion) Disorder() {
+	vip.NodeList = Knuth_Fisher_Yates_Algorithm(vip.NodeList, vip.RandSeed)
 }
-func (vip *Electoion)Sort(){
+func (vip *Electoion) Sort() {
 	sort.Sort(SortNodeList(vip.NodeList))
 }
+
+func (vip *Electoion) ValidatorTopGen(MasterNum int, BackupNum int) ([]Strallyint, []Strallyint, []Strallyint) {
+	weight := vip.GetWeight(common.RoleValidator)
+	switch DefalutValidatorElectPlug {
+	case ValidatorElectPlug_Direct:
+		return getValidator_Direct(weight, MasterNum, BackupNum, vip.RandSeed)
+	default:
+		return getValidator_Order(weight, MasterNum, BackupNum, vip.RandSeed)
+	}
+}
+
 func Knuth_Fisher_Yates_Algorithm(nodeList []Node, randSeed *big.Int) []Node {
 	//高纳德置乱算法
 	rand.Seed(randSeed.Int64())
@@ -229,7 +226,6 @@ func (vip *Electoion) GetIndex(addr common.Address) (int, bool) {
 }
 func (vip *Electoion) VipElection(nodeList []Node, maxNum int) []Node {
 
-
 	nodeList = Knuth_Fisher_Yates_Algorithm(nodeList, vip.RandSeed)
 	sort.Sort(SortNodeList(nodeList))
 	var vipElected = make([]Node, 0)
@@ -247,8 +243,6 @@ func (vip *Electoion) VipElection(nodeList []Node, maxNum int) []Node {
 
 	return vipElected
 }
-
-
 
 type SortNodeList []Node
 

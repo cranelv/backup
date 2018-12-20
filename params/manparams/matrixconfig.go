@@ -45,6 +45,10 @@ const (
 	EveryBlockSeed_Plug_NonceAndCoinbase = "NonceAndCoinbase"
 	EveryBroadcastSeed                   = "everybroadcastseed"
 	EveryBroadcastSeed_Plug_MaxNonce     = "MaxNonce"
+
+	ElectPlug_layerd = "layerd"
+	ElectPlug_stock  = "stock"
+	ELectPlug_direct = "direct"
 )
 
 var (

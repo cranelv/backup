@@ -3,13 +3,10 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package support
 
-
-
 import (
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/mc"
 )
-
 
 func MakeElectNode(address common.Address, Pos int, Stock int, Type common.RoleType) mc.ElectNodeInfo {
 	return mc.ElectNodeInfo{
@@ -20,16 +17,14 @@ func MakeElectNode(address common.Address, Pos int, Stock int, Type common.RoleT
 	}
 }
 
-func MakeMinerAns(chosed []Strallyint,seqnum uint64)*mc.MasterMinerReElectionRsp{
-	minerResult:=&mc.MasterMinerReElectionRsp{
-	}
-	minerResult.SeqNum=seqnum
-	for k,v:=range chosed{
-		minerResult.MasterMiner=append(minerResult.MasterMiner,MakeElectNode(v.Addr,k,v.Value,common.RoleMiner))
+func MakeMinerAns(chosed []Strallyint, seqnum uint64) *mc.MasterMinerReElectionRsp {
+	minerResult := &mc.MasterMinerReElectionRsp{}
+	minerResult.SeqNum = seqnum
+	for k, v := range chosed {
+		minerResult.MasterMiner = append(minerResult.MasterMiner, MakeElectNode(v.Addr, k, v.Value, common.RoleMiner))
 	}
 	return minerResult
 }
-
 
 func MakeValidatoeTopGenAns(seqnum uint64, VIPNode []Strallyint, master []Strallyint, backup []Strallyint, candiate []Strallyint) *mc.MasterValidatorReElectionRsq {
 	ans := &mc.MasterValidatorReElectionRsq{
@@ -49,10 +44,10 @@ func MakeValidatoeTopGenAns(seqnum uint64, VIPNode []Strallyint, master []Strall
 	}
 	return ans
 }
-func TransElectNodeInfo(data []Strallyint,types common.RoleType)[]mc.ElectNodeInfo{
-	ans:=[]mc.ElectNodeInfo{}
-	for k,v:=range data{
-		ans=append(ans,MakeElectNode(v.Addr,k,DefaultStock,types))
+func TransElectNodeInfo(data []Strallyint, types common.RoleType) []mc.ElectNodeInfo {
+	ans := []mc.ElectNodeInfo{}
+	for k, v := range data {
+		ans = append(ans, MakeElectNode(v.Addr, k, DefaultStock, types))
 	}
 	return ans
 }
