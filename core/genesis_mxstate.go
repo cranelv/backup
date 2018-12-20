@@ -341,11 +341,14 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDB, num uint64)
 }
 
 func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) error {
-	if g.LotteryCfg == nil {
-		if num == 0 {
-			return errors.New("彩票费配置信息为nil")
-		} else {
-			log.INFO("Geneis", "没有配置彩票费配置信息", "")
+	if num == 0 {
+		if g.LotteryCfg == nil {
+			return errors.New("利息配置信息为nil")
+		}
+		matrixstate.SetNumByState(mc.MSKEYLotteryNum, state, 1)
+	} else {
+		if g.LotteryCfg == nil {
+			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
 	}
@@ -354,10 +357,14 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) e
 }
 
 func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) error {
-	if g.InterestCfg == nil {
-		if num == 0 {
+	if num == 0 {
+		if g.InterestCfg == nil {
 			return errors.New("利息配置信息为nil")
-		} else {
+		}
+		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, 1)
+		matrixstate.SetNumByState(mc.MSInterestPayNum, state, 1)
+	} else {
+		if g.InterestCfg == nil {
 			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
@@ -374,13 +381,18 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 }
 
 func (g *GenesisMState) setSlashCfgToState(state *state.StateDB, num uint64) error {
-	if g.SlashCfg == nil {
-		if num == 0 {
+	if num == 0 {
+		if g.SlashCfg == nil {
 			return errors.New("惩罚配置信息为nil")
-		} else {
+		}
+		matrixstate.SetNumByState(mc.MSKeySlashNum, state, 1)
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, 1)
+	} else {
+		if g.SlashCfg == nil {
 			log.INFO("Geneis", "没有配置惩罚配置信息", "")
 			return nil
 		}
+
 	}
 
 	log.Info("Geneis", "SlashCfg", g.SlashCfg)

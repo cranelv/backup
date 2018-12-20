@@ -32,8 +32,6 @@ const (
 	MSKeyMultiCoin    = "coin_reward"
 	//upTime状态
 	MSKeyUpTimeNum = "upTime_num"
-	//矿工状态
-	MSKEYMinerPayNum = "miner_num"
 	//彩票状态
 	MSKEYLotteryNum = "lottery_num"
 	//利息状态
@@ -160,7 +158,7 @@ type SuperBlkCfg struct {
 }
 
 type RandomInfoStruct struct {
-	MinHash common.Hash
+	MinHash  common.Hash
 	MaxNonce uint64
 }
 type PreAllTopStruct struct {

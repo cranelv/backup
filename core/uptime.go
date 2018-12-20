@@ -253,10 +253,6 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts 
 }
 func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) error {
 
-	if header.Number.Uint64() == 1 {
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
-		return nil
-	}
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
 	if nil != err {
 		return err

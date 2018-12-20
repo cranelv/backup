@@ -156,10 +156,6 @@ func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 }
 
 func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
-		return false
-	}
 	if tlr.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return false
