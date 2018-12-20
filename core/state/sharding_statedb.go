@@ -685,14 +685,29 @@ func (shard *StateDBManage) clearJournalAndRefund(idx int) {
 }
 //TODO	===============================
 // Commit writes the state to the underlying in-memory trie database.
-func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
-	//for _,cm:=range shard.shardings{
-	//	for _,rm:=range cm.Rmanage{
-	//		rm.State.Commit(deleteEmptyObjects)
-	//
-	//	}
-	//}
-	return common.Hash{},nil
+func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []*common.CoinRoot, err error) {
+	var Roots []common.Hash
+	for _,cm:=range shard.shardings  {
+		for _,rm:=range cm.Rmanage{
+			root,err:=rm.State.Commit(deleteEmptyObjects)
+			if err!=nil {
+				log.Error("file:sharding_statedb.go","func:Commit",err)
+				panic(err)
+			}
+			Roots=append(Roots,root)
+		}
+		bs,err:=json.Marshal(Roots)
+		if err!=nil {
+			log.Error("file:sharding_statedb.go","func:Commit",err)
+			panic(err)
+		}
+		bh:=common.BytesToHash(bs)
+		cr=append(cr,&common.CoinRoot{
+			Cointyp:cm.Cointyp,
+			Root:bh,
+		})
+	}
+	return cr,nil
 }
 
 func (self *StateDBManage) CommitSaveTx() {
