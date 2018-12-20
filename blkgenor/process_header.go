@@ -156,7 +156,7 @@ func (p *Process) processHeaderGen() error {
 	if Elect == nil {
 		return errors.New("生成elect信息错误!")
 	}
-	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
+	log.Info(p.logExtraInfo(), "获取选举结果 ", Elect, "高度", p.number)
 	header = tsBlock.Header()
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root

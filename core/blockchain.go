@@ -1214,7 +1214,7 @@ func (bc *BlockChain) GetUpTimeData(hash common.Hash) (map[common.Address]uint32
 			log.ERROR("blockchain", "序列化点名心跳交易错误", error)
 			return nil, nil, error
 		}
-		log.INFO("blockchain", "++++++++点名心跳交易++++++++", temp)
+		log.INFO("blockchain", "点名心跳交易", temp)
 		for k, v := range temp {
 			calltherollMap[common.HexToAddress(k)] = v
 		}

@@ -599,7 +599,7 @@ func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map
 			log.ERROR(packagename, "序列化点名心跳交易错误", error)
 			return nil, nil, error
 		}
-		log.INFO(packagename, "++++++++点名心跳交易++++++++", temp)
+		log.INFO(packagename, "点名心跳交易", temp)
 		for k, v := range temp {
 			calltherollMap[common.HexToAddress(k)] = v
 		}
