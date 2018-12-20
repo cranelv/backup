@@ -174,7 +174,7 @@ func (shard *StateDBManage) Preimages() map[common.Hash][]byte {
 
 	return nil//shard.sharding[idx].preimages
 }
-//退款是某一个staetdb的？还是要在shardingdb上加上退款成员变量
+//TODO 退款是某一个staetdb的？还是要在shardingdb上加上退款成员变量
 func (shard *StateDBManage) AddRefund(cointyp string,address common.Address,gas uint64) {
 	shard.GetStateDb(cointyp,address).AddRefund(gas)
 }
@@ -833,4 +833,17 @@ func (self *StateDBManage) GetAllEntrustSignFrom(cointyp string,authFrom common.
 
 func (self *StateDBManage) GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address{
 	return self.GetStateDb(cointyp,authFrom).GetAllEntrustGasFrom(authFrom)
+}
+
+func (self *StateDBManage) GetEntrustFromByTime(cointyp string,authFrom common.Address, time uint64) []common.Address {
+	var aa []common.Address
+	return aa
+}
+
+func (self *StateDBManage) GetIsEntrustByTime(cointyp string,entrustFrom common.Address, time uint64) bool {
+	return false
+}
+func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Address) []common.EntrustType {
+	var aa []common.EntrustType
+	return  aa
 }

@@ -157,4 +157,8 @@ type StateDBManager interface {
 	Finalise(cointyp string,deleteEmptyObjects bool)
 	GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address
 	GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address
+
+	GetEntrustFromByTime(cointyp string,authFrom common.Address, time uint64) []common.Address
+	GetIsEntrustByTime(cointyp string,entrustFrom common.Address, time uint64) bool
+	GetAllEntrustList(cointyp string,authFrom common.Address) []common.EntrustType
 }
