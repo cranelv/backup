@@ -1638,10 +1638,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
-
-			root := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
-			if root != block.Root() {
-				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
+			root := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())) //shardingYY
+			b2,_:= json.Marshal(root) //ShardingYY
+			intermediateroothash := common.BytesToHash(b2)
+			b1,_:= json.Marshal(block.Root())
+			blockroothash := common.BytesToHash(b1)
+			if blockroothash != intermediateroothash {
+				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", blockroothash, intermediateroothash)
 			}
 		} else {
 			bcInterval, err := bc.getBCIntervalByState(state)
