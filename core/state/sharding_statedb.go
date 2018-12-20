@@ -813,7 +813,24 @@ func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32){
 		}
 	}
 }
-
+//根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
+func (self *StateDBManage) GetGasAuthFromByTime(cointyp string,entrustFrom common.Address, time uint64) common.Address {
+	AuthMarsha1Data := self.GetStateByteArray(cointyp,entrustFrom, common.BytesToHash(entrustFrom[:]))
+	if len(AuthMarsha1Data) == 0 {
+		return common.Address{}
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	if err != nil {
+		return common.Address{}
+	}
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByTime && AuthData.IsEntrustGas == true && AuthData.StartTime <= time && AuthData.EndTime >= time {
+			return AuthData.AuthAddres
+		}
+	}
+	return common.Address{}
+}
 //TODO	===========================================================================================
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDBManage) GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {

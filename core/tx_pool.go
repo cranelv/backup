@@ -146,7 +146,7 @@ var gSendst sendst
 type blockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
+	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
 
@@ -189,7 +189,7 @@ type NormalTxPool struct {
 	signer       types.Signer
 	mu           sync.RWMutex
 
-	currentState  *state.StateDB      // Current state in the blockchain head
+	currentState  *state.StateDBManage      // Current state in the blockchain head
 	pendingState  *state.ManagedState // Pending state tracking virtual nonces
 	currentMaxGas uint64              // Current gas limit for transaction caps
 
@@ -577,7 +577,7 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = nPool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	statedb, err := nPool.chain.StateAt(newHead.Root)
+	statedb, err := nPool.chain.StateAt(newHead.Roots)
 	if err != nil {
 		log.Error("Failed to reset txpool state", "err", err)
 		return
@@ -1243,14 +1243,14 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction adheres to nonce ordering
-	if nPool.currentState.GetNonce(from) > tx.Nonce() {
+	if nPool.currentState.GetNonce(tx.Currency,from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
 	//YY add if
 	var balance *big.Int
 	var entrustbalance *big.Int
 	//当前账户余额
-	for _, tAccount := range nPool.currentState.GetBalance(from) {
+	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency,from) {
 		if tAccount.AccountType == common.MainAccount {
 			balance = tAccount.Balance
 			break
@@ -1258,7 +1258,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	//委托账户的余额
 	if tx.IsEntrustGas {
-		for _, tAccount := range nPool.currentState.GetBalance(tx.AmontFrom()) {
+		for _, tAccount := range nPool.currentState.GetBalance(tx.Currency,tx.AmontFrom()) {
 			if tAccount.AccountType == common.MainAccount {
 				entrustbalance = tAccount.Balance
 				break
@@ -1323,12 +1323,12 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		//通过from获得的数据为授权人marsha1过的数据
 		from := tx.From()
 		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		entrustFrom := nPool.currentState.GetGasAuthFrom(from, nPool.chain.CurrentBlock().NumberU64()+1) //当前块高加1，因为该笔交易要上到下一个区块
+		entrustFrom := nPool.currentState.GetGasAuthFrom(tx.Currency,from, nPool.chain.CurrentBlock().NumberU64()+1) //当前块高加1，因为该笔交易要上到下一个区块
 		if !entrustFrom.Equal(common.Address{}) {
 			tx.Setentrustfrom(entrustFrom)
 			tx.IsEntrustGas = true
 		} else {
-			entrustFrom := nPool.currentState.GetGasAuthFromByTime(from, uint64(time.Now().Unix()))
+			entrustFrom := nPool.currentState.GetGasAuthFromByTime(tx.Currency,from, uint64(time.Now().Unix()))
 			if !entrustFrom.Equal(common.Address{}) {
 				tx.Setentrustfrom(entrustFrom)
 				tx.IsEntrustGas = true
@@ -1497,7 +1497,7 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range nPool.pending {
 		for typ, txs := range list.txs {
-			nonce := nPool.currentState.GetNonce(addr)
+			nonce := nPool.currentState.GetNonce(typ,addr)
 			// Drop all transactions that are deemed too old (low nonce)
 			for _, tx := range txs.Forward(nonce) {
 				//YY ========begin=========
@@ -1510,7 +1510,7 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 			}
 			// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
 			tBalance := new(big.Int)
-			for _, tAccount := range nPool.currentState.GetBalance(addr) {
+			for _, tAccount := range nPool.currentState.GetBalance(typ,addr) {
 				if tAccount.AccountType == common.MainAccount {
 					tBalance = tAccount.Balance
 					break
@@ -1649,27 +1649,4 @@ func (bPool *NormalTxPool) ProduceMatrixStateData(block *types.Block, readFn mat
 	return nil, errors.New("without broadcatTxs")
 }
 
-type Backend interface {
-	BlockChain() *BlockChain
-}
-func GetBroadcastTxMap(bc Backend, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
-	state, err := bc.BlockChain().StateAt(root)
-	if err != nil {
-		log.Error("GetBroadcastTxMap StateAt err")
-		return nil, err
-	}
 
-	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
-	if err != nil {
-		log.Error("GetBroadcastTxMap GetDataByState err")
-		return nil, err
-	}
-	mapdata := broadInterface.(map[string]map[common.Address][]byte)
-	for typekey, mapVal := range mapdata {
-		if txtype == typekey {
-			return mapVal, nil
-		}
-	}
-	log.Error("GetBroadcastTxMap get broadcast map is nil")
-	return nil, errors.New("GetBroadcastTxMap is nil")
-}

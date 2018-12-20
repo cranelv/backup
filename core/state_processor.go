@@ -155,7 +155,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	//如果是委托gas并且是按时间委托
 	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
 		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		if !statedb.GetIsEntrustByTime(from, header.Time.Uint64()) {
+		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(),from, header.Time.Uint64()) {
 			log.Error("按时间委托gas的交易失效")
 			return nil, 0, errors.New("entrustTx is invalid")
 		}

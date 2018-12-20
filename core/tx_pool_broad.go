@@ -19,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/trie"
+	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
 type BroadCastTxPool struct {
@@ -354,4 +355,29 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 }
 func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 
+}
+
+type Backend interface {
+	BlockChain() *BlockChain
+}
+func GetBroadcastTxMap(bc Backend, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+	state, err := bc.BlockChain().StateAt(root)
+	if err != nil {
+		log.Error("GetBroadcastTxMap StateAt err")
+		return nil, err
+	}
+
+	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
+	if err != nil {
+		log.Error("GetBroadcastTxMap GetDataByState err")
+		return nil, err
+	}
+	mapdata := broadInterface.(map[string]map[common.Address][]byte)
+	for typekey, mapVal := range mapdata {
+		if txtype == typekey {
+			return mapVal, nil
+		}
+	}
+	log.Error("GetBroadcastTxMap get broadcast map is nil")
+	return nil, errors.New("GetBroadcastTxMap is nil")
 }

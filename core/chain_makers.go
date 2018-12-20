@@ -10,12 +10,12 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
-	"github.com/matrix/go-matrix/consensus/misc"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
+	"encoding/json"
 )
 
 // So we can deterministically seed different blockchains
@@ -32,7 +32,7 @@ type BlockGen struct {
 	chain       []*types.Block
 	chainReader consensus.ChainReader
 	header      *types.Header
-	statedb     *state.StateDB
+	statedb     *state.StateDBManage
 
 	gasPool  *GasPool
 	txs      []types.SelfTransaction
@@ -111,10 +111,10 @@ func (b *BlockGen) AddUncheckedReceipt(receipt *types.Receipt) {
 // TxNonce returns the next valid transaction nonce for the
 // account at addr. It panics if the account does not exist.
 func (b *BlockGen) TxNonce(addr common.Address) uint64 {
-	if !b.statedb.Exist(addr) {
+	if !b.statedb.Exist(params.MAN_COIN,addr) {
 		panic("account does not exist")
 	}
-	return b.statedb.GetNonce(addr)
+	return b.statedb.GetNonce(params.MAN_COIN,addr)
 }
 
 // AddUncle adds an uncle header to the generated block.
@@ -163,7 +163,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		config = params.TestChainConfig
 	}
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
-	genblock := func(i int, parent *types.Block, statedb *state.ShardingStateDB) (*types.Block, types.Receipts) {
+	genblock := func(i int, parent *types.Block, statedb *state.StateDBManage) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
 		blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{})
@@ -181,9 +181,9 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 				}
 			}
 		}
-		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
-			misc.ApplyDAOHardFork(statedb)
-		}
+		//if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
+		//	misc.ApplyDAOHardFork(statedb)
+		//}
 		// Execute any user modifications to the block and finalize it
 		if gen != nil {
 			gen(i, b)
@@ -196,7 +196,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
-			if err := statedb.Database().TrieDB().Commit(root, false); err != nil {
+			b1,_ := json.Marshal(root)
+			if err := statedb.Database().TrieDB().Commit(common.BytesToHash(b1), false); err != nil {
 				panic(fmt.Sprintf("trie write error: %v", err))
 			}
 			return block, b.receipts
@@ -204,7 +205,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		return nil, nil
 	}
 	for i := 0; i < n; i++ {
-		statedb, err := state.NewSharding(parent.Root(), state.NewDatabase(db))
+		statedb, err := state.NewStateDBManage(parent.Root(), state.NewDatabase(db))
 		if err != nil {
 			panic(err)
 		}
@@ -216,7 +217,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	return blocks, receipts
 }
 
-func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB, engine consensus.Engine) *types.Header {
+func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDBManage, engine consensus.Engine) *types.Header {
 	var time *big.Int
 	if parent.Time() == nil {
 		time = big.NewInt(10)
@@ -225,7 +226,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 	}
 
 	return &types.Header{
-		Root:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
+		Roots:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
 		Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{

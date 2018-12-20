@@ -2225,10 +2225,10 @@ func (bc *BlockChain) GetMatrixStateDataByHash(key string, hash common.Hash) (in
 	}
 	state, err := bc.StateAt(header.Roots)
 	if err != nil {
-		return nil, errors.Errorf("can't find state by root(%s): %v", header.Roots.TerminalString(), err)
+		return nil, errors.Errorf("can't find state by header(%s): %v", header.Hash(), err)
 	}
 	if state == nil {
-		return nil, errors.Errorf("state of root(%s) is nil", header.Roots.TerminalString())
+		return nil, errors.Errorf("state of header(%s) is nil", header.Hash())
 	}
 	return matrixstate.GetDataByState(key, state)
 }
@@ -2240,10 +2240,10 @@ func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (int
 	}
 	state, err := bc.StateAt(header.Roots)
 	if err != nil {
-		return nil, errors.Errorf("can't find state by root(%s): %v", header.Roots.TerminalString(), err)
+		return nil, errors.Errorf("can't find state by header(%s): %v", header.Hash(), err)
 	}
 	if state == nil {
-		return nil, errors.Errorf("state of root(%s) is nil", header.Roots.TerminalString())
+		return nil, errors.Errorf("state of header(%s) is nil", header.Hash())
 	}
 	return matrixstate.GetDataByState(key, state)
 }
@@ -2352,8 +2352,12 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	if !block.IsSuperBlock() {
 		return nil, errors.New("err, genesis block is not super block!")
 	}
-	if block.Root() != superBlockGen.Roots {
-		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", block.Root().TerminalString(), superBlockGen.Roots.TerminalString())
+	b,_ := json.Marshal(block.Root())
+	blockHash := common.BytesToHash(b)
+	b1,_ := json.Marshal(superBlockGen.Roots)
+	superHash := common.BytesToHash(b1)
+	if blockHash != superHash {
+		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", blockHash, superHash)
 	}
 	if block.TxHash() != superBlockGen.TxHash {
 		return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", block.TxHash().TerminalString(), superBlockGen.TxHash.TerminalString())
@@ -2516,7 +2520,7 @@ func (bc *BlockChain) GetSignAccount(authFrom common.Address, blockHash common.H
 	height := block.NumberU64()
 
 	ans := []common.Address{}
-	ans = st.GetEntrustFrom(authFrom, height)
+	ans = st.GetEntrustFrom(params.MAN_COIN,authFrom, height)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 		log.INFO(common.SignLog, "获取签名账户阶段","BlockChain","无委托交易,使用本地账户",authFrom.String())
@@ -2555,7 +2559,7 @@ func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash commo
 	}
 
 	height := block.NumberU64()
-	addr := st.GetAuthFrom(signAccount, height)
+	addr := st.GetAuthFrom(params.MAN_COIN,signAccount, height)
 	if addr.Equal(common.Address{}) {
 		addr = signAccount
 		log.WARN(common.SignLog, "获取委托账户阶段","BlockChain","不存在委托账户 signAccount",signAccount,"高度", height,"委托账户", addr)

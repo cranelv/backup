@@ -92,7 +92,7 @@ type Genesis1 struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
-	Root       common.Hash `json:"stateRoot,omitempty"`
+	Roots      []common.CoinRoot `json:"stateRoot,omitempty"`
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
@@ -111,7 +111,7 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.ParentHash = gensis1.ParentHash
 	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
-	gensis.Root = gensis1.Root
+	gensis.Roots = gensis1.Roots
 	gensis.TxHash = gensis1.TxHash
 	//Elect
 	sliceElect := make([]common.Elect, 0)

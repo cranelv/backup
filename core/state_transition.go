@@ -98,7 +98,7 @@ func (st *StateTransition) UseGas(amount uint64) error {
 
 func (st *StateTransition) BuyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	for _, tAccount := range st.state.GetBalance(st.msg.From()) {
+	for _, tAccount := range st.state.GetBalance(st.msg.GetTxCurrency(),st.msg.From()) {
 		if tAccount.AccountType == common.MainAccount {
 			if tAccount.Balance.Cmp(mgval) < 0 {
 				return errInsufficientBalanceForGas
@@ -112,14 +112,14 @@ func (st *StateTransition) BuyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(common.MainAccount, st.msg.AmontFrom(), mgval)
+	st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
 
 func (st *StateTransition) PreCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
-		nonce := st.state.GetNonce(st.msg.From())
+		nonce := st.state.GetNonce(st.msg.GetTxCurrency(),st.msg.From())
 		if nonce < st.msg.Nonce() {
 			return ErrNonceTooHigh
 		} else if nonce > st.msg.Nonce() {
@@ -218,15 +218,15 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-	st.state.SetNonce(from, st.state.GetNonce(from)+1)
-	st.state.AddBalance(common.WithdrawAccount, usefrom, st.value)
-	st.state.SubBalance(common.MainAccount, usefrom, st.value)
+	st.state.SetNonce(st.msg.GetTxCurrency(),from, st.state.GetNonce(st.msg.GetTxCurrency(),from)+1)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.WithdrawAccount, usefrom, st.value)
+	st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, usefrom, st.value)
 	mapTOAmont := common.AddrAmont{Addr: st.To(), Amont: st.value}
 	mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			st.state.AddBalance(common.WithdrawAccount, usefrom, ex.Amount)
-			st.state.SubBalance(common.MainAccount, usefrom, ex.Amount)
+			st.state.AddBalance(st.msg.GetTxCurrency(),common.WithdrawAccount, usefrom, ex.Amount)
+			st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, usefrom, ex.Amount)
 			mapTOAmont = common.AddrAmont{Addr: *ex.Recipient, Amont: ex.Amount}
 			mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 			if vmerr != nil {
@@ -253,8 +253,8 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	txHash := tx.Hash()
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
-	st.state.SaveTx(tx.GetMatrixType(), rt.Tim, mapHashamont)
-	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.SaveTx(st.msg.GetTxCurrency(),st.msg.From(),tx.GetMatrixType(), rt.Tim, mapHashamont)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
@@ -294,7 +294,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-	st.state.SetNonce(from, st.state.GetNonce(from)+1)
+	st.state.SetNonce(st.msg.GetTxCurrency(),from, st.state.GetNonce(st.msg.GetTxCurrency(),from)+1)
 	var hash common.Hash
 	hash.SetBytes(tx.Data())
 	hashlist = append(hashlist, hash)
@@ -308,7 +308,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		}
 	}
 	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
-	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, costGas)
 	delval := make(map[uint32][]common.Hash)
 	for _, tmphash := range hashlist {
 		if common.EmptyHash(tmphash) {
@@ -336,8 +336,8 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		for _, vv := range rt.Adam { //一对多交易
 			log.Info("file state_transition", "func CallRevertNormalTx:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
 			log.Info("file state_transition", "func CallRevertNormalTx:from", rt.From, "vv.Amont", vv.Amont)
-			st.state.AddBalance(common.MainAccount, rt.From, vv.Amont)
-			st.state.SubBalance(common.WithdrawAccount, rt.From, vv.Amont)
+			st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, rt.From, vv.Amont)
+			st.state.SubBalance(st.msg.GetTxCurrency(),common.WithdrawAccount, rt.From, vv.Amont)
 		}
 		if val, ok := delval[rt.Tim]; ok {
 			val = append(val, hash)
@@ -350,7 +350,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		st.state.DeleteMxData(tmphash, b)
 	}
 	for k, v := range delval {
-		st.state.GetSaveTx(tx.GetMatrixType(), k, v, true)
+		st.state.GetSaveTx(st.msg.GetTxCurrency(),st.msg.From(),tx.GetMatrixType(), k, v, true)
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
@@ -395,15 +395,15 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-	st.state.SetNonce(from, st.state.GetNonce(from)+1)
-	st.state.AddBalance(common.WithdrawAccount, usefrom, st.value)
-	st.state.SubBalance(common.MainAccount, usefrom, st.value)
+	st.state.SetNonce(st.msg.GetTxCurrency(),from, st.state.GetNonce(st.msg.GetTxCurrency(),from)+1)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.WithdrawAccount, usefrom, st.value)
+	st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, usefrom, st.value)
 	mapTOAmont := common.AddrAmont{Addr: st.To(), Amont: st.value}
 	mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			st.state.AddBalance(common.WithdrawAccount, usefrom, ex.Amount)
-			st.state.SubBalance(common.MainAccount, usefrom, ex.Amount)
+			st.state.AddBalance(st.msg.GetTxCurrency(),common.WithdrawAccount, usefrom, ex.Amount)
+			st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, usefrom, ex.Amount)
 			mapTOAmont = common.AddrAmont{Addr: *ex.Recipient, Amont: ex.Amount}
 			mapTOAmonts = append(mapTOAmonts, mapTOAmont)
 			if vmerr != nil {
@@ -431,9 +431,9 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	//log.Info("file state_transition","func CallRevocableNormalTx:txHash",txHash)
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
-	st.state.SaveTx(tx.GetMatrixType(), rt.Tim, mapHashamont)
+	st.state.SaveTx(st.msg.GetTxCurrency(),st.msg.From(),tx.GetMatrixType(), rt.Tim, mapHashamont)
 	st.state.SetMatrixData(txHash, b)
-	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, failed bool, err error) {
@@ -459,8 +459,8 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	}
 	st.gas = 0
 	issendFromContract := false
-	beforAmont:=st.state.GetBalanceByType(common.ContractAddress,common.MainAccount)
-	interestbefor := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)  // Test
+	beforAmont:=st.state.GetBalanceByType(st.msg.GetTxCurrency(),common.ContractAddress,common.MainAccount)
+	interestbefor := st.state.GetBalanceByType(st.msg.GetTxCurrency(),common.InterestRewardAddress,common.MainAccount)  // Test
 	interset:=big.NewInt(0)
 	if toaddr == nil {//YY
 		log.Error("file state_transition","func CallUnGasNormalTx()","to is nil")
@@ -471,7 +471,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 			interset = new(big.Int).Add(interset,st.value)
 			issendFromContract = true
 		}
-		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		st.state.SetNonce(st.msg.GetTxCurrency(),tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(),sender.Address())+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -499,13 +499,13 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		}
 	}
 	if issendFromContract {
-		afterAmont := st.state.GetBalanceByType(common.ContractAddress,common.MainAccount)
+		afterAmont := st.state.GetBalanceByType(st.msg.GetTxCurrency(),common.ContractAddress,common.MainAccount)
 		difAmont := new(big.Int).Sub(afterAmont,beforAmont)
 		if difAmont.Cmp(interset) != 0{
 			log.Info("file state_transition","func rewardTx","ContractAddress 余额与增加的钱不一致")
 			return nil, 0, false, ErrinterestAmont
 		}
-		interestafter := st.state.GetBalanceByType(common.InterestRewardAddress,common.MainAccount)
+		interestafter := st.state.GetBalanceByType(st.msg.GetTxCurrency(),common.InterestRewardAddress,common.MainAccount)
 		dif := new(big.Int).Sub(interestbefor,interestafter)
 		if difAmont.Cmp(dif) != 0{
 			log.Info("file state_transition","func rewardTx","InterestRewardAddress 余额与扣除的钱不一致")
@@ -563,7 +563,7 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(from, st.state.GetNonce(from)+1)
+		st.state.SetNonce(st.msg.GetTxCurrency(),from, st.state.GetNonce(st.msg.GetTxCurrency(),from)+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	//YY=========begin===============
@@ -592,7 +592,7 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	//st.RefundGas()
-	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, err
 }
 
@@ -623,7 +623,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		TimeAuthDataList := make([]common.AuthType, 0)
 		str_addres := EntrustData.EntrustAddres //被委托人地址
 		addres := base58.Base58DecodeToAddress(str_addres)
-		tmpAuthMarsha1Data := st.state.GetStateByteArray(addres, common.BytesToHash(addres[:]))
+		tmpAuthMarsha1Data := st.state.GetStateByteArray(st.msg.GetTxCurrency(),addres, common.BytesToHash(addres[:]))
 		if len(tmpAuthMarsha1Data) != 0 {
 			//AuthData := new(common.AuthType)
 			AuthDataList := make([]common.AuthType, 0)
@@ -681,7 +681,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 				return nil, 0, false, err
 			}
 			//marsha1AuthData是authData的Marsha1编码
-			st.state.SetStateByteArray(addres, common.BytesToHash(addres[:]), marshalAuthData)
+			st.state.SetStateByteArray(st.msg.GetTxCurrency(),addres, common.BytesToHash(addres[:]), marshalAuthData)
 		}
 
 		if EntrustData.EnstrustSetType == params.EntrustByTime {
@@ -700,13 +700,13 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 				return nil, 0, false, err
 			}
 			//marsha1AuthData是authData的Marsha1编码
-			st.state.SetStateByteArray(addres, common.BytesToHash(addres[:]), marshalAuthData)
+			st.state.SetStateByteArray(st.msg.GetTxCurrency(),addres, common.BytesToHash(addres[:]), marshalAuthData)
 		}
 	}
 	if entrustOK {
 		//获取之前的委托数据(结构体切片经过marshal编码)
 		AllEntrustList := make([]common.EntrustType, 0)
-		oldEntrustList := st.state.GetStateByteArray(Authfrom, common.BytesToHash(Authfrom[:]))
+		oldEntrustList := st.state.GetStateByteArray(st.msg.GetTxCurrency(),Authfrom, common.BytesToHash(Authfrom[:]))
 		if len(oldEntrustList) != 0 {
 			err = json.Unmarshal(oldEntrustList, &AllEntrustList)
 			if err != nil {
@@ -719,7 +719,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		if err != nil {
 			log.Error("Marshal error")
 		}
-		st.state.SetStateByteArray(Authfrom, common.BytesToHash(Authfrom[:]), allDataList)
+		st.state.SetStateByteArray(st.msg.GetTxCurrency(),Authfrom, common.BytesToHash(Authfrom[:]), allDataList)
 		entrustOK = false
 	} else {
 		log.Error("委托条件不满足")
@@ -738,7 +738,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		st.state.SetNonce(st.msg.GetTxCurrency(),tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(),sender.Address())+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -793,7 +793,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		return nil, 0, false, err
 	}
 
-	EntrustMarsha1Data := st.state.GetStateByteArray(Authfrom, common.BytesToHash(Authfrom[:]))
+	EntrustMarsha1Data := st.state.GetStateByteArray(st.msg.GetTxCurrency(),Authfrom, common.BytesToHash(Authfrom[:]))
 	if len(EntrustMarsha1Data) == 0 {
 		log.Error("没有委托数据")
 		return nil, 0, false, errors.New("without entrust data")
@@ -809,7 +809,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 			//要删除的切片数据
 			str_addres := entrustFrom.EntrustAddres //被委托人地址
 			addres := base58.Base58DecodeToAddress(str_addres)
-			marshaldata := st.state.GetStateByteArray(addres, common.BytesToHash(addres[:])) //获取之前的授权数据切片,marshal编码过的
+			marshaldata := st.state.GetStateByteArray(st.msg.GetTxCurrency(),addres, common.BytesToHash(addres[:])) //获取之前的授权数据切片,marshal编码过的
 			if len(marshaldata) > 0 {
 				//oldAuthData := new(common.AuthType)   //oldAuthData的地址为0x地址
 				oldAuthDataList := make([]common.AuthType, 0)
@@ -830,7 +830,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 				if err != nil {
 					return nil, 0, false, err
 				}
-				st.state.SetStateByteArray(addres, common.BytesToHash(addres[:]), newAuthDatalist)
+				st.state.SetStateByteArray(st.msg.GetTxCurrency(),addres, common.BytesToHash(addres[:]), newAuthDatalist)
 			}
 		} else {
 			//新的切片数据
@@ -842,7 +842,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	if err != nil {
 		log.Error("CallAuthTx Marshal err")
 	}
-	st.state.SetStateByteArray(Authfrom, common.BytesToHash(Authfrom[:]), newEntrustList)
+	st.state.SetStateByteArray(st.msg.GetTxCurrency(),Authfrom, common.BytesToHash(Authfrom[:]), newEntrustList)
 
 	//YY
 	tmpExtra := tx.GetMatrix_EX() //Extra()
@@ -857,7 +857,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		st.state.SetNonce(st.msg.GetTxCurrency(),tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(),sender.Address())+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -885,14 +885,14 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.GasUsed() / 2
-	if refund > st.state.GetRefund() {
-		refund = st.state.GetRefund()
+	if refund > st.state.GetRefund(st.msg.GetTxCurrency(),st.msg.From()) {
+		refund = st.state.GetRefund(st.msg.GetTxCurrency(),st.msg.From())
 	}
 	st.gas += refund
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(common.MainAccount, st.msg.From(), remaining)
+	st.state.AddBalance(st.msg.GetTxCurrency(),common.MainAccount, st.msg.From(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

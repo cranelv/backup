@@ -152,6 +152,7 @@ type StateDBManager interface {
 
 	GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
 	GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
+	GetGasAuthFromByTime(cointyp string,entrustFrom common.Address, time uint64) common.Address
 	GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address
 	////Dump() []byte
 	Finalise(cointyp string,deleteEmptyObjects bool)
