@@ -10,10 +10,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/common"
 	"net"
 	"time"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/p2p/nat"
@@ -645,10 +645,8 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	emptyAddr := common.Address{}
 	emptySign := common.Signature{}
 	if req.Address != emptyAddr || req.Signature != emptySign {
-		log.Info("address", "req address", req.Address.Hex())
 		signCtn := common.BytesToHash(fromID.Bytes()).Bytes()
 		addr, _, _ := crypto.VerifySignWithValidate(signCtn, req.Signature[:])
-		log.Info("address", "sign address", addr.Hex())
 		if addr.Hex() != req.Address.Hex() {
 			return errSignature
 		}
@@ -759,7 +757,6 @@ func (req *findnodeByAddress) handle(t *udp, from *net.UDPAddr, fromID NodeID, m
 		p.Node = nodeToRPC(val)
 		t.send(from, addrNeighborsPacket, &p)
 	}
-	log.Info("node bind address", "map", t.nodeBindAddress, "bucket", t.buckets)
 	return nil
 }
 

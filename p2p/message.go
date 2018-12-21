@@ -101,7 +101,7 @@ func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 func SendToSingle(addr common.Address, msgCode uint64, data interface{}) error {
 	id := ServerP2p.ConvertAddressToId(addr)
 	if id == emptyNodeId {
-		log.Error("send to single peer failed", "peer addr", addr)
+		log.Error("send to single peer failed, id convert failed", "peer addr", addr)
 		return ErrCanNotConvert
 	}
 
@@ -121,7 +121,7 @@ func SendToGroupWithBackup(to common.RoleType, msgCode uint64, data interface{})
 	for _, addr := range address {
 		id := ServerP2p.ConvertAddressToId(addr)
 		if id == emptyNodeId {
-			log.Error("send to single peer failed", "peer addr", addr)
+			log.Error("send to single peer failed, id convert failed", "peer addr", addr)
 			continue
 		}
 
@@ -149,7 +149,7 @@ func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
 
 		id := ServerP2p.ConvertAddressToId(addr)
 		if id == emptyNodeId {
-			log.Error("send to single peer failed", "peer addr", addr)
+			log.Error("send to single peer failed, id convert failed", "peer addr", addr)
 			continue
 		}
 		for _, peer := range peers {

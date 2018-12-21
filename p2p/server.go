@@ -501,7 +501,7 @@ func (srv *Server) Start() (err error) {
 	//	sconn = &sharedUDPConn{conn, unhandled}
 	//}
 
-	log.Info("server start info", "man address", srv.ManAddress, "signature", srv.Signature)
+	srv.log.Info("server start info", "man address", srv.ManAddress, "signature", srv.Signature)
 
 	// node table
 	if !srv.NoDiscovery {

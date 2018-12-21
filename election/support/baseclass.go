@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"sort"
 )
+
 type RatioList struct {
 	MinNum uint64
 	Ratio  float64

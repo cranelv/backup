@@ -96,9 +96,6 @@ func (l *Linker) Start() {
 				}
 				dropNodes := ca.GetDropNode()
 				l.dropNode(dropNodes)
-				//go l.dropNodeDefer(dropNodes)
-
-				log.Info("self ide", "linker", l.role)
 
 				l.maintainPeer()
 

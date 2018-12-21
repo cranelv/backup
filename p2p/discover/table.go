@@ -199,7 +199,7 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			return n
 		}
 	}
-	log.Error("findnodeByAddress failed", "target addr", address.Hex())
+	log.Trace("findnodeByAddress failed", "target addr", address.Hex())
 	return nil
 }
 
@@ -642,7 +642,6 @@ func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16
 	if pinged && !tab.isInitDone() {
 		return nil, errors.New("still initializing")
 	}
-	log.Info("bond info", "addr", reqAddr, "sign", reqSign)
 	// Start bonding if we haven't seen this node for a while or if it failed findnode too often.
 	node, fails := tab.db.node(id), tab.db.findFails(id)
 	age := time.Since(tab.db.bondTime(id))
@@ -738,7 +737,6 @@ func (tab *Table) add(new *Node) {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
 
-	log.Info("new node info", "info", new)
 	b := tab.bucket(new.sha)
 	emptyAddr := common.Address{}
 	if new.Address != emptyAddr {
@@ -748,7 +746,6 @@ func (tab *Table) add(new *Node) {
 			tab.nodeBindAddress[new.Address] = new
 		}
 	}
-	log.Info("address map info", "map", tab.nodeBindAddress)
 
 	if !tab.bumpOrAdd(b, new) {
 		// Node is not in table. Add it to the replacement list.
