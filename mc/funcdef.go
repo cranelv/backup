@@ -85,6 +85,8 @@ func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData)
 			if chgInfo.Position == common.PosOffline && chgInfo.Account == topNode.Account {
 				self.NodeList = append(self.NodeList[:i], self.NodeList[i+1:]...)
 				return
+			} else {
+				continue
 			}
 		} else if chgInfo.Position == topNode.Position {
 			if (chgInfo.Account == common.Address{}) {
