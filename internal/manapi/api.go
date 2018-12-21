@@ -1658,7 +1658,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Value = new(hexutil.Big)
 	}
 	if args.Nonce == nil {
-		nonce, err := b.GetPoolNonce(ctx, args.From)
+		nonce, err := b.GetPoolNonce(args.Currency,ctx, args.From)
 		if err != nil {
 			return err
 		}

@@ -218,12 +218,12 @@ func (b *ManAPIBackend) GetPoolTransaction(hash common.Hash) types.SelfTransacti
 	return nil
 }
 
-func (b *ManAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
+func (b *ManAPIBackend) GetPoolNonce(cointyp string,ctx context.Context, addr common.Address) (uint64, error) {
 	npooler, nerr := b.man.TxPool().GetTxPoolByType(types.NormalTxIndex)
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			return npool.State().GetNonce(addr), nil
+			return npool.State().GetNonce(cointyp,addr), nil
 		} else {
 			return 0, errors.New("GetPoolNonce() unknown txpool")
 		}
