@@ -155,7 +155,7 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
 	headerPos := self.bc.GetHeaderByHash(hashPos)
-	stateDB, err := self.bc.StateAt(headerPos.Root)
+	stateDB, err := self.bc.StateAt(headerPos.Roots)
 	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
 	var electState mc.ElectGraph
 	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {

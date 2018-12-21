@@ -110,7 +110,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 	}
 
 	headerPos := self.bc.GetHeaderByHash(hash)
-	stateDB, err := self.bc.StateAt(headerPos.Root)
+	stateDB, err := self.bc.StateAt(headerPos.Roots)
 
 	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
 	var electState mc.ElectGraph
