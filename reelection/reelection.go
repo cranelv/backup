@@ -47,7 +47,7 @@ func New(bc *core.BlockChain, random *baseinterface.Random) (*ReElection, error)
 	return reelection, nil
 }
 
-func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
+func (self *ReElection) GetElection(state *state.StateDBManage, hash common.Hash) (*ElectReturnInfo, error) {
 	log.INFO(Module, "GetElection", "start", "hash", hash)
 	defer log.INFO(Module, "GetElection", "end", "hash", hash)
 	preElectGraphBytes := state.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
