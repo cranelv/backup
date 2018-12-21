@@ -187,10 +187,13 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	rand := mt19937.RandUniformInit(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
-		txs := tlr.chain.GetBlockByNumber(originBlockNum).Transactions()
-		log.INFO(PackageName, "交易获取高度", originBlockNum)
+		block := tlr.chain.GetBlockByNumber(originBlockNum)
+		if block == nil {
+			log.WARN(PackageName, "获取区块错误，高度为:", block)
+			continue
+		}
+		txs := block.Transactions()
 		for _, tx := range txs {
-			log.INFO(PackageName, "交易类型", tx.GetMatrixType())
 			if tx.GetMatrixType() == common.ExtraNormalTxType {
 				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
 				txsCmpResultList = append(txsCmpResultList, txCmpResult)
