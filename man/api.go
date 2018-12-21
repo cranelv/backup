@@ -511,11 +511,12 @@ type storageEntry struct {
 
 // StorageRangeAt returns the storage at the given block height and transaction index.
 func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common.Hash, txIndex int, contractAddress common.Address, keyStart hexutil.Bytes, maxResult int) (StorageRangeResult, error) {
-	_, _, statedb, err := api.computeTxEnv(blockHash, txIndex, 0)
+	tx, _, statedb, err := api.computeTxEnv(blockHash, txIndex, 0)
 	if err != nil {
 		return StorageRangeResult{}, err
 	}
-	st := statedb.StorageTrie(contractAddress)
+
+	st := statedb.StorageTrie(tx.GetTxCurrency(),contractAddress)
 	if st == nil {
 		return StorageRangeResult{}, fmt.Errorf("account %x doesn't exist", contractAddress)
 	}
@@ -605,11 +606,13 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		return nil, fmt.Errorf("start block height (%d) must be less than end block height (%d)", startBlock.Number().Uint64(), endBlock.Number().Uint64())
 	}
 
-	oldTrie, err := trie.NewSecure(startBlock.Root(), trie.NewDatabase(api.man.chainDb), 0)
+	stR:=common.IToHash(startBlock.Root())
+	oldTrie, err := trie.NewSecure(stR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err
 	}
-	newTrie, err := trie.NewSecure(endBlock.Root(), trie.NewDatabase(api.man.chainDb), 0)
+	enR:=common.IToHash(endBlock.Root())
+	newTrie, err := trie.NewSecure(enR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err
 	}

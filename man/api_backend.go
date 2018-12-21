@@ -77,7 +77,7 @@ func (b *ManAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumb
 	return b.man.blockchain.GetBlockByNumber(uint64(blockNr)), nil
 }
 
-func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
+func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDBManage, *types.Header, error) {
 	// Pending state is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
 		block, state := b.man.miner.Pending()
@@ -88,14 +88,14 @@ func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	if header == nil || err != nil {
 		return nil, nil, err
 	}
-	stateDb, err := b.man.BlockChain().StateAt(header.Root)
+	stateDb, err := b.man.BlockChain().StateAt(header.Roots)
 	return stateDb, header, err
 }
 
 func (b *ManAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.man.blockchain.GetBlockByHash(hash), nil
 }
-func (b *ManAPIBackend) GetState() (*state.StateDB, error) {
+func (b *ManAPIBackend) GetState() (*state.StateDBManage, error) {
 	return b.man.BlockChain().State()
 }
 func (b *ManAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
@@ -125,12 +125,12 @@ func (b *ManAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 	return b.man.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *ManAPIBackend) GetEVM(ctx context.Context, msg txinterface.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
-	state.SetBalance(common.MainAccount, msg.From(), math.MaxBig256)
+func (b *ManAPIBackend) GetEVM(ctx context.Context, msg txinterface.Message, state *state.StateDBManage, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
+	state.SetBalance(msg.GetTxCurrency(),common.MainAccount, msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg.From(), msg.GasPrice(), header, b.man.BlockChain(), nil)
-	return vm.NewEVM(context, state, b.man.chainConfig, vmCfg), vmError, nil
+	return vm.NewEVM(context, state, b.man.chainConfig, vmCfg,msg.GetTxCurrency()), vmError, nil
 }
 
 func (b *ManAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {

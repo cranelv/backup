@@ -44,7 +44,7 @@ type Work struct {
 	config *params.ChainConfig
 	signer types.Signer
 
-	state     *state.StateDB // apply state changes here
+	state     *state.StateDBManage // apply state changes here
 	ancestors *set.Set       // ancestor set (used for checking uncle parent validity)
 	family    *set.Set       // family set (used for checking uncle invalidity)
 	uncles    *set.Set       // uncle set
@@ -289,7 +289,7 @@ func (self *worker) setExtra(extra []byte) {
 	self.extra = extra
 }
 
-func (self *worker) pending() (*types.Block, *state.StateDB) {
+func (self *worker) pending() (*types.Block, *state.StateDBManage) {
 	self.currentMu.Lock()
 	defer self.currentMu.Unlock()
 
