@@ -17,14 +17,6 @@ import (
 )
 
 const (
-	//	VerifyNetChangeUpTime = 6
-	//MinerNetChangeUpTime  = 4
-	//
-	//VerifyTopologyGenerateUpTime = 8
-	//MinerTopologyGenerateUpTime  = 8
-
-	//	RandomVoteTime = 5
-
 	LRSParentMiningTime = int64(20)
 	LRSPOSOutTime       = int64(20)
 	LRSReelectOutTime   = int64(40)
@@ -46,23 +38,31 @@ const (
 	OnlineConsensusValidityTime = 5
 )
 
+const (
+	ElectionSeed                         = "electionseed"
+	ElectionSeed_Plug_MinHash            = "MinHash"
+	EveryBlockSeed                       = "everyblockseed"
+	EveryBlockSeed_Plug_NonceAndCoinbase = "NonceAndCoinbase"
+	EveryBroadcastSeed                   = "everybroadcastseed"
+	EveryBroadcastSeed_Plug_MaxNonce     = "MaxNonce"
+
+	ElectPlug_layerd = "layerd"
+	ElectPlug_stock  = "stock"
+	ELectPlug_direct = "direct"
+)
+
 var (
 	//随机数相关
-	RandomConfig              = make(map[string]string, 0)   //man.json配置中读的
-	RandomServiceName         = []string{}                   //子服务的名字
+	RandomConfig              = DefaultRandomConfig //man.json配置中读的
+	RandomServiceName         = []string{ElectionSeed, EveryBlockSeed, EveryBroadcastSeed}
 	RandomServicePlugs        = make(map[string][]string, 0) //子服务对应的插件名
 	RandomServiceDefaultPlugs = make(map[string]string, 0)
-
-	//选举相关
-	//ElectPlugs string
 )
 
 func init() {
-	RandomServiceName = []string{"electionseed", "everyblockseed", "everybroadcastseed"}
-	//RandomServiceName = []string{"electionseed", "everyblockseed"}
-	RandomServicePlugs[RandomServiceName[0]] = []string{"Minhash&Key"}
-	RandomServicePlugs[RandomServiceName[1]] = []string{"Nonce&Address&Coinbase"}
-	RandomServicePlugs[RandomServiceName[2]] = []string{"MaxNonce&Key"}
+	RandomServicePlugs[RandomServiceName[0]] = []string{ElectionSeed_Plug_MinHash}
+	RandomServicePlugs[RandomServiceName[1]] = []string{EveryBlockSeed_Plug_NonceAndCoinbase}
+	RandomServicePlugs[RandomServiceName[2]] = []string{EveryBroadcastSeed_Plug_MaxNonce}
 
 	RandomServiceDefaultPlugs[RandomServiceName[0]] = RandomServicePlugs[RandomServiceName[0]][0]
 	RandomServiceDefaultPlugs[RandomServiceName[1]] = RandomServicePlugs[RandomServiceName[1]][0]
@@ -102,16 +102,7 @@ func Config_Init(Config_PATH string) {
 		fmt.Println("无回滚超级节点")
 		os.Exit(-1)
 	}
-	RandomConfig = v.RandomConfig
-	log.INFO("RandomConfig", "data", RandomConfig)
-	//ElectPlugs = v.ElectPlugs
-	//log.INFO("ElectPlugs", "data", ElectPlugs)
-	//fmt.Println("echeloc",v.Echelon)
-	//if len(v.Echelon) > 0 {
-	//
-	//	common.EchelonArrary = v.Echelon
-	//}
-	//log.INFO("EchelonArrary", "EchelonArrary", common.EchelonArrary)
+
 }
 
 type Config struct {
@@ -121,7 +112,6 @@ type Config struct {
 	FoundationNode []NodeInfo
 	SuperVersion   []NodeInfo
 	SuperRollback  []NodeInfo
-	RandomConfig   map[string]string
 	ElectPlugs     string
 	Echelon        []common.Echelon
 }

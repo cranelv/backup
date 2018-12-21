@@ -341,27 +341,8 @@ func GetPassword() (string, error) {
 	}
 	return password, nil
 }
-func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, times int64) bool {
 
-	fmt.Println(times)
-	InputCount := 0
-	var password string
-	var err error
-	for true {
-		InputCount++
-		if InputCount > 3 {
-			fmt.Println("密码输入次数变多")
-			return false
-		}
-		password, err = GetPassword()
-		if err == nil {
-
-			break
-		} else {
-			fmt.Println("获取密码失败", err)
-		}
-	}
-
+func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, times int64) bool {
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)

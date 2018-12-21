@@ -102,7 +102,7 @@ func (self *PowPool) AddMinerResult(blockHash common.Hash, diff *big.Int, minerR
 		return errors.Errorf("区块hash是空")
 	}
 
-	if nil == diff || 0 == diff.Uint64() {
+	if nil == diff || diff.Cmp(big.NewInt(0)) <= 0 {
 		return errors.Errorf("难度不合法")
 	}
 
@@ -137,7 +137,7 @@ func (self *PowPool) DelOneResult(blockHash common.Hash, diff *big.Int, from com
 		return errors.Errorf("区块哈希是空")
 	}
 
-	if nil == diff || 0 == diff.Uint64() {
+	if nil == diff || diff.Cmp(big.NewInt(0)) <= 0 {
 		return errors.Errorf("难度不合法")
 	}
 
@@ -166,7 +166,7 @@ func (self *PowPool) GetMinerResults(blockHash common.Hash, diff *big.Int) ([]*m
 		return nil, errors.Errorf("区块哈希是空")
 	}
 
-	if nil == diff || 0 == diff.Uint64() {
+	if nil == diff || diff.Cmp(big.NewInt(0)) <= 0 {
 		return nil, errors.Errorf("难度不合法")
 	}
 

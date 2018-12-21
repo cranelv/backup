@@ -12,7 +12,6 @@ import (
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -22,60 +21,6 @@ import (
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
 )
-
-func (p *Process) processUpTime(work *matrixwork.Work, header *types.Header) error {
-
-	if p.number == 1 {
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, p.number)
-		return nil
-	}
-
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, work.State)
-	if nil != err {
-		return err
-	}
-	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "获取广播周期失败", err)
-		return err
-	}
-	if p.number < bcInterval.GetBroadcastInterval() || bcInterval.IsBroadcastNumber(p.number) {
-		return nil
-	}
-
-	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		sbh, err := p.blockChain().GetSuperBlockNum()
-		if nil != err {
-			log.Error(p.logExtraInfo(), "获取超级区块高度错误", err)
-			return err
-		}
-		log.INFO(p.logExtraInfo(), "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, work.State, header.Number.Uint64())
-		upTimeAccounts, err := work.GetUpTimeAccounts(header.Number.Uint64(), p.blockChain(), bcInterval)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
-		}
-		//在上一个广播周期中插入超级区块
-		if sbh < bcInterval.GetLastBroadcastNumber() &&
-			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
-			work.HandleUpTimeWithSuperBlock(work.State, upTimeAccounts, p.number, bcInterval)
-		} else {
-			calltherollMap, heatBeatUnmarshallMMap, err := work.GetUpTimeData(header.ParentHash)
-			if err != nil {
-				log.WARN(p.logExtraInfo(), "获取心跳交易错误!", err, "高度", header.Number.Uint64())
-			}
-
-			err = work.HandleUpTime(work.State, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, p.number, p.blockChain(), bcInterval)
-			if nil != err {
-				log.ERROR(p.logExtraInfo(), "处理uptime错误", err)
-				return err
-			}
-		}
-	}
-
-	return nil
-}
 
 func (p *Process) processHeaderGen() error {
 	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
@@ -156,7 +101,7 @@ func (p *Process) processHeaderGen() error {
 	if Elect == nil {
 		return errors.New("生成elect信息错误!")
 	}
-	log.Info(p.logExtraInfo(), "++++++++获取选举结果 ", Elect, "高度", p.number)
+	log.Info(p.logExtraInfo(), "获取选举结果 ", Elect, "高度", p.number)
 	header = tsBlock.Header()
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root
@@ -249,10 +194,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 			return nil, nil, nil, nil, err
 		}
 
-		//work.commitTransactions(self.mux, Txs, self.chain)
-		// todo： update uptime
-		p.processUpTime(work, header)
-
+		p.blockChain().ProcessUpTime(work.State, header)
 		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
@@ -317,17 +259,8 @@ func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, erro
 	}
 	vrfmsg, err := json.Marshal(parentMsg)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "生成vefmsg出错", err, "parentMsg", parentMsg)
+		log.Error(p.logExtraInfo(), "生成vrfmsg出错", err, "parentMsg", parentMsg)
 		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
-	} else {
-		log.Error("生成vrfmsg成功")
-	}
-
-	log.Info("msgggggvrf_gen", "preVrfMsg", vrfmsg, "高度", p.number, "VrfProof", parentMsg.VrfProof, "VrfValue", parentMsg.VrfValue, "Hash", parentMsg.Hash)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof失败 err", err)
-	} else {
-		log.Error(p.logExtraInfo(), "生成vrfValue,vrfProof成功 err", err)
 	}
 	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
 }

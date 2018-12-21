@@ -18,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/trie"
 )
 
 type BroadCastTxPool struct {
@@ -308,25 +307,6 @@ func insertManTrie(txtype string, hash common.Hash, val map[common.Address][]byt
 	}
 	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
 	return rawdb.SetManTrie(key, dataVal)
-}
-
-// GetBroadcastTxs get broadcast transactions' data from stateDB.
-func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
-	keyData := types.RlpHash(txtype + hash.String())
-	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
-	dataVal, err := trie.ManTrie.TryGet(key)
-	//dataVal, err := ldb.Get(hv.Bytes(), nil)
-	if err != nil {
-		log.Error("GetBroadcastTxs from trie failed", "keydata", key)
-		return nil, err
-	}
-
-	err = json.Unmarshal(dataVal, &reqVal)
-	if err != nil {
-		log.Error("GetBroadcastTxs", "Unmarshal failed", err)
-	}
-	log.Info("GetBroadcastTxs", "type", txtype, "reqval", reqVal, "keydata", key)
-	return reqVal, err
 }
 
 // GetAllSpecialTxs get BroadCast transaction. (use apply SelfTransaction)

@@ -4,7 +4,6 @@
 package matrixwork
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
@@ -17,10 +16,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/mc"
 
 	"sort"
 	"sync"
@@ -42,6 +37,7 @@ import (
 type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 var packagename string = "matrixwork"
@@ -539,192 +535,4 @@ func (env *Work) getGas() *big.Int {
 		return big.NewInt(0)
 	}
 	return allGas
-}
-func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) ([]common.Address, error) {
-	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
-	if err != nil {
-		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
-		return nil, err
-	}
-	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
-	if Ok == false {
-		log.ERROR("blockchain", "选举生成点信息失败 err", err)
-		return nil, err
-	}
-
-	log.INFO(packagename, "获取所有参与uptime点名高度", num)
-
-	upTimeAccounts := make([]common.Address, 0)
-
-	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
-	log.INFO(packagename, "参选矿工节点uptime高度", minerNum)
-	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range ans {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
-	}
-	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
-	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
-	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
-	if err != nil {
-		return upTimeAccounts, err
-	}
-	for _, v := range ans1 {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "验证者节点账户", v.Address.Hex())
-	}
-	return upTimeAccounts, nil
-}
-
-func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO(packagename, "获取所有心跳交易", "")
-	//%99
-	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(hash, mc.Heartbeat)
-	if nil != error {
-		log.WARN(packagename, "获取主动心跳交易错误", error)
-	}
-	//每个广播周期发一次
-	calltherollUnmarshall, error := core.GetBroadcastTxs(hash, mc.CallTheRoll)
-	if nil != error {
-		log.ERROR(packagename, "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		temp := make(map[string]uint32, 0)
-		error := json.Unmarshal(v, &temp)
-		if nil != error {
-			log.ERROR(packagename, "序列化点名心跳交易错误", error)
-			return nil, nil, error
-		}
-		log.INFO(packagename, "++++++++点名心跳交易++++++++", temp)
-		for k, v := range temp {
-			calltherollMap[common.HexToAddress(k)] = v
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
-}
-
-func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) error {
-	var blockHash common.Hash
-	HeatBeatReqAccounts := make([]common.Address, 0)
-	HeartBeatMap := make(map[common.Address]bool, 0)
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	blockNumRem := blockNum % broadcastInterval
-
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := blockNum - blockNumRem
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal = subVal
-	if blockNum < broadcastInterval { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
-	} else {
-		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-	}
-	// todo: remove
-	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
-	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % (broadcastInterval - 1)
-
-	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
-		ret := currentAcc.Uint64() % (broadcastInterval - 1)
-		if ret == val {
-			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
-			if _, ok := heatBeatAccounts[v]; ok {
-				HeartBeatMap[v] = true
-			} else {
-				HeartBeatMap[v] = false
-			}
-			log.Info(packagename, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
-		}
-	}
-
-	var upTime uint64
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-		onlineBlockNum, ok := calltherollRspAccounts[account]
-		if ok { //被点名,使用点名的uptime
-			upTime = uint64(onlineBlockNum)
-			log.INFO(packagename, "点名账号", account, "uptime", upTime)
-
-		} else { //没被点名，没有主动上报，则为最大值，
-			if v, ok := HeartBeatMap[account]; ok { //有主动上报
-				if v {
-					upTime = broadcastInterval - 3
-					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
-				} else {
-					upTime = 0
-					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
-				}
-			} else { //没被点名和主动上报
-				upTime = broadcastInterval - 3
-				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-			}
-		}
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		env.uptime[account] = upTime
-		if nil == err {
-			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-
-		upTime := broadcastInterval - 3
-		log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		env.uptime[account] = upTime
-		if nil == err {
-			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-	return nil
-
 }

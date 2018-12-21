@@ -5,6 +5,7 @@ package common
 
 import (
 	"math/big"
+	"reflect"
 )
 
 type ElectRoleType uint8
@@ -64,3 +65,12 @@ type Echelon struct {
 var (
 	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )
+
+func IsNil(i interface{})bool{
+	vi:=reflect.ValueOf(i)
+	if vi.Kind()==reflect.Ptr{
+		flag:=vi.IsNil()
+		return flag
+	}
+	return false
+}

@@ -3792,6 +3792,9 @@ var outputTransactionFormatter = function (tx){
     tx.gas = utils.toDecimal(tx.gas);
     tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     tx.value = utils.toBigNumber(tx.value);
+    for(var i = 0, length = tx.extra_to.length; i < length; i++){
+        tx.extra_to[i].value = utils.toBigNumber(tx.extra_to[i].value);
+    }
     return tx;
 };
 
@@ -5762,7 +5765,7 @@ var methods = function () {
     var setEntrustSignAccount = new Method({
         name: 'setEntrustSignAccount',
         call: 'personal_setEntrustSignAccount',
-        params: 2
+        params: 3
     });
 
 

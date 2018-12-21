@@ -67,12 +67,6 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
 	var eleNum uint64
 
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
-		log.INFO(PackageName, "初始化惩罚状态树高度", num)
-		return
-	}
-
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return
@@ -103,12 +97,16 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		eleNum = 1
 	} else {
 		// 下一个选举+1
-		eleNum = eleNum - bp.bcInterval.GetBroadcastInterval()
+		eleNum = num - bp.bcInterval.GetBroadcastInterval()
 	}
 
 	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
+		return
+	}
+	if electGraph == nil {
+		log.Error(PackageName, "获取拓扑图反射错误")
 		return
 	}
 	originElectNodes := electGraph.(*mc.ElectGraph)

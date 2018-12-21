@@ -5,16 +5,18 @@ package layered
 
 import (
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type layered struct {
 }
 
 func init() {
-	baseinterface.RegElectPlug("layered", RegInit)
+	baseinterface.RegElectPlug(manparams.ElectPlug_layerd, RegInit)
 }
 
 func RegInit() baseinterface.ElectionInterface {
@@ -29,10 +31,8 @@ func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Mas
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
 
-	value := nodeElect.GetWeight()
-	//for _,v:=range value{
-	//	fmt.Println("--",v.Value,v.Addr.String())
-	//}
+	value := nodeElect.GetWeight(common.RoleMiner)
+
 	Master, value := support.GetList(value, int(nodeElect.EleCfg.MinerNum)-len(nodeElect.WhiteNodeInfo), nodeElect.RandSeed.Int64())
 
 	Master = append(Master, nodeElect.WhiteNodeInfo...)
@@ -63,15 +63,10 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 	MasterChosed := TransVIPNode(MasterList)
 	MasterChosed = append(MasterChosed, vipEle.WhiteNodeInfo...)
-	weight := vipEle.GetWeight()
 
-	Master, weight := support.GetList(weight, int(vipEle.EleCfg.ValidatorNum)-len(MasterChosed), vipEle.RandSeed.Int64())
+	Master, Backup, Candidate := vipEle.ValidatorTopGen(int(vipEle.EleCfg.ValidatorNum)-len(MasterChosed), int(vipEle.EleCfg.BackValidator))
 
-	Backup, weight := support.GetList(weight, int(vipEle.EleCfg.BackValidator), vipEle.RandSeed.Int64())
-
-	Candidate, weight := support.GetList(weight, len(weight), vipEle.RandSeed.Int64())
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, MasterChosed, Master, Backup, Candidate)
-
 }
 
 func TransVIPNode(vipnode []support.Node) []support.Strallyint {

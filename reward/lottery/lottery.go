@@ -1,11 +1,9 @@
 package lottery
 
 import (
+	"github.com/matrix/go-matrix/common/mt19937"
 	"github.com/matrix/go-matrix/params"
 	"math/big"
-	"sort"
-
-	"github.com/matrix/go-matrix/common/mt19937"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
@@ -155,10 +153,6 @@ func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 }
 
 func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
-		return false
-	}
 	if tlr.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return false
@@ -183,7 +177,7 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	if num < tlr.bcInterval.GetReElectionInterval() {
 		originBlockNum = 0
 	}
-	randSeed, err := tlr.seed.GetRandom(parentHash, "electionseed")
+	randSeed, err := tlr.seed.GetRandom(parentHash, manparams.ElectionSeed)
 	if nil != err {
 		log.Error(PackageName, "获取随机数错误", err)
 		return nil
@@ -208,7 +202,7 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	if 0 == len(txsCmpResultList) {
 		return nil
 	}
-	sort.Sort(txsCmpResultList)
+	//sort.Sort(txsCmpResultList)
 	chooseResultList := make(TxCmpResultList, 0)
 	log.INFO(PackageName, "交易数目", len(txsCmpResultList))
 	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {

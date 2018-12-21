@@ -3,25 +3,67 @@
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
 package commonsupport
 
-import (
-	"github.com/matrix/go-matrix/log"
+import
+(
+	"github.com/matrix/go-matrix"
+	"github.com/matrix/go-matrix/common/readstatedb"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/core/vm"
+	"fmt"
+	"math/big"
+	"github.com/matrix/go-matrix/ca"
 )
 
-type stateReader interface {
-	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+const   (
+	ModeleRandomCommon="随机数服务公共组件"
+)
+func GetElectGenTimes(support matrix.StateReader, height uint64)(*mc.ElectGenTimeStruct, error){
+	return 	readstatedb.GetElectGenTimes(support,height)
 }
 
-func GetElectGenTimes(stateReader stateReader, height uint64) (*mc.ElectGenTimeStruct, error) {
-	data, err := stateReader.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, height)
+func getRandomInfo(hash common.Hash, support baseinterface.RandomChainSupport) (*mc.RandomInfoStruct,error) {
+	height, err := GetNumberByHash(hash, support)
 	if err != nil {
-		log.Error("random-commonsupport", "获取选举基础信息失败 err", err)
-		return nil, err
+		log.Error(ModeleRandomCommon, "获取随机数信息失败", err, "hash", hash.String())
+		return nil,fmt.Errorf("获取随机数信息失败 %v",hash)
 	}
-	electGenConfig, OK := data.(*mc.ElectGenTimeStruct)
-	if OK == false || electGenConfig == nil {
-		log.ERROR("random-commonsupport", "ElectGenTimeStruct 非法", "反射失败")
-		return nil, err
+	randonInfo,err:=readstatedb.GetRandomInfo(support.BlockChain(),height)
+	if err!=nil{
+		log.Error(ModeleRandomCommon,"获取随机数信息失败,从状态树获取信息失败 err",err)
+		return nil,fmt.Errorf("获取随机数信息失败,从状态树获取信息失败 %v",err)
 	}
-	return electGenConfig, nil
+	if randonInfo==nil{
+		log.Error(ModeleRandomCommon,"获取随机数信息失败","获取到的信息为空")
+		return nil,fmt.Errorf("获取随机数信息失败,获取到的信息为空")
+	}
+	return randonInfo,nil
+}
+
+func GetMinHash(hash common.Hash,support baseinterface.RandomChainSupport)(common.Hash,error){
+	randomInfo,err:=getRandomInfo(hash,support)
+	if err!=nil{
+		log.Error(ModeleRandomCommon,"获取最小hash阶段 err",err)
+		return common.Hash{},fmt.Errorf("获取最小hash阶段 %v",err)
+	}
+	return randomInfo.MinHash,nil
+}
+func GetMaxNonce(hash common.Hash,support baseinterface.RandomChainSupport)(uint64,error){
+	randomInfo,err:=getRandomInfo(hash,support)
+	if err!=nil{
+		log.Error(ModeleRandomCommon,"获取最大Nonce阶段 err",err)
+		return 0,fmt.Errorf("获取最大Nonce阶段 %v",err)
+	}
+	return randomInfo.MaxNonce,nil
+}
+
+
+func GetDepositListByHeightAndRole(height *big.Int,role common.RoleType)([]vm.DepositDetail, error) {
+	return ca.GetElectedByHeightAndRole(height,role)
+}
+
+func GetSelfAddress()common.Address{
+	return ca.GetAddress()
 }

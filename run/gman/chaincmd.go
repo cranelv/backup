@@ -251,7 +251,7 @@ It expects the genesis file as argument.`,
 
 	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
-		Name:      "sighverison",
+		Name:      "signverison",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{

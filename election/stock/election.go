@@ -5,6 +5,7 @@ package stock
 
 import (
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -30,7 +31,7 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 	nodeElect.ProcessWhiteNode()
 	//nodeElect.DisPlayNode()
 
-	value := nodeElect.GetWeight()
+	value := nodeElect.GetWeight(common.RoleMiner)
 	//for _,v:=range value{
 	//	fmt.Println(v.Addr.String(),v.Value)
 	//}
@@ -46,8 +47,7 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 	nodeElect.Sort()
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
-
-	value := nodeElect.GetWeight()
+	value := nodeElect.GetWeight(common.RoleValidator)
 	//for _,v:=range value{
 	//	fmt.Println(v.Value,v.Addr.String())
 	//}

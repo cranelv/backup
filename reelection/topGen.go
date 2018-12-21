@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type TopGenStatus struct {
@@ -114,7 +115,7 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 
 //得到随机种子
 func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
-	return self.random.GetRandom(hash, "electionseed")
+	return self.random.GetRandom(hash, manparams.ElectionSeed)
 }
 
 func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {

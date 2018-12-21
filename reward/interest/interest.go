@@ -112,12 +112,6 @@ func (ic *interest) InterestCalc(state vm.StateDB, num uint64) (map[common.Addre
 		log.ERROR(PackageName, "状态树是空", state)
 		return nil, nil
 	}
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, num)
-		matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
-		log.INFO(PackageName, "初始化利息状态树高度", num)
-		return nil, nil
-	}
 
 	return ic.calcInterest(ic.CalcInterval, num, state), ic.payInterest(ic.PayInterval, num, state)
 }

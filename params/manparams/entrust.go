@@ -1,7 +1,6 @@
 package manparams
 
 import (
-	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"sync"
@@ -34,7 +33,7 @@ func (self *EntrustValue) GetEntrustValue() map[common.Address]string {
 	return self.entrustValue
 }
 func SetTimer(times int64) {
-	if times < 0 {
+	if times <= 0 {
 		return
 	}
 	d := time.Duration(times) * time.Second
@@ -46,6 +45,4 @@ func SetTimer(times int64) {
 		EntrustAccountValue.entrustValue = make(map[common.Address]string, 0)
 	}
 	log.Warn("修改委托签名账户", "数据已失效 ,上次设置的有效期", times)
-	fmt.Println("修改委托签名账户", "数据已失效 ,上次设置的有效期", times)
-
 }
