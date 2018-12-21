@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 )
 
 type messageCheck struct {
@@ -38,13 +38,13 @@ func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg) bool {
 	}
 
 	if msg.Role != common.RoleValidator {
-		log.Debug("共识节点状态","身份不对","不做处理")
+		log.Debug("共识节点状态", "身份不对", "不做处理")
 		return false
 	}
 
 	chk.mu.Lock()
 	defer chk.mu.Unlock()
-	rst :=  chk.setCurNumber(msg.BlockNum + 1)
+	rst := chk.setCurNumber(msg.BlockNum + 1)
 
 	if rst {
 		chk.blockHash = msg.BlockHash
@@ -98,7 +98,7 @@ func (chk *messageCheck) CheckRound(number uint64, leaderTurn uint32) int {
 
 func (chk *messageCheck) setCurNumber(number uint64) bool {
 	if number < chk.curNumber {
-		log.Warn("共识节点状态", "区块高度不符","     ",number,chk.curNumber )
+		log.Warn("共识节点状态", "区块高度不符", "     ", number, chk.curNumber)
 		return false
 	}
 	if number > chk.curNumber {

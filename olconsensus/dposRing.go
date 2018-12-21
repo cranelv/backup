@@ -20,7 +20,7 @@ type DPosVoteState struct {
 	mu               sync.RWMutex
 	Hash             common.Hash
 	Proposal         interface{}
-	Voted            bool        //本地是否对请求投过票
+	Voted            bool //本地是否对请求投过票
 	AffirmativeVotes []voteInfo
 }
 
@@ -29,7 +29,7 @@ func (ds *DPosVoteState) hasHash(hash common.Hash) bool {
 	defer ds.mu.RUnlock()
 	return ds.Hash == hash
 }
-func (ds *DPosVoteState) addProposal(proposal interface{},voted bool) bool {
+func (ds *DPosVoteState) addProposal(proposal interface{}, voted bool) bool {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	have := ds.Proposal != nil
@@ -59,10 +59,10 @@ func (ds *DPosVoteState) clear(proposal common.Hash) {
 	ds.Proposal = nil
 	ds.AffirmativeVotes = make([]voteInfo, 0)
 }
-func (ds *DPosVoteState) getVotes() (interface{}, []voteInfo,bool) {
+func (ds *DPosVoteState) getVotes() (interface{}, []voteInfo, bool) {
 	ds.mu.RLock()
 	defer ds.mu.RUnlock()
-	return ds.Proposal, ds.AffirmativeVotes[:],ds.Voted
+	return ds.Proposal, ds.AffirmativeVotes[:], ds.Voted
 }
 
 type DPosVoteRing struct {
@@ -101,13 +101,13 @@ func (ring *DPosVoteRing) insertNewProposal(hash common.Hash) *DPosVoteState {
 	return ring.DPosVoteS[last]
 }
 
-func (ring *DPosVoteRing) getVotes(hash common.Hash) (interface{}, []voteInfo,bool) {
+func (ring *DPosVoteRing) getVotes(hash common.Hash) (interface{}, []voteInfo, bool) {
 	ds, _ := ring.findProposal(hash)
 	return ds.getVotes()
 }
-func (ring *DPosVoteRing) addProposal(hash common.Hash, proposal interface{},voted bool) bool {
+func (ring *DPosVoteRing) addProposal(hash common.Hash, proposal interface{}, voted bool) bool {
 	ds, have := ring.findProposal(hash)
-	add := ds.addProposal(proposal,voted)
+	add := ds.addProposal(proposal, voted)
 	return !(have && add)
 }
 func (ring *DPosVoteRing) addVote(hash common.Hash, vote *mc.HD_ConsensusVote) (interface{}, []voteInfo) {
