@@ -521,7 +521,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		return
 	}
 
-	log.Info("miss tree node debug", "finalize root", localBlock.Root(), "remote root", remoteHeader.Root.Hex())
+	log.Info("miss tree node debug", "finalize root", localBlock.Root(), "remote root", remoteHeader.Roots)
 
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
@@ -537,7 +537,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	if localHash != p.curProcessReq.hash {
 		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
-			"local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(),
+			"local root", localHeader.Roots, "remote root", remoteHeader.Roots,
 			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),
 			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", remoteHeader.ReceiptHash.TerminalString(),
 			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", remoteHeader.Bloom.Big(),

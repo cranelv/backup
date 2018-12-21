@@ -136,30 +136,20 @@ func (shard *StateDBManage) GetLogs(cointyp string,address common.Address,hash c
 
 }
 
-func (shard *StateDBManage) Logs(cointyp string,roots []common.Hash) []*types.Log {
+func (shard *StateDBManage) Logs() []*types.Log {
 	cms:=shard.shardings
 	var logs []*types.Log
 	for _,cm:=range cms {
-		if cm.Cointyp==cointyp {
+		//if cm.Cointyp==cointyp {
 			rms:=cm.Rmanage
 			for _,rm :=range rms{
 				log:=rm.State.logs
 				for _,l:=range log  {
 					logs=append(logs,l...)
-				}
-
-			}
+				}}
 			break
-		}
-	}
-	//self:=shard.sharding
-	//
-	//for i:=0;i<sharding_MOUNTS ;i++  {
-	//	for _, lgs := range self[i].logs {
-	//		logs = append(logs, lgs...)
-	//	}
-	//}
-	return logs //logs
+		} //}
+	return logs
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.

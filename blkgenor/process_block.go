@@ -94,7 +94,7 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	fullHash := rsp.Header.Hash()
 	headerHash := rsp.Header.HashNoSignsAndNonce()
-	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "区块 hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Root.Hex(), "高度", p.number)
+	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "区块 hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Roots, "高度", p.number)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -119,7 +119,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
-	log.Info(p.logExtraInfo(), "执行交易root", rsp.Header.Root.Hex())
+	log.Info(p.logExtraInfo(), "执行交易root", rsp.Header.Roots)
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:    rsp.Header,
 		BlockHash: rsp.Header.HashNoSignsAndNonce(),
@@ -138,7 +138,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	p.processBlockInsert(rsp.Header.Leader)
 }
 
-func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDB, error) {
+func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDBManage, error) {
 	parent := p.blockChain().GetBlockByHash(header.ParentHash)
 	if parent == nil {
 		return nil, nil, errors.Errorf("父区块(%s)获取失败!", header.ParentHash.TerminalString())
@@ -167,7 +167,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	if localHash != headerHash {
 		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", headerHash.TerminalString(),
-			"local root", block.Header().Root.TerminalString(), "remote root", header.Root.TerminalString(),
+			"local root", block.Header().Roots, "remote root", header.Roots,
 			"local txHash", block.Header().TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
 			"local ReceiptHash", block.Header().ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
 			"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),

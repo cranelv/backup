@@ -133,7 +133,7 @@ type StateDBManager interface {
 
 	AddLog(cointyp string,address common.Address,log *types.Log)
 	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
-	Logs(cointyp string,roots []common.Hash) []*types.Log
+	Logs() []*types.Log
 
 	AddPreimage(hash common.Hash, preimage []byte)
 	Preimages() map[common.Hash][]byte

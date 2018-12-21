@@ -245,7 +245,7 @@ func (self *BlockGenor) broadcastMinerResultHandle(result *mc.HD_BroadcastMining
 
 func (self *BlockGenor) consensusBlockMsgHandle(data *mc.BlockLocalVerifyOK) {
 	log.INFO(self.logExtraInfo(), "共识结果消息处理", "开始", "高度", data.Header.Number, "block hash", data.BlockHash.TerminalString(),
-		"root", data.Header.Root.TerminalString())
+		"root", data.Header.Roots)
 	defer log.INFO(self.logExtraInfo(), "共识结果消息处理", "结束", "高度", data.Header.Number)
 	process, err := self.pm.GetProcess(data.Header.Number.Uint64())
 	if err != nil {

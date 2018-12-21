@@ -27,7 +27,7 @@ type reqData struct {
 	hash              common.Hash
 	txs               types.SelfTransactions
 	receipts          []*types.Receipt
-	stateDB           *state.StateDB
+	stateDB           *state.StateDBManage
 	localReq          bool
 	localVerifyResult uint8
 	posFinished       bool

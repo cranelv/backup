@@ -12,7 +12,7 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 )
 
-func (p *Process) genElection(state *state.StateDB) []common.Elect {
+func (p *Process) genElection(state *state.StateDBManage) []common.Elect {
 	info, err := p.reElection().GetElection(state, p.preBlockHash)
 	if err != nil {
 		log.Warn(p.logExtraInfo(), "获取选举信息错误", err)
