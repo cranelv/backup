@@ -40,7 +40,7 @@ import (
 )
 
 type ChainReader interface {
-	StateAt(root common.Hash) (*state.StateDB, error)
+	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	GetBlockByHash(hash common.Hash) *types.Block
 }
 
@@ -64,7 +64,7 @@ type Work struct {
 	config *params.ChainConfig
 	signer types.Signer
 
-	State *state.StateDB // apply state changes here
+	State *state.StateDBManage // apply state changes here
 	//ancestors *set.Set       // ancestor set (used for checking uncle parent validity)
 	//family    *set.Set       // family set (used for checking uncle invalidity)
 	//uncles    *set.Set       // uncle set

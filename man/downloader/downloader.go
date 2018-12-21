@@ -27,6 +27,7 @@ import (
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
+	"encoding/json"
 )
 
 var (
@@ -1609,7 +1610,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
-	stateSync := d.syncState(latest.Root)
+	stateSync := d.syncState(latest.Roots)
 	defer stateSync.Cancel()
 	go func() {
 		if err := stateSync.Wait(); err != nil && err != errCancelStateFetch {
@@ -1666,8 +1667,8 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 			// If new pivot block found, cancel old state retrieval and restart
 			if oldPivot != P {
 				stateSync.Cancel()
-
-				stateSync = d.syncState(P.Header.Root)
+				b,_:=json.Marshal(P.Header.Roots)
+				stateSync = d.syncState(common.BytesToHash(b)) //shardingYY
 				defer stateSync.Cancel()
 				go func() {
 					if err := stateSync.Wait(); err != nil && err != errCancelStateFetch {
