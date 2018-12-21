@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/params"
 )
 
 type cdc struct {
@@ -305,7 +306,7 @@ func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (c
 	}
 
 	height := dc.number - 1
-	ans := dc.parentState.GetEntrustFrom(authFrom, height)
+	ans := dc.parentState.GetEntrustFrom(params.MAN_COIN,authFrom, height)
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
@@ -340,7 +341,7 @@ func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (com
 		}
 
 		preHeight := dc.number - 1
-		addr := dc.parentState.GetAuthFrom(signAccount, preHeight)
+		addr := dc.parentState.GetAuthFrom(params.MAN_COIN,signAccount, preHeight)
 		if addr.Equal(common.Address{}) {
 			addr = signAccount
 		}

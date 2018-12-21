@@ -199,7 +199,7 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 	copy(preBroadcast.BeforeLastStateRoot,preBroadcast.LastStateRoot)
 	preBroadcast.LastStateRoot =make([] common.CoinRoot, len(header.Roots))
 	copy(preBroadcast.LastStateRoot,header.Roots)
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot, "last", preBroadcast.LastStateRoot.String())
+	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot, "last", preBroadcast.LastStateRoot)
 	return preBroadcast, nil
 
 }

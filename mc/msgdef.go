@@ -186,7 +186,7 @@ type HD_BlockInsertNotify struct {
 
 type NewBlockReadyMsg struct {
 	Header *types.Header
-	State  *state.StateDB
+	State  *state.StateDBManage
 }
 
 //随机数生成请求
