@@ -41,8 +41,8 @@ type Matrix interface {
 
 type StateReader interface {
 	matrixstate.StateDB
-	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	GetAuthFrom(typ string,entrustFrom common.Address, height uint64) common.Address
+	GetEntrustFrom(typ string,authFrom common.Address, height uint64) []common.Address
 }
 
 const defaultBeginTime = int64(0)
