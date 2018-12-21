@@ -529,70 +529,33 @@ func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, c
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 //TODO	这个函数被改写过
-func (shard *StateDBManage) Copy(cointyp string,addr common.Address,) *StateDB {
-	self:=shard.GetStateDb(cointyp,addr)
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	// Copy all the basic fields, initialize the memory ones
-	state := &StateDB{
-		db:                self.db,
-		trie:              self.db.CopyTrie(self.trie),
-		stateObjects:      make(map[common.Address]*stateObject, len(self.journal.dirties)),
-		stateObjectsDirty: make(map[common.Address]struct{}, len(self.journal.dirties)),
-		btreeMap:          make([]BtreeDietyStruct, 0),
-		btreeMapDirty:     make([]BtreeDietyStruct, 0),
-		matrixData:        make(map[common.Hash][]byte),
-		matrixDataDirty:   make(map[common.Hash][]byte),
-		refund:            self.refund,
-		logs:              make(map[common.Hash][]*types.Log, len(self.logs)),
-		logSize:           self.logSize,
-		preimages:         make(map[common.Hash][]byte),
-		journal:           newJournal(),
+func (shard *StateDBManage) Copy() *StateDBManage {
+	state := &StateDBManage{
+		db:                shard.db,
+		trie:              shard.db.CopyTrie(shard.trie),
+		shardings:		   make([]*CoinManage,0),
+		coinRoot:		   make([]common.CoinRoot,0),
 	}
-	// Copy the dirty states, logs, and preimages
-	for addr := range self.journal.dirties {
-		// As documented [here](https://github.com/matrix/go-matrix/pull/16485#issuecomment-380438527),
-		// and in the Finalise-method, there is a case where an object is in the journal but not
-		// in the stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we need to check for
-		// nil
-		if object, exist := self.stateObjects[addr]; exist {
-			state.stateObjects[addr] = object.deepCopy(state)
-			state.stateObjectsDirty[addr] = struct{}{}
+	for _,cm:=range shard.shardings  {
+		var rms	[]*RangeManage
+		for _,rm:=range cm.Rmanage  {
+			sd:=rm.State.Copy()
+			rms=append(rms,&RangeManage{
+				Range:	rm.Range,
+				State:	sd,
+			})
 		}
+		state.shardings=append(state.shardings,&CoinManage{
+			Cointyp:	cm.Cointyp,
+			Rmanage:	rms,
+		})
 	}
-	// Above, we don't copy the actual journal. This means that if the copy is copied, the
-	// loop above will be a no-op, since the copy's journal is empty.
-	// Thus, here we iterate over stateObjects, to enable copies of copies
-	for addr := range self.stateObjectsDirty {
-		if _, exist := state.stateObjects[addr]; !exist {
-			state.stateObjects[addr] = self.stateObjects[addr].deepCopy(state)
-			state.stateObjectsDirty[addr] = struct{}{}
-		}
+	for _,root:=range shard.coinRoot  {
+		state.coinRoot=append(state.coinRoot,common.CoinRoot{
+			Root:		root.Root,
+			Cointyp:	root.Cointyp,
+		})
 	}
-
-	for hash, logs := range self.logs {
-		state.logs[hash] = make([]*types.Log, len(logs))
-		copy(state.logs[hash], logs)
-	}
-	for hash, preimage := range self.preimages {
-		state.preimages[hash] = preimage
-	}
-
-	//for hash := range self.matrixDataDirty {
-	//	if _, exist := state.matrixData[hash]; !exist {
-	//		state.stateObjects[addr] = self.matrixData[hash].deepCopy(state)
-	//		state.stateObjectsDirty[addr] = struct{}{}
-	//	}
-	//}
-	for hash, mandata := range self.matrixData {
-		state.matrixData[hash] = mandata
-		state.matrixDataDirty[hash] = mandata
-	}
-
-	state.btreeMap = self.btreeMap
-	state.btreeMapDirty = self.btreeMapDirty
-
 	return state
 }
 

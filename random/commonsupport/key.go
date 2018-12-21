@@ -113,7 +113,7 @@ func GetAncestorHash(hash common.Hash, height uint64, support baseinterface.Rand
 	return aimHash, nil
 }
 
-func getKeyTransInfo(root  common.Hash,types string, support baseinterface.RandomChainSupport) map[common.Address][]byte {
+func getKeyTransInfo(root  []common.CoinRoot,types string, support baseinterface.RandomChainSupport) map[common.Address][]byte {
 	ans, err := core.GetBroadcastTxMap(support,root, types)
 	if err != nil {
 		log.Error(ModeleRandomCommon, "获取特殊交易失败 root", root, "types", types)

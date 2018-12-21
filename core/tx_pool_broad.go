@@ -360,7 +360,7 @@ func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr c
 type Backend interface {
 	BlockChain() *BlockChain
 }
-func GetBroadcastTxMap(bc Backend, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+func GetBroadcastTxMap(bc Backend, root []common.CoinRoot, txtype string) (reqVal map[common.Address][]byte, err error) {
 	state, err := bc.BlockChain().StateAt(root)
 	if err != nil {
 		log.Error("GetBroadcastTxMap StateAt err")

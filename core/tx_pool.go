@@ -252,6 +252,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		mapHighttx:    make(map[uint64][]uint32, 0),
 	}
 	//nPool.pool.priced = newTxPricedList(nPool.pool.all)
+
 	nPool.reset(nil, chain.CurrentBlock().Header())
 
 	// Subscribe events from blockchain
@@ -594,9 +595,9 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all accounts to the latest known pending nonce
 	for addr, list := range nPool.pending {
-		for _, txs := range list.txs {
+		for cointype, txs := range list.txs {
 			txs := txs.Flatten() // Heavy but will be cached and is needed by the miner anyway
-			nPool.pendingState.SetNonce(addr, txs[len(txs)-1].Nonce()+1)
+			nPool.pendingState.SetNonce(cointype,addr, txs[len(txs)-1].Nonce()+1)
 		}
 	}
 }
@@ -1375,7 +1376,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 	}
 	nPool.pending[from].Add(tx, 0)
 	nPool.all.Add(tx)
-	nPool.pendingState.SetNonce(from, tx.Nonce()+1)
+	nPool.pendingState.SetNonce(tx.Currency,from, tx.Nonce()+1)
 	selfRole := ca.GetRole()
 	if selfRole == common.RoleMiner || selfRole == common.RoleValidator {
 		tx_s := tx.GetTxS()
@@ -1482,8 +1483,8 @@ func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 				delete(nPool.pending, addr)
 			}
 			// Update the account nonce if needed
-			if nonce := tx.Nonce(); nPool.pendingState.GetNonce(addr) > nonce {
-				nPool.pendingState.SetNonce(addr, nonce)
+			if nonce := tx.Nonce(); nPool.pendingState.GetNonce(tx.Currency,addr) > nonce {
+				nPool.pendingState.SetNonce(tx.Currency,addr, nonce)
 			}
 			return
 		}
