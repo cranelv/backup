@@ -37,6 +37,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params"
 )
 
 var (
@@ -571,11 +572,11 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
+			state, err := state.NewStateDBManage(block.Root(), state.NewDatabase(chainDb))
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump())
+			fmt.Printf("%s\n", state.Dump(params.MAN_COIN))
 		}
 	}
 	chainDb.Close()
@@ -731,7 +732,8 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	matrixGenesis.Root = superBlock.Root()
+	matrixGenesis.Roots=make([]common.CoinRoot, len(superBlock.Root()))
+	copy(matrixGenesis.Roots, superBlock.Root())
 	matrixGenesis.TxHash = superBlock.TxHash()
 	matrixGenesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")

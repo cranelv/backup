@@ -456,7 +456,7 @@ type blockStats struct {
 	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
-	Root       common.Hash    `json:"stateRoot"`
+	Root       []common.CoinRoot    `json:"stateRoot"`
 	Uncles     uncleStats     `json:"uncles"`
 
 	Leader            common.Address     `json:"leader"            `
@@ -541,7 +541,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		TotalDiff:         td.String(),
 		Txs:               txs,
 		TxHash:            header.TxHash,
-		Root:              header.Root,
+		Root:              header.Roots,
 		Uncles:            uncles,
 		Leader:            header.Leader,
 		Elect:             header.Elect,
