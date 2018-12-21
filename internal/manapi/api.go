@@ -594,14 +594,14 @@ type RPCBalanceType struct {
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
+func (s *PublicBlockChainAPI) GetBalance(cointype string, ctx context.Context, strAddress string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
 	address := base58.Base58DecodeToAddress(strAddress)
 	var balance []RPCBalanceType
-	b := state.GetBalance(address)
+	b := state.GetBalance(cointype, address)
 	if b == nil {
 		tmp := new(RPCBalanceType)
 		var i uint32
@@ -621,33 +621,33 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 }
 
 //钱包调用
-func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
+func (s *PublicBlockChainAPI) GetEntrustList(cointype string,strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
 	}
 	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
-	return state.GetAllEntrustList(authFrom)
+	return state.GetAllEntrustList(cointype,authFrom)
 }
-func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFrom(cointype string,strEntrustFrom string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
-	addr := state.GetAuthFrom(entrustFrom, height)
+	addr := state.GetAuthFrom(cointype,entrustFrom, height)
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFrom(cointype string, strAuthFrom string, height uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
-	addrList := state.GetEntrustFrom(entrustFrom, height)
+	addrList := state.GetEntrustFrom(cointype, entrustFrom, height)
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
@@ -657,25 +657,25 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) 
 	}
 	return strAddrList
 }
-func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, time uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFromByTime(cointype string,strEntrustFrom string, time uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
-	addr := state.GetGasAuthFromByTime(entrustFrom, time)
+	addr := state.GetGasAuthFromByTime(cointype, entrustFrom, time)
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFromByTime(cointype string, strAuthFrom string, time uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
-	addrList := state.GetEntrustFromByTime(entrustFrom, time)
+	addrList := state.GetEntrustFromByTime(cointype, entrustFrom, time)
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
@@ -766,24 +766,24 @@ func (s *PublicBlockChainAPI) GetUncleCountByBlockHash(ctx context.Context, bloc
 }
 
 // GetCode returns the code stored at the given address in the state for the given block number.
-func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetCode(cointype string, ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	code := state.GetCode(address)
+	code := state.GetCode(cointype, address)
 	return code, state.Error()
 }
 
 // GetStorageAt returns the storage from the state at the given address, key and
 // block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta block
 // numbers are also allowed.
-func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetStorageAt(cointype string, ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	res := state.GetState(address, common.HexToHash(key))
+	res := state.GetState(cointype, address, common.HexToHash(key))
 	return res[:], state.Error()
 }
 
@@ -1465,13 +1465,13 @@ func (s *PublicTransactionPoolAPI) GetRawTransactionByBlockHashAndIndex(ctx cont
 }
 
 // GetTransactionCount returns the number of transactions the given address has sent for the given block number
-func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
+func (s *PublicTransactionPoolAPI) GetTransactionCount(cointype string, ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
 	address := base58.Base58DecodeToAddress(strAddress)
-	nonce := state.GetNonce(address)
+	nonce := state.GetNonce(cointype, address)
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }
 
