@@ -118,6 +118,14 @@ func (shard *StateDBManage)GetStateDb(cointyp string,address common.Address) *St
 	return nil
 }
 
+func (shard *StateDBManage) setError(err error) {
+
+}
+
+func (shard *StateDBManage) Error() error {
+	return nil
+}
+
 func (shard *StateDBManage) AddLog(cointyp string,address common.Address,log *types.Log) {
 	self:=shard.GetStateDb(cointyp,address)
 	self.journal.append(addLogChange{txhash: self.thash})

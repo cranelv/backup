@@ -132,6 +132,9 @@ type StateDBManager interface {
 	RevertToSnapshot(cointyp string,ss map[byte]int)
 	Snapshot(cointyp string) map[byte]int
 
+	//setError(err error)
+	Error() error
+
 	AddLog(cointyp string,address common.Address,log *types.Log)
 	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
 	Logs() []*types.Log
