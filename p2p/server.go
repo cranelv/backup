@@ -316,6 +316,9 @@ func (srv *Server) AddPeer(node *discover.Node) {
 }
 
 func (srv *Server) AddPeerByAddress(addr common.Address) (flag bool) {
+	if addr == srv.ManAddress {
+		return true
+	}
 	flag = true
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
