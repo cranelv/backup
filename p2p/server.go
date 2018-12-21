@@ -177,7 +177,7 @@ type Server struct {
 	peerFeed      event.Feed
 	log           log.Logger
 	tasks         map[common.Address]int
-	needDel       map[common.Address]bool
+	taskLock      sync.RWMutex
 }
 
 var ServerP2p = &Server{}
@@ -315,20 +315,20 @@ func (srv *Server) AddPeer(node *discover.Node) {
 	}
 }
 
-func (srv *Server) AddPeerByAddress(addr common.Address) (flag bool) {
+func (srv *Server) AddPeerByAddress(addr common.Address) {
 	if addr == srv.ManAddress {
-		return true
+		return
 	}
-	flag = true
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
 		srv.log.Error("add peer by address failed, node info not found")
-		return false
+		return
 	}
 	select {
 	case srv.addstatic <- node:
 	case <-srv.quit:
 	}
+	srv.DelTasks(addr)
 	return
 }
 
@@ -1054,19 +1054,16 @@ func (srv *Server) runTask() {
 	for {
 		select {
 		case <-tk.C:
-			srv.lock.Lock()
-			srv.needDel = make(map[common.Address]bool)
+			srv.taskLock.Lock()
 			for a, v := range srv.tasks {
-				if v < maxCount && !srv.AddPeerByAddress(a) {
+				if v < maxCount {
+					go srv.AddPeerByAddress(a)
 					srv.tasks[a] = srv.tasks[a] + 1
 					continue
 				}
-				srv.needDel[a] = true
+				delete(srv.tasks, a)
 			}
-			for del := range srv.needDel {
-				delete(srv.tasks, del)
-			}
-			srv.lock.Unlock()
+			srv.taskLock.Unlock()
 		case <-srv.quit:
 			return
 		}
@@ -1074,13 +1071,13 @@ func (srv *Server) runTask() {
 }
 
 func (srv *Server) AddTasks(addr common.Address) {
-	srv.lock.Lock()
+	srv.taskLock.Lock()
 	srv.tasks[addr] = 0
-	srv.lock.Unlock()
+	srv.taskLock.Unlock()
 }
 
 func (srv *Server) DelTasks(addr common.Address) {
-	srv.lock.Lock()
+	srv.taskLock.Lock()
 	delete(srv.tasks, addr)
-	srv.lock.Unlock()
+	srv.taskLock.Unlock()
 }
