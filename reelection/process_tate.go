@@ -122,7 +122,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 		return electOnline, nil
 	}
 
-	header := self.bc.GetHeaderByHash(block.Header().ParentHash)
+	header := block.Header()
 	data, err := readFn(mc.MSKeyElectOnlineState)
 	//log.INFO(Module, "data", data, "err", err)
 	if err != nil {

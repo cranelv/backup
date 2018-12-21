@@ -66,7 +66,7 @@ func (self *TopNodeInstance) GetTopNodeOnlineState() []NodeOnLineInfo {
 			OnlineState: value.Heartbeats,
 		}
 		onlineStat = append(onlineStat, state)
-		log.Debug("TopNodeOnline", "获取在线状态, node", value.Account, "心跳", value.Heartbeats)
+		log.Debug("共识节点状态", "获取在线状态, node", value.Account, "心跳", value.Heartbeats)
 	}
 
 	return onlineStat
@@ -82,6 +82,7 @@ func (self *TopNodeInstance) IsSelfAddress(addr common.Address) bool {
 
 func (self *TopNodeInstance) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.RoleType, address []common.Address) {
 	self.hd.SendNodeMsg(subCode, msg, Roles, address)
+	log.Info("共识节点状态", "发送消息完成","" )
 }
 
 func (self *TopNodeInstance) SubscribeEvent(aim mc.EventCode, ch interface{}) (event.Subscription, error) {

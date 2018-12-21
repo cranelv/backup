@@ -8,6 +8,7 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/log"
 )
 
 type messageCheck struct {
@@ -32,12 +33,23 @@ func newMessageCheck(capacity int) *messageCheck {
 
 func (chk *messageCheck) CheckRoleUpdateMsg(msg *mc.RoleUpdatedMsg) bool {
 	if nil == msg {
+		log.Error("共识节点状态", "处理CA通知消息", "消息为空")
+		return false
+	}
+
+	if msg.Role != common.RoleValidator {
+		log.Debug("共识节点状态","身份不对","不做处理")
 		return false
 	}
 
 	chk.mu.Lock()
 	defer chk.mu.Unlock()
-	return chk.setCurNumber(msg.BlockNum + 1)
+	rst :=  chk.setCurNumber(msg.BlockNum + 1)
+
+	if rst {
+		chk.blockHash = msg.BlockHash
+	}
+	return rst
 }
 
 func (chk *messageCheck) CheckAndSaveLeaderChangeNotify(msg *mc.LeaderChangeNotify) bool {
@@ -86,6 +98,7 @@ func (chk *messageCheck) CheckRound(number uint64, leaderTurn uint32) int {
 
 func (chk *messageCheck) setCurNumber(number uint64) bool {
 	if number < chk.curNumber {
+		log.Warn("共识节点状态", "区块高度不符","     ",number,chk.curNumber )
 		return false
 	}
 	if number > chk.curNumber {
@@ -123,6 +136,7 @@ func (chk *messageCheck) setLeader(msg *mc.LeaderChangeNotify) bool {
 }
 
 func (chk *messageCheck) getLeader(number uint64, turn uint32) common.Address {
+
 	for _, msg := range chk.leaderCache {
 		if msg == nil {
 			continue
