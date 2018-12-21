@@ -174,7 +174,7 @@ func (os OnlineState) String() string {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 func (info *ConsensusTurnInfo) String() string {
-	return "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
+	return strconv.Itoa(int(info.TotalTurns())) + "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
 }
 
 func (info *ConsensusTurnInfo) TotalTurns() uint32 {

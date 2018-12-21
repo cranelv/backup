@@ -146,3 +146,12 @@ func findLeaderIndex(preLeader common.Address, validators []mc.TopologyNodeInfo)
 	}
 	return 0, ErrValidatorNotFound
 }
+
+func (self *leaderCalculator) dumpAllValidators(logInfo string) {
+	size := len(self.validators)
+	log.Debug(logInfo, "dump info", "验证者列表", "总数", size, "高度", self.number, "parentHash", self.preHash.TerminalString(), "parentLeader", self.preLeader.Hex())
+	for i := 0; i < size; i++ {
+		item := self.validators[i]
+		log.Debug(logInfo, "dump info", "验证者列表", "index", i, "node", item.Account.Hex(), "pos", item.Position)
+	}
+}
