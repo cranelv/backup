@@ -17,6 +17,7 @@ import (
 	"errors"
 	"github.com/matrix/go-matrix/crypto"
 	"fmt"
+	"github.com/matrix/go-matrix/common"
 )
 
 type vrfWithHash struct {
@@ -43,7 +44,7 @@ func (self *vrfWithHash) verifyVrf(pk *ecdsa.PublicKey, prevVrf, newVrf, proof [
 	return nil
 }
 
-func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header) error {
+func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header,signAccount common.Address) error {
 	log.INFO("vrf", "len header.VrfValue", len(header.VrfValue), "data", header.VrfValue, "高度", header.Number.Uint64())
 	account, _, _ := self.GetVrfInfoFromHeader(header.VrfValue)
 
@@ -83,7 +84,7 @@ func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header)
 	}
 
 	ans := crypto.PubkeyToAddress(*pk1_1)
-	if ans.Equal(header.Leader) {
+	if ans.Equal(signAccount) {
 		log.Error("vrf leader comparre", "与leader不匹配", "nil")
 		return nil
 	}

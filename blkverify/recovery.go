@@ -164,7 +164,7 @@ func encodeVerifiedBlock(req *mc.HD_BlkConsensusReqMsg, txs types.SelfTransactio
 	}
 
 	txSize := txs.Len()
-	marshalTxs := make([]*types.Transaction_Mx, 0, txSize)
+	marshalTxs := make([]*types.Transaction_Mx, txSize)
 	for i := 0; i < txSize; i++ {
 		tx := txs[i]
 		if mtx := types.SetTransactionToMx(tx); mtx == nil {
