@@ -99,8 +99,8 @@ type LeaderConfig struct {
 }
 
 type PreBroadStateRoot struct {
-	LastStateRoot       common.Hash
-	BeforeLastStateRoot common.Hash
+	LastStateRoot       []common.CoinRoot
+	BeforeLastStateRoot []common.CoinRoot
 }
 
 type RewardRateCfg struct {
@@ -164,7 +164,7 @@ type RandomInfoStruct struct {
 	MaxNonce uint64
 }
 type PreAllTopStruct struct {
-	PreAllTopRoot common.Hash
+	PreAllTopRoot []common.CoinRoot
 }
 type PreMinerStruct struct {
 	PreMiner common.Address

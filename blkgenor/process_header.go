@@ -211,7 +211,7 @@ func (p *Process) processHeaderGen() error {
 	return nil
 }
 
-func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
+func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDBManage, []*types.Receipt, error) {
 	//broadcast txs deal,remove no validators txs
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)

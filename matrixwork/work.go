@@ -231,11 +231,11 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 }
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
-	snap := env.State.Snapshot()
+	snap := env.State.Snapshot(tx.GetTxCurrency())
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("file work", "func commitTransaction", err)
-		env.State.RevertToSnapshot(snap)
+		env.State.RevertToSnapshot(tx.GetTxCurrency(),snap)
 		return err, nil
 	}
 	env.txs = append(env.txs, tx)
@@ -245,11 +245,11 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 }
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
-	snap := env.State.Snapshot()
+	snap := env.State.Snapshot(tx.GetTxCurrency())
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("file work", "func s_commitTransaction", err)
-		env.State.RevertToSnapshot(snap)
+		env.State.RevertToSnapshot(tx.GetTxCurrency(),snap)
 		return err, nil
 	}
 	tmps := make([]types.SelfTransaction, 0)
@@ -295,6 +295,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	}
 	listret, retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	tmps := make([]types.SelfTransaction, 0)
+
 	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -366,7 +367,7 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		tx.SetTxS(big.NewInt(1))
 		tx.SetTxV(big.NewInt(1))
@@ -476,12 +477,12 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
 		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(env.header.Leader, env.header.Number.Uint64())
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
 
@@ -490,14 +491,14 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
 		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
 	lottery := lottery.New(bc, env.State, env.random)
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(env.header.ParentHash, env.header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}
 	}
 
@@ -508,7 +509,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	}
 	interestCalcMap, interestPayMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
 	}
 
 	slash := slash.New(bc, env.State)
@@ -520,11 +521,11 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 func (env *Work) getGas() *big.Int {
 
-	price := mapcoingasUse.getCoinGasPrice("MAN")
-	gas := mapcoingasUse.getCoinGasUse("MAN")
+	price := mapcoingasUse.getCoinGasPrice(params.MAN_COIN)
+	gas := mapcoingasUse.getCoinGasUse(params.MAN_COIN)
 	allGas := new(big.Int).Mul(gas, price)
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
-	balance := env.State.GetBalance(common.TxGasRewardAddress)
+	balance := env.State.GetBalance(params.MAN_COIN,common.TxGasRewardAddress)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法", "")
@@ -607,7 +608,7 @@ func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
 
-func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) error {
+func (env *Work) HandleUpTime(state *state.StateDBManage, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) error {
 	var blockHash common.Hash
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
@@ -693,7 +694,7 @@ func (env *Work) HandleUpTime(state *state.StateDB, accounts []common.Address, c
 	return nil
 }
 
-func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
+func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDBManage, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
 	broadcastInterval := bcInterval.GetBroadcastInterval()
 	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
