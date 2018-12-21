@@ -816,3 +816,34 @@ func (self *StateDBManage) GetIsEntrustByTime(cointyp string,entrustFrom common.
 func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Address) []common.EntrustType {
 	return  self.GetStateDb(cointyp,authFrom).GetAllEntrustList(authFrom)
 }
+
+
+//TODO	===========================================================================================
+//TODO	===========================================================================================
+//TODO	========================================未完===============================================
+//TODO	===========================================================================================
+//TODO	===========================================================================================
+//TODO	===========================================================================================
+func (self StateDBManage)RawDump(cointype string)Dump {
+	for _,cm:=range self.shardings  {
+		if cointype==cm.Cointyp {
+		for _,rm:=range cm.Rmanage{
+			rm.State.RawDump()
+		}
+		break
+		}
+	}
+	return Dump{}
+}
+
+func (self StateDBManage)Dump(cointype string) []byte {
+	for _,cm:=range self.shardings  {
+		if cointype==cm.Cointyp {
+			for _,rm:=range cm.Rmanage{
+				rm.State.Dump()
+			}
+			break
+		}
+	}
+	return []byte{}
+}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/core/state"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -154,8 +155,11 @@ type StateDBManager interface {
 	GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
 	GetGasAuthFromByTime(cointyp string,entrustFrom common.Address, time uint64) common.Address
 	GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address
-	////Dump() []byte
+
 	Finalise(cointyp string,deleteEmptyObjects bool)
 	GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address
 	GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address
+
+	Dump(cointype string) []byte
+	RawDump(cointype string)state.Dump
 }
