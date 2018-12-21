@@ -156,5 +156,6 @@ func (self *controller) processPOSState() {
 	}
 
 	log.Info(self.logInfo, "POS完成", "状态切换为<挖矿结果等待阶段>")
+	self.setTimer(0, self.timer)
 	self.dc.state = stMining
 }

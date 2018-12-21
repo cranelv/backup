@@ -158,7 +158,8 @@ type HD_BlkConsensusReqMsg struct {
 
 type LocalBlockVerifyConsensusReq struct {
 	BlkVerifyConsensusReq *HD_BlkConsensusReqMsg
-	Txs                   types.SelfTransactions // 交易列表
+	OriginalTxs           types.SelfTransactions // 原始交易列表
+	FinalTxs              types.SelfTransactions // 最终交易列表(含奖励交易)
 	Receipts              []*types.Receipt       // 收据
 	State                 *state.StateDB         // apply state changes here 状态数据库
 }
@@ -171,11 +172,12 @@ type BlockPOSFinishedNotify struct {
 }
 
 type BlockLocalVerifyOK struct {
-	Header    *types.Header // 包含签名列表的header
-	BlockHash common.Hash
-	Txs       types.SelfTransactions // 交易列表
-	Receipts  []*types.Receipt       // 收据
-	State     *state.StateDB         // apply state changes here 状态数据库
+	Header      *types.Header // 包含签名列表的header
+	BlockHash   common.Hash
+	OriginalTxs types.SelfTransactions // 原始交易列表
+	FinalTxs    types.SelfTransactions // 最终交易列表(含奖励交易)
+	Receipts    []*types.Receipt       // 收据
+	State       *state.StateDB         // apply state changes here 状态数据库
 }
 
 //BolckGenor

@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -50,12 +51,32 @@ func (s State) String() string {
 	}
 }
 
+type verifyResult uint8
+
 const (
-	localVerifyResultProcessing uint8 = iota
+	localVerifyResultProcessing verifyResult = iota
 	localVerifyResultSuccess
 	localVerifyResultFailedButCanRecover
 	localVerifyResultStateFailed
+	localVerifyResultDBRecovery
 )
+
+func (vr verifyResult) String() string {
+	switch vr {
+	case localVerifyResultProcessing:
+		return "未完成验证"
+	case localVerifyResultSuccess:
+		return "本地验证成功"
+	case localVerifyResultFailedButCanRecover:
+		return "验证失败(可恢复)"
+	case localVerifyResultStateFailed:
+		return "验证失败"
+	case localVerifyResultDBRecovery:
+		return "DB中的请求，之前验证过"
+	default:
+		return "未知状态"
+	}
+}
 
 var (
 	ErrParamIsNil = errors.New("param is nil")
@@ -180,31 +201,69 @@ func (p *Process) stopProcess() {
 	}
 }
 
+func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	msgHeaderHash := msg.Header.HashNoSignsAndNonce()
+	reqData, err := p.reqCache.GetLeaderReqByHash(msgHeaderHash)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "处理状态恢复消息", "本地请求获取失败", "err", err)
+		return
+	}
+	if reqData.hash != msgHeaderHash {
+		log.ERROR(p.logExtraInfo(), "处理状态恢复消息", "本地请求hash不匹配，忽略消息",
+			"本地hash", reqData.hash.TerminalString(), "消息hash", msgHeaderHash.TerminalString())
+		return
+	}
+
+	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "开始重置POS投票")
+	reqData.clearVotes()
+	parentHash := reqData.req.Header.ParentHash
+	//添加投票
+	for _, sign := range msg.Header.Signatures {
+		verifiedVote, err := p.verifyVote(reqData.hash, sign, common.Address{}, parentHash, false)
+		if err != nil {
+			log.Info(p.logExtraInfo(), "处理状态恢复消息", "签名验证失败", "err", err)
+			continue
+		}
+		reqData.addVote(verifiedVote)
+	}
+
+	if p.role == common.RoleBroadcast {
+		p.startReqVerifyBC()
+	} else if p.role == common.RoleValidator {
+		p.startReqVerifyCommon()
+	}
+
+	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "完成")
+}
+
+func (p *Process) AddVerifiedBlock(block *verifiedBlock) {
+	if block.req == nil {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	log.Info(p.logExtraInfo(), "AddVerifiedBlock", "开始处理", "block hash", block.hash.TerminalString(), "leader", block.req.Header.Leader.Hex(), "高度", p.number)
+	reqData, err := p.reqCache.AddReq(block.req, true)
+	if err != nil {
+		log.Info(p.logExtraInfo(), "AddVerifiedBlock", "添加缓存失败", "err", err, "高度", p.number)
+		return
+	}
+	reqData.originalTxs = block.txs
+	return
+}
+
 func (p *Process) AddReq(reqMsg *mc.HD_BlkConsensusReqMsg) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	reqData, err := p.reqCache.AddReq(reqMsg)
+	reqData, err := p.reqCache.AddReq(reqMsg, false)
 	if err != nil {
 		//log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
 		return
 	}
 	log.INFO(p.logExtraInfo(), "区块共识请求处理", "请求添加缓存成功", "from", reqMsg.From.Hex(), "高度", p.number, "reqHash", reqData.hash.TerminalString())
-	// 添加早于请求达到的投票
-	parentHash := reqData.req.Header.ParentHash
-	votes := p.unverifiedVotes.GetVotes(reqData.hash)
-	for _, vote := range votes {
-		if vote.signHash != reqData.hash {
-			log.Info(p.logExtraInfo(), "区块共识请求处理", "添加早的投票, signHash不匹配")
-			continue
-		}
-		verifiedVote, err := p.verifyVote(reqData.hash, vote.sign, vote.from, parentHash, true)
-		if err != nil {
-			log.Info(p.logExtraInfo(), "区块共识请求处理", "添加早的投票, 签名验证失败", "err", err, "from", vote.from.Hex(), "reqHash", reqData.hash.TerminalString())
-			continue
-		}
-		reqData.addVote(verifiedVote)
-	}
 
 	if p.role == common.RoleBroadcast {
 		p.startReqVerifyBC()
@@ -283,37 +342,6 @@ func (p *Process) ProcessDPOSOnce() {
 	p.processDPOSOnce()
 }
 
-func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	msgHeaderHash := msg.Header.HashNoSignsAndNonce()
-	reqData, err := p.reqCache.GetLeaderReqByHash(msgHeaderHash)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "处理状态恢复消息", "本地请求获取失败", "err", err)
-		return
-	}
-	if reqData.hash != msgHeaderHash {
-		log.ERROR(p.logExtraInfo(), "处理状态恢复消息", "本地请求hash不匹配，忽略消息",
-			"本地hash", reqData.hash.TerminalString(), "消息hash", msgHeaderHash.TerminalString())
-		return
-	}
-
-	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "开始重置POS投票")
-	reqData.clearVotes()
-	parentHash := reqData.req.Header.ParentHash
-	//添加投票
-	for _, sign := range msg.Header.Signatures {
-		verifiedVote, err := p.verifyVote(reqData.hash, sign, common.Address{}, parentHash, false)
-		if err != nil {
-			log.Info(p.logExtraInfo(), "处理状态恢复消息", "签名验证失败", "err", err)
-			continue
-		}
-		reqData.addVote(verifiedVote)
-	}
-	p.processDPOSOnce()
-	log.INFO(p.logExtraInfo(), "处理状态恢复消息", "完成")
-}
-
 func (p *Process) startReqVerifyCommon() {
 	if p.checkState(StateStart) == false {
 		log.WARN(p.logExtraInfo(), "准备开始请求验证阶段，状态错误", p.state.String(), "高度", p.number)
@@ -345,19 +373,27 @@ func (p *Process) processReqOnce() {
 
 	// if is local req, skip local verify step
 	if p.curProcessReq.localReq {
-		log.INFO(p.logExtraInfo(), "请求为本地请求", "跳过验证阶段", "高度", p.number)
+		log.INFO(p.logExtraInfo(), "共识请求验证", "", "请求为本地请求", "跳过验证阶段", "高度", p.number)
 		p.startDPOSVerify(localVerifyResultSuccess)
 		return
 	}
 
-	// verify timestamp
-	headerTime := p.curProcessReq.req.Header.Time.Int64()
-	if headerTime < p.leaderCache.TurnBeginTime || headerTime > p.leaderCache.TurnEndTime {
-		log.ERROR(p.logExtraInfo(), "验证请求头时间戳", "时间戳不合法", "头时间", headerTime,
-			"轮次开始时间", p.leaderCache.TurnBeginTime, "轮次结束时间", p.leaderCache.TurnEndTime,
-			"轮次", p.leaderCache.ConsensusTurn, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultStateFailed)
+	if p.curProcessReq.localVerifyResult != localVerifyResultProcessing && p.curProcessReq.localVerifyResult != localVerifyResultDBRecovery {
+		log.Info(p.logExtraInfo(), "共识请求验证", "", "请求已验证过", "投票并进入POS共识阶段", "验证结果", p.curProcessReq.localVerifyResult, "高度", p.number, "请求leader", p.curProcessReq.req.Header.Leader.Hex(), "请求hash", p.curProcessReq.hash.TerminalString())
+		p.startDPOSVerify(p.curProcessReq.localVerifyResult)
 		return
+	}
+
+	if p.curProcessReq.localVerifyResult != localVerifyResultDBRecovery {
+		// verify timestamp (对从DB中恢复的请求，不验证时间戳)
+		headerTime := p.curProcessReq.req.Header.Time.Int64()
+		if headerTime < p.leaderCache.TurnBeginTime || headerTime > p.leaderCache.TurnEndTime {
+			log.ERROR(p.logExtraInfo(), "验证请求头时间戳", "时间戳不合法", "头时间", headerTime,
+				"轮次开始时间", p.leaderCache.TurnBeginTime, "轮次结束时间", p.leaderCache.TurnEndTime,
+				"轮次", p.leaderCache.ConsensusTurn, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
 	}
 
 	// verify header
@@ -402,13 +438,20 @@ func (p *Process) startTxsVerify() {
 
 	p.changeState(StateTxsVerify)
 
-	p.txsAcquireSeq++
-	leader := p.curProcessReq.req.Header.Leader
-	//todo 交易数量为空时，跳过交易验证阶段
-	log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", len(p.curProcessReq.req.TxsCode), "leader", leader.Hex(), "高度", p.number)
-	txAcquireCh := make(chan *core.RetChan, 1)
-	go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, leader, txAcquireCh)
-	go p.processTxsAcquire(txAcquireCh, p.txsAcquireSeq)
+	txsCodeSize := len(p.curProcessReq.req.TxsCode)
+	if txsCodeSize == 0 || txsCodeSize == len(p.curProcessReq.originalTxs) {
+		// 交易为空，或者已经得到全交易，跳过交易获取
+		log.Info(p.logExtraInfo(), "无需获取交易", "直接进入交易及状态验证", "txsCode size", txsCodeSize, "txs size", len(p.curProcessReq.originalTxs))
+		p.verifyTxsAndState()
+	} else {
+		// 开启交易获
+		p.txsAcquireSeq++
+		leader := p.curProcessReq.req.Header.Leader
+		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", len(p.curProcessReq.req.TxsCode), "leader", leader.Hex(), "高度", p.number)
+		txAcquireCh := make(chan *core.RetChan, 1)
+		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, leader, txAcquireCh)
+		go p.processTxsAcquire(txAcquireCh, p.txsAcquireSeq)
+	}
 }
 
 func (p *Process) processTxsAcquire(txsAcquireCh <-chan *core.RetChan, seq int) {
@@ -418,8 +461,8 @@ func (p *Process) processTxsAcquire(txsAcquireCh <-chan *core.RetChan, seq int) 
 	outTime := time.NewTimer(time.Second * 5)
 	select {
 	case txsResult := <-txsAcquireCh:
+		go p.StartVerifyTxsAndState(txsResult)
 
-		go p.VerifyTxsAndState(txsResult)
 	case <-outTime.C:
 		log.INFO(p.logExtraInfo(), "交易获取协程", "获取交易超时", "高度", p.number, "seq", seq)
 		go p.ProcessTxsAcquireTimeOut(seq)
@@ -447,7 +490,7 @@ func (p *Process) ProcessTxsAcquireTimeOut(seq int) {
 	p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 }
 
-func (p *Process) VerifyTxsAndState(result *core.RetChan) {
+func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -466,11 +509,15 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
-
-	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(result.AllTxs), "高度", p.number)
 	for _, listN := range result.AllTxs {
-		p.curProcessReq.txs = append(p.curProcessReq.txs, listN.Txser...)
+		p.curProcessReq.originalTxs = append(p.curProcessReq.originalTxs, listN.Txser...)
 	}
+
+	p.verifyTxsAndState()
+}
+
+func (p *Process) verifyTxsAndState() {
+	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(p.curProcessReq.originalTxs), "高度", p.number)
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	remoteHeader := p.curProcessReq.req.Header
@@ -485,22 +532,14 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	}
 
 	p.blockChain().ProcessUpTime(work.State, localHeader)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.txs, p.pm.bc, true)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, p.pm.bc)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	txs := work.GetTxs()
-	localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
-		txs, nil, work.Receipts)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "交易验证,错误", "Failed to finalize block for sealing", "err", err)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
-
+	finalTxs := work.GetTxs()
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {
@@ -510,13 +549,14 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 	}
 
 	// 运行完matrix state后，生成root
-	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, txs, nil, work.Receipts)
+	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
 
+	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
 	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
 
 	// verify election info
@@ -545,7 +585,7 @@ func (p *Process) VerifyTxsAndState(result *core.RetChan) {
 
 	p.curProcessReq.receipts = work.Receipts
 	p.curProcessReq.stateDB = work.State
-	p.curProcessReq.txs = txs
+	p.curProcessReq.finalTxs = finalTxs
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }
@@ -570,17 +610,18 @@ func (p *Process) sendVote(validate bool) {
 
 	// notify block genor server the result
 	result := mc.BlockLocalVerifyOK{
-		Header:    p.curProcessReq.req.Header,
-		BlockHash: p.curProcessReq.hash,
-		Txs:       p.curProcessReq.txs,
-		Receipts:  p.curProcessReq.receipts,
-		State:     p.curProcessReq.stateDB,
+		Header:      p.curProcessReq.req.Header,
+		BlockHash:   p.curProcessReq.hash,
+		OriginalTxs: p.curProcessReq.originalTxs,
+		FinalTxs:    p.curProcessReq.finalTxs,
+		Receipts:    p.curProcessReq.receipts,
+		State:       p.curProcessReq.stateDB,
 	}
 	//log.INFO(p.logExtraInfo(), "发出区块共识结果消息", result, "高度", p.number)
 	mc.PublishEvent(mc.BlkVerify_VerifyConsensusOK, &result)
 }
 
-func (p *Process) startDPOSVerify(lvResult uint8) {
+func (p *Process) startDPOSVerify(lvResult verifyResult) {
 	if p.state >= StateDPOSVerify {
 		return
 	}
@@ -591,12 +632,33 @@ func (p *Process) startDPOSVerify(lvResult uint8) {
 		return
 	}
 
-	log.INFO(p.logExtraInfo(), "开始DPOS阶段,验证结果", lvResult, "高度", p.number)
+	log.INFO(p.logExtraInfo(), "开始POS阶段,验证结果", lvResult.String(), "高度", p.number)
 
 	if lvResult == localVerifyResultSuccess {
 		p.sendVote(true)
+		// 验证成功的请求，做持久化缓存
+		log.Info(p.logExtraInfo(), "区块持久化", "开始缓存")
+		if err := saveVerifiedBlockToDB(p.ChainDb(), p.curProcessReq.hash, p.curProcessReq.req, p.curProcessReq.originalTxs); err != nil {
+			log.Error(p.logExtraInfo(), "验证成功的区块持久化缓存失败", err)
+		}
 	}
 	p.curProcessReq.localVerifyResult = lvResult
+
+	// 添加早于请求达到的投票
+	parentHash := p.curProcessReq.req.Header.ParentHash
+	votes := p.unverifiedVotes.GetVotes(p.curProcessReq.hash)
+	for _, vote := range votes {
+		if vote.signHash != p.curProcessReq.hash {
+			log.Info(p.logExtraInfo(), "开始POS阶段", "添加早的投票, signHash不匹配")
+			continue
+		}
+		verifiedVote, err := p.verifyVote(p.curProcessReq.hash, vote.sign, vote.from, parentHash, true)
+		if err != nil {
+			log.Info(p.logExtraInfo(), "开始POS阶段", "添加早的投票, 签名验证失败", "err", err, "from", vote.from.Hex(), "reqHash", p.curProcessReq.hash.TerminalString())
+			continue
+		}
+		p.curProcessReq.addVote(verifiedVote)
+	}
 
 	p.state = StateDPOSVerify
 	p.processDPOSOnce()
@@ -703,3 +765,5 @@ func (p *Process) reElection() *reelection.ReElection { return p.pm.reElection }
 func (p *Process) logExtraInfo() string { return p.pm.logExtraInfo() }
 
 func (p *Process) eventMux() *event.TypeMux { return p.pm.event }
+
+func (p *Process) ChainDb() mandb.Database { return p.pm.chainDB }

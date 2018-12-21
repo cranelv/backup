@@ -69,5 +69,13 @@ var (
 				"选举及拓扑信息上matrix状态树",
 			},
 		},
+		CommitContext{
+			Version:   "Alg_1207_0.0.3",
+			Submitter: "胡源凯",
+			Commit: []string{
+				"修改完全区块恢复处理时的交易执行流程",
+				"增加验证过的区块共识持久化缓存及POS恢复流程",
+			},
+		},
 	}
 )

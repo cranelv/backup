@@ -277,11 +277,11 @@ func (env *Work) Reverse(s []common.RewarTx) []common.RewarTx {
 	return s
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil, nil
+		return nil, nil, nil
 	}
 	mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
@@ -291,7 +291,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
-	listret, retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
+	listret, originalTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
+	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
 	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
@@ -306,8 +307,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
-	tmps = append(tmps, retTxs...)
-	retTxs = tmps
+	tmps = append(tmps, finalTxs...)
+	finalTxs = tmps
 	return
 }
 
@@ -397,7 +398,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, rewardFlag bool) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
@@ -423,11 +424,8 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 			return err
 		}
 	}
-	var rewart []common.RewarTx
-	if rewardFlag {
-		rewart = env.CalcRewardAndSlash(bc)
-	}
 
+	rewart := env.CalcRewardAndSlash(bc)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))

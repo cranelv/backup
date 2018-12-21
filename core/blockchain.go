@@ -575,10 +575,6 @@ func (bc *BlockChain) insert(block *types.Block) {
 
 		bc.currentFastBlock.Store(block)
 	}
-	blockNumber := block.NumberU64()
-	if manparams.IsBroadcastNumber(blockNumber, blockNumber-1) && !block.Header().IsSuperHeader() {
-		SetBroadcastTxs(block, bc.chainConfig.ChainId)
-	}
 }
 
 // Genesis retrieves the chain's genesis block.

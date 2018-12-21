@@ -54,7 +54,6 @@ import (
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/matrix/go-matrix/trie"
 	"time"
 )
 
@@ -137,19 +136,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	/************************************************/
-	//hezi
-	trie.MatrixDb, err = CreateDB(ctx, config, "Matrixdata")
-	if err != nil {
-		return nil, err
-	}
-	trie.Mantriedb = trie.NewDatabase(trie.MatrixDb)
-	troot := rawdb.ReadMatrixRoot()
-	trie.ManTrie, err = trie.New(troot, trie.Mantriedb)
-	if err != nil {
-		return nil, err
-	}
-	/************************************************/
+
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -241,7 +228,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner, man.reelection.ProducePreMinerData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, man.txPool.ProduceMatrixStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
