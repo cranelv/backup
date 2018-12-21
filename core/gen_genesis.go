@@ -69,7 +69,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
-	enc.Root = g.Roots
+	enc.Roots = g.Roots
 	enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
 }
@@ -232,7 +232,7 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
-	enc.Root = g.Roots
+	enc.Roots = g.Roots
 	enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
 }
