@@ -824,7 +824,7 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Addr
 //TODO	===========================================================================================
 //TODO	===========================================================================================
 //TODO	===========================================================================================
-func (self StateDBManage)RawDump(cointype string)Dump {
+func (self *StateDBManage)RawDump(cointype string)Dump {
 	for _,cm:=range self.shardings  {
 		if cointype==cm.Cointyp {
 		for _,rm:=range cm.Rmanage{
@@ -836,7 +836,7 @@ func (self StateDBManage)RawDump(cointype string)Dump {
 	return Dump{}
 }
 
-func (self StateDBManage)Dump(cointype string) []byte {
+func (self *StateDBManage)Dump(cointype string) []byte {
 	for _,cm:=range self.shardings  {
 		if cointype==cm.Cointyp {
 			for _,rm:=range cm.Rmanage{
@@ -846,4 +846,7 @@ func (self StateDBManage)Dump(cointype string) []byte {
 		}
 	}
 	return []byte{}
+}
+func (self *StateDBManage)RawDumpAcccount(cointype string,address common.Address) Dump {
+	return Dump{}
 }

@@ -162,4 +162,5 @@ type StateDBManager interface {
 
 	Dump(cointype string) []byte
 	RawDump(cointype string)state.Dump
+	RawDumpAcccount(cointype string,address common.Address) state.Dump
 }

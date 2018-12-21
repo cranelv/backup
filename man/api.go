@@ -445,7 +445,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(), nil
+		return stateDb.RawDump(params.MAN_COIN), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
@@ -460,9 +460,32 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 	if err != nil {
 		return state.Dump{}, err
 	}
-	return stateDb.RawDump(), nil
+	return stateDb.RawDump(params.MAN_COIN), nil
 }
-
+// DumpBlock retrieves the entire state of the database at a given block.
+func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber,address common.Address) (state.Dump, error) {
+	if blockNr == rpc.PendingBlockNumber {
+		// If we're dumping the pending state, we need to request
+		// both the pending block as well as the pending state from
+		// the miner and operate on those
+		_, stateDb := api.man.miner.Pending()
+		return stateDb.RawDump(params.MAN_COIN), nil
+	}
+	var block *types.Block
+	if blockNr == rpc.LatestBlockNumber {
+		block = api.man.blockchain.CurrentBlock()
+	} else {
+		block = api.man.blockchain.GetBlockByNumber(uint64(blockNr))
+	}
+	if block == nil {
+		return state.Dump{}, fmt.Errorf("block #%d not found", blockNr)
+	}
+	stateDb, err := api.man.BlockChain().StateAt(block.Root())
+	if err != nil {
+		return state.Dump{}, err
+	}
+	return stateDb.RawDumpAcccount(params.MAN_COIN,address), nil
+}
 // PrivateDebugAPI is the collection of Matrix full node APIs exposed over
 // the private debugging endpoint.
 type PrivateDebugAPI struct {

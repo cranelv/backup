@@ -85,3 +85,42 @@ func (self *StateDB) Dump() []byte {
 
 	return json
 }
+func (self *StateDB) RawDumpAcccount(address common.Address) Dump {
+	dump := Dump{
+		Root:     fmt.Sprintf("%x", self.trie.Hash()),
+		Accounts: make(map[string]DumpAccount),
+	}
+
+	value,err := self.trie.TryGet(address[:])
+	if value!= nil && err == nil {
+		var data Account
+		if err := rlp.DecodeBytes(value, &data); err != nil {
+			panic(err)
+		}
+
+		tBalance := new(big.Int)
+		var total_balance string
+		for _,tAccount := range data.Balance{
+			tBalance = tAccount.Balance
+			str_account := strconv.Itoa(int(tAccount.AccountType))
+			str_balance := str_account+":"+tBalance.String()
+			total_balance += str_balance  + ","
+		}
+		obj := newObject(nil, address, data)
+		account := DumpAccount{
+			Balance:  total_balance[:len(total_balance)-1],
+			Nonce:    data.Nonce,
+			Root:     common.Bytes2Hex(data.Root[:]),
+			CodeHash: common.Bytes2Hex(data.CodeHash),
+			Code:     common.Bytes2Hex(obj.Code(self.db)),
+			Storage:  make(map[string]string),
+		}
+		storageIt := trie.NewIterator(obj.getTrie(self.db).NodeIterator(nil))
+		for storageIt.Next() {
+			account.Storage[common.Bytes2Hex(self.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(storageIt.Value)
+		}
+		dump.Accounts[address.String()] = account
+
+	}
+	return dump
+}
