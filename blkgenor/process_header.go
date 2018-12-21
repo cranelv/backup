@@ -179,7 +179,7 @@ func (p *Process) processHeaderGen() error {
 		header.Signatures = make([]common.Signature, 0, 1)
 		header.Signatures = append(header.Signatures, sign)
 		sendMsg := &mc.BlockData{Header: header, Txs: txs}
-		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
+		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Roots, "tx数量", sendMsg.Txs.Len())
 		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
 	} else {
 		header = block.Header()
@@ -203,7 +203,7 @@ func (p *Process) processHeaderGen() error {
 			}
 
 		}
-		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
+		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", common.IToHash(p2pBlock.Header.Roots), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
 		p.startConsensusReqSender(p2pBlock)
 	}

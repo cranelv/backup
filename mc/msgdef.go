@@ -160,7 +160,7 @@ type LocalBlockVerifyConsensusReq struct {
 	BlkVerifyConsensusReq *HD_BlkConsensusReqMsg
 	Txs                   types.SelfTransactions // 交易列表
 	Receipts              []*types.Receipt       // 收据
-	State                 *state.StateDB         // apply state changes here 状态数据库
+	State                 *state.StateDBManage         // apply state changes here 状态数据库
 }
 
 type BlockPOSFinishedNotify struct {

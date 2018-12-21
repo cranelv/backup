@@ -101,14 +101,14 @@ type EVM struct {
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, statedb StateDBManager, chainConfig *params.ChainConfig, vmConfig Config,typ string) *EVM {
+func NewEVM(ctx Context, statedb StateDBManager, chainConfig *params.ChainConfig, vmConfig Config,cointyp string) *EVM {
 	evm := &EVM{
 		Context:     ctx,
 		StateDB:     statedb,
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.Rules(ctx.BlockNumber),
-		Cointyp :    typ,
+		Cointyp :    cointyp,
 	}
 	evm.interpreter = NewInterpreter(evm, vmConfig)
 	return evm

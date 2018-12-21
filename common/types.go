@@ -516,3 +516,8 @@ type CoinRoot struct {
 	Cointyp string
 	Root    Hash
 }
+
+func IToHash(i interface{})Hash  {
+	b,_:=json.Marshal(i)
+	return BytesToHash(b)
+}

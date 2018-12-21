@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
+	"encoding/json"
 )
 
 func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
@@ -79,8 +80,10 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			continue
 		}
 
-		if localBlock.Root() != result.Header.Root {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", localBlock.Root().TerminalString(), "remote root", result.Header.Root.TerminalString())
+		r1,err:=json.Marshal(localBlock.Root())
+		r2,err:=json.Marshal(result.Header.Roots)
+		if common.BytesToHash(r1) != common.BytesToHash(r2) {
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", common.BytesToHash(r1), "remote root", common.BytesToHash(r2))
 			continue
 		}
 
