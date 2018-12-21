@@ -50,12 +50,8 @@ var (
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
 	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
 
-	matrixRootPrefix = []byte("matrix-root")
-)
-
-var (
-	// databaseVerisionKey tracks the current database version.
-	BroadcastPrefix = []byte("broad")
+	verifiedBlockIndex  = []byte("verified-block-index")
+	verifiedBlockPrefix = []byte("vb-data")
 )
 
 // TxLookupEntry is a positional metadata to help looking up the data content of

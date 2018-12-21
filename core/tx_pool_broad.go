@@ -10,7 +10,8 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/rawdb"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -18,8 +19,6 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/core/state"
 )
 
 type BroadCastTxPool struct {
@@ -135,6 +134,7 @@ func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal 
 	log.Error("GetBroadcastTxMap get broadcast map is nil")
 	return nil, errors.New("GetBroadcastTxMap is nil")
 }
+
 // ProcessMsg
 func (bPool *BroadCastTxPool) ProcessMsg(m NetworkMsgData) {
 	if len(m.Data) <= 0 {
@@ -320,19 +320,6 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 // Pending
 func (bPool *BroadCastTxPool) Pending() (map[common.Address][]types.SelfTransaction, error) {
 	return nil, nil
-}
-
-// insertDB
-//func insertManTrie(keyData []byte, val map[common.Address][]byte,bc *BlockChain) error {
-func insertManTrie(txtype string, hash common.Hash, val map[common.Address][]byte) error {
-	keyData := types.RlpHash(txtype + hash.String())
-	dataVal, err := json.Marshal(val)
-	if err != nil {
-		log.Error("insertDB", "json.Marshal(val) err", err)
-		return err
-	}
-	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
-	return rawdb.SetManTrie(key, dataVal)
 }
 
 // GetAllSpecialTxs get BroadCast transaction. (use apply SelfTransaction)

@@ -11,7 +11,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/metrics"
 )
 
@@ -26,12 +25,6 @@ var (
 var (
 	cacheMissCounter   = metrics.NewRegisteredCounter("trie/cachemiss", nil)
 	cacheUnloadCounter = metrics.NewRegisteredCounter("trie/cacheunload", nil)
-)
-
-var (
-	ManTrie   *Trie //hezi
-	MatrixDb  mandb.Database
-	Mantriedb *Database
 )
 
 // CacheMisses retrieves a global counter measuring the number of cache misses

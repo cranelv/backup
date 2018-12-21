@@ -84,7 +84,7 @@ func (p *Process) processHeaderGen() error {
 		return err
 	}
 
-	tsBlock, txsCode, stateDB, receipts, err := p.genHeaderTxs(header)
+	tsBlock, txsCode, stateDB, receipts, originalTxs, err := p.genHeaderTxs(header)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易失败", err)
 		return err
@@ -105,8 +105,8 @@ func (p *Process) processHeaderGen() error {
 	header = tsBlock.Header()
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root
-	txs := tsBlock.Transactions()
-	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, txs, nil, receipts)
+	finalTxs := tsBlock.Transactions()
+	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, finalTxs, nil, receipts)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "最终finalize错误", err)
 		return err
@@ -123,7 +123,7 @@ func (p *Process) processHeaderGen() error {
 
 		header.Signatures = make([]common.Signature, 0, 1)
 		header.Signatures = append(header.Signatures, sign)
-		sendMsg := &mc.BlockData{Header: header, Txs: txs}
+		sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
 		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
 		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
 	} else {
@@ -135,19 +135,11 @@ func (p *Process) processHeaderGen() error {
 			OnlineConsensusResults: onlineConsensusResults,
 			From: ca.GetAddress()}
 		//send to local block verify module
-		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, Txs: txs, Receipts: receipts, State: stateDB}
-		if len(txs) > 0 {
-			txlist := make([]types.SelfTransaction, 0)
-			for _, tx := range txs {
-				if tx.GetMatrixType() != common.ExtraUnGasTxType {
-					txlist = append(txlist, tx)
-				}
-			}
-			if len(txlist) > 0 {
-				txpoolCache.MakeStruck(txlist, header.HashNoSignsAndNonce(), p.number)
-			}
-
+		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
+		if len(originalTxs) > 0 {
+			txpoolCache.MakeStruck(originalTxs, header.HashNoSignsAndNonce(), p.number)
 		}
+
 		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
 		p.startConsensusReqSender(p2pBlock)
@@ -156,13 +148,13 @@ func (p *Process) processHeaderGen() error {
 	return nil
 }
 
-func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, error) {
+func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, error) {
 	//broadcast txs deal,remove no validators txs
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
 
@@ -184,24 +176,24 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		}
 
 		block := types.NewBlock(header, retTxs, nil, work.Receipts)
-		return block, nil, work.State, work.Receipts, nil
+		return block, nil, work.State, work.Receipts, retTxs, nil
 
 	} else {
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		p.blockChain().ProcessUpTime(work.State, header)
-		txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
+		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
-		block := types.NewBlock(header, Txs, nil, work.Receipts)
+		block := types.NewBlock(header, finalTxs, nil, work.Receipts)
 		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
-		return block, txsCode, work.State, work.Receipts, nil
+		return block, txsCode, work.State, work.Receipts, originalTxs, nil
 	}
 }
 

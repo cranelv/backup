@@ -9,39 +9,55 @@ import (
 	"github.com/matrix/go-matrix/baseinterface"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
 )
 
 type ProcessManage struct {
-	mu         sync.Mutex
-	curNumber  uint64
-	processMap map[uint64]*Process
-	hd         *msgsend.HD
-	signHelper *signhelper.SignHelper
-	bc         *core.BlockChain
-	txPool     *core.TxPoolManager //YYY
-	reElection *reelection.ReElection
-	event      *event.TypeMux
-	random     *baseinterface.Random
+	mu             sync.Mutex
+	curNumber      uint64
+	processMap     map[uint64]*Process
+	hd             *msgsend.HD
+	signHelper     *signhelper.SignHelper
+	bc             *core.BlockChain
+	txPool         *core.TxPoolManager //YYY
+	reElection     *reelection.ReElection
+	event          *event.TypeMux
+	random         *baseinterface.Random
+	chainDB        mandb.Database
+	verifiedBlocks map[common.Hash]*verifiedBlock
 }
 
 func NewProcessManage(matrix Matrix) *ProcessManage {
 	return &ProcessManage{
-		curNumber:  0,
-		processMap: make(map[uint64]*Process),
-		hd:         matrix.HD(),
-		signHelper: matrix.SignHelper(),
-		bc:         matrix.BlockChain(),
-		txPool:     matrix.TxPool(),
-		reElection: matrix.ReElection(),
-		event:      matrix.EventMux(),
-		random:     matrix.Random(),
+		curNumber:      0,
+		processMap:     make(map[uint64]*Process),
+		hd:             matrix.HD(),
+		signHelper:     matrix.SignHelper(),
+		bc:             matrix.BlockChain(),
+		txPool:         matrix.TxPool(),
+		reElection:     matrix.ReElection(),
+		event:          matrix.EventMux(),
+		random:         matrix.Random(),
+		chainDB:        matrix.ChainDb(),
+		verifiedBlocks: make(map[common.Hash]*verifiedBlock),
 	}
+}
+
+func (pm *ProcessManage) AddVerifiedBlock(block *verifiedBlock) {
+	if block == nil || block.req == nil {
+		return
+	}
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	pm.verifiedBlocks[block.hash] = block
 }
 
 func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
@@ -54,7 +70,7 @@ func (pm *ProcessManage) SetCurNumber(number uint64, preSuperBlock bool) {
 	} else {
 		pm.fixProcessMap()
 	}
-
+	pm.checkVerifiedBlocksCache()
 }
 
 func (pm *ProcessManage) GetCurrentProcess() *Process {
@@ -153,6 +169,29 @@ func (pm *ProcessManage) getProcess(number uint64) *Process {
 		pm.processMap[number] = process
 	}
 	return process
+}
+
+func (pm *ProcessManage) checkVerifiedBlocksCache() {
+	if len(pm.verifiedBlocks) <= 0 {
+		return
+	}
+	curProcess := pm.getProcess(pm.curNumber)
+	del := make([]common.Hash, 0)
+	for key, block := range pm.verifiedBlocks {
+		number := block.req.Header.Number.Uint64()
+		if number > pm.curNumber {
+			continue
+		}
+
+		if number == pm.curNumber {
+			curProcess.AddVerifiedBlock(block)
+		}
+		del = append(del, key)
+	}
+
+	for _, delKey := range del {
+		delete(pm.verifiedBlocks, delKey)
+	}
 }
 
 func (pm *ProcessManage) logExtraInfo() string {

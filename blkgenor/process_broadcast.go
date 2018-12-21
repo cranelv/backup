@@ -85,11 +85,12 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		}
 
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
-			Header:    result.Header,
-			BlockHash: common.Hash{},
-			Txs:       retTxs,
-			Receipts:  work.Receipts,
-			State:     work.State,
+			Header:      result.Header,
+			BlockHash:   common.Hash{},
+			OriginalTxs: retTxs,
+			FinalTxs:    retTxs,
+			Receipts:    work.Receipts,
+			State:       work.State,
 		})
 
 		readyMsg := &mc.NewBlockReadyMsg{

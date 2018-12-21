@@ -188,7 +188,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	}
 
 	blockHash := blkInsertMsg.Header.Hash()
-	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString())
+	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString(), "from", blkInsertMsg.From.Hex(), "高度", p.number)
 
 	if p.checkRepeatInsert(blockHash) {
 		log.WARN(p.logExtraInfo(), "插入区块已处理", p.number, "区块 hash", blockHash.TerminalString())

@@ -14,7 +14,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/rlp"
-	"github.com/matrix/go-matrix/trie"
 )
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
@@ -168,40 +167,6 @@ func WriteHeader(db DatabaseWriter, header *types.Header) {
 	if err := db.Put(key, data); err != nil {
 		log.Crit("Failed to store header", "err", err)
 	}
-}
-
-//hezi
-func WriteMatrixRoot(root common.Hash) {
-	// Write the hash -> number mapping
-	if err := trie.MatrixDb.Put(matrixRootPrefix, root[:]); err != nil {
-		log.Crit("Failed to store hash to number mapping", "err", err)
-	}
-}
-
-func ReadMatrixRoot() common.Hash {
-	// Write the hash -> number mapping
-	if root, err := trie.MatrixDb.Get(matrixRootPrefix); err == nil {
-		return common.BytesToHash(root)
-	}
-	log.INFO("First store hash to number mapping")
-	return common.Hash{}
-}
-
-func SetManTrie(key, value []byte) error {
-	err := trie.ManTrie.TryUpdate(key, value)
-	if err != nil {
-		log.Error("insertManTrie", "TryUpdate", err)
-		return err
-	}
-	root, err := trie.ManTrie.Commit(nil)
-	if err != nil {
-		log.Error("insertManTrie", "Commit err", err)
-		return err
-	}
-
-	trie.Mantriedb.Commit(root, true)
-	WriteMatrixRoot(root)
-	return nil
 }
 
 // DeleteHeader removes all block header data associated with a hash.
