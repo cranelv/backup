@@ -634,11 +634,13 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Datab
 	}
 
 	tmpNodeSave := BnodeSave{[]TransferTxData{}, []common.Hash{}}
-	nodeData, _ := db.Node(nodeHash)
+	nodeData, err:= db.Node(nodeHash)
+	if err != nil{
+		log.Info("file btree","func RestoreBtree:err",err)
+	}
 	//err := rlp.DecodeBytes(nodeData,&tmpNodeSave)
-	err := json.Unmarshal(nodeData, &tmpNodeSave)
+	err = json.Unmarshal(nodeData, &tmpNodeSave)
 	if err != nil {
-		fmt.Println("RestoreBtree node decode err")
 		return errors.New("RestoreBtree node decode err")
 	}
 	for indexItem, it := range tmpNodeSave.Key {
