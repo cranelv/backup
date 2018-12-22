@@ -133,20 +133,15 @@ func (b *bridge) GetUserPassword(call otto.FunctionCall) otto.Value {
 }
 
 func (b *bridge) SetEntrustSignAccount(call otto.FunctionCall) (response otto.Value) {
-	fmt.Println("1111111111111")
 	path := call.Argument(0)
 	passwd := b.GetUserPassword(call)
-
 	duration := otto.NullValue()
 	if call.Argument(1).IsDefined() && !call.Argument(1).IsNull() {
-		fmt.Println("121")
 		if !call.Argument(1).IsNumber() {
 			throwJSException("duration must be a number")
 		}
 		duration = call.Argument(1)
 	}
-	fmt.Println("duration", duration)
-
 	val, err := call.Otto.Call("jman.setEntrustSignAccount", nil, path, passwd, duration)
 	if err != nil {
 		throwJSException(err.Error())
