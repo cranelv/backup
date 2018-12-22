@@ -4,18 +4,7 @@
 
 package types
 
-import (
-	"bytes"
-	"crypto/ecdsa"
-	"encoding/json"
-	"math/big"
-	"testing"
-
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/crypto"
-	"github.com/matrix/go-matrix/rlp"
-)
-
+/*
 // The values in those tests are from the Transaction Tests
 // at github.com/matrix/tests.
 var (
@@ -252,3 +241,4 @@ func TestTransactionJSON(t *testing.T) {
 		}
 	}
 }
+*/

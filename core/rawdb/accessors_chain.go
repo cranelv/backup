@@ -15,7 +15,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
-	"fmt"
 )
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
@@ -162,7 +161,9 @@ func WriteHeader(db DatabaseWriter, header *types.Header) {
 	}
 	// Write the encoded header
 	data, err := rlp.EncodeToBytes(header)
-	fmt.Printf("%x\n",data)
+	if err != nil {
+		log.Error("","",err)
+	}
 	if err != nil {
 		log.Crit("Failed to RLP encode header", "err", err)
 	}

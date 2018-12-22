@@ -386,7 +386,6 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Roots:             make([]common.CoinRoot,len(root)), //ShardingYY
 	}
 	copy(head.Roots, root)
-
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	} else if g.GasLimit < params.MinGasLimit {
@@ -396,10 +395,8 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
-	b,_ := json.Marshal(root)
-	aaa := common.BytesToHash(b)
-	fmt.Println(aaa.String())
-	statedb.Database().TrieDB().Commit(common.BytesToHash(b), true) //ShardingYY  TODO
+	statedb.Database().TrieDB().CommitRoots(root, true) //ShardingYY  TODO
+
 
 	return types.NewBlock(head, nil, nil, nil), nil
 }

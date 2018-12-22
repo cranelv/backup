@@ -514,7 +514,7 @@ type AuthType struct {
 }
 type CoinRoot struct {
 	Cointyp string
-	Root    Hash
+	Root    []byte
 }
 
 func IToHash(i interface{})Hash  {

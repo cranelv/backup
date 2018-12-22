@@ -23,7 +23,7 @@ type CoinManage struct {
 }
 type StateDBManage struct {
 	db          Database
-	trie        Trie
+	//trie        Trie
 	shardings	[]*CoinManage
 	coinRoot    []common.CoinRoot
 }
@@ -31,15 +31,14 @@ type StateDBManage struct {
 // Create a new state from a given trie.
 func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, error) {
 	if len(roots) == 0{
-		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
+		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:[]byte{}})
 	}
 	stm := &StateDBManage{
 		db:                db,
 		shardings:         make([]*CoinManage,0),
 		coinRoot:          roots,
 	}
-
-		stm.MakeStatedb(params.MAN_COIN)
+	stm.MakeStatedb(params.MAN_COIN)
 	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string) {
@@ -52,49 +51,36 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 	//获取指定的币种root
 	for _,cr := range shard.coinRoot{
 		if cr.Cointyp == cointyp{
-			tr,err := shard.db.OpenTrie(cr.Root)
-			if err != nil{
-				log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal:root", err)
-				panic(err)
+			rms := make([]*RangeManage,0)
+			var hashs []common.Hash
+			if len(cr.Root) <=0{
+				for idx:=0;idx<params.RANGE_MOUNTS;idx++  {
+					hashs = append(hashs,common.Hash{})
+				}
+			}else {
+				err := json.Unmarshal(cr.Root,&hashs)
+				if err != nil{
+					log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal", err)
+				}
 			}
-			shard.trie = tr
-			break
+			for i,hash:=range hashs{
+				stdb,_ := newStatedb(hash,shard.db)
+				rms = append(rms,&RangeManage{Range:byte(i),State:stdb})
+			}
+			cmg := &CoinManage{Cointyp:cointyp,Rmanage:rms}
+			shard.shardings = append(shard.shardings,cmg)
 		}
 	}
-	rms := make([]*RangeManage,0)
-	for idx:=0;idx<params.RANGE_MOUNTS;idx++  {
-		b:=byte(idx)
-		bs,err:=json.Marshal(b)
-		if err != nil{
-			log.Error("file sharding_statedb", "func MakeStatedb:Marshal", err)
-			panic(err)
-			}
-		root,err := shard.trie.TryGet(bs)
-		stdb,_ := newStatedb(common.BytesToHash(root),shard.db)
-		rms = append(rms,&RangeManage{Range:b,State:stdb})
-		}
-	cmg := &CoinManage{Cointyp:cointyp,Rmanage:rms}
-	shard.shardings = append(shard.shardings,cmg)
 }
 
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
 	for _,cr := range roots{
-		tr,err := shard.db.OpenTrie(cr.Root)
-		if err != nil{
-			log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal:root", err)
-			panic(err)
-		}
-		shard.trie = tr
+		//var hashs []common.Hash
+		//json.Unmarshal(cr.Root,&hashs)
 		for _,cm := range shard.shardings{
 			if cm.Cointyp == cr.Cointyp{
 				for _,rm := range cm.Rmanage{
-					bs,err:=json.Marshal(rm.Range)
-					if err != nil{
-						log.Error("file sharding_statedb", "func MakeStatedb:Marshal", err)
-						panic(err)
-					}
-					root,err := shard.trie.TryGet(bs)
-					rm.State.Reset(common.BytesToHash(root))
+					rm.State.Reset(rm.State.trie.Hash())
 				}
 				break
 			}
@@ -531,7 +517,7 @@ func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, c
 func (shard *StateDBManage) Copy() *StateDBManage {
 	state := &StateDBManage{
 		db:                shard.db,
-		trie:              shard.db.CopyTrie(shard.trie),
+		//trie:              shard.db.CopyTrie(shard.trie),
 		shardings:		   make([]*CoinManage,0),
 		coinRoot:		   make([]common.CoinRoot,0),
 	}
@@ -620,10 +606,9 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.C
 			log.Error("file:sharding_statedb.go","func:IntermediateRoot",err)
 			panic(err)
 		}
-		bh:=common.BytesToHash(bs)
 		cr=append(cr,common.CoinRoot{
 			Cointyp:cm.Cointyp,
-			Root:bh,
+			Root:bs,
 		})
 	}
 	return cr
@@ -665,10 +650,9 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []common.CoinRoo
 			log.Error("file:sharding_statedb.go","func:Commit",err)
 			panic(err)
 		}
-		bh:=common.BytesToHash(bs)
 		cr=append(cr,common.CoinRoot{
 			Cointyp:cm.Cointyp,
-			Root:bh,
+			Root:bs,
 		})
 	}
 	return cr,nil

@@ -760,8 +760,8 @@ func (bc *BlockChain) Stop() {
 				recent := bc.GetBlockByNumber(number - offset)
 
 				log.Info("Writing cached state to disk", "block", recent.Number(), "hash", recent.Hash(), "root", recent.Root())
-				b,_:= json.Marshal(recent.Root()) //ShardingYY
-				if err := triedb.Commit(common.BytesToHash(b), true); err != nil { //ShardingYY
+				 //ShardingYY
+				if err := triedb.CommitRoots(recent.Root(), true); err != nil { //ShardingYY
 					log.Error("Failed to commit recent state trie", "err", err)
 				}
 			}
@@ -1040,15 +1040,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return NonStatTy, err
 	}
-	b2,_:= json.Marshal(intermediateRoot) //ShardingYY
-	intermediateroothash := common.BytesToHash(b2)
-	b,_:= json.Marshal(root) //ShardingYY
-	roothash := common.BytesToHash(b)
-	b1,_:= json.Marshal(block.Root())
-	blockroothash := common.BytesToHash(b1)
-	if roothash != blockroothash{
+	roothash := common.IToHash(root) //ShardingYY
+	blockroothash:=common.IToHash(block.Root())
+	if common.IToHash(root) != common.IToHash(block.Root()){  //ShardingYY
 		//fmt.Printf("===ZH2==:%s\n", state.Dump())
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", intermediateroothash, "deleteEmptyObjects", deleteEmptyObjects)
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", common.IToHash(intermediateRoot), "deleteEmptyObjects", deleteEmptyObjects)
 
 		//log.Info("miss tree node debug", "入链时", "commit后state状态")
 		//state.MissTrieDebug()
@@ -1061,12 +1057,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		log.Info("file blockchain", "gcmode modify archive", "")
-		if err := triedb.Commit(roothash, false); err != nil {
+		if err := triedb.CommitRoots(root, false); err != nil {   //ShardingYY
 			return NonStatTy, err
 		}
 	} else {
 		// Full but not archive node, do proper garbage collection
-		triedb.Reference(roothash, common.Hash{}) // metadata reference to keep trie alive
+		triedb.ReferenceRoot(root, common.Hash{}) // metadata reference to keep trie alive  //ShardingYY
 		bc.triegc.Push(roothash, -float32(block.NumberU64()))
 
 		if current := block.NumberU64(); current > triesInMemory {
@@ -1093,8 +1089,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				}
 				// If optimum or critical limits reached, write to disk
 				if chosen >= lastWrite+triesInMemory || size >= 2*limit || bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-					b,_ := json.Marshal(header.Roots)
-					triedb.Commit(common.BytesToHash(b), true) //ShardingYY
+					triedb.CommitRoots(header.Roots, true) //ShardingYY
 					lastWrite = chosen
 					bc.gcproc = 0
 				}

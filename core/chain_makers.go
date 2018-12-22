@@ -15,7 +15,6 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/params"
-	"encoding/json"
 )
 
 // So we can deterministically seed different blockchains
@@ -196,8 +195,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
-			b1,_ := json.Marshal(root)
-			if err := statedb.Database().TrieDB().Commit(common.BytesToHash(b1), false); err != nil {
+			if err := statedb.Database().TrieDB().CommitRoots(root, false); err != nil {
 				panic(fmt.Sprintf("trie write error: %v", err))
 			}
 			return block, b.receipts
