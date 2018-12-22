@@ -20,6 +20,13 @@ var (
 				"pos参数配置有误",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.2",
+			Submitter: "孙春风",
+			Commit: []string{
+				"出块趋向时间由1改为6",
+			},
+		},
 
 	}
 )
