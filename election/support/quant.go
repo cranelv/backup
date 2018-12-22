@@ -15,7 +15,7 @@ type SelfNodeInfo struct {
 
 func (self *SelfNodeInfo) TPSPowerStake() float64 {
 	for _, v := range DefaultTpsRatio {
-		if self.Tps > v.MinNum {
+		if self.Tps >= v.MinNum {
 			return v.Ratio
 		}
 	}
@@ -25,7 +25,7 @@ func (self *SelfNodeInfo) TPSPowerStake() float64 {
 
 func (self *SelfNodeInfo) OnlineTimeStake() float64 {
 	for _, v := range DefaultOnlineTimeRatio {
-		if self.Uptime > v.MinNum {
+		if self.Uptime >= v.MinNum {
 			return v.Ratio
 		}
 	}
@@ -40,7 +40,7 @@ func (self *SelfNodeInfo) DepositStake(roles common.RoleType) float64 {
 	ratio := getDepositList(roles)
 
 	for _, v := range ratio {
-		if deposMan > v.MinNum {
+		if deposMan >= v.MinNum {
 			return v.Ratio
 		}
 	}
