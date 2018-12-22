@@ -5,7 +5,7 @@ package blkgenor
 
 const (
 	testInstance = "block-verify"
-	testAddress  = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
+	testAddress  = "0x6a3217d128a76e4777403e092bde8362d4117773"
 )
 
 //func TestProcess_handleUpTime(t *testing.T) {

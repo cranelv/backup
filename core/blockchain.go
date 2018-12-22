@@ -203,6 +203,10 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
+	err = bc.DPOSEngine().VerifyVersion(bc, bc.genesisBlock.Header())
+	if err != nil {
+		return nil, err
+	}
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -1000,10 +1004,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	currentBlock := bc.CurrentBlock()
-	if currentBlock.Hash() == block.Hash() {
-		return NonStatTy, fmt.Errorf("the same block")
+	getBlock := bc.GetBlockByHash(block.Hash())
+	if nil != getBlock {
+		return NonStatTy, fmt.Errorf("插入区块失败，已存在区块")
 	}
+	currentBlock := bc.CurrentBlock()
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 

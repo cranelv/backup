@@ -147,16 +147,31 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
 		}
 		if nil != gensis1.MState.Foundation {
-			gensis.MState.Foundation = new(mc.NodeInfo)
-			gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
-			gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+			gensis.MState.Foundation = new(common.Address)
+			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*gensis1.MState.Foundation)
+		}
+		if nil != gensis1.MState.VersionSuperAccounts {
+			versionSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.VersionSuperAccounts {
+				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
+		}
+		if nil != gensis1.MState.BlockSuperAccounts {
+			blockSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.BlockSuperAccounts {
+				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
-
+			innerMiners := make([]mc.NodeInfo, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
 
-				*gensis.MState.InnerMiners = append(*gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
 			}
+
+			gensis.MState.InnerMiners = &innerMiners
 		}
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg

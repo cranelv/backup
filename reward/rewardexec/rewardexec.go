@@ -174,8 +174,8 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 		return nil
 	}
 	accountRewards := make(map[common.Address]*big.Int)
-	accountRewards[br.specialAccounts.FoundationAccount.Address] = blockReward
-	log.Info(PackageName,"基金会奖励,账户",br.specialAccounts.FoundationAccount.Address.Hex(),"金额",blockReward)
+	accountRewards[br.specialAccounts.FoundationAccount] = blockReward
+	log.Info(PackageName, "基金会奖励,账户", br.specialAccounts.FoundationAccount.Hex(), "金额", blockReward)
 	return accountRewards
 }
 

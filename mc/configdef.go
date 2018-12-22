@@ -68,9 +68,11 @@ type NodeInfo1 struct {
 }
 
 type MatrixSpecialAccounts struct {
-	BroadcastAccount   NodeInfo
-	FoundationAccount  NodeInfo
-	InnerMinerAccounts []NodeInfo
+	BroadcastAccount     NodeInfo
+	InnerMinerAccounts   []NodeInfo
+	FoundationAccount    common.Address
+	VersionSuperAccounts []common.Address
+	BlockSuperAccounts   []common.Address
 }
 
 type ElectConfigInfo struct {

@@ -223,6 +223,11 @@ type BlockChain interface {
 	GetCurrentHash() common.Hash
 
 	Genesis() *types.Block
+
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
+	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -486,7 +491,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 			log.Error("不是超级区块", "err", err)
 			return errBadPeer
 		}
-		if err := d.blockchain.DPOSEngine().CheckSuperBlock(superBLock); nil != err {
+		if err := d.blockchain.DPOSEngine().CheckSuperBlock(d.blockchain, superBLock); nil != err {
 			log.Error("验证超级区块签名", "err", err)
 			return errBadPeer
 		}

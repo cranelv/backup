@@ -251,8 +251,8 @@ It expects the genesis file as argument.`,
 
 	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
-		Name:      "signverison",
-		Usage:     "Bootstrap and rollback a new super block",
+		Name:      "signversion",
+		Usage:     "sign  version",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
@@ -754,7 +754,7 @@ func signVersion(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
+	genesis := new(core.Genesis1)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
