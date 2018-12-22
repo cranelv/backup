@@ -87,6 +87,7 @@ const (
 )
 const (
 	MAN_COIN     string = "MAN"   //ShardingYY
+	RANGE_MOUNTS int =256
 )
 var (
 	DifficultyBoundDivisor = big.NewInt(10)  // The bound divisor of the difficulty, used in the update calculations.

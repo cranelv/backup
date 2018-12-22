@@ -38,21 +38,15 @@ func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, err
 		shardings:         make([]*CoinManage,0),
 		coinRoot:          roots,
 	}
-	for i := 0;i <256 ;i++{
-		stm.MakeStatedb(params.MAN_COIN,byte(i))
-	}
+
+		stm.MakeStatedb(params.MAN_COIN)
 	return stm, nil
 }
-func (shard *StateDBManage) MakeStatedb(cointyp string,b byte) {
+func (shard *StateDBManage) MakeStatedb(cointyp string) {
 	//没有对应币种或byte分区的时候，才创建
-	for _,sh := range shard.shardings{
-		if sh.Cointyp == cointyp{
-			for _,st := range sh.Rmanage{
-				if st.Range == b{
-					return
-				}
-			}
-			break
+	for _,cm := range shard.shardings{
+		if cm.Cointyp == cointyp{
+			return
 		}
 	}
 	//获取指定的币种root
@@ -67,24 +61,20 @@ func (shard *StateDBManage) MakeStatedb(cointyp string,b byte) {
 			break
 		}
 	}
-	bs,err:=json.Marshal(b)
-	if err != nil{
-		log.Error("file sharding_statedb", "func MakeStatedb:Marshal", err)
-		panic(err)
-	}
-	root,err := shard.trie.TryGet(bs)
-	stdb,_ := newStatedb(common.BytesToHash(root),shard.db)
-	for _,sh := range shard.shardings{
-		if cointyp == sh.Cointyp{
-			sh.Rmanage = append(sh.Rmanage,&RangeManage{Range:b,State:stdb})
-			return
-		}
-	}
 	rms := make([]*RangeManage,0)
-	rms = append(rms,&RangeManage{Range:b,State:stdb})
-	cm := &CoinManage{Cointyp:cointyp,Rmanage:rms}
-	shard.shardings = append(shard.shardings,cm)
-
+	for idx:=0;idx<params.RANGE_MOUNTS;idx++  {
+		b:=byte(idx)
+		bs,err:=json.Marshal(b)
+		if err != nil{
+			log.Error("file sharding_statedb", "func MakeStatedb:Marshal", err)
+			panic(err)
+			}
+		root,err := shard.trie.TryGet(bs)
+		stdb,_ := newStatedb(common.BytesToHash(root),shard.db)
+		rms = append(rms,&RangeManage{Range:b,State:stdb})
+		}
+	cmg := &CoinManage{Cointyp:cointyp,Rmanage:rms}
+	shard.shardings = append(shard.shardings,cmg)
 }
 
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
