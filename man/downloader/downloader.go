@@ -148,7 +148,7 @@ type Downloader struct {
 	curRemote     uint64
 	dpIpfs        *IPfsDownloader
 	ipfsBodyCh    chan BlockIpfs //result
-	bIpfsDownload int
+	bIpfsDownload int            //1 broadcast, 2 download
 }
 type BlockIpfs struct {
 	Flag             int
@@ -160,7 +160,7 @@ type BlockIpfs struct {
 }
 type BlockIpfsReq struct {
 	ReqPendflg  int
-	Flag        int
+	Flag        int //1 单个, 2 批量
 	coinstr     string
 	HeadReqipfs *types.Header
 }
@@ -405,6 +405,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, sbs u
 	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
 	d.queue.Reset()
+	d.ClearIpfsQueue()
 	d.peers.Reset()
 	log.Trace("Downloader synchronise begin launch chan")
 	for _, ch := range []chan bool{d.bodyWakeCh, d.receiptWakeCh} {
@@ -1151,7 +1152,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 	defer ticker.Stop()
 
 	update := make(chan struct{}, 1)
-
+	var interval int
 	// Prepare the queue and fetch block parts until the block header fetcher's done
 	finished := false
 	bchecked := false
@@ -1222,7 +1223,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				continue //break
 			}*/
-			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending())
+			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
 			if d.peers.Len() == 0 {
 				return errNoPeers
 			}
@@ -1254,7 +1255,9 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			//log.Trace("Data fetching 2", "type", kind, "cont", finished, "len", inFlight())
 			// If there's nothing more to fetch, wait or terminate
 			//if d.bIpfsDownload == 2 && kind == "bodies" && bchecked {
-			if d.bIpfsDownload == 2 && kind != "headers" && bchecked {
+			interval++
+			if d.bIpfsDownload == 2 && interval >= 10 && kind != "headers" && bchecked {
+				interval = 0
 				find, ipfsnum, list := d.queue.checkIpfsPool()
 				if find {
 					d.queue.BlockIpfsdeleteBatch(list)
@@ -1268,7 +1271,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				bchecked = false
 			}
-
+			//log.Debug("Data fetching  test", "type", pending(), "inFlight()", inFlight(), "finished", finished)
 			if pending() == 0 {
 				if !inFlight() && finished {
 					log.Debug("Data fetching completed", "type", kind)
