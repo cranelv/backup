@@ -103,7 +103,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 		log.ERROR(Module, "当前是广播区块 无差值", "height", height+1)
 		return []mc.Alternative{}, err
 	}
-	lastHash, err := self.GetHeaderHashByNumber(hash, height-1)
+	lastHash, err := self.GetHeaderHashByNumber(hash, height)
 	if err != nil {
 		log.ERROR(Module, "根据hash找高度失败 hash ", hash, "高度", height-1)
 		return []mc.Alternative{}, err

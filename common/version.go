@@ -36,6 +36,14 @@ var (
 				"委托交易账户外部可见改为man账户",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.4",
+			Submitter: "孙春风",
+			Commit: []string{
+				"换届服务漏合并的代码",
+				"顶点在线修改可能panic的问题",
+			},
+		},
 
 	}
 )
