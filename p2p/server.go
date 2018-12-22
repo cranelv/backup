@@ -317,9 +317,10 @@ func (srv *Server) AddPeerByAddress(addr common.Address) {
 	if addr == srv.ManAddress {
 		return
 	}
+	srv.log.Info("add peer by address into task", "addr", addr.Hex())
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
-		srv.log.Error("add peer by address failed, node info not found")
+		srv.log.Error("add peer by address failed, node info not found", "addr", addr.Hex())
 		return
 	}
 	select {
