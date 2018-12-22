@@ -3792,7 +3792,7 @@ var outputTransactionFormatter = function (tx){
     tx.gas = utils.toDecimal(tx.gas);
     tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     tx.value = utils.toBigNumber(tx.value);
-    for(var i = 0, length = tx.extra_to.length; i < length; i++){
+    for(var i = 0; tx.extra_to && i < tx.extra_to.length; i++){
         tx.extra_to[i].value = utils.toBigNumber(tx.extra_to[i].value);
     }
     return tx;
