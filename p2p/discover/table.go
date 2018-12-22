@@ -199,7 +199,6 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			return n
 		}
 	}
-	log.Trace("findnodeByAddress failed", "target addr", address.Hex())
 	return nil
 }
 
