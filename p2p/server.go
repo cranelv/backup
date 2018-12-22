@@ -38,8 +38,6 @@ const (
 	frameWriteTimeout = 20 * time.Second
 
 	defaultPort uint16 = 50505
-
-	maxCount = 30
 )
 
 var errServerStopped = errors.New("server stopped")
@@ -1048,20 +1046,15 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 }
 
 func (srv *Server) runTask() {
-	tk := time.NewTicker(time.Second)
+	tk := time.NewTicker(time.Second * 3)
 	defer tk.Stop()
 
 	for {
 		select {
 		case <-tk.C:
 			srv.taskLock.Lock()
-			for a, v := range srv.tasks {
-				if v < maxCount {
-					go srv.AddPeerByAddress(a)
-					srv.tasks[a] = srv.tasks[a] + 1
-					continue
-				}
-				delete(srv.tasks, a)
+			for a := range srv.tasks {
+				go srv.AddPeerByAddress(a)
 			}
 			srv.taskLock.Unlock()
 		case <-srv.quit:
