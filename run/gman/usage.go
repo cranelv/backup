@@ -60,8 +60,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.KeyStoreDirFlag,
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
-			utils.TestnetFlag,
-			utils.RinkebyFlag,
+			//utils.TestnetFlag,
+			//utils.RinkebyFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
 			utils.ManStatsURLFlag,
@@ -73,12 +73,12 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.AesOutputFlag,
 		},
 	},
-	{Name: "DEVELOPER CHAIN",
+/*	{Name: "DEVELOPER CHAIN",
 		Flags: []cli.Flag{
 			utils.DeveloperFlag,
 			utils.DeveloperPeriodFlag,
 		},
-	},
+	},*/
 	{
 		Name: "MANASH",
 		Flags: []cli.Flag{
@@ -178,9 +178,9 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TargetGasLimitFlag,
 			utils.GasPriceFlag,
 			utils.ExtraDataFlag,
-			utils.TestLocalMiningFlag,
-			utils.TestHeaderGenFlag,
-			utils.TestChangeRoleFlag,
+			//utils.TestLocalMiningFlag,
+			//utils.TestHeaderGenFlag,
+			//utils.TestChangeRoleFlag,
 		},
 	},
 	{
