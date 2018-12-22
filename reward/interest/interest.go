@@ -122,13 +122,13 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 	}
 
 	//1.获取所有利息转到抵押账户 2.清除所有利息
-	log.INFO(PackageName, "发放利息,高度", num)
+	log.Debug(PackageName, "发放利息,高度", num)
 
 	AllInterestMap := depoistInfo.GetAllInterest(state)
 	Deposit := big.NewInt(0)
 
 	for account, interest := range AllInterestMap {
-		log.INFO(PackageName, "账户", account, "利息", interest.String())
+		log.Debug(PackageName, "账户", account, "利息", interest.String())
 		if interest.Cmp(big.NewInt(0)) <= 0 {
 			log.ERROR(PackageName, "获取的利息非法", interest)
 			continue
@@ -136,7 +136,7 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 		Deposit = new(big.Int).Add(Deposit, interest)
 	}
 	balance := state.GetBalance(common.InterestRewardAddress)
-	log.INFO(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
+	log.Debug(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
 	if balance[common.MainAccount].Balance.Cmp(Deposit) < 0 {
 		log.ERROR(PackageName, "利息账户余额不足，余额为", balance[common.MainAccount].Balance.String())
 		return nil
@@ -152,7 +152,7 @@ func (ic *interest) canPayInterst(state vm.StateDB, num uint64, payInterestPerio
 		return false
 	}
 	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod)+1 {
-		log.Info(PackageName, "当前周期利息已支付无须再处理", "")
+		log.Debug(PackageName, "当前周期利息已支付无须再处理", "")
 		return false
 	}
 	matrixstate.SetNumByState(mc.MSInterestPayNum, state, num)
@@ -192,7 +192,7 @@ func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state 
 		log.ERROR(PackageName, "获取的抵押列表为空", "")
 		return nil
 	}
-	log.INFO(PackageName, "计算利息,高度", num)
+	log.Debug(PackageName, "计算利息,高度", num)
 	InterestMap := make(map[common.Address]*big.Int)
 	for _, v := range depositNodes {
 
@@ -203,7 +203,7 @@ func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state 
 		}
 		depoistInfo.AddInterest(state, v.Address, result)
 		InterestMap[v.Address] = result
-		log.INFO(PackageName, "账户", v.Address.String(), "deposit", v.Deposit.String(), "利息", result.String())
+		log.Debug(PackageName, "账户", v.Address.String(), "deposit", v.Deposit.String(), "利息", result.String())
 	}
 	return InterestMap
 

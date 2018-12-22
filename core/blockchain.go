@@ -142,7 +142,6 @@ type BlockChain struct {
 	//matrix state
 	matrixState *matrixstate.MatrixState
 	graphStore  *matrixstate.GraphStore
-	upTime      map[common.Address]uint64
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -175,7 +174,6 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:       engine,
 		vmConfig:     vmConfig,
 		badBlocks:    badBlocks,
-		upTime:       make(map[common.Address]uint64),
 		matrixState:  matrixstate.NewMatrixState(),
 	}
 	bc.graphStore = matrixstate.NewGraphStore(bc)
@@ -1181,7 +1179,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	return nil, nil
 }
 
-func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval, upTime map[common.Address]uint64) error {
 
 	num := header.Number.Uint64()
 	if bcInterval.IsBroadcastNumber(num) {
@@ -1224,7 +1222,7 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 
 	slash := slash.New(bc, state)
 	if nil != slash {
-		slash.CalcSlash(state, header.Number.Uint64(), bc.upTime, interestCalcMap)
+		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
 	}
 
 	return nil
@@ -1404,13 +1402,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 
-			err = bc.ProcessUpTime(state, block.Header())
+			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
 
-			err = bc.ProcessReward(state, block.Header(), bcInterval)
+			err = bc.ProcessReward(state, block.Header(), bcInterval, uptimeMap)
 			if err != nil {
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err

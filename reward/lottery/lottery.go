@@ -107,8 +107,14 @@ func (tlr *TxsLottery) LotteryCalc(parentHash common.Hash, num uint64) map[commo
 	if !tlr.canChooseLottery(num) {
 		return nil
 	}
-
-	txsCmpResultList := tlr.getLotteryList(parentHash, num, len(tlr.lotteryCfg.LotteryInfo))
+	if 0 == len(tlr.lotteryCfg.LotteryInfo) {
+		return nil
+	}
+	lotteryNum := uint64(0)
+	for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
+		lotteryNum += tlr.lotteryCfg.LotteryInfo[i].PrizeNum
+	}
+	txsCmpResultList := tlr.getLotteryList(parentHash, num, lotteryNum)
 	if 0 == len(txsCmpResultList) {
 		log.ERROR(PackageName, "本周期没有交易不抽奖", "")
 		return nil
@@ -164,7 +170,7 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 		return false
 	}
 	if latestNum > tlr.bcInterval.GetLastReElectionNumber() {
-		log.Info(PackageName, "当前彩票奖励已发放无须补发", "")
+		log.Debug(PackageName, "当前彩票奖励已发放无须补发", "")
 		return false
 	}
 	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
@@ -172,7 +178,7 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 	return true
 }
 
-func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum int) TxCmpResultList {
+func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum uint64) TxCmpResultList {
 	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - tlr.bcInterval.GetReElectionInterval()
 
 	if num < tlr.bcInterval.GetReElectionInterval() {
@@ -184,7 +190,7 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 		return nil
 	}
 
-	log.INFO(PackageName, "随机数种子", randSeed.Int64())
+	log.Debug(PackageName, "随机数种子", randSeed.Int64())
 	rand := mt19937.RandUniformInit(randSeed.Int64())
 	txsCmpResultList := make(TxCmpResultList, 0)
 	for originBlockNum < num {
@@ -208,12 +214,12 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 	}
 	//sort.Sort(txsCmpResultList)
 	chooseResultList := make(TxCmpResultList, 0)
-	log.INFO(PackageName, "交易数目", len(txsCmpResultList))
-	for i := 0; i < lotteryNum && i < len(txsCmpResultList); i++ {
+	log.Debug(PackageName, "交易数目", len(txsCmpResultList))
+	for i := 0; i < int(lotteryNum) && i < len(txsCmpResultList); i++ {
 		randomData := uint64(rand.Uniform(0, float64(^uint64(0))))
-		log.INFO(PackageName, "随机数", randomData)
+		log.Trace(PackageName, "随机数", randomData)
 		index := randomData % (uint64(len(txsCmpResultList)))
-		log.INFO(PackageName, "交易序号", index)
+		log.Trace(PackageName, "交易序号", index)
 		chooseResultList = append(chooseResultList, txsCmpResultList[index])
 	}
 
@@ -235,7 +241,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryMa
 			continue
 		}
 		//抽取一等奖
-		log.Info(PackageName, "解析交易from", from)
+		log.Debug(PackageName, "解析交易from", from)
 		for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 			prizeLevel := tlr.lotteryCfg.LotteryInfo[i].PrizeLevel
 			prizeNum := tlr.lotteryCfg.LotteryInfo[i].PrizeNum
@@ -246,7 +252,6 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryMa
 				break
 			}
 		}
-		break
 	}
 
 }

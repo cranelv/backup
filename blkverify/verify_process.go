@@ -531,8 +531,12 @@ func (p *Process) verifyTxsAndState() {
 		return
 	}
 
-	p.blockChain().ProcessUpTime(work.State, localHeader)
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, p.pm.bc)
+	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "uptime处理错误", err)
+		return
+	}
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, p.pm.bc, uptimeMap)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)

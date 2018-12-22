@@ -47,7 +47,7 @@ func (p *Process) processHeaderGen() error {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 
-	log.Info(p.logExtraInfo(), "获取拓扑结果 ", NetTopology, "高度", p.number)
+	log.Debug(p.logExtraInfo(), "获取拓扑结果 ", NetTopology, "高度", p.number)
 
 	tstamp := tstart.Unix()
 	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
@@ -77,8 +77,7 @@ func (p *Process) processHeaderGen() error {
 		VersionSignatures: parent.Header().VersionSignatures,
 		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof),
 	}
-	log.INFO("version-elect", "version", header.Version, "elect", header.Elect)
-	log.INFO(p.logExtraInfo(), " vrf data headermsg", header.VrfValue, "账户户", account, "vrfValue", vrfValue, "vrfProff", vrfProof, "高度", header.Number.Uint64())
+
 	if err := p.engine().Prepare(p.blockChain(), header); err != nil {
 		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
 		return err
@@ -99,9 +98,9 @@ func (p *Process) processHeaderGen() error {
 	// 运行完状态树后，才能获取elect
 	Elect := p.genElection(stateDB)
 	if Elect == nil {
-		return errors.New("生成elect信息错误!")
+		return errors.New("生成elect信息错误")
 	}
-	log.Info(p.logExtraInfo(), "获取选举结果 ", Elect, "高度", p.number)
+	log.Debug(p.logExtraInfo(), "获取选举结果 ", Elect, "高度", p.number)
 	header = tsBlock.Header()
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root
@@ -140,7 +139,7 @@ func (p *Process) processHeaderGen() error {
 			txpoolCache.MakeStruck(originalTxs, header.HashNoSignsAndNonce(), p.number)
 		}
 
-		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
+		log.INFO(p.logExtraInfo(), "本地发送区块验证请求, root", p2pBlock.Header.Root.TerminalString(), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
 		p.startConsensusReqSender(p2pBlock)
 	}
@@ -161,7 +160,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		Txs := make([]types.SelfTransaction, 0)
 		for _, txs := range mapTxs {
 			for _, tx := range txs {
-				log.INFO(p.logExtraInfo(), "交易数据 t", tx)
+				log.Trace(p.logExtraInfo(), "交易数据", tx)
 			}
 			Txs = append(Txs, txs...)
 		}
@@ -171,28 +170,25 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs := work.GetTxs()
-		for _, tx := range retTxs {
-			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
-		}
-
 		block := types.NewBlock(header, retTxs, nil, work.Receipts)
 		return block, nil, work.State, work.Receipts, retTxs, nil
 
 	} else {
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "开始创建work")
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 			return nil, nil, nil, nil, nil, err
 		}
 
-		p.blockChain().ProcessUpTime(work.State, header)
-		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain())
+		upTimeMap, err := p.blockChain().ProcessUpTime(work.State, header)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
+			return nil, nil, nil, nil, nil, err
+		}
+		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
-		log.INFO("=========", "ProcessTransactions finish", len(txsCode))
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分", "完成执行交易, 开始finalize")
 		block := types.NewBlock(header, finalTxs, nil, work.Receipts)
-		log.INFO(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
+		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
 		return block, txsCode, work.State, work.Receipts, originalTxs, nil
 	}
 }

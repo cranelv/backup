@@ -144,14 +144,13 @@ func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]DepositInf
 			log.ERROR(PackageName, "定点化比例非法", rate)
 			continue
 		}
-		log.INFO(PackageName, "计算比例,账户", k, "定点化比例", rate)
+		log.Debug(PackageName, "计算比例,账户", k, "定点化比例", rate)
 
 		rewardTemp := new(big.Int).Mul(rewardFixed, rate)
 		rewardTemp1 := new(big.Int).Div(rewardTemp, big.NewInt(1e10))
 		oneNodeReward := new(big.Int).Mul(rewardTemp1, big.NewInt(1e8))
 		rewards[common.HexToAddress(k)] = oneNodeReward
-		log.INFO(PackageName, "计算奖励金额,账户", k, "定点化金额", rewards[common.HexToAddress(k)])
-		log.INFO(PackageName, "", "")
+		log.Debug(PackageName, "计算奖励金额,账户", k, "定点化金额", rewards[common.HexToAddress(k)])
 	}
 	return rewards
 }

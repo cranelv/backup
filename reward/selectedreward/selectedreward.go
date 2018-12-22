@@ -123,7 +123,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 		log.WARN(PackageName, "奖励金额不合法", reward)
 		return nil
 	}
-	log.INFO(PackageName, "参与奖励大家共发放", reward)
+	log.Debug(PackageName, "参与奖励大家共发放", reward)
 
 	currentTop, originElectNodes, depositNodes, err := sr.getTopAndDeposit(chain, state, currentNum, roleType)
 	if nil != err {
@@ -144,7 +144,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph {
 		NodesRewardMap[nodelist] = rewardRate
-		log.INFO(PackageName, "当前节点", nodelist.Hex())
+		log.Debug(PackageName, "当前节点", nodelist.Hex())
 	}
 	for electList := range originElectNodes {
 		if _, ok := NodesRewardMap[electList]; ok {
@@ -152,7 +152,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 		} else {
 			NodesRewardMap[electList] = util.RewardFullRate - rewardRate
 		}
-		log.INFO(PackageName, "初选节点", electList.Hex(), "比例", NodesRewardMap[electList])
+		log.Debug(PackageName, "初选节点", electList.Hex(), "比例", NodesRewardMap[electList])
 	}
 
 	selectedNodesDeposit := make(map[common.Address]util.DepositInfo, 0)
@@ -172,7 +172,7 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 				finalStock = 1
 			}
 			selectedNodesDeposit[v.Address] = util.DepositInfo{Deposit: deposit, Stock: finalStock}
-			log.INFO(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit)
+			log.Debug(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit)
 		}
 	}
 	return selectedNodesDeposit
