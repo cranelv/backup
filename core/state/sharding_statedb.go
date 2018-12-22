@@ -33,11 +33,15 @@ func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, err
 	if len(roots) == 0{
 		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
 	}
-	return &StateDBManage{
+	stm := &StateDBManage{
 		db:                db,
 		shardings:         make([]*CoinManage,0),
 		coinRoot:          roots,
-	}, nil
+	}
+	for i := 0;i <256 ;i++{
+		stm.MakeStatedb(params.MAN_COIN,byte(i))
+	}
+	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string,b byte) {
 	//没有对应币种或byte分区的时候，才创建
@@ -70,10 +74,17 @@ func (shard *StateDBManage) MakeStatedb(cointyp string,b byte) {
 	}
 	root,err := shard.trie.TryGet(bs)
 	stdb,_ := newStatedb(common.BytesToHash(root),shard.db)
+	for _,sh := range shard.shardings{
+		if cointyp == sh.Cointyp{
+			sh.Rmanage = append(sh.Rmanage,&RangeManage{Range:b,State:stdb})
+			return
+		}
+	}
 	rms := make([]*RangeManage,0)
 	rms = append(rms,&RangeManage{Range:b,State:stdb})
 	cm := &CoinManage{Cointyp:cointyp,Rmanage:rms}
 	shard.shardings = append(shard.shardings,cm)
+
 }
 
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {

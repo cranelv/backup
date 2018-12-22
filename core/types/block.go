@@ -370,6 +370,10 @@ func CopyHeader(h *Header) *Header {
 		cpy.Elect = make([]common.Elect, len(h.Elect))
 		copy(cpy.Elect, h.Elect)
 	}
+	if len(h.Roots) > 0 {
+		cpy.Roots = make([]common.CoinRoot, len(h.Roots))
+		copy(cpy.Roots, h.Roots)
+	}
 	if len(h.NetTopology.NetTopologyData) > 0 {
 		cpy.NetTopology.NetTopologyData = make([]common.NetTopologyData, len(h.NetTopology.NetTopologyData))
 		copy(cpy.NetTopology.NetTopologyData, h.NetTopology.NetTopologyData)
