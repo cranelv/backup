@@ -650,10 +650,25 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	if block == nil {
 		return false
 	}
-	b,_:= json.Marshal(block.Root()) //ShardingYY
-	return bc.HasState(common.BytesToHash(b)) //ShardingYY
+	return bc.HasStateRoot(block.Root()) //ShardingYY
 }
-
+//ShardingYY YYYYYYYYYYYYYYYYYYYYYYYYYYYY
+func (bc *BlockChain)HasStateRoot(roots []common.CoinRoot)bool{
+	for _,root:=range roots{
+		var hashs []common.Hash
+		err := json.Unmarshal(root.Root,&hashs)
+		if err!=nil{
+			log.Error("file blockchain","func HasStateRoot:err",err)
+			return false
+		}
+		for _,hash := range hashs{
+			if !bc.HasState(hash){
+				return false
+			}
+		}
+	}
+	return true
+}
 // GetBlock retrieves a block from the database by hash and number,
 // caching it if found.
 func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {

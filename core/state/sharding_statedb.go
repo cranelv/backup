@@ -90,6 +90,9 @@ func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
 }
 
 func (shard *StateDBManage)GetStateDb(cointyp string,address common.Address) *StateDB {
+	if cointyp == ""{
+		cointyp = params.MAN_COIN
+	}
 	cms := shard.shardings
 	for _, cm := range cms {
 		if cm.Cointyp == cointyp {
