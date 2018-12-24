@@ -161,7 +161,7 @@ func (shard *StateDBManage) Preimages() map[common.Hash][]byte {
 
 	return nil//shard.sharding[idx].preimages
 }
-//TODO 退款是某一个staetdb的？还是要在shardingdb上加上退款成员变量
+
 func (shard *StateDBManage) AddRefund(cointyp string,address common.Address,gas uint64) {
 	shard.GetStateDb(cointyp,address).AddRefund(gas)
 }
