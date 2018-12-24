@@ -108,8 +108,6 @@ func (pm *ProcessManage) fixProcessMap() {
 		return
 	}
 
-	log.INFO(pm.logExtraInfo(), "PM 开始修正map, process数量", len(pm.processMap), "修复高度", pm.curNumber)
-
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
 		if key < pm.curNumber-1 {
@@ -134,8 +132,6 @@ func (pm *ProcessManage) clearProcessMap() {
 		return
 	}
 
-	log.INFO(pm.logExtraInfo(), "超级区块：PM 开始删除map, process数量", len(pm.processMap), "修复高度", pm.curNumber)
-
 	delKeys := make([]uint64, 0)
 	for key, process := range pm.processMap {
 		process.Close()
@@ -146,7 +142,7 @@ func (pm *ProcessManage) clearProcessMap() {
 		delete(pm.processMap, delKey)
 	}
 
-	log.INFO(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
+	log.Debug(pm.logExtraInfo(), "超级区块：PM 结束删除map, process数量", len(pm.processMap))
 }
 func (pm *ProcessManage) isLegalNumber(number uint64) error {
 	var minNumber uint64

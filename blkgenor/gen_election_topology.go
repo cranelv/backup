@@ -84,7 +84,7 @@ func (p *Process) genChgNetTopology(parentHash common.Hash) (*common.NetTopology
 		return nil, nil
 	}
 	for _, value := range alterInfo {
-		log.Info(p.logExtraInfo(), "获取拓扑变化地址", value.A, "位置", value.Position, "高度", p.number)
+		log.Debug(p.logExtraInfo(), "获取拓扑变化地址", value.A, "位置", value.Position, "高度", p.number)
 	}
 
 	// generate self net topology
@@ -145,10 +145,10 @@ func (p *Process) getOnlineStatus(onlineResults []*mc.HD_OnlineConsensusVoteResu
 		}
 	}
 	for i, value := range onlineNods {
-		log.Info(p.logExtraInfo(), "下线节点地址", value.String(), "序号", i)
+		log.Debug(p.logExtraInfo(), "下线节点地址", value.String(), "序号", i)
 	}
 	for i, value := range offlineNodes {
-		log.Info(p.logExtraInfo(), "上线节点地址", value.String(), "序号", i)
+		log.Debug(p.logExtraInfo(), "上线节点地址", value.String(), "序号", i)
 	}
 	return offlineNodes, onlineNods, consensusList
 }

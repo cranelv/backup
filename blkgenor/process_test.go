@@ -3,27 +3,37 @@ package blkgenor
 import (
 	"bou.ke/monkey"
 	"fmt"
+	"github.com/matrix/go-matrix/accounts"
+	"github.com/matrix/go-matrix/accounts/keystore"
+	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
+	"github.com/matrix/go-matrix/crypto"
+	_ "github.com/matrix/go-matrix/crypto/vrf"
 	"github.com/matrix/go-matrix/depoistInfo"
+	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/olconsensus"
+	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
-
-	"github.com/matrix/go-matrix/accounts/signhelper"
-	"github.com/matrix/go-matrix/consensus"
-	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/pod"
+	_ "github.com/matrix/go-matrix/random/electionseed"
+	_ "github.com/matrix/go-matrix/random/ereryblockseed"
+	_ "github.com/matrix/go-matrix/random/everybroadcastseed"
 	"github.com/matrix/go-matrix/reelection"
+	"io/ioutil"
 	"math/big"
 	"sync"
 )
@@ -31,6 +41,16 @@ import (
 // Tests that a node embedded within a console can be started up properly and
 // then terminated by closing the input stream.
 var myNodeId string = "4b2f638f46c7ae5b1564ca7015d716621848a0d9be66f1d1e91d566d2a70eedc2f11e92b743acb8d97dec3fb412c1b2f66afd7fbb9399d4fb2423619eaa51411"
+var (
+	testNodeKey, _ = crypto.GenerateKey()
+)
+
+func testNodeConfig() *pod.Config {
+	return &pod.Config{
+		Name: "test node",
+		P2P:  p2p.Config{PrivateKey: testNodeKey},
+	}
+}
 
 type FakeEth struct {
 	txPool      *core.TxPoolManager
@@ -159,6 +179,26 @@ func toBLock(g *core.Genesis, db mandb.Database) *types.Block {
 
 	return types.NewBlock(head, nil, nil, nil)
 }
+
+const (
+	veryLightScryptN = 2
+	veryLightScryptP = 1
+)
+
+func tmpKeyStore(encrypted bool) (string, *keystore.KeyStore) {
+	d, err := ioutil.TempDir("", "man-keystore-test")
+	if err != nil {
+		return d, nil
+	}
+	new := keystore.NewPlaintextKeyStore
+	if encrypted {
+		new = func(kd string) *keystore.KeyStore {
+			return keystore.NewKeyStore(kd, veryLightScryptN, veryLightScryptP)
+		}
+	}
+	return d, new(d)
+}
+
 func fakeEthNew(n int) *FakeEth {
 	man := &FakeEth{once: new(sync.Once), eventMux: new(event.TypeMux), signHelper: signhelper.NewSignHelper()}
 
@@ -199,6 +239,13 @@ func fakeEthNew(n int) *FakeEth {
 
 		//prkey, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		//man.signHelper.SetTestMode(prkey)
+
+		// Ensure that the AccountManager method works before the node has started.
+		// We rely on this in cmd/gman.
+
+		signHelper := signhelper.NewSignHelper()
+		man.signHelper = signHelper
+
 		hd, err := msgsend.NewHD()
 		if err != nil {
 			return
@@ -228,14 +275,25 @@ func fakeEthNew(n int) *FakeEth {
 		rawdb.WriteChainConfig(db, block.Hash(), config)
 		blockchain, _ := core.NewBlockChain(db, nil, params.AllManashProtocolChanges, manash.NewFaker(), vm.Config{})
 		//core.NewCanonical()
+		man.signHelper.SetAuthReader(blockchain)
 
+		_, keystore := tmpKeyStore(false)
+		backends := []accounts.Backend{
+			keystore,
+		}
+
+		entrustValue := make(map[common.Address]string, 0)
+
+		entrustValue[common.HexToAddress("0x6a3217d128a76e4777403e092bde8362d4117773")] = "xxx"
+		man.signHelper.SetAccountManager(accounts.NewManager(backends...))
+		manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 		fakedpos := &testDPOSEngine{}
 		blockchain.SetDposEngine(fakedpos)
 		if err != nil {
 			fmt.Println("failed to create pristine chain: ", err)
 			return
 		}
-		defer blockchain.Stop()
+		//defer blockchain.Stop()
 		man.blockchain = blockchain
 
 		man.txPool = core.NewTxPoolManager(core.DefaultTxPoolConfig, params.TestChainConfig, blockchain, "")

@@ -6,23 +6,13 @@ package matrixwork
 import (
 	"errors"
 	"math/big"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
-	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/params/manparams"
-
-	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/lottery"
-	"github.com/matrix/go-matrix/reward/slash"
-	"github.com/matrix/go-matrix/reward/txsreward"
-
-	"sort"
-	"sync"
-
-	"strings"
-
 	"github.com/matrix/go-matrix/accounts/abi"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/core"
@@ -32,6 +22,12 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
 )
 
 type ChainReader interface {
@@ -69,8 +65,8 @@ type Work struct {
 
 	Block *types.Block // the new block
 
-	header   *types.Header
-	uptime   map[common.Address]uint64
+	header *types.Header
+
 	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
@@ -133,7 +129,6 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		signer:  types.NewEIP155Signer(config.ChainId),
 		gasPool: gasPool,
 		header:  header,
-		uptime:  make(map[common.Address]uint64, 0),
 		random:  random,
 	}
 	var err error
@@ -277,7 +272,7 @@ func (env *Work) Reverse(s []common.RewarTx) []common.RewarTx {
 	return s
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
@@ -294,7 +289,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	listret, originalTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
-	rewart := env.CalcRewardAndSlash(bc)
+	rewart := env.CalcRewardAndSlash(bc, upTime)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -387,7 +382,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-	rewart := env.CalcRewardAndSlash(bc)
+	rewart := env.CalcRewardAndSlash(bc, nil)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -398,7 +393,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, upTime map[common.Address]uint64) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
@@ -425,7 +420,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		}
 	}
 
-	rewart := env.CalcRewardAndSlash(bc)
+	rewart := env.CalcRewardAndSlash(bc, upTime)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -458,7 +453,7 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
+func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Address]uint64) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
@@ -510,7 +505,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	slash := slash.New(bc, env.State)
 	if nil != slash {
-		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime, interestCalcMap)
+		slash.CalcSlash(env.State, env.header.Number.Uint64(), upTime, interestCalcMap)
 	}
 	return env.Reverse(rewardList)
 }

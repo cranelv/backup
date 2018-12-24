@@ -20,5 +20,29 @@ var (
 				"pos参数配置有误",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.2",
+			Submitter: "孙春风",
+			Commit: []string{
+				"出块趋向时间由1改为6",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.3",
+			Submitter: "孙春风",
+			Commit: []string{
+				"删除开发者模式 删除测试网模式 删除rinkeby模式",
+				"禁用默认创世文件",
+				"委托交易账户外部可见改为man账户",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.4",
+			Submitter: "孙春风",
+			Commit: []string{
+				"换届服务漏合并的代码",
+				"顶点在线修改可能panic的问题",
+			},
+		},
 	}
 )

@@ -93,10 +93,6 @@ func (b *Bucket) Start() {
 				break
 			}
 
-			if b.role != h.Role && b.role == common.RoleNil {
-				fNodes := ca.GetFrontNodes()
-				b.disconnectPeers(fNodes)
-			}
 			if b.role != h.Role {
 				b.role = h.Role
 			}

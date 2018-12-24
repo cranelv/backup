@@ -552,7 +552,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 			//log.Trace("download queue  enter Reserveipfs header new", "index", index, ".Pengding", q.resultCache[index].Pending)
 			continue
 		}
-		log.Warn("download  queue  enter Reserveipfs new", "index", index, ".Pengding", q.resultCache[index].Pending)
+		log.Trace("download  queue  enter Reserveipfs new", "index", index, ".Pengding", q.resultCache[index].Pending, " header number", header.Number.Uint64())
 		//RequsetHeader = append(RequsetHeader, header)
 		//q.BlockIpfsInsetPool(header.Number.Uint64(), header)
 		//lb curHeigh = header.Number.Uint64()
@@ -584,7 +584,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 		hasbatch := false
 		curHeigh := pMaxRes.Header.Number.Uint64()           //q.resultCache[rlen-1].Header.Number.Uint64()
 		curOrigin := q.resultCache[0].Header.Number.Uint64() //q.resultBegin
-		log.Warn("download queue  enter Reserveipfs len(q.resultCache),", "maxi", maxi, "curOrigin origin", curOrigin, "max number", curHeigh, "origin", origin, "remote", remote)
+		log.Warn("download queue  enter Reserveipfs len(q.resultCache),", "max resultCache index", maxi, "curOrigin resultCache", curOrigin, "maxnumber resultCache", curHeigh, "origin", origin, "remote", remote)
 		if (remote-origin)/300 >= 1 {
 			if (curHeigh-curOrigin+1) < 300 && (remote-curHeigh+1 > 300) {
 				log.Warn("download queue header too little, wait for next time")
@@ -635,7 +635,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 			} else if hasbatch == false {
 				if q.recvheadNum < 6 {
 					if (q.resultCache[i].Header.Number.Uint64()%300 == 1) && (remote-q.resultCache[i].Header.Number.Uint64() >= 300) { //((int(remote) - i) >= 300) {
-						log.Warn("download queue Reserveipfs no continuous break ", "i", i, "blockNum", q.resultCache[i].Header.Number.Uint64())
+						log.Warn("download queue Reserveipfs continuous not - break ", "i", i, "blockNum", q.resultCache[i].Header.Number.Uint64())
 						q.resultWait = false
 						break
 					}
@@ -649,7 +649,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 				}
 				RequsetHeader = append(RequsetHeader, tmpReq)
 				q.BlockIpfsInsetPool(q.resultCache[i].Header.Number.Uint64(), q.resultCache[i].Header, components, 1)
-				log.Warn(" download queue Reserveipfs no  continuous  ", "i", i, "blockNum", tmpReq.HeadReqipfs.Number.Uint64())
+				log.Warn(" download queue Reserveipfs continuous not but is discontinuous ", "i", i, "blockNum", tmpReq.HeadReqipfs.Number.Uint64())
 				q.recvheadNum = 0
 				// 延后处理
 				if progress && q.resultWait {
@@ -1096,24 +1096,36 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		q.lock.Unlock()
 		q.BlockIpfsdeletePool(bodyBlock.Headeripfs.Number.Uint64())
 	}()*/
-	var index int
-	var trueBlockNumber uint64
-	if bodyBlock.Flag == 0 {
-		index = int(bodyBlock.Headeripfs.Number.Int64() - int64(q.resultOffset))
-		trueBlockNumber = bodyBlock.Headeripfs.Number.Uint64()
-	} else {
-		index = int(int64(bodyBlock.BlockNum) - int64(q.resultOffset))
-		trueBlockNumber = bodyBlock.BlockNum
-	}
 	defer func() {
 		q.lock.Unlock()
 		//q.BlockIpfsdeletePool(trueBlockNumber)
 	}()
 
-	log.Warn("####download queue recv a block insert to result# ", "number", trueBlockNumber, "index", index)
+	var index int
+	//var trueBlockNumber uint64
+	/*if bodyBlock.Flag == 0 {
+		index = int(bodyBlock.Headeripfs.Number.Int64() - int64(q.resultOffset))
+		trueBlockNumber = bodyBlock.Headeripfs.Number.Uint64()
+	} else {
+		index = int(int64(bodyBlock.BlockNum) - int64(q.resultOffset))
+		trueBlockNumber = bodyBlock.BlockNum
+	}*/
+
+	index = int(int64(bodyBlock.BlockNum) - int64(q.resultOffset))
+
+	log.Trace("####download queue recv a block insert to result# ", "number", bodyBlock.BlockNum, "index", index)
 	// 需要增加对验证，头信息等， header
 
 	if index >= len(q.resultCache) || index < 0 { //|| q.resultCache[index] == nil {
+		if bodyBlock.Flag == 33 {
+			log.Trace("download queue blockIpfsPool reqlist  delete resultCache is nil", "BlockNumber", bodyBlock.BlockNum)
+			q.BlockIpfsdeletePool(bodyBlock.BlockNum)
+		}
+		return
+	}
+	if bodyBlock.Flag == 33 && q.resultCache[index] != nil && q.resultCache[index].Pending == 0 {
+		log.Trace("download queue blockIpfsPool reqlist  delete ", "trueBlockNumber", bodyBlock.BlockNum)
+		q.BlockIpfsdeletePool(bodyBlock.BlockNum)
 		return
 	}
 
@@ -1132,7 +1144,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			Header:  header,
 		}
 	}
-	log.Warn("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
+	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
 	//head hash
 	switch bodyBlock.Flag {
 	case 0:
@@ -1186,10 +1198,10 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 
 	}
 
-	if q.resultCache[index].Pending == 0 {
-		log.Trace("recvIpfsBody resultCache delete ", "trueBlockNumber", trueBlockNumber)
+	/*if q.resultCache[index].Pending == 0 {
+		//log.Trace("recvIpfsBody resultCache delete ", "trueBlockNumber", trueBlockNumber)
 		//q.BlockIpfsdeletePool(trueBlockNumber)
-	}
+	}*/
 	// Wake up
 	q.active.Signal()
 }
@@ -1246,23 +1258,27 @@ func (q *queue) BlockIpfsdeleteBatch(blockNumlist []uint64) {
 		q.BlockIpfsdeletePool(num)
 	}
 }
-func (q *queue) BlockRegetByOld(pending int, header *types.Header) {
+func (q *queue) BlockRegetByOldMode(bFlg int, pending int, header *types.Header) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	hash := header.Hash()
 	log.Warn("download queue BlockRegetByOld", "header number", header.Number.Uint64())
-
-	q.blockTaskPool[hash] = header
-	q.blockTaskQueue.Push(header, -float32(header.Number.Uint64()))
-	if pending > 1 {
-		q.receiptTaskPool[hash] = header
-		q.receiptTaskQueue.Push(header, -float32(header.Number.Uint64()))
+	if 2 == bFlg { //批量请求的
+		q.checkBatchBlockReq(header.Number.Uint64(), pending)
+	} else {
+		q.blockTaskPool[hash] = header
+		q.blockTaskQueue.Push(header, -float32(header.Number.Uint64()))
+		if pending > 1 {
+			q.receiptTaskPool[hash] = header
+			q.receiptTaskQueue.Push(header, -float32(header.Number.Uint64()))
+		}
 	}
 	q.BlockIpfsdeletePool(header.Number.Uint64())
 }
 func (q *queue) checkBatchBlockReq(blockNum uint64, pending int) bool {
 	firstBlockNum := q.resultCache[0].Header.Number.Uint64()
 	index := int(blockNum) - int(firstBlockNum)
+	log.Warn("download queue checkBatchBlockReq reto old sysc", "index", index, "blockNum", blockNum)
 	if index >= len(q.resultCache) || index < 0 || q.resultCache[index] == nil {
 		log.Warn("download queue checkBatchBlockReq fail", "index", index)
 		return false

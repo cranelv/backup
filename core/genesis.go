@@ -31,6 +31,9 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
+var errGenGenesisBlockNoConfig = errors.New("no genesis cfg and no genesis block")
+var errGenesisLostChainCfg = errors.New("genesis block lost chaincfg")
+var errGenesisToBlockErr = errors.New("Genesis To Block Err")
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -146,16 +149,31 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
 		}
 		if nil != gensis1.MState.Foundation {
-			gensis.MState.Foundation = new(mc.NodeInfo)
-			gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
-			gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+			gensis.MState.Foundation = new(common.Address)
+			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*gensis1.MState.Foundation)
+		}
+		if nil != gensis1.MState.VersionSuperAccounts {
+			versionSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.VersionSuperAccounts {
+				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
+		}
+		if nil != gensis1.MState.BlockSuperAccounts {
+			blockSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.BlockSuperAccounts {
+				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
-
+			innerMiners := make([]mc.NodeInfo, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
 
-				*gensis.MState.InnerMiners = append(*gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
 			}
+
+			gensis.MState.InnerMiners = &innerMiners
 		}
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
@@ -266,11 +284,11 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		if genesis == nil {
-			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
-		} else {
-			log.Info("Writing custom genesis block")
+			log.Error("Without GenesisBlock and GenesisCfg")
+			return nil, common.Hash{}, errGenGenesisBlockNoConfig
 		}
+
+		log.Info("Writing custom genesis block")
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -279,29 +297,34 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	if genesis != nil {
 		block, err := genesis.ToBlock(nil)
 		if err != nil {
-			return genesis.Config, common.Hash{}, err
+			return nil, common.Hash{}, errGenesisToBlockErr
 		}
-		hash := block.Hash()
-		if hash != stored {
-			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		if block.Hash() != stored {
+			return genesis.Config, block.Hash(), &GenesisMismatchError{stored, block.Hash()}
 		}
 	}
 
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	if storedcfg == nil {
+	/*	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
+	}*/
+	if storedcfg == nil {
+		log.Warn("Genesis Block Lost Cfg")
+		return newcfg, stored, errGenesisLostChainCfg
 	}
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
-	if genesis == nil && stored != params.MainnetGenesisHash {
+	/*	if genesis == nil && stored != params.MainnetGenesisHash {
+		return storedcfg, stored, nil
+	}*/
+	if genesis == nil {
 		return storedcfg, stored, nil
 	}
-
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
@@ -320,10 +343,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
 		return g.Config
-	case ghash == params.MainnetGenesisHash:
-		return params.MainnetChainConfig
-	case ghash == params.TestnetGenesisHash:
-		return params.TestnetChainConfig
+		/*	case ghash == params.MainnetGenesisHash:
+				return params.MainnetChainConfig
+			case ghash == params.TestnetGenesisHash:
+				return params.TestnetChainConfig*/
 	default:
 		return params.AllManashProtocolChanges
 	}

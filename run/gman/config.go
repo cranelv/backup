@@ -15,6 +15,7 @@ import (
 
 	"encoding/base64"
 	"encoding/json"
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/crypto/aes"
@@ -203,7 +204,7 @@ func CheckEntrust(ctx *cli.Context) error {
 
 	entrustValue := make(map[common.Address]string, 0)
 	for _, v := range anss {
-		entrustValue[v.Address] = v.Password
+		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
 	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 	return nil

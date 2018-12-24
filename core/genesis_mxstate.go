@@ -18,34 +18,38 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcast    *mc.NodeInfo           `json:"Broadcast"`
-	Foundation   *mc.NodeInfo           `json:"Foundation"`
-	InnerMiners  *[]mc.NodeInfo         `json:"InnerMiners"`
-	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
-	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
-	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
-	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg   *mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg  *mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
-	SlashCfg     *mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg   *mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
-	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
+	Broadcast            *mc.NodeInfo           `json:"Broadcast"`
+	InnerMiners          *[]mc.NodeInfo         `json:"InnerMiners"`
+	Foundation           *common.Address        `json:"Foundation"`
+	VersionSuperAccounts *[]common.Address      `json:"VersionSuperAccounts"`
+	BlockSuperAccounts   *[]common.Address      `json:"BlockSuperAccounts"`
+	VIPCfg               *[]mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
+	BCICfg               *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
+	LeaderCfg            *mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
+	BlkRewardCfg         *mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg         *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg           *mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg          *mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
+	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
+	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcast    *mc.NodeInfo1          `json:"Broadcast,omitempty"`
-	Foundation   *mc.NodeInfo1          `json:"Foundation,omitempty"`
-	InnerMiners  *[]mc.NodeInfo1        `json:"InnerMiners,omitempty"`
-	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
-	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" ,omitempty"`
-	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" ,omitempty"`
-	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" ,omitempty"`
-	TxsRewardCfg *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg   *mc.LotteryCfgStruct   `json:"LotteryCfg" ,omitempty"`
-	InterestCfg  *mc.InterestCfgStruct  `json:"InterestCfg" ,omitempty"`
-	SlashCfg     *mc.SlashCfgStruct     `json:"SlashCfg" ,omitempty"`
-	EleTimeCfg   *mc.ElectGenTimeStruct `json:"EleTime" ,omitempty"`
-	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
+	Broadcast            *mc.NodeInfo1          `json:"Broadcast,omitempty"`
+	InnerMiners          *[]mc.NodeInfo1        `json:"InnerMiners,omitempty"`
+	Foundation           *string                `json:"Foundation,omitempty"`
+	VersionSuperAccounts *[]string              `json:"VersionSuperAccounts,omitempty"`
+	BlockSuperAccounts   *[]string              `json:"BlockSuperAccounts,omitempty"`
+	BCICfg               *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
+	VIPCfg               *[]mc.VIPConfig        `json:"VIPCfg" ,omitempty"`
+	LeaderCfg            *mc.LeaderConfig       `json:"LeaderCfg" ,omitempty"`
+	BlkRewardCfg         *mc.BlkRewardCfg       `json:"BlkRewardCfg" ,omitempty"`
+	TxsRewardCfg         *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" ,omitempty"`
+	LotteryCfg           *mc.LotteryCfgStruct   `json:"LotteryCfg" ,omitempty"`
+	InterestCfg          *mc.InterestCfgStruct  `json:"InterestCfg" ,omitempty"`
+	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" ,omitempty"`
+	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" ,omitempty"`
+	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
 }
 
 func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
@@ -229,9 +233,16 @@ func (g *GenesisMState) setSpecialNodeToState(state *state.StateDB, num uint64) 
 		if (nil == g.Broadcast || g.Broadcast.Address == common.Address{}) {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		}
-
+		if nil == g.VersionSuperAccounts || len(*g.VersionSuperAccounts) == 0 {
+			return errors.Errorf("the version superAccount of genesis is empty")
+		}
+		if nil == g.BlockSuperAccounts || len(*g.BlockSuperAccounts) == 0 {
+			return errors.Errorf("the block superAccount of genesis is empty")
+		}
 		specialNodes = &mc.MatrixSpecialAccounts{}
 		specialNodes.BroadcastAccount = *g.Broadcast
+		specialNodes.VersionSuperAccounts = *g.VersionSuperAccounts
+		specialNodes.BlockSuperAccounts = *g.BlockSuperAccounts
 		if nil != g.Foundation {
 			specialNodes.FoundationAccount = *g.Foundation
 		}
@@ -247,7 +258,8 @@ func (g *GenesisMState) setSpecialNodeToState(state *state.StateDB, num uint64) 
 		modifyBroad := g.Broadcast != nil
 		modifyFounda := g.Foundation != nil
 		modifyInner := g.InnerMiners != nil
-		if modifyBroad || modifyFounda || modifyInner {
+		modifyVersion := g.VersionSuperAccounts != nil
+		if modifyBroad || modifyFounda || modifyInner || modifyVersion {
 			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
 			if err != nil {
 				return errors.Errorf("get pre special node err: %v", err)
@@ -261,10 +273,15 @@ func (g *GenesisMState) setSpecialNodeToState(state *state.StateDB, num uint64) 
 				specialNodes.BroadcastAccount = *g.Broadcast
 			}
 			if modifyFounda {
-				specialNodes.BroadcastAccount = *g.Foundation
+				specialNodes.FoundationAccount = *g.Foundation
 			}
 			if modifyInner {
 				specialNodes.InnerMinerAccounts = *g.InnerMiners
+			}
+			if modifyVersion {
+				if 0 != len(*g.VersionSuperAccounts) {
+					specialNodes.VersionSuperAccounts = *g.VersionSuperAccounts
+				}
 			}
 		}
 	}

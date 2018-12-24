@@ -370,7 +370,7 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 	entrustValue := make(map[common.Address]string, 0)
 
 	for _, v := range anss {
-		entrustValue[v.Address] = v.Password
+		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
 	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 	go manparams.SetTimer(times)

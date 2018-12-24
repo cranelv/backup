@@ -11,7 +11,12 @@ import (
 )
 
 func DelIndex(native AllNative, flag int) AllNative {
-	ans := AllNative{}
+	ans := AllNative{
+		Master:    native.Master,
+		BackUp:    native.BackUp,
+		Candidate: native.Candidate,
+		ElectInfo: native.ElectInfo,
+	}
 	switch flag {
 	case 1:
 		for k, v := range native.MasterQ {

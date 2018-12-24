@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/btcsuite/btcd/btcec"
+
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"

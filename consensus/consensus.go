@@ -106,7 +106,7 @@ type StateReader interface {
 type DPOSEngine interface {
 	VerifyVersion(reader StateReader, header *types.Header) error
 
-	CheckSuperBlock(header *types.Header) error
+	CheckSuperBlock(reader StateReader, header *types.Header) error
 
 	VerifyBlock(reader StateReader, header *types.Header) error
 

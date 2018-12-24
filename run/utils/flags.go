@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/base58"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1116,7 +1115,7 @@ func SetManConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 	}
 
 	// Override any default configs for hard coded networks.
-	switch {
+	/*switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 3
@@ -1150,7 +1149,7 @@ func SetManConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 		if !ctx.GlobalIsSet(GasPriceFlag.Name) {
 			cfg.GasPrice = big.NewInt(1)
 		}
-	}
+	}*/
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)

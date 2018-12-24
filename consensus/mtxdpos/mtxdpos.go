@@ -45,6 +45,14 @@ var (
 	errBroadcastVerifySign = errors.New("broadcast block's sign is not from broadcast node")
 
 	errBroadcastVerifySignFalse = errors.New("broadcast block's sign is false")
+
+	errVersionSignCount = errors.New("block's version sign count err, not one")
+
+	errVersionVerifySign = errors.New("block's version sign is not from super version account")
+
+	errSuperBlockSignCount = errors.New("super block sign count err, not one")
+
+	errSuperBlockVerifySign = errors.New("super block sign is not from super super block account")
 )
 
 type dposTarget struct {
@@ -63,18 +71,29 @@ func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
 func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Header) error {
-	targetCount := md.calcSuperNodeTarget(len(manparams.SuperVersionNodes))
-
-	if len(header.Version) < targetCount {
-		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
-		return errSignCountErr
+	var blockHash common.Hash
+	if 0 == header.Number.Uint64() {
+		blockHash = header.Hash()
+	} else {
+		blockHash = header.ParentHash
+	}
+	accounts, err := reader.GetSpecialAccounts(blockHash)
+	if err != nil || accounts == nil {
+		return errors.Errorf("get super version account from state err(%s)", err)
 	}
 
-	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, manparams.SuperVersionNodes)
-	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", manparams.SuperVersionNodes[0].Address.String())
+	targetCount := md.calcSuperNodeTarget(len(accounts.VersionSuperAccounts))
+
+	if len(header.VersionSignatures) < targetCount {
+		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
+		return errVersionSignCount
+	}
+
+	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, accounts.VersionSuperAccounts)
+	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", accounts.VersionSuperAccounts[0].String())
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
-		return errSignCountErr
+		return errVersionVerifySign
 	}
 	return nil
 }
@@ -89,13 +108,19 @@ func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
 	return targetCount
 }
 
-func (md *MtxDPOS) CheckSuperBlock(header *types.Header) error {
-	targetCount := md.calcSuperNodeTarget(len(manparams.SuperRollbackNodes))
+func (md *MtxDPOS) CheckSuperBlock(reader consensus.StateReader, header *types.Header) error {
+
+	accounts, err := reader.GetSpecialAccounts(header.ParentHash)
+	if err != nil || accounts == nil {
+		return errors.Errorf("get super block account from state err(%s)", err)
+	}
+
+	targetCount := md.calcSuperNodeTarget(len(accounts.BlockSuperAccounts))
 	if len(header.Signatures) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
 		return errSignCountErr
 	}
-	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, manparams.SuperRollbackNodes)
+	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, accounts.BlockSuperAccounts)
 	if len(verifiedSigh) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedSigh), "target", targetCount, "hash", header.HashNoSigns().TerminalString())
 		return errSignCountErr
@@ -103,7 +128,7 @@ func (md *MtxDPOS) CheckSuperBlock(header *types.Header) error {
 	return nil
 }
 
-func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []common.Signature, superNodes []manparams.NodeInfo) map[common.Address]byte {
+func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []common.Signature, superNodes []common.Address) map[common.Address]byte {
 	verifiedSigh := make(map[common.Address]byte, 0)
 	for _, sigh := range signatures {
 		account, _, err := crypto.VerifySignWithValidate(hash.Bytes(), sigh.Bytes())
@@ -113,7 +138,7 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 		}
 		findFlag := 0
 		for _, superAccount := range superNodes {
-			if account == superAccount.Address {
+			if account == superAccount {
 				findFlag = 1
 				break
 			}
@@ -147,7 +172,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 	}
 
 	if header.IsSuperHeader() {
-		return md.CheckSuperBlock(header)
+		return md.CheckSuperBlock(reader, header)
 	}
 
 	bcInterval, err := md.getBroadcastInterval(reader, header.ParentHash)

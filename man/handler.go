@@ -43,6 +43,8 @@ const (
 )
 
 var (
+	emptyNodeId = discover.NodeID{}
+	
 	daoChallengeTimeout = 15 * time.Second // Time allowance for a node to reply to the DAO handshake challenge
 )
 
@@ -784,18 +786,71 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 // BroadcastBlock will either propagate a block to a subset of it's peers, or
 // will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
+	role := ca.GetRole()
+	pairOfPeer := make(map[bool][]*peer)
+
 	hash := block.Hash()
 	sbi, err := pm.blockchain.GetSuperBlockInfo()
 	if nil != err {
-		log.ERROR("get super seq error")
+		log.Error("get super seq error")
 		return
 	}
-
-	//	peers := pm.peers.PeersWithoutBlock(hash)
 	peers := pm.Peers.PeersWithoutBlock(hash)
 
-	// If propagation is requested, send to a subset of the peer
-	if propagate {
+	switch role {
+	case common.RoleMiner, common.RoleBucket:
+		if len(peers) == 0 {
+			return
+		}
+		if len(peers) == 1 {
+			pairOfPeer[true] = append(pairOfPeer[true], peers[0])
+		}
+		if len(peers) > 1 {
+			in := p2p.Random(len(peers)-1, 1)
+			if len(in) <= 0 {
+				return
+			}
+
+			for index, peer := range peers {
+				if index == in[0] {
+					pairOfPeer[true] = append(pairOfPeer[true], peer)
+					continue
+				}
+				pairOfPeer[false] = append(pairOfPeer[false], peer)
+			}
+		}
+
+	case common.RoleValidator:
+
+		miners := ca.GetRolesByGroup(common.RoleMiner | common.RoleBackupMiner | common.RoleInnerMiner)
+		broads := ca.GetRolesByGroup(common.RoleBroadcast | common.RoleBackupBroadcast)
+		sender := make(map[string]struct{})
+		for _, m := range miners {
+			if id := p2p.ServerP2p.ConvertAddressToId(m); id != emptyNodeId {
+				sender[id.String()] = struct{}{}
+			}
+		}
+		for _, b := range broads {
+			if id := p2p.ServerP2p.ConvertAddressToId(b); id != emptyNodeId {
+				sender[id.String()] = struct{}{}
+			}
+		}
+
+		for _, peer := range peers {
+			if _, ok := sender[peer.ID().String()]; ok {
+				pairOfPeer[true] = append(pairOfPeer[true], peer)
+			} else {
+				pairOfPeer[false] = append(pairOfPeer[false], peer)
+			}
+		}
+
+	default:
+		for _, peer := range peers {
+			pairOfPeer[false] = append(pairOfPeer[false], peer)
+		}
+	}
+
+	if peerSender, ok := pairOfPeer[true]; ok {
 		// Calculate the TD of the block (it's not imported yet, so block.Td is not valid)
 		var td *big.Int
 		if parent := pm.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1); parent != nil {
@@ -804,20 +859,21 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 			log.Error("Propagating dangling block", "number", block.Number(), "hash", hash)
 			return
 		}
-		// Send the block to a subset of our peers
-		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
-		for _, peer := range transfer {
+
+		for _, peer := range peerSender {
 			peer.AsyncSendNewBlock(block, td, sbi.Num, sbi.Seq)
 		}
-		log.Trace("Propagated block", "hash", hash, "recipients", len(transfer), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
-		return
+		log.Trace("Propagated block", "hash", hash, "recipients", len(peerSender), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 	}
-	// Otherwise if the block is indeed in out own chain, announce it
-	if pm.blockchain.HasBlock(hash, block.NumberU64()) {
-		for _, peer := range peers {
-			peer.AsyncSendNewBlockHash(block)
+
+	if peerOther, ok := pairOfPeer[false]; ok {
+		// Otherwise if the block is indeed in out own chain, announce it
+		if pm.blockchain.HasBlock(hash, block.NumberU64()) {
+			for _, peer := range peerOther {
+				peer.AsyncSendNewBlockHash(block)
+			}
+			log.Trace("Announced block", "hash", hash, "recipients", len(peerOther), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 		}
-		log.Trace("Announced block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 	}
 }
 

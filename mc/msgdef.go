@@ -349,6 +349,6 @@ type VrfMsg struct {
 	Hash     common.Hash
 }
 type EntrustInfo struct {
-	Address  common.Address
+	Address  string
 	Password string
 }
