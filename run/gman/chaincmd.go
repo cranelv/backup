@@ -294,13 +294,19 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	genesis,err := core.GetDefaultGeneis()
+
+	if err!=nil{
+		utils.Fatalf("获取默认配置文件失败:%v",err)
+	}
 	genesis1 := new(core.Genesis1)
 	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 	//hezi
-	genesis := new(core.Genesis)
+
 	core.ManGenesisToEthGensis(genesis1, genesis)
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {

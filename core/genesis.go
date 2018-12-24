@@ -10,9 +10,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/mc"
 	"math/big"
 	"strings"
+
+	"github.com/matrix/go-matrix/mc"
 
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
@@ -31,9 +32,9 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
-var errGenGenesisBlockNoConfig = errors.New("no genesis cfg and no genesis block")
-var errGenesisLostChainCfg = errors.New("genesis block lost chaincfg")
-var errGenesisToBlockErr = errors.New("Genesis To Block Err")
+var errGenGenesisBlockNoConfig =  errors.New("no genesis cfg and no genesis block")
+var errGenesisLostChainCfg =  errors.New("genesis block lost chaincfg")
+var errGenesisToBlockErr=errors.New("Genesis To Block Err")
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -98,54 +99,100 @@ type Genesis1 struct {
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
-func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
-	gensis.Config = gensis1.Config
-	gensis.Nonce = gensis1.Nonce
-	gensis.Timestamp = gensis1.Timestamp
-	gensis.ExtraData = gensis1.ExtraData
-	gensis.Version = gensis1.Version
-	gensis.VersionSignatures = gensis1.VersionSignatures
-	gensis.Signatures = gensis1.Signatures
-	gensis.Difficulty = gensis1.Difficulty
-	gensis.Mixhash = gensis1.Mixhash
-	gensis.Number = gensis1.Number
-	gensis.GasUsed = gensis1.GasUsed
-	gensis.ParentHash = gensis1.ParentHash
-	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
-	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
-	gensis.Root = gensis1.Root
-	gensis.TxHash = gensis1.TxHash
+func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis{
+	if nil != gensis1.Config{
+		gensis.Config = gensis1.Config
+	}
+	if gensis1.Nonce!=0{
+		gensis.Nonce = gensis1.Nonce
+	}
+	if gensis1.Timestamp!=0{
+		gensis.Timestamp = gensis1.Timestamp
+	}
+	if len(gensis1.ExtraData)!=0{
+		gensis.ExtraData = gensis1.ExtraData
+	}
+	if gensis1.Version!=""{
+		gensis.Version=gensis1.Version
+	}
+	if len(gensis1.VersionSignatures)!=0{
+		gensis.VersionSignatures = gensis1.VersionSignatures
+	}
+	if len(gensis1.VrfValue)!=0{
+		gensis.VrfValue=gensis1.VrfValue
+	}
+	if len(gensis1.Signatures)!=0{
+		gensis.Signatures = gensis1.Signatures
+	}
+	if nil != gensis1.Difficulty{
+		gensis.Difficulty = gensis1.Difficulty
+	}
+	if gensis1.Mixhash.Equal(common.Hash{})==false{
+		gensis.Mixhash = gensis1.Mixhash
+	}
+	if gensis1.Number!=0{
+		gensis.Number = gensis1.Number
+	}
+	if gensis1.GasUsed!=0{
+		gensis.GasUsed = gensis1.GasUsed
+	}
+	if gensis1.ParentHash.Equal(common.Hash{})==false{
+		gensis.ParentHash=gensis1.ParentHash
+	}
+
+	if gensis1.Leader!=""{
+		gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
+	}
+	if gensis1.Coinbase!=""{
+		gensis.Coinbase=base58.Base58DecodeToAddress(gensis1.Coinbase)
+	}
+	if gensis1.Root.Equal(common.Hash{})==false{
+		gensis.Root = gensis1.Root
+	}
+	if gensis1.TxHash.Equal(common.Hash{})==false{
+		gensis.TxHash = gensis1.TxHash
+	}
 	//Elect
-	sliceElect := make([]common.Elect, 0)
-	for _, elec := range gensis1.Elect {
-		tmp := new(common.Elect)
-		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
-		tmp.Stock = elec.Stock
-		tmp.Type = elec.Type
-		sliceElect = append(sliceElect, *tmp)
+	if nil != gensis1.Elect{
+		sliceElect := make([]common.Elect, 0)
+		for _, elec := range gensis1.Elect {
+			tmp := new(common.Elect)
+			tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+			tmp.Stock = elec.Stock
+			tmp.Type = elec.Type
+			sliceElect = append(sliceElect, *tmp)
+		}
+		gensis.Elect = sliceElect
 	}
-	gensis.Elect = sliceElect
+
 	//NetTopology
-	sliceNetTopologyData := make([]common.NetTopologyData, 0)
-	for _, netTopology := range gensis1.NetTopology.NetTopologyData {
-		tmp := new(common.NetTopologyData)
-		tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
-		tmp.Position = netTopology.Position
-		sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
+	if len(gensis1.NetTopology.NetTopologyData)!=0{
+		sliceNetTopologyData := make([]common.NetTopologyData, 0)
+		for _, netTopology := range gensis1.NetTopology.NetTopologyData {
+			tmp := new(common.NetTopologyData)
+			tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
+			tmp.Position = netTopology.Position
+			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
+		}
+		gensis.NetTopology.NetTopologyData = sliceNetTopologyData
+		gensis.NetTopology.Type = gensis1.NetTopology.Type
 	}
-	gensis.NetTopology.NetTopologyData = sliceNetTopologyData
-	gensis.NetTopology.Type = gensis1.NetTopology.Type
+
 	//Alloc
-	gensis.Alloc = make(GenesisAlloc)
-	for kString, vGenesisAccount := range gensis1.Alloc {
-		tmpk := base58.Base58DecodeToAddress(kString)
-		gensis.Alloc[tmpk] = vGenesisAccount
+	if  nil!=gensis1.Alloc{
+		gensis.Alloc = make(GenesisAlloc)
+		for kString, vGenesisAccount := range gensis1.Alloc {
+			tmpk := base58.Base58DecodeToAddress(kString)
+			gensis.Alloc[tmpk] = vGenesisAccount
+		}
 	}
+
 	if nil != gensis1.MState {
-		gensis.MState = new(GenesisMState)
+		if gensis.MState==nil{
+			gensis.MState=new(GenesisMState)
+		}
 		if nil != gensis1.MState.Broadcast {
 			gensis.MState.Broadcast = new(mc.NodeInfo)
-			gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
 			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
 		}
 		if nil != gensis1.MState.Foundation {
@@ -170,22 +217,44 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			innerMiners := make([]mc.NodeInfo, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
 
-				innerMiners = append(innerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, mc.NodeInfo{ Address: base58.Base58DecodeToAddress(v.Address)})
 			}
 
 			gensis.MState.InnerMiners = &innerMiners
 		}
-		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
-		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
-		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
-		gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
-		gensis.MState.SlashCfg = gensis1.MState.SlashCfg
-		gensis.MState.BCICfg = gensis1.MState.BCICfg
-		gensis.MState.VIPCfg = gensis1.MState.VIPCfg
-		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
-		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
-		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
+		if nil != gensis1.MState.BlkRewardCfg{
+			gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
+		}
+		if nil != gensis1.MState.TxsRewardCfg{
+			gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
+		}
+		if nil != gensis1.MState.InterestCfg{
+			gensis.MState.InterestCfg = gensis1.MState.InterestCfg
+		}
+		if nil != gensis1.MState.LotteryCfg{
+			gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
+		}
+		if nil != gensis1.MState.SlashCfg{
+			gensis.MState.SlashCfg = gensis1.MState.SlashCfg
+		}
+		if nil != gensis1.MState.BCICfg{
+			gensis.MState.BCICfg = gensis1.MState.BCICfg
+		}
+		if nil != gensis1.MState.VIPCfg{
+			gensis.MState.VIPCfg = gensis1.MState.VIPCfg
+		}
+		if nil != gensis1.MState.LeaderCfg{
+			gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
+		}
+		if nil != gensis1.MState.EleTimeCfg{
+			gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
+		}
+		if nil != gensis1.MState.EleInfoCfg{
+			gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
+		}
+
 	}
+	return gensis
 }
 
 //**********************************************************//
@@ -295,8 +364,8 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Check whether the genesis block is already written.
 	if genesis != nil {
-		block, err := genesis.ToBlock(nil)
-		if err != nil {
+		block,err:= genesis.ToBlock(nil)
+		if err!=nil{
 			return nil, common.Hash{}, errGenesisToBlockErr
 		}
 		if block.Hash() != stored {
@@ -307,7 +376,7 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	/*	if storedcfg == nil {
+/*	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
@@ -319,10 +388,10 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
-	/*	if genesis == nil && stored != params.MainnetGenesisHash {
+/*	if genesis == nil && stored != params.MainnetGenesisHash {
 		return storedcfg, stored, nil
 	}*/
-	if genesis == nil {
+	if genesis == nil{
 		return storedcfg, stored, nil
 	}
 	// Check config compatibility and write the config. Compatibility errors
@@ -343,10 +412,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
 		return g.Config
-		/*	case ghash == params.MainnetGenesisHash:
-				return params.MainnetChainConfig
-			case ghash == params.TestnetGenesisHash:
-				return params.TestnetChainConfig*/
+	/*case ghash == params.MainnetGenesisHash:
+		return params.MainnetChainConfig
+	case ghash == params.TestnetGenesisHash:
+		return params.TestnetChainConfig*/
 	default:
 		return params.AllManashProtocolChanges
 	}

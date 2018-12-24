@@ -245,7 +245,7 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		ExtraData         *hexutil.Bytes            `json:"extraData"`
 		Version           *string                   `json:"version"`
 		VersionSignatures *[]common.Signature       `json:"versionSignatures"`
-		VrfValue          *string                   `json:"vrfvalue"`
+		VrfValue           *hexutil.Bytes                   `json:"vrfvalue"`
 		Leader            *string                   `json:"leader"`
 		Elect             *[]common.Elect1          `json:"elect" gencodec:"required"`
 		NetTopology       *common.NetTopology1      `json:"nettopology"        gencodec:"required"`
@@ -282,7 +282,7 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		g.Version = *dec.Version
 	}
 	if dec.VrfValue != nil {
-		g.VrfValue = common.Hex2Bytes(*dec.VrfValue)
+		g.VrfValue = *dec.VrfValue
 	}
 	if dec.VersionSignatures != nil {
 		g.VersionSignatures = *dec.VersionSignatures
@@ -302,27 +302,26 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	if dec.MState != nil {
 		g.MState = dec.MState
 	}
-	if dec.GasLimit == nil {
-		return errors.New("missing required field 'gasLimit' for Genesis")
+	if dec.GasLimit != nil {
+		g.GasLimit = uint64(*dec.GasLimit)
 	}
-	g.GasLimit = uint64(*dec.GasLimit)
-	if dec.Difficulty == nil {
-		return errors.New("missing required field 'difficulty' for Genesis")
-	}
-	g.Difficulty = (*big.Int)(dec.Difficulty)
+
+	if dec.Difficulty != nil {
+		g.Difficulty = (*big.Int)(dec.Difficulty)
+		}
 	if dec.Mixhash != nil {
 		g.Mixhash = *dec.Mixhash
 	}
 	if dec.Coinbase != nil {
 		g.Coinbase = *dec.Coinbase
 	}
-	if dec.Alloc == nil {
-		return errors.New("missing required field 'alloc' for Genesis")
+	if dec.Alloc != nil {
+		g.Alloc = make(GenesisAlloc1, len(dec.Alloc))
+		for k, v := range dec.Alloc {
+			g.Alloc[k] = v
+		}
 	}
-	g.Alloc = make(GenesisAlloc1, len(dec.Alloc))
-	for k, v := range dec.Alloc {
-		g.Alloc[k] = v
-	}
+
 	if dec.Number != nil {
 		g.Number = uint64(*dec.Number)
 	}

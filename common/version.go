@@ -51,5 +51,12 @@ var (
 				"merge nodeId fixed version, modify bucket limit from two to four and modify broadcast block sender",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.5",
+			Submitter: "孙春风",
+			Commit: []string{
+				"提供创世文件默认配置,(用户可选择性的填写创世文件,也可不填)",
+			},
+		},
 	}
 )

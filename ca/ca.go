@@ -217,12 +217,12 @@ func initCurrentTopology() {
 		}
 	}
 
-	if ide.specialAccounts.BroadcastAccount.NodeID == ide.self {
+	if ide.specialAccounts.BroadcastAccount.Address == ide.addr {
 		ide.currentRole = common.RoleBroadcast
 	}
 
 	for _, im := range ide.specialAccounts.InnerMinerAccounts {
-		if im.NodeID == ide.self {
+		if im.Address == ide.addr {
 			ide.currentRole = common.RoleInnerMiner
 			break
 		}

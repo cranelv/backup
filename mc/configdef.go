@@ -58,7 +58,7 @@ type ElectGenTimeStruct struct {
 }
 
 type NodeInfo struct {
-	NodeID  discover.NodeID
+	//NodeID  discover.NodeID
 	Address common.Address
 }
 
