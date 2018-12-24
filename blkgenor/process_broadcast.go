@@ -44,6 +44,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 }
 
 func (p *Process) dealMinerResultVerifyBroadcast() {
+	log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 	for _, result := range p.broadcastRstCache {
 		// 运行广播区块交易
 		parent := p.blockChain().GetBlockByHash(result.Header.ParentHash)
@@ -61,11 +62,6 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		//执行交易
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
 		retTxs := work.GetTxs()
-		log.INFO("*********************", "len(result.Txs)", len(retTxs))
-		for _, tx := range retTxs {
-			log.INFO("==========", "Finalize:GasPrice", tx.GasPrice(), "amount", tx.Value())
-		}
-
 		// 运行matrix状态树
 		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts)
 		if err := p.blockChain().ProcessMatrixState(block, work.State); err != nil {

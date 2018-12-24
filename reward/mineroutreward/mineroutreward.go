@@ -60,14 +60,14 @@ func (mr *MinerOutReward) SetMinerOutRewards(reward *big.Int, state util.StateDB
 
 	rewards := make(map[common.Address]*big.Int)
 	util.SetAccountRewards(rewards, coinBase, reward)
-	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
+	log.Debug(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
 
 	return rewards
 }
 
 func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, state util.StateDB) (common.Address, error) {
 	if num < 2 {
-		log.INFO(PackageName, "高度为小于2 不发放奖励：", "")
+		log.Debug(PackageName, "高度为小于2 不发放奖励：", "")
 		return common.Address{}, errors.New("高度为小于2 不发放奖励：")
 	}
 	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)

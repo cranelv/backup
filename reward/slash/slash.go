@@ -78,7 +78,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 	if latestNum > bp.bcInterval.GetLastBroadcastNumber() {
-		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+		log.Debug(PackageName, "当前惩罚已处理无须再处理", "")
 		return
 	}
 

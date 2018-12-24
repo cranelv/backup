@@ -34,28 +34,26 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInte
 	upTimeAccounts := make([]common.Address, 0)
 
 	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
-	log.INFO(ModuleName, "参选矿工节点uptime高度", minerNum)
+	log.Debug(ModuleName, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
 		return nil, err
 	}
 
-	log.INFO("getUpTimeAccounts", "ans", ans)
 	for _, v := range ans {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("v.Address", "v.Address", v.Address)
 	}
 	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
-	log.INFO(ModuleName, "参选验证节点uptime高度", validatorNum)
+	log.Debug(ModuleName, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {
 		return upTimeAccounts, err
 	}
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	log.INFO(ModuleName, "获取所有uptime账户为", upTimeAccounts)
+	log.Debug(ModuleName, "获取所有uptime账户为", upTimeAccounts)
 	return upTimeAccounts, nil
 }
 func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64) (map[common.Address]uint32, map[common.Address][]byte, error) {
@@ -85,16 +83,15 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64) (map[common.Ad
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
-func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint64, error) {
 	HeartBeatMap := bc.getHeatBeatAccount(BeforeLastStateRoot, bcInterval, blockNum, accounts, heatBeatAccounts)
 
 	originValidatorMap, originMinerMap, err := bc.getElectMap(blockNum, bcInterval)
 	if nil != err {
-		return err
+		return nil, err
 	}
-	bc.calcUpTime(accounts, calltherollRspAccounts, HeartBeatMap, bcInterval, state, originValidatorMap, originMinerMap)
 
-	return nil
+	return bc.calcUpTime(accounts, calltherollRspAccounts, HeartBeatMap, bcInterval, state, originValidatorMap, originMinerMap), nil
 }
 
 func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint32, map[common.Address]uint32, error) {
@@ -119,7 +116,7 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInter
 		log.Error(ModuleName, "get获取初选列表为空", "")
 		return nil, nil, errors.New("get获取初选列表为空")
 	}
-	log.Info(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
+	log.Debug(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
 	originValidatorMap := make(map[common.Address]uint32, 0)
 	originMinerMap := make(map[common.Address]uint32, 0)
 	for _, v := range originElectNodes.ElectList {
@@ -150,15 +147,16 @@ func (bc *BlockChain) getHeatBeatAccount(beforeLastStateRoot common.Hash, bcInte
 				HeartBeatMap[v] = false
 
 			}
-			log.Info(ModuleName, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
+			log.Debug(ModuleName, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
 		}
 	}
 	return HeartBeatMap
 }
 
-func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, HeartBeatMap map[common.Address]bool, bcInterval *manparams.BCInterval, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32) {
+func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, HeartBeatMap map[common.Address]bool, bcInterval *manparams.BCInterval, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32) map[common.Address]uint64 {
 	var upTime uint64
 	maxUptime := bcInterval.GetBroadcastInterval() - 3
+	upTimeMap := make(map[common.Address]uint64, 0)
 	for _, account := range accounts {
 		onlineBlockNum, ok := calltherollRspAccounts[account]
 		if ok { //被点名,使用点名的uptime
@@ -170,20 +168,22 @@ func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccoun
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
 					upTime = maxUptime
-					log.INFO(ModuleName, "没被点名，有主动上报有响应", account, "uptime", upTime)
+					log.Debug(ModuleName, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
-					log.INFO(ModuleName, "没被点名，有主动上报无响应", account, "uptime", upTime)
+					log.Debug(ModuleName, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
 				upTime = maxUptime
-				log.INFO(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
+				log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
 		}
+		upTimeMap[account] = upTime
 		// todo: add
-		bc.saveUptime(account, upTime, state, originValidatorMap, originMinerMap, maxUptime)
+		bc.saveUptime(account, upTime, state, originValidatorMap, originMinerMap)
 	}
+	return upTimeMap
 }
 
 //f(x)=ax+b
@@ -192,54 +192,55 @@ func (bc *BlockChain) upTimesReset(oldUpTime *big.Int, a float64, b int64) *big.
 	return big.NewInt(int64(a*float64(oldUpTime.Int64())) + b)
 
 }
-func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32, maxUpTime uint64) {
+func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32) {
 	old, err := depoistInfo.GetOnlineTime(state, account)
 	if nil != err {
 		return
 	}
-	log.INFO(ModuleName, "读取状态树", account, "upTime处理前", old)
+	log.Debug(ModuleName, "读取状态树", account, "upTime处理前", old)
 	var newTime *big.Int
 	if _, ok := originValidatorMap[account]; ok {
 
-		newTime = bc.upTimesReset(old, 0.5, int64(maxUpTime/2))
-		log.INFO(ModuleName, "是原始验证节点，upTime减半", account, "upTime", newTime.Uint64())
+		newTime = bc.upTimesReset(old, 0.5, int64(upTime/2))
+		log.Debug(ModuleName, "是原始验证节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else if _, ok := originMinerMap[account]; ok {
-		newTime = bc.upTimesReset(old, 0, 0)
-		log.INFO(ModuleName, "是原始矿工节点，upTime清0", account, "upTime", newTime.Uint64())
+		newTime = bc.upTimesReset(old, 0.5, int64(upTime/2))
+		log.Debug(ModuleName, "是原始矿工节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else {
-		newTime = bc.upTimesReset(old, 1, int64(maxUpTime))
-		log.INFO(ModuleName, "其它节点，upTime累加", account, "upTime", newTime.Uint64())
+		newTime = bc.upTimesReset(old, 1, int64(upTime))
+		log.Debug(ModuleName, "其它节点，upTime累加", account, "upTime", newTime.Uint64())
 	}
 
 	depoistInfo.SetOnlineTime(state, account, newTime)
 
 	depoistInfo.GetOnlineTime(state, account)
-	log.INFO(ModuleName, "读取存入upTime账户", account, "upTime处理后", newTime.Uint64())
+	log.Debug(ModuleName, "读取存入upTime账户", account, "upTime处理后", newTime.Uint64())
 }
-func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
+func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint64, error) {
 	broadcastInterval := bcInterval.GetBroadcastInterval()
 	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	originTopologyMap := make(map[common.Address]uint32, 0)
 	for _, v := range originTopology.NodeList {
 		originTopologyMap[v.Account] = 0
 	}
+	upTimeMap := make(map[common.Address]uint64, 0)
 	for _, account := range accounts {
 
 		upTime := broadcastInterval - 3
-		log.INFO(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
+		log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
 		read, err := depoistInfo.GetOnlineTime(state, account)
-		bc.upTime[account] = upTime
+		upTimeMap[account] = upTime
 		if nil == err {
-			log.INFO(ModuleName, "读取状态树", account, "upTime减半", read)
+			log.Debug(ModuleName, "读取状态树", account, "upTime减半", read)
 			if _, ok := originTopologyMap[account]; ok {
 				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
 				log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
@@ -248,61 +249,67 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts 
 		}
 
 	}
-	return nil
+	return upTimeMap, nil
 
 }
-func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) error {
+func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) (map[common.Address]uint64, error) {
 
 	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
 	if nil != err {
-		return err
+		return nil, err
 	}
 
 	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
 	if err != nil {
 		log.Error(ModuleName, "获取广播周期失败", err)
-		return err
+		return nil, err
 	}
 
 	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
-		return nil
+		return nil, err
 	}
 	sbh, err := bc.GetSuperBlockNum()
 	if nil != err {
-		return errors.Errorf("get super seq error")
+		return nil, errors.Errorf("get super seq error")
 	}
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		log.INFO(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		log.Debug(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
 		upTimeAccounts, err := bc.getUpTimeAccounts(header.Number.Uint64(), bcInterval)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
-			return err
+			return nil, err
 		}
 		if sbh < bcInterval.GetLastBroadcastNumber() &&
 			sbh >= bcInterval.GetLastBroadcastNumber()-bcInterval.GetBroadcastInterval() {
-			bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
+			upTimeMap, err := bc.HandleUpTimeWithSuperBlock(state, upTimeAccounts, header.Number.Uint64(), bcInterval)
+			if nil != err {
+				log.ERROR("core", "处理uptime错误", err)
+				return nil, err
+			}
+			return upTimeMap, nil
 		} else {
-			log.INFO(ModuleName, "获取所有心跳交易", "")
+			log.Debug(ModuleName, "获取所有心跳交易", "")
 			preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
 			if err != nil {
 				log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
-				return fmt.Errorf("从状态树获取前2个广播区块root失败")
+				return nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
 			}
-			log.INFO(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex(), "上一个root", preBroadcastRoot.BeforeLastStateRoot)
+			log.Debug(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex(), "上一个root", preBroadcastRoot.BeforeLastStateRoot)
 
 			calltherollMap, heatBeatUnmarshallMMap, err := bc.getUpTimeData(preBroadcastRoot.LastStateRoot, header.Number.Uint64())
 			if err != nil {
 				log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 			}
-			err = bc.handleUpTime(preBroadcastRoot.BeforeLastStateRoot, state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
+			upTimeMap, err := bc.handleUpTime(preBroadcastRoot.BeforeLastStateRoot, state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
 			if nil != err {
 				log.ERROR("core", "处理uptime错误", err)
-				return err
+				return nil, err
 			}
+			return upTimeMap, nil
 		}
 
 	}
 
-	return nil
+	return nil, nil
 }
