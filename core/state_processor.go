@@ -135,6 +135,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	if err != nil {
 		from, err = types.Sender(types.NewEIP155Signer(config.ChainId), tx)
 	}
+	statedb.MakeStatedb(tx.GetTxCurrency())
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
 	vmenv := vm.NewEVM(context, statedb, config, cfg,tx.GetTxCurrency())

@@ -23,7 +23,6 @@ type CoinManage struct {
 }
 type StateDBManage struct {
 	db          Database
-	//trie        Trie
 	shardings	[]*CoinManage
 	coinRoot    []common.CoinRoot
 }
@@ -597,24 +596,31 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot {
-	var cr []common.CoinRoot
 	var Roots []common.Hash
 	for _,cm:=range shard.shardings  {
-			for _,rm:=range cm.Rmanage{
-				root:=rm.State.IntermediateRoot(deleteEmptyObjects)
-				Roots=append(Roots,root)
-			}
+		for _,rm:=range cm.Rmanage{
+			root:=rm.State.IntermediateRoot(deleteEmptyObjects)
+			Roots=append(Roots,root)
+		}
 		bs,err:=json.Marshal(Roots)
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:IntermediateRoot",err)
 			panic(err)
 		}
-		cr=append(cr,common.CoinRoot{
-			Cointyp:cm.Cointyp,
-			Root:bs,
-		})
+		isex := false
+		for _,croot := range shard.coinRoot{
+			if croot.Cointyp == cm.Cointyp{
+				croot.Root = make([]byte,len(bs))
+				copy(croot.Root,bs)
+				isex = true
+				break
+			}
+		}
+		if !isex{
+			shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+		}
 	}
-	return cr
+	return shard.coinRoot
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -637,7 +643,7 @@ func (shard *StateDBManage) clearJournalAndRefund() {
 }
 
 // Commit writes the state to the underlying in-memory trie database.
-func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []common.CoinRoot, err error) {
+func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, error) {
 	var Roots []common.Hash
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage{
@@ -653,12 +659,20 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) (cr []common.CoinRoo
 			log.Error("file:sharding_statedb.go","func:Commit",err)
 			panic(err)
 		}
-		cr=append(cr,common.CoinRoot{
-			Cointyp:cm.Cointyp,
-			Root:bs,
-		})
+		isex := false
+		for _,croot := range shard.coinRoot{
+			if croot.Cointyp == cm.Cointyp{
+				croot.Root = make([]byte,len(bs))
+				copy(croot.Root,bs)
+				isex = true
+				break
+			}
+		}
+		if !isex{
+			shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+		}
 	}
-	return cr,nil
+	return shard.coinRoot,nil
 }
 //TODO	===========================================================================================
 
