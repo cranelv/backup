@@ -195,6 +195,7 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 
 	if serv.validatorSign.IsSelfAddress(leader) {
 		log.Info(serv.extraInfo, "我是leader", "准备检查顶层节点在线状态")
+
 		serv.sendRequest(serv.getTopNodeState(leader))
 	} else {
 		log.Info(serv.extraInfo, "我是follower", "准备共识投票")
@@ -419,7 +420,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
 		}
-		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String())
+		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String(),"onlinestate",tempReq.OnlineState.String())
 	} else {
 		//投反对票
 		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false, serv.msgCheck.blockHash)
@@ -427,7 +428,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
 		}
-		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投反对票", "", "reqNode", tempReq.Node.String())
+		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投反对票", "", "reqNode", tempReq.Node.String(),"onlinestate",tempReq.OnlineState.String())
 	}
 	return sign, reqHash, nil
 }

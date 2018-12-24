@@ -77,7 +77,7 @@ func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.Topolog
 	for i, info := range ts.curElectNodes {
 		log.Debug("共识节点状态", "SetCurStates_elect index", i, "node", info.Account.Hex(), "pos", info.Position, "type", info.Type)
 	}
-	log.Info("共识节点状态", "当前节点状态设置完成","区块高度，拓扑图，选举节点" )
+	log.Info("共识节点状态", "当前节点状态设置完成","     ","区块高度",curNumber)
 }
 
 func (ts *topNodeState) SaveConsensusResult(result *mc.HD_OnlineConsensusVoteResultMsg) {
