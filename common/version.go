@@ -44,5 +44,12 @@ var (
 				"顶点在线修改可能panic的问题",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.4",
+			Submitter: "Ryan",
+			Commit: []string{
+				"merge nodeId fixed version, modify bucket limit from two to four and modify broadcast block sender",
+			},
+		},
 	}
 )
