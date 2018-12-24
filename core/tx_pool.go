@@ -1248,8 +1248,8 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNonceTooLow
 	}
 	//YY add if
-	var balance *big.Int
-	var entrustbalance *big.Int
+	balance:=big.NewInt(0)
+	entrustbalance:=big.NewInt(0)
 	//当前账户余额
 	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency,from) {
 		if tAccount.AccountType == common.MainAccount {

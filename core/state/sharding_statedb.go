@@ -25,19 +25,25 @@ type StateDBManage struct {
 	db          Database
 	shardings	[]*CoinManage
 	coinRoot    []common.CoinRoot
+	retcoinRoot []common.CoinRoot
 }
 
 // Create a new state from a given trie.
 func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, error) {
 	if len(roots) == 0{
 		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:[]byte{}})
+		//roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:[]byte{}})//YYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	stm := &StateDBManage{
 		db:                db,
 		shardings:         make([]*CoinManage,0),
-		coinRoot:          roots,
+		coinRoot:          make([]common.CoinRoot,len(roots)),
+		retcoinRoot:       make([]common.CoinRoot,len(roots)),
 	}
+	copy(stm.coinRoot,roots)
+	copy(stm.retcoinRoot,roots)
 	stm.MakeStatedb(params.MAN_COIN)
+	//stm.MakeStatedb(params.BTC_COIN)//YYYYYYYYYYYYYYYYYYYYYYYY
 	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string) {
@@ -47,6 +53,23 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 			return
 		}
 	}
+	isex := false
+	for _,cr := range shard.coinRoot {
+		if cr.Cointyp == cointyp {
+			isex = true
+		}
+	}
+	if !isex {
+		//TODO 去主币种的第一个分区上查找当前币种是否存在如果存在走下面,不存在就return
+		if false{
+			return
+		}
+		shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cointyp,Root:nil})
+		shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cointyp,Root:nil})
+	}
+	shard.addShardings(cointyp)
+}
+func (shard *StateDBManage) addShardings(cointyp string){
 	//获取指定的币种root
 	for _,cr := range shard.coinRoot{
 		if cr.Cointyp == cointyp{
@@ -68,10 +91,10 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 			}
 			cmg := &CoinManage{Cointyp:cointyp,Rmanage:rms}
 			shard.shardings = append(shard.shardings,cmg)
+			break
 		}
 	}
 }
-
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
 	for _,cr := range roots{
 		//var hashs []common.Hash
@@ -418,6 +441,14 @@ func (shard *StateDBManage) deleteStateObject(cointyp string,a common.Address,st
 // Retrieve a state object given by the address. Returns nil if not found.
 func (shard StateDBManage) getStateObject(cointyp string,addr common.Address) (stateObject *stateObject) {
 	self:=shard.GetStateDb(cointyp,addr)
+	if self == nil{
+		shard.MakeStatedb(cointyp)
+		self=shard.GetStateDb(cointyp,addr)
+		if self == nil{
+			log.Error("file","func getStateObject:err","Unknown Coin Type")
+			return nil
+		}
+	}
 	// Prefer 'live' objects.
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
@@ -608,19 +639,18 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.C
 			panic(err)
 		}
 		isex := false
-		for _,croot := range shard.coinRoot{
+		for i,croot := range shard.retcoinRoot{
 			if croot.Cointyp == cm.Cointyp{
-				croot.Root = make([]byte,len(bs))
-				copy(croot.Root,bs)
+				shard.retcoinRoot[i].Root = bs
 				isex = true
 				break
 			}
 		}
 		if !isex{
-			shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
 		}
 	}
-	return shard.coinRoot
+	return shard.retcoinRoot
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -660,19 +690,18 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 			panic(err)
 		}
 		isex := false
-		for _,croot := range shard.coinRoot{
+		for i,croot := range shard.retcoinRoot{
 			if croot.Cointyp == cm.Cointyp{
-				croot.Root = make([]byte,len(bs))
-				copy(croot.Root,bs)
+				shard.retcoinRoot[i].Root = bs
 				isex = true
 				break
 			}
 		}
 		if !isex{
-			shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
 		}
 	}
-	return shard.coinRoot,nil
+	return shard.retcoinRoot,nil
 }
 //TODO	===========================================================================================
 

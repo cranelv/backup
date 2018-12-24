@@ -192,31 +192,10 @@ func (s EIP155Signer) Sender(tx SelfTransaction) (common.Address, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
-	//YY=====begin======
 	V := new(big.Int).Set(tx.GetTxV())
-	//if V.Cmp(big.NewInt(128)) > 0 {
-	//	V.Sub(V, big.NewInt(128))
-	//}
 	V.Sub(V, s.chainIdMul)
-	//=======end========
 	V.Sub(V, big8)
 	return recoverPlain(s.Hash(tx), tx.GetTxR(), tx.GetTxS(), V, true)
-	//if !tx.Protected() {
-	//	return HomesteadSigner{}.Sender(tx)
-	//}
-	//if tx.ChainId().Cmp(s.chainId) != 0 {
-	//	return common.Address{}, ErrInvalidChainId
-	//}
-	////YY=====begin======
-	//V := new(big.Int).Set(tx.data.V)
-	//if V.Cmp(big.NewInt(128)) > 0 {
-	//	V.Sub(V, big.NewInt(128))
-	//}
-	//V.Sub(V, s.chainIdMul)
-	////V := new(big.Int).Sub(tx.data.V, s.chainIdMul) 注释原来的方式
-	////=======end========
-	//V.Sub(V, big8)
-	//return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
 }
 
 // WithSignature returns a new transaction with the given signature. This signature
@@ -248,7 +227,6 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 		if !ok {
 			return common.Hash{}
 		}
-		//if tx.Mtype == true{
 		var data1 txdata1
 		TxdataAddresToString(tx.Currency, &tx.data, &data1)
 		return rlpHash([]interface{}{
@@ -264,22 +242,6 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 			data1.CommitTime,
 			data1.Extra,
 		})
-
-		//}else{
-		//		return rlpHash([]interface{}{
-		//			tx.data.AccountNonce,
-		//			tx.data.Price,
-		//			tx.data.GasLimit,
-		//			tx.data.Recipient,
-		//			tx.data.Amount,
-		//			tx.data.Payload,
-		//			s.chainId, uint(0), uint(0),
-		//			tx.data.TxEnterType,
-		//			tx.data.IsEntrustTx,
-		//			tx.data.CommitTime,
-		//			tx.data.Extra,
-		//		})
-		//}
 	case BroadCastTxIndex:
 		tx, ok := txer.(*TransactionBroad)
 		if !ok {

@@ -87,6 +87,7 @@ const (
 )
 const (
 	MAN_COIN     string = "MAN"   //ShardingYY
+	BTC_COIN     string = "BTC"   //ShardingYY   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
 	RANGE_MOUNTS int =256
 )
 var (

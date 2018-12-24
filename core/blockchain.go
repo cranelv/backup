@@ -652,7 +652,7 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	}
 	return bc.HasStateRoot(block.Root()) //ShardingYY
 }
-//ShardingYY YYYYYYYYYYYYYYYYYYYYYYYYYYYY
+//ShardingYY
 func (bc *BlockChain)HasStateRoot(roots []common.CoinRoot)bool{
 	for _,root:=range roots{
 		var hashs []common.Hash

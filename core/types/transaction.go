@@ -789,12 +789,8 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (SelfTransaction
 	if err != nil {
 		return nil, err
 	}
-	cpy := &Transaction{data: tx.data}
+	cpy := &Transaction{data: tx.data,Mtype:tx.Mtype,Currency:tx.Currency,IsEntrustGas:tx.IsEntrustGas,IsEntrustByTime:tx.IsEntrustByTime}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	////YY
-	//if len(cpy.data.Extra) > 0 {
-	//	cpy.data.V.Add(cpy.data.V, big.NewInt(128))
-	//}
 	return cpy, nil
 }
 

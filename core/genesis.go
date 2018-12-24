@@ -350,6 +350,15 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		for key, value := range account.Storage {
 			statedb.SetState(params.MAN_COIN,addr, key, value) //ShardingYY
 		}
+		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
+		//statedb.AddBalance(params.BTC_COIN,common.MainAccount, addr, account.Balance) //ShardingYY
+		//statedb.SetCode(params.BTC_COIN,addr, account.Code) //ShardingYY
+		//statedb.SetNonce(params.BTC_COIN,addr, account.Nonce) //ShardingYY
+		//for key, value := range account.Storage {
+		//	statedb.SetState(params.BTC_COIN,addr, key, value) //ShardingYY
+		//}
+		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
+
 	}
 	if nil == g.MState {
 		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
