@@ -11,16 +11,16 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	_ "github.com/matrix/go-matrix/election/layered"
-	_ "github.com/matrix/go-matrix/election/stock"
 	_ "github.com/matrix/go-matrix/election/nochoice"
+	_ "github.com/matrix/go-matrix/election/stock"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"strconv"
-	"encoding/json"
 )
 
-func GetDepositDetatil(num int, m int, n int,onlineFlag bool) []vm.DepositDetail {
+func GetDepositDetatil(num int, m int, n int, onlineFlag bool) []vm.DepositDetail {
 	mList := []vm.DepositDetail{}
 	for i := 0; i < num; i++ {
 		temp := vm.DepositDetail{}
@@ -36,9 +36,9 @@ func GetDepositDetatil(num int, m int, n int,onlineFlag bool) []vm.DepositDetail
 			temp.Deposit = new(big.Int).Mul(big.NewInt(10000), common.ManValue)
 		}
 
-		if onlineFlag==true{
+		if onlineFlag == true {
 			temp.OnlineTime = big.NewInt(int64(i))
-		}else{
+		} else {
 			temp.OnlineTime = big.NewInt(int64(0))
 		}
 
@@ -58,8 +58,8 @@ func GetDepositDetatil(num int, m int, n int,onlineFlag bool) []vm.DepositDetail
 	return mList
 }
 
-func MakeValidatorTopReq(num int, Seed uint64,vip1Num int,vip2Num int,white []common.Address,black []common.Address, onlineFlag bool) *mc.MasterValidatorReElectionReqMsg {
-	mList := GetDepositDetatil(num, vip1Num, vip2Num,onlineFlag)
+func MakeValidatorTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white []common.Address, black []common.Address, onlineFlag bool) *mc.MasterValidatorReElectionReqMsg {
+	mList := GetDepositDetatil(num, vip1Num, vip2Num, onlineFlag)
 
 	ans := &mc.MasterValidatorReElectionReqMsg{
 		SeqNum:        Seed,
@@ -70,8 +70,8 @@ func MakeValidatorTopReq(num int, Seed uint64,vip1Num int,vip2Num int,white []co
 	ans.ElectConfig = mc.ElectConfigInfo{
 		ValidatorNum:  11,
 		BackValidator: 5,
-		WhiteList:white,
-		BlackList:black,
+		WhiteList:     white,
+		BlackList:     black,
 	}
 	ans.VIPList = []mc.VIPConfig{
 
@@ -97,26 +97,24 @@ func MakeValidatorTopReq(num int, Seed uint64,vip1Num int,vip2Num int,white []co
 	return ans
 
 }
-func MakeMinerTopReq(num int, Seed uint64,vip1Num int,vip2Num int,white []common.Address,black []common.Address,onlineFlag bool) *mc.MasterMinerReElectionReqMsg {
-	mList := GetDepositDetatil(num, vip1Num, vip2Num,onlineFlag)
+func MakeMinerTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white []common.Address, black []common.Address, onlineFlag bool) *mc.MasterMinerReElectionReqMsg {
+	mList := GetDepositDetatil(num, vip1Num, vip2Num, onlineFlag)
 
 	ans := &mc.MasterMinerReElectionReqMsg{
-		SeqNum:        Seed,
-		RandSeed:      big.NewInt(int64(Seed)),
-	MinerList:mList,
+		SeqNum:    Seed,
+		RandSeed:  big.NewInt(int64(Seed)),
+		MinerList: mList,
 	}
 	ans.ElectConfig = mc.ElectConfigInfo{
 		ValidatorNum:  11,
 		BackValidator: 5,
-		MinerNum:21,
-		WhiteList:white,
-		BlackList:black,
+		MinerNum:      21,
+		WhiteList:     white,
+		BlackList:     black,
 	}
 	return ans
 
 }
-
-
 
 func PrintMiner(miner *mc.MasterMinerReElectionRsp) {
 
@@ -161,16 +159,16 @@ func TestUnit1(t *testing.T) {
 
 }
 
-func GOTestV(vip1Num int,vip2Num int,white []common.Address,black []common.Address,plug string,onlineFlag bool){
+func GOTestV(vip1Num int, vip2Num int, white []common.Address, black []common.Address, plug string, onlineFlag bool) {
 	//验证者拓扑生成
-	mapMaster:=make(map[common.Address]int,0)
-	mapBackup:=make(map[common.Address]int,0)
-	mapCand:=make(map[common.Address]int,0)
+	mapMaster := make(map[common.Address]int, 0)
+	mapBackup := make(map[common.Address]int, 0)
+	mapCand := make(map[common.Address]int, 0)
 	//股权方案-（10-12）
 
 	for Num := 50; Num <= 50; Num++ {
 		for Key := 0; Key < 1000; Key++ {
-			req := MakeValidatorTopReq(Num, uint64(Key*2000 + 1),vip1Num,vip2Num,white,black,onlineFlag)
+			req := MakeValidatorTopReq(Num, uint64(Key*2000+1), vip1Num, vip2Num, white, black, onlineFlag)
 			//if Key==0{
 			//	for _,v:=range req.ValidatorList{
 			//		fmt.Println("账户",v.Address.String(),"NodeId",v.NodeID.String(),"抵押值",v.Deposit.String(),"在线时长",v.OnlineTime.String(),"withdraw",v.WithdrawH.String())
@@ -178,43 +176,41 @@ func GOTestV(vip1Num int,vip2Num int,white []common.Address,black []common.Addre
 			//}
 
 			rspValidator := baseinterface.NewElect(plug).ValidatorTopGen(req)
-			for _,v:=range rspValidator.MasterValidator{
+			for _, v := range rspValidator.MasterValidator {
 				mapMaster[v.Account]++
 			}
-			for _,v:=range rspValidator.BackUpValidator{
+			for _, v := range rspValidator.BackUpValidator {
 				mapBackup[v.Account]++
 			}
-			for _,v:=range rspValidator.CandidateValidator{
+			for _, v := range rspValidator.CandidateValidator {
 				mapCand[v.Account]++
 			}
 			//PrintValidator(rspValidator)
 		}
 	}
 
-	ListAddr:=[]common.Address{}
-	for i:=0;i<50;i++{
-		ListAddr=append(ListAddr,common.BigToAddress(big.NewInt(int64(i))))
+	ListAddr := []common.Address{}
+	for i := 0; i < 50; i++ {
+		ListAddr = append(ListAddr, common.BigToAddress(big.NewInt(int64(i))))
 	}
-	all:=0
+	all := 0
 	fmt.Println()
-	for _,v:=range ListAddr{
-		fmt.Println("账户",v.String(),"选择验证者次数",mapMaster[v],"选择备份验证者次数",mapBackup[v],"选择候选验证者次数",mapCand[v])
-		all+=mapMaster[v]
-		all+=mapBackup[v]
-		all+=mapCand[v]
+	for _, v := range ListAddr {
+		fmt.Println("账户", v.String(), "选择验证者次数", mapMaster[v], "选择备份验证者次数", mapBackup[v], "选择候选验证者次数", mapCand[v])
+		all += mapMaster[v]
+		all += mapBackup[v]
+		all += mapCand[v]
 	}
-	fmt.Println("所有节点被选中的总次数",all)
+	fmt.Println("所有节点被选中的总次数", all)
 }
 
-
-func GOTestM(vip1Num int,vip2Num int,white []common.Address,black []common.Address,plug string,onlineFlag bool){
+func GOTestM(vip1Num int, vip2Num int, white []common.Address, black []common.Address, plug string, onlineFlag bool) {
 	//矿工拓扑生成
-	mapMaster:=make(map[common.Address]int,0)
-
+	mapMaster := make(map[common.Address]int, 0)
 
 	for Num := 50; Num <= 50; Num++ {
 		for Key := 0; Key < 1000; Key++ {
-			req := MakeMinerTopReq(Num, uint64(Key*2000 + 1),vip1Num,vip2Num,white,black,onlineFlag)
+			req := MakeMinerTopReq(Num, uint64(Key*2000+1), vip1Num, vip2Num, white, black, onlineFlag)
 			//if Key==0{
 			//	for _,v:=range req.ValidatorList{
 			//		fmt.Println("账户",v.Address.String(),"NodeId",v.NodeID.String(),"抵押值",v.Deposit.String(),"在线时长",v.OnlineTime.String(),"withdraw",v.WithdrawH.String())
@@ -222,7 +218,7 @@ func GOTestM(vip1Num int,vip2Num int,white []common.Address,black []common.Addre
 			//}
 
 			rspValidator := baseinterface.NewElect(plug).MinerTopGen(req)
-			for _,v:=range rspValidator.MasterMiner{
+			for _, v := range rspValidator.MasterMiner {
 				mapMaster[v.Account]++
 			}
 
@@ -230,30 +226,29 @@ func GOTestM(vip1Num int,vip2Num int,white []common.Address,black []common.Addre
 		}
 	}
 
-	ListAddr:=[]common.Address{}
-	for i:=0;i<50;i++{
-		ListAddr=append(ListAddr,common.BigToAddress(big.NewInt(int64(i))))
+	ListAddr := []common.Address{}
+	for i := 0; i < 50; i++ {
+		ListAddr = append(ListAddr, common.BigToAddress(big.NewInt(int64(i))))
 	}
-	all:=0
+	all := 0
 	fmt.Println()
-	for _,v:=range ListAddr{
-		fmt.Println("账户",v.String(),"选择矿工次数",mapMaster[v])
-		all+=mapMaster[v]
+	for _, v := range ListAddr {
+		fmt.Println("账户", v.String(), "选择矿工次数", mapMaster[v])
+		all += mapMaster[v]
 
 	}
-	fmt.Println("所有节点被选中的总次数",all)
+	fmt.Println("所有节点被选中的总次数", all)
 }
-
 
 func TestUnit2(t *testing.T) {
 	//GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
-//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
+	//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
 	//GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",false)
-//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",true)
-//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",false)
-	GOTestV(0,0,[]common.Address{},[]common.Address{},"layerd",true)
+	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",true)
+	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",false)
+	GOTestV(0, 0, []common.Address{}, []common.Address{}, "layerd", true)
 }
-func Test3(t *testing.T){
+func Test3(t *testing.T) {
 	//white:=[]common.Address{
 	//	common.BigToAddress(big.NewInt(2)),
 	//}
@@ -261,7 +256,6 @@ func Test3(t *testing.T){
 	//
 	//}
 	//GOTestV(0,0,white,black,"layerd",true)
-
 
 	//white:=[]common.Address{
 	//	//common.BigToAddress(big.NewInt(2)),
@@ -271,18 +265,16 @@ func Test3(t *testing.T){
 	//}
 	//GOTestV(0,0,white,black,"layerd",true)
 
-
-
-	white:=[]common.Address{
-	common.BigToAddress(big.NewInt(1)),
+	white := []common.Address{
+		common.BigToAddress(big.NewInt(1)),
 	}
-	black:=[]common.Address{
+	black := []common.Address{
 		common.BigToAddress(big.NewInt(2)),
 	}
-	GOTestV(0,0,white,black,"layerd",true)
+	GOTestV(0, 0, white, black, "layerd", true)
 
 }
-func Test4(t *testing.T){
+func Test4(t *testing.T) {
 	//white:=[]common.Address{
 	//	//common.BigToAddress(big.NewInt(1)),
 	//}
@@ -299,21 +291,20 @@ func Test4(t *testing.T){
 	//}
 	//GOTestM(0,0,white,black,"layerd",true)
 
-
-	white:=[]common.Address{
-	common.BigToAddress(big.NewInt(1)),
+	white := []common.Address{
+		common.BigToAddress(big.NewInt(1)),
 	}
-	black:=[]common.Address{
-	//	common.BigToAddress(big.NewInt(2)),
+	black := []common.Address{
+		//	common.BigToAddress(big.NewInt(2)),
 	}
-	GOTestM(0,0,white,black,"layerd",true)
+	GOTestM(0, 0, white, black, "layerd", true)
 
 }
 
-func Test5(t *testing.T)  {
+func Test5(t *testing.T) {
 	///log.InitLog(3)
 
-//	GOTestV(0,0,[]common.Address{},[]common.Address{},"nochoice",true)
+	//	GOTestV(0,0,[]common.Address{},[]common.Address{},"nochoice",true)
 	//GOTestV(0,0,[]common.Address{},[]common.Address{},"nochoice",false)
 	//white:=[]common.Address{
 	//	common.BigToAddress(big.NewInt(1)),
@@ -325,58 +316,55 @@ func Test5(t *testing.T)  {
 	//GOTestV(0,0,white,black,"nochoice",false)
 
 	//GOTestM(0,0,[]common.Address{},[]common.Address{},"nochoice",true)
-//	GOTestM(0,0,[]common.Address{},[]common.Address{},"nochoice",false)
+	//	GOTestM(0,0,[]common.Address{},[]common.Address{},"nochoice",false)
 
-	white:=[]common.Address{
+	white := []common.Address{
 		common.BigToAddress(big.NewInt(1)),
 	}
-	black:=[]common.Address{
+	black := []common.Address{
 		common.BigToAddress(big.NewInt(2)),
 	}
-	GOTestM(0,0,white,black,"nochoice",false)
-
+	GOTestM(0, 0, white, black, "nochoice", false)
 
 }
-func Test6(t *testing.T){
+func Test6(t *testing.T) {
 	//GOTestV(0,0,[]common.Address{},[]common.Address{},"stock",true)
 	//GOTestV(3,0,[]common.Address{},[]common.Address{},"stock",true)
 	//GOTestV(3,3,[]common.Address{},[]common.Address{},"stock",true)
 
-	white:=[]common.Address{
+	white := []common.Address{
 		common.BigToAddress(big.NewInt(1)),
 	}
-	black:=[]common.Address{
+	black := []common.Address{
 		common.BigToAddress(big.NewInt(2)),
 	}
 
-	GOTestV(0,0,white,black,"stock",true)
+	GOTestV(0, 0, white, black, "stock", true)
 }
 
-
-func Test7(t *testing.T){
-//	GOTestM(3,0,[]common.Address{},[]common.Address{},"stock",true)
+func Test7(t *testing.T) {
+	//	GOTestM(3,0,[]common.Address{},[]common.Address{},"stock",true)
 	//GOTestM(0,0,[]common.Address{},[]common.Address{},"stock",true)
-	white:=[]common.Address{
+	white := []common.Address{
 		common.BigToAddress(big.NewInt(1)),
 	}
-	black:=[]common.Address{
+	black := []common.Address{
 		common.BigToAddress(big.NewInt(2)),
 	}
-	GOTestM(0,0,white,black,"stock",true)
+	GOTestM(0, 0, white, black, "stock", true)
 }
 
-
-func Test767(t *testing.T){
-	ans:=[]mc.EntrustInfo{}
-	ans=append(ans,mc.EntrustInfo{
-		Address:common.BigToAddress(big.NewInt(1)),
-		Password:"xxx",
+func Test767(t *testing.T) {
+	ans := []mc.EntrustInfo{}
+	ans = append(ans, mc.EntrustInfo{
+		Address:  common.BigToAddress(big.NewInt(1)),
+		Password: "xxx",
 	})
-	ans=append(ans,mc.EntrustInfo{
-		Address:common.BigToAddress(big.NewInt(2)),
-		Password:"xxx",
+	ans = append(ans, mc.EntrustInfo{
+		Address:  common.BigToAddress(big.NewInt(2)),
+		Password: "xxx",
 	})
-	data,err:=json.Marshal(ans)
-	fmt.Println(string(data),err)
+	data, err := json.Marshal(ans)
+	fmt.Println(string(data), err)
 
 }

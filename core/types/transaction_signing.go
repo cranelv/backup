@@ -13,8 +13,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
-	"sync"
 	"runtime"
+	"sync"
 )
 
 var (
@@ -27,6 +27,7 @@ type sigCache struct {
 	signer Signer
 	from   common.Address
 }
+
 //批量解签名
 func BatchSender(txser SelfTransactions) {
 	var waitG = &sync.WaitGroup{}

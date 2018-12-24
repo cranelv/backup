@@ -32,9 +32,9 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
-var errGenGenesisBlockNoConfig =  errors.New("no genesis cfg and no genesis block")
-var errGenesisLostChainCfg =  errors.New("genesis block lost chaincfg")
-var errGenesisToBlockErr=errors.New("Genesis To Block Err")
+var errGenGenesisBlockNoConfig = errors.New("no genesis cfg and no genesis block")
+var errGenesisLostChainCfg = errors.New("genesis block lost chaincfg")
+var errGenesisToBlockErr = errors.New("Genesis To Block Err")
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -296,8 +296,8 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Check whether the genesis block is already written.
 	if genesis != nil {
-		block,err:= genesis.ToBlock(nil)
-		if err!=nil{
+		block, err := genesis.ToBlock(nil)
+		if err != nil {
 			return nil, common.Hash{}, errGenesisToBlockErr
 		}
 		if block.Hash() != stored {
@@ -308,7 +308,7 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-/*	if storedcfg == nil {
+	/*	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
@@ -320,10 +320,10 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
-/*	if genesis == nil && stored != params.MainnetGenesisHash {
+	/*	if genesis == nil && stored != params.MainnetGenesisHash {
 		return storedcfg, stored, nil
 	}*/
-	if genesis == nil{
+	if genesis == nil {
 		return storedcfg, stored, nil
 	}
 	// Check config compatibility and write the config. Compatibility errors
@@ -344,10 +344,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
 		return g.Config
-/*	case ghash == params.MainnetGenesisHash:
-		return params.MainnetChainConfig
-	case ghash == params.TestnetGenesisHash:
-		return params.TestnetChainConfig*/
+		/*	case ghash == params.MainnetGenesisHash:
+				return params.MainnetChainConfig
+			case ghash == params.TestnetGenesisHash:
+				return params.TestnetChainConfig*/
 	default:
 		return params.AllManashProtocolChanges
 	}

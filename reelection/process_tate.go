@@ -225,7 +225,7 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 	}
 	if bcInterval.IsBroadcastNumber(height - 1) {
 		log.ERROR(Module, "ProduceMinHashData", "", "是广播区块后一块", height)
-		return mc.RandomInfoStruct{MinHash: block.ParentHash(),MaxNonce:preHeader.Nonce.Uint64()}, nil
+		return mc.RandomInfoStruct{MinHash: block.ParentHash(), MaxNonce: preHeader.Nonce.Uint64()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)
 	if err != nil {
@@ -242,8 +242,8 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 	if nowHash.Cmp(randomInfo.MinHash.Big()) < 0 {
 		randomInfo.MinHash = preHeader.Hash()
 	}
-	if preHeader.Nonce.Uint64()>randomInfo.MaxNonce{
-		randomInfo.MaxNonce=preHeader.Nonce.Uint64()
+	if preHeader.Nonce.Uint64() > randomInfo.MaxNonce {
+		randomInfo.MaxNonce = preHeader.Nonce.Uint64()
 	}
 	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
 	return randomInfo, nil

@@ -60,18 +60,17 @@ func (p *Process) verifyVrf(header *types.Header) error {
 	if preBlock == nil {
 		return errors.New("获取父区块失败")
 	}
-	if preBlock.Header()==nil{
+	if preBlock.Header() == nil {
 		return errors.New("区块头为空")
 	}
 
-	SignAddr, _, err := p.blockChain().GetSignAccount( header.Leader, header.ParentHash)
-	if err!=nil{
-		log.Error(p.logExtraInfo(),"验证vrf失败","获取真实签名账户失败")
+	SignAddr, _, err := p.blockChain().GetSignAccount(header.Leader, header.ParentHash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "验证vrf失败", "获取真实签名账户失败")
 		return errors.New("获取真实签名账户失败")
 	}
 
-	return  baseinterface.NewVrf().VerifyVrf(header,preBlock.Header(),SignAddr)
-
+	return baseinterface.NewVrf().VerifyVrf(header, preBlock.Header(), SignAddr)
 
 }
 

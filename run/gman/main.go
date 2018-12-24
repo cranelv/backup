@@ -180,7 +180,6 @@ func init() {
 		dumpConfigCommand,
 		CommitCommand,
 		AesEncryptCommand,
-
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

@@ -444,7 +444,7 @@ const (
 
 )
 
-var WhiteAddrlist  = [1]Address{InterestRewardAddress}
+var WhiteAddrlist = [1]Address{InterestRewardAddress}
 
 const (
 	RewardNomalType   byte = 0 //奖励通过普通交易发放

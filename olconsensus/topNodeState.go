@@ -42,7 +42,7 @@ func newTopNodeState(capacity int, info string) *topNodeState {
 }
 
 func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.TopologyGraph, electStates *mc.ElectOnlineStatus) {
-	log.Info("共识节点状态", "设置当前节点状态","区块高度，拓扑图，选举节点" )
+	log.Info("共识节点状态", "设置当前节点状态", "区块高度，拓扑图，选举节点")
 	if topologyGroup == nil || electStates == nil {
 		log.Error("共识节点状态", "拓扑或者选举节点在线信息异常", "为nil")
 		return
@@ -77,7 +77,7 @@ func (ts *topNodeState) SetCurStates(curNumber uint64, topologyGroup *mc.Topolog
 	for i, info := range ts.curElectNodes {
 		log.Debug("共识节点状态", "SetCurStates_elect index", i, "node", info.Account.Hex(), "pos", info.Position, "type", info.Type)
 	}
-	log.Info("共识节点状态", "当前节点状态设置完成","     ","区块高度",curNumber)
+	log.Info("共识节点状态", "当前节点状态设置完成", "     ", "区块高度", curNumber)
 }
 
 func (ts *topNodeState) SaveConsensusResult(result *mc.HD_OnlineConsensusVoteResultMsg) {
@@ -98,7 +98,7 @@ func (ts *topNodeState) SaveConsensusResult(result *mc.HD_OnlineConsensusVoteRes
 	} else {
 		ts.insertConsensusResult(result)
 	}
-	log.Info("共识节点状态", "保存共识结果完成","" )
+	log.Info("共识节点状态", "保存共识结果完成", "")
 }
 
 func (ts *topNodeState) GetConsensusResults() (results []*mc.HD_OnlineConsensusVoteResultMsg) {

@@ -5,21 +5,22 @@ package baseinterface
 
 import (
 	"crypto/ecdsa"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 )
 
 var (
 	mapVrf         = make(map[string]func() VrfInterface)
 	DefaultVrfPlug = "withHash"
 )
+
 //func (self *vrfWithHash)verifyVrf(pk *ecdsa.PublicKey,  prevVrf, newVrf, proof []byte) error {
 //func(self *vrfWithHash) computeVrf(sk *ecdsa.PrivateKey,prevVrf []byte) ([]byte, []byte, error) {
 type VrfInterface interface {
 	ComputeVrf(*ecdsa.PrivateKey, []byte) ([]byte, []byte, error)
-	VerifyVrf( *types.Header, *types.Header, common.Address) error
-	GetVrfInfoFromHeader([]byte)([]byte,[]byte,[]byte)
-	GetHeaderVrf([]byte, []byte,[]byte) []byte
+	VerifyVrf(*types.Header, *types.Header, common.Address) error
+	GetVrfInfoFromHeader([]byte) ([]byte, []byte, []byte)
+	GetHeaderVrf([]byte, []byte, []byte) []byte
 }
 
 func NewVrf() VrfInterface {

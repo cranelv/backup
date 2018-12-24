@@ -6,13 +6,13 @@ package baseinterface
 import (
 	"math/big"
 
+	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
-	"fmt"
 )
 
 const (
@@ -41,7 +41,8 @@ type RandomSubService interface {
 	Prepare(uint64) error
 	CalcData(data common.Hash) (*big.Int, error)
 }
-func checkDataValidity(support interface{})bool{
+
+func checkDataValidity(support interface{}) bool {
 	return common.IsNil(support)
 }
 func NewRandom(support RandomChainSupport) (*Random, error) {
@@ -68,7 +69,7 @@ func NewRandom(support RandomChainSupport) (*Random, error) {
 	}
 
 	var err error
-	random.roleUpdateSub, err= mc.SubscribeEvent(mc.CA_RoleUpdated, random.roleUpdateCh)
+	random.roleUpdateSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, random.roleUpdateCh)
 	if err != nil {
 		log.Error(ModuleRandom, "订阅CA消息阶段,CA消息订阅失败 err", err)
 		return nil, err
@@ -102,10 +103,10 @@ func (self *Random) newSubServer(name string, plugConfig string, support RandomC
 	var err error
 	if _, ok := mapReg[name]; ok == false {
 		log.Error(ModuleRandom, "新建子服务阶段,该子服务未注册", name)
-		return fmt.Errorf("该子服务未注册 %v",name)
+		return fmt.Errorf("该子服务未注册 %v", name)
 	}
 	if self.mapSubService[name], err = mapReg[name](plugConfig, support); err != nil {
-		log.Error(ModuleRandom, "新建子服务阶段,该子服务新建失败",name,"err",err)
+		log.Error(ModuleRandom, "新建子服务阶段,该子服务新建失败", name, "err", err)
 	}
 	log.Info(ModuleRandom, "新建子服务阶段,该子服务创建成功 index", name)
 	return nil

@@ -8,8 +8,6 @@ import (
 	"reflect"
 )
 
-
-
 type ElectRoleType uint8
 
 const (
@@ -58,8 +56,6 @@ func GeneratePosition(index uint16, electRole ElectRoleType) uint16 {
 	return uint16(electRole)<<12 + index
 }
 
-
-
 type Echelon struct {
 	MinMoney *big.Int
 	MaxNum   int
@@ -68,13 +64,12 @@ type Echelon struct {
 
 var (
 	ManValue = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-
 )
 
-func IsNil(i interface{})bool{
-	vi:=reflect.ValueOf(i)
-	if vi.Kind()==reflect.Ptr{
-		flag:=vi.IsNil()
+func IsNil(i interface{}) bool {
+	vi := reflect.ValueOf(i)
+	if vi.Kind() == reflect.Ptr {
+		flag := vi.IsNil()
 		return flag
 	}
 	return false

@@ -855,7 +855,7 @@ func (self *StateDB) DeleteMxData(hash common.Hash, val []byte) {
 
 /************************11************************************************/
 func (self *StateDB) updateMatrixData(hash common.Hash, val []byte) {
-	vl := append([]byte("MAN-"),val...)
+	vl := append([]byte("MAN-"), val...)
 	self.setError(self.trie.TryUpdate(hash[:], vl))
 }
 

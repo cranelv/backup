@@ -202,16 +202,16 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 		for _, item := range serv.dposRing.DPosVoteS {
 			//判断自己对该共识请求是否投过票
 			proposal, votes, voted := item.getVotes()
-			if voted {//投过票，统计投票结果，判断投票结果是否满足三分之二共识
+			if voted { //投过票，统计投票结果，判断投票结果是否满足三分之二共识
 				go serv.consensusVotes(proposal, votes)
-			} else {//没有投过票，开始处理共识请求，投票
+			} else { //没有投过票，开始处理共识请求，投票
 				prop, OK := proposal.(*mc.OnlineConsensusReq)
 				if OK == false || prop == nil || leader != prop.Leader {
 					continue
 				}
 				//开始对共识请求进行投票
 				sign, reqHash, err := serv.voteToReq(prop)
-				if err == nil {//完成投票操作
+				if err == nil { //完成投票操作
 					//创建一个共识投票结构体
 					vote := mc.HD_ConsensusVote{}
 					vote.SignHash.Set(reqHash)
@@ -227,7 +227,7 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 						serv.consensusVoteCh <- &msg
 					}()
 
-				} else {//投票出错
+				} else { //投票出错
 					log.Error(serv.extraInfo, "leader消息，处理缓存的共识请求", "签名失败", "error", err)
 				}
 			}
@@ -287,14 +287,14 @@ func (serv *TopNodeService) consensusReqMsgHandler(msg *mc.HD_OnlineConsensusReq
 		reqHash := types.RlpHash(item)
 		switch serv.msgCheck.CheckRound(item.Number, item.LeaderTurn) {
 		case 1: // localRound > reqRound
-			log.Debug(serv.extraInfo, "处理共识请求", "轮次过低，抛弃请求", "当前number",serv.msgCheck.curNumber,"当前turn",serv.msgCheck.curLeaderTurn,"req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
+			log.Debug(serv.extraInfo, "处理共识请求", "轮次过低，抛弃请求", "当前number", serv.msgCheck.curNumber, "当前turn", serv.msgCheck.curLeaderTurn, "req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
 			continue
 		case -1: // localRound < reqRound
-			log.Debug(serv.extraInfo, "处理共识请求", "轮次过高，缓存请求", "当前number",serv.msgCheck.curNumber,"当前turn",serv.msgCheck.curLeaderTurn,"req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
-			serv.dposRing.addProposal(reqHash, item,false)
+			log.Debug(serv.extraInfo, "处理共识请求", "轮次过高，缓存请求", "当前number", serv.msgCheck.curNumber, "当前turn", serv.msgCheck.curLeaderTurn, "req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
+			serv.dposRing.addProposal(reqHash, item, false)
 			continue
 		case 0: // localRound == reqRound
-			if serv.dposRing.addProposal(reqHash, item,true) {
+			if serv.dposRing.addProposal(reqHash, item, true) {
 				// todo 共识的节点判断，是否是顶层节点 或 elect节点
 				sign, reqHash, err := serv.voteToReq(item)
 				if err == nil {
@@ -420,7 +420,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
 		}
-		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String(),"onlinestate",tempReq.OnlineState.String())
+		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投赞成票", "", "reqNode", tempReq.Node.String(), "onlinestate", tempReq.OnlineState.String())
 	} else {
 		//投反对票
 		sign, err = serv.validatorSign.SignWithValidate(reqHash.Bytes(), false, serv.msgCheck.blockHash)
@@ -428,7 +428,7 @@ func (serv *TopNodeService) voteToReq(tempReq *mc.OnlineConsensusReq) (common.Si
 			log.Error(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投票失败", err)
 			return common.Signature{}, common.Hash{}, voteFailed
 		}
-		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投反对票", "", "reqNode", tempReq.Node.String(),"onlinestate",tempReq.OnlineState.String())
+		log.Info(serv.extraInfo, "处理共识请求", "对共识请求进行投票", "投反对票", "", "reqNode", tempReq.Node.String(), "onlinestate", tempReq.OnlineState.String())
 	}
 	return sign, reqHash, nil
 }
