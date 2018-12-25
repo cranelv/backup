@@ -572,7 +572,7 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.NewStateDBManage(block.Root(), state.NewDatabase(chainDb))
+			state, err := state.NewStateDBManage(block.Root(), chainDb)
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
@@ -706,7 +706,7 @@ func signBlock(ctx *cli.Context) error {
 	genesis := new(core.Genesis)
 	core.ManGenesisToEthGensis(matrixGenesis, genesis)
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
-	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
+	superBlock := genesis.GenSuperBlock(parent, chainDB, chain.Config())
 	if nil == superBlock {
 		utils.Fatalf("genesis super block err")
 	}

@@ -240,9 +240,14 @@ func (db *Database) dereference(child common.Hash, parent common.Hash) {
 func (db *Database) CommitRoots(nodes []common.CoinRoot, report bool) error {
 	for _,cr := range nodes {
 		var hashs []common.Hash
-		err:=json.Unmarshal(cr.Root,&hashs)
+		root,err:=db.diskdb.Get(cr.Root[:])
 		if err != nil{
-			log.Error("file database","func CommitRoots:err",err)
+			log.Error("file database","func CommitRoots:err","db.diskdb.Get",err)
+			continue
+		}
+		err=json.Unmarshal(root,&hashs)
+		if err != nil{
+			log.Error("file database","func CommitRoots:err","Unmarshal",err)
 			continue
 		}
 		for _,hash := range hashs{

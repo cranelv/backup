@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	_"github.com/matrix/go-matrix/base58"
 	"fmt"
+	"github.com/matrix/go-matrix/mandb"
 )
 type RangeManage struct {
 	Range   byte
@@ -23,19 +24,25 @@ type CoinManage struct {
 }
 type StateDBManage struct {
 	db          Database
+	mandb		mandb.Database
 	shardings	[]*CoinManage
 	coinRoot    []common.CoinRoot
 	retcoinRoot []common.CoinRoot
+	//dbReader 	*rawdb.DatabaseReader
+	//dbWriter 	*rawdb.DatabaseWriter
 }
 
 // Create a new state from a given trie.
-func NewStateDBManage(roots []common.CoinRoot, db Database) (*StateDBManage, error) {
+func NewStateDBManage(roots []common.CoinRoot, mandb mandb.Database) (*StateDBManage, error) {
+	//mr,_:=json.Marshal(roots)			//TODO
+	//rthash:=common.BytesToHash(mr)		//TODO
 	if len(roots) == 0{
-		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:[]byte{}})
+		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
 		//roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:[]byte{}})//YYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	stm := &StateDBManage{
-		db:                db,
+		mandb:			   mandb,
+		db:                NewDatabase(mandb),
 		shardings:         make([]*CoinManage,0),
 		coinRoot:          make([]common.CoinRoot,len(roots)),
 		retcoinRoot:       make([]common.CoinRoot,len(roots)),
@@ -64,8 +71,8 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 		if false{
 			return
 		}
-		shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cointyp,Root:nil})
-		shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cointyp,Root:nil})
+		shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cointyp,Root:common.Hash{}})
+		shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cointyp,Root:common.Hash{}})
 	}
 	shard.addShardings(cointyp)
 }
@@ -75,14 +82,18 @@ func (shard *StateDBManage) addShardings(cointyp string){
 		if cr.Cointyp == cointyp{
 			rms := make([]*RangeManage,0)
 			var hashs []common.Hash
-			if len(cr.Root) <=0{
+			Roots,err:=shard.mandb.Get(cr.Root[:])
+			if err!=nil {
+				log.Error("file sharding_statedb", "func addShardings:Get", err)
+			}else {
+				err=json.Unmarshal(Roots,&hashs)
+				if err!=nil{
+					log.Error("file sharding_statedb", "func addShardings:Unmarshal", err)
+				}
+			}
+			if len(hashs) <=0{
 				for idx:=0;idx<params.RANGE_MOUNTS;idx++  {
 					hashs = append(hashs,common.Hash{})
-				}
-			}else {
-				err := json.Unmarshal(cr.Root,&hashs)
-				if err != nil{
-					log.Error("file sharding_statedb", "func MakeStatedb:Unmarshal", err)
 				}
 			}
 			for i,hash:=range hashs{
@@ -634,6 +645,8 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.C
 			Roots=append(Roots,root)
 		}
 		bs,err:=json.Marshal(Roots)
+		bshash:=common.BytesToHash(bs)
+		shard.mandb.Put(bshash[:],bs)
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:IntermediateRoot",err)
 			panic(err)
@@ -641,13 +654,13 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.C
 		isex := false
 		for i,croot := range shard.retcoinRoot{
 			if croot.Cointyp == cm.Cointyp{
-				shard.retcoinRoot[i].Root = bs
+				shard.retcoinRoot[i].Root = bshash
 				isex = true
 				break
 			}
 		}
 		if !isex{
-			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bshash})
 		}
 	}
 	return shard.retcoinRoot
@@ -685,6 +698,9 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 			Roots=append(Roots,root)
 		}
 		bs,err:=json.Marshal(Roots)
+		bshash:=common.BytesToHash(bs)
+
+		err=shard.mandb.Put(bshash[:],bs)
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:Commit",err)
 			panic(err)
@@ -692,13 +708,13 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 		isex := false
 		for i,croot := range shard.retcoinRoot{
 			if croot.Cointyp == cm.Cointyp{
-				shard.retcoinRoot[i].Root = bs
+				shard.retcoinRoot[i].Root = bshash
 				isex = true
 				break
 			}
 		}
 		if !isex{
-			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bs})
+			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bshash})
 		}
 	}
 	return shard.retcoinRoot,nil
