@@ -514,5 +514,9 @@ type AuthType struct {
 }
 type CoinRoot struct {
 	Cointyp string
-	Root    Hash//[]byte
+	Root    Hash
+}
+type Coinbyte struct {
+	Root       Hash
+	byte256    []byte
 }
