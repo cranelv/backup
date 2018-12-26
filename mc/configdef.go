@@ -19,9 +19,9 @@ const (
 	MSKeyAccountVersionSupers = "account_version_supers" //版本签名账户		[]common.Address
 	MSKeyAccountBlockSupers   = "account_block_supers"   //超级区块签名账户	[]common.Address
 	MSKeyElectConfigInfo      = "elect_details_info"
-	MSKeyElectMinerNum="elect_miner_num"
-	MSKeyElectBlackList="elect_black_list"
-	MSKeyElectWhiteList="elect_white_list"
+	MSKeyElectMinerNum        = "elect_miner_num"
+	MSKeyElectBlackList       = "elect_black_list"
+	MSKeyElectWhiteList       = "elect_white_list"
 	MSKeyVIPConfig            = "vip_config"
 	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"
 	MSKeyLeaderConfig         = "leader_config"
@@ -72,7 +72,6 @@ type ElectConfigInfo_All struct {
 	BlackList     []common.Address
 }
 type ElectConfigInfo struct {
-
 	ValidatorNum  uint16
 	BackValidator uint16
 	ElectPlug     string

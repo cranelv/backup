@@ -20,9 +20,9 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyAccountVersionSupers] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyAccountBlockSupers] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
-	self.codecMap[mc.MSKeyElectMinerNum]=new(ElectMinerNumStructCodec)
-	self.codecMap[mc.MSKeyElectBlackList]=new(AccountsCodec)
-	self.codecMap[mc.MSKeyElectWhiteList]=new(AccountCodec)
+	self.codecMap[mc.MSKeyElectMinerNum] = new(ElectMinerNumStructCodec)
+	self.codecMap[mc.MSKeyElectBlackList] = new(AccountsCodec)
+	self.codecMap[mc.MSKeyElectWhiteList] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
 	self.codecMap[mc.MSKeyMinHash] = new(MSKeyMinHashCodec)
@@ -570,8 +570,6 @@ func (MSKeyBroadcastTxCodec) decodeFn(data []byte) (interface{}, error) {
 	}
 	return tempMap, nil
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////
 // key = ElectMinerNumCodec
