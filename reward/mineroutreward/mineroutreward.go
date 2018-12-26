@@ -120,7 +120,12 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 	}
 
 	var header *types.Header
-	for i := num - 1; i > num-100; i-- {
+	var originNum uint64
+	originNum = num - 100
+	if num < 101 {
+		originNum = 1
+	}
+	for i := num - 1; i > originNum; i-- {
 		if bcInterval.IsBroadcastNumber(i) {
 			continue
 		}
@@ -134,6 +139,7 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 	}
 	if nil == header {
 		log.ERROR(PackageName, "无法获取区块头错误", num)
+		return common.Address{}, errors.New("无法获取区块头错误")
 	}
 	coinbase := header.Coinbase
 	if coinbase.Equal(common.Address{}) {
