@@ -82,7 +82,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
-		VrfValue:          parentHeader.VrfValue,
+		VrfValue:          make([]byte, 0),
 	}
 
 	sbs, err := bc.GetSuperBlockSeq()
