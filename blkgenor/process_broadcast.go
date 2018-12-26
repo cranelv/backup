@@ -80,10 +80,10 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			continue
 		}
 
-		r1,err:=json.Marshal(localBlock.Root())
-		r2,err:=json.Marshal(result.Header.Roots)
-		if common.BytesToHash(r1) != common.BytesToHash(r2) {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", common.BytesToHash(r1), "remote root", common.BytesToHash(r2))
+		r1:=types.RlpHash(localBlock.Root())
+		r2:=types.RlpHash(result.Header.Roots)
+		if r1 != r2 {
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot",r1, "remote root",r2))
 			continue
 		}
 
