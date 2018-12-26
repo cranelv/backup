@@ -32,6 +32,7 @@ func (p *Process) processHeaderGen() error {
 	}
 
 	tstart := time.Now()
+	log.Info(p.logExtraInfo(), "关键时间点", "区块头开始生成", "time", tstart, "块高", p.number)
 	parent, err := p.getParentBlock()
 	if err != nil {
 		return err
@@ -83,12 +84,14 @@ func (p *Process) processHeaderGen() error {
 		return err
 	}
 
+	log.Info(p.logExtraInfo(), "关键时间点", "开始执行交易", "time", time.Now(), "块高", p.number)
 	tsBlock, txsCode, stateDB, receipts, originalTxs, err := p.genHeaderTxs(header)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易失败", err)
 		return err
 	}
 
+	log.Info(p.logExtraInfo(), "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", p.number)
 	err = p.blockChain().ProcessMatrixState(tsBlock, stateDB)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行matrix状态树失败", err)
@@ -111,6 +114,7 @@ func (p *Process) processHeaderGen() error {
 		return err
 	}
 
+	log.Info(p.logExtraInfo(), "关键时间点", "区块头生成完毕,发出共识请求", "time", time.Now(), "块高", p.number)
 	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
 		header = block.Header()
 		signHash := header.HashNoSignsAndNonce()
