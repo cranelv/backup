@@ -19,6 +19,9 @@ const (
 	MSKeyAccountVersionSupers = "account_version_supers" //版本签名账户		[]common.Address
 	MSKeyAccountBlockSupers   = "account_block_supers"   //超级区块签名账户	[]common.Address
 	MSKeyElectConfigInfo      = "elect_details_info"
+	MSKeyElectMinerNum="elect_miner_num"
+	MSKeyElectBlackList="elect_black_list"
+	MSKeyElectWhiteList="elect_white_list"
 	MSKeyVIPConfig            = "vip_config"
 	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"
 	MSKeyLeaderConfig         = "leader_config"
@@ -60,13 +63,19 @@ type ElectGenTimeStruct struct {
 	VoteBeforeTime     uint16
 }
 
-type ElectConfigInfo struct {
+type ElectConfigInfo_All struct {
 	MinerNum      uint16
 	ValidatorNum  uint16
 	BackValidator uint16
 	ElectPlug     string
 	WhiteList     []common.Address
 	BlackList     []common.Address
+}
+type ElectConfigInfo struct {
+
+	ValidatorNum  uint16
+	BackValidator uint16
+	ElectPlug     string
 }
 
 type VIPConfig struct {
@@ -153,4 +162,8 @@ type PreAllTopStruct struct {
 }
 type PreMinerStruct struct {
 	PreMiner common.Address
+}
+
+type ElectMinerNumStruct struct {
+	MinerNum uint16
 }

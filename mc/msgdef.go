@@ -101,7 +101,7 @@ type MasterMinerReElectionReqMsg struct {
 	SeqNum      uint64
 	RandSeed    *big.Int
 	MinerList   []vm.DepositDetail
-	ElectConfig ElectConfigInfo
+	ElectConfig ElectConfigInfo_All
 }
 
 //验证者主节点生成请求
@@ -110,7 +110,7 @@ type MasterValidatorReElectionReqMsg struct {
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
 	FoundationValidatorList []vm.DepositDetail
-	ElectConfig             ElectConfigInfo
+	ElectConfig             ElectConfigInfo_All
 	VIPList                 []VIPConfig
 }
 

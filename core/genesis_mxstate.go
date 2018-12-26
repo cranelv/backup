@@ -33,6 +33,9 @@ type GenesisMState struct {
 	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
 	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
 	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
+	ElectMinerNumCfg *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg *[]common.Address `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg *[]common.Address `json:"ElectWhiteList" gencodec:"required"`
 	CurElect             *[]common.Elect        `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
@@ -51,6 +54,9 @@ type GenesisMState1 struct {
 	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" ,omitempty"`
 	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" ,omitempty"`
 	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
+	ElectMinerNumCfg *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg *[]string`json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg *[]string `json:"ElectWhiteList" gencodec:"required"`
 	CurElect             *[]common.Elect1       `json:"curElect"    gencodec:"required"`
 }
 
@@ -60,6 +66,16 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	}
 
 	if err := ms.setElectInfo(state, num); err != nil {
+		return err
+	}
+
+	if err:=ms.setElectMinerNumInfo(state,num);err!=nil{
+		return err
+	}
+	if err :=ms.setElectBlakcListInfo(state,num);err!=nil{
+		return err
+	}
+	if err:=ms.setElectWhiteListInfo(state,num);err!=nil{
 		return err
 	}
 
@@ -147,10 +163,40 @@ func (g *GenesisMState) setElectInfo(state *state.StateDB, num uint64) error {
 			return nil
 		}
 	}
-
 	log.Info("Geneis", "electconfig", g.EleInfoCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.EleInfoCfg, state)
 }
+func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) error {
+	if g.ElectMinerNumCfg==nil{
+		if num==0{
+			return errors.New("electMinerNum为nil")
+		}else{
+			log.Info("Geneis","没有配置ElectMinerNumCfg信息","")
+			return nil
+		}
+	}
+	log.Info("Geneis", "ElectMinerNumCfg", g.ElectMinerNumCfg)
+	return matrixstate.SetDataToState(mc.MSKeyElectMinerNum, g.ElectMinerNumCfg, state)
+}
+
+func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) error {
+	if g.ElectWhiteListCfg==nil{
+		log.Info("Geneis","没有配置白名单","")
+	//	return nil
+	}
+	log.Info("Geneis", "ElectWhiteListCfg", g.ElectWhiteListCfg)
+	return matrixstate.SetDataToState(mc.MSKeyElectWhiteList, g.ElectWhiteListCfg, state)
+}
+func (g *GenesisMState) setElectBlakcListInfo(state *state.StateDB, num uint64) error {
+	if g.ElectBlackListCfg==nil{
+		log.Info("Geneis","没有配置白名单","")
+		//return nil
+	}
+	log.Info("Geneis", "ElectBlackListCfg", g.ElectBlackListCfg)
+	return matrixstate.SetDataToState(mc.MSKeyElectBlackList, g.ElectBlackListCfg, state)
+}
+
+
 
 func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt common.NetTopology, num uint64) error {
 	if genesisNt.Type != common.NetTopoTypeAll {

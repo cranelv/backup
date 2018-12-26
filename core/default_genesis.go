@@ -777,6 +777,23 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 			}
 			gensis.MState.InnerMiners = &innerMiners
 		}
+		if nil!=gensis1.MState.ElectBlackListCfg{
+			blackList:=make([]common.Address,0)
+			for _,v:=range *gensis1.MState.ElectBlackListCfg{
+				blackList=append(blackList,base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg=&blackList
+		}
+		if nil!=gensis1.MState.ElectWhiteListCfg{
+			whiteList:=make([]common.Address,0)
+			for _,v:=range *gensis1.MState.ElectWhiteListCfg{
+				whiteList=append(whiteList,base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg=&whiteList
+		}
+		if nil!=gensis1.MState.ElectMinerNumCfg{
+			gensis.MState.ElectMinerNumCfg=gensis1.MState.ElectMinerNumCfg
+		}
 		if nil != gensis1.MState.BlkRewardCfg {
 			gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		}

@@ -171,9 +171,23 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			for _, v := range *gensis1.MState.InnerMiners {
 				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-
 			gensis.MState.InnerMiners = &innerMiners
 		}
+		if nil != gensis1.MState.ElectBlackListCfg {
+			blackList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectBlackListCfg {
+				blackList = append(blackList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg = &blackList
+		}
+		if nil != gensis1.MState.ElectWhiteListCfg {
+			whiteList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectWhiteListCfg {
+				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.InnerMiners = &whiteList
+		}
+		gensis.MState.ElectMinerNumCfg=gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
 		gensis.MState.InterestCfg = gensis1.MState.InterestCfg

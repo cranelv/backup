@@ -20,6 +20,9 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyAccountVersionSupers] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyAccountBlockSupers] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
+	self.codecMap[mc.MSKeyElectMinerNum]=new(ElectMinerNumStructCodec)
+	self.codecMap[mc.MSKeyElectBlackList]=new(AccountsCodec)
+	self.codecMap[mc.MSKeyElectWhiteList]=new(AccountCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
 	self.codecMap[mc.MSKeyMinHash] = new(MSKeyMinHashCodec)
@@ -566,4 +569,30 @@ func (MSKeyBroadcastTxCodec) decodeFn(data []byte) (interface{}, error) {
 		return nil, errors.New("msg is nil")
 	}
 	return tempMap, nil
+}
+
+
+
+////////////////////////////////////////////////////////////////////////
+// key = ElectMinerNumCodec
+type ElectMinerNumStructCodec struct {
+}
+
+func (ElectMinerNumStructCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+func (ElectMinerNumStructCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.ElectMinerNumStruct)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
 }

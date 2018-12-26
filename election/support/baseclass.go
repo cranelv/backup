@@ -54,7 +54,7 @@ type Electoion struct {
 	MaxLevelNum   int
 	VipLevelCfg   []mc.VIPConfig
 	NodeList      []Node
-	EleCfg        mc.ElectConfigInfo
+	EleCfg        mc.ElectConfigInfo_All
 	WhiteNodeInfo []Strallyint
 }
 
@@ -97,7 +97,7 @@ func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
 	}
 }
 
-func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo, randseed *big.Int, seqNum uint64) *Electoion {
+func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo_All, randseed *big.Int, seqNum uint64) *Electoion {
 	var vip Electoion
 	vip.SeqNum = seqNum
 	vip.RandSeed = randseed

@@ -29,7 +29,7 @@ func (self *ReElection) GetElectGenTimes(height uint64) (*mc.ElectGenTimeStruct,
 	}
 	return electGenConfig, nil
 }
-func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo, error) {
+func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, error) {
 	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
 	if err != nil {
 		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
@@ -40,7 +40,49 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo, erro
 		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
-	return electInfo, nil
+
+	data, err = self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectMinerNum, height)
+	if err != nil {
+		log.ERROR("MSKeyElectMinerNum", "获取MSKeyElectMinerNum err", err)
+		return nil, err
+	}
+	electMinerNum, OK := data.(*mc.ElectMinerNumStruct)
+	if OK == false || electInfo == nil {
+		log.ERROR("ElectMinerNumStruct", "ElectMinerNumStruct ", "反射失败", "高度", height)
+		return nil, errors.New("反射失败")
+	}
+
+
+	data, err = self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectBlackList, height)
+	if err != nil {
+		log.Error("MSKeyElectBlackList","MSKeyElectBlackList","反射失败", "高度", height)
+		return nil, err
+	}
+	blackList, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("反射结构体失败")
+	}
+
+	data, err = self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectWhiteList, height)
+	if err != nil {
+		log.Error("MSKeyElectWhiteList","MSKeyElectWhiteList","反射失败", "高度", height)
+		return nil, err
+	}
+	whiteList, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("反射结构体失败")
+	}
+
+	elect:=&mc.ElectConfigInfo_All{
+		MinerNum:electMinerNum.MinerNum,
+		ValidatorNum :electInfo.ValidatorNum,
+		BackValidator :electInfo.BackValidator,
+		ElectPlug     :electInfo.ElectPlug,
+		WhiteList     :whiteList,
+		BlackList     :blackList,
+	}
+
+	return elect, nil
 }
 func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
 	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyVIPConfig, height)
