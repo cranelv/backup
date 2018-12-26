@@ -323,7 +323,7 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64)
 	}
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
 	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
-	matrixstate.SetDataToState(mc.MSKeyPreMinerReward, minerOutReward, state)
+	matrixstate.SetDataToState(mc.MSKeyPreMinerBlkReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.BlkRewardCfg, state)
 }
 
@@ -357,6 +357,8 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDB, num uint64)
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "TxsRewardCfg", g.TxsRewardCfg)
+	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
+	matrixstate.SetDataToState(mc.MSKeyPreMinerTxsReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.TxsRewardCfg, state)
 }
 

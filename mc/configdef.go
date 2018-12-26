@@ -32,7 +32,9 @@ const (
 	MSKeySlashCfg     = "slash_reward"
 	MSKeyMultiCoin    = "coin_reward"
 	//上一矿工奖励金额
-	MSKeyPreMinerReward = "preMiner_reward"
+	MSKeyPreMinerBlkReward = "preMiner_blkreward"
+	//上一矿工交易奖励金额
+	MSKeyPreMinerTxsReward = "preMiner_txsreward"
 	//upTime状态
 	MSKeyUpTimeNum = "upTime_num"
 	//彩票状态

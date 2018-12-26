@@ -50,35 +50,47 @@ type ChainReader interface {
 	State() (*state.StateDB, error)
 }
 
-func (mr *MinerOutReward) GetPreMinerReward(state util.StateDB) (*big.Int, error) {
-	preMiner, err := matrixstate.GetDataByState(mc.MSKeyPreMinerReward, state)
+func (mr *MinerOutReward) GetPreMinerReward(state util.StateDB, rewardType uint8) (*big.Int, error) {
+	var key string
+	if util.TxsReward == rewardType {
+		key = mc.MSKeyPreMinerTxsReward
+	} else {
+		key = mc.MSKeyPreMinerBlkReward
+	}
+	preMiner, err := matrixstate.GetDataByState(key, state)
 	if nil != err {
-		log.Error(PackageName, "获取矿工奖励金额错误", err)
+		log.Error(PackageName, "获取矿工奖励金额错误", err, "key", key)
 		return nil, errors.New("获取矿工金额错误")
 	}
 	if preMiner == nil {
-		log.Error(PackageName, "反射失败", err)
+		log.Error(PackageName, "反射失败", err, "key", key)
 		return nil, errors.New("反射失败")
 	}
 	currentReward, ok := preMiner.(*mc.MinerOutReward)
 	if !ok {
-		log.Error(PackageName, "类型转换失败", err)
+		log.Error(PackageName, "类型转换失败", err, "key", key)
 		return nil, errors.New("类型转换失败")
 	}
-	log.INFO(PackageName, "获取前一个矿工奖励值为", currentReward.Reward)
+	log.INFO(PackageName, "获取前一个矿工奖励值为", currentReward.Reward, "key", key)
 	return &currentReward.Reward, nil
 
 }
 
-func (mr *MinerOutReward) SetPreMinerReward(state util.StateDB, reward *big.Int) {
-	log.INFO(PackageName, "设置前矿工奖励值为", reward)
+func (mr *MinerOutReward) SetPreMinerReward(state util.StateDB, reward *big.Int, rewardType uint8) {
+	var key string
+	if util.TxsReward == rewardType {
+		key = mc.MSKeyPreMinerTxsReward
+	} else {
+		key = mc.MSKeyPreMinerBlkReward
+	}
+	log.INFO(PackageName, "设置前矿工奖励值为", reward, "key", key)
 	minerOutReward := &mc.MinerOutReward{Reward: *reward}
-	matrixstate.SetDataToState(mc.MSKeyPreMinerReward, minerOutReward, state)
+	matrixstate.SetDataToState(key, minerOutReward, state)
 	return
 
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, reader util.ChainReader, innerMiners []mc.NodeInfo) map[common.Address]*big.Int {
+func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, reader util.ChainReader, innerMiners []mc.NodeInfo, rewardType uint8) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
 
 	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)
@@ -91,8 +103,8 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 		return nil
 	}
 
-	preReward, err := mr.GetPreMinerReward(state)
-	mr.SetPreMinerReward(state, curReward)
+	preReward, err := mr.GetPreMinerReward(state, rewardType)
+	mr.SetPreMinerReward(state, curReward, rewardType)
 	if nil != err {
 		return nil
 	}
