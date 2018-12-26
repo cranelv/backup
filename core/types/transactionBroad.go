@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"sync/atomic"
 	"time"
+	"github.com/matrix/go-matrix/params"
 )
 
 type TransactionBroad struct {
@@ -132,7 +133,7 @@ func (tx *TransactionBroad) SetTxCurrency(currency string) {
 
 }
 func (tx *TransactionBroad) GetTxCurrency() string {
-	return ""
+	return params.MAN_COIN
 }
 
 //YY
