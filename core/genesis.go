@@ -185,19 +185,20 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
 		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
 
-	}
-	if nil != gensis1.MState.CurElect {
-		//curElect
-		curElect := make([]common.Elect, 0)
-		for _, elec := range *gensis1.MState.CurElect {
-			tmp := new(common.Elect)
-			tmp.Account = base58.Base58DecodeToAddress(elec.Account)
-			tmp.Stock = elec.Stock
-			tmp.Type = elec.Type
-			curElect = append(curElect, *tmp)
+		if nil != gensis1.MState.CurElect {
+			//curElect
+			curElect := make([]common.Elect, 0)
+			for _, elec := range *gensis1.MState.CurElect {
+				tmp := new(common.Elect)
+				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp.Stock = elec.Stock
+				tmp.Type = elec.Type
+				curElect = append(curElect, *tmp)
+			}
+			gensis.MState.CurElect = &curElect
 		}
-		gensis.MState.CurElect = &curElect
 	}
+
 }
 
 //**********************************************************//
