@@ -52,7 +52,7 @@ type GenesisMState1 struct {
 	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, curElect []common.Elect,nextElect []common.Elect, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -65,9 +65,11 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 
-	if err := ms.setElectToState(state, elect, num); err != nil {
+	if err := ms.setElectToState(state,curElect, nextElect, num); err != nil {
 		return err
 	}
+
+
 	if err := ms.setSpecialNodeToState(state, num); err != nil {
 		return err
 	}
@@ -173,19 +175,20 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 	return matrixstate.SetDataToState(mc.MSKeyTopologyGraph, newGraph, state)
 }
 
-func (g *GenesisMState) setElectToState(state *state.StateDB, gensisElect []common.Elect, num uint64) error {
-	if len(gensisElect) == 0 {
+func (g *GenesisMState) setElectToState(state *state.StateDB, curElect []common.Elect, nextElect []common.Elect,num uint64) error {
+	if len(nextElect) == 0 &&len(curElect)==0{
 		return nil
 	}
 
 	elect := &mc.ElectGraph{
 		Number:    num,
 		ElectList: make([]mc.ElectNodeInfo, 0),
-		NextElect: make([]mc.ElectNodeInfo, 0),
+		NextMinerElect: make([]mc.ElectNodeInfo, 0),
+		NextValidatorElect: make([]mc.ElectNodeInfo, 0),
 	}
 
-	minerIndex, backUpMinerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0), uint16(0)
-	for _, item := range gensisElect {
+	minerIndex,  validatorIndex, backUpValidatorIndex := uint16(0),  uint16(0), uint16(0)
+	for _, item := range nextElect {
 		nodeInfo := mc.ElectNodeInfo{
 			Account: item.Account,
 			Stock:   item.Stock,
@@ -195,9 +198,31 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, gensisElect []comm
 		case common.ElectRoleMiner:
 			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
 			minerIndex++
-		case common.ElectRoleMinerBackUp:
-			nodeInfo.Position = common.GeneratePosition(backUpMinerIndex, item.Type)
-			backUpMinerIndex++
+			elect.NextMinerElect=append(elect.NextMinerElect,nodeInfo)
+		case common.ElectRoleValidator:
+			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
+			validatorIndex++
+			elect.NextValidatorElect=append(elect.NextValidatorElect,nodeInfo)
+		case common.ElectRoleValidatorBackUp:
+			nodeInfo.Position = common.GeneratePosition(backUpValidatorIndex, item.Type)
+			backUpValidatorIndex++
+			elect.NextValidatorElect=append(elect.NextValidatorElect,nodeInfo)
+		default:
+			nodeInfo.Position = 0
+		}
+	}
+
+
+	for _,item:=range curElect{
+		nodeInfo := mc.ElectNodeInfo{
+			Account: item.Account,
+			Stock:   item.Stock,
+			Type:    item.Type.Transfer2CommonRole(),
+		}
+		switch item.Type {
+		case common.ElectRoleMiner:
+			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
+			minerIndex++
 		case common.ElectRoleValidator:
 			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
 			validatorIndex++
@@ -207,7 +232,7 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, gensisElect []comm
 		default:
 			nodeInfo.Position = 0
 		}
-		elect.ElectList = append(elect.ElectList, nodeInfo)
+		elect.ElectList=append(elect.ElectList,nodeInfo)
 	}
 
 	err := matrixstate.SetDataToState(mc.MSKeyElectGraph, elect, state)

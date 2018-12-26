@@ -44,6 +44,7 @@ import (
 	"github.com/matrix/go-matrix/rpc"
 	"io/ioutil"
 	"os"
+	"crypto/sha256"
 )
 
 const (
@@ -355,7 +356,9 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 		fmt.Println("解密失败", err)
 		return false
 	}
-	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
+	h:=sha256.New()
+	h.Write([]byte(password))
+	tpass, err := aes.AesDecrypt(bytesPass,h.Sum(nil))
 	if err != nil {
 		fmt.Println("AedDecrypt失败", bytesPass, password)
 		return false

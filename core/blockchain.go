@@ -2179,7 +2179,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 		if err := json.Unmarshal(tx1.Data(), mState); err != nil {
 			return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
 		}
-		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, block.Header().Number.Uint64())
+		mState.setMatrixState(stateDB, block.Header().NetTopology, []common.Elect{},block.Header().Elect, block.Header().Number.Uint64())
 
 	}
 	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {

@@ -9,8 +9,8 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mc"
 	"math/big"
-	"math/rand"
 	"sort"
+	"github.com/matrix/go-matrix/common/mt19937"
 )
 
 type RatioList struct {
@@ -206,10 +206,13 @@ func (vip *Electoion) ValidatorTopGen(MasterNum int, BackupNum int) ([]Strallyin
 }
 
 func Knuth_Fisher_Yates_Algorithm(nodeList []Node, randSeed *big.Int) []Node {
+	rand:=mt19937.New()
+	rand.Seed(randSeed.Int64())
+
 	//高纳德置乱算法
 	rand.Seed(randSeed.Int64())
 	for index := len(nodeList) - 1; index > 0; index-- {
-		aimIndex := rand.Intn(index + 1)
+		aimIndex := rand.Uint64()%uint64(len(nodeList))
 		t := nodeList[index]
 		nodeList[index] = nodeList[aimIndex]
 		nodeList[aimIndex] = t

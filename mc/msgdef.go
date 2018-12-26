@@ -87,7 +87,8 @@ type ElectNodeInfo struct {
 type ElectGraph struct {
 	Number    uint64
 	ElectList []ElectNodeInfo
-	NextElect []ElectNodeInfo
+	NextMinerElect []ElectNodeInfo
+	NextValidatorElect []ElectNodeInfo
 }
 
 type ElectOnlineStatus struct {

@@ -28,7 +28,8 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		VersionSignatures []common.Signature                `json:"versionSignatures"`
 		VrfValue          string                            `json:"vrfvalue"`
 		Leader            common.Address                    `json:"leader"`
-		Elect             []common.Elect                    `json:"elect"        gencodec:"required"`
+		NextElect             []common.Elect                    `json:"nextElect"        gencodec:"required"`
+		CurElect             []common.Elect                    `json:"curElect"        gencodec:"required"`
 		NetTopology       common.NetTopology                `json:"nettopology"        gencodec:"required"`
 		Signatures        []common.Signature                `json:"signatures" gencodec:"required"`
 		GasLimit          math.HexOrDecimal64               `json:"gasLimit"   gencodec:"required"`
@@ -52,7 +53,8 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.VersionSignatures = g.VersionSignatures
 	enc.VrfValue = string(g.VrfValue)
 	enc.Leader = g.Leader
-	enc.Elect = g.Elect
+	enc.CurElect = g.CurElect
+	enc.NextElect=g.NextElect
 	enc.NetTopology = g.NetTopology
 	enc.Signatures = g.Signatures
 	enc.GasLimit = math.HexOrDecimal64(g.GasLimit)
@@ -84,7 +86,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
 		VrfValue          *string                                     `json:"vrfvalue"`
 		Leader            *common.Address                             `json:"leader"`
-		Elect             *[]common.Elect                             `json:"elect" gencodec:"required"`
+		CurElect             *[]common.Elect                             `json:"curElect" gencodec:"required"`
+		NextElect             *[]common.Elect                             `json:"nextElect" gencodec:"required"`
 		NetTopology       *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
 		Signatures        *[]common.Signature                         `json:"signatures" gencodec:"required"`
 		GasLimit          *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
@@ -128,8 +131,11 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.Leader != nil {
 		g.Leader = *dec.Leader
 	}
-	if dec.Elect != nil {
-		g.Elect = *dec.Elect
+	if dec.CurElect != nil {
+		g.CurElect = *dec.CurElect
+	}
+	if dec.NextElect != nil {
+		g.NextElect = *dec.NextElect
 	}
 	if dec.NetTopology != nil {
 		g.NetTopology = *dec.NetTopology
@@ -191,7 +197,8 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 		VersionSignatures []common.Signature        `json:"versionSignatures"`
 		VrfValue          string                    `json:"vrfvalue"`
 		Leader            string                    `json:"leader"`
-		Elect             []common.Elect1           `json:"elect"        gencodec:"required"`
+		CurElect             []common.Elect1           `json:"curElect"        gencodec:"required"`
+		NextElect             []common.Elect1           `json:"nextElect"        gencodec:"required"`
 		NetTopology       common.NetTopology1       `json:"nettopology"        gencodec:"required"`
 		Signatures        []common.Signature        `json:"signatures" gencodec:"required"`
 		GasLimit          math.HexOrDecimal64       `json:"gasLimit"   gencodec:"required"`
@@ -215,7 +222,8 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 	enc.VersionSignatures = g.VersionSignatures
 	enc.VrfValue = common.Bytes2Hex(g.VrfValue)
 	enc.Leader = g.Leader
-	enc.Elect = g.Elect
+	enc.CurElect = g.CurElect
+	enc.NextElect=g.NextElect
 	enc.NetTopology = g.NetTopology
 	enc.Signatures = g.Signatures
 	enc.GasLimit = math.HexOrDecimal64(g.GasLimit)
@@ -247,7 +255,8 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		VersionSignatures *[]common.Signature       `json:"versionSignatures"`
 		VrfValue           *hexutil.Bytes                   `json:"vrfvalue"`
 		Leader            *string                   `json:"leader"`
-		Elect             *[]common.Elect1          `json:"elect" gencodec:"required"`
+		CurElect             *[]common.Elect1          `json:"curElect" gencodec:"required"`
+		NextElect             *[]common.Elect1          `json:"nextElect" gencodec:"required"`
 		NetTopology       *common.NetTopology1      `json:"nettopology"        gencodec:"required"`
 		Signatures        *[]common.Signature       `json:"signatures" gencodec:"required"`
 		GasLimit          *math.HexOrDecimal64      `json:"gasLimit"   gencodec:"required"`
@@ -290,8 +299,11 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	if dec.Leader != nil {
 		g.Leader = *dec.Leader
 	}
-	if dec.Elect != nil {
-		g.Elect = *dec.Elect
+	if dec.CurElect != nil {
+		g.CurElect = *dec.CurElect
+	}
+	if dec.NextElect != nil {
+		g.NextElect = *dec.NextElect
 	}
 	if dec.NetTopology != nil {
 		g.NetTopology = *dec.NetTopology
