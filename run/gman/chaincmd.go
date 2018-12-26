@@ -305,7 +305,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	//hezi
 
-	core.ManGenesisToEthGensis(genesis1, genesis)
+	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)

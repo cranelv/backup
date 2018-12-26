@@ -15,7 +15,7 @@ const (
 	ElectRoleMinerBackUp        ElectRoleType = 0x01
 	ElectRoleValidator          ElectRoleType = 0x02
 	ElectRoleValidatorBackUp    ElectRoleType = 0x03
-	ElectRoleCandidateValidator ElectRoleType = 0x10
+	ElectRoleCandidateValidator ElectRoleType = 0x04
 	ElectRoleNil                ElectRoleType = 0xff
 )
 
