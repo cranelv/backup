@@ -20,13 +20,15 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
 	self.codecMap[mc.MSKeyMinHash] = new(MSKeyMinHashCodec)
 	self.codecMap[mc.MSKeyPerAllTop] = new(MSKeyPerAllTopCodec)
-	self.codecMap[mc.MSKeyPreMiner] = new(MSKeyPreMinerCodec)
+
 	self.codecMap[mc.MSKeyLeaderConfig] = new(MSKeyLeaderConfigCodec)
 	self.codecMap[mc.MSKeyBlkRewardCfg] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeyTxsRewardCfg] = new(MSPTxsRewardCfgCodec)
 	self.codecMap[mc.MSKeyInterestCfg] = new(MSPInterestCfgCodec)
 	self.codecMap[mc.MSKeyLotteryCfg] = new(MSPLotteryCfgCodec)
 	self.codecMap[mc.MSKeySlashCfg] = new(MSPSlashCfgCodec)
+	self.codecMap[mc.MSKeyPreMinerReward] = new(MSPPreMinerRewardCodec)
+	self.codecMap[mc.MSKEYLotteryAccount] = new(MSPPreLotteryFromCodec)
 	self.codecMap[mc.MSKeyMultiCoin] = new(MSPRewardRateCfgCodec)
 	self.codecMap[mc.MSKeySuperBlockCfg] = new(MSPSuperBlkCfgCodec)
 	self.codecMap[mc.MSKeyBroadcastTx] = new(MSKeyBroadcastTxCodec)
@@ -475,6 +477,52 @@ func (MSPSlashCfgCodec) decodeFn(data []byte) (interface{}, error) {
 	return msg, nil
 }
 
+type MSPPreMinerRewardCodec struct {
+}
+
+func (MSPPreMinerRewardCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSPPreMinerRewardCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.MinerOutReward)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
+type MSPPreLotteryFromCodec struct {
+}
+
+func (MSPPreLotteryFromCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (MSPPreLotteryFromCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := new(mc.LotteryFrom)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	if msg == nil {
+		return nil, errors.New("msg is nil")
+	}
+	return msg, nil
+}
+
 type MSPSuperBlkCfgCodec struct {
 }
 
@@ -488,29 +536,6 @@ func (MSPSuperBlkCfgCodec) encodeFn(msg interface{}) ([]byte, error) {
 
 func (MSPSuperBlkCfgCodec) decodeFn(data []byte) (interface{}, error) {
 	msg := new(mc.SuperBlkCfg)
-	err := json.Unmarshal(data, msg)
-	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
-	}
-	if msg == nil {
-		return nil, errors.New("msg is nil")
-	}
-	return msg, nil
-}
-
-type MSKeyPreMinerCodec struct {
-}
-
-func (MSKeyPreMinerCodec) encodeFn(msg interface{}) ([]byte, error) {
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
-	}
-	return data, nil
-}
-
-func (MSKeyPreMinerCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.PreMinerStruct)
 	err := json.Unmarshal(data, msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)

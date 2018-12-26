@@ -1179,7 +1179,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	return nil, nil
 }
 
-func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval, upTime map[common.Address]uint64) error {
+func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval, upTime map[common.Address]uint64, from []common.Address) error {
 
 	num := header.Number.Uint64()
 	if bcInterval.IsBroadcastNumber(num) {
@@ -1210,6 +1210,7 @@ func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, 
 	lottery := lottery.New(bc, state, nil)
 	if nil != lottery {
 		lottery.ProcessMatrixState(header.Number.Uint64())
+		lottery.LotterySaveAccount(from, header.VrfValue)
 	}
 	interestReward := interest.New(state)
 	if nil == interestReward {
@@ -1371,6 +1372,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			receipts types.Receipts = nil
 			logs                    = make([]*types.Log, 0)
 			usedGas  uint64         = 0
+			from                    = make([]common.Address, 0)
 		)
 		if block.IsSuperBlock() {
 			sbs, err := bc.GetSuperBlockSeq()
@@ -1408,15 +1410,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 
-			err = bc.ProcessReward(state, block.Header(), bcInterval, uptimeMap)
-			if err != nil {
-				bc.reportBlock(block, nil, err)
-				return i, events, coalescedLogs, err
-			}
 			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
+			receipts, logs, usedGas, from, err = bc.processor.Process(block, state, bc.vmConfig)
 			if err != nil {
 				bc.reportBlock(block, receipts, err)
+				return i, events, coalescedLogs, err
+			}
+			err = bc.ProcessReward(state, block.Header(), bcInterval, uptimeMap, from)
+			if err != nil {
+				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
 			// Validate the state using the default validator

@@ -1,6 +1,8 @@
 package lottery
 
 import (
+	"errors"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common/mt19937"
 	"github.com/matrix/go-matrix/params"
 	"math/big"
@@ -47,11 +49,12 @@ type ChainReader interface {
 }
 
 type TxsLottery struct {
-	chain      ChainReader
-	seed       LotterySeed
-	state      util.StateDB
-	lotteryCfg *mc.LotteryCfgStruct
-	bcInterval *manparams.BCInterval
+	chain       ChainReader
+	seed        LotterySeed
+	state       util.StateDB
+	lotteryCfg  *mc.LotteryCfgStruct
+	bcInterval  *manparams.BCInterval
+	accountList []common.Address
 }
 
 type LotterySeed interface {
@@ -87,11 +90,12 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 		return nil
 	}
 	tlr := &TxsLottery{
-		chain:      chain,
-		seed:       seed,
-		state:      st,
-		lotteryCfg: cfg,
-		bcInterval: bcInterval,
+		chain:       chain,
+		seed:        seed,
+		state:       st,
+		lotteryCfg:  cfg,
+		bcInterval:  bcInterval,
+		accountList: make([]common.Address, 0),
 	}
 
 	return tlr
@@ -101,6 +105,62 @@ func abs(n int64) int64 {
 	return (n ^ y) - y
 }
 
+func (tlr *TxsLottery) GetAccountFromState(state util.StateDB) ([]common.Address, error) {
+	accounts, err := matrixstate.GetDataByState(mc.MSKEYLotteryAccount, state)
+	if nil != err {
+		log.Error(PackageName, "获取矿工奖励金额错误", err)
+		return nil, errors.New("获取矿工金额错误")
+	}
+	if accounts == nil {
+		log.Error(PackageName, "反射失败", err)
+		return nil, errors.New("反射失败")
+	}
+	lotteryFrom, ok := accounts.(*mc.LotteryFrom)
+	if !ok {
+		log.Error(PackageName, "类型转换失败", err)
+		return nil, errors.New("类型转换失败")
+	}
+	return lotteryFrom.From, nil
+
+}
+
+func (tlr *TxsLottery) AddAccountToState(state util.StateDB, account common.Address) {
+	accountList, _ := tlr.GetAccountFromState(state)
+
+	if nil == accountList {
+		accountList = make([]common.Address, 0)
+	}
+	accountList = append(accountList, account)
+	from := &mc.LotteryFrom{From: accountList}
+	matrixstate.SetDataToState(mc.MSKEYLotteryAccount, from, state)
+	return
+}
+
+func (tlr *TxsLottery) ResetAccountToState() {
+	account := &mc.LotteryFrom{From: make([]common.Address, 0)}
+	matrixstate.SetDataToState(mc.MSKEYLotteryAccount, account, tlr.state)
+	return
+
+}
+func (tlr *TxsLottery) LotterySaveAccount(accounts []common.Address, vrfInfo []byte) {
+	if 0 == len(accounts) {
+		log.INFO(PackageName, "当前区块没有普通交易", "")
+		return
+	}
+
+	randObj := mt19937.New()
+	vrf := baseinterface.NewVrf()
+	_, vrfValue, _ := vrf.GetVrfInfoFromHeader(vrfInfo)
+	seed := common.BytesToHash(vrfValue).Big().Int64()
+	log.Debug(PackageName, "随机数种子", seed)
+	randObj.Seed(seed)
+	rand := randObj.Uint64()
+	index := rand % uint64(len(accounts))
+	account := accounts[index]
+	tlr.AddAccountToState(tlr.state, account)
+	log.Debug(PackageName, "候选彩票账户", account)
+
+}
 func (tlr *TxsLottery) LotteryCalc(parentHash common.Hash, num uint64) map[common.Address]*big.Int {
 	//选举周期的最后时刻分配
 
@@ -114,11 +174,13 @@ func (tlr *TxsLottery) LotteryCalc(parentHash common.Hash, num uint64) map[commo
 	for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 		lotteryNum += tlr.lotteryCfg.LotteryInfo[i].PrizeNum
 	}
+
 	txsCmpResultList := tlr.getLotteryList(parentHash, num, lotteryNum)
 	if 0 == len(txsCmpResultList) {
 		log.ERROR(PackageName, "本周期没有交易不抽奖", "")
 		return nil
 	}
+
 	LotteryAccount := make(map[common.Address]*big.Int, 0)
 	tlr.lotteryChoose(txsCmpResultList, LotteryAccount)
 
@@ -173,16 +235,21 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 		return false
 	}
 	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
-
+	accountList, err := tlr.GetAccountFromState(tlr.state)
+	if nil != err {
+		log.Error(PackageName, "获取候选账户错误", err)
+	}
+	if 0 == len(accountList) {
+		log.Error(PackageName, "获取账户数量为0", "")
+		return false
+	}
+	tlr.accountList = accountList
+	tlr.ResetAccountToState()
 	return true
 }
 
-func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum uint64) TxCmpResultList {
-	originBlockNum := tlr.bcInterval.GetLastReElectionNumber() - tlr.bcInterval.GetReElectionInterval()
+func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotteryNum uint64) []common.Address {
 
-	if num < tlr.bcInterval.GetReElectionInterval() {
-		originBlockNum = 0
-	}
 	randSeed, err := tlr.seed.GetRandom(parentHash, manparams.ElectionSeed)
 	if nil != err {
 		log.Error(PackageName, "获取随机数错误", err)
@@ -191,54 +258,30 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 
 	log.Debug(PackageName, "随机数种子", randSeed.Int64())
 	rand := mt19937.RandUniformInit(randSeed.Int64())
-	txsCmpResultList := make(TxCmpResultList, 0)
-	for originBlockNum < num {
-		block := tlr.chain.GetBlockByNumber(originBlockNum)
-		if block == nil {
-			log.WARN(PackageName, "获取区块错误，高度为:", block)
-			continue
-		}
-		txs := block.Transactions()
-		for _, tx := range txs {
-			if tx.GetMatrixType() == common.ExtraNormalTxType {
-				txCmpResult := TxCmpResult{tx, tx.Hash().Big().Uint64()}
-				txsCmpResultList = append(txsCmpResultList, txCmpResult)
-			}
 
-		}
-		originBlockNum++
-	}
-	if 0 == len(txsCmpResultList) {
-		return nil
-	}
 	//sort.Sort(txsCmpResultList)
-	chooseResultList := make(TxCmpResultList, 0)
-	log.Debug(PackageName, "交易数目", len(txsCmpResultList))
-	for i := 0; i < int(lotteryNum) && i < len(txsCmpResultList); i++ {
+	chooseResultList := make([]common.Address, 0)
+	log.Debug(PackageName, "交易数目", len(tlr.accountList))
+	for i := 0; i < int(lotteryNum) && i < len(tlr.accountList); i++ {
 		randomData := uint64(rand.Uniform(0, float64(^uint64(0))))
 		log.Trace(PackageName, "随机数", randomData)
-		index := randomData % (uint64(len(txsCmpResultList)))
+		index := randomData % (uint64(len(tlr.accountList)))
 		log.Trace(PackageName, "交易序号", index)
-		chooseResultList = append(chooseResultList, txsCmpResultList[index])
+		chooseResultList = append(chooseResultList, tlr.accountList[index])
 	}
 
 	return chooseResultList
 }
 
-func (tlr *TxsLottery) lotteryChoose(txsCmpResultList TxCmpResultList, LotteryMap map[common.Address]*big.Int) {
+func (tlr *TxsLottery) lotteryChoose(txsCmpResultList []common.Address, LotteryMap map[common.Address]*big.Int) {
 
-	sig := types.NewEIP155Signer(tlr.chain.Config().ChainId)
 	RecordMap := make(map[uint8]uint64)
 	for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 		RecordMap[uint8(i)] = 0
 	}
 
-	for _, txs := range txsCmpResultList {
-		from, err := types.Sender(sig, txs.Tx)
-		if nil != err {
-			log.Error(PackageName, "解析交易from出错", err)
-			continue
-		}
+	for _, from := range txsCmpResultList {
+
 		//抽取一等奖
 		log.Debug(PackageName, "解析交易from", from)
 		for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {

@@ -45,7 +45,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, []common.Address, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -84,6 +84,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		go types.Sender_self(sig, ttx, waitG)
 	}
 	waitG.Wait()
+	from := make([]common.Address, 0)
 	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
@@ -95,17 +96,18 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, nil, err
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 		txcount = i
+		from = append(from, tx.From())
 	}
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, nil, err
 		}
 		tmpr := make(types.Receipts, 0)
 		tmpr = append(tmpr, receipt)
@@ -120,7 +122,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
-	return receipts, allLogs, *usedGas, nil
+	return receipts, allLogs, *usedGas, from, nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
