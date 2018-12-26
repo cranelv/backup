@@ -132,7 +132,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			return nil, fmt.Errorf("parent block #%d not found", number-1)
 		}
 	}
-	statedb, err := state.NewStateDBManage(start.Root(), api.man.ChainDb())
+	statedb, err := state.NewStateDBManage(start.Root(), api.man.ChainDb(),database)
 	if err != nil {
 		// If the starting state is missing, allow some number of blocks to be reexecuted
 		reexec := defaultTraceReexec
@@ -145,7 +145,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			if start == nil {
 				break
 			}
-			if statedb, err = state.NewStateDBManage(start.Root(), api.man.ChainDb()); err == nil {
+			if statedb, err = state.NewStateDBManage(start.Root(), api.man.ChainDb(),database); err == nil {
 				break
 			}
 		}
@@ -473,7 +473,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block == nil {
 			break
 		}
-		if statedb, err = state.NewStateDBManage(block.Root(), api.man.ChainDb()); err == nil {
+		if statedb, err = state.NewStateDBManage(block.Root(), api.man.ChainDb(),database); err == nil {
 			break
 		}
 	}

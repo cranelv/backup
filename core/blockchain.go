@@ -268,7 +268,7 @@ func (bc *BlockChain) loadLastState() error {
 		return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
-	if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db); err != nil { //ShardingYY
+	if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db,bc.stateCache); err != nil { //ShardingYY
 		log.INFO("Get State Err",  "err", err)
 		//log.INFO("Get State Err", "root", currentBlock.Root().TerminalString(), "err", err)
 		// Dangling block without a state associated, init from scratch
@@ -339,7 +339,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		bc.currentBlock.Store(bc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
 	}
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil {
-		if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db); err != nil { //ShardingYY
+		if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db,bc.stateCache); err != nil { //ShardingYY
 			// Rewound state missing, rolled back to before pivot, reset to genesis
 			bc.currentBlock.Store(bc.genesisBlock)
 		}
@@ -445,7 +445,7 @@ func (bc *BlockChain) State() (*state.StateDBManage, error) { //ShardingYY
 
 // StateAt returns a new mutable state based on a particular point in time.
 func (bc *BlockChain) StateAt(root []common.CoinRoot) (*state.StateDBManage, error) {
-	return state.NewStateDBManage(root, bc.db)
+	return state.NewStateDBManage(root, bc.db,bc.stateCache)
 }
 
 func (bc *BlockChain) GetStateByHash(hash common.Hash) (*state.StateDBManage, error) { //ShardingYY
@@ -496,7 +496,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
-		if _, err := state.NewStateDBManage((*head).Root(), bc.db); err == nil { //ShardingYY
+		if _, err := state.NewStateDBManage((*head).Root(), bc.db,bc.stateCache); err == nil { //ShardingYY
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
@@ -1631,7 +1631,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			parent = chain[i-1]
 		}
 		// Process block using the parent state as reference point.
-		state, err := state.NewStateDBManage(parent.Root(), bc.db) //ShardingYY
+		state, err := state.NewStateDBManage(parent.Root(), bc.db,bc.stateCache) //ShardingYY
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -2359,7 +2359,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 		return nil, errors.Errorf("parent block number(%d) + 1 != super block number(%d)", parent.NumberU64(), superBlockGen.Number)
 	}
 
-	block := superBlockGen.GenSuperBlock(parent.Header(), bc.db, bc.chainConfig)
+	block := superBlockGen.GenSuperBlock(parent.Header(), bc.db,bc.stateCache, bc.chainConfig)
 	if nil == block {
 		return nil, errors.New("genesis super block failed")
 	}

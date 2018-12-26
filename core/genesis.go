@@ -336,7 +336,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
-	statedb, _ := state.NewStateDBManage(nil,db) //ShardingYY
+	statedb, _ := state.NewStateDBManage(nil,db,state.NewDatabase(db)) //ShardingYY
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(params.MAN_COIN,common.MainAccount, addr, account.Balance) //ShardingYY
 		///*******************************************************/
@@ -410,13 +410,13 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	return types.NewBlock(head, nil, nil, nil), nil
 }
 
-func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mandb mandb.Database, chainCfg *params.ChainConfig) *types.Block {
-	if nil == parentHeader || nil == mandb {
+func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, sdb state.Database, chainCfg *params.ChainConfig) *types.Block {
+	if nil == parentHeader || nil == sdb {
 		log.ERROR("genesis super block", "param err", "nil")
 		return nil
 	}
 
-	stateDB, err := state.NewStateDBManage(parentHeader.Roots, mandb)
+	stateDB, err := state.NewStateDBManage(parentHeader.Roots, mdb,sdb)
 	if err != nil {
 		log.Error("genesis super block", "get parent state db err", err)
 		return nil

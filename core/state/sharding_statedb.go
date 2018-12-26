@@ -13,6 +13,7 @@ import (
 	_"github.com/matrix/go-matrix/base58"
 	"fmt"
 	"github.com/matrix/go-matrix/mandb"
+	"time"
 )
 type RangeManage struct {
 	Range   byte
@@ -24,25 +25,21 @@ type CoinManage struct {
 }
 type StateDBManage struct {
 	db          Database
-	mandb		mandb.Database
+	mdb		mandb.Database
 	shardings	[]*CoinManage
 	coinRoot    []common.CoinRoot
 	retcoinRoot []common.CoinRoot
-	//dbReader 	*rawdb.DatabaseReader
-	//dbWriter 	*rawdb.DatabaseWriter
 }
 
 // Create a new state from a given trie.
-func NewStateDBManage(roots []common.CoinRoot, mandb mandb.Database) (*StateDBManage, error) {
-	//mr,_:=json.Marshal(roots)			//TODO
-	//rthash:=common.BytesToHash(mr)		//TODO
+func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database,db Database) (*StateDBManage, error) {
 	if len(roots) == 0{
 		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
 		//roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:[]byte{}})//YYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	stm := &StateDBManage{
-		mandb:			   mandb,
-		db:                NewDatabase(mandb),
+		mdb:			   mdb,
+		db:                db,
 		shardings:         make([]*CoinManage,0),
 		coinRoot:          make([]common.CoinRoot,len(roots)),
 		retcoinRoot:       make([]common.CoinRoot,len(roots)),
@@ -82,7 +79,8 @@ func (shard *StateDBManage) addShardings(cointyp string){
 		if cr.Cointyp == cointyp{
 			rms := make([]*RangeManage,0)
 			var hashs []common.Hash
-			Roots,err:=shard.mandb.Get(cr.Root[:])
+			Roots,err:=shard.mdb.Get(cr.Root[:])
+			log.Info("TTTTTTTTTTTTTTTTTTTTTTTaddShardings1111111111","cr.Root",cr.Root.String(),"time",time.Now().UnixNano())
 			if err!=nil {
 				log.Error("file sharding_statedb", "func addShardings:Get", err)
 			}else {
@@ -97,7 +95,13 @@ func (shard *StateDBManage) addShardings(cointyp string){
 				}
 			}
 			for i,hash:=range hashs{
-				stdb,_ := newStatedb(hash,shard.db)
+				stdb,err := newStatedb(hash,shard.db)
+				if stdb == nil{
+					log.Info("TTTTTTTTTTTTTTTTTTTTTTTaddShardings2222222222222","cr.Root",cr.Root.String(),"hash",hash.String(),"time",time.Now().UnixNano())
+					aa := 9
+					fmt.Println(aa)
+					fmt.Println(err)
+				}
 				rms = append(rms,&RangeManage{Range:byte(i),State:stdb})
 			}
 			cmg := &CoinManage{Cointyp:cointyp,Rmanage:rms}
@@ -334,6 +338,8 @@ func (shard *StateDBManage) AddBalance(cointyp string,accountType uint32, addr c
 	if stateObject != nil {
 		stateObject.AddBalance(accountType, amount)
 	}
+	std := shard.GetStateDb(cointyp,common.Address{})
+	log.Info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAddBalance","hash",std.trie.Hash().String())
 }
 
 // SubBalance subtracts amount from the account associated with addr.
@@ -342,6 +348,8 @@ func (shard *StateDBManage) SubBalance(cointyp string,accountType uint32,addr co
 	if stateObject != nil {
 		stateObject.SubBalance(accountType, amount)
 	}
+	std := shard.GetStateDb(cointyp,common.Address{})
+	log.Info("UUUUUUUUUUUUUUUUUUUSubBalance","hash",std.trie.Hash().String())
 }
 
 func (shard *StateDBManage) SetBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int) {
@@ -561,7 +569,7 @@ func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, c
 func (shard *StateDBManage) Copy() *StateDBManage {
 	state := &StateDBManage{
 		db:                shard.db,
-		//trie:              shard.db.CopyTrie(shard.trie),
+		mdb:               shard.mdb,
 		shardings:		   make([]*CoinManage,0),
 		coinRoot:		   make([]common.CoinRoot,0),
 	}
@@ -638,15 +646,25 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot {
-	var Roots []common.Hash
+	var root256 []common.Hash
+	var tmproot256 []common.Hash
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage{
-			root:=rm.State.IntermediateRoot(deleteEmptyObjects)
-			Roots=append(Roots,root)
+			tmproot256 = append(tmproot256,rm.State.trie.Hash())
 		}
-		bs,err:=json.Marshal(Roots)
-		bshash:=common.BytesToHash(bs)
-		shard.mandb.Put(bshash[:],bs)
+		bshash1:=types.RlpHash(tmproot256)
+		for _,rm:=range cm.Rmanage{
+			str := rm.State.trie.Hash().String()
+			root:=rm.State.IntermediateRoot(deleteEmptyObjects)
+			root256=append(root256,root)
+			if rm.Range == 0{
+				log.Info("TTTTTTTTTTTTTTTTTTTTTTTIntermediateRoot00000000000000","root",root.String(),"str",str,"time",time.Now().UnixNano())
+			}
+		}
+		bshash:=types.RlpHash(root256)
+		bs,_ := rlp.EncodeToBytes(root256)
+		err := shard.mdb.Put(bshash[:],bs)
+		log.Info("TTTTTTTTTTTTTTTTTTTTTTTIntermediateRoot","cr.Root",bshash.String(),"bshash1",bshash1.String(),"time",time.Now().UnixNano())
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:IntermediateRoot",err)
 			panic(err)
@@ -695,12 +713,13 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 				log.Error("file:sharding_statedb.go","func:Commit",err)
 				panic(err)
 			}
+			log.Info("TTTTTTTTTTTTTTTTTTTTTTTCommit00000000000000","root",root,"time",time.Now().UnixNano())
 			Roots=append(Roots,root)
 		}
-		bs,err:=json.Marshal(Roots)
-		bshash:=common.BytesToHash(bs)
-
-		err=shard.mandb.Put(bshash[:],bs)
+		bshash:=types.RlpHash(Roots)
+		bs,err:=rlp.EncodeToBytes(Roots)
+		err=shard.mdb.Put(bshash[:],bs)
+		log.Info("TTTTTTTTTTTTTTTTTTTTTTTCommit","cr.Root",bshash.String(),"time",time.Now().UnixNano())
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:Commit",err)
 			panic(err)
@@ -791,6 +810,10 @@ func (self *StateDBManage) SetMatrixData(hash common.Hash, val []byte) {
 func (self *StateDBManage) GetMatrixData(hash common.Hash) (val []byte) {
 	for _,cm:=range self.shardings {
 		if cm.Cointyp==params.MAN_COIN{
+			if cm.Rmanage[0].State == nil{
+				aa:=0
+				fmt.Println(aa)
+			}
 			return cm.Rmanage[0].State.GetMatrixData(hash)
 			break
 		}
