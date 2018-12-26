@@ -123,7 +123,7 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 	var originNum uint64
 	originNum = num - 100
 	if num < 101 {
-		originNum = 1
+		originNum = 0
 	}
 	for i := num - 1; i > originNum; i-- {
 		if bcInterval.IsBroadcastNumber(i) {
