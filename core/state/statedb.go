@@ -108,16 +108,15 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
 	}
-	//b, err1 := tr.TryGet([]byte(common.StateDBRevocableBtree))
-	//types.RlpHash(common.StateDBTimeBtree)
-	b := st.GetMatrixData(types.RlpHash(common.StateDBRevocableBtree))
-	if b != nil && len(b)>0 {
+
+	b, err1 := st.tryGetMatrixData(types.RlpHash(common.StateDBRevocableBtree))
+	if err1 == nil {
 		hash1 := common.BytesToHash(b)
 		st.NewBTrie(common.ExtraRevocable)
 		trie.RestoreBtree(&st.revocablebtrie, nil, hash1, db.TrieDB(), common.ExtraRevocable)
 	}
-	b2 := st.GetMatrixData(types.RlpHash(common.StateDBTimeBtree))
-	if b2 != nil && len(b2)>0 {
+	b2, err2 := st.tryGetMatrixData(types.RlpHash(common.StateDBTimeBtree))
+	if err2 == nil{
 		hash2 := common.BytesToHash(b2)
 		st.NewBTrie(common.ExtraTimeTxType)
 		trie.RestoreBtree(&st.timebtrie, nil, hash2, db.TrieDB(), common.ExtraTimeTxType)
@@ -855,6 +854,18 @@ func (self *StateDB) updateMatrixData(hash common.Hash, val []byte) {
 	self.setError(self.trie.TryUpdate(hash[:], vl))
 }
 
+func (self *StateDB) tryGetMatrixData(hash common.Hash)(val []byte,err error) {
+	tmpval,err := self.trie.TryGet(hash[:])
+	if err != nil || len(tmpval)==0{
+		return nil,err
+	}
+	if bytes.Compare(tmpval[:4],[]byte("MAN-")) == 0{
+		val = tmpval[4:] //去掉"MAN-"前綴
+	}else {
+		val = tmpval
+	}
+	return
+}
 func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
 	self.setError(self.trie.TryDelete(hash[:]))
 }
