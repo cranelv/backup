@@ -77,20 +77,20 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Hea
 	} else {
 		blockHash = header.ParentHash
 	}
-	accounts, err := reader.GetSpecialAccounts(blockHash)
+	accounts, err := reader.GetVersionSuperAccounts(blockHash)
 	if err != nil || accounts == nil {
 		return errors.Errorf("get super version account from state err(%s)", err)
 	}
 
-	targetCount := md.calcSuperNodeTarget(len(accounts.VersionSuperAccounts))
+	targetCount := md.calcSuperNodeTarget(len(accounts))
 
 	if len(header.VersionSignatures) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
 		return errVersionSignCount
 	}
 
-	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, accounts.VersionSuperAccounts)
-	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", accounts.VersionSuperAccounts[0].String())
+	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, accounts)
+	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", accounts[0].String())
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errVersionVerifySign
@@ -110,17 +110,17 @@ func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
 
 func (md *MtxDPOS) CheckSuperBlock(reader consensus.StateReader, header *types.Header) error {
 
-	accounts, err := reader.GetSpecialAccounts(header.ParentHash)
+	accounts, err := reader.GetBlockSuperAccounts(header.ParentHash)
 	if err != nil || accounts == nil {
 		return errors.Errorf("get super block account from state err(%s)", err)
 	}
 
-	targetCount := md.calcSuperNodeTarget(len(accounts.BlockSuperAccounts))
+	targetCount := md.calcSuperNodeTarget(len(accounts))
 	if len(header.Signatures) < targetCount {
 		log.ERROR("共识引擎", "版本号签名数量不足 size", len(header.Version), "target", targetCount)
 		return errSignCountErr
 	}
-	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, accounts.BlockSuperAccounts)
+	verifiedSigh := md.verifyHashWithSuperNodes(header.HashNoSigns(), header.Signatures, accounts)
 	if len(verifiedSigh) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedSigh), "target", targetCount, "hash", header.HashNoSigns().TerminalString())
 		return errSignCountErr
@@ -403,11 +403,11 @@ func (md *MtxDPOS) verifyBroadcastBlock(reader consensus.StateReader, header *ty
 		return errors.Errorf("broadcast block's sign account(%s) is not block leader(%s)", from.Hex(), header.Leader.Hex())
 	}
 
-	accounts, err := reader.GetSpecialAccounts(header.ParentHash)
-	if err != nil || accounts == nil {
+	broadcast, err := reader.GetBroadcastAccount(header.ParentHash)
+	if err != nil || broadcast == (common.Address{}) {
 		return errors.Errorf("get broadcast account from state err(%s)", err)
 	}
-	if accounts.BroadcastAccount.Address != from {
+	if broadcast != from {
 		return errBroadcastVerifySign
 	}
 	if result == false {

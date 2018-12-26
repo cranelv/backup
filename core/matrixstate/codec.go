@@ -14,7 +14,11 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyElectOnlineState] = new(ElectOnlineStateCodec)
 	self.codecMap[mc.MSKeyBroadcastInterval] = new(BroadcastIntervalCodec)
 	self.codecMap[mc.MSKeyElectGenTime] = new(ElectGenTimeCodec)
-	self.codecMap[mc.MSKeyMatrixAccount] = new(MatrixNodeCodec)
+	self.codecMap[mc.MSKeyAccountBroadcast] = new(AccountCodec)
+	self.codecMap[mc.MSKeyAccountInnerMiners] = new(AccountsCodec)
+	self.codecMap[mc.MSKeyAccountFoundation] = new(AccountCodec)
+	self.codecMap[mc.MSKeyAccountVersionSupers] = new(AccountsCodec)
+	self.codecMap[mc.MSKeyAccountBlockSupers] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyElectConfigInfo] = new(ElectConfigInfoCodec)
 	self.codecMap[mc.MSKeyVIPConfig] = new(MSPVIPConfigCodec)
 	self.codecMap[mc.MSKeyPreBroadcastRoot] = new(MSPreBroadcastStateDBCodec)
@@ -161,11 +165,11 @@ func (ElectGenTimeCodec) decodeFn(data []byte) (interface{}, error) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// key = MSPMatrixNode
-type MatrixNodeCodec struct {
+// key = MSKeyAccountBroadcast、MSKeyAccountFoundation
+type AccountCodec struct {
 }
 
-func (MatrixNodeCodec) encodeFn(msg interface{}) ([]byte, error) {
+func (AccountCodec) encodeFn(msg interface{}) ([]byte, error) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Marshal failed: %s", err)
@@ -173,14 +177,33 @@ func (MatrixNodeCodec) encodeFn(msg interface{}) ([]byte, error) {
 	return data, nil
 }
 
-func (MatrixNodeCodec) decodeFn(data []byte) (interface{}, error) {
-	msg := new(mc.MatrixSpecialAccounts)
-	err := json.Unmarshal(data, msg)
+func (AccountCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := common.Address{}
+	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
-	if msg == nil {
-		return nil, errors.New("msg is nil")
+	return msg, nil
+}
+
+////////////////////////////////////////////////////////////////////////
+// key = MSKeyAccountInnerMiners、MSKeyAccountVersionSupers、MSKeyAccountBlockSupers
+type AccountsCodec struct {
+}
+
+func (AccountsCodec) encodeFn(msg interface{}) ([]byte, error) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func (AccountsCodec) decodeFn(data []byte) (interface{}, error) {
+	msg := make([]common.Address, 0)
+	err := json.Unmarshal(data, &msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
 	return msg, nil
 }

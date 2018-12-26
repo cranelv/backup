@@ -18,8 +18,8 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcast            *mc.NodeInfo           `json:"Broadcast"`
-	InnerMiners          *[]mc.NodeInfo         `json:"InnerMiners"`
+	Broadcast            *common.Address        `json:"Broadcast"`
+	InnerMiners          *[]common.Address      `json:"InnerMiners"`
 	Foundation           *common.Address        `json:"Foundation"`
 	VersionSuperAccounts *[]common.Address      `json:"VersionSuperAccounts"`
 	BlockSuperAccounts   *[]common.Address      `json:"BlockSuperAccounts"`
@@ -33,10 +33,11 @@ type GenesisMState struct {
 	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
 	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
 	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
+	CurElect             *[]common.Elect        `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcast            *mc.NodeInfo1          `json:"Broadcast,omitempty"`
-	InnerMiners          *[]mc.NodeInfo1        `json:"InnerMiners,omitempty"`
+	Broadcast            *string                `json:"Broadcast,omitempty"`
+	InnerMiners          *[]string              `json:"InnerMiners,omitempty"`
 	Foundation           *string                `json:"Foundation,omitempty"`
 	VersionSuperAccounts *[]string              `json:"VersionSuperAccounts,omitempty"`
 	BlockSuperAccounts   *[]string              `json:"BlockSuperAccounts,omitempty"`
@@ -50,9 +51,10 @@ type GenesisMState1 struct {
 	SlashCfg             *mc.SlashCfgStruct     `json:"SlashCfg" ,omitempty"`
 	EleTimeCfg           *mc.ElectGenTimeStruct `json:"EleTime" ,omitempty"`
 	EleInfoCfg           *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
+	CurElect             *[]common.Elect1       `json:"curElect"    gencodec:"required"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, curElect []common.Elect,nextElect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -65,14 +67,26 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 
-	if err := ms.setElectToState(state,curElect, nextElect, num); err != nil {
+	if err := ms.setElectToState(state, nextElect, num); err != nil {
 		return err
 	}
 
-
-	if err := ms.setSpecialNodeToState(state, num); err != nil {
+	if err := ms.setBroadcastAccountToState(state, num); err != nil {
 		return err
 	}
+	if err := ms.setInnerMinerAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setFoundationAccountToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setVersionSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setBlockSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+
 	if err := ms.setBlkRewardCfgToState(state, num); err != nil {
 		return err
 	}
@@ -175,19 +189,24 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 	return matrixstate.SetDataToState(mc.MSKeyTopologyGraph, newGraph, state)
 }
 
-func (g *GenesisMState) setElectToState(state *state.StateDB, curElect []common.Elect, nextElect []common.Elect,num uint64) error {
-	if len(nextElect) == 0 &&len(curElect)==0{
+func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common.Elect, num uint64) error {
+	var curElect []common.Elect = nil
+	if g.CurElect != nil {
+		curElect = *g.CurElect
+	}
+
+	if len(nextElect) == 0 && len(curElect) == 0 {
 		return nil
 	}
 
 	elect := &mc.ElectGraph{
-		Number:    num,
-		ElectList: make([]mc.ElectNodeInfo, 0),
-		NextMinerElect: make([]mc.ElectNodeInfo, 0),
+		Number:             num,
+		ElectList:          make([]mc.ElectNodeInfo, 0),
+		NextMinerElect:     make([]mc.ElectNodeInfo, 0),
 		NextValidatorElect: make([]mc.ElectNodeInfo, 0),
 	}
 
-	minerIndex,  validatorIndex, backUpValidatorIndex := uint16(0),  uint16(0), uint16(0)
+	minerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0)
 	for _, item := range nextElect {
 		nodeInfo := mc.ElectNodeInfo{
 			Account: item.Account,
@@ -198,22 +217,21 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, curElect []common.
 		case common.ElectRoleMiner:
 			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
 			minerIndex++
-			elect.NextMinerElect=append(elect.NextMinerElect,nodeInfo)
+			elect.NextMinerElect = append(elect.NextMinerElect, nodeInfo)
 		case common.ElectRoleValidator:
 			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
 			validatorIndex++
-			elect.NextValidatorElect=append(elect.NextValidatorElect,nodeInfo)
+			elect.NextValidatorElect = append(elect.NextValidatorElect, nodeInfo)
 		case common.ElectRoleValidatorBackUp:
 			nodeInfo.Position = common.GeneratePosition(backUpValidatorIndex, item.Type)
 			backUpValidatorIndex++
-			elect.NextValidatorElect=append(elect.NextValidatorElect,nodeInfo)
+			elect.NextValidatorElect = append(elect.NextValidatorElect, nodeInfo)
 		default:
 			nodeInfo.Position = 0
 		}
 	}
 
-
-	for _,item:=range curElect{
+	for _, item := range curElect {
 		nodeInfo := mc.ElectNodeInfo{
 			Account: item.Account,
 			Stock:   item.Stock,
@@ -232,7 +250,7 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, curElect []common.
 		default:
 			nodeInfo.Position = 0
 		}
-		elect.ElectList=append(elect.ElectList,nodeInfo)
+		elect.ElectList = append(elect.ElectList, nodeInfo)
 	}
 
 	err := matrixstate.SetDataToState(mc.MSKeyElectGraph, elect, state)
@@ -252,71 +270,89 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, curElect []common.
 	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
 }
 
-func (g *GenesisMState) setSpecialNodeToState(state *state.StateDB, num uint64) error {
-	var specialNodes *mc.MatrixSpecialAccounts
+func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uint64) error {
 	if num == 0 {
-		if (nil == g.Broadcast || g.Broadcast.Address == common.Address{}) {
+		if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		}
-		if nil == g.VersionSuperAccounts || len(*g.VersionSuperAccounts) == 0 {
-			return errors.Errorf("the version superAccount of genesis is empty")
-		}
-		if nil == g.BlockSuperAccounts || len(*g.BlockSuperAccounts) == 0 {
-			return errors.Errorf("the block superAccount of genesis is empty")
-		}
-		specialNodes = &mc.MatrixSpecialAccounts{}
-		specialNodes.BroadcastAccount = *g.Broadcast
-		specialNodes.VersionSuperAccounts = *g.VersionSuperAccounts
-		specialNodes.BlockSuperAccounts = *g.BlockSuperAccounts
-		if nil != g.Foundation {
-			specialNodes.FoundationAccount = *g.Foundation
-		}
-		if nil != g.InnerMiners {
-			if len(*g.InnerMiners) == 0 {
-				specialNodes.InnerMinerAccounts = make([]mc.NodeInfo, 0)
-			} else {
-				specialNodes.InnerMinerAccounts = *g.InnerMiners
-			}
-		}
-
 	} else {
-		modifyBroad := g.Broadcast != nil
-		modifyFounda := g.Foundation != nil
-		modifyInner := g.InnerMiners != nil
-		modifyVersion := g.VersionSuperAccounts != nil
-		if modifyBroad || modifyFounda || modifyInner || modifyVersion {
-			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
-			if err != nil {
-				return errors.Errorf("get pre special node err: %v", err)
-			}
-			specialNodes, _ = data.(*mc.MatrixSpecialAccounts)
-			if specialNodes == nil {
-				return errors.New("pre special node reflect err")
-			}
-
-			if modifyBroad {
-				specialNodes.BroadcastAccount = *g.Broadcast
-			}
-			if modifyFounda {
-				specialNodes.FoundationAccount = *g.Foundation
-			}
-			if modifyInner {
-				specialNodes.InnerMinerAccounts = *g.InnerMiners
-			}
-			if modifyVersion {
-				if 0 != len(*g.VersionSuperAccounts) {
-					specialNodes.VersionSuperAccounts = *g.VersionSuperAccounts
-				}
-			}
+		if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
+			return nil
 		}
 	}
+	matrixstate.SetDataToState(mc.MSKeyAccountBroadcast, *g.Broadcast, state)
+	return nil
+}
 
-	if specialNodes != nil {
-		log.Info("Geneis", "specialNodes", specialNodes)
-		return matrixstate.SetDataToState(mc.MSKeyMatrixAccount, specialNodes, state)
+func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num uint64) error {
+	var innerMiners []common.Address = nil
+	if num == 0 {
+		if g.InnerMiners == nil || *g.InnerMiners == nil {
+			innerMiners = make([]common.Address, 0)
+		} else {
+			innerMiners = *g.InnerMiners
+		}
 	} else {
-		return nil
+		if g.InnerMiners == nil || *g.InnerMiners == nil {
+			return nil
+		} else {
+			innerMiners = *g.InnerMiners
+		}
 	}
+	matrixstate.SetDataToState(mc.MSKeyAccountInnerMiners, innerMiners, state)
+	return nil
+}
+
+func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num uint64) error {
+	var foundation common.Address
+	if num == 0 {
+		if g.Foundation == nil || *g.Foundation == (common.Address{}) {
+			foundation = common.Address{}
+		} else {
+			foundation = *g.Foundation
+		}
+	} else {
+		if g.Foundation == nil || *g.Foundation == (common.Address{}) {
+			return nil
+		}
+		foundation = *g.Foundation
+	}
+	matrixstate.SetDataToState(mc.MSKeyAccountFoundation, foundation, state)
+	return nil
+}
+
+func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num uint64) error {
+	var accounts []common.Address = nil
+	if num == 0 {
+		if g.VersionSuperAccounts == nil || *g.VersionSuperAccounts == nil {
+			errors.Errorf("the version superAccounts of genesis is empty")
+		}
+		accounts = *g.VersionSuperAccounts
+	} else {
+		if g.VersionSuperAccounts == nil || *g.VersionSuperAccounts == nil {
+			return nil
+		}
+		accounts = *g.VersionSuperAccounts
+	}
+	matrixstate.SetDataToState(mc.MSKeyAccountVersionSupers, accounts, state)
+	return nil
+}
+
+func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num uint64) error {
+	var accounts []common.Address = nil
+	if num == 0 {
+		if g.BlockSuperAccounts == nil || *g.BlockSuperAccounts == nil {
+			errors.Errorf("the block superAccounts of genesis is empty")
+		}
+		accounts = *g.BlockSuperAccounts
+	} else {
+		if g.BlockSuperAccounts == nil || *g.BlockSuperAccounts == nil {
+			return nil
+		}
+		accounts = *g.BlockSuperAccounts
+	}
+	matrixstate.SetDataToState(mc.MSKeyAccountBlockSupers, accounts, state)
+	return nil
 }
 
 func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64) error {
