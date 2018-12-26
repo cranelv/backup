@@ -155,7 +155,7 @@ func (md *MatrixDeposit) deposit(in []byte, contract *Contract, evm *EVM, thresh
 	}
 
 	var addr []byte
-	err := depositAbi.Methods["valiDeposit"].Inputs.Unpack(&addr, in)
+	err := depositAbi.Methods["valiDeposit"].Inputs.Unpack(&addr, in[len(in)-20:])
 	if err != nil || len(addr) != 20 {
 		return nil, errDeposit
 	}
