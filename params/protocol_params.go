@@ -88,7 +88,8 @@ const (
 const (
 	MAN_COIN     string = "MAN"   //ShardingYY
 	BTC_COIN     string = "BTC"   //ShardingYY   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
-	RANGE_MOUNTS int =256
+	RANGE_MOUNTS int =	256
+	COIN_NAME	  string = "COIN_TYPE"
 )
 var (
 	DifficultyBoundDivisor = big.NewInt(10)  // The bound divisor of the difficulty, used in the update calculations.

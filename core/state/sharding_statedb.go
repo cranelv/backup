@@ -62,11 +62,30 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 			isex = true
 		}
 	}
-	if !isex {
+	var types  []string
+	if !isex && cointyp!=params.MAN_COIN{
 		//TODO 去主币种的第一个分区上查找当前币种是否存在如果存在走下面,不存在就return
-		if false{
-			return
+		for _,cm:=range shard.shardings{
+			if cm.Cointyp==params.MAN_COIN {
+				v:=cm.Rmanage[0].State.trie.GetKey([]byte(params.COIN_NAME))
+				err:=json.Unmarshal(v,&types)
+				if err!=nil {
+					log.Error("")
+				}
+				flag:=true
+				for _,coinName:= range types  {
+					if coinName==cointyp{
+						flag=false
+						 break
+					}
+				}
+				if flag {
+					return
+				}
+				break
+			}
 		}
+
 		shard.coinRoot = append(shard.coinRoot,common.CoinRoot{Cointyp:cointyp,Root:common.Hash{}})
 		shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cointyp,Root:common.Hash{}})
 	}
@@ -257,9 +276,8 @@ func (shard *StateDBManage) GetCode(cointyp string,addr common.Address) []byte{
 	}
 	return nil
 }
-//TODO
-func (shard *StateDBManage) GetCodeSize(cointyp string,addr common.Address) int {
 
+func (shard *StateDBManage) GetCodeSize(cointyp string,addr common.Address) int {
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject == nil {
 		return 0
@@ -425,7 +443,7 @@ func (shard *StateDBManage) Suicide(cointyp string,addr common.Address) bool {
 //
 
 // updateStateObject writes the given object to the trie.
-//TODO	=======================================================================
+
 func (shard *StateDBManage) updateStateObject(cointyp string,a common.Address,stateObject *stateObject) {
 	self:=shard.GetStateDb(cointyp,a)
 	addr := stateObject.Address()
@@ -435,7 +453,7 @@ func (shard *StateDBManage) updateStateObject(cointyp string,a common.Address,st
 	}
 	self.setError(self.trie.TryUpdate(addr[:], data))
 }
-//TODO	=======================================================================
+
 // deleteStateObject removes the given object from the state trie.
 func (shard *StateDBManage) deleteStateObject(cointyp string,a common.Address,stateObject *stateObject) {
 	self:=shard.GetStateDb(cointyp,a)
@@ -479,7 +497,7 @@ func (shard StateDBManage) getStateObject(cointyp string,addr common.Address) (s
 	self.setStateObject(obj)
 	return obj
 }
-//TODO	=======================================================================
+
 func (shard *StateDBManage) setStateObject(cointyp string,a common.Address,object *stateObject) {
 	shard.GetStateDb(cointyp,a).stateObjects[object.Address()] = object
 }
@@ -552,7 +570,7 @@ func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, c
 
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
-//TODO	这个函数被改写过
+
 func (shard *StateDBManage) Copy() *StateDBManage {
 	state := &StateDBManage{
 		db:                shard.db,
@@ -713,7 +731,6 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 	}
 	return shard.retcoinRoot,nil
 }
-//TODO	===========================================================================================
 
 func (self *StateDBManage) CommitSaveTx(cointyp string,addr common.Address) {
 	for _,cm:=range self.shardings{
@@ -771,7 +788,7 @@ func (self *StateDBManage) SaveTx(cointyp string,addr common.Address,typ byte, k
 	}
 }
 
-//TODO	===========================================================================================
+
 //SetMatrixData，GetMatrixData，DeleteMxData都是针对man币种 分区[0]
 func (self *StateDBManage) SetMatrixData(hash common.Hash, val []byte) {
 	for _,cm:=range self.shardings {
@@ -833,7 +850,7 @@ func (self *StateDBManage) GetGasAuthFromByTime(cointyp string,entrustFrom commo
 	}
 	return common.Address{}
 }
-//TODO	===========================================================================================
+
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDBManage) GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
 	return self.GetStateDb(cointyp,entrustFrom).GetGasAuthFrom(entrustFrom,height)
@@ -874,28 +891,45 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Addr
 //TODO	===========================================================================================
 //TODO	===========================================================================================
 func (self *StateDBManage)RawDump(cointype string)Dump {
-	for _,cm:=range self.shardings  {
-		if cointype==cm.Cointyp {
-		for _,rm:=range cm.Rmanage{
-			rm.State.RawDump()
-		}
-		break
-		}
-	}
+	//var dumps []Dump
+	//for _,cm:=range self.shardings  {
+	//	if cointype==cm.Cointyp {
+	//	for _,rm:=range cm.Rmanage{
+	//		dmup:=rm.State.RawDump()
+	//		dumps=append(dumps,dmup)
+	//	}
+	//	break
+	//	}
+	//}
 	return Dump{}
 }
 
 func (self *StateDBManage)Dump(cointype string) []byte {
-	for _,cm:=range self.shardings  {
-		if cointype==cm.Cointyp {
-			for _,rm:=range cm.Rmanage{
-				rm.State.Dump()
-			}
-			break
-		}
+	//for _,cm:=range self.shardings  {
+	//	if cointype==cm.Cointyp {
+	//		for _,rm:=range cm.Rmanage{
+	//			rm.State.Dump()
+	//		}
+	//		break
+	//	}
+	//}
+	json, err := json.MarshalIndent(self.RawDump(cointype), "", "    ")
+	if err != nil {
+		fmt.Println("dump err", err)
 	}
-	return []byte{}
+	return json
 }
 func (self *StateDBManage)RawDumpAcccount(cointype string,address common.Address) Dump {
-	return Dump{}
+	var dump Dump
+	for _,cm:=range self.shardings  {
+		if cm.Cointyp==cointype {
+			for _,rm:=range cm.Rmanage  {
+				if rm.Range==address[1] {
+					dump=rm.State.RawDumpAcccount(address)
+					break
+				}
+			}
+		}
+	}
+	return dump
 }

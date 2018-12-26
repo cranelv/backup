@@ -9,7 +9,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
-	"encoding/json"
 )
 
 func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
@@ -83,7 +82,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		r1:=types.RlpHash(localBlock.Root())
 		r2:=types.RlpHash(result.Header.Roots)
 		if r1 != r2 {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot",r1, "remote root",r2))
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot",r1, "remote root",r2)
 			continue
 		}
 
