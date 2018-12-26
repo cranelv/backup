@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"time"
+	"bytes"
 )
 
 type revision struct {
@@ -107,14 +108,16 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
 	}
-	b, err1 := tr.TryGet([]byte(common.StateDBRevocableBtree))
-	if err1 == nil {
+	//b, err1 := tr.TryGet([]byte(common.StateDBRevocableBtree))
+	//types.RlpHash(common.StateDBTimeBtree)
+	b := st.GetMatrixData(types.RlpHash(common.StateDBRevocableBtree))
+	if b != nil && len(b)>0 {
 		hash1 := common.BytesToHash(b)
 		st.NewBTrie(common.ExtraRevocable)
 		trie.RestoreBtree(&st.revocablebtrie, nil, hash1, db.TrieDB(), common.ExtraRevocable)
 	}
-	b2, err2 := tr.TryGet([]byte(common.StateDBTimeBtree))
-	if err2 == nil {
+	b2 := st.GetMatrixData(types.RlpHash(common.StateDBTimeBtree))
+	if b2 != nil && len(b2)>0 {
 		hash2 := common.BytesToHash(b2)
 		st.NewBTrie(common.ExtraTimeTxType)
 		trie.RestoreBtree(&st.timebtrie, nil, hash2, db.TrieDB(), common.ExtraTimeTxType)
@@ -578,22 +581,14 @@ func (self *StateDB) CommitSaveTx() {
 			}
 			tmproot := self.revocablebtrie.Root()
 			hash = trie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraRevocable)
-			b := []byte(common.StateDBRevocableBtree)
-			err := self.trie.TryUpdate(b, hash.Bytes())
-			if err != nil {
-				log.Error("file statedb", "func CommitSaveTx:err2", err)
-			}
+			self.updateMatrixData(types.RlpHash(common.StateDBRevocableBtree), hash[:])
 		case common.StateDBTimeBtree:
 			if len(btree.Data) > 0 {
 				self.timebtrie.ReplaceOrInsert(trie.SpcialTxData{btree.Key, btree.Data})
 			}
 			tmproot := self.timebtrie.Root()
 			hash = trie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraTimeTxType)
-			b := []byte(common.StateDBTimeBtree)
-			err := self.trie.TryUpdate(b, hash.Bytes())
-			if err != nil {
-				log.Error("file statedb", "func CommitSaveTx:err2", err)
-			}
+			self.updateMatrixData(types.RlpHash(common.StateDBTimeBtree), hash[:])
 		default:
 
 		}
@@ -876,7 +871,11 @@ func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 		self.setError(err)
 		return nil
 	}
-	val = tmpval[4:] //去掉"MAN-"前綴
+	if bytes.Compare(tmpval[:4],[]byte("MAN-")) == 0{
+		val = tmpval[4:] //去掉"MAN-"前綴
+	}else {
+		val = tmpval
+	}
 	self.matrixData[hash] = val
 	return
 }
