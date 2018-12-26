@@ -375,12 +375,12 @@ func tMatrixDeposit(t *testing.T, p PrecompiledContract, deposit string, thresho
 	copy(in[:4], depositAbi.Methods[deposit].Id())
 
 	var addr = make([]byte, 20)
-	var temp = make([]byte, 24)
+	var temp = make([]byte, 12)
 
-	copy(addr, []byte("0x05e3c16931c6e578f948231dca609d754c18fc09"))
-	bytes, _ := depositAbi.Methods[deposit].Inputs.Pack(addr)
+	copy(addr, []byte("05e3c16931c6e578f948231dca609d754c18fc09"))
+	//bytes, _ := depositAbi.Methods[deposit].Inputs.Pack(addr)
 	in = append(in, temp...)
-	in = append(in, bytes...)
+	in = append(in, addr...)
 	reqGas := p.RequiredGas(in)
 	contract = NewContract(AccountRef(common.HexToAddress("0xfabff5c20c795aa698c23a3e2a02570c9e0bb020")),
 		AccountRef(common.BytesToAddress([]byte{10})), threshold, reqGas)
