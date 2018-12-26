@@ -629,12 +629,12 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		return nil, fmt.Errorf("start block height (%d) must be less than end block height (%d)", startBlock.Number().Uint64(), endBlock.Number().Uint64())
 	}
 
-	stR:=common.IToHash(startBlock.Root())
+	stR:=types.RlpHash(startBlock.Root())
 	oldTrie, err := trie.NewSecure(stR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err
 	}
-	enR:=common.IToHash(endBlock.Root())
+	enR:=types.RlpHash(endBlock.Root())
 	newTrie, err := trie.NewSecure(enR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err

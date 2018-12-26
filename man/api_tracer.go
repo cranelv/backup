@@ -280,7 +280,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				break
 			}
 			// Reference the trie twice, once for us, once for the trancer
-			roothash:=common.IToHash(root)
+			roothash:=types.RlpHash(root)
 
 			database.TrieDB().Reference(roothash, common.Hash{})
 			if number >= origin {
@@ -513,7 +513,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if err := statedb.Reset(root); err != nil {
 			return nil, err
 		}
-		roothash:=common.IToHash(root)
+		roothash:=types.RlpHash(root)
 		database.TrieDB().Reference(roothash, common.Hash{})
 		database.TrieDB().Dereference(proot, common.Hash{})
 		proot = roothash

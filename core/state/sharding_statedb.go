@@ -84,9 +84,9 @@ func (shard *StateDBManage) addShardings(cointyp string){
 			if err!=nil {
 				log.Error("file sharding_statedb", "func addShardings:Get", err)
 			}else {
-				err=json.Unmarshal(Roots,&hashs)
+				err=rlp.DecodeBytes(Roots,&hashs)
 				if err!=nil{
-					log.Error("file sharding_statedb", "func addShardings:Unmarshal", err)
+					log.Error("file sharding_statedb", "func addShardings:DecodeBytes", err)
 				}
 			}
 			if len(hashs) <=0{

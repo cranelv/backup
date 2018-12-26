@@ -11,7 +11,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
-	"encoding/json"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 // secureKeyPrefix is the database key prefix used to store trie node preimages.
@@ -164,7 +164,7 @@ func (db *Database) Nodes() []common.Hash {
 func (db *Database) ReferenceRoot(childs []common.CoinRoot, parent common.Hash) {
 	for _,cr := range childs {
 		var hashs []common.Hash
-		err:=json.Unmarshal(cr.Root[:],&hashs)
+		err:=rlp.DecodeBytes(cr.Root[:],&hashs)
 		if err != nil{
 			log.Error("file database","func CommitRoots:err",err)
 			continue
@@ -245,9 +245,10 @@ func (db *Database) CommitRoots(nodes []common.CoinRoot, report bool) error {
 			log.Error("file database","func CommitRoots:err","db.diskdb.Get",err)
 			continue
 		}
-		err=json.Unmarshal(root,&hashs)
+		//err=json.Unmarshal(root,&hashs)
+		err=rlp.DecodeBytes(root,&hashs)
 		if err != nil{
-			log.Error("file database","func CommitRoots:err","Unmarshal",err)
+			log.Error("file database","func CommitRoots:err","DecodeBytes",err)
 			continue
 		}
 		for _,hash := range hashs{

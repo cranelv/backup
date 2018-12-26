@@ -203,7 +203,7 @@ func (p *Process) processHeaderGen() error {
 			}
 
 		}
-		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", common.IToHash(p2pBlock.Header.Roots), "高度", p.number)
+		log.INFO(p.logExtraInfo(), "!!!!本地发送区块验证请求, root", types.RlpHash(p2pBlock.Header.Roots), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
 		p.startConsensusReqSender(p2pBlock)
 	}

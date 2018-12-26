@@ -11,8 +11,6 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/params"
-	"encoding/json"
-	"github.com/matrix/go-matrix/common"
 )
 
 // BlockValidator is responsible for validating block headers, uncles and
@@ -86,9 +84,7 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	// Validate the state root against the received state root and throw
 	// an error if they don't match.
 	root := statedb.IntermediateRoot(v.config.IsEIP158(header.Number))
-	b,_ := json.Marshal(root)
-	b1,_ := json.Marshal(header.Roots)
-	if  common.BytesToHash(b) != common.BytesToHash(b1) { //ShardingYY
+	if  types.RlpHash(root) != types.RlpHash(header.Roots) { //ShardingYY
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Roots, root)
 	}
 

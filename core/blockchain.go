@@ -372,8 +372,7 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x…]", hash[:4])
 	}
-	b,_:= json.Marshal(block.Root())  //ShardingYY
-	if _, err := trie.NewSecure(common.BytesToHash(b), bc.stateCache.TrieDB(), 0); err != nil {  //ShardingYY
+	if _, err := trie.NewSecure(types.RlpHash(block.Root()), bc.stateCache.TrieDB(), 0); err != nil {  //ShardingYY
 		return err
 	}
 	// If all checks out, manually set the head block
@@ -661,9 +660,9 @@ func (bc *BlockChain)HasStateRoot(roots []common.CoinRoot)bool{
 			log.Error("file blockchain","func HasStateRoot:err","db.Get",err)
 			return false
 		}
-		err = json.Unmarshal(rt,&hashs)
+		err=rlp.DecodeBytes(rt,&hashs)
 		if err!=nil{
-			log.Error("file blockchain","func HasStateRoot:err","Unmarshal",err)
+			log.Error("file blockchain","func HasStateRoot:err","DecodeBytes",err)
 			return false
 		}
 		for _,hash := range hashs{
@@ -1060,11 +1059,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err != nil {
 		return NonStatTy, err
 	}
-	roothash := common.IToHash(root) //ShardingYY
-	blockroothash:=common.IToHash(block.Root())
-	if common.IToHash(root) != common.IToHash(block.Root()){  //ShardingYY
+	roothash := types.RlpHash(root) //ShardingYY
+	blockroothash:=types.RlpHash(block.Root())
+	if roothash !=blockroothash{  //ShardingYY
 		//fmt.Printf("===ZH2==:%s\n", state.Dump())
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", common.IToHash(intermediateRoot), "deleteEmptyObjects", deleteEmptyObjects)
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot",types.RlpHash(intermediateRoot), "deleteEmptyObjects", deleteEmptyObjects)
 
 		//log.Info("miss tree node debug", "入链时", "commit后state状态")
 		//state.MissTrieDebug()
@@ -1592,8 +1591,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			var winner []*types.Block
 
 			parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-			b,_ := json.Marshal(parent.Root())
-			for !bc.HasState(common.BytesToHash(b)) {  //shardingYY
+			for !bc.HasState(types.RlpHash(parent.Root())) {  //shardingYY
 				winner = append(winner, parent)
 				parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
 			}
@@ -1654,10 +1652,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 			root := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())) //shardingYY
-			b2,_:= json.Marshal(root) //ShardingYY
-			intermediateroothash := common.BytesToHash(b2)
-			b1,_:= json.Marshal(block.Root())
-			blockroothash := common.BytesToHash(b1)
+			intermediateroothash := types.RlpHash(root)
+			blockroothash := types.RlpHash(block.Root())//shardingYY
 			if blockroothash != intermediateroothash {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", blockroothash, intermediateroothash)
 			}

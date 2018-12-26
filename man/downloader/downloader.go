@@ -1669,8 +1669,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 			// If new pivot block found, cancel old state retrieval and restart
 			if oldPivot != P {
 				stateSync.Cancel()
-				b,_:=json.Marshal(P.Header.Roots)
-				stateSync = d.syncState(common.BytesToHash(b)) //shardingYY
+				stateSync = d.syncState(types.RlpHash(P.Header.Roots)) //shardingYY
 				defer stateSync.Cancel()
 				go func() {
 					if err := stateSync.Wait(); err != nil && err != errCancelStateFetch {
