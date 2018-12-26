@@ -99,98 +99,52 @@ type Genesis1 struct {
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
-func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis{
-	if nil != gensis1.Config{
-		gensis.Config = gensis1.Config
-	}
-	if gensis1.Nonce!=0{
-		gensis.Nonce = gensis1.Nonce
-	}
-	if gensis1.Timestamp!=0{
-		gensis.Timestamp = gensis1.Timestamp
-	}
-	if len(gensis1.ExtraData)!=0{
-		gensis.ExtraData = gensis1.ExtraData
-	}
-	if gensis1.Version!=""{
-		gensis.Version=gensis1.Version
-	}
-	if len(gensis1.VersionSignatures)!=0{
-		gensis.VersionSignatures = gensis1.VersionSignatures
-	}
-	if len(gensis1.VrfValue)!=0{
-		gensis.VrfValue=gensis1.VrfValue
-	}
-	if len(gensis1.Signatures)!=0{
-		gensis.Signatures = gensis1.Signatures
-	}
-	if nil != gensis1.Difficulty{
-		gensis.Difficulty = gensis1.Difficulty
-	}
-	if gensis1.Mixhash.Equal(common.Hash{})==false{
-		gensis.Mixhash = gensis1.Mixhash
-	}
-	if gensis1.Number!=0{
-		gensis.Number = gensis1.Number
-	}
-	if gensis1.GasUsed!=0{
-		gensis.GasUsed = gensis1.GasUsed
-	}
-	if gensis1.ParentHash.Equal(common.Hash{})==false{
-		gensis.ParentHash=gensis1.ParentHash
-	}
-
-	if gensis1.Leader!=""{
-		gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
-	}
-	if gensis1.Coinbase!=""{
-		gensis.Coinbase=base58.Base58DecodeToAddress(gensis1.Coinbase)
-	}
-	if gensis1.Root.Equal(common.Hash{})==false{
-		gensis.Root = gensis1.Root
-	}
-	if gensis1.TxHash.Equal(common.Hash{})==false{
-		gensis.TxHash = gensis1.TxHash
-	}
+func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
+	gensis.Config = gensis1.Config
+	gensis.Nonce = gensis1.Nonce
+	gensis.Timestamp = gensis1.Timestamp
+	gensis.ExtraData = gensis1.ExtraData
+	gensis.Version = gensis1.Version
+	gensis.VersionSignatures = gensis1.VersionSignatures
+	gensis.VrfValue=gensis1.VrfValue
+	gensis.Signatures = gensis1.Signatures
+	gensis.Difficulty = gensis1.Difficulty
+	gensis.Mixhash = gensis1.Mixhash
+	gensis.Number = gensis1.Number
+	gensis.GasUsed = gensis1.GasUsed
+	gensis.ParentHash = gensis1.ParentHash
+	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
+	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
+	gensis.Root = gensis1.Root
+	gensis.TxHash = gensis1.TxHash
 	//Elect
-	if nil != gensis1.Elect{
-		sliceElect := make([]common.Elect, 0)
-		for _, elec := range gensis1.Elect {
-			tmp := new(common.Elect)
-			tmp.Account = base58.Base58DecodeToAddress(elec.Account)
-			tmp.Stock = elec.Stock
-			tmp.Type = elec.Type
-			sliceElect = append(sliceElect, *tmp)
-		}
-		gensis.Elect = sliceElect
+	sliceElect := make([]common.Elect, 0)
+	for _, elec := range gensis1.Elect {
+		tmp := new(common.Elect)
+		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+		tmp.Stock = elec.Stock
+		tmp.Type = elec.Type
+		sliceElect = append(sliceElect, *tmp)
 	}
-
+	gensis.Elect = sliceElect
 	//NetTopology
-	if len(gensis1.NetTopology.NetTopologyData)!=0{
-		sliceNetTopologyData := make([]common.NetTopologyData, 0)
-		for _, netTopology := range gensis1.NetTopology.NetTopologyData {
-			tmp := new(common.NetTopologyData)
-			tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
-			tmp.Position = netTopology.Position
-			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
-		}
-		gensis.NetTopology.NetTopologyData = sliceNetTopologyData
-		gensis.NetTopology.Type = gensis1.NetTopology.Type
+	sliceNetTopologyData := make([]common.NetTopologyData, 0)
+	for _, netTopology := range gensis1.NetTopology.NetTopologyData {
+		tmp := new(common.NetTopologyData)
+		tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
+		tmp.Position = netTopology.Position
+		sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
 	}
-
+	gensis.NetTopology.NetTopologyData = sliceNetTopologyData
+	gensis.NetTopology.Type = gensis1.NetTopology.Type
 	//Alloc
-	if  nil!=gensis1.Alloc{
-		gensis.Alloc = make(GenesisAlloc)
-		for kString, vGenesisAccount := range gensis1.Alloc {
-			tmpk := base58.Base58DecodeToAddress(kString)
-			gensis.Alloc[tmpk] = vGenesisAccount
-		}
+	gensis.Alloc = make(GenesisAlloc)
+	for kString, vGenesisAccount := range gensis1.Alloc {
+		tmpk := base58.Base58DecodeToAddress(kString)
+		gensis.Alloc[tmpk] = vGenesisAccount
 	}
-
 	if nil != gensis1.MState {
-		if gensis.MState==nil{
-			gensis.MState=new(GenesisMState)
-		}
+		gensis.MState = new(GenesisMState)
 		if nil != gensis1.MState.Broadcast {
 			gensis.MState.Broadcast = new(mc.NodeInfo)
 			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
@@ -216,45 +170,22 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis{
 		if nil != gensis1.MState.InnerMiners {
 			innerMiners := make([]mc.NodeInfo, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
-
-				innerMiners = append(innerMiners, mc.NodeInfo{ Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, mc.NodeInfo{Address: base58.Base58DecodeToAddress(v.Address)})
 			}
 
 			gensis.MState.InnerMiners = &innerMiners
 		}
-		if nil != gensis1.MState.BlkRewardCfg{
-			gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
-		}
-		if nil != gensis1.MState.TxsRewardCfg{
-			gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
-		}
-		if nil != gensis1.MState.InterestCfg{
-			gensis.MState.InterestCfg = gensis1.MState.InterestCfg
-		}
-		if nil != gensis1.MState.LotteryCfg{
-			gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
-		}
-		if nil != gensis1.MState.SlashCfg{
-			gensis.MState.SlashCfg = gensis1.MState.SlashCfg
-		}
-		if nil != gensis1.MState.BCICfg{
-			gensis.MState.BCICfg = gensis1.MState.BCICfg
-		}
-		if nil != gensis1.MState.VIPCfg{
-			gensis.MState.VIPCfg = gensis1.MState.VIPCfg
-		}
-		if nil != gensis1.MState.LeaderCfg{
-			gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
-		}
-		if nil != gensis1.MState.EleTimeCfg{
-			gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
-		}
-		if nil != gensis1.MState.EleInfoCfg{
-			gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
-		}
-
+		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
+		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
+		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
+		gensis.MState.LotteryCfg = gensis1.MState.LotteryCfg
+		gensis.MState.SlashCfg = gensis1.MState.SlashCfg
+		gensis.MState.BCICfg = gensis1.MState.BCICfg
+		gensis.MState.VIPCfg = gensis1.MState.VIPCfg
+		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
+		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
+		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
 	}
-	return gensis
 }
 
 //**********************************************************//
