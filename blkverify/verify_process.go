@@ -719,6 +719,7 @@ func (p *Process) finishedProcess() {
 		mc.PublishEvent(mc.BlkVerify_POSFinishedNotify, &notify)
 	}
 
+	log.Info(p.logExtraInfo(), "关键时间点", "共识投票完毕，发送挖矿请求", "time", time.Now(), "块高", p.number)
 	//给矿工发送区块验证结果
 	p.startSendMineReq(&mc.HD_MiningReqMsg{Header: p.curProcessReq.req.Header})
 	//给广播节点发送区块验证请求(带签名列表)

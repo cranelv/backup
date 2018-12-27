@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/binary"
+	"math/big"
 
 	"github.com/matrix/go-matrix/params/manparams"
 
@@ -427,6 +428,8 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64)
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
+	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
+	matrixstate.SetDataToState(mc.MSKeyPreMinerBlkReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.BlkRewardCfg, state)
 }
 
@@ -460,6 +463,8 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDB, num uint64)
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "TxsRewardCfg", g.TxsRewardCfg)
+	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
+	matrixstate.SetDataToState(mc.MSKeyPreMinerTxsReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.TxsRewardCfg, state)
 }
 
@@ -468,6 +473,8 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) e
 		if g.LotteryCfg == nil {
 			return errors.New("利息配置信息为nil")
 		}
+		account := &mc.LotteryFrom{From: make([]common.Address, 0)}
+		matrixstate.SetDataToState(mc.MSKEYLotteryAccount, account, state)
 		matrixstate.SetNumByState(mc.MSKEYLotteryNum, state, 1)
 	} else {
 		if g.LotteryCfg == nil {

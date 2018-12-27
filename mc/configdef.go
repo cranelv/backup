@@ -2,6 +2,7 @@ package mc
 
 import (
 	"github.com/matrix/go-matrix/common"
+	"math/big"
 )
 
 const (
@@ -36,10 +37,15 @@ const (
 	MSKeyLotteryCfg   = "lottery_reward"
 	MSKeySlashCfg     = "slash_reward"
 	MSKeyMultiCoin    = "coin_reward"
+	//上一矿工奖励金额
+	MSKeyPreMinerBlkReward = "preMiner_blkreward"
+	//上一矿工交易奖励金额
+	MSKeyPreMinerTxsReward = "preMiner_txsreward"
 	//upTime状态
 	MSKeyUpTimeNum = "upTime_num"
 	//彩票状态
-	MSKEYLotteryNum = "lottery_num"
+	MSKEYLotteryNum     = "lottery_num"
+	MSKEYLotteryAccount = "lottery_from"
 	//利息状态
 	MSInterestCalcNum = "interest_calc_num"
 	MSInterestPayNum  = "interest_pay_num"
@@ -152,6 +158,14 @@ type SuperBlkCfg struct {
 	Num uint64
 }
 
+type MinerOutReward struct {
+	Reward big.Int
+}
+
+type LotteryFrom struct {
+	From []common.Address
+}
+
 type RandomInfoStruct struct {
 	MinHash  common.Hash
 	MaxNonce uint64
@@ -159,10 +173,6 @@ type RandomInfoStruct struct {
 type PreAllTopStruct struct {
 	PreAllTopRoot common.Hash
 }
-type PreMinerStruct struct {
-	PreMiner common.Address
-}
-
 type ElectMinerNumStruct struct {
 	MinerNum uint16
 }

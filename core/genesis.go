@@ -187,7 +187,7 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			}
 			gensis.MState.InnerMiners = &whiteList
 		}
-		gensis.MState.ElectMinerNumCfg=gensis1.MState.ElectMinerNumCfg
+		gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
 		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
@@ -198,7 +198,6 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
 		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
 		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
-
 		if nil != gensis1.MState.CurElect {
 			//curElect
 			curElect := make([]common.Elect, 0)

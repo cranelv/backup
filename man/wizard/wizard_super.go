@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"time"
 
@@ -83,7 +82,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
-		VrfValue:          parentHeader.VrfValue,
+		VrfValue:          make([]byte, 0),
 	}
 
 	sbs, err := bc.GetSuperBlockSeq()
@@ -121,10 +120,6 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	}
 
 	// Figure out which consensus engine to choose
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkMinerRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkValidatorRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.TxGasRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.LotteryRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	// All done, store the genesis and flush to disk
 	log.Info("Configured new genesis block")
 

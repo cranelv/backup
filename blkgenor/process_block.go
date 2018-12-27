@@ -200,6 +200,7 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
 		return
 	}
+	log.Info(p.logExtraInfo(), "关键时间点", "收到矿工挖矿结果", "time", time.Now(), "块高", p.number)
 	log.INFO(p.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString(), "from", minerResult.From.Hex())
 	p.processMinerResultVerify(p.curLeader, true)
 }
@@ -338,7 +339,7 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		log.ERROR(p.logExtraInfo(), "区块插入，错误", err)
 		return
 	}
-
+	log.Info(p.logExtraInfo(), "关键时间点", "leader挂块成功", "time", time.Now(), "块高", p.number)
 	log.Debug(p.logExtraInfo(), "区块插入", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
 	p.state = StateEnd
 }

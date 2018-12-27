@@ -26,7 +26,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		ExtraData         hexutil.Bytes                     `json:"extraData"`
 		Version           string                            `json:"version"`
 		VersionSignatures []common.Signature                `json:"versionSignatures"`
-		VrfValue          string                            `json:"vrfvalue"`
+		VrfValue          hexutil.Bytes                     `json:"vrfvalue"`
 		Leader            common.Address                    `json:"leader"`
 		NextElect         []common.Elect                    `json:"nextElect"        gencodec:"required"`
 		NetTopology       common.NetTopology                `json:"nettopology"        gencodec:"required"`
@@ -50,7 +50,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.ExtraData = g.ExtraData
 	enc.Version = g.Version
 	enc.VersionSignatures = g.VersionSignatures
-	enc.VrfValue = string(g.VrfValue)
+	enc.VrfValue = g.VrfValue
 	enc.Leader = g.Leader
 	enc.NextElect = g.NextElect
 	enc.NetTopology = g.NetTopology
@@ -82,7 +82,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		ExtraData         *hexutil.Bytes                              `json:"extraData"`
 		Version           *string                                     `json:"version"`
 		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
-		VrfValue          *string                                     `json:"vrfvalue"`
+		VrfValue          *hexutil.Bytes                              `json:"vrfvalue"`
 		Leader            *common.Address                             `json:"leader"`
 		NextElect         *[]common.Elect                             `json:"nextElect" gencodec:"required"`
 		NetTopology       *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
@@ -122,7 +122,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.Version = *dec.Version
 	}
 	if g.VrfValue != nil {
-		g.VrfValue = common.Hex2Bytes(*dec.VrfValue)
+		g.VrfValue = *dec.VrfValue
 	}
 
 	if dec.Leader != nil {
@@ -189,7 +189,7 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 		ExtraData         hexutil.Bytes             `json:"extraData"`
 		Version           string                    `json:"version"`
 		VersionSignatures []common.Signature        `json:"versionSignatures"`
-		VrfValue          string                    `json:"vrfvalue"`
+		VrfValue          hexutil.Bytes             `json:"vrfvalue"`
 		Leader            string                    `json:"leader"`
 		NextElect         []common.Elect1           `json:"nextElect"        gencodec:"required"`
 		NetTopology       common.NetTopology1       `json:"nettopology"        gencodec:"required"`
@@ -213,7 +213,7 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 	enc.ExtraData = g.ExtraData
 	enc.Version = g.Version
 	enc.VersionSignatures = g.VersionSignatures
-	enc.VrfValue = common.Bytes2Hex(g.VrfValue)
+	enc.VrfValue = g.VrfValue
 	enc.Leader = g.Leader
 	enc.NextElect = g.NextElect
 	enc.NetTopology = g.NetTopology

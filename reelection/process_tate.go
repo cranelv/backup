@@ -284,47 +284,4 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 	return preAllTop, nil
 }
 
-func (self *ReElection) ProducePreMinerData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	if err := CheckBlock(block); err != nil {
-		log.ERROR(Module, "ProducePreMinerData CheckBlock err ", err)
-		return nil, err
-	}
-	log.INFO(Module, "ProducePreMinerData ", "开始", "高度", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProducePreMinerData ", "开始", "高度", block.Header().Number.Uint64())
-	bciData, err := readFn(mc.MSKeyBroadcastInterval)
-	if err != nil {
-		log.Error(Module, "ProducePreMinerData read broadcast interval err", err)
-		return nil, err
-	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
-	if err != nil {
-		log.Error(Module, "ProducePreMinerData create broadcast interval err", err)
-		return nil, err
-	}
 
-	height := block.Header().Number.Uint64()
-	if bcInterval.IsBroadcastNumber(height - 1) {
-		if height==1{
-			log.Info(Module,"第一个区块不处理 前一个miner不需要填 高度",height)
-			return nil,nil
-		}
-		prePreHeader:=self.bc.GetHeaderByNumber(height-2)
-		if nil==prePreHeader{
-			log.Error(Module,"获取广播区块前一块区块信息失败 高度",height)
-			return nil,nil
-		}
-		preMiner := &mc.PreMinerStruct{}
-		preMiner.PreMiner = prePreHeader.Coinbase
-		return preMiner,nil
-	}
-
-	header := self.bc.GetHeaderByHash(block.ParentHash())
-	if header == nil {
-		log.ERROR(Module, "根据hash算区块头失败 高度", block.Number().Uint64())
-		return nil, errors.New("header is nil")
-	}
-	preMiner := &mc.PreMinerStruct{}
-	preMiner.PreMiner = header.Coinbase
-	log.INFO("高度", block.Number().Uint64(), "ProducePreMinerData", "preMiner.PreMiner", preMiner.PreMiner.String())
-	return preMiner, nil
-}
