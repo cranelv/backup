@@ -21,7 +21,6 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"encoding/json"
 	"io/ioutil"
-	"github.com/matrix/go-matrix/log"
 )
 
 func GetDepositDetatil(num int, m int, n int, onlineFlag bool) []vm.DepositDetail {
@@ -170,7 +169,7 @@ func GOTestV(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 	//股权方案-（10-12）
 
 	for Num := 50; Num <= 50; Num++ {
-		for Key := 0; Key < 1; Key++ {
+		for Key := 0; Key < 1000; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key*2000+1), vip1Num, vip2Num, white, black, onlineFlag)
 			//if Key==0{
 			//	for _,v:=range req.ValidatorList{
@@ -245,7 +244,7 @@ func GOTestM(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 }
 
 func TestUnit2(t *testing.T) {
-	log.InitLog(3)
+	//log.InitLog(3)
 	//GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
 	//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
 	//GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",false)
