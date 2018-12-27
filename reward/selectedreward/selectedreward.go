@@ -136,7 +136,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 		return nil
 	}
 
-	return util.CalcDepositRate(reward, selectedNodesDeposit)
+	return util.CalcStockRate(reward, selectedNodesDeposit)
 
 }
 

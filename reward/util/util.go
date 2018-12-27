@@ -37,7 +37,7 @@ var (
 
 	ManPrice *big.Int = big.NewInt(1e18)
 
-	Precision *big.Int = big.NewInt(1e8)
+	Precision *big.Int = big.NewInt(1)
 )
 
 type ChainReader interface {
@@ -155,6 +155,37 @@ func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]DepositInf
 		oneNodeReward := new(big.Int).Mul(rewardTemp1, Precision)
 		rewards[common.HexToAddress(k)] = oneNodeReward
 		log.Debug(PackageName, "计算奖励金额,账户", k, "定点化金额", rewards[common.HexToAddress(k)])
+	}
+	return rewards
+}
+
+func CalcStockRate(reward *big.Int, depositNodes map[common.Address]DepositInfo) map[common.Address]*big.Int {
+
+	if 0 == len(depositNodes) {
+		log.ERROR(PackageName, "抵押列表为空", "")
+		return nil
+	}
+	totalStock := uint16(0)
+
+	for _, v := range depositNodes {
+
+		totalStock = v.Stock + totalStock
+	}
+
+	log.INFO(PackageName, "计算抵押总额,账户股权", totalStock)
+
+	sortedKeys := make([]string, 0)
+
+	for k := range depositNodes {
+		sortedKeys = append(sortedKeys, k.String())
+	}
+	sort.Strings(sortedKeys)
+	rewards := make(map[common.Address]*big.Int)
+	for _, k := range sortedKeys {
+		temp := new(big.Int).Mul(reward, new(big.Int).SetUint64(uint64(depositNodes[common.HexToAddress(k)].Stock)))
+		oneNodeReward := new(big.Int).Div(temp, new(big.Int).SetUint64(uint64(totalStock)))
+		rewards[common.HexToAddress(k)] = oneNodeReward
+		log.Debug(PackageName, "计算奖励金额,账户", k, "奖励金额", oneNodeReward)
 	}
 	return rewards
 }
