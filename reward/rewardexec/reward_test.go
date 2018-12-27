@@ -231,9 +231,6 @@ func TestBlockReward_setMinerOut(t *testing.T) {
 
 	monkey.Patch(matrixstate.GetDataByState, func(key string, state matrixstate.StateDB) (interface{}, error) {
 		fmt.Println("use monkey  manparams.IsBroadcastNumber")
-		if key == mc.MSKeyPreMiner {
-			return &mc.PreMinerStruct{PreMiner: common.HexToAddress(testAddress)}, nil
-		}
 		if key == mc.MSKeyMatrixAccount {
 			return &mc.MatrixSpecialAccounts{FoundationAccount: mc.NodeInfo{Address: common.HexToAddress(testAddress)}}, nil
 		}
@@ -262,20 +259,20 @@ func TestBlockReward_setMinerOut(t *testing.T) {
 
 	Convey("挖矿测试0", t, func() {
 
-		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(0), &State{1000}, 2)
+		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(0), &State{1000}, nil, 2)
 	})
 
 	Convey("挖矿测试1", t, func() {
 
-		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, 1)
+		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, nil, 1)
 	})
 
 	Convey("挖矿测试高度错误", t, func() {
-		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, 100)
+		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, nil, 100)
 	})
 	Convey("挖矿账户nil", t, func() {
 
-		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, 2)
+		rewardobject.rewardCfg.SetReward.SetMinerOutRewards(big.NewInt(2), &State{1000}, nil, 2)
 	})
 }
 

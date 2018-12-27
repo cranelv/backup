@@ -184,9 +184,8 @@ func CalcStockRate(reward *big.Int, depositNodes map[common.Address]DepositInfo)
 	for _, k := range sortedKeys {
 		temp := new(big.Int).Mul(reward, new(big.Int).SetUint64(uint64(depositNodes[common.HexToAddress(k)].FixStock)))
 		oneNodeReward := new(big.Int).Div(temp, new(big.Int).SetUint64(uint64(totalStock)))
-		finalOneNodeReward := new(big.Int).Div(oneNodeReward, new(big.Int).SetUint64(10000))
-		rewards[common.HexToAddress(k)] = finalOneNodeReward
-		log.Debug(PackageName, "计算奖励金额,账户", k, "奖励金额", finalOneNodeReward)
+		rewards[common.HexToAddress(k)] = oneNodeReward
+		log.Debug(PackageName, "计算奖励金额,账户", k, "奖励金额", oneNodeReward)
 	}
 	return rewards
 }
