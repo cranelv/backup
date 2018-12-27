@@ -1337,11 +1337,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
 			}
 		} else {
-			// Process matrix state
-			err = bc.matrixState.ProcessMatrixState(block, state)
-			if err != nil {
-				return i, events, coalescedLogs, err
-			}
 
 			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
 			if err != nil {
@@ -1355,6 +1350,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
+
+			// Process matrix state
+			err = bc.matrixState.ProcessMatrixState(block, state)
+			if err != nil {
+				return i, events, coalescedLogs, err
+			}
+
 			// Validate the state using the default validator
 			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 			if err != nil {
