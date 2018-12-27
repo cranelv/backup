@@ -24,20 +24,21 @@ func RegInit() baseinterface.ElectionInterface {
 }
 
 func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
-	log.INFO("分层方案", "矿工拓扑生成", len(mmrerm.MinerList))
+	log.INFO("分层方案", "矿工拓扑生成", mmrerm)
 	vipEle := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum,common.RoleMiner)
 
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
 	nodeList := vipEle.GetNodeByLevel(common.VIP_Nil)
 	value:=support.CalcValue(nodeList, common.RoleMiner)
-	Chosed, value := support.GetList(value, vipEle.NeedNum, vipEle.RandSeed)
+	Chosed, value := support.GetList_Common(value, vipEle.NeedNum, vipEle.RandSeed)
 	return support.MakeMinerAns(Chosed, vipEle.SeqNum)
 
 }
 
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	log.INFO("分层方案", "验证者拓扑生成", mvrerm.ValidatorList)
+	log.INFO("分层方案", "验证者拓扑生成", mvrerm)
+
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
@@ -45,12 +46,9 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 	for vipEleLoop := len(vipEle.VipLevelCfg)-1; vipEleLoop >=0; vipEleLoop--{
 		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 &&vipEleLoop!=0{//vip0继续处理
-
 			continue
 		}
 		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
-
-
 
 		value:=support.CalcValue(nodeList, common.RoleValidator)
 		curNeed:=0
@@ -66,9 +64,9 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		Chosed:=[]support.Strallyint{}
 
 		if vipEleLoop==0{
-			Chosed, value = support.GetList_Noraml(value, curNeed, vipEle.RandSeed)
+			Chosed, value = support.GetList_Common(value, curNeed, vipEle.RandSeed)
 		}else{
-			Chosed, value = support.GetList(value, curNeed, vipEle.RandSeed)
+			Chosed, value = support.GetList_VIP(value, curNeed, vipEle.RandSeed)
 		}
 
 
