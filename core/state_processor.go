@@ -17,7 +17,6 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"runtime"
 	"sync"
-	"encoding/json"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -166,7 +165,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	if config.IsByzantium(header.Number) {
 		statedb.Finalise(tx.GetTxCurrency(),true)
 	} else {
-		root,_ = json.Marshal(statedb.IntermediateRoot(config.IsEIP158(header.Number)))
+		root= statedb.IntermediateRootByCointype(tx.GetTxCurrency(),config.IsEIP158(header.Number)).Bytes()	//shardingBB
 	}
 	*usedGas += gas
 

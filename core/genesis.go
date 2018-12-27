@@ -376,7 +376,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		log.Error("genesis", "MState.SetSuperBlkToState err", err)
 		return nil, err
 	}
-	root := statedb.IntermediateRoot(false)
+	roots,sharding := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
 		Nonce:             types.EncodeNonce(g.Nonce),
@@ -395,13 +395,14 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Difficulty:        g.Difficulty,
 		MixDigest:         g.Mixhash,
 		Coinbase:          g.Coinbase,
-		Roots:             make([]common.CoinRoot,len(root)), //ShardingYY
-		Sharding:          make([]common.Coinbyte,0), //ShardingYY  TODO 赋值
+		Roots:             make([]common.CoinRoot,len(roots)), //ShardingYY
+		Sharding:          make([]common.Coinbyte,len(sharding)), //ShardingBB
 	}
-	copy(head.Roots, root)
-	var aa []common.Hash
-	aa = append(aa,common.Hash{})
-	head.Sharding = append(head.Sharding,common.Coinbyte{Root:root[0].Root,Byte256:aa})//ShardingYY TODO test
+	copy(head.Roots, roots)
+	copy(head.Sharding, sharding)
+	//var aa []common.Hash
+	//aa = append(aa,common.Hash{})
+	//head.Sharding = append(head.Sharding,common.Coinbyte{Root:roots[0].Root,Byte256:aa})//ShardingYY TODO test
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	} else if g.GasLimit < params.MinGasLimit {
@@ -411,7 +412,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
-	statedb.Database().TrieDB().CommitRoots(root, true) //ShardingYY
+	statedb.Database().TrieDB().CommitRoots(roots, true) //ShardingYY
 
 
 	return types.NewBlock(head, nil, nil, nil), nil
@@ -467,7 +468,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		Coinbase:          g.Coinbase,
 	}
 
-	head.Roots = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
+	head.Roots,head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
 
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit

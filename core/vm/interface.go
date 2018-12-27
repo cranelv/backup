@@ -143,7 +143,8 @@ type StateDBManager interface {
 	Preimages() map[common.Hash][]byte
 
 	ForEachStorage(cointyp string,addr common.Address, cb func(key, value common.Hash) bool)
-	IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot
+	IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte)
+	IntermediateRootByCointype(cointype string,deleteEmptyObjects bool) common.Hash
 	Prepare(thash, bhash common.Hash, ti int)
 	Commit(deleteEmptyObjects bool) (cr []common.CoinRoot, err error)
 

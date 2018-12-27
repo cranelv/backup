@@ -223,8 +223,11 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = new(big.Int).Add(parent.Time(), big.NewInt(10)) // block time is fixed at 10 seconds
 	}
 
-	return &types.Header{
-		Roots:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
+	roots,sharding:=state.IntermediateRoot(chain.Config().IsEIP158(parent.Number()))
+
+	head:= &types.Header{
+		Roots:             make([]common.CoinRoot,len(roots)),
+		Sharding:          make([]common.Coinbyte,len(sharding)), 	//shardingBB
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
 		Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{
@@ -237,6 +240,9 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Number:   new(big.Int).Add(parent.Number(), common.Big1),
 		Time:     time,
 	}
+	copy(head.Sharding, sharding)
+	copy(head.Roots, roots)		//shardingBB
+	return 		head
 }
 
 // newCanonical creates a chain database, and injects a deterministic canonical

@@ -1053,7 +1053,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	//log.Info("miss tree node debug", "入链时", "commit前state状态")
 	//state.MissTrieDebug()
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
-	intermediateRoot := state.IntermediateRoot(deleteEmptyObjects)
+	intermediateRoot,intermediateSharding := state.IntermediateRoot(deleteEmptyObjects)	//shardingBB
 	//fmt.Printf("===ZH1==:%s\n", state.Dump())
 	root, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
@@ -1063,13 +1063,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	blockroothash:=types.RlpHash(block.Root())
 	if roothash !=blockroothash{  //ShardingYY
 		//fmt.Printf("===ZH2==:%s\n", state.Dump())
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot",types.RlpHash(intermediateRoot), "deleteEmptyObjects", deleteEmptyObjects)
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot",types.RlpHash(intermediateRoot),"intermediateSharding",types.RlpHash(intermediateSharding), "deleteEmptyObjects", deleteEmptyObjects)
 
 		//log.Info("miss tree node debug", "入链时", "commit后state状态")
 		//state.MissTrieDebug()
 
 		return NonStatTy, errors.New("root not match")
 	}
+
+
+
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -1651,12 +1654,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
-			root := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())) //shardingYY
+			var root		[]common.CoinRoot
+			//var Coinbyte	[] common.Coinbyte
+			root,_ = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())) //shardingYY
 			intermediateroothash := types.RlpHash(root)
 			blockroothash := types.RlpHash(block.Root())//shardingYY
 			if blockroothash != intermediateroothash {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", blockroothash, intermediateroothash)
 			}
+			//if types.RlpHash(Coinbyte)!=types.RlpHash(block.Sharding()) {	//shardingBB
+			//	return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", types.RlpHash(block.Sharding()), types.RlpHash(Coinbyte))
+			//}
 		} else {
 			bcInterval, err := bc.getBCIntervalByState(state)
 			if err != nil {

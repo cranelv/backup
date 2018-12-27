@@ -64,7 +64,7 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 	}
 	var types  []string
 	if !isex && cointyp!=params.MAN_COIN{
-		//TODO 去主币种的第一个分区上查找当前币种是否存在如果存在走下面,不存在就return
+
 		for _,cm:=range shard.shardings{
 			if cm.Cointyp==params.MAN_COIN {
 				v:=cm.Rmanage[0].State.trie.GetKey([]byte(params.COIN_NAME))
@@ -650,14 +650,16 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
-func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.CoinRoot {
+func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte){
 	var root256 []common.Hash
+	var bshash	common.Hash
+	var coinbytes []common.Coinbyte
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage{
 			root:=rm.State.IntermediateRoot(deleteEmptyObjects)
 			root256=append(root256,root)
 		}
-		bshash:=types.RlpHash(root256)
+		bshash=types.RlpHash(root256)
 		bs,_ := rlp.EncodeToBytes(root256)
 		err := shard.mdb.Put(bshash[:],bs)
 		if err!=nil {
@@ -675,10 +677,42 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) []common.C
 		if !isex{
 			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bshash})
 		}
+		coinbytes=append(coinbytes,common.Coinbyte{Root:bshash,Byte256:root256})
 	}
-	return shard.retcoinRoot
+	return shard.retcoinRoot,coinbytes
 }
 
+func (shard *StateDBManage) IntermediateRootByCointype(cointype string,deleteEmptyObjects bool) common.Hash {
+	var root256 []common.Hash
+	for _,cm:=range shard.shardings {
+		if cointype == cm.Cointyp {
+
+		for _, rm := range cm.Rmanage {
+			root := rm.State.IntermediateRoot(deleteEmptyObjects)
+			root256 = append(root256, root)
+		}
+		bshash := types.RlpHash(root256)
+		bs, _ := rlp.EncodeToBytes(root256)
+		err := shard.mdb.Put(bshash[:], bs)
+		if err != nil {
+			log.Error("file:sharding_statedb.go", "func:IntermediateRoot", err)
+			panic(err)
+		}
+		isex := false
+		for i, croot := range shard.retcoinRoot {
+			if croot.Cointyp == cm.Cointyp {
+				shard.retcoinRoot[i].Root = bshash
+				isex = true
+				break
+			}
+		}
+		if !isex {
+			shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash})
+		}
+	}
+	}
+	return types.RlpHash(root256)
+}
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
 //TODO	=============================================================
@@ -905,14 +939,6 @@ func (self *StateDBManage)RawDump(cointype string)Dump {
 }
 
 func (self *StateDBManage)Dump(cointype string) []byte {
-	//for _,cm:=range self.shardings  {
-	//	if cointype==cm.Cointyp {
-	//		for _,rm:=range cm.Rmanage{
-	//			rm.State.Dump()
-	//		}
-	//		break
-	//	}
-	//}
 	json, err := json.MarshalIndent(self.RawDump(cointype), "", "    ")
 	if err != nil {
 		fmt.Println("dump err", err)
