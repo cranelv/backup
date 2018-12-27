@@ -81,6 +81,7 @@ type ElectNodeInfo struct {
 	Account  common.Address
 	Position uint16
 	Stock    uint16
+	VIPLevel common.VIPRoleType
 	Type     common.RoleType
 }
 

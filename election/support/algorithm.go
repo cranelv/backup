@@ -10,64 +10,72 @@ import (
 
 func GetList(probnormalized []Pnormalized, needNum int, seed int64) ([]Strallyint, []Pnormalized) {
 	probnormalized = Normalize(probnormalized)
-	ans := []Strallyint{}
-	RemainingProbNormalizedNodes := []Pnormalized{}
-	if needNum >= len(probnormalized) {
-		for _, v := range probnormalized {
-			ans = append(ans, Strallyint{Addr: v.Addr, Value: 1})
-		}
-		return ans, []Pnormalized{}
+	if len(probnormalized)==0{
+		return []Strallyint{},probnormalized
 	}
+	if needNum>len(probnormalized){
+		needNum=len(probnormalized)
+	}
+	ChoseNode:=[]Strallyint{}
+	RemainingProbNormalizedNodes:=[]Pnormalized{}
 	rand := mt19937.RandUniformInit(seed)
 	dict := make(map[common.Address]int)
+	orderAddress:=[]common.Address{}
 	for i := 0; i < MaxSample; i++ {
 		node := Sample1NodesInValNodes(probnormalized, float64(rand.Uniform(0.0, 1.0)))
-
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
 			dict[node] = 1
+			orderAddress=append(orderAddress,node)
 		}
-
 		if len(dict) == (needNum) {
 			break
 		}
 	}
+
+
+	for _,v:=range orderAddress{
+		ChoseNode=append(ChoseNode,Strallyint{Addr:v,Value:dict[v]})
+	}
+
 	for _, item := range probnormalized {
-		_, ok := dict[item.Addr]
-		if ok == false {
-			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Pnormalized{Addr: item.Addr, Value: item.Value})
-		} else {
-			ans = append(ans, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
+		if _,ok:=dict[item.Addr];ok==true{
+			continue
+		}
+		if len(ChoseNode)<needNum{
+			ChoseNode=append(ChoseNode,Strallyint{Addr:item.Addr,Value:1})
+		}else{
+			RemainingProbNormalizedNodes=append(RemainingProbNormalizedNodes,item)
 		}
 	}
-	return ans, RemainingProbNormalizedNodes
+
+	return ChoseNode, RemainingProbNormalizedNodes
 }
 
 func Normalize(probVal []Pnormalized) []Pnormalized {
+	var pnormalizedlist []Pnormalized
 
-	var total float64
+ 	total:=0.0
 	for _, item := range probVal {
+		pnormalizedlist=append(pnormalizedlist,Pnormalized{Addr:item.Addr,Value:total})
 		total += item.Value
 	}
-	var pnormalizedlist []Pnormalized
-	for _, item := range probVal {
-		var tmp Pnormalized
-		tmp.Value = item.Value / total
-		tmp.Addr = item.Addr
-		pnormalizedlist = append(pnormalizedlist, tmp)
+	for index:=0;index<len(probVal);index++{
+		pnormalizedlist[index].Value /= total
 	}
+
+
 	return pnormalizedlist
 }
 
 func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common.Address {
-
-	for _, iterm := range probnormalized {
-		rand01 -= iterm.Value
-		if rand01 < 0 {
-			return iterm.Addr
+	len:=len(probnormalized)
+	for index:=len-1;index>=0;index--{
+		if rand01>=probnormalized[index].Value{
+			return probnormalized[index].Addr
 		}
 	}
-	return probnormalized[0].Addr
+	return common.Address{}
 }

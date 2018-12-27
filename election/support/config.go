@@ -1,5 +1,6 @@
 package support
 
+
 const (
 	ModuleLogName = "选举基础模块"
 	MaxSample     = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值

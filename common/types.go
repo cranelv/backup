@@ -369,6 +369,7 @@ type Elect struct {
 	Account Address
 	Stock   uint16
 	Type    ElectRoleType
+	VIP 	VIPRoleType
 }
 
 //hezi
