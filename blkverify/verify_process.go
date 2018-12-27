@@ -314,25 +314,25 @@ func (p *Process) HandleVote(signHash common.Hash, vote common.Signature, from c
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	req, err := p.reqCache.GetLeaderReqByHash(signHash)
-	if err != nil {
-		// 没有找到请求，将投票存入未验证票池中
+	// 签名不是当前处理的请求
+	if p.curProcessReq == nil || p.curProcessReq.hash != signHash {
+		// 将投票存入未验证票池中
 		p.unverifiedVotes.AddVote(signHash, vote, from)
 		return
 	}
 
-	if req.isAccountExistVote(from) {
+	if p.curProcessReq.isAccountExistVote(from) {
 		log.Trace(p.logExtraInfo(), "处理投票消息", "已存在的投票", "from", from.Hex())
 		return
 	}
 
-	verifiedVote, err := p.verifyVote(signHash, vote, from, req.req.Header.ParentHash, true)
+	verifiedVote, err := p.verifyVote(signHash, vote, from, p.curProcessReq.req.Header.ParentHash, true)
 	if err != nil {
 		log.Info(p.logExtraInfo(), "处理投票消息", "签名验证失败", "err", err)
 		return
 	}
 
-	req.addVote(verifiedVote)
+	p.curProcessReq.addVote(verifiedVote)
 	p.processDPOSOnce()
 }
 
