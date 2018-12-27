@@ -63,6 +63,7 @@ type Header struct {
 	Leader      common.Address     `json:"leader"            gencodec:"required"`
 	Coinbase    common.Address     `json:"miner"            gencodec:"required"`
 	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
+	Sharding    []common.Coinbyte  `json:"sharding"        gencodec:"required"`
 	TxHash      common.Hash        `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash        `json:"receiptsRoot"     gencodec:"required"`
 	Bloom       Bloom              `json:"logsBloom"        gencodec:"required"`
@@ -107,6 +108,7 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.UncleHash,
 		h.Leader,
 		h.Roots,
+		h.Sharding,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -130,6 +132,7 @@ func (h *Header) HashNoSigns() common.Hash {
 		h.Leader,
 		h.Coinbase,
 		h.Roots,
+		h.Sharding,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -153,6 +156,7 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.UncleHash,
 		h.Leader,
 		h.Roots,
+		h.Sharding,
 		h.TxHash,
 		h.ReceiptHash,
 		h.Bloom,
@@ -374,6 +378,10 @@ func CopyHeader(h *Header) *Header {
 		cpy.Roots = make([]common.CoinRoot, len(h.Roots))
 		copy(cpy.Roots, h.Roots)
 	}
+	if len(h.Sharding) > 0 {
+		cpy.Sharding = make([]common.Coinbyte, len(h.Sharding))
+		copy(cpy.Sharding, h.Sharding)
+	}
 	if len(h.NetTopology.NetTopologyData) > 0 {
 		cpy.NetTopology.NetTopologyData = make([]common.NetTopologyData, len(h.NetTopology.NetTopologyData))
 		copy(cpy.NetTopology.NetTopologyData, h.NetTopology.NetTopologyData)
@@ -464,6 +472,7 @@ func (b *Block) Nonce() uint64            { return binary.BigEndian.Uint64(b.hea
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 func (b *Block) Root() []common.CoinRoot  { return b.header.Roots }
+func (b *Block) Sharding() []common.Coinbyte  { return b.header.Sharding }
 func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
 func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }

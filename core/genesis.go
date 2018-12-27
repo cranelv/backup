@@ -61,6 +61,7 @@ type Genesis struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
+	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 
@@ -93,6 +94,7 @@ type Genesis1 struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 	Roots      []common.CoinRoot `json:"stateRoot,omitempty"`
+	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
@@ -112,6 +114,7 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Leader = base58.Base58DecodeToAddress(gensis1.Leader)
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
 	gensis.Roots = gensis1.Roots
+	gensis.Sharding = gensis1.Sharding
 	gensis.TxHash = gensis1.TxHash
 	//Elect
 	sliceElect := make([]common.Elect, 0)
@@ -393,8 +396,12 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		MixDigest:         g.Mixhash,
 		Coinbase:          g.Coinbase,
 		Roots:             make([]common.CoinRoot,len(root)), //ShardingYY
+		Sharding:          make([]common.Coinbyte,0), //ShardingYY  TODO 赋值
 	}
 	copy(head.Roots, root)
+	var aa []common.Hash
+	aa = append(aa,common.Hash{})
+	head.Sharding = append(head.Sharding,common.Coinbyte{Root:root[0].Root,Byte256:aa})//ShardingYY TODO test
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	} else if g.GasLimit < params.MinGasLimit {
@@ -404,7 +411,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
-	statedb.Database().TrieDB().CommitRoots(root, true) //ShardingYY  TODO
+	statedb.Database().TrieDB().CommitRoots(root, true) //ShardingYY
 
 
 	return types.NewBlock(head, nil, nil, nil), nil

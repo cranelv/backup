@@ -518,5 +518,5 @@ type CoinRoot struct {
 }
 type Coinbyte struct {
 	Root       Hash
-	byte256    []byte
+	Byte256    []Hash
 }
