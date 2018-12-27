@@ -11,8 +11,10 @@ import (
 	"sort"
 	"sync"
 
+	"bytes"
 	"encoding/json"
 	"github.com/matrix/go-matrix/base58"
+	"github.com/matrix/go-matrix/btrie"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
@@ -21,8 +23,6 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"time"
-	"github.com/matrix/go-matrix/btrie"
-	"bytes"
 )
 
 type revision struct {
@@ -114,13 +114,13 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 	if err1 == nil {
 		hash1 := common.BytesToHash(b)
 		st.NewBTrie(common.ExtraRevocable)
-		btrie.RestoreBtree(&st.revocablebtrie, nil, hash1, db.TrieDB(), common.ExtraRevocable,st)
+		btrie.RestoreBtree(&st.revocablebtrie, nil, hash1, db.TrieDB(), common.ExtraRevocable, st)
 	}
 	b2, err2 := st.tryGetMatrixData(types.RlpHash(common.StateDBTimeBtree))
-	if err2 == nil{
+	if err2 == nil {
 		hash2 := common.BytesToHash(b2)
 		st.NewBTrie(common.ExtraTimeTxType)
-		btrie.RestoreBtree(&st.timebtrie, nil, hash2, db.TrieDB(), common.ExtraTimeTxType,st)
+		btrie.RestoreBtree(&st.timebtrie, nil, hash2, db.TrieDB(), common.ExtraTimeTxType, st)
 	}
 	return st, nil
 }
@@ -580,7 +580,7 @@ func (self *StateDB) CommitSaveTx() {
 				self.revocablebtrie.ReplaceOrInsert(btrie.SpcialTxData{btree.Key, btree.Data})
 			}
 			tmproot := self.revocablebtrie.Root()
-			hash = btrie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraRevocable,self)
+			hash = btrie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraRevocable, self)
 			self.updateMatrixData(types.RlpHash(common.StateDBRevocableBtree), hash[:])
 			//err := self.trie.TryUpdate(b, hash.Bytes())
 			//if err != nil {
@@ -591,7 +591,7 @@ func (self *StateDB) CommitSaveTx() {
 				self.timebtrie.ReplaceOrInsert(btrie.SpcialTxData{btree.Key, btree.Data})
 			}
 			tmproot := self.timebtrie.Root()
-			hash = btrie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraTimeTxType,self)
+			hash = btrie.BtreeSaveHash(tmproot, self.db.TrieDB(), common.ExtraTimeTxType, self)
 			//b := []byte(common.StateDBTimeBtree)
 			self.updateMatrixData(types.RlpHash(common.StateDBTimeBtree), hash[:])
 			//if err != nil {
@@ -646,7 +646,7 @@ func (self *StateDB) UpdateTxForBtree(key uint32) {
 			}
 			log.Info("file statedb", "func UpdateTxForBtree:txHash", hash)
 			delhashs = append(delhashs, hash)
-			self.deleteMatrixData(hash,nil)
+			self.deleteMatrixData(hash, nil)
 		}
 		self.GetSaveTx(common.ExtraRevocable, item.Key_Time, delhashs, true)
 	}
@@ -864,14 +864,14 @@ func (self *StateDB) updateMatrixData(hash common.Hash, val []byte) {
 	self.setError(self.trie.TryUpdate(hash[:], vl))
 }
 
-func (self *StateDB) tryGetMatrixData(hash common.Hash)(val []byte,err error) {
-	tmpval,err := self.trie.TryGet(hash[:])
-	if err != nil || len(tmpval)==0{
-		return nil,err
+func (self *StateDB) tryGetMatrixData(hash common.Hash) (val []byte, err error) {
+	tmpval, err := self.trie.TryGet(hash[:])
+	if err != nil || len(tmpval) == 0 {
+		return nil, err
 	}
-	if bytes.Compare(tmpval[:4],[]byte("MAN-")) == 0{
+	if bytes.Compare(tmpval[:4], []byte("MAN-")) == 0 {
 		val = tmpval[4:] //去掉"MAN-"前綴
-	}else {
+	} else {
 		val = tmpval
 	}
 	return
@@ -892,9 +892,9 @@ func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
 		self.setError(err)
 		return nil
 	}
-	if bytes.Compare(tmpval[:4],[]byte("MAN-")) == 0{
+	if bytes.Compare(tmpval[:4], []byte("MAN-")) == 0 {
 		val = tmpval[4:] //去掉"MAN-"前綴
-	}else {
+	} else {
 		val = tmpval
 	}
 	self.matrixData[hash] = val

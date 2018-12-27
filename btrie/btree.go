@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/trie"
 	"io"
 	"sort"
 	"strings"
 	"sync"
-	"github.com/matrix/go-matrix/trie"
-	"github.com/matrix/go-matrix/core/vm"
 )
 
 // Item represents a single object in the tree.
@@ -567,7 +567,7 @@ func (n *bnode) Printree(level int) {
 }
 
 //Used for Btree save to triedb
-func BtreeSaveHash(node *bnode, db *trie.Database, typ byte,stateDB vm.StateDB) common.Hash {
+func BtreeSaveHash(node *bnode, db *trie.Database, typ byte, stateDB vm.StateDB) common.Hash {
 	tmpnode := &BnodeSave{[]TransferTxData{}, []common.Hash{}}
 	for _, it := range node.items {
 		switch typ {
@@ -612,7 +612,7 @@ func BtreeSaveHash(node *bnode, db *trie.Database, typ byte,stateDB vm.StateDB) 
 		}
 	}
 	for _, c := range node.children {
-		tmpnode.Child = append(tmpnode.Child, BtreeSaveHash(c, db, typ,stateDB))
+		tmpnode.Child = append(tmpnode.Child, BtreeSaveHash(c, db, typ, stateDB))
 	}
 	encodeData, err1 := json.Marshal(tmpnode)
 	if err1 != nil {
@@ -625,7 +625,7 @@ func BtreeSaveHash(node *bnode, db *trie.Database, typ byte,stateDB vm.StateDB) 
 	return key
 }
 
-func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.Database, typ byte,stateDB vm.StateDB) error {
+func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.Database, typ byte, stateDB vm.StateDB) error {
 
 	if (nodeHash == common.Hash{}) {
 		//fmt.Println("RestoreBtree nodeHash is empty hash")
@@ -642,7 +642,7 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.
 	//err := rlp.DecodeBytes(nodeData,&tmpNodeSave)
 	err := json.Unmarshal(nodeData, &tmpNodeSave)
 	if err != nil {
-		log.Info("file btree","func RestoreBtree:err",err)
+		log.Info("file btree", "func RestoreBtree:err", err)
 		return errors.New("RestoreBtree node decode err")
 	}
 	for indexItem, it := range tmpNodeSave.Key {
@@ -661,7 +661,7 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.
 	}
 	for _, c := range tmpNodeSave.Child {
 		childNode := btree.cow.newNode()
-		RestoreBtree(btree, childNode, c, db, typ,stateDB)
+		RestoreBtree(btree, childNode, c, db, typ, stateDB)
 		itemNode.children = append(itemNode.children, childNode)
 	}
 	return nil

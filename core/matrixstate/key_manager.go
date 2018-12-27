@@ -103,12 +103,12 @@ func newKeyManager() *keyManager {
 			mc.MSKeyElectConfigInfo:   types.RlpHash(matrixStatePrefix + mc.MSKeyElectConfigInfo),
 			mc.MSKeyVIPConfig:         types.RlpHash(matrixStatePrefix + mc.MSKeyVIPConfig),
 
-			mc.MSKeyPreBroadcastRoot: types.RlpHash(matrixStatePrefix + mc.MSKeyPreBroadcastRoot),
-			mc.MSKeyMinHash:          types.RlpHash(matrixStatePrefix + mc.MSKeyMinHash),
-			mc.MSKeyPerAllTop:        types.RlpHash(matrixStatePrefix + mc.MSKeyPerAllTop),
+			mc.MSKeyPreBroadcastRoot:  types.RlpHash(matrixStatePrefix + mc.MSKeyPreBroadcastRoot),
+			mc.MSKeyMinHash:           types.RlpHash(matrixStatePrefix + mc.MSKeyMinHash),
+			mc.MSKeyPerAllTop:         types.RlpHash(matrixStatePrefix + mc.MSKeyPerAllTop),
 			mc.MSKeyPreMinerBlkReward: types.RlpHash(matrixStatePrefix + mc.MSKeyPreMinerBlkReward),
 			mc.MSKeyPreMinerTxsReward: types.RlpHash(matrixStatePrefix + mc.MSKeyPreMinerTxsReward),
-			mc.MSKEYLotteryAccount:   types.RlpHash(matrixStatePrefix + mc.MSKEYLotteryAccount),
+			mc.MSKEYLotteryAccount:    types.RlpHash(matrixStatePrefix + mc.MSKEYLotteryAccount),
 
 			mc.MSKeyLeaderConfig:  types.RlpHash(matrixStatePrefix + mc.MSKeyLeaderConfig),
 			mc.MSKeyBlkRewardCfg:  types.RlpHash(matrixStatePrefix + mc.MSKeyBlkRewardCfg),

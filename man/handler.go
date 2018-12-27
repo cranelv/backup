@@ -44,7 +44,7 @@ const (
 
 var (
 	emptyNodeId = discover.NodeID{}
-	
+
 	daoChallengeTimeout = 15 * time.Second // Time allowance for a node to reply to the DAO handshake challenge
 )
 

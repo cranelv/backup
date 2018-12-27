@@ -61,7 +61,9 @@ type Transaction struct {
 type TransactionCall struct {
 	*Transaction
 }
-func (tc* TransactionCall)CheckNonce()bool{return false}
+
+func (tc *TransactionCall) CheckNonce() bool { return false }
+
 //YY
 type Transaction_Mx struct {
 	Data       txdata
