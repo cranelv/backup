@@ -402,6 +402,7 @@ func TestDefaultGenesisCfg(t *testing.T){
 
 
 func TestNew(t *testing.T){
+	fmt.Println("daas",0xffff)
 	A:=new(core.Genesis1)
 	err:=json.Unmarshal([]byte(core.DefaultJson),A)
 	fmt.Println("err",err)
@@ -431,5 +432,71 @@ func Test111(t *testing.T){
 			break
 		}
 	}
+
+}
+
+func TestN(t *testing.T)  {
+	log.InitLog(3)
+	req:=&mc.MasterValidatorReElectionReqMsg{
+		SeqNum           :1,
+		RandSeed          :big.NewInt(100),
+		ValidatorList: []vm.DepositDetail{},
+		ElectConfig:mc.ElectConfigInfo_All{
+			MinerNum :21,
+			ValidatorNum:19,
+			BackValidator:5,
+			ElectPlug    :"layerd",
+			WhiteList     :[]common.Address{},
+			BlackList     :[]common.Address{},
+		},
+		VIPList                 :[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:0,
+				StockScale:1000,
+				ElectUserNum:0,
+			},
+			mc.VIPConfig{
+				MinMoney    :3000000,
+				StockScale:1000,
+				ElectUserNum:3,
+			},
+			mc.VIPConfig{
+				MinMoney:5000000,
+				StockScale:1000,
+				ElectUserNum:2,
+			},
+			mc.VIPConfig{
+				MinMoney:14900000,
+				StockScale:1000,
+				ElectUserNum:2,
+			},
+		},
+	}
+	for index:=10;index<=49;index++{
+		depos:=index*10000
+		req.ValidatorList=append(req.ValidatorList,vm.DepositDetail{
+			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
+			Deposit    :new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+		})
+	}
+	for index:=1000;index<=1490;index+=10{
+		depos:=index*10000
+		req.ValidatorList=append(req.ValidatorList,vm.DepositDetail{
+			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
+			Deposit:new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+		})
+	}
+
+	rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
+	for _,v:=range rspValidator.MasterValidator{
+		fmt.Println("MasterValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
+	}
+	for _,v:=range rspValidator.BackUpValidator{
+		fmt.Println("BackUpValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
+	}
+	for _,v:=range rspValidator.CandidateValidator{
+		fmt.Println("CandidateValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
+	}
+
 
 }

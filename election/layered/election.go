@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
-	"fmt"
 )
 
 type layered struct {
@@ -30,14 +29,9 @@ func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Mas
 
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
-
-
 	nodeList := vipEle.GetNodeByLevel(common.VIP_Nil)
 	value:=support.CalcValue(nodeList, common.RoleMiner)
-
-	Chosed, value := support.GetList(value, vipEle.NeedNum, vipEle.RandSeed.Int64())
-
-
+	Chosed, value := support.GetList(value, vipEle.NeedNum, vipEle.RandSeed)
 	return support.MakeMinerAns(Chosed, vipEle.SeqNum)
 
 }
@@ -47,12 +41,17 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
+	//vipEle.DisPlayNode()
 
 	for vipEleLoop := len(vipEle.VipLevelCfg)-1; vipEleLoop >=0; vipEleLoop--{
-		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 &&vipEleLoop!=0{
+		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 &&vipEleLoop!=0{//vip0继续处理
+
 			continue
 		}
 		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
+
+
+
 		value:=support.CalcValue(nodeList, common.RoleValidator)
 		curNeed:=0
 		if vipEleLoop==0{
@@ -63,8 +62,19 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		if curNeed>vipEle.NeedNum-vipEle.ChosedNum{
 			curNeed=vipEle.NeedNum-vipEle.ChosedNum
 		}
-		Chosed, value := support.GetList(value, curNeed, vipEle.RandSeed.Int64())
+
+		Chosed:=[]support.Strallyint{}
+
+		if vipEleLoop==0{
+			Chosed, value = support.GetList_Noraml(value, curNeed, vipEle.RandSeed)
+		}else{
+			Chosed, value = support.GetList(value, curNeed, vipEle.RandSeed)
+		}
+
+
 		vipEle.SetChosed(Chosed)
+
+
 	}
 
 
@@ -99,10 +109,6 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 			Candidate=append(Candidate,support.Strallyint{Addr:v.Address,Value:1})
 		}
 	}
-
-	fmt.Println("lem",len(Master))
-	fmt.Println("lem",len(Backup))
-	fmt.Println("lem",len(Candidate))
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, Master, Backup, Candidate)
 }
 

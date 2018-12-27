@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"math/big"
 	"math/rand"
+	"github.com/matrix/go-matrix/common/mt19937"
 )
 
 type RatioList struct {
@@ -50,7 +51,7 @@ type Node struct {
 
 type Electoion struct {
 	SeqNum        uint64
-	RandSeed      *big.Int
+	RandSeed      *mt19937.RandUniform
 	VipLevelCfg   []mc.VIPConfig
 	NodeList      []Node
 
@@ -63,6 +64,7 @@ type Electoion struct {
 }
 
 func (node *Node) SetUsable(status bool) {
+
 	node.Usable = status
 }
 
@@ -72,6 +74,7 @@ func (node *Node) SetIndex(index int) {
 func (node *Node) SetVipLevelInfo(VipLevelCfg []mc.VIPConfig)uint64 {
 	temp := big.NewInt(0).Set(node.Deposit)
 	deposMan := temp.Div(temp, common.ManValue).Uint64()
+
 
 
 	for index:=len(VipLevelCfg)-1;index>=0;index--{
@@ -106,7 +109,7 @@ func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
 func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo_All, randseed *big.Int, seqNum uint64,types common.RoleType) *Electoion {
 	var vip Electoion
 	vip.SeqNum = seqNum
-	vip.RandSeed = randseed
+	vip.RandSeed = mt19937.RandUniformInit(randseed.Int64())
 	vip.EleCfg = EleCfg
 
 	vip.VipLevelCfg = VipLevelCfg
@@ -127,6 +130,7 @@ func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.
 		manValue:=vip.NodeList[i].SetVipLevelInfo(VipLevelCfg)
 		vip.NodeList[i].SetIndex(i)
 		vip.NodeList[i].SetUsable(true)
+
 		vip.MapMoney[vip.NodeList[i].Address]=manValue
 
 	}
@@ -142,11 +146,15 @@ func FindAddress(addr common.Address, addrList []common.Address) bool {
 	return false
 }
 func (vip *Electoion) DisPlayNode() {
+	for _,v:=range vip.NodeList{
+		fmt.Println(v.Address.String(),v.Deposit.String(),vip.MapMoney[v.Address])
+	}
 	for _, v := range vip.NodeList {
-		fmt.Println(v.Address, v.Deposit, v.WithdrawH, v.OnlineTime, v.vipLevel, v.index, "Ratio", v.Ratio,v.Usable)
+		fmt.Println(v.Address.String(), v.Deposit, v.WithdrawH, v.OnlineTime, v.vipLevel, v.index, "Ratio", v.Ratio,v.Usable)
 	}
 }
 func (vip *Electoion)SetChosed(node []Strallyint){
+
 	ChoseNode:=[]common.Address{}
 	for _,v:=range node{
 		ChoseNode=append(ChoseNode,v.Addr)
@@ -179,13 +187,21 @@ func (vip *Electoion)GetVipStock(addr common.Address)int{
 			stockDespoit+=vip.MapMoney[vv.Addr]
 		}
 	}
+	ratio:=int(0.0)
 	if float64(stockSum)/float64(stockDespoit)==0{
-		return int(vip.MapMoney[addr]/vip.VipLevelCfg[1].MinMoney)
-
+		ratio=int(vip.MapMoney[addr]/vip.VipLevelCfg[1].MinMoney)
 	}else{
-		ratio:=float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr])
-		return int(ratio)
+		ratio=int(float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr])+0.5)
 	}
+	if ratio>0xffff{
+		return 0xfff
+	}
+	if ratio==0{
+		return 1
+	}
+
+	return ratio
+
 
 
 }
@@ -208,7 +224,7 @@ func (vip *Electoion) GetNodeByLevel(level common.VIPRoleType) []Node {
 		if vip.NodeList[i].Usable == false {
 			continue
 		}
-		if level == vip.NodeList[i].vipLevel {
+		if  vip.NodeList[i].vipLevel >=level{
 			specialNode = append(specialNode, vip.NodeList[i])
 		}
 	}
@@ -242,16 +258,6 @@ func (vip *Electoion) GetWeight(role common.RoleType) []Pnormalized {
 }
 
 
-
-func (vip *Electoion) ValidatorTopGen(MasterNum int, BackupNum int) ([]Strallyint, []Strallyint, []Strallyint) {
-	weight := vip.GetWeight(common.RoleValidator)
-	switch DefalutValidatorElectPlug {
-	case ValidatorElectPlug_Direct:
-		return getValidator_Direct(weight, MasterNum, BackupNum, vip.RandSeed)
-	default:
-		return getValidator_Order(weight, MasterNum, BackupNum, vip.RandSeed)
-	}
-}
 
 func Knuth_Fisher_Yates_Algorithm(nodeList []Node, randSeed *big.Int) []Node {
 	//高纳德置乱算法

@@ -37,15 +37,12 @@ func (self *SelfNodeInfo) DepositStake(roles common.RoleType) float64 {
 	temp := big.NewInt(0).Set(self.Stk)
 	deposMan := temp.Div(temp, common.ManValue).Uint64()
 
-	ratio := getDepositList(roles)
-
-	for _, v := range ratio {
-		if deposMan >= v.MinNum {
-			return v.Ratio
-		}
+	switch roles {
+	case common.RoleMiner:
+		return float64(deposMan/DefaultMinerDeposit)
+	default:
+		return float64(deposMan/DefaultValidatorDeposit)
 	}
-	log.Error(ModuleLogName, "抵押金额设置错误 最后一个参数的MinNum需为0 类型", roles, ratio)
-	return 0
 
 }
 
