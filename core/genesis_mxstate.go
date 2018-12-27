@@ -538,15 +538,14 @@ func (g *GenesisMState) setVIPCfgToState(state *state.StateDB, number uint64) er
 			return nil
 		}
 	}
-	VIPCfg := *g.VIPCfg
 
-	if nil == g.VIPCfg || 0 == len(VIPCfg) {
+	if nil == g.VIPCfg || 0 == len(*g.VIPCfg) {
 
 		return errors.Errorf("vip 配置为nil")
 	}
 
-	log.Info("Geneis", "VIPCfg", g.VIPCfg)
-	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.VIPCfg, state)
+	log.Info("Geneis", "VIPCfg", *g.VIPCfg)
+	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, *g.VIPCfg, state)
 }
 
 func (g *GenesisMState) setLeaderCfgToState(state *state.StateDB, num uint64) error {
