@@ -423,10 +423,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		} else {
 			return err
 		}
-		if tx.TxType() == common.ExtraNormalTxType {
-			from = append(from, tx.From())
-		}
-
+		from = append(from, tx.From())
 	}
 
 	rewart := env.CalcRewardAndSlash(bc, upTime, from)
