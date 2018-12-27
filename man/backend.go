@@ -209,7 +209,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.miner.SetExtra(makeExtraData(config.ExtraData))
 
 	//algorithm
-	man.random, err = baseinterface.NewRandom(man)
+	man.random, err = baseinterface.NewRandom(man.blockchain)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,6 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner, man.reelection.ProducePreMinerData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}

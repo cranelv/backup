@@ -289,7 +289,11 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	listret, originalTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
 	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
-	rewart := env.CalcRewardAndSlash(bc, upTime)
+	from := make([]common.Address, 0)
+	for _, tx := range originalTxs {
+		from = append(from, tx.From())
+	}
+	rewart := env.CalcRewardAndSlash(bc, upTime, from)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -382,7 +386,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-	rewart := env.CalcRewardAndSlash(bc, nil)
+	rewart := env.CalcRewardAndSlash(bc, nil, nil)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -402,6 +406,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
+	from := make([]common.Address, 0)
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -418,9 +423,13 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		} else {
 			return err
 		}
+		if tx.TxType() == common.ExtraNormalTxType {
+			from = append(from, tx.From())
+		}
+
 	}
 
-	rewart := env.CalcRewardAndSlash(bc, upTime)
+	rewart := env.CalcRewardAndSlash(bc, upTime, from)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -453,7 +462,7 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Address]uint64) []common.RewarTx {
+func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Address]uint64, account []common.Address) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
@@ -491,6 +500,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Addre
 		if 0 != len(lotteryRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}
+		lottery.LotterySaveAccount(account, env.header.VrfValue)
 	}
 
 	////todo 利息

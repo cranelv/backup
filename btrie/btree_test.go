@@ -1,4 +1,4 @@
-package trie
+package btrie
 
 import (
 	"fmt"

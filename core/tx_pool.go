@@ -382,10 +382,10 @@ func (nPool *NormalTxPool) deletsTx(s *big.Int) {
 // packageSNList
 func (nPool *NormalTxPool) packageSNList() {
 	if len(gSendst.snlist.slist) == 0 {
-		log.Trace("txpool:packageSNList11", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
+		log.Trace("txpool:packageSNList_if", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
 		return
 	} else {
-		log.Trace("txpool:packageSNList22", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
+		log.Trace("txpool:packageSNList_else", "len(gSendst.snlist.slist)", len(gSendst.snlist.slist))
 	}
 	lst := gSendst.snlist.slist
 	gSendst.snlist.slist = make([]*big.Int, 0)
@@ -401,14 +401,14 @@ func (nPool *NormalTxPool) packageSNList() {
 					continue
 				}
 				tmpnum := byte4Number.catNumber()
-				log.Trace("txpool:packageSNList33", "tx N", tmpnum)
+				//log.Trace("txpool:packageSNList33", "tx N", tmpnum)
 				nPool.setTxNum(tx, tmpnum, false)
 				tmpsnlst[tmpnum] = s
 				nPool.setnTx(tmpnum, tx, false)
 			}
 		}
 		nPool.mu.Unlock()
-		log.Trace("====hezi====", "send tmpsnlst", len(tmpsnlst))
+		log.Trace("file tx_pool", "func packageSNList :send tmpsnlst", len(tmpsnlst))
 		if len(tmpsnlst) > 0 {
 			bt, _ := json.Marshal(tmpsnlst)
 			nPool.SendMsg(MsgStruct{Msgtype: SendFloodSN, MsgData: bt})
@@ -1586,7 +1586,7 @@ func (t *txLookup) Add(tx *types.Transaction) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	hash := tx.Hash()
-	log.Info("file tx_pool", "all.Add()", hash.String())
+	//log.Info("file tx_pool", "all.Add()", hash.String())
 	t.all[hash] = tx
 }
 

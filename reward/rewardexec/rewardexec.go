@@ -123,11 +123,11 @@ func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.A
 	return rewards
 }
 
-func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardType uint8) map[common.Address]*big.Int {
 	rewards := make(map[common.Address]*big.Int, 0)
 
 	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
-	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, num)
+	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, br.specialAccounts.InnerMinerAccounts, rewardType)
 	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
@@ -154,7 +154,7 @@ func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int 
 		log.WARN(PackageName, "广播周期不处理", "")
 		return nil
 	}
-	return br.getMinerRewards(blockReward, num)
+	return br.getMinerRewards(blockReward, num, util.BlkReward)
 }
 func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64) bool {
 	if br.bcInterval.IsBroadcastNumber(num) {
@@ -181,12 +181,6 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 
 func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
 
-	if blockReward.Cmp(big.NewInt(0)) <= 0 {
-		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
-		return nil
-	}
-	log.Debug(PackageName, "奖励金额", blockReward)
-
 	if nil == br.rewardCfg {
 		log.Error(PackageName, "奖励配置为空", "")
 		return nil
@@ -199,12 +193,17 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 
 	rewards := make(map[common.Address]*big.Int, 0)
 
+	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
+	log.Debug(PackageName, "矿工奖励总额", minersBlkReward)
+	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward)
+	if blockReward.Cmp(big.NewInt(0)) <= 0 {
+		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
+		return nil
+	}
+	log.Debug(PackageName, "奖励金额", blockReward)
 	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.ValidatorsRate)
 	log.Debug(PackageName, "验证者奖励总额", validatorsBlkReward)
 	validatorReward := br.getValidatorRewards(validatorsBlkReward, Leader, num)
-	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
-	log.Debug(PackageName, "矿工奖励总额", validatorsBlkReward)
-	minerRewards := br.getMinerRewards(minersBlkReward, num)
 
 	util.MergeReward(rewards, validatorReward)
 	util.MergeReward(rewards, minerRewards)

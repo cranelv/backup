@@ -4,11 +4,14 @@
 package baseinterface
 
 import (
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/params"
 	"math/big"
 
 	"fmt"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -27,6 +30,34 @@ func RegRandom(name string, fun func(string, RandomChainSupport) (RandomSubServi
 	mapReg[name] = fun
 }
 
+type ChainReader interface {
+	// Config retrieves the blockchain's chain configuration.
+	Config() *params.ChainConfig
+
+	// CurrentHeader retrieves the current header from the local chain.
+	CurrentHeader() *types.Header
+
+	// GetHeader retrieves a block header from the database by hash and number.
+	GetHeader(hash common.Hash, number uint64) *types.Header
+
+	// GetHeaderByNumber retrieves a block header from the database by number.
+	GetHeaderByNumber(number uint64) *types.Header
+
+	// GetHeaderByHash retrieves a block header from the database by its hash.
+	GetHeaderByHash(hash common.Hash) *types.Header
+
+	GetBlockByNumber(number uint64) *types.Block
+	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
+	// GetBlock retrieves a block sfrom the database by hash and number.
+	GetBlock(hash common.Hash, number uint64) *types.Block
+	StateAt(root common.Hash) (*state.StateDB, error)
+	State() (*state.StateDB, error)
+	GetMatrixStateData(key string) (interface{}, error)
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+	GetSuperBlockNum() (uint64, error)
+	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
+}
+
 type Random struct {
 	roleUpdateCh  chan *mc.RoleUpdatedMsg
 	roleUpdateSub event.Subscription
@@ -35,8 +66,16 @@ type Random struct {
 }
 
 type RandomChainSupport interface {
-	BlockChain() *core.BlockChain
+	BlockChain() ChainReader
 }
+type RandomChain struct {
+	bc ChainReader
+}
+
+func (self *RandomChain) BlockChain() ChainReader {
+	return self.bc
+}
+
 type RandomSubService interface {
 	Prepare(uint64) error
 	CalcData(data common.Hash) (*big.Int, error)
@@ -45,7 +84,7 @@ type RandomSubService interface {
 func checkDataValidity(support interface{}) bool {
 	return common.IsNil(support)
 }
-func NewRandom(support RandomChainSupport) (*Random, error) {
+func NewRandom(bc ChainReader) (*Random, error) {
 	//if checkDataValidity(support)==false{
 	//	log.Error(ModuleRandom,"创建随机数服务阶段,输入不合法","输入为空接口")
 	//	return nil,errors.New("创建随机数服务阶段,输入不合法")
@@ -55,6 +94,7 @@ func NewRandom(support RandomChainSupport) (*Random, error) {
 		quitChan:      make(chan struct{}, 1),
 		mapSubService: make(map[string]RandomSubService, 0),
 	}
+	support := &RandomChain{bc: bc}
 	for _, name := range manparams.RandomServiceName {
 		Plug, needNewSubService := getSubServicePlug(name)
 		if needNewSubService == false {

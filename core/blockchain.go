@@ -16,9 +16,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/slash"
-
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 
@@ -40,9 +37,7 @@ import (
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/lottery"
-	"github.com/matrix/go-matrix/reward/txsreward"
+
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
@@ -1179,55 +1174,6 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 	return nil, nil
 }
 
-func (bc *BlockChain) ProcessReward(state *state.StateDB, header *types.Header, bcInterval *manparams.BCInterval, upTime map[common.Address]uint64) error {
-
-	num := header.Number.Uint64()
-	if bcInterval.IsBroadcastNumber(num) {
-		return nil
-	}
-	blkReward := blkreward.New(bc, state)
-	rewardList := make([]common.RewarTx, 0)
-	if nil != blkReward {
-		//todo: read half number from state
-		minersRewardMap := blkReward.CalcMinerRewards(num)
-		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
-		}
-
-		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
-		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
-		}
-	}
-
-	txsReward := txsreward.New(bc, state)
-	if nil != txsReward {
-		txsRewardMap := txsReward.CalcNodesRewards(big.NewInt(0), header.Leader, header.Number.Uint64())
-		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
-		}
-	}
-	lottery := lottery.New(bc, state, nil)
-	if nil != lottery {
-		lottery.ProcessMatrixState(header.Number.Uint64())
-	}
-	interestReward := interest.New(state)
-	if nil == interestReward {
-		return nil
-	}
-	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
-	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
-	}
-
-	slash := slash.New(bc, state)
-	if nil != slash {
-		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
-	}
-
-	return nil
-}
-
 // insertChain will execute the actual chain insertion and event aggregation. The
 // only reason this method exists as a separate one is to make locking cleaner
 // with deferred statements.
@@ -1391,9 +1337,18 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
 			}
 		} else {
-			bcInterval, err := bc.getBCIntervalByState(state)
+
+			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
 			if err != nil {
-				return i, events, coalescedLogs, errors.Errorf("get broadcast interval err", err)
+				bc.reportBlock(block, nil, err)
+				return i, events, coalescedLogs, err
+			}
+
+			// Process block using the parent state as reference point.
+			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap)
+			if err != nil {
+				bc.reportBlock(block, receipts, err)
+				return i, events, coalescedLogs, err
 			}
 
 			// Process matrix state
@@ -1402,23 +1357,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, err
 			}
 
-			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
-			if err != nil {
-				bc.reportBlock(block, nil, err)
-				return i, events, coalescedLogs, err
-			}
-
-			err = bc.ProcessReward(state, block.Header(), bcInterval, uptimeMap)
-			if err != nil {
-				bc.reportBlock(block, nil, err)
-				return i, events, coalescedLogs, err
-			}
-			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig)
-			if err != nil {
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
-			}
 			// Validate the state using the default validator
 			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 			if err != nil {
