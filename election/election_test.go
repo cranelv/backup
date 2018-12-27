@@ -8,19 +8,19 @@ import (
 	"fmt"
 
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	_ "github.com/matrix/go-matrix/election/layered"
-	_ "github.com/matrix/go-matrix/election/stock"
 	_ "github.com/matrix/go-matrix/election/nochoice"
+	_ "github.com/matrix/go-matrix/election/stock"
+	"github.com/matrix/go-matrix/run/utils"
 
-	"github.com/matrix/go-matrix/mc"
-	"strconv"
-	"os"
-	"github.com/matrix/go-matrix/core"
 	"encoding/json"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/mc"
 	"io/ioutil"
+	"os"
+	"strconv"
 )
 
 func GetDepositDetatil(num int, m int, n int, onlineFlag bool) []vm.DepositDetail {
@@ -356,17 +356,16 @@ func Test7(t *testing.T) {
 	GOTestM(0, 0, white, black, "stock", true)
 }
 
-
-func Savefile(genesis *core.Genesis,filename string){
-	marshalData,err:=json.Marshal(genesis)
+func Savefile(genesis *core.Genesis, filename string) {
+	marshalData, err := json.Marshal(genesis)
 	err = ioutil.WriteFile(filename, marshalData, os.ModeAppend)
 	if err != nil {
 		fmt.Println("测试支持", "生成test文件成功")
 	}
 
 }
-func Savefile1(genesis1 *core.Genesis1,filename string){
-	marshalData,err:=json.Marshal(genesis1)
+func Savefile1(genesis1 *core.Genesis1, filename string) {
+	marshalData, err := json.Marshal(genesis1)
 	err = ioutil.WriteFile(filename, marshalData, os.ModeAppend)
 	if err != nil {
 		fmt.Println("测试支持", "生成test文件成功")
@@ -374,33 +373,30 @@ func Savefile1(genesis1 *core.Genesis1,filename string){
 
 }
 
-func TestDefaultGenesisCfg(t *testing.T){
-		genesisPath:="MANGenesis.json"
-		file, err := os.Open(genesisPath)
-		if err != nil {
-			utils.Fatalf("Failed to read genesis file: %v", err)
-		}
-		defer file.Close()
-		genesis1 := new(core.Genesis1)
+func TestDefaultGenesisCfg(t *testing.T) {
+	genesisPath := "MANGenesis.json"
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+	genesis1 := new(core.Genesis1)
 
+	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+	genesis, err := core.GetDefaultGeneis()
 
-		if err := json.NewDecoder(file).Decode(genesis1); err != nil {
-			utils.Fatalf("invalid genesis file: %v", err)
-		}
-		genesis,err := core.GetDefaultGeneis()
-
-	Savefile(genesis,"init.json")
-		core.ManGenesisToEthGensis(genesis1, genesis)
-	Savefile(genesis,"end.json")
-		fmt.Println(genesis.MState.Broadcast)
-
+	Savefile(genesis, "init.json")
+	core.ManGenesisToEthGensis(genesis1, genesis)
+	Savefile(genesis, "end.json")
+	fmt.Println(genesis.MState.Broadcast)
 
 }
 
-
-func TestNew(t *testing.T){
-	A:=new(core.Genesis1)
-	err:=json.Unmarshal([]byte(core.DefaultJson),A)
-	fmt.Println("err",err)
+func TestNew(t *testing.T) {
+	A := new(core.Genesis1)
+	err := json.Unmarshal([]byte(core.DefaultJson), A)
+	fmt.Println("err", err)
 	fmt.Println(A)
 }

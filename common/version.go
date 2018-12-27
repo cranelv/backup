@@ -45,17 +45,29 @@ var (
 			},
 		},
 		{
-			Version:   "Gman_Alg_0.0.4",
+			Version:   "Gman_Alg_0.0.5",
 			Submitter: "Ryan",
 			Commit: []string{
 				"merge nodeId fixed version, modify bucket limit from two to four and modify broadcast block sender",
 			},
 		},
 		CommitContext{
-			Version:   "Gman_Alg_0.0.5",
+			Version:   "Gman_Alg_0.0.6",
 			Submitter: "孙春风",
 			Commit: []string{
 				"提供创世文件默认配置,(用户可选择性的填写创世文件,也可不填)",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.7",
+			Submitter: "yeying",
+			Commit: []string{
+				"修复发送定时交易或者24小时可撤销交易后重启节点导致区块root不一致的问题",
+				"修复24小时可撤销交易正常执行完毕后在撤销该笔交易出现崩溃的问题",
+				"修复同时发送定时交易和24小时可撤销交易，撤销其中的一笔交易后，转账金额没有减少的问题",
+				"修复dump崩溃问题",
+				"修改log",
+				"deposit bug fixed",
 			},
 		},
 	}

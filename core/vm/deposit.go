@@ -154,8 +154,8 @@ func (md *MatrixDeposit) deposit(in []byte, contract *Contract, evm *EVM, thresh
 		return nil, errParameters
 	}
 
-	var addr []byte
-	err := depositAbi.Methods["valiDeposit"].Inputs.Unpack(&addr, in)
+	var addr common.Address
+	err := depositAbi.Methods["valiDeposit"].Inputs.Unpack(&addr, in[:])
 	if err != nil || len(addr) != 20 {
 		return nil, errDeposit
 	}
@@ -177,7 +177,7 @@ func (md *MatrixDeposit) deposit(in []byte, contract *Contract, evm *EVM, thresh
 	}
 
 	var address common.Address
-	copy(address[:], addr)
+	copy(address[:], addr[:])
 	err = md.modifyDepositState(contract, evm, address)
 	if err != nil {
 		return nil, err
@@ -289,7 +289,7 @@ func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address
 	}
 	nodeYKey := append(address[:], 'N', 'Y')
 	hs := stateDB.GetState(contract.Address(), common.BytesToHash(nodeYKey))
-	if hs == emptyHash {
+	if hs != emptyHash {
 		return errExist
 	}
 	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())

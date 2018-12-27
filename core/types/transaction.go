@@ -58,6 +58,11 @@ type Transaction struct {
 	IsEntrustGas    bool
 	IsEntrustByTime bool //是否是按时间委托（不是按时间就是按高度，二选一）
 }
+type TransactionCall struct {
+	*Transaction
+}
+
+func (tc *TransactionCall) CheckNonce() bool { return false }
 
 //YY
 type Transaction_Mx struct {

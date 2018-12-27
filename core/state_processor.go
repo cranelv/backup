@@ -107,6 +107,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 
 	return nil
 }
+
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
