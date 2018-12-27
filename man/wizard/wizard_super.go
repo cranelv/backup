@@ -100,9 +100,10 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
+			tmp.VIP=elec.VIP
 			sliceElect = append(sliceElect, *tmp)
 		}
-		genesis.Elect = sliceElect
+		genesis.NextElect = sliceElect
 		//NetTopology
 		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
 		for _, netTopology := range curHeader.NetTopology.NetTopologyData {
@@ -115,7 +116,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		genesis.NetTopology.Type = curHeader.NetTopology.Type
 
 	} else {
-		genesis.Elect = make([]common.Elect1, 0)
+		genesis.NextElect = make([]common.Elect1, 0)
 		genesis.NetTopology = common.NetTopology1{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData1, 0)}
 	}
 

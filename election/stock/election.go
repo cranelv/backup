@@ -24,9 +24,7 @@ func RegInit() baseinterface.ElectionInterface {
 
 func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("选举种子", "矿工拓扑生成", len(mmrerm.MinerList))
-	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum)
-	nodeElect.Disorder()
-	nodeElect.Sort()
+	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum,common.RoleMiner)
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
 	//nodeElect.DisPlayNode()
@@ -35,30 +33,27 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 	//for _,v:=range value{
 	//	fmt.Println(v.Addr.String(),v.Value)
 	//}
-	Master, value := support.GetList(value, int(nodeElect.EleCfg.MinerNum)-len(nodeElect.WhiteNodeInfo), nodeElect.RandSeed.Int64())
-	Master = append(Master, nodeElect.WhiteNodeInfo...)
+	Master, value := support.GetList_Common(value, int(nodeElect.EleCfg.MinerNum), nodeElect.RandSeed)
 	return support.MakeMinerAns(Master, nodeElect.SeqNum)
 }
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum)
-	nodeElect.Disorder()
-	nodeElect.Sort()
+	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
+
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
 	value := nodeElect.GetWeight(common.RoleValidator)
 	//for _,v:=range value{
 	//	fmt.Println(v.Value,v.Addr.String())
 	//}
-	Master, value := support.GetList(value, int(nodeElect.EleCfg.ValidatorNum)-len(nodeElect.WhiteNodeInfo), nodeElect.RandSeed.Int64())
+	Master, value := support.GetList_Common(value, int(nodeElect.EleCfg.ValidatorNum), nodeElect.RandSeed)
 
-	BackUp, value := support.GetList(value, int(nodeElect.EleCfg.BackValidator), nodeElect.RandSeed.Int64())
+	BackUp, value := support.GetList_Common(value, int(nodeElect.EleCfg.BackValidator), nodeElect.RandSeed)
 
-	Candid, value := support.GetList(value, len(value), nodeElect.RandSeed.Int64())
-	Master = append(Master, nodeElect.WhiteNodeInfo...)
+	Candid, value := support.GetList_Common(value, len(value), nodeElect.RandSeed)
 
-	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, []support.Strallyint{}, Master, BackUp, Candid)
+	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, Master, BackUp, Candid)
 
 }
 

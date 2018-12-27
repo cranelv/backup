@@ -1,5 +1,6 @@
 package support
 
+
 const (
 	ModuleLogName = "选举基础模块"
 	MaxSample     = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值
@@ -12,6 +13,8 @@ const (
 	MaxVipEleLevelNum       = 2
 	DefaultRatio            = 1000
 	DefaultRatioDenominator = 1000
+	DefaultMinerDeposit=10000
+	DefaultValidatorDeposit=100000
 )
 const (
 	ValidatorElectPlug_Direct = "Direct"
@@ -31,10 +34,10 @@ var (
 	DefalutValidatorElectPlug  = ValidatorElectPlug_Order //选举所要用到的插件     1.直接选11+5     2.依次选11+5
 	DefaultVIPStock            = []int{3, 2, 1}           //默认股权能否配载vip列表里(创世文件)
 	DefaultQuantificationRatio = QuantRatio{
-		Multi_Online:  1.0,
-		Multi_Tps:     1.0,
-		Multi_Deposit: 1.0,
-		Add_Online:    1.0,
+		Multi_Online:  0,
+		Multi_Tps:     0,
+		Multi_Deposit: 0.0,
+		Add_Online:    0,
 		Add_Deposit:   1.0,
 	}
 	DefaultTpsRatio = []RatioList{

@@ -81,13 +81,15 @@ type ElectNodeInfo struct {
 	Account  common.Address
 	Position uint16
 	Stock    uint16
+	VIPLevel common.VIPRoleType
 	Type     common.RoleType
 }
 
 type ElectGraph struct {
 	Number    uint64
 	ElectList []ElectNodeInfo
-	NextElect []ElectNodeInfo
+	NextMinerElect []ElectNodeInfo
+	NextValidatorElect []ElectNodeInfo
 }
 
 type ElectOnlineStatus struct {
@@ -100,7 +102,7 @@ type MasterMinerReElectionReqMsg struct {
 	SeqNum      uint64
 	RandSeed    *big.Int
 	MinerList   []vm.DepositDetail
-	ElectConfig ElectConfigInfo
+	ElectConfig ElectConfigInfo_All
 }
 
 //验证者主节点生成请求
@@ -109,7 +111,7 @@ type MasterValidatorReElectionReqMsg struct {
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
 	FoundationValidatorList []vm.DepositDetail
-	ElectConfig             ElectConfigInfo
+	ElectConfig             ElectConfigInfo_All
 	VIPList                 []VIPConfig
 }
 

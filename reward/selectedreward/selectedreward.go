@@ -136,7 +136,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 		return nil
 	}
 
-	return util.CalcDepositRate(reward, selectedNodesDeposit)
+	return util.CalcStockRate(reward, selectedNodesDeposit)
 
 }
 
@@ -165,14 +165,14 @@ func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originE
 				return nil
 			}
 			deposit := util.CalcRateReward(v.Deposit, depositRate)
-			var finalStock uint16
+			var finalStock uint64
 			if stock, ok := originElectNodes[v.Address]; ok {
-				finalStock = stock
+				finalStock = uint64(stock) * depositRate
 			} else {
-				finalStock = 1
+				finalStock = depositRate
 			}
-			selectedNodesDeposit[v.Address] = util.DepositInfo{Deposit: deposit, Stock: finalStock}
-			log.Debug(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit)
+			selectedNodesDeposit[v.Address] = util.DepositInfo{Deposit: deposit, FixStock: finalStock}
+			log.Debug(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit, "股权", finalStock)
 		}
 	}
 	return selectedNodesDeposit

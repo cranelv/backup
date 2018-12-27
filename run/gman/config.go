@@ -29,6 +29,7 @@ import (
 	"github.com/naoina/toml"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
+	"crypto/sha256"
 )
 
 var (
@@ -210,9 +211,11 @@ func CheckEntrust(ctx *cli.Context) error {
 	return nil
 }
 
-func ReadDecryptPassword(ctx *cli.Context) (string, error) {
+func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
 	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
-		return password, nil
+		h:=sha256.New()
+		h.Write([]byte(password))
+		return h.Sum(nil), nil
 	}
 	var passphrase string
 	var err error
@@ -221,7 +224,7 @@ func ReadDecryptPassword(ctx *cli.Context) (string, error) {
 	for true {
 		InputCount++
 		if InputCount > 3 {
-			return "", errors.New("多次输入密码错误")
+			return []byte{}, errors.New("多次输入密码错误")
 		}
 		fmt.Printf("第 %d次密码输入 \n", InputCount)
 		passphrase, err = GetPassword()
@@ -233,7 +236,9 @@ func ReadDecryptPassword(ctx *cli.Context) (string, error) {
 			break
 		}
 	}
-	return passphrase, nil
+	h:=sha256.New()
+	h.Write([]byte(passphrase))
+	return h.Sum(nil),nil
 }
 
 func GetPassword() (string, error) {

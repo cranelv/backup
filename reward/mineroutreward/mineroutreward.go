@@ -90,7 +90,7 @@ func (mr *MinerOutReward) SetPreMinerReward(state util.StateDB, reward *big.Int,
 
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, reader util.ChainReader, innerMiners []mc.NodeInfo, rewardType uint8) map[common.Address]*big.Int {
+func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, reader util.ChainReader, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
 
 	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)
@@ -120,7 +120,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 	return rewards
 }
 
-func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, reader util.ChainReader, bcInterval *manparams.BCInterval, innerMiners []mc.NodeInfo) (common.Address, error) {
+func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, reader util.ChainReader, bcInterval *manparams.BCInterval, innerMiners []common.Address) (common.Address, error) {
 	if num < 2 {
 		log.Debug(PackageName, "高度为小于2 不发放奖励：", "")
 		return common.Address{}, errors.New("高度为小于2 不发放奖励：")
@@ -159,7 +159,7 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 		return common.Address{}, errors.New("矿工奖励的地址非法")
 	}
 	for _, v := range innerMiners {
-		if coinbase.Equal(v.Address) {
+		if coinbase.Equal(v) {
 			log.Warn(PackageName, "基金会矿工不发钱，账户为", coinbase)
 			return common.Address{}, errors.New("基金会矿工")
 		}

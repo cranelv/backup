@@ -18,11 +18,12 @@ const (
 )
 
 type BlockReward struct {
-	chain           util.ChainReader
-	st              util.StateDB
-	rewardCfg       *cfg.RewardCfg
-	specialAccounts *mc.MatrixSpecialAccounts
-	bcInterval      *manparams.BCInterval
+	chain              util.ChainReader
+	st                 util.StateDB
+	rewardCfg          *cfg.RewardCfg
+	foundationAccount  common.Address
+	innerMinerAccounts []common.Address
+	bcInterval         *manparams.BCInterval
 }
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *BlockReward {
@@ -46,23 +47,36 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *Blo
 		return nil
 	}
 
-	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, st)
+	data, err := matrixstate.GetDataByState(mc.MSKeyAccountFoundation, st)
 	if err != nil {
-		log.ERROR(PackageName, "获取特殊账户消息失败", err)
+		log.ERROR(PackageName, "获取基金会账户数据失败", err)
 		return nil
 	}
 
-	accounts, OK := data.(*mc.MatrixSpecialAccounts)
-	if OK == false || accounts == nil {
-		log.ERROR(PackageName, "获取特殊账户消息失败", "结构反射失败")
+	foundationAccount, OK := data.(common.Address)
+	if OK == false {
+		log.ERROR(PackageName, "获取基金会账户数据失败", "结构反射失败")
+		return nil
+	}
+
+	innerData, err := matrixstate.GetDataByState(mc.MSKeyAccountInnerMiners, st)
+	if err != nil {
+		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
+		return nil
+	}
+
+	innerMinerAccounts, OK := innerData.([]common.Address)
+	if OK == false {
+		log.ERROR(PackageName, "获取内部矿工账户数据失败", "结构反射失败")
 		return nil
 	}
 
 	br := &BlockReward{
-		chain:           chain,
-		rewardCfg:       rewardCfg,
-		st:              st,
-		specialAccounts: accounts,
+		chain:              chain,
+		rewardCfg:          rewardCfg,
+		st:                 st,
+		foundationAccount:  foundationAccount,
+		innerMinerAccounts: innerMinerAccounts,
 	}
 	br.bcInterval, err = manparams.NewBCIntervalWithInterval(interval)
 	if nil != err {
@@ -127,7 +141,7 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardT
 	rewards := make(map[common.Address]*big.Int, 0)
 
 	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
-	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, br.specialAccounts.InnerMinerAccounts, rewardType)
+	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, br.innerMinerAccounts, rewardType)
 	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
@@ -174,8 +188,8 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 		return nil
 	}
 	accountRewards := make(map[common.Address]*big.Int)
-	accountRewards[br.specialAccounts.FoundationAccount] = blockReward
-	log.Debug(PackageName, "基金会奖励,账户", br.specialAccounts.FoundationAccount.Hex(), "金额", blockReward)
+	accountRewards[br.foundationAccount] = blockReward
+	log.Debug(PackageName, "基金会奖励,账户", br.foundationAccount.Hex(), "金额", blockReward)
 	return accountRewards
 }
 

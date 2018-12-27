@@ -305,7 +305,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	//hezi
 
-	core.ManGenesisToEthGensis(genesis1, genesis)
+	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -830,12 +830,62 @@ func aesEncrypt(ctx *cli.Context) error {
 	return nil
 }
 
-func CheckPassword(password string) bool {
-	if len(password) == 16 {
+func IsValidChar(aim byte)bool{
+	if aim>=33&&aim<=126{
 		return true
 	}
-	fmt.Println("你的密码不符合规则 请重新输入")
 	return false
+}
+func CheckPassword(password string) bool {
+	flagLowerChar:=false
+	flagUpperChar:=false
+	flagNum:=false
+	flagSpecialChar:=false
+	for _,v:=range password{
+		if IsValidChar(byte(v))==false{
+			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
+			return false
+		}
+		switch{
+		case v>='a'&&v<='z':
+			flagLowerChar=true
+		case  v>='A'&&v<='Z' :
+			flagUpperChar=true
+		case v>='0'&&v<='9':
+			flagNum=true
+		default:
+			flagSpecialChar=true
+		}
+
+
+	}
+
+	if flagSpecialChar==false{
+		fmt.Println("你的密码不包含特殊字符 请重新输入")
+		return false
+	}
+	if flagNum==false{
+		fmt.Println("你的密码不包含数字 请重新输入")
+		return false
+	}
+	if flagUpperChar==false{
+		fmt.Println("你的密码不包含大写字母 请重新输入")
+		return false
+	}
+	if flagLowerChar==false{
+		fmt.Println("你的密码不包含小写字符 请重新输入")
+		return false
+	}
+
+	if len(password)>16  {
+		fmt.Println("你的密码大于16位 请重新输入")
+		return false
+	}
+	if len(password)<8{
+		fmt.Println("你的密码小于8位 请重新输入")
+		return false
+	}
+	return true
 }
 
 type JsonStruct struct {

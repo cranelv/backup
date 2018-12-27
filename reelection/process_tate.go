@@ -33,14 +33,16 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	currentHash := block.ParentHash()
 	topState, err := self.HandleTopGen(currentHash)
 	if self.IsMinerTopGenTiming(currentHash) {
-		electStates.NextElect = append(electStates.NextElect, topState.MastM...)
-		electStates.NextElect = append(electStates.NextElect, topState.BackM...)
-		electStates.NextElect = append(electStates.NextElect, topState.CandM...)
+		electStates.NextMinerElect=[]mc.ElectNodeInfo{}
+		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.MastM...)
+		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.BackM...)
+		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.CandM...)
 	}
 	if self.IsValidatorTopGenTiming(currentHash) {
-		electStates.NextElect = append(electStates.NextElect, topState.MastV...)
-		electStates.NextElect = append(electStates.NextElect, topState.BackV...)
-		electStates.NextElect = append(electStates.NextElect, topState.CandV...)
+		electStates.NextValidatorElect=[]mc.ElectNodeInfo{}
+		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.MastV...)
+		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.BackV...)
+		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.CandV...)
 	}
 
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
@@ -53,7 +55,8 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
 	}
 	if bcInterval.IsReElectionNumber(block.NumberU64() + 1) {
-		nextElect := electStates.NextElect
+		nextElect := electStates.NextMinerElect
+		nextElect=append(nextElect,electStates.NextValidatorElect...)
 		electList := []mc.ElectNodeInfo{}
 		for _, v := range nextElect {
 			switch v.Type {
@@ -69,7 +72,6 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		}
 		electStates.ElectList = []mc.ElectNodeInfo{}
 		electStates.ElectList = append(electStates.ElectList, electList...)
-		electStates.NextElect = []mc.ElectNodeInfo{}
 	}
 	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
 	return electStates, nil
@@ -281,3 +283,5 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 	log.INFO("高度", block.Number().Uint64(), "ProducePreAllTopData", "preAllTop.PreAllTopRoot", preAllTop.PreAllTopRoot.String())
 	return preAllTop, nil
 }
+
+

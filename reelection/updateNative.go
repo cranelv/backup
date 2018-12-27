@@ -169,14 +169,14 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 
 	switch types {
 	case common.RoleMiner:
-		for _, v := range electState.NextElect {
+		for _, v := range electState.NextMinerElect {
 			switch v.Type {
 			case common.RoleMiner:
 				master = append(master, v)
 			}
 		}
 	case common.RoleValidator:
-		for _, v := range electState.NextElect {
+		for _, v := range electState.NextValidatorElect {
 			switch v.Type {
 			case common.RoleValidator:
 				master = append(master, v)

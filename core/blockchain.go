@@ -1931,17 +1931,51 @@ func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (int
 	return matrixstate.GetDataByState(key, state)
 }
 
-func (bc *BlockChain) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
-	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
+func (bc *BlockChain) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcast, blockHash)
+	if err != nil {
+		return common.Address{}, err
+	}
+	broadcast, OK := data.(common.Address)
+	if OK == false {
+		return common.Address{}, errors.New("反射结构体失败")
+	}
+	return broadcast, nil
+}
+
+func (bc *BlockChain) GetInnerMinerAccounts(blockHash common.Hash) ([]common.Address, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountInnerMiners, blockHash)
 	if err != nil {
 		return nil, err
 	}
-
-	accounts, OK := data.(*mc.MatrixSpecialAccounts)
-	if OK == false || accounts == nil {
-		return nil, errors.New("反射结构体MatrixSpecialAccounts失败")
+	accounts, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("反射结构体失败")
 	}
+	return accounts, nil
+}
 
+func (bc *BlockChain) GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountVersionSupers, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	accounts, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("反射结构体失败")
+	}
+	return accounts, nil
+}
+
+func (bc *BlockChain) GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountBlockSupers, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	accounts, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("反射结构体失败")
+	}
 	return accounts, nil
 }
 
