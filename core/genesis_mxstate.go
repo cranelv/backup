@@ -379,7 +379,7 @@ func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num ui
 }
 
 func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num uint64) error {
-	if g.VersionSuperAccounts == nil || *g.VersionSuperAccounts == nil {
+	if g.VersionSuperAccounts == nil || len(*g.VersionSuperAccounts) == 0 {
 		if num == 0 {
 			return errors.Errorf("the version superAccounts of genesis is empty")
 		} else {
@@ -391,13 +391,14 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 }
 
 func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num uint64) error {
-	if g.BlockSuperAccounts == nil || *g.BlockSuperAccounts == nil {
-		if num == 0 {
-			return errors.Errorf("the block superAccounts of genesis is empty")
-		} else {
-			return nil
-		}
+	if num != 0 {
+		return errors.New("the block superAccounts can't modify")
 	}
+
+	if g.BlockSuperAccounts == nil || len(*g.BlockSuperAccounts) == 0 {
+		return errors.Errorf("the block superAccounts of genesis is empty")
+	}
+
 	matrixstate.SetDataToState(mc.MSKeyAccountBlockSupers, *g.BlockSuperAccounts, state)
 	return nil
 }
@@ -531,11 +532,12 @@ func (g *GenesisMState) setSlashCfgToState(state *state.StateDB, num uint64) err
 }
 
 type SortVIPConfig []mc.VIPConfig
+
 func (self SortVIPConfig) Len() int {
 	return len(self)
 }
 func (self SortVIPConfig) Less(i, j int) bool {
-	return self[i].MinMoney<self[j].MinMoney
+	return self[i].MinMoney < self[j].MinMoney
 }
 func (self SortVIPConfig) Swap(i, j int) {
 	temp := self[i]
@@ -557,11 +559,11 @@ func (g *GenesisMState) setVIPCfgToState(state *state.StateDB, number uint64) er
 		return errors.Errorf("vip 配置为nil")
 	}
 	sort.Sort(SortVIPConfig(*g.VIPCfg))
-	if (*g.VIPCfg)[0].MinMoney!=uint64(0){
+	if (*g.VIPCfg)[0].MinMoney != uint64(0) {
 		return errors.New("vip配置中需包含最小值为0的配置")
 	}
-	for index:=0;index<len(*g.VIPCfg)-1;index++{
-		if (*g.VIPCfg)[index].MinMoney==(*g.VIPCfg)[index+1].MinMoney{
+	for index := 0; index < len(*g.VIPCfg)-1; index++ {
+		if (*g.VIPCfg)[index].MinMoney == (*g.VIPCfg)[index+1].MinMoney {
 			return errors.New("vip配置中不能包含最小值相同的配置")
 		}
 	}

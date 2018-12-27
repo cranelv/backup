@@ -110,7 +110,7 @@ func (md *MtxDPOS) calcSuperNodeTarget(totalCount int) int {
 
 func (md *MtxDPOS) CheckSuperBlock(reader consensus.StateReader, header *types.Header) error {
 
-	accounts, err := reader.GetBlockSuperAccounts(header.ParentHash)
+	accounts, err := reader.GetBlockSuperAccounts(reader.GetCurrentHash())
 	if err != nil || accounts == nil {
 		return errors.Errorf("get super block account from state err(%s)", err)
 	}
