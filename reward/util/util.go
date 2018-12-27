@@ -36,6 +36,8 @@ var (
 	MinersBlockReward     *big.Int = big.NewInt(5e+18)
 
 	ManPrice *big.Int = big.NewInt(1e18)
+
+	Precision *big.Int = big.NewInt(1e8)
 )
 
 type ChainReader interface {
@@ -126,7 +128,7 @@ func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]DepositInf
 	}
 	log.INFO(PackageName, "计算抵押总额,账户总抵押", totalDeposit, "定点化抵押", totalDeposit)
 
-	rewardFixed := new(big.Int).Div(reward, big.NewInt(1e8))
+	rewardFixed := new(big.Int).Div(reward, Precision)
 
 	if 0 == rewardFixed.Cmp(big.NewInt(0)) {
 		log.ERROR(PackageName, "定点化奖励金额为0", "")
@@ -150,7 +152,7 @@ func CalcDepositRate(reward *big.Int, depositNodes map[common.Address]DepositInf
 
 		rewardTemp := new(big.Int).Mul(rewardFixed, rate)
 		rewardTemp1 := new(big.Int).Div(rewardTemp, big.NewInt(1e10))
-		oneNodeReward := new(big.Int).Mul(rewardTemp1, big.NewInt(1e8))
+		oneNodeReward := new(big.Int).Mul(rewardTemp1, Precision)
 		rewards[common.HexToAddress(k)] = oneNodeReward
 		log.Debug(PackageName, "计算奖励金额,账户", k, "定点化金额", rewards[common.HexToAddress(k)])
 	}
