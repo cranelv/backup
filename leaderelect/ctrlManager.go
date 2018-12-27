@@ -54,6 +54,9 @@ func (cm *ControllerManager) StartController(number uint64, msg *startController
 func (cm *ControllerManager) ReceiveMsgByCur(msg interface{}) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
+	if cm.curNumber <= 0 {
+		return
+	}
 	ctrl := cm.getController(cm.curNumber)
 	ctrl.ReceiveMsg(msg)
 }
