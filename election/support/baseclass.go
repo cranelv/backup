@@ -10,7 +10,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"math/big"
 	"math/rand"
-	"sort"
+	"github.com/matrix/go-matrix/common/mt19937"
 )
 
 type RatioList struct {
@@ -35,6 +35,7 @@ type AllNative struct {
 type Strallyint struct {
 	Value int
 	Addr  common.Address
+	VIPLevel common.VIPRoleType
 }
 
 type Node struct {
@@ -43,41 +44,49 @@ type Node struct {
 	WithdrawH  *big.Int
 	OnlineTime *big.Int
 	Ratio      uint16
-	vipLevel   int
+	vipLevel   common.VIPRoleType
 	index      int
 	Usable     bool
 }
 
 type Electoion struct {
 	SeqNum        uint64
-	RandSeed      *big.Int
-	MaxLevelNum   int
+	RandSeed      *mt19937.RandUniform
 	VipLevelCfg   []mc.VIPConfig
 	NodeList      []Node
-	EleCfg        mc.ElectConfigInfo
-	WhiteNodeInfo []Strallyint
+
+	EleCfg        mc.ElectConfigInfo_All
+
+	ChosedNum int
+	NeedNum int
+	HasChosedNode [][]Strallyint
+	MapMoney map[common.Address]uint64
 }
 
 func (node *Node) SetUsable(status bool) {
+
 	node.Usable = status
 }
 
 func (node *Node) SetIndex(index int) {
 	node.index = index
 }
-func (node *Node) SetVipLevelInfo(VipLevelCfg []mc.VIPConfig) {
-	for index := 0; index < len(VipLevelCfg); index++ {
-		temp := big.NewInt(0).Set(node.Deposit)
-		deposMan := temp.Div(temp, common.ManValue).Uint64()
-		if deposMan >= VipLevelCfg[index].MinMoney {
-			node.vipLevel = index
-			node.Ratio = VipLevelCfg[index].StockScale
-			return
+func (node *Node) SetVipLevelInfo(VipLevelCfg []mc.VIPConfig)uint64 {
+	temp := big.NewInt(0).Set(node.Deposit)
+	deposMan := temp.Div(temp, common.ManValue).Uint64()
+
+
+
+	for index:=len(VipLevelCfg)-1;index>=0;index--{
+		if deposMan>=VipLevelCfg[index].MinMoney{
+			node.vipLevel=common.GetVIPLevel(index)
+			node.Ratio=VipLevelCfg[index].StockScale
+			return deposMan
 		}
 	}
-	maxLevel := len(VipLevelCfg)
 	node.Ratio = DefaultRatio
-	node.vipLevel = maxLevel
+	node.vipLevel = common.VIP_Nil
+	return deposMan
 }
 
 func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
@@ -97,22 +106,32 @@ func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
 	}
 }
 
-func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo, randseed *big.Int, seqNum uint64) *Electoion {
+func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.ElectConfigInfo_All, randseed *big.Int, seqNum uint64,types common.RoleType) *Electoion {
 	var vip Electoion
 	vip.SeqNum = seqNum
-	vip.RandSeed = randseed
-	vip.MaxLevelNum = len(VipLevelCfg) + 1
+	vip.RandSeed = mt19937.RandUniformInit(randseed.Int64())
 	vip.EleCfg = EleCfg
+
 	vip.VipLevelCfg = VipLevelCfg
-	vip.WhiteNodeInfo = make([]Strallyint, 0)
+	vip.ChosedNum=0
+	switch types {
+	case common.RoleValidator:
+		vip.NeedNum=int(EleCfg.BackValidator+EleCfg.ValidatorNum)
+	default:
+		vip.NeedNum=int(EleCfg.MinerNum)
+	}
+	vip.MapMoney=make(map[common.Address]uint64)
+
 	for i := 0; i < len(vm); i++ {
 		vip.NodeList = append(vip.NodeList, Node{})
 	}
 	for i := 0; i < len(vm); i++ {
 		vip.NodeList[i].SetDepositInfo(vm[i])
-		vip.NodeList[i].SetVipLevelInfo(VipLevelCfg)
+		manValue:=vip.NodeList[i].SetVipLevelInfo(VipLevelCfg)
 		vip.NodeList[i].SetIndex(i)
 		vip.NodeList[i].SetUsable(true)
+
+		vip.MapMoney[vip.NodeList[i].Address]=manValue
 
 	}
 	return &vip
@@ -127,9 +146,26 @@ func FindAddress(addr common.Address, addrList []common.Address) bool {
 	return false
 }
 func (vip *Electoion) DisPlayNode() {
+	//for _,v:=range vip.NodeList{
+	//	fmt.Println(v.Address.String(),v.Deposit.String(),vip.MapMoney[v.Address])
+	//}
 	for _, v := range vip.NodeList {
-		fmt.Println(v.Address, v.Deposit, v.WithdrawH, v.OnlineTime, v.vipLevel, v.index, "Ratio", v.Ratio)
+		fmt.Println(v.Address.String(), v.Deposit, v.WithdrawH, v.OnlineTime, v.vipLevel, v.index, "Ratio", v.Ratio,v.Usable)
 	}
+}
+func (vip *Electoion)SetChosed(node []Strallyint){
+
+	ChoseNode:=[]common.Address{}
+	for _,v:=range node{
+		ChoseNode=append(ChoseNode,v.Addr)
+	}
+	for k,v:=range vip.NodeList{
+		if FindAddress(v.Address,ChoseNode){
+			vip.NodeList[k].SetUsable(false)
+		}
+	}
+	vip.ChosedNum+=len(node)
+	vip.HasChosedNode=append(vip.HasChosedNode,node)
 }
 func (vip *Electoion) ProcessBlackNode() {
 	for k, v := range vip.NodeList {
@@ -138,7 +174,39 @@ func (vip *Electoion) ProcessBlackNode() {
 		}
 	}
 }
+
+func (vip *Electoion)GetVipStock(addr common.Address)int{
+	stockSum:=int(0)
+	stockDespoit:=uint64(0)
+	for k,v:=range vip.HasChosedNode{
+		if k!=len(vip.HasChosedNode)-1{
+			continue
+		}
+		for _,vv:=range v{
+			stockSum+=vv.Value
+			stockDespoit+=vip.MapMoney[vv.Addr]
+		}
+	}
+	ratio:=int(0.0)
+	if stockDespoit==0{
+		ratio=int(vip.MapMoney[addr]/vip.VipLevelCfg[1].MinMoney)
+	}else{
+		ratio=int(float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr])+0.5)
+	}
+	if ratio > 0xffff{
+		return 0xffff
+	}
+	if ratio == 0{
+		return 1
+	}
+
+	return ratio
+
+
+
+}
 func (vip *Electoion) ProcessWhiteNode() {
+	/*
 	for k, v := range vip.NodeList {
 		if v.Usable == false {
 			continue
@@ -148,21 +216,22 @@ func (vip *Electoion) ProcessWhiteNode() {
 			vip.NodeList[k].SetUsable(false)
 		}
 	}
+	*/
 }
-func (vip *Electoion) GetNodeByLevel(level int) []Node {
+func (vip *Electoion) GetNodeByLevel(level common.VIPRoleType) []Node {
 	specialNode := make([]Node, 0)
 	for i := 0; i < len(vip.NodeList); i++ {
 		if vip.NodeList[i].Usable == false {
 			continue
 		}
-		if level == vip.NodeList[i].vipLevel {
+		if  vip.NodeList[i].vipLevel >=level{
 			specialNode = append(specialNode, vip.NodeList[i])
 		}
 	}
 	return specialNode
 }
 
-func (vip *Electoion) GetNodeIndexByLevel(level int) []int {
+func (vip *Electoion) GetNodeIndexByLevel(level common.VIPRoleType) []int {
 	specialNode := make([]int, 0)
 	for i := 0; i < len(vip.NodeList); i++ {
 		if level == vip.NodeList[i].vipLevel {
@@ -188,22 +257,7 @@ func (vip *Electoion) GetWeight(role common.RoleType) []Pnormalized {
 	return CalcValue(lastnode, role)
 }
 
-func (vip *Electoion) Disorder() {
-	vip.NodeList = Knuth_Fisher_Yates_Algorithm(vip.NodeList, vip.RandSeed)
-}
-func (vip *Electoion) Sort() {
-	sort.Sort(SortNodeList(vip.NodeList))
-}
 
-func (vip *Electoion) ValidatorTopGen(MasterNum int, BackupNum int) ([]Strallyint, []Strallyint, []Strallyint) {
-	weight := vip.GetWeight(common.RoleValidator)
-	switch DefalutValidatorElectPlug {
-	case ValidatorElectPlug_Direct:
-		return getValidator_Direct(weight, MasterNum, BackupNum, vip.RandSeed)
-	default:
-		return getValidator_Order(weight, MasterNum, BackupNum, vip.RandSeed)
-	}
-}
 
 func Knuth_Fisher_Yates_Algorithm(nodeList []Node, randSeed *big.Int) []Node {
 	//高纳德置乱算法
@@ -223,25 +277,6 @@ func (vip *Electoion) GetIndex(addr common.Address) (int, bool) {
 		}
 	}
 	return 0, false
-}
-func (vip *Electoion) VipElection(nodeList []Node, maxNum int) []Node {
-
-	nodeList = Knuth_Fisher_Yates_Algorithm(nodeList, vip.RandSeed)
-	sort.Sort(SortNodeList(nodeList))
-	var vipElected = make([]Node, 0)
-	for _, v := range nodeList {
-		vipElected = append(vipElected, v)
-		index, flag := vip.GetIndex(v.Address)
-		if flag == false {
-			continue
-		}
-		vip.NodeList[index].SetUsable(false)
-		if len(vipElected) >= maxNum {
-			return vipElected
-		}
-	}
-
-	return vipElected
 }
 
 type SortNodeList []Node

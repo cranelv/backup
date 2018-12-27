@@ -15,7 +15,7 @@ const (
 	ElectRoleMinerBackUp        ElectRoleType = 0x01
 	ElectRoleValidator          ElectRoleType = 0x02
 	ElectRoleValidatorBackUp    ElectRoleType = 0x03
-	ElectRoleCandidateValidator ElectRoleType = 0x10
+	ElectRoleCandidateValidator ElectRoleType = 0x04
 	ElectRoleNil                ElectRoleType = 0xff
 )
 
@@ -73,4 +73,28 @@ func IsNil(i interface{}) bool {
 		return flag
 	}
 	return false
+}
+
+
+type VIPRoleType uint16
+
+const (
+	VIP_Nil            VIPRoleType = 0
+	VIP_1              VIPRoleType=1
+	VIP_2              VIPRoleType=2
+	VIP_3              VIPRoleType=3
+
+)
+
+func GetVIPLevel(index int)VIPRoleType{
+	switch index {
+	case 1:
+		return VIP_1
+	case 2:
+		return VIP_2
+	case 3:
+		return VIP_3
+	default:
+		return VIP_Nil
+	}
 }

@@ -2,7 +2,6 @@ package mc
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/p2p/discover"
 	"math/big"
 )
 
@@ -13,17 +12,24 @@ const (
 	MSKeyElectOnlineState = "elect_state"    // 选举节点在线消息
 
 	//通用
-	MSKeyBroadcastInterval = "broad_interval" // 广播区块周期
-	MSKeyElectGenTime      = "elect_gen_time"
-	MSKeyMatrixAccount     = "matrix_specific_account"
-	MSKeyElectConfigInfo   = "elect_details_info"
-	MSKeyVIPConfig         = "vip_config"
-	MSKeyPreBroadcastRoot  = "pre_broadcast_Root"
-	MSKeyLeaderConfig      = "leader_config"
-	MSKeyMinHash           = "pre_100_min_hash"
-	MSKeyPerAllTop         = "pre_all_top_timing"
-	MSKeyPreMiner          = "pre_miner"
-	MSKeySuperBlockCfg     = "super_block_config"
+	MSKeyBroadcastInterval    = "broad_interval" // 广播区块周期
+	MSKeyElectGenTime         = "elect_gen_time"
+	MSKeyAccountBroadcast     = "account_broadcast"      //广播账户  			common.Address
+	MSKeyAccountInnerMiners   = "account_inner_miners"   //基金会矿工 		[]common.Address
+	MSKeyAccountFoundation    = "account_foundation"     //基金会账户			common.Address
+	MSKeyAccountVersionSupers = "account_version_supers" //版本签名账户		[]common.Address
+	MSKeyAccountBlockSupers   = "account_block_supers"   //超级区块签名账户	[]common.Address
+	MSKeyElectConfigInfo      = "elect_details_info"
+	MSKeyElectMinerNum        = "elect_miner_num"
+	MSKeyElectBlackList       = "elect_black_list"
+	MSKeyElectWhiteList       = "elect_white_list"
+	MSKeyVIPConfig            = "vip_config"
+	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"
+	MSKeyLeaderConfig         = "leader_config"
+	MSKeyMinHash              = "pre_100_min_hash"
+	MSKeyPerAllTop            = "pre_all_top_timing"
+	MSKeyPreMiner             = "pre_miner"
+	MSKeySuperBlockCfg        = "super_block_config"
 	//奖励配置
 	MSKeyBlkRewardCfg = "blk_reward"
 	MSKeyTxsRewardCfg = "txs_reward"
@@ -63,31 +69,18 @@ type ElectGenTimeStruct struct {
 	VoteBeforeTime     uint16
 }
 
-type NodeInfo struct {
-	//NodeID  discover.NodeID
-	Address common.Address
-}
-
-type NodeInfo1 struct {
-	NodeID  discover.NodeID
-	Address string
-}
-
-type MatrixSpecialAccounts struct {
-	BroadcastAccount     NodeInfo
-	InnerMinerAccounts   []NodeInfo
-	FoundationAccount    common.Address
-	VersionSuperAccounts []common.Address
-	BlockSuperAccounts   []common.Address
-}
-
-type ElectConfigInfo struct {
+type ElectConfigInfo_All struct {
 	MinerNum      uint16
 	ValidatorNum  uint16
 	BackValidator uint16
 	ElectPlug     string
 	WhiteList     []common.Address
 	BlackList     []common.Address
+}
+type ElectConfigInfo struct {
+	ValidatorNum  uint16
+	BackValidator uint16
+	ElectPlug     string
 }
 
 type VIPConfig struct {
@@ -179,4 +172,7 @@ type RandomInfoStruct struct {
 }
 type PreAllTopStruct struct {
 	PreAllTopRoot common.Hash
+}
+type ElectMinerNumStruct struct {
+	MinerNum uint16
 }

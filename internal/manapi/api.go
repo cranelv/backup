@@ -44,6 +44,7 @@ import (
 	"github.com/matrix/go-matrix/rpc"
 	"io/ioutil"
 	"os"
+	"crypto/sha256"
 )
 
 const (
@@ -355,7 +356,9 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 		fmt.Println("解密失败", err)
 		return false
 	}
-	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
+	h:=sha256.New()
+	h.Write([]byte(password))
+	tpass, err := aes.AesDecrypt(bytesPass,h.Sum(nil))
 	if err != nil {
 		fmt.Println("AedDecrypt失败", bytesPass, password)
 		return false
@@ -1132,6 +1135,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		tmpElect1.Type = elect.Type
 		tmpElect1.Account = base58.Base58EncodeToString("MAN", elect.Account)
 		tmpElect1.Stock = elect.Stock
+		tmpElect1.VIP=elect.VIP
 		listElect1 = append(listElect1, *tmpElect1)
 	}
 
@@ -1159,6 +1163,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		"nettopology":      NetTopology1,
 		"signatures":       head.Signatures,
 		"version":          hexutil.Bytes(head.Version),
+		"VrfValue":hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {

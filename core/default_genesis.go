@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/mc"
 )
 
 var (
@@ -88,129 +87,7 @@ var (
         ]
     ],
     "vrfvalue":"",
-    "elect":[
-        {
-            "Account":"MAN.CrsnQSJJfGxpb2taGhChLuyZwZJo",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.2Uoz8g8jauMa2mtnwxrschj2qPJrE",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.4Uuy7yduAjku29WHeveHSNpnZTRGt",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.3FCfHj3uhyhKZvcSW6cxjKd4BR9YH",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.2CUi6tLr3pAKsUHsF84qLiG42jLHx",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.32TKCX1ScAFvy3HxfoUWmZptervkU",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.33genSvo3BXwUG1gxVi3dtH27Pasb",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.2mNVd1SLzC8ohGnp29e5CmRHEc3rQ",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.3sQ1A1tUuVLNsu6RoLrXjhNi8UwgK",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.3Bkn4SBhPADY2TSqkhZxQA9c1XJit",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.2g5Tv4M74nzxr2FiTiomonfZfEhgW",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.9HE223J2nC8HYjEBecdB1xGXFETG",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.2xKT9DfzrqR7yUvADfC7VLCbPSiBb",
-            "Stock":1,
-            "Type":2
-        },
-        {
-            "Account":"MAN.5m2XU6yGoSJiAmFFkKKM5cdURUtF",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.3UEQqTmEgH7BEBQ6Gmt2E7ZpJTSQN",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.3ThvRGTUA1sqN2AFuptttq4RWRa8x",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.3S7eB5LSCSv5FPcyzfcmjuyPryjho",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.hqoxtEV5UWGAabYWjiPnN1EH7N9K",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.DbarsHeYBhqPFhqHFUqPYv5KDX56",
-            "Stock":1,
-            "Type":2
-        },
-		{
-            "Account":"MAN.3i11mJFLnmCBJxpJfWEDQig1EeqKp",
-            "Stock":1,
-            "Type":0
-        },
-		{
-            "Account":"MAN.3QjcY2wzgnE6HLAVv6YBidqxXaNMX",
-            "Stock":1,
-            "Type":0
-        },
-		{
-            "Account":"MAN.4D2RKmdYm3pGgs1P8AWFyt1VydXuc",
-            "Stock":1,
-            "Type":0
-        },
-		{
-            "Account":"MAN.47Vc4qqMT8nP2PJA46ggu2fNu957Y",
-            "Stock":1,
-            "Type":0
-        },
-		{
-            "Account":"MAN.2rVjisdngpyFJG6W2z5SBqpBRDWtx",
-            "Stock":1,
-            "Type":0
-        }
-		
-    ],
+    "nextElect":[],
     "nettopology":{
         "Type":0,
         "NetTopologyData":[
@@ -484,10 +361,7 @@ var (
     },
     "difficulty":"0x100",
     "mstate":{
-        "Broadcast":{
-            "NodeID":"4b2f638f46c7ae5b1564ca7015d716621848a0d9be66f1d1e91d566d2a70eedc2f11e92b743acb8d97dec3fb412c1b2f66afd7fbb9399d4fb2423619eaa514c7",
-            "Address":"MAN.38nGzwi5Xn5ApxHXquT8ALaMLpbyG"
-        },
+        "Broadcast":"MAN.38nGzwi5Xn5ApxHXquT8ALaMLpbyG",
         "Foundation":"MAN.38nGzwi5Xn5ApxHXquT8ALaMLpbyG",
         "VersionSuperAccounts":[
             "MAN.48azdUqR5KZe4AMrr2WXZCcYScDTH"
@@ -580,13 +454,138 @@ var (
             "VoteBeforeTime":7
         },
         "EleInfo":{
-            "MinerNum":5,
             "ValidatorNum":19,
             "BackValidator":4,
-            "ElectPlug":"layerd",
-            "WhiteList":null,
-            "BlackList":null
+            "ElectPlug":"layerd"
+        },
+			 "ElectMinerNum":{
+			     "MinerNum":5
+        },
+		   "ElectBlackList":null,
+		   "ElectWhiteList":null,
+        "curElect":[
+        {
+            "Account":"MAN.CrsnQSJJfGxpb2taGhChLuyZwZJo",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.2Uoz8g8jauMa2mtnwxrschj2qPJrE",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.4Uuy7yduAjku29WHeveHSNpnZTRGt",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.3FCfHj3uhyhKZvcSW6cxjKd4BR9YH",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.2CUi6tLr3pAKsUHsF84qLiG42jLHx",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.32TKCX1ScAFvy3HxfoUWmZptervkU",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.33genSvo3BXwUG1gxVi3dtH27Pasb",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.2mNVd1SLzC8ohGnp29e5CmRHEc3rQ",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.3sQ1A1tUuVLNsu6RoLrXjhNi8UwgK",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.3Bkn4SBhPADY2TSqkhZxQA9c1XJit",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.2g5Tv4M74nzxr2FiTiomonfZfEhgW",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.9HE223J2nC8HYjEBecdB1xGXFETG",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.2xKT9DfzrqR7yUvADfC7VLCbPSiBb",
+            "Stock":1,
+            "Type":2
+        },
+        {
+            "Account":"MAN.5m2XU6yGoSJiAmFFkKKM5cdURUtF",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.3UEQqTmEgH7BEBQ6Gmt2E7ZpJTSQN",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.3ThvRGTUA1sqN2AFuptttq4RWRa8x",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.3S7eB5LSCSv5FPcyzfcmjuyPryjho",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.hqoxtEV5UWGAabYWjiPnN1EH7N9K",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.DbarsHeYBhqPFhqHFUqPYv5KDX56",
+            "Stock":1,
+            "Type":2
+        },
+		{
+            "Account":"MAN.3i11mJFLnmCBJxpJfWEDQig1EeqKp",
+            "Stock":1,
+            "Type":0
+        },
+		{
+            "Account":"MAN.3QjcY2wzgnE6HLAVv6YBidqxXaNMX",
+            "Stock":1,
+            "Type":0
+        },
+		{
+            "Account":"MAN.4D2RKmdYm3pGgs1P8AWFyt1VydXuc",
+            "Stock":1,
+            "Type":0
+        },
+		{
+            "Account":"MAN.47Vc4qqMT8nP2PJA46ggu2fNu957Y",
+            "Stock":1,
+            "Type":0
+        },
+		{
+            "Account":"MAN.2rVjisdngpyFJG6W2z5SBqpBRDWtx",
+            "Stock":1,
+            "Type":0
         }
+		
+    ]
     },
     "signatures":[
         [
@@ -798,8 +797,7 @@ var (
     "mixhash":"0x0000000000000000000000000000000000000000000000000000000000000000",
     "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
     "timestamp":"0x00"
-}
-`
+}`
 )
 
 func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
@@ -855,17 +853,17 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 	if gensis1.TxHash.Equal(common.Hash{}) == false {
 		gensis.TxHash = gensis1.TxHash
 	}
-	//Elect
-	if nil != gensis1.Elect {
+	//nextElect
+	if nil != gensis1.NextElect {
 		sliceElect := make([]common.Elect, 0)
-		for _, elec := range gensis1.Elect {
+		for _, elec := range gensis1.NextElect {
 			tmp := new(common.Elect)
 			tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
 			sliceElect = append(sliceElect, *tmp)
 		}
-		gensis.Elect = sliceElect
+		gensis.NextElect = sliceElect
 	}
 
 	//NetTopology
@@ -895,8 +893,8 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 			gensis.MState = new(GenesisMState)
 		}
 		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(mc.NodeInfo)
-			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+			gensis.MState.Broadcast = new(common.Address)
+			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
 		}
 		if nil != gensis1.MState.Foundation {
 			gensis.MState.Foundation = new(common.Address)
@@ -917,13 +915,28 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
-			innerMiners := make([]mc.NodeInfo, 0)
+			innerMiners := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
-
-				innerMiners = append(innerMiners, mc.NodeInfo{Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-
 			gensis.MState.InnerMiners = &innerMiners
+		}
+		if nil != gensis1.MState.ElectBlackListCfg {
+			blackList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectBlackListCfg {
+				blackList = append(blackList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg = &blackList
+		}
+		if nil != gensis1.MState.ElectWhiteListCfg {
+			whiteList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectWhiteListCfg {
+				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg = &whiteList
+		}
+		if nil != gensis1.MState.ElectMinerNumCfg {
+			gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		}
 		if nil != gensis1.MState.BlkRewardCfg {
 			gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
@@ -955,7 +968,18 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 		if nil != gensis1.MState.EleInfoCfg {
 			gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
 		}
-
+		//curElect
+		if nil != gensis1.MState.CurElect {
+			sliceElect := make([]common.Elect, 0)
+			for _, elec := range *gensis1.MState.CurElect {
+				tmp := new(common.Elect)
+				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp.Stock = elec.Stock
+				tmp.Type = elec.Type
+				sliceElect = append(sliceElect, *tmp)
+			}
+			gensis.MState.CurElect = &sliceElect
+		}
 	}
 	return gensis
 }

@@ -6,13 +6,15 @@ package support
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/log"
 )
 
-func MakeElectNode(address common.Address, Pos int, Stock int, Type common.RoleType) mc.ElectNodeInfo {
+func MakeElectNode(address common.Address, Pos int, Stock int, VIPLevel common.VIPRoleType,Type common.RoleType) mc.ElectNodeInfo {
 	return mc.ElectNodeInfo{
 		Account:  address,
 		Position: uint16(Pos),
 		Stock:    uint16(Stock),
+		VIPLevel:VIPLevel,
 		Type:     Type,
 	}
 }
@@ -21,33 +23,29 @@ func MakeMinerAns(chosed []Strallyint, seqnum uint64) *mc.MasterMinerReElectionR
 	minerResult := &mc.MasterMinerReElectionRsp{}
 	minerResult.SeqNum = seqnum
 	for k, v := range chosed {
-		minerResult.MasterMiner = append(minerResult.MasterMiner, MakeElectNode(v.Addr, k, v.Value, common.RoleMiner))
+		minerResult.MasterMiner = append(minerResult.MasterMiner, MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil,common.RoleMiner))
+		log.Info(ModuleLogName,"Master",MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil,common.RoleMiner))
 	}
 	return minerResult
 }
 
-func MakeValidatoeTopGenAns(seqnum uint64, VIPNode []Strallyint, master []Strallyint, backup []Strallyint, candiate []Strallyint) *mc.MasterValidatorReElectionRsq {
+func MakeValidatoeTopGenAns(seqnum uint64, master []Strallyint, backup []Strallyint, candiate []Strallyint) *mc.MasterValidatorReElectionRsq {
 	ans := &mc.MasterValidatorReElectionRsq{
 		SeqNum: seqnum,
 	}
-	for _, v := range VIPNode {
-		ans.MasterValidator = append(ans.MasterValidator, MakeElectNode(v.Addr, len(ans.MasterValidator), DefaultStock, common.RoleValidator))
-	}
+
 	for _, v := range master {
-		ans.MasterValidator = append(ans.MasterValidator, MakeElectNode(v.Addr, len(ans.MasterValidator), v.Value, common.RoleValidator))
+		ans.MasterValidator = append(ans.MasterValidator, MakeElectNode(v.Addr, len(ans.MasterValidator), v.Value, v.VIPLevel,common.RoleValidator))
+		log.Info(ModuleLogName,"Master",MakeElectNode(v.Addr, len(ans.MasterValidator), v.Value, v.VIPLevel,common.RoleValidator))
 	}
 	for _, v := range backup {
-		ans.BackUpValidator = append(ans.BackUpValidator, MakeElectNode(v.Addr, len(ans.BackUpValidator), v.Value, common.RoleBackupValidator))
+		ans.BackUpValidator = append(ans.BackUpValidator, MakeElectNode(v.Addr, len(ans.BackUpValidator), v.Value, v.VIPLevel,common.RoleBackupValidator))
+		log.Info(ModuleLogName,"back",MakeElectNode(v.Addr, len(ans.BackUpValidator), v.Value, v.VIPLevel,common.RoleBackupValidator))
 	}
 	for _, v := range candiate {
-		ans.CandidateValidator = append(ans.CandidateValidator, MakeElectNode(v.Addr, len(ans.CandidateValidator), v.Value, common.RoleCandidateValidator))
+		ans.CandidateValidator = append(ans.CandidateValidator, MakeElectNode(v.Addr, len(ans.CandidateValidator), v.Value,v.VIPLevel, common.RoleCandidateValidator))
+		log.Info(ModuleLogName,"cand",MakeElectNode(v.Addr, len(ans.CandidateValidator), v.Value,v.VIPLevel, common.RoleCandidateValidator))
 	}
 	return ans
 }
-func TransElectNodeInfo(data []Strallyint, types common.RoleType) []mc.ElectNodeInfo {
-	ans := []mc.ElectNodeInfo{}
-	for k, v := range data {
-		ans = append(ans, MakeElectNode(v.Addr, k, DefaultStock, types))
-	}
-	return ans
-}
+

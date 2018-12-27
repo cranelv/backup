@@ -58,28 +58,33 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	}
 	log.INFO(Module, "开始获取选举信息 hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
-	//log.INFO(Module, "electStatte", electState, "高度", height, "err", err)
+	log.INFO(Module, "electStatte", electState, "高度", height, "err", err)
 	if err != nil {
 		log.Error(Module, "GetElection", "获取hash的高度失败")
-		return nil, err
-	}
-	topStatus, err := self.HandleTopGen(hash)
-	if err != nil {
-		log.ERROR(Module, "GetElection err", err)
 		return nil, err
 	}
 	data := &ElectReturnInfo{}
 
 	if self.IsMinerTopGenTiming(hash) {
 		log.INFO(Module, "GetElection", "IsMinerTopGenTiming", "高度", height)
-		data.MasterMiner = append(data.MasterMiner, topStatus.MastM...)
-		data.BackUpMiner = append(data.BackUpMiner, topStatus.BackM...)
+		for _,v:=range electState.NextMinerElect{
+			switch v.Type {
+			case common.RoleMiner:
+				data.MasterMiner = append(data.MasterMiner, v)
 
+			}
+		}
 	}
 	if self.IsValidatorTopGenTiming(hash) {
 		log.INFO(Module, "GetElection", "IsValidatorTopGenTiming", "高度", height)
-		data.MasterValidator = append(data.MasterValidator, topStatus.MastV...)
-		data.BackUpValidator = append(data.BackUpValidator, topStatus.BackV...)
+		for _,v:=range electState.NextValidatorElect{
+			switch v.Type {
+			case common.RoleValidator:
+				data.MasterValidator=append(data.MasterValidator,v)
+			case common.RoleBackupValidator:
+				data.BackUpValidator=append(data.BackUpValidator,v)
+			}
+		}
 	}
 
 	log.INFO(Module, "不是任何网络切换时间点 height", height)

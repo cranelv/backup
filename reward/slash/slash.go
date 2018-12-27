@@ -139,6 +139,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 				log.ERROR(PackageName, "惩罚比例为负数", "")
 				continue
 			}
+			log.Debug(PackageName, "惩罚账户", v.Account, "惩罚金额", slash)
 			depoistInfo.AddSlash(currentState, v.Account, slash)
 		}
 

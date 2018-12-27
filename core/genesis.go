@@ -13,8 +13,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/matrix/go-matrix/mc"
-
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
@@ -47,7 +45,7 @@ type Genesis struct {
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
 	VrfValue          []byte              `json:"vrfvalue"`
 	Leader            common.Address      `json:"leader"`
-	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
+	NextElect         []common.Elect      `json:"nextElect"    gencodec:"required"`
 	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
 	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 
@@ -81,7 +79,7 @@ type Genesis1 struct {
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
 	VrfValue          []byte              `json:"vrfvalue"`
 	Leader            string              `json:"leader"`
-	Elect             []common.Elect1     `json:"elect"    gencodec:"required"`
+	NextElect         []common.Elect1     `json:"nextElect"    gencodec:"required"`
 	NetTopology       common.NetTopology1 `json:"nettopology"       gencodec:"required"`
 	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 	GasLimit          uint64              `json:"gasLimit"   gencodec:"required"`
@@ -117,16 +115,17 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
 	gensis.Root = gensis1.Root
 	gensis.TxHash = gensis1.TxHash
-	//Elect
-	sliceElect := make([]common.Elect, 0)
-	for _, elec := range gensis1.Elect {
+	//nextElect
+	nextElect := make([]common.Elect, 0)
+	for _, elec := range gensis1.NextElect {
 		tmp := new(common.Elect)
 		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 		tmp.Stock = elec.Stock
 		tmp.Type = elec.Type
-		sliceElect = append(sliceElect, *tmp)
+		nextElect = append(nextElect, *tmp)
 	}
-	gensis.Elect = sliceElect
+	gensis.NextElect = nextElect
+
 	//NetTopology
 	sliceNetTopologyData := make([]common.NetTopologyData, 0)
 	for _, netTopology := range gensis1.NetTopology.NetTopologyData {
@@ -146,8 +145,8 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	if nil != gensis1.MState {
 		gensis.MState = new(GenesisMState)
 		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(mc.NodeInfo)
-			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+			gensis.MState.Broadcast = new(common.Address)
+			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
 		}
 		if nil != gensis1.MState.Foundation {
 			gensis.MState.Foundation = new(common.Address)
@@ -168,13 +167,27 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
-			innerMiners := make([]mc.NodeInfo, 0)
+			innerMiners := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
-				innerMiners = append(innerMiners, mc.NodeInfo{Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-
 			gensis.MState.InnerMiners = &innerMiners
 		}
+		if nil != gensis1.MState.ElectBlackListCfg {
+			blackList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectBlackListCfg {
+				blackList = append(blackList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg = &blackList
+		}
+		if nil != gensis1.MState.ElectWhiteListCfg {
+			whiteList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectWhiteListCfg {
+				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.InnerMiners = &whiteList
+		}
+		gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
 		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
@@ -185,7 +198,20 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
 		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
 		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
+		if nil != gensis1.MState.CurElect {
+			//curElect
+			curElect := make([]common.Elect, 0)
+			for _, elec := range *gensis1.MState.CurElect {
+				tmp := new(common.Elect)
+				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp.Stock = elec.Stock
+				tmp.Type = elec.Type
+				curElect = append(curElect, *tmp)
+			}
+			gensis.MState.CurElect = &curElect
+		}
 	}
+
 }
 
 //**********************************************************//
@@ -377,7 +403,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
 		return nil, errors.New("MState of genesis is nil")
 	}
-	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.NextElect, g.Number); err != nil {
 		log.Error("genesis", "MState.setMatrixState err", err)
 		return nil, err
 	}
@@ -396,7 +422,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
 		VrfValue:          g.VrfValue,
-		Elect:             g.Elect,
+		Elect:             g.NextElect,
 		NetTopology:       g.NetTopology,
 		Signatures:        g.Signatures,
 		Leader:            g.Leader,
@@ -442,7 +468,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		}
 	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
@@ -460,7 +486,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		Extra:             g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		Elect:             g.Elect,
+		Elect:             g.NextElect,
 		NetTopology:       g.NetTopology,
 		Signatures:        g.Signatures,
 		Leader:            g.Leader,

@@ -70,5 +70,30 @@ var (
 				"deposit bug fixed",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.8",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"参与奖励使用股权收放系数",
+				"彩票奖励修改算法",
+				"利息奖励使用初选列表获取vip等级",
+				"超级区块签名不允许修改，使用本地状态树账户",
+				"出块矿工奖励金额在下一块发放",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.9",
+			Submitter: "huyuankai",
+			Commit: []string{
+				"特殊账户状态树key值拆分为独立key值",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.10",
+			Submitter: "sunchunfeng",
+			Commit: []string{
+				"选举算法修改",
+			},
+		},
 	}
 )
