@@ -8,8 +8,8 @@ import (
 	"github.com/matrix/go-matrix/common/mt19937"
 )
 
-func GetList(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
-	probnormalized = Normalize(probnormalized)
+func GetList_VIP(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
+	probnormalized = Normalize_VIP(probnormalized)
 
 
 	if len(probnormalized)==0{
@@ -26,7 +26,7 @@ func GetList(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUnifor
 	for i := 0; i < MaxSample; i++ {
 		tempRand:= float64(rand.Uniform(0.0, 1.0))
 
-		node := Sample1NodesInValNodes(probnormalized,tempRand)
+		node := Sample1NodesInValNodes_VIP(probnormalized,tempRand)
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
@@ -58,7 +58,7 @@ func GetList(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUnifor
 	return ChoseNode, RemainingProbNormalizedNodes
 }
 
-func Normalize(probVal []Pnormalized) []Pnormalized {
+func Normalize_VIP(probVal []Pnormalized) []Pnormalized {
 	var pnormalizedlist []Pnormalized
 
  	total:=0.0
@@ -75,7 +75,7 @@ func Normalize(probVal []Pnormalized) []Pnormalized {
 	return pnormalizedlist
 }
 
-func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common.Address {
+func Sample1NodesInValNodes_VIP(probnormalized []Pnormalized, rand01 float64) common.Address {
 	len:=len(probnormalized)
 	for index:=len-1;index>=0;index--{
 		if rand01>=probnormalized[index].Value{
@@ -87,8 +87,8 @@ func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common
 }
 
 
-func GetList_Noraml(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
-	probnormalized = Normalize_Normal(probnormalized)
+func GetList_Common(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
+	probnormalized = Normalize_Common(probnormalized)
 
 
 	if len(probnormalized)==0{
@@ -105,7 +105,7 @@ func GetList_Noraml(probnormalized []Pnormalized, needNum int, rand *mt19937.Ran
 	for i := 0; i < MaxSample; i++ {
 		tempRand:= float64(rand.Uniform(0.0, 1.0))
 
-		node := Sample1NodesInValNodes_Noraml(probnormalized,tempRand)
+		node := Sample1NodesInValNodes_Common(probnormalized,tempRand)
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
@@ -137,7 +137,7 @@ func GetList_Noraml(probnormalized []Pnormalized, needNum int, rand *mt19937.Ran
 	return ChoseNode, RemainingProbNormalizedNodes
 }
 
-func Normalize_Normal(probVal []Pnormalized) []Pnormalized {
+func Normalize_Common(probVal []Pnormalized) []Pnormalized {
 
 	var total float64
 	for _, item := range probVal {
@@ -155,7 +155,7 @@ func Normalize_Normal(probVal []Pnormalized) []Pnormalized {
 	return pnormalizedlist
 }
 
-func Sample1NodesInValNodes_Noraml(probnormalized []Pnormalized, rand01 float64) common.Address {
+func Sample1NodesInValNodes_Common(probnormalized []Pnormalized, rand01 float64) common.Address {
 
 	for _, iterm := range probnormalized {
 		rand01 -= iterm.Value

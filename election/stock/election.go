@@ -33,7 +33,7 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 	//for _,v:=range value{
 	//	fmt.Println(v.Addr.String(),v.Value)
 	//}
-	Master, value := support.GetList(value, int(nodeElect.EleCfg.MinerNum), nodeElect.RandSeed)
+	Master, value := support.GetList_Common(value, int(nodeElect.EleCfg.MinerNum), nodeElect.RandSeed)
 	return support.MakeMinerAns(Master, nodeElect.SeqNum)
 }
 
@@ -47,11 +47,11 @@ func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 	//for _,v:=range value{
 	//	fmt.Println(v.Value,v.Addr.String())
 	//}
-	Master, value := support.GetList(value, int(nodeElect.EleCfg.ValidatorNum), nodeElect.RandSeed)
+	Master, value := support.GetList_Common(value, int(nodeElect.EleCfg.ValidatorNum), nodeElect.RandSeed)
 
-	BackUp, value := support.GetList(value, int(nodeElect.EleCfg.BackValidator), nodeElect.RandSeed)
+	BackUp, value := support.GetList_Common(value, int(nodeElect.EleCfg.BackValidator), nodeElect.RandSeed)
 
-	Candid, value := support.GetList(value, len(value), nodeElect.RandSeed)
+	Candid, value := support.GetList_Common(value, len(value), nodeElect.RandSeed)
 
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, Master, BackUp, Candid)
 

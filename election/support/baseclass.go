@@ -146,9 +146,9 @@ func FindAddress(addr common.Address, addrList []common.Address) bool {
 	return false
 }
 func (vip *Electoion) DisPlayNode() {
-	for _,v:=range vip.NodeList{
-		fmt.Println(v.Address.String(),v.Deposit.String(),vip.MapMoney[v.Address])
-	}
+	//for _,v:=range vip.NodeList{
+	//	fmt.Println(v.Address.String(),v.Deposit.String(),vip.MapMoney[v.Address])
+	//}
 	for _, v := range vip.NodeList {
 		fmt.Println(v.Address.String(), v.Deposit, v.WithdrawH, v.OnlineTime, v.vipLevel, v.index, "Ratio", v.Ratio,v.Usable)
 	}

@@ -434,9 +434,13 @@ func Test111(t *testing.T){
 	}
 
 }
-
-func TestN(t *testing.T)  {
-	log.InitLog(3)
+var mapMoney=make(map[common.Address]int)
+func MakeValidatorReq(vipList []mc.VIPConfig)*mc.MasterValidatorReElectionReqMsg{
+	blackList:=[]common.Address{}
+	index:=[]int{90,88,86,47,1}
+	for _,v:=range index{
+		blackList=append(blackList,common.BigToAddress(big.NewInt(int64(v))))
+	}
 	req:=&mc.MasterValidatorReElectionReqMsg{
 		SeqNum           :1,
 		RandSeed          :big.NewInt(100),
@@ -447,37 +451,18 @@ func TestN(t *testing.T)  {
 			BackValidator:5,
 			ElectPlug    :"layerd",
 			WhiteList     :[]common.Address{},
-			BlackList     :[]common.Address{},
+			BlackList     :blackList,
 		},
-		VIPList                 :[]mc.VIPConfig{
-			mc.VIPConfig{
-				MinMoney:0,
-				StockScale:1000,
-				ElectUserNum:0,
-			},
-			mc.VIPConfig{
-				MinMoney    :3000000,
-				StockScale:1000,
-				ElectUserNum:3,
-			},
-			mc.VIPConfig{
-				MinMoney:5000000,
-				StockScale:1000,
-				ElectUserNum:2,
-			},
-			mc.VIPConfig{
-				MinMoney:14900000,
-				StockScale:1000,
-				ElectUserNum:2,
-			},
-		},
+		VIPList:vipList,
 	}
 	for index:=10;index<=49;index++{
 		depos:=index*10000
 		req.ValidatorList=append(req.ValidatorList,vm.DepositDetail{
+
 			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
 			Deposit    :new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
 		})
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))]=depos
 	}
 	for index:=1000;index<=1490;index+=10{
 		depos:=index*10000
@@ -485,18 +470,305 @@ func TestN(t *testing.T)  {
 			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
 			Deposit:new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
 		})
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))]=depos
+	}
+	return req
+}
+
+
+
+
+var(
+	VIPList=[][]mc.VIPConfig{
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14710000,
+				StockScale:   1000,
+				ElectUserNum: 3,
+			},
+			mc.VIPConfig{
+				MinMoney:     14720000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14780000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14820000,
+				StockScale:   1000,
+				ElectUserNum: 3,
+			},
+			mc.VIPConfig{
+				MinMoney:     14830000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14900000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14640000,
+				StockScale:   1000,
+				ElectUserNum: 3,
+			},
+			mc.VIPConfig{
+				MinMoney:     14650000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14700000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14720000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14800000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14830000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14900000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14650000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14700000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14800000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     24000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14900000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     24000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14600000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14850000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14900000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     10000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14600000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14600000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+		},
+	}
+)
+
+var Black=[][]mc.VIPConfig{
+	[]mc.VIPConfig{
+		mc.VIPConfig{
+			MinMoney:     0,
+			StockScale:   1000,
+			ElectUserNum: 0,
+		},
+		mc.VIPConfig{
+			MinMoney:     14400000,
+			StockScale:   1000,
+			ElectUserNum: 2,
+		},
+		mc.VIPConfig{
+			MinMoney:     14600000,
+			StockScale:   1000,
+			ElectUserNum: 2,
+		},
+		mc.VIPConfig{
+			MinMoney:     14800000,
+			StockScale:   1000,
+			ElectUserNum: 2,
+		},
+	},
+}
+
+
+func TestN(t *testing.T)  {
+	log.InitLog(3)
+
+	for k,v:=range Black{
+		req:=MakeValidatorReq(v)
+		rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
+		for _,v:=range rspValidator.MasterValidator{
+			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		}
+		for _,v:=range rspValidator.BackUpValidator{
+			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		}
+		for _,v:=range rspValidator.CandidateValidator{
+			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		}
+		fmt.Println("测试结束",k)
 	}
 
-	rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
-	for _,v:=range rspValidator.MasterValidator{
-		fmt.Println("MasterValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
-	}
-	for _,v:=range rspValidator.BackUpValidator{
-		fmt.Println("BackUpValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
-	}
-	for _,v:=range rspValidator.CandidateValidator{
-		fmt.Println("CandidateValidator",v.Account.String(),v.Stock,v.VIPLevel,v.Type)
-	}
+
+
 
 
 }
