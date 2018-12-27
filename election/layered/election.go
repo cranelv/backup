@@ -47,42 +47,25 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
-	vipEle.DisPlayNode()
 
-	for vipEleLoop := 0; vipEleLoop < len(vipEle.VipLevelCfg); vipEleLoop++ {
-		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 &&vipEleLoop!=len(vipEle.VipLevelCfg)-1{
+	for vipEleLoop := len(vipEle.VipLevelCfg)-1; vipEleLoop >=0; vipEleLoop--{
+		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 &&vipEleLoop!=0{
 			continue
 		}
-		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop,len(vipEle.VipLevelCfg)))
-
+		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
 		value:=support.CalcValue(nodeList, common.RoleValidator)
 		curNeed:=0
-		fmt.Println(vipEle.NeedNum,vipEle.ChosedNum,vipEle.VipLevelCfg[vipEleLoop].ElectUserNum)
-		if vipEleLoop==len(vipEle.VipLevelCfg)-1{
-			fmt.Println("111")
+		if vipEleLoop==0{
 			curNeed=vipEle.NeedNum-vipEle.ChosedNum
 		}else{
-			fmt.Println("12122")
 			curNeed=int(vipEle.VipLevelCfg[vipEleLoop].ElectUserNum)
 		}
-		fmt.Println("len(nodelist",len(nodeList),"level",common.GetVIPLevel(vipEleLoop,len(vipEle.VipLevelCfg)),"curNeed",curNeed)
+		if curNeed>vipEle.NeedNum-vipEle.ChosedNum{
+			curNeed=vipEle.NeedNum-vipEle.ChosedNum
+		}
 		Chosed, value := support.GetList(value, curNeed, vipEle.RandSeed.Int64())
-		fmt.Println("vipEleLoop","value",len(value),vipEleLoop,"Chosed",len(Chosed),"curNeed",curNeed,"vipEle.ChoseNum",vipEle.ChosedNum)
-		for _,v:=range Chosed{
-			fmt.Println("---",v.Addr.String(),v.Value)
-		}
 		vipEle.SetChosed(Chosed)
-
-
 	}
-
-	fmt.Println("+++++++++++++")
-	for k,v:=range vipEle.HasChosedNode{
-		for _,vv:=range v{
-			fmt.Println("k",k,"vvvvv",vv.Addr.String())
-		}
-	}
-	fmt.Println("++++++++++++++++++")
 
 
 	Master:=[]support.Strallyint{}
@@ -95,10 +78,11 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 			if k==len(vipEle.HasChosedNode)-1{
 				temp=support.Strallyint{Addr:vv.Addr,Value:vv.Value,VIPLevel:common.VIP_Nil}
 			}else{
-				temp=support.Strallyint{Addr:vv.Addr,Value:vipEle.GetVipStock(vv.Addr),VIPLevel:common.GetVIPLevel(k,len(vipEle.VipLevelCfg))}
+				temp=support.Strallyint{Addr:vv.Addr,Value:vipEle.GetVipStock(vv.Addr),VIPLevel:common.GetVIPLevel(len(vipEle.VipLevelCfg)-1-k)}
 			}
 
 			if len(Master)<int(vipEle.EleCfg.ValidatorNum){
+
 				Master=append(Master,temp)
 				continue
 			}
@@ -110,17 +94,15 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	}
 
 	lastNode:=vipEle.GetLastNode()
-	value:=support.CalcValue(lastNode, common.RoleValidator)
 	for _,v:=range lastNode{
 		if len(Candidate)<=int(4*vipEle.EleCfg.ValidatorNum-vipEle.EleCfg.BackValidator){
 			Candidate=append(Candidate,support.Strallyint{Addr:v.Address,Value:1})
 		}
 	}
 
-	Candidate, _ = support.GetList(value, int(4*vipEle.EleCfg.ValidatorNum-vipEle.EleCfg.BackValidator), vipEle.RandSeed.Int64())
-
-
-
+	fmt.Println("lem",len(Master))
+	fmt.Println("lem",len(Backup))
+	fmt.Println("lem",len(Candidate))
 	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, Master, Backup, Candidate)
 }
 

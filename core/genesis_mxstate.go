@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"sort"
 )
 
 const (
@@ -529,6 +530,19 @@ func (g *GenesisMState) setSlashCfgToState(state *state.StateDB, num uint64) err
 	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.SlashCfg, state)
 }
 
+type SortVIPConfig []mc.VIPConfig
+func (self SortVIPConfig) Len() int {
+	return len(self)
+}
+func (self SortVIPConfig) Less(i, j int) bool {
+	return self[i].MinMoney<self[j].MinMoney
+}
+func (self SortVIPConfig) Swap(i, j int) {
+	temp := self[i]
+	self[i] = self[j]
+	self[j] = temp
+}
+
 func (g *GenesisMState) setVIPCfgToState(state *state.StateDB, number uint64) error {
 	if g.VIPCfg == nil {
 		if number == 0 {
@@ -538,10 +552,18 @@ func (g *GenesisMState) setVIPCfgToState(state *state.StateDB, number uint64) er
 			return nil
 		}
 	}
-
 	if nil == g.VIPCfg || 0 == len(*g.VIPCfg) {
 
 		return errors.Errorf("vip 配置为nil")
+	}
+	sort.Sort(SortVIPConfig(*g.VIPCfg))
+	if (*g.VIPCfg)[0].MinMoney!=uint64(0){
+		return errors.New("vip配置中需包含最小值为0的配置")
+	}
+	for index:=0;index<len(*g.VIPCfg)-1;index++{
+		if (*g.VIPCfg)[index].MinMoney==(*g.VIPCfg)[index+1].MinMoney{
+			return errors.New("vip配置中不能包含最小值相同的配置")
+		}
 	}
 
 	log.Info("Geneis", "VIPCfg", *g.VIPCfg)

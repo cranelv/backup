@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"math/big"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/common/mt19937"
 	"fmt"
 
@@ -78,10 +79,10 @@ func MakeValidatorTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white [
 	ans.VIPList = []mc.VIPConfig{
 
 		mc.VIPConfig{
-			MinMoney:     10000000,
+			MinMoney:     0,
 			InterestRate: 100,
-			ElectUserNum: 5,
-			StockScale:   2000,
+			ElectUserNum: 0,
+			StockScale:   1000,
 		},
 		mc.VIPConfig{
 			MinMoney:     1000000,
@@ -90,10 +91,10 @@ func MakeValidatorTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white [
 			StockScale:   1700,
 		},
 		mc.VIPConfig{
-			MinMoney:     100000,
+			MinMoney:     10000000,
 			InterestRate: 100,
-			ElectUserNum: 0,
-			StockScale:   1000,
+			ElectUserNum: 5,
+			StockScale:   2000,
 		},
 	}
 	return ans
@@ -169,7 +170,7 @@ func GOTestV(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 	//股权方案-（10-12）
 
 	for Num := 50; Num <= 50; Num++ {
-		for Key := 0; Key < 1000; Key++ {
+		for Key := 0; Key < 1; Key++ {
 			req := MakeValidatorTopReq(Num, uint64(Key*2000+1), vip1Num, vip2Num, white, black, onlineFlag)
 			//if Key==0{
 			//	for _,v:=range req.ValidatorList{
@@ -187,7 +188,7 @@ func GOTestV(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 			for _, v := range rspValidator.CandidateValidator {
 				mapCand[v.Account]++
 			}
-			fmt.Println(len(rspValidator.MasterValidator),len(rspValidator.BackUpValidator),len(rspValidator.CandidateValidator))
+			//fmt.Println(len(rspValidator.MasterValidator),len(rspValidator.BackUpValidator),len(rspValidator.CandidateValidator))
 			//PrintValidator(rspValidator)
 		}
 	}
@@ -244,13 +245,13 @@ func GOTestM(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 }
 
 func TestUnit2(t *testing.T) {
-	//log.InitLog(3)
-	//GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
+	log.InitLog(3)
+	GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
 	//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
 	//GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",false)
 	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",true)
 	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",false)
-	GOTestV(5, 3, []common.Address{}, []common.Address{}, "layerd", true)
+	//GOTestV(5, 3, []common.Address{}, []common.Address{}, "layerd", true)
 }
 func Test3(t *testing.T) {
 	//white:=[]common.Address{

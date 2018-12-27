@@ -63,7 +63,6 @@ type Electoion struct {
 }
 
 func (node *Node) SetUsable(status bool) {
-	fmt.Println(node.Address.String(),"falsr")
 	node.Usable = status
 }
 
@@ -73,12 +72,12 @@ func (node *Node) SetIndex(index int) {
 func (node *Node) SetVipLevelInfo(VipLevelCfg []mc.VIPConfig)uint64 {
 	temp := big.NewInt(0).Set(node.Deposit)
 	deposMan := temp.Div(temp, common.ManValue).Uint64()
-	for index := 0; index < len(VipLevelCfg)-1; index++ {
 
-		if deposMan >= VipLevelCfg[index].MinMoney {
-			node.vipLevel = common.GetVIPLevel(index,len(VipLevelCfg))
-			fmt.Println("deposMan",deposMan,index,len(VipLevelCfg),node.vipLevel)
-			node.Ratio = VipLevelCfg[index].StockScale
+
+	for index:=len(VipLevelCfg)-1;index>=0;index--{
+		if deposMan>=VipLevelCfg[index].MinMoney{
+			node.vipLevel=common.GetVIPLevel(index)
+			node.Ratio=VipLevelCfg[index].StockScale
 			return deposMan
 		}
 	}
@@ -171,13 +170,24 @@ func (vip *Electoion) ProcessBlackNode() {
 func (vip *Electoion)GetVipStock(addr common.Address)int{
 	stockSum:=int(0)
 	stockDespoit:=uint64(0)
-	for _,v:=range vip.HasChosedNode{
+	for k,v:=range vip.HasChosedNode{
+		if k!=len(vip.HasChosedNode)-1{
+			continue
+		}
 		for _,vv:=range v{
 			stockSum+=vv.Value
 			stockDespoit+=vip.MapMoney[vv.Addr]
 		}
 	}
-	return int(float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr]))
+	if float64(stockSum)/float64(stockDespoit)==0{
+		return int(vip.MapMoney[addr]/vip.VipLevelCfg[1].MinMoney)
+
+	}else{
+		ratio:=float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr])
+		return int(ratio)
+	}
+
+
 }
 func (vip *Electoion) ProcessWhiteNode() {
 	/*

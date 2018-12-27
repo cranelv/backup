@@ -24,6 +24,7 @@ func MakeMinerAns(chosed []Strallyint, seqnum uint64) *mc.MasterMinerReElectionR
 	minerResult.SeqNum = seqnum
 	for k, v := range chosed {
 		minerResult.MasterMiner = append(minerResult.MasterMiner, MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil,common.RoleMiner))
+		log.Info(ModuleLogName,"Master",MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil,common.RoleMiner))
 	}
 	return minerResult
 }

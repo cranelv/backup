@@ -86,8 +86,7 @@ const (
 
 )
 
-func GetVIPLevel(index int,maxSize int)VIPRoleType{
-	index=maxSize-1-index
+func GetVIPLevel(index int)VIPRoleType{
 	switch index {
 	case 1:
 		return VIP_1
