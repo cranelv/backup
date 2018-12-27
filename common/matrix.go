@@ -74,3 +74,28 @@ func IsNil(i interface{}) bool {
 	}
 	return false
 }
+
+
+type VIPRoleType uint16
+
+const (
+	VIP_Nil            VIPRoleType = 0
+	VIP_1              VIPRoleType=1
+	VIP_2              VIPRoleType=2
+	VIP_3              VIPRoleType=3
+
+)
+
+func GetVIPLevel(index int,maxSize int)VIPRoleType{
+	index=maxSize-1-index
+	switch index {
+	case 1:
+		return VIP_1
+	case 2:
+		return VIP_2
+	case 3:
+		return VIP_3
+	default:
+		return VIP_Nil
+	}
+}

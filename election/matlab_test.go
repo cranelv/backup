@@ -39,7 +39,7 @@ var (
 			StockScale:   1000, //千分比
 		},
 	}
-	electInfo = mc.ElectConfigInfo{
+	electInfo = mc.ElectConfigInfo_All{
 		MinerNum:      21,
 		ValidatorNum:  11,
 		BackValidator: 5,

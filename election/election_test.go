@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"math/big"
-
+	"github.com/matrix/go-matrix/common/mt19937"
 	"fmt"
 
 	"github.com/matrix/go-matrix/baseinterface"
@@ -69,7 +69,7 @@ func MakeValidatorTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white [
 		ValidatorList: mList,
 		//	FoundationValidatoeList: []vm.DepositDetail{},
 	}
-	ans.ElectConfig = mc.ElectConfigInfo{
+	ans.ElectConfig = mc.ElectConfigInfo_All{
 		ValidatorNum:  11,
 		BackValidator: 5,
 		WhiteList:     white,
@@ -107,7 +107,7 @@ func MakeMinerTopReq(num int, Seed uint64, vip1Num int, vip2Num int, white []com
 		RandSeed:  big.NewInt(int64(Seed)),
 		MinerList: mList,
 	}
-	ans.ElectConfig = mc.ElectConfigInfo{
+	ans.ElectConfig = mc.ElectConfigInfo_All{
 		ValidatorNum:  11,
 		BackValidator: 5,
 		MinerNum:      21,
@@ -187,6 +187,7 @@ func GOTestV(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 			for _, v := range rspValidator.CandidateValidator {
 				mapCand[v.Account]++
 			}
+			fmt.Println(len(rspValidator.MasterValidator),len(rspValidator.BackUpValidator),len(rspValidator.CandidateValidator))
 			//PrintValidator(rspValidator)
 		}
 	}
@@ -243,12 +244,13 @@ func GOTestM(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 }
 
 func TestUnit2(t *testing.T) {
+	//log.InitLog(3)
 	//GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
 	//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
 	//GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",false)
 	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",true)
 	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",false)
-	GOTestV(0, 0, []common.Address{}, []common.Address{}, "layerd", true)
+	GOTestV(5, 3, []common.Address{}, []common.Address{}, "layerd", true)
 }
 func Test3(t *testing.T) {
 	//white:=[]common.Address{
@@ -403,4 +405,30 @@ func TestNew(t *testing.T){
 	err:=json.Unmarshal([]byte(core.DefaultJson),A)
 	fmt.Println("err",err)
 	fmt.Println(A)
+}
+
+func Test111(t *testing.T){
+	aimRatio:=[]float64{}
+	total:=-0.02
+	for index:=0;index<30;index++{
+		total+=0.02
+		aimRatio=append(aimRatio,total)
+	}
+	mapUsed:=make(map[int]bool)
+	rand := mt19937.RandUniformInit(10)
+	for time:=0;time<1000;time++{
+		rr:=float64(rand.Uniform(0.0,1.0))
+		fmt.Println("rr",rr)
+		for index:=len(aimRatio)-1;index>=0;index--{
+			if rr>aimRatio[index]{
+				mapUsed[index]=true
+				fmt.Println("rr",rr,"time",time,"index",index,"aimRatio[index]",aimRatio[index],len(mapUsed))
+				break
+			}
+		}
+		if len(mapUsed)==30{
+			break
+		}
+	}
+
 }
