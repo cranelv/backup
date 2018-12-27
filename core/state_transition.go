@@ -345,7 +345,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		st.state.DeleteMxData(tmphash, b)
 	}
 	for k, v := range delval {
-		st.state.GetSaveTx(tx.GetMatrixType(), k, v, true)
+		st.state.GetSaveTx(common.ExtraRevocable, k, v, true)
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
