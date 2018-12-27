@@ -451,7 +451,7 @@ func MakeValidatorReq(vipList []mc.VIPConfig)*mc.MasterValidatorReElectionReqMsg
 			BackValidator:5,
 			ElectPlug    :"layerd",
 			WhiteList     :[]common.Address{},
-			BlackList     :blackList,
+			BlackList     :[]common.Address{},
 		},
 		VIPList:vipList,
 	}
@@ -723,6 +723,60 @@ var(
 	}
 )
 
+var(
+	VIPList1=[][]mc.VIPConfig{
+
+
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14700000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     20000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     24000000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+		[]mc.VIPConfig{
+			mc.VIPConfig{
+				MinMoney:     0,
+				StockScale:   1000,
+				ElectUserNum: 0,
+			},
+			mc.VIPConfig{
+				MinMoney:     14600000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14850000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+			mc.VIPConfig{
+				MinMoney:     14900000,
+				StockScale:   1000,
+				ElectUserNum: 2,
+			},
+		},
+
+
+	}
+)
+
+
 var Black=[][]mc.VIPConfig{
 	[]mc.VIPConfig{
 		mc.VIPConfig{
@@ -750,9 +804,9 @@ var Black=[][]mc.VIPConfig{
 
 
 func TestN(t *testing.T)  {
-	log.InitLog(3)
+	//log.InitLog(3)
 
-	for k,v:=range Black{
+	for k,v:=range VIPList1{
 		req:=MakeValidatorReq(v)
 		rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
 		for _,v:=range rspValidator.MasterValidator{
@@ -767,8 +821,56 @@ func TestN(t *testing.T)  {
 		fmt.Println("测试结束",k)
 	}
 
+}
 
 
 
+
+func MakeMinerReq(vipList []mc.VIPConfig)*mc.MasterMinerReElectionReqMsg{
+	blackList:=[]common.Address{}
+	index:=[]int{90,88,86,47,1}
+	for _,v:=range index{
+		blackList=append(blackList,common.BigToAddress(big.NewInt(int64(v))))
+	}
+	req:=&mc.MasterMinerReElectionReqMsg{
+		SeqNum           :1,
+		RandSeed          :big.NewInt(100),
+		MinerList: []vm.DepositDetail{},
+		ElectConfig:mc.ElectConfigInfo_All{
+			MinerNum :21,
+			ValidatorNum:19,
+			BackValidator:5,
+			ElectPlug    :"layerd",
+			WhiteList     :[]common.Address{},
+			BlackList     :[]common.Address{},
+		},
+	}
+	for index:=10;index<=49;index++{
+		depos:=index*10000
+		req.MinerList=append(req.MinerList,vm.DepositDetail{
+
+			Address:common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1))),
+			Deposit    :new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+		})
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))]=depos
+	}
+	for index:=1000;index<=1490;index+=10{
+		depos:=index*10000
+		req.MinerList=append(req.MinerList,vm.DepositDetail{
+			Address:common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1))),
+			Deposit:new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+		})
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))]=depos
+	}
+	return req
+}
+
+
+func TestV(t *testing.T){
+	req:=MakeMinerReq(nil)
+	rspMiner := baseinterface.NewElect("layerd").MinerTopGen(req)
+	for _,v:=range rspMiner.MasterMiner{
+		fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+	}
 
 }

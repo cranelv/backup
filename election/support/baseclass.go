@@ -188,15 +188,15 @@ func (vip *Electoion)GetVipStock(addr common.Address)int{
 		}
 	}
 	ratio:=int(0.0)
-	if float64(stockSum)/float64(stockDespoit)==0{
+	if stockDespoit==0{
 		ratio=int(vip.MapMoney[addr]/vip.VipLevelCfg[1].MinMoney)
 	}else{
 		ratio=int(float64(stockSum)/float64(stockDespoit)*float64(vip.MapMoney[addr])+0.5)
 	}
-	if ratio>0xffff{
-		return 0xfff
+	if ratio > 0xffff{
+		return 0xffff
 	}
-	if ratio==0{
+	if ratio == 0{
 		return 1
 	}
 
