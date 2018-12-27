@@ -75,8 +75,8 @@ type StateDB interface {
 }
 
 type DepositInfo struct {
-	Deposit *big.Int
-	Stock   uint16
+	Deposit  *big.Int
+	FixStock uint64
 }
 
 func SetAccountRewards(rewards map[common.Address]*big.Int, account common.Address, reward *big.Int) {
@@ -165,11 +165,11 @@ func CalcStockRate(reward *big.Int, depositNodes map[common.Address]DepositInfo)
 		log.ERROR(PackageName, "抵押列表为空", "")
 		return nil
 	}
-	totalStock := uint16(0)
+	totalStock := uint64(0)
 
 	for _, v := range depositNodes {
 
-		totalStock = v.Stock + totalStock
+		totalStock = v.FixStock + totalStock
 	}
 
 	log.INFO(PackageName, "计算抵押总额,账户股权", totalStock)
@@ -182,10 +182,11 @@ func CalcStockRate(reward *big.Int, depositNodes map[common.Address]DepositInfo)
 	sort.Strings(sortedKeys)
 	rewards := make(map[common.Address]*big.Int)
 	for _, k := range sortedKeys {
-		temp := new(big.Int).Mul(reward, new(big.Int).SetUint64(uint64(depositNodes[common.HexToAddress(k)].Stock)))
+		temp := new(big.Int).Mul(reward, new(big.Int).SetUint64(uint64(depositNodes[common.HexToAddress(k)].FixStock)))
 		oneNodeReward := new(big.Int).Div(temp, new(big.Int).SetUint64(uint64(totalStock)))
-		rewards[common.HexToAddress(k)] = oneNodeReward
-		log.Debug(PackageName, "计算奖励金额,账户", k, "奖励金额", oneNodeReward)
+		finalOneNodeReward := new(big.Int).Div(oneNodeReward, new(big.Int).SetUint64(10000))
+		rewards[common.HexToAddress(k)] = finalOneNodeReward
+		log.Debug(PackageName, "计算奖励金额,账户", k, "奖励金额", finalOneNodeReward)
 	}
 	return rewards
 }

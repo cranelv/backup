@@ -11,17 +11,17 @@ import (
 func TestCalcDepositRate(t *testing.T) {
 	log.InitLog(5)
 	deposit := make(map[common.Address]DepositInfo, 0)
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
-	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 10}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 9000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 120000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
+	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
 	reward := new(big.Int).Mul(big.NewInt(698745832334794), big.NewInt(1e18))
 	CalcStockRate(reward, deposit)
 }
