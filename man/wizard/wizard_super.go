@@ -100,6 +100,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
+			tmp.VIP=elec.VIP
 			sliceElect = append(sliceElect, *tmp)
 		}
 		genesis.NextElect = sliceElect
