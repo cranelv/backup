@@ -22,6 +22,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase    common.Address `json:"miner"            gencodec:"required"`
 		Roots       []common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
+		Sharding       []common.Coinbyte    `json:"sharding"        gencodec:"required"`
 		TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 		Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
@@ -49,6 +50,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.UncleHash = h.UncleHash
 	enc.Coinbase = h.Coinbase
 	enc.Roots = h.Roots
+	enc.Sharding = h.Sharding
 	enc.TxHash = h.TxHash
 	enc.ReceiptHash = h.ReceiptHash
 	enc.Bloom = h.Bloom
@@ -77,6 +79,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		UncleHash   *common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase    *common.Address `json:"miner"            gencodec:"required"`
 		Roots       *[]common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
+		Sharding       *[]common.Coinbyte    `json:"sharding"        gencodec:"required"`
 		TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 		Bloom       *Bloom          `json:"logsBloom"        gencodec:"required"`
@@ -118,7 +121,11 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'stateRoot' for Header")
 	}
 	h.Roots = *dec.Roots
-	if dec.TxHash == nil {
+	if dec.Roots == nil {
+		return errors.New("missing required field 'transactionsRoot' for Header")
+	}
+	h.Sharding = *dec.Sharding
+	if dec.Sharding == nil {
 		return errors.New("missing required field 'transactionsRoot' for Header")
 	}
 	h.TxHash = *dec.TxHash

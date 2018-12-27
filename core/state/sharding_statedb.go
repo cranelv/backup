@@ -686,7 +686,6 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string,deleteEmp
 	var root256 []common.Hash
 	for _,cm:=range shard.shardings {
 		if cointype == cm.Cointyp {
-
 		for _, rm := range cm.Rmanage {
 			root := rm.State.IntermediateRoot(deleteEmptyObjects)
 			root256 = append(root256, root)
@@ -733,8 +732,9 @@ func (shard *StateDBManage) clearJournalAndRefund() {
 }
 
 // Commit writes the state to the underlying in-memory trie database.
-func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, error) {
+func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte, error) {
 	var Roots []common.Hash
+	var coinbytes [] common.Coinbyte
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage{
 			root,err:=rm.State.Commit(deleteEmptyObjects)
@@ -762,8 +762,9 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 		if !isex{
 			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bshash})
 		}
+		coinbytes=append(coinbytes,common.Coinbyte{Root:bshash,Byte256:Roots})
 	}
-	return shard.retcoinRoot,nil
+	return shard.retcoinRoot,coinbytes,nil
 }
 
 func (self *StateDBManage) CommitSaveTx(cointyp string,addr common.Address) {

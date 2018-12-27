@@ -1055,7 +1055,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
 	intermediateRoot,intermediateSharding := state.IntermediateRoot(deleteEmptyObjects)	//shardingBB
 	//fmt.Printf("===ZH1==:%s\n", state.Dump())
-	root, err := state.Commit(deleteEmptyObjects)
+	root,_, err := state.Commit(deleteEmptyObjects)	//ShardingBB1
 	if err != nil {
 		return NonStatTy, err
 	}

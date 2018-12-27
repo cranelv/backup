@@ -469,7 +469,6 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 	}
 
 	head.Roots,head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
-
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}

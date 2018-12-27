@@ -146,7 +146,7 @@ type StateDBManager interface {
 	IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte)
 	IntermediateRootByCointype(cointype string,deleteEmptyObjects bool) common.Hash
 	Prepare(thash, bhash common.Hash, ti int)
-	Commit(deleteEmptyObjects bool) (cr []common.CoinRoot, err error)
+	Commit(deleteEmptyObjects bool) ( []common.CoinRoot, []common.Coinbyte, error)
 
 	SetMatrixData(hash common.Hash, val []byte)
 	GetMatrixData(hash common.Hash) (val []byte)
