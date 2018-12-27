@@ -100,9 +100,11 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 			if len(Master)<int(vipEle.EleCfg.ValidatorNum){
 				Master=append(Master,temp)
+				continue
 			}
 			if len(Backup)<int(vipEle.EleCfg.BackValidator){
 				Backup=append(Backup,temp)
+				continue
 			}
 		}
 	}

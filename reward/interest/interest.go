@@ -74,12 +74,12 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
-	Vip := VipCfg.(*[]mc.VIPConfig)
-	if 0 == len(*Vip) {
+	Vip := VipCfg.([]mc.VIPConfig)
+	if 0 == len(Vip) {
 		log.ERROR(PackageName, "利率表为空", "")
 		return nil
 	}
-	return &interest{*Vip, StateCfg.(*mc.InterestCfgStruct).CalcInterval, StateCfg.(*mc.InterestCfgStruct).PayInterval}
+	return &interest{Vip, StateCfg.(*mc.InterestCfgStruct).CalcInterval, StateCfg.(*mc.InterestCfgStruct).PayInterval}
 }
 func (tlr *interest) calcNodeInterest(deposit *big.Int, blockInterest *big.Rat) *big.Int {
 

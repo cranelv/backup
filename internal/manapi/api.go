@@ -1135,6 +1135,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		tmpElect1.Type = elect.Type
 		tmpElect1.Account = base58.Base58EncodeToString("MAN", elect.Account)
 		tmpElect1.Stock = elect.Stock
+		tmpElect1.VIP=elect.VIP
 		listElect1 = append(listElect1, *tmpElect1)
 	}
 
@@ -1162,6 +1163,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		"nettopology":      NetTopology1,
 		"signatures":       head.Signatures,
 		"version":          hexutil.Bytes(head.Version),
+		"VrfValue":hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {

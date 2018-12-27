@@ -52,10 +52,9 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 		return nil, errors.New("反射失败")
 	}
 
-
 	data, err = self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectBlackList, height)
 	if err != nil {
-		log.Error("MSKeyElectBlackList","MSKeyElectBlackList","反射失败", "高度", height)
+		log.Error("MSKeyElectBlackList", "MSKeyElectBlackList", "反射失败", "高度", height)
 		return nil, err
 	}
 	blackList, OK := data.([]common.Address)
@@ -65,7 +64,7 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 
 	data, err = self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectWhiteList, height)
 	if err != nil {
-		log.Error("MSKeyElectWhiteList","MSKeyElectWhiteList","反射失败", "高度", height)
+		log.Error("MSKeyElectWhiteList", "MSKeyElectWhiteList", "反射失败", "高度", height)
 		return nil, err
 	}
 	whiteList, OK := data.([]common.Address)
@@ -73,13 +72,13 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 		return nil, errors.New("反射结构体失败")
 	}
 
-	elect:=&mc.ElectConfigInfo_All{
-		MinerNum:electMinerNum.MinerNum,
-		ValidatorNum :electInfo.ValidatorNum,
-		BackValidator :electInfo.BackValidator,
-		ElectPlug     :electInfo.ElectPlug,
-		WhiteList     :whiteList,
-		BlackList     :blackList,
+	elect := &mc.ElectConfigInfo_All{
+		MinerNum:      electMinerNum.MinerNum,
+		ValidatorNum:  electInfo.ValidatorNum,
+		BackValidator: electInfo.BackValidator,
+		ElectPlug:     electInfo.ElectPlug,
+		WhiteList:     whiteList,
+		BlackList:     blackList,
 	}
 
 	return elect, nil
@@ -90,12 +89,12 @@ func (self *ReElection) GetViPList(height uint64) ([]mc.VIPConfig, error) {
 		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
 		return nil, err
 	}
-	vipList, OK := data.(*[]mc.VIPConfig)
+	vipList, OK := data.([]mc.VIPConfig)
 	if OK == false || vipList == nil {
 		log.ERROR("GetElectInfo", "GetElectInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
-	return *vipList, nil
+	return vipList, nil
 }
 
 func (self *ReElection) GetElectPlug(height uint64) (baseinterface.ElectionInterface, error) {
