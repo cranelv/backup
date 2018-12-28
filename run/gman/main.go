@@ -125,7 +125,6 @@ var (
 		configFileFlag,
 		utils.GetCommitFlag,
 		utils.ManAddressFlag,
-		utils.ManPasswordFlag,
 	}
 
 	rpcFlags = []cli.Flag{
