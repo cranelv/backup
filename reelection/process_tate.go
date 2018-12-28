@@ -33,13 +33,13 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	currentHash := block.ParentHash()
 	topState, err := self.HandleTopGen(currentHash)
 	if self.IsMinerTopGenTiming(currentHash) {
-		electStates.NextMinerElect=[]mc.ElectNodeInfo{}
+		electStates.NextMinerElect = []mc.ElectNodeInfo{}
 		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.MastM...)
 		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.BackM...)
 		electStates.NextMinerElect = append(electStates.NextMinerElect, topState.CandM...)
 	}
 	if self.IsValidatorTopGenTiming(currentHash) {
-		electStates.NextValidatorElect=[]mc.ElectNodeInfo{}
+		electStates.NextValidatorElect = []mc.ElectNodeInfo{}
 		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.MastV...)
 		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.BackV...)
 		electStates.NextValidatorElect = append(electStates.NextValidatorElect, topState.CandV...)
@@ -56,7 +56,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	}
 	if bcInterval.IsReElectionNumber(block.NumberU64() + 1) {
 		nextElect := electStates.NextMinerElect
-		nextElect=append(nextElect,electStates.NextValidatorElect...)
+		nextElect = append(nextElect, electStates.NextValidatorElect...)
 		electList := []mc.ElectNodeInfo{}
 		for _, v := range nextElect {
 			switch v.Type {
@@ -283,5 +283,3 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 	log.INFO("高度", block.Number().Uint64(), "ProducePreAllTopData", "preAllTop.PreAllTopRoot", preAllTop.PreAllTopRoot.String())
 	return preAllTop, nil
 }
-
-

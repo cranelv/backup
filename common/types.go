@@ -369,7 +369,7 @@ type Elect struct {
 	Account Address
 	Stock   uint16
 	Type    ElectRoleType
-	VIP 	VIPRoleType
+	VIP     VIPRoleType
 }
 
 //hezi
@@ -377,7 +377,7 @@ type Elect1 struct {
 	Account string
 	Stock   uint16
 	Type    ElectRoleType
-	VIP VIPRoleType
+	VIP     VIPRoleType
 }
 
 //hezi

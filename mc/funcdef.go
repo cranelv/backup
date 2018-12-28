@@ -135,21 +135,21 @@ func (eg *ElectGraph) TransferElect2CommonElect() []common.Elect {
 }
 
 func (eg *ElectGraph) TransferNextElect2CommonElect() []common.Elect {
-	nextElect:=[]common.Elect{}
-	lenM:=len(eg.NextMinerElect)
-	lenV:=len(eg.NextValidatorElect)
-	for index:=0;index<lenM;index++{
-		nextElect=append(nextElect,common.Elect{
-			Account:eg.NextMinerElect[index].Account,
-			Stock:eg.NextMinerElect[index].Stock,
-			Type :eg.NextMinerElect[index].Type.Transfer2ElectRole(),
+	nextElect := []common.Elect{}
+	lenM := len(eg.NextMinerElect)
+	lenV := len(eg.NextValidatorElect)
+	for index := 0; index < lenM; index++ {
+		nextElect = append(nextElect, common.Elect{
+			Account: eg.NextMinerElect[index].Account,
+			Stock:   eg.NextMinerElect[index].Stock,
+			Type:    eg.NextMinerElect[index].Type.Transfer2ElectRole(),
 		})
 	}
-	for index:=0;index<lenV;index++{
-		nextElect=append(nextElect,common.Elect{
-			Account:eg.NextValidatorElect[index].Account,
-			Stock:eg.NextValidatorElect[index].Stock,
-			Type :eg.NextValidatorElect[index].Type.Transfer2ElectRole(),
+	for index := 0; index < lenV; index++ {
+		nextElect = append(nextElect, common.Elect{
+			Account: eg.NextValidatorElect[index].Account,
+			Stock:   eg.NextValidatorElect[index].Stock,
+			Type:    eg.NextValidatorElect[index].Type.Transfer2ElectRole(),
 		})
 	}
 	return nextElect

@@ -830,58 +830,57 @@ func aesEncrypt(ctx *cli.Context) error {
 	return nil
 }
 
-func IsValidChar(aim byte)bool{
-	if aim>=33&&aim<=126{
+func IsValidChar(aim byte) bool {
+	if aim >= 33 && aim <= 126 {
 		return true
 	}
 	return false
 }
 func CheckPassword(password string) bool {
-	flagLowerChar:=false
-	flagUpperChar:=false
-	flagNum:=false
-	flagSpecialChar:=false
-	for _,v:=range password{
-		if IsValidChar(byte(v))==false{
+	flagLowerChar := false
+	flagUpperChar := false
+	flagNum := false
+	flagSpecialChar := false
+	for _, v := range password {
+		if IsValidChar(byte(v)) == false {
 			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
 			return false
 		}
-		switch{
-		case v>='a'&&v<='z':
-			flagLowerChar=true
-		case  v>='A'&&v<='Z' :
-			flagUpperChar=true
-		case v>='0'&&v<='9':
-			flagNum=true
+		switch {
+		case v >= 'a' && v <= 'z':
+			flagLowerChar = true
+		case v >= 'A' && v <= 'Z':
+			flagUpperChar = true
+		case v >= '0' && v <= '9':
+			flagNum = true
 		default:
-			flagSpecialChar=true
+			flagSpecialChar = true
 		}
-
 
 	}
 
-	if flagSpecialChar==false{
+	if flagSpecialChar == false {
 		fmt.Println("你的密码不包含特殊字符 请重新输入")
 		return false
 	}
-	if flagNum==false{
+	if flagNum == false {
 		fmt.Println("你的密码不包含数字 请重新输入")
 		return false
 	}
-	if flagUpperChar==false{
+	if flagUpperChar == false {
 		fmt.Println("你的密码不包含大写字母 请重新输入")
 		return false
 	}
-	if flagLowerChar==false{
+	if flagLowerChar == false {
 		fmt.Println("你的密码不包含小写字符 请重新输入")
 		return false
 	}
 
-	if len(password)>16  {
+	if len(password) > 16 {
 		fmt.Println("你的密码大于16位 请重新输入")
 		return false
 	}
-	if len(password)<8{
+	if len(password) < 8 {
 		fmt.Println("你的密码小于8位 请重新输入")
 		return false
 	}

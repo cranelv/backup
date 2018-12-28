@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"unicode"
 
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/matrix/go-matrix/base58"
@@ -29,7 +30,6 @@ import (
 	"github.com/naoina/toml"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
-	"crypto/sha256"
 )
 
 var (
@@ -213,7 +213,7 @@ func CheckEntrust(ctx *cli.Context) error {
 
 func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
 	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
-		h:=sha256.New()
+		h := sha256.New()
 		h.Write([]byte(password))
 		return h.Sum(nil), nil
 	}
@@ -236,9 +236,9 @@ func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
 			break
 		}
 	}
-	h:=sha256.New()
+	h := sha256.New()
 	h.Write([]byte(passphrase))
-	return h.Sum(nil),nil
+	return h.Sum(nil), nil
 }
 
 func GetPassword() (string, error) {

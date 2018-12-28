@@ -75,18 +75,16 @@ func IsNil(i interface{}) bool {
 	return false
 }
 
-
 type VIPRoleType uint16
 
 const (
-	VIP_Nil            VIPRoleType = 0
-	VIP_1              VIPRoleType=1
-	VIP_2              VIPRoleType=2
-	VIP_3              VIPRoleType=3
-
+	VIP_Nil VIPRoleType = 0
+	VIP_1   VIPRoleType = 1
+	VIP_2   VIPRoleType = 2
+	VIP_3   VIPRoleType = 3
 )
 
-func GetVIPLevel(index int)VIPRoleType{
+func GetVIPLevel(index int) VIPRoleType {
 	switch index {
 	case 1:
 		return VIP_1

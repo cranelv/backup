@@ -28,7 +28,7 @@ func RegInit() baseinterface.ElectionInterface {
 
 func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("直接选举方案", "矿工拓扑生成", len(mmrerm.MinerList))
-	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum,common.RoleMiner)
+	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
@@ -40,7 +40,7 @@ func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Ma
 	}
 
 	for _, v := range lastNode {
-		MinerTopGenAns.MasterMiner = append(MinerTopGenAns.MasterMiner, support.MakeElectNode(v.Address, len(MinerTopGenAns.MasterMiner), DefauleStock, common.VIP_Nil,common.RoleMiner))
+		MinerTopGenAns.MasterMiner = append(MinerTopGenAns.MasterMiner, support.MakeElectNode(v.Address, len(MinerTopGenAns.MasterMiner), DefauleStock, common.VIP_Nil, common.RoleMiner))
 		if len(MinerTopGenAns.MasterMiner) >= int(nodeElect.EleCfg.MinerNum) {
 			break
 		}
@@ -51,7 +51,7 @@ func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Ma
 
 func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("直接选举方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
+	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
 
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
@@ -62,14 +62,14 @@ func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg
 
 	for index, v := range lastNode {
 		if len(ValidatorTop.MasterValidator) < int(mvrerm.ElectConfig.ValidatorNum) {
-			ValidatorTop.MasterValidator = append(ValidatorTop.MasterValidator, support.MakeElectNode(v.Address, len(ValidatorTop.MasterValidator), DefauleStock, common.VIP_Nil,common.RoleValidator))
+			ValidatorTop.MasterValidator = append(ValidatorTop.MasterValidator, support.MakeElectNode(v.Address, len(ValidatorTop.MasterValidator), DefauleStock, common.VIP_Nil, common.RoleValidator))
 			continue
 		}
 		if len(ValidatorTop.BackUpValidator) < int(mvrerm.ElectConfig.BackValidator) {
-			ValidatorTop.BackUpValidator = append(ValidatorTop.BackUpValidator, support.MakeElectNode(v.Address, len(ValidatorTop.BackUpValidator), DefauleStock, common.VIP_Nil,common.RoleBackupValidator))
+			ValidatorTop.BackUpValidator = append(ValidatorTop.BackUpValidator, support.MakeElectNode(v.Address, len(ValidatorTop.BackUpValidator), DefauleStock, common.VIP_Nil, common.RoleBackupValidator))
 			continue
 		}
-		ValidatorTop.CandidateValidator = append(ValidatorTop.CandidateValidator, support.MakeElectNode(v.Address, index, DefauleStock,common.VIP_Nil, common.RoleCandidateValidator))
+		ValidatorTop.CandidateValidator = append(ValidatorTop.CandidateValidator, support.MakeElectNode(v.Address, index, DefauleStock, common.VIP_Nil, common.RoleCandidateValidator))
 
 	}
 	return &ValidatorTop
