@@ -59,7 +59,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
-		minersRewardMap := blkReward.CalcMinerRewards(num)
+		minersRewardMap := blkReward.CalcMinerRewards(num, header.ParentHash)
 		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
@@ -74,7 +74,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	allGas := new(big.Int).Mul(new(big.Int).SetUint64(usedGas), new(big.Int).SetUint64(params.TxGasPrice))
 	log.INFO(ModuleName, "交易费奖励总额", allGas.String())
 	if nil != txsReward {
-		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64())
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}

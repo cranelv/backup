@@ -100,7 +100,7 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 
 	lastNode := vipEle.GetLastNode()
 	for _, v := range lastNode {
-		if len(Candidate) <= int(4*vipEle.EleCfg.ValidatorNum-vipEle.EleCfg.BackValidator) {
+		if len(Candidate) < int(4*vipEle.EleCfg.ValidatorNum-vipEle.EleCfg.BackValidator) {
 			Candidate = append(Candidate, support.Strallyint{Addr: v.Address, Value: 1})
 		}
 	}

@@ -90,10 +90,10 @@ func (mr *MinerOutReward) SetPreMinerReward(state util.StateDB, reward *big.Int,
 
 }
 
-func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, reader util.ChainReader, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int {
+func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.StateDB, num uint64, parentHash common.Hash, reader util.ChainReader, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int {
 	//后一块给前一块的矿工发钱，广播区块不发钱， 广播区块下一块给广播区块前一块发钱
 
-	bcInterval, err := manparams.NewBCIntervalByNumber(num - 1)
+	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
 	if err != nil {
 		log.Error(PackageName, "获取广播周期失败", err)
 		return nil
@@ -109,7 +109,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 		return nil
 	}
 
-	coinBase, err := mr.canSetMinerOutRewards(num, preReward, reader, bcInterval, innerMiners)
+	coinBase, err := mr.canSetMinerOutRewards(num, preReward, reader, bcInterval, parentHash, innerMiners)
 	if nil != err {
 		return nil
 	}
@@ -120,7 +120,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 	return rewards
 }
 
-func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, reader util.ChainReader, bcInterval *manparams.BCInterval, innerMiners []common.Address) (common.Address, error) {
+func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, reader util.ChainReader, bcInterval *manparams.BCInterval, parentHash common.Hash, innerMiners []common.Address) (common.Address, error) {
 	if num < 2 {
 		log.Debug(PackageName, "高度为小于2 不发放奖励：", "")
 		return common.Address{}, errors.New("高度为小于2 不发放奖励：")
@@ -137,13 +137,16 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 	if num < 101 {
 		originNum = 0
 	}
+	preHash := parentHash
 	for i := num - 1; i > originNum; i-- {
+		header = reader.GetHeaderByHash(preHash)
+		preHash = header.ParentHash
 		if bcInterval.IsBroadcastNumber(i) {
 			continue
 		}
-		header = reader.GetHeaderByNumber(i)
 		if nil == header {
 			log.ERROR(PackageName, "获取区块头错误，高度为", i)
+			break
 		}
 		if !header.IsSuperHeader() {
 			break

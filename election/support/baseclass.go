@@ -92,7 +92,7 @@ func (node *Node) SetDepositInfo(depsit vm.DepositDetail) {
 	node.OnlineTime = depsit.OnlineTime
 	node.WithdrawH = depsit.WithdrawH
 	node.Deposit = depsit.Deposit
-
+	//todo:地址为空地址 ，WithdrawH，OnlineTime负值，抵押负值
 	if nil == depsit.Deposit {
 		node.Deposit = big.NewInt(DefaultNodeConfig)
 	}

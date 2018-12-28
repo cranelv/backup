@@ -102,5 +102,13 @@ var (
 				"uniform gas price (18000000000)",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.12",
+			Submitter: "张文",
+			Commit: []string{
+				"矿工出块奖励使用parenthash取前一块的coinbase，解决选取的矿工不一致的问题",
+				"修改二级备份节点会多选一个问题",
+			},
+		},
 	}
 )

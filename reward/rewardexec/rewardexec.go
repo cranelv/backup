@@ -137,11 +137,11 @@ func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.A
 	return rewards
 }
 
-func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardType uint8) map[common.Address]*big.Int {
+func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardType uint8, parentHash common.Hash) map[common.Address]*big.Int {
 	rewards := make(map[common.Address]*big.Int, 0)
 
 	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
-	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, br.innerMinerAccounts, rewardType)
+	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, parentHash, br.innerMinerAccounts, rewardType)
 	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
@@ -150,7 +150,7 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardT
 	return rewards
 }
 
-func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) CalcMinerRewards(num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.MinerMount), util.ManPrice)
 	halfNum := br.rewardCfg.RewardMount.MinerHalf
@@ -168,7 +168,7 @@ func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int 
 		log.WARN(PackageName, "广播周期不处理", "")
 		return nil
 	}
-	return br.getMinerRewards(blockReward, num, util.BlkReward)
+	return br.getMinerRewards(blockReward, num, util.BlkReward, parentHash)
 }
 func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64) bool {
 	if br.bcInterval.IsBroadcastNumber(num) {
@@ -193,7 +193,7 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 	return accountRewards
 }
 
-func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 
 	if nil == br.rewardCfg {
 		log.Error(PackageName, "奖励配置为空", "")
@@ -209,7 +209,7 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
 	log.Debug(PackageName, "矿工奖励总额", minersBlkReward)
-	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward)
+	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward, parentHash)
 	if blockReward.Cmp(big.NewInt(0)) <= 0 {
 		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
 		return nil
