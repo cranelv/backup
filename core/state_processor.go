@@ -45,6 +45,24 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 	}
 }
 
+func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
+
+	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
+	log.INFO("奖励", "交易费奖励总额", allGas.String())
+	balance := state.GetBalance(common.TxGasRewardAddress)
+
+	if len(balance) == 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法", "")
+		return big.NewInt(0)
+	}
+
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
+		return big.NewInt(0)
+	}
+	return allGas
+}
+
 func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) error {
 	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
 	if err != nil {
@@ -71,7 +89,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	}
 
 	txsReward := txsreward.New(p.bc, state)
-	allGas := new(big.Int).Mul(new(big.Int).SetUint64(usedGas), new(big.Int).SetUint64(params.TxGasPrice))
+	allGas := p.getGas(state, new(big.Int).SetUint64(usedGas))
 	log.INFO(ModuleName, "交易费奖励总额", allGas.String())
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
