@@ -71,7 +71,7 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
-		gasPrice: msg.GasPrice(),
+		gasPrice: big.NewInt(int64(params.TxGasPrice)),
 		value:    msg.Value(),
 		data:     msg.Data(),
 		state:    evm.StateDB,
