@@ -472,7 +472,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Addre
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
-		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
+		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64(), env.header.ParentHash)
 		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
@@ -486,7 +486,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Addre
 	allGas := env.getGas()
 	txsReward := txsreward.New(bc, env.State)
 	if nil != txsReward {
-		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64(), env.header.ParentHash)
 		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}

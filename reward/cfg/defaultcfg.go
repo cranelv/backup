@@ -84,7 +84,7 @@ type ChainReader interface {
 }
 type SetRewardsExec interface {
 	SetLeaderRewards(reward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int
-	SetMinerOutRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, num uint64, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int
+	SetMinerOutRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, num uint64, parentHash common.Hash, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int
 	GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, number uint64, rate uint64) map[common.Address]*big.Int //todo 金额
 }
 type DefaultSetRewards struct {
@@ -110,9 +110,9 @@ func (str *DefaultSetRewards) GetSelectedRewards(reward *big.Int, state util.Sta
 
 	return str.selected.GetSelectedRewards(reward, state, chain, roleType, number, rate)
 }
-func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, num uint64, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int {
+func (str *DefaultSetRewards) SetMinerOutRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, num uint64, parentHash common.Hash, innerMiners []common.Address, rewardType uint8) map[common.Address]*big.Int {
 
-	return str.miner.SetMinerOutRewards(reward, state, num, chain, innerMiners, rewardType)
+	return str.miner.SetMinerOutRewards(reward, state, num, parentHash, chain, innerMiners, rewardType)
 }
 
 func New(RewardMount *mc.BlkRewardCfg, SetReward SetRewardsExec) *RewardCfg {
