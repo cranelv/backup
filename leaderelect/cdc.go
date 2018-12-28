@@ -352,7 +352,7 @@ func (dc *cdc) GetSignAccounts(authFrom common.Address, blockHash common.Hash) (
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
-	return ans, errors.New("cdc: ans为空")
+	return ans, nil
 }
 
 func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
