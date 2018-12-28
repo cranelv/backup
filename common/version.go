@@ -95,5 +95,12 @@ var (
 				"选举算法修改",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.11",
+			Submitter: "yeying",
+			Commit: []string{
+				"uniform gas price (18000000000)",
+			},
+		},
 	}
 )

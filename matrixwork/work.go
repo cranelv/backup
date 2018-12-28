@@ -85,7 +85,7 @@ func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gasAll := new(big.Int).SetUint64(gasuse)
-	priceAll := txer.GasPrice()
+	priceAll :=new(big.Int).SetUint64(params.TxGasPrice)//txer.GasPrice()
 	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
