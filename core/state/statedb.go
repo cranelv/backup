@@ -303,7 +303,7 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 	return nil
 }
 
-//根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名)
+//根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名) A2 s
 func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []common.Address {
 	EntrustMarsha1Data := self.GetStateByteArray(authFrom, common.BytesToHash(authFrom[:]))
 	if len(EntrustMarsha1Data) == 0 {
@@ -324,7 +324,7 @@ func (self *StateDB) GetEntrustFrom(authFrom common.Address, height uint64) []co
 	return addressList
 }
 
-//根据委托人from和高度获取授权人的from,返回授权人地址(算法组调用,仅适用委托签名)
+//根据委托人from和高度获取授权人的from,返回授权人地址(算法组调用,仅适用委托签名)	 A1
 func (self *StateDB) GetAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetStateByteArray(entrustFrom, common.BytesToHash(entrustFrom[:]))
 	if len(AuthMarsha1Data) == 0 {
