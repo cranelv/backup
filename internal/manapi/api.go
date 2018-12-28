@@ -437,10 +437,10 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 		return nil, err
 	}
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//n := uint64(*args.Nonce)
-	//if (n % uint64(2)) == 0{
-	//	args.Currency = "BTC"
-	//}
+	n := uint64(*args.Nonce)
+	if (n % uint64(2)) == 0{
+		args.Currency = "BTC"
+	}
 	//YYYYYYYYYYYYYYYYYYYYYYYYYY
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()

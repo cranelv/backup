@@ -34,7 +34,7 @@ type StateDBManage struct {
 func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database,db Database) (*StateDBManage, error) {
 	if len(roots) == 0{
 		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
-		//roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:[]byte{}})//YYYYYYYYYYYYYYYYYYYYYYYY
+		roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:common.Hash{}})//YYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	stm := &StateDBManage{
 		mdb:			   mdb,
@@ -46,7 +46,7 @@ func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database,db Database) (
 	copy(stm.coinRoot,roots)
 	copy(stm.retcoinRoot,roots)
 	stm.MakeStatedb(params.MAN_COIN)
-	//stm.MakeStatedb(params.BTC_COIN)//YYYYYYYYYYYYYYYYYYYYYYYY
+	stm.MakeStatedb(params.BTC_COIN)//YYYYYYYYYYYYYYYYYYYYYYYY
 	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string) {
@@ -651,10 +651,10 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte){
-	var root256 []common.Hash
-	var bshash	common.Hash
-	var coinbytes []common.Coinbyte
+	coinbytes :=make([]common.Coinbyte,0)
 	for _,cm:=range shard.shardings  {
+		var bshash	common.Hash
+		root256 :=make([]common.Hash,0)
 		for _,rm:=range cm.Rmanage{
 			root:=rm.State.IntermediateRoot(deleteEmptyObjects)
 			root256=append(root256,root)
@@ -733,19 +733,20 @@ func (shard *StateDBManage) clearJournalAndRefund() {
 
 // Commit writes the state to the underlying in-memory trie database.
 func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte, error) {
-	var Roots []common.Hash
-	var coinbytes [] common.Coinbyte
+
+	var coinbytes =make([] common.Coinbyte,0)
 	for _,cm:=range shard.shardings  {
+		var roots =make([]common.Hash,0)
 		for _,rm:=range cm.Rmanage{
 			root,err:=rm.State.Commit(deleteEmptyObjects)
 			if err!=nil {
 				log.Error("file:sharding_statedb.go","func:Commit",err)
 				panic(err)
 			}
-			Roots=append(Roots,root)
+			roots=append(roots,root)
 		}
-		bshash:=types.RlpHash(Roots)
-		bs,err:=rlp.EncodeToBytes(Roots)
+		bshash:=types.RlpHash(roots)
+		bs,err:=rlp.EncodeToBytes(roots)
 		err=shard.mdb.Put(bshash[:],bs)
 		if err!=nil {
 			log.Error("file:sharding_statedb.go","func:Commit",err)
@@ -762,7 +763,7 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot,[
 		if !isex{
 			shard.retcoinRoot = append(shard.retcoinRoot,common.CoinRoot{Cointyp:cm.Cointyp,Root:bshash})
 		}
-		coinbytes=append(coinbytes,common.Coinbyte{Root:bshash,Byte256:Roots})
+		coinbytes=append(coinbytes,common.Coinbyte{Root:bshash,Byte256:roots})
 	}
 	return shard.retcoinRoot,coinbytes,nil
 }
