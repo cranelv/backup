@@ -1,6 +1,5 @@
 package support
 
-
 const (
 	ModuleLogName = "选举基础模块"
 	MaxSample     = 1000 //配置参数,采样最多发生1000次,是一个离P+M较远的值
@@ -13,8 +12,8 @@ const (
 	MaxVipEleLevelNum       = 2
 	DefaultRatio            = 1000
 	DefaultRatioDenominator = 1000
-	DefaultMinerDeposit=10000
-	DefaultValidatorDeposit=100000
+	DefaultMinerDeposit     = 10000
+	DefaultValidatorDeposit = 100000
 )
 const (
 	ValidatorElectPlug_Direct = "Direct"

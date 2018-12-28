@@ -3,25 +3,25 @@ package election
 import (
 	"testing"
 
-	"math/big"
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/common/mt19937"
 	"fmt"
+	"github.com/matrix/go-matrix/common/mt19937"
+	"github.com/matrix/go-matrix/log"
+	"math/big"
 
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
 	_ "github.com/matrix/go-matrix/election/layered"
-	_ "github.com/matrix/go-matrix/election/stock"
 	_ "github.com/matrix/go-matrix/election/nochoice"
+	_ "github.com/matrix/go-matrix/election/stock"
+	"github.com/matrix/go-matrix/run/utils"
 
-	"github.com/matrix/go-matrix/mc"
-	"strconv"
-	"os"
-	"github.com/matrix/go-matrix/core"
 	"encoding/json"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/mc"
 	"io/ioutil"
+	"os"
+	"strconv"
 )
 
 func GetDepositDetatil(num int, m int, n int, onlineFlag bool) []vm.DepositDetail {
@@ -246,7 +246,7 @@ func GOTestM(vip1Num int, vip2Num int, white []common.Address, black []common.Ad
 
 func TestUnit2(t *testing.T) {
 	log.InitLog(3)
-	GOTestV(5,3,[]common.Address{},[]common.Address{},"layerd",true)
+	GOTestV(5, 3, []common.Address{}, []common.Address{}, "layerd", true)
 	//	GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",true)
 	//GOTestV(4,4,[]common.Address{},[]common.Address{},"layerd",false)
 	//	GOTestV(6,3,[]common.Address{},[]common.Address{},"layerd",true)
@@ -359,17 +359,16 @@ func Test7(t *testing.T) {
 	GOTestM(0, 0, white, black, "stock", true)
 }
 
-
-func Savefile(genesis *core.Genesis,filename string){
-	marshalData,err:=json.Marshal(genesis)
+func Savefile(genesis *core.Genesis, filename string) {
+	marshalData, err := json.Marshal(genesis)
 	err = ioutil.WriteFile(filename, marshalData, os.ModeAppend)
 	if err != nil {
 		fmt.Println("测试支持", "生成test文件成功")
 	}
 
 }
-func Savefile1(genesis1 *core.Genesis1,filename string){
-	marshalData,err:=json.Marshal(genesis1)
+func Savefile1(genesis1 *core.Genesis1, filename string) {
+	marshalData, err := json.Marshal(genesis1)
 	err = ioutil.WriteFile(filename, marshalData, os.ModeAppend)
 	if err != nil {
 		fmt.Println("测试支持", "生成test文件成功")
@@ -377,109 +376,105 @@ func Savefile1(genesis1 *core.Genesis1,filename string){
 
 }
 
-func TestDefaultGenesisCfg(t *testing.T){
-		genesisPath:="MANGenesis.json"
-		file, err := os.Open(genesisPath)
-		if err != nil {
-			utils.Fatalf("Failed to read genesis file: %v", err)
-		}
-		defer file.Close()
-		genesis1 := new(core.Genesis1)
+func TestDefaultGenesisCfg(t *testing.T) {
+	genesisPath := "MANGenesis.json"
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+	genesis1 := new(core.Genesis1)
 
+	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+	genesis, err := core.GetDefaultGeneis()
 
-		if err := json.NewDecoder(file).Decode(genesis1); err != nil {
-			utils.Fatalf("invalid genesis file: %v", err)
-		}
-		genesis,err := core.GetDefaultGeneis()
-
-	Savefile(genesis,"init.json")
-		core.ManGenesisToEthGensis(genesis1, genesis)
-	Savefile(genesis,"end.json")
-		fmt.Println(genesis.MState.Broadcast)
-
+	Savefile(genesis, "init.json")
+	core.ManGenesisToEthGensis(genesis1, genesis)
+	Savefile(genesis, "end.json")
+	fmt.Println(genesis.MState.Broadcast)
 
 }
 
-
-func TestNew(t *testing.T){
-	fmt.Println("daas",0xffff)
-	A:=new(core.Genesis1)
-	err:=json.Unmarshal([]byte(core.DefaultJson),A)
-	fmt.Println("err",err)
+func TestNew(t *testing.T) {
+	fmt.Println("daas", 0xffff)
+	A := new(core.Genesis1)
+	err := json.Unmarshal([]byte(core.DefaultJson), A)
+	fmt.Println("err", err)
 	fmt.Println(A)
 }
 
-func Test111(t *testing.T){
-	aimRatio:=[]float64{}
-	total:=-0.02
-	for index:=0;index<30;index++{
-		total+=0.02
-		aimRatio=append(aimRatio,total)
+func Test111(t *testing.T) {
+	aimRatio := []float64{}
+	total := -0.02
+	for index := 0; index < 30; index++ {
+		total += 0.02
+		aimRatio = append(aimRatio, total)
 	}
-	mapUsed:=make(map[int]bool)
+	mapUsed := make(map[int]bool)
 	rand := mt19937.RandUniformInit(10)
-	for time:=0;time<1000;time++{
-		rr:=float64(rand.Uniform(0.0,1.0))
-		fmt.Println("rr",rr)
-		for index:=len(aimRatio)-1;index>=0;index--{
-			if rr>aimRatio[index]{
-				mapUsed[index]=true
-				fmt.Println("rr",rr,"time",time,"index",index,"aimRatio[index]",aimRatio[index],len(mapUsed))
+	for time := 0; time < 1000; time++ {
+		rr := float64(rand.Uniform(0.0, 1.0))
+		fmt.Println("rr", rr)
+		for index := len(aimRatio) - 1; index >= 0; index-- {
+			if rr > aimRatio[index] {
+				mapUsed[index] = true
+				fmt.Println("rr", rr, "time", time, "index", index, "aimRatio[index]", aimRatio[index], len(mapUsed))
 				break
 			}
 		}
-		if len(mapUsed)==30{
+		if len(mapUsed) == 30 {
 			break
 		}
 	}
 
 }
-var mapMoney=make(map[common.Address]int)
-func MakeValidatorReq(vipList []mc.VIPConfig)*mc.MasterValidatorReElectionReqMsg{
-	blackList:=[]common.Address{}
-	index:=[]int{90,88,86,47,1}
-	for _,v:=range index{
-		blackList=append(blackList,common.BigToAddress(big.NewInt(int64(v))))
-	}
-	req:=&mc.MasterValidatorReElectionReqMsg{
-		SeqNum           :1,
-		RandSeed          :big.NewInt(100),
-		ValidatorList: []vm.DepositDetail{},
-		ElectConfig:mc.ElectConfigInfo_All{
-			MinerNum :21,
-			ValidatorNum:19,
-			BackValidator:5,
-			ElectPlug    :"layerd",
-			WhiteList     :[]common.Address{},
-			BlackList     :[]common.Address{},
-		},
-		VIPList:vipList,
-	}
-	for index:=10;index<=49;index++{
-		depos:=index*10000
-		req.ValidatorList=append(req.ValidatorList,vm.DepositDetail{
 
-			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
-			Deposit    :new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
-		})
-		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))]=depos
+var mapMoney = make(map[common.Address]int)
+
+func MakeValidatorReq(vipList []mc.VIPConfig) *mc.MasterValidatorReElectionReqMsg {
+	blackList := []common.Address{}
+	index := []int{90, 88, 86, 47, 1}
+	for _, v := range index {
+		blackList = append(blackList, common.BigToAddress(big.NewInt(int64(v))))
 	}
-	for index:=1000;index<=1490;index+=10{
-		depos:=index*10000
-		req.ValidatorList=append(req.ValidatorList,vm.DepositDetail{
-			Address:common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1))),
-			Deposit:new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+	req := &mc.MasterValidatorReElectionReqMsg{
+		SeqNum:        1,
+		RandSeed:      big.NewInt(100),
+		ValidatorList: []vm.DepositDetail{},
+		ElectConfig: mc.ElectConfigInfo_All{
+			MinerNum:      21,
+			ValidatorNum:  19,
+			BackValidator: 5,
+			ElectPlug:     "layerd",
+			WhiteList:     []common.Address{},
+			BlackList:     []common.Address{},
+		},
+		VIPList: vipList,
+	}
+	for index := 10; index <= 49; index++ {
+		depos := index * 10000
+		req.ValidatorList = append(req.ValidatorList, vm.DepositDetail{
+
+			Address: common.BigToAddress(big.NewInt(int64(len(req.ValidatorList) + 1))),
+			Deposit: new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
 		})
-		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))]=depos
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))] = depos
+	}
+	for index := 1000; index <= 1490; index += 10 {
+		depos := index * 10000
+		req.ValidatorList = append(req.ValidatorList, vm.DepositDetail{
+			Address: common.BigToAddress(big.NewInt(int64(len(req.ValidatorList) + 1))),
+			Deposit: new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+		})
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.ValidatorList)+1)))] = depos
 	}
 	return req
 }
 
-
-
-
-var(
-	VIPList=[][]mc.VIPConfig{
+var (
+	VIPList = [][]mc.VIPConfig{
 		[]mc.VIPConfig{
 			mc.VIPConfig{
 				MinMoney:     0,
@@ -723,9 +718,8 @@ var(
 	}
 )
 
-var(
-	VIPList1=[][]mc.VIPConfig{
-
+var (
+	VIPList1 = [][]mc.VIPConfig{
 
 		[]mc.VIPConfig{
 			mc.VIPConfig{
@@ -771,13 +765,10 @@ var(
 				ElectUserNum: 2,
 			},
 		},
-
-
 	}
 )
 
-
-var Black=[][]mc.VIPConfig{
+var Black = [][]mc.VIPConfig{
 	[]mc.VIPConfig{
 		mc.VIPConfig{
 			MinMoney:     0,
@@ -802,75 +793,70 @@ var Black=[][]mc.VIPConfig{
 	},
 }
 
-
-func TestN(t *testing.T)  {
+func TestN(t *testing.T) {
 	//log.InitLog(3)
 
-	for k,v:=range VIPList1{
-		req:=MakeValidatorReq(v)
+	for k, v := range VIPList1 {
+		req := MakeValidatorReq(v)
 		rspValidator := baseinterface.NewElect("layerd").ValidatorTopGen(req)
-		for _,v:=range rspValidator.MasterValidator{
-			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		for _, v := range rspValidator.MasterValidator {
+			fmt.Println("Account:", v.Account.Big().Uint64(), "Stock:", v.Stock, "vip:", v.VIPLevel, "role:", v.Type)
 		}
-		for _,v:=range rspValidator.BackUpValidator{
-			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		for _, v := range rspValidator.BackUpValidator {
+			fmt.Println("Account:", v.Account.Big().Uint64(), "Stock:", v.Stock, "vip:", v.VIPLevel, "role:", v.Type)
 		}
-		for _,v:=range rspValidator.CandidateValidator{
-			fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+		for _, v := range rspValidator.CandidateValidator {
+			fmt.Println("Account:", v.Account.Big().Uint64(), "Stock:", v.Stock, "vip:", v.VIPLevel, "role:", v.Type)
 		}
-		fmt.Println("测试结束",k)
+		fmt.Println("测试结束", k)
 	}
 
 }
 
-
-
-
-func MakeMinerReq(vipList []mc.VIPConfig)*mc.MasterMinerReElectionReqMsg{
-	blackList:=[]common.Address{}
-	index:=[]int{90,88,86,47,1}
-	for _,v:=range index{
-		blackList=append(blackList,common.BigToAddress(big.NewInt(int64(v))))
+func MakeMinerReq(vipList []mc.VIPConfig) *mc.MasterMinerReElectionReqMsg {
+	blackList := []common.Address{}
+	index := []int{90, 88, 86, 47, 1}
+	for _, v := range index {
+		blackList = append(blackList, common.BigToAddress(big.NewInt(int64(v))))
 	}
-	req:=&mc.MasterMinerReElectionReqMsg{
-		SeqNum           :1,
-		RandSeed          :big.NewInt(100),
+	req := &mc.MasterMinerReElectionReqMsg{
+		SeqNum:    1,
+		RandSeed:  big.NewInt(100),
 		MinerList: []vm.DepositDetail{},
-		ElectConfig:mc.ElectConfigInfo_All{
-			MinerNum :21,
-			ValidatorNum:19,
-			BackValidator:5,
-			ElectPlug    :"layerd",
-			WhiteList     :[]common.Address{},
-			BlackList     :[]common.Address{},
+		ElectConfig: mc.ElectConfigInfo_All{
+			MinerNum:      21,
+			ValidatorNum:  19,
+			BackValidator: 5,
+			ElectPlug:     "layerd",
+			WhiteList:     []common.Address{},
+			BlackList:     []common.Address{},
 		},
 	}
-	for index:=10;index<=49;index++{
-		depos:=index*10000
-		req.MinerList=append(req.MinerList,vm.DepositDetail{
+	for index := 10; index <= 49; index++ {
+		depos := index * 10000
+		req.MinerList = append(req.MinerList, vm.DepositDetail{
 
-			Address:common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1))),
-			Deposit    :new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+			Address: common.BigToAddress(big.NewInt(int64(len(req.MinerList) + 1))),
+			Deposit: new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
 		})
-		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))]=depos
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))] = depos
 	}
-	for index:=1000;index<=1490;index+=10{
-		depos:=index*10000
-		req.MinerList=append(req.MinerList,vm.DepositDetail{
-			Address:common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1))),
-			Deposit:new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
+	for index := 1000; index <= 1490; index += 10 {
+		depos := index * 10000
+		req.MinerList = append(req.MinerList, vm.DepositDetail{
+			Address: common.BigToAddress(big.NewInt(int64(len(req.MinerList) + 1))),
+			Deposit: new(big.Int).Mul(big.NewInt(int64(depos)), common.ManValue),
 		})
-		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))]=depos
+		mapMoney[common.BigToAddress(big.NewInt(int64(len(req.MinerList)+1)))] = depos
 	}
 	return req
 }
 
-
-func TestV(t *testing.T){
-	req:=MakeMinerReq(nil)
+func TestV(t *testing.T) {
+	req := MakeMinerReq(nil)
 	rspMiner := baseinterface.NewElect("layerd").MinerTopGen(req)
-	for _,v:=range rspMiner.MasterMiner{
-		fmt.Println("Account:",v.Account.Big().Uint64(),"Stock:",v.Stock,"vip:",v.VIPLevel,"role:",v.Type)
+	for _, v := range rspMiner.MasterMiner {
+		fmt.Println("Account:", v.Account.Big().Uint64(), "Stock:", v.Stock, "vip:", v.VIPLevel, "role:", v.Type)
 	}
 
 }

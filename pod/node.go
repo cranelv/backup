@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/params/manparams"
 	"io"
 	"io/ioutil"
 	"net"
@@ -179,12 +180,8 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 	}
 
 	emptyAddress := common.Address{}
-	if n.config.P2P.ManPassword == "" && n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man address and password is empty. defalut role has no signature.")
-		return
-	}
-	if n.config.P2P.ManPassword == "" || n.config.P2P.ManAddress == emptyAddress {
-		n.log.Error("man address or password is empty. please ensure command and args.")
+	if n.config.P2P.ManAddress == emptyAddress {
+		n.log.Info("man address is empty. default role has no signature.")
 		return
 	}
 
@@ -205,9 +202,16 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 
+		address := manparams.EntrustAccountValue.GetEntrustValue()
+		val, ok := address[n.config.P2P.ManAddress]
+		if !ok {
+			n.log.Error("get account password error")
+			return
+		}
+
 		ctn := discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes()
 		signCtn := common.BytesToHash(ctn)
-		sig, err := wallet.SignHashWithPassphrase(account, n.config.P2P.ManPassword, signCtn.Bytes())
+		sig, err := wallet.SignHashWithPassphrase(account, val, signCtn.Bytes())
 		if err != nil {
 			n.log.Error("signature with account", "error", err)
 			return

@@ -324,15 +324,18 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
-func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (dc *cdc) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
+	return dc.chain.GetSignAccountPassword(signAccounts)
+}
+func (dc *cdc) GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error) {
 	if blockHash.Equal(common.Hash{}) {
 		log.Error(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "输入数据err", "区块hash为空")
-		return common.Address{}, "", errors.New("cdc:输入hash为空")
+		return nil, errors.New("cdc:输入hash为空")
 	}
 
 	if blockHash != dc.leaderCal.preHash {
 		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "调blockchain接口", "")
-		return dc.chain.GetSignAccount(authFrom, blockHash)
+		return dc.chain.GetSignAccounts(authFrom, blockHash)
 	}
 
 	if common.TopAccountType == common.TopAccountA0 {
@@ -341,7 +344,7 @@ func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (c
 
 	if nil == dc.parentState {
 		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "err", "dc.parentState是空")
-		return common.Address{}, "", errors.New("cdc: parent stateDB is nil, can't reader data")
+		return nil, errors.New("cdc: parent stateDB is nil, can't reader data")
 	}
 
 	height := dc.number - 1
@@ -349,23 +352,7 @@ func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (c
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
-	entrustValue := manparams.EntrustAccountValue.GetEntrustValue()
-	for _, v := range ans {
-		for kk, vv := range entrustValue {
-			if v.Equal(kk) == false {
-				continue
-			}
-			if _, ok := entrustValue[kk]; ok {
-				log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
-				return kk, entrustValue[kk], nil
-			}
-			log.ERROR(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			return kk, vv, errors.New("cdc: 无该密码")
-
-		}
-	}
-	log.ERROR(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
-	return common.Address{}, "", errors.New("cdc: ans为空")
+	return ans, errors.New("cdc: ans为空")
 }
 
 func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {

@@ -1,6 +1,5 @@
 package support
 
-
 type SortStrallyint []Strallyint
 
 func (self SortStrallyint) Len() int {

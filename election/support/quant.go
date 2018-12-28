@@ -39,9 +39,9 @@ func (self *SelfNodeInfo) DepositStake(roles common.RoleType) float64 {
 
 	switch roles {
 	case common.RoleMiner:
-		return float64(deposMan/DefaultMinerDeposit)
+		return float64(deposMan / DefaultMinerDeposit)
 	default:
-		return float64(deposMan/DefaultValidatorDeposit)
+		return float64(deposMan / DefaultValidatorDeposit)
 	}
 
 }

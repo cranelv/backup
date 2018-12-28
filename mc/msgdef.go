@@ -86,9 +86,9 @@ type ElectNodeInfo struct {
 }
 
 type ElectGraph struct {
-	Number    uint64
-	ElectList []ElectNodeInfo
-	NextMinerElect []ElectNodeInfo
+	Number             uint64
+	ElectList          []ElectNodeInfo
+	NextMinerElect     []ElectNodeInfo
 	NextValidatorElect []ElectNodeInfo
 }
 

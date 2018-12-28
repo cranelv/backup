@@ -176,7 +176,7 @@ func (self *ReElection) TransferToElectionStu(info *ElectReturnInfo) []common.El
 				Account: node.Account,
 				Stock:   node.Stock,
 				Type:    role,
-				VIP:node.VIPLevel,
+				VIP:     node.VIPLevel,
 			}
 
 			result = append(result, e)

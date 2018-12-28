@@ -8,50 +8,49 @@ import (
 	"github.com/matrix/go-matrix/common/mt19937"
 )
 
-func GetList_VIP(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
+func GetList_VIP(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform) ([]Strallyint, []Pnormalized) {
 	probnormalized = Normalize_VIP(probnormalized)
 
-
-	if len(probnormalized)==0{
-		return []Strallyint{},probnormalized
+	if len(probnormalized) == 0 {
+		return []Strallyint{}, probnormalized
 	}
-	if needNum>len(probnormalized){
-		needNum=len(probnormalized)
+	if needNum > len(probnormalized) {
+		needNum = len(probnormalized)
 	}
-	ChoseNode:=[]Strallyint{}
-	RemainingProbNormalizedNodes:=[]Pnormalized{}
+	ChoseNode := []Strallyint{}
+	RemainingProbNormalizedNodes := []Pnormalized{}
 	dict := make(map[common.Address]int)
-	orderAddress:=[]common.Address{}
+	orderAddress := []common.Address{}
 
 	for i := 0; i < MaxSample; i++ {
-		tempRand:= float64(rand.Uniform(0.0, 1.0))
+		tempRand := float64(rand.Uniform(0.0, 1.0))
 
-		node := Sample1NodesInValNodes_VIP(probnormalized,tempRand)
+		node := Sample1NodesInValNodes_VIP(probnormalized, tempRand)
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
 			dict[node] = 1
 
-			orderAddress=append(orderAddress,node)
+			orderAddress = append(orderAddress, node)
 		}
 		if len(dict) == (needNum) {
 			break
 		}
 	}
 
-	for _,v:=range orderAddress{
-		ChoseNode=append(ChoseNode,Strallyint{Addr:v,Value:dict[v]})
+	for _, v := range orderAddress {
+		ChoseNode = append(ChoseNode, Strallyint{Addr: v, Value: dict[v]})
 	}
 
 	for _, item := range probnormalized {
-		if _,ok:=dict[item.Addr];ok==true{
+		if _, ok := dict[item.Addr]; ok == true {
 			continue
 		}
-		if len(ChoseNode)<needNum{
-			ChoseNode=append(ChoseNode,Strallyint{Addr:item.Addr,Value:1})
-		}else{
-			RemainingProbNormalizedNodes=append(RemainingProbNormalizedNodes,item)
+		if len(ChoseNode) < needNum {
+			ChoseNode = append(ChoseNode, Strallyint{Addr: item.Addr, Value: 1})
+		} else {
+			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, item)
 		}
 	}
 
@@ -61,24 +60,23 @@ func GetList_VIP(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUn
 func Normalize_VIP(probVal []Pnormalized) []Pnormalized {
 	var pnormalizedlist []Pnormalized
 
- 	total:=0.0
+	total := 0.0
 	for _, item := range probVal {
-		pnormalizedlist=append(pnormalizedlist,Pnormalized{Addr:item.Addr,Value:total})
+		pnormalizedlist = append(pnormalizedlist, Pnormalized{Addr: item.Addr, Value: total})
 		total += item.Value
 
 	}
-	for index:=0;index<len(probVal);index++{
+	for index := 0; index < len(probVal); index++ {
 		pnormalizedlist[index].Value /= total
 	}
-
 
 	return pnormalizedlist
 }
 
 func Sample1NodesInValNodes_VIP(probnormalized []Pnormalized, rand01 float64) common.Address {
-	len:=len(probnormalized)
-	for index:=len-1;index>=0;index--{
-		if rand01>=probnormalized[index].Value{
+	len := len(probnormalized)
+	for index := len - 1; index >= 0; index-- {
+		if rand01 >= probnormalized[index].Value {
 			return probnormalized[index].Addr
 		}
 	}
@@ -86,51 +84,49 @@ func Sample1NodesInValNodes_VIP(probnormalized []Pnormalized, rand01 float64) co
 	return common.Address{}
 }
 
-
-func GetList_Common(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform ) ([]Strallyint, []Pnormalized) {
+func GetList_Common(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform) ([]Strallyint, []Pnormalized) {
 	probnormalized = Normalize_Common(probnormalized)
 
-
-	if len(probnormalized)==0{
-		return []Strallyint{},probnormalized
+	if len(probnormalized) == 0 {
+		return []Strallyint{}, probnormalized
 	}
-	if needNum>len(probnormalized){
-		needNum=len(probnormalized)
+	if needNum > len(probnormalized) {
+		needNum = len(probnormalized)
 	}
-	ChoseNode:=[]Strallyint{}
-	RemainingProbNormalizedNodes:=[]Pnormalized{}
+	ChoseNode := []Strallyint{}
+	RemainingProbNormalizedNodes := []Pnormalized{}
 	dict := make(map[common.Address]int)
-	orderAddress:=[]common.Address{}
+	orderAddress := []common.Address{}
 
 	for i := 0; i < MaxSample; i++ {
-		tempRand:= float64(rand.Uniform(0.0, 1.0))
+		tempRand := float64(rand.Uniform(0.0, 1.0))
 
-		node := Sample1NodesInValNodes_Common(probnormalized,tempRand)
+		node := Sample1NodesInValNodes_Common(probnormalized, tempRand)
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
 			dict[node] = 1
 
-			orderAddress=append(orderAddress,node)
+			orderAddress = append(orderAddress, node)
 		}
 		if len(dict) == (needNum) {
 			break
 		}
 	}
 
-	for _,v:=range orderAddress{
-		ChoseNode=append(ChoseNode,Strallyint{Addr:v,Value:dict[v]})
+	for _, v := range orderAddress {
+		ChoseNode = append(ChoseNode, Strallyint{Addr: v, Value: dict[v]})
 	}
 
 	for _, item := range probnormalized {
-		if _,ok:=dict[item.Addr];ok==true{
+		if _, ok := dict[item.Addr]; ok == true {
 			continue
 		}
-		if len(ChoseNode)<needNum{
-			ChoseNode=append(ChoseNode,Strallyint{Addr:item.Addr,Value:1})
-		}else{
-			RemainingProbNormalizedNodes=append(RemainingProbNormalizedNodes,item)
+		if len(ChoseNode) < needNum {
+			ChoseNode = append(ChoseNode, Strallyint{Addr: item.Addr, Value: 1})
+		} else {
+			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, item)
 		}
 	}
 

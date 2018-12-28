@@ -24,7 +24,7 @@ func RegInit() baseinterface.ElectionInterface {
 
 func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
 	log.INFO("选举种子", "矿工拓扑生成", len(mmrerm.MinerList))
-	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum,common.RoleMiner)
+	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()
 	//nodeElect.DisPlayNode()
@@ -39,7 +39,7 @@ func (self *StockElect) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.
 
 func (self *StockElect) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("选举种子", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum,common.RoleValidator)
+	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
 
 	nodeElect.ProcessBlackNode()
 	nodeElect.ProcessWhiteNode()

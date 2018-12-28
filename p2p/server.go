@@ -135,11 +135,10 @@ type Config struct {
 	NetWorkId uint64
 
 	// ManAddress
-	ManAddrStr  string
-	ManAddress  common.Address
-	ManPassword string
-	Signature   common.Signature
-	SignTime    time.Time
+	ManAddrStr string
+	ManAddress common.Address
+	Signature  common.Signature
+	SignTime   time.Time
 }
 
 // Server manages all peer connections.

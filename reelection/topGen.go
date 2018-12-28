@@ -115,9 +115,9 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 
 //得到随机种子
 func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
-	seed,err:=self.random.GetRandom(hash, manparams.ElectionSeed)
-	log.Info(Module,"common.Default seed",seed)
-	return seed,err
+	seed, err := self.random.GetRandom(hash, manparams.ElectionSeed)
+	log.Info(Module, "common.Default seed", seed)
+	return seed, err
 
 }
 

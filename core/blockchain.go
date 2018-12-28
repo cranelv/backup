@@ -2214,20 +2214,33 @@ func ProduceBroadcastIntervalData(block *types.Block, readFn matrixstate.PreStat
 	}
 }
 
-func (bc *BlockChain) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (bc *BlockChain) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
+	entrustValue := manparams.EntrustAccountValue.GetEntrustValue()
+	for _, signAccount := range signAccounts {
+		for account, password := range entrustValue {
+			if signAccount != account {
+				continue
+			}
+			return signAccount, password, nil
+		}
+	}
+	log.Info(common.SignLog, "获取签名账户密码", "失败, 未找到")
+	return common.Address{}, "", errors.New("未找到密码")
+}
+
+func (bc *BlockChain) GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error) {
 	if common.TopAccountType == common.TopAccountA0 {
 		//TODO 暂定根据ca提供的接口获取委托账户，
 	}
-
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
 		log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "根据区块hash获取区块失败 hash", blockHash)
-		return common.Address{}, "", errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	st, err := bc.StateAt(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "根据区块root获取statedb失败 err", err)
-		return common.Address{}, "", errors.New("获取stateDB失败")
+		return nil, errors.New("获取stateDB失败")
 	}
 
 	height := block.NumberU64()
@@ -2238,24 +2251,7 @@ func (bc *BlockChain) GetSignAccount(authFrom common.Address, blockHash common.H
 		ans = append(ans, authFrom)
 		log.INFO(common.SignLog, "获取签名账户阶段", ModuleName, "无委托交易,使用本地账户", authFrom.String())
 	}
-
-	entrustValue := manparams.EntrustAccountValue.GetEntrustValue()
-	for _, v := range ans {
-		for kk, vv := range entrustValue {
-			if v.Equal(kk) == false {
-				continue
-			}
-			if _, ok := entrustValue[kk]; ok {
-				log.Info(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
-				return kk, entrustValue[kk], nil
-			}
-			log.ERROR(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			return kk, vv, errors.New("无该密码")
-
-		}
-	}
-	log.Info(common.SignLog, "获取签名账户阶段", "BlockChain 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
-	return common.Address{}, "", errors.New("ans为空")
+	return ans, nil
 }
 
 //TransSignAccontToDeposit(signAccount common.Address, height uint64) (common.Address, error) {

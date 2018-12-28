@@ -367,11 +367,6 @@ var (
 		Usage: "deposit user signature account.",
 		Value: "",
 	}
-	ManPasswordFlag = cli.StringFlag{
-		Name:  "manPassword",
-		Usage: "signature account password.",
-		Value: "",
-	}
 	AccountPasswordFileFlag = cli.StringFlag{
 		Name:  "entrust",
 		Usage: "Password file to entrustment transaction",
@@ -889,9 +884,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		innerAddr := base58.Base58DecodeToAddress(manAddr)
 		cfg.ManAddress = innerAddr
 		cfg.ManAddrStr = manAddr
-	}
-	if manPass := ctx.GlobalString(ManPasswordFlag.Name); manPass != "" {
-		cfg.ManPassword = manPass
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery

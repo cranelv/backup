@@ -17,6 +17,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/matrix/go-matrix/accounts"
@@ -44,7 +45,6 @@ import (
 	"github.com/matrix/go-matrix/rpc"
 	"io/ioutil"
 	"os"
-	"crypto/sha256"
 )
 
 const (
@@ -356,9 +356,9 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 		fmt.Println("解密失败", err)
 		return false
 	}
-	h:=sha256.New()
+	h := sha256.New()
 	h.Write([]byte(password))
-	tpass, err := aes.AesDecrypt(bytesPass,h.Sum(nil))
+	tpass, err := aes.AesDecrypt(bytesPass, h.Sum(nil))
 	if err != nil {
 		fmt.Println("AedDecrypt失败", bytesPass, password)
 		return false
@@ -1135,7 +1135,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		tmpElect1.Type = elect.Type
 		tmpElect1.Account = base58.Base58EncodeToString("MAN", elect.Account)
 		tmpElect1.Stock = elect.Stock
-		tmpElect1.VIP=elect.VIP
+		tmpElect1.VIP = elect.VIP
 		listElect1 = append(listElect1, *tmpElect1)
 	}
 
@@ -1163,7 +1163,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 		"nettopology":      NetTopology1,
 		"signatures":       head.Signatures,
 		"version":          hexutil.Bytes(head.Version),
-		"VrfValue":hexutil.Bytes(head.VrfValue),
+		"VrfValue":         hexutil.Bytes(head.VrfValue),
 	}
 
 	if inclTx {

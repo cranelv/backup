@@ -67,7 +67,7 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 
 	if self.IsMinerTopGenTiming(hash) {
 		log.INFO(Module, "GetElection", "IsMinerTopGenTiming", "高度", height)
-		for _,v:=range electState.NextMinerElect{
+		for _, v := range electState.NextMinerElect {
 			switch v.Type {
 			case common.RoleMiner:
 				data.MasterMiner = append(data.MasterMiner, v)
@@ -77,12 +77,12 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	}
 	if self.IsValidatorTopGenTiming(hash) {
 		log.INFO(Module, "GetElection", "IsValidatorTopGenTiming", "高度", height)
-		for _,v:=range electState.NextValidatorElect{
+		for _, v := range electState.NextValidatorElect {
 			switch v.Type {
 			case common.RoleValidator:
-				data.MasterValidator=append(data.MasterValidator,v)
+				data.MasterValidator = append(data.MasterValidator, v)
 			case common.RoleBackupValidator:
-				data.BackUpValidator=append(data.BackUpValidator,v)
+				data.BackUpValidator = append(data.BackUpValidator, v)
 			}
 		}
 	}
