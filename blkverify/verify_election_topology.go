@@ -64,13 +64,18 @@ func (p *Process) verifyVrf(header *types.Header) error {
 		return errors.New("区块头为空")
 	}
 
-	SignAddr, _, err := p.blockChain().GetSignAccount(header.Leader, header.ParentHash)
+	SignAddr, err := p.blockChain().GetSignAccounts(header.Leader, header.ParentHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "验证vrf失败", "获取真实签名账户失败")
 		return errors.New("获取真实签名账户失败")
 	}
 
-	return baseinterface.NewVrf().VerifyVrf(header, preBlock.Header(), SignAddr)
+	if len(SignAddr) <= 0 {
+		log.Error(p.logExtraInfo(), "验证vrf失败", "真实签名账户数量为空")
+		return errors.New("获取真实签名账户失败")
+	}
+
+	return baseinterface.NewVrf().VerifyVrf(header, preBlock.Header(), SignAddr[0])
 }
 
 func (p *Process) verifyAllNetTopology(header *types.Header) error {
