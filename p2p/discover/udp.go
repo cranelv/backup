@@ -650,6 +650,12 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		if addr.Hex() != req.Address.Hex() {
 			return errSignature
 		}
+
+		w := NewNode(fromID, from.IP, uint16(from.Port), req.From.TCP)
+		w.Address = req.Address
+		w.Signature = req.Signature
+		w.SignTime = req.SignTime
+		t.add(w)
 	}
 	t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
