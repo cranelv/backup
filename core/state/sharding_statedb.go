@@ -149,7 +149,7 @@ func (shard *StateDBManage)GetStateDb(cointyp string,address common.Address) *St
 		if cm.Cointyp == cointyp {
 			rms := cm.Rmanage
 			for _, rm := range rms {
-				if rm.Range == address[1] {
+				if rm.Range == address[0] {
 					return rm.State
 				}
 			}
@@ -952,7 +952,7 @@ func (self *StateDBManage)RawDumpAcccount(cointype string,address common.Address
 	for _,cm:=range self.shardings  {
 		if cm.Cointyp==cointype {
 			for _,rm:=range cm.Rmanage  {
-				if rm.Range==address[1] {
+				if rm.Range==address[0] {
 					dump=rm.State.RawDumpAcccount(address)
 					break
 				}
