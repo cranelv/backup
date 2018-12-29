@@ -226,7 +226,7 @@ func Test_interest_Calc(t *testing.T) {
 
 }
 
-func Test_interest_Send(t *testing.T) {
+func Test_interest_pay(t *testing.T) {
 	monkey.Patch(manparams.IsBroadcastNumber, func(number uint64, stateNumber uint64) bool {
 		fmt.Println("use monkey  manparams.IsBroadcastNumber")
 
@@ -300,6 +300,23 @@ func Test_interest_Send(t *testing.T) {
 	monkey.Patch(depoistInfo.GetAllInterest, func(stateDB vm.StateDB) map[common.Address]*big.Int {
 		return insterestMap
 	})
+	Convey("计算利息0", t, func() {
+		log.InitLog(3)
+
+		interestTest := New(&State{5e+18})
+
+		interestTest.InterestCalc(&State{5e+18}, 99)
+
+	})
+	Convey("计算利息1", t, func() {
+		log.InitLog(3)
+
+		interestTest := New(&State{5e+18})
+
+		interestTest.InterestCalc(&State{5e+18}, 100)
+
+	})
+
 	Convey("支付利息0", t, func() {
 		log.InitLog(3)
 
@@ -401,12 +418,12 @@ func Test_interest_number(t *testing.T) {
 	monkey.Patch(depoistInfo.GetAllInterest, func(stateDB vm.StateDB) map[common.Address]*big.Int {
 		return insterestMap
 	})
-	Convey("利息测试计算利息", t, func() {
+	Convey("余额不足", t, func() {
 		log.InitLog(3)
 
 		interestTest := New(&State{5e+18})
 
-		interestTest.InterestCalc(&State{0}, 1)
+		interestTest.InterestCalc(&State{0}, 3601)
 
 	})
 
@@ -831,15 +848,6 @@ func Test_interest6(t *testing.T) {
 		return interval2, nil
 	})
 
-	monkey.Patch(ca.GetElectedByHeight, func(height *big.Int) ([]vm.DepositDetail, error) {
-		fmt.Println("use monkey  ca.GetElectedByHeightAndRole")
-		Deposit := make([]vm.DepositDetail, 0)
-		Deposit = append(Deposit, vm.DepositDetail{Address: common.HexToAddress("0x82799145a60b4d1e88d5a895601508f2b7f4ee9b"), Deposit: new(big.Int).Mul(big.NewInt(10000), util.ManPrice)})
-		Deposit = append(Deposit, vm.DepositDetail{Address: common.HexToAddress("0x519437b21e2a0b62788ab9235d0728dd7f1a7269"), Deposit: new(big.Int).Mul(big.NewInt(40000), util.ManPrice)})
-		Deposit = append(Deposit, vm.DepositDetail{Address: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bce"), Deposit: new(big.Int).Mul(big.NewInt(100000), util.ManPrice)})
-		Deposit = append(Deposit, vm.DepositDetail{Address: common.HexToAddress("0x29216818d3788c2505a593cbbb248907d47d9bcf"), Deposit: new(big.Int).Mul(big.NewInt(200000), util.ManPrice)})
-		return Deposit, nil
-	})
 	insterestMap := make(map[common.Address]*big.Int, 0)
 	monkey.Patch(depoistInfo.AddInterest, func(stateDB vm.StateDB, address common.Address, reward *big.Int) error {
 		insterestMap[address] = reward
@@ -867,7 +875,5 @@ func Test_interest6(t *testing.T) {
 		interestTest := New(&State{5e+18})
 
 		interestTest.InterestCalc(&State{0}, 3601)
-
 	})
-
 }

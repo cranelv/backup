@@ -15,13 +15,13 @@ import (
 )
 
 func (self *controller) startReelect(reelectTurn uint32) {
-	log.Trace(self.logInfo, "重选流程", "开启处理", "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+	log.Trace(self.logInfo, "重选流程", "开启处理", "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn.String(), "高度", self.dc.number)
 	if self.State() != stReelect {
-		log.Trace(self.logInfo, "开启重选流程", "当前状态不是重选状态，不处理", "状态", self.State().String(), "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+		log.Trace(self.logInfo, "开启重选流程", "当前状态不是重选状态，不处理", "状态", self.State().String(), "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn.String(), "高度", self.dc.number)
 		return
 	}
 	if self.dc.curReelectTurn == reelectTurn {
-		log.Trace(self.logInfo, "开启重选流程", "重选已启动，不处理", "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn, "高度", self.dc.number)
+		log.Trace(self.logInfo, "开启重选流程", "重选已启动，不处理", "重选轮次", reelectTurn, "共识轮次", self.dc.curConsensusTurn.String(), "高度", self.dc.number)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (self *controller) finishReelectWithRLConsensus(rlResult *mc.HD_ReelectLead
 	curTime := time.Now().Unix()
 	st, remainTime, reelectTurn := self.dc.turnTime.CalState(consensusTurn, curTime)
 	log.INFO(self.logInfo, "完成leader重选", "leader重置", "重选轮次", reelectTurn, "旧共识轮次", self.ConsensusTurn().String(), "新共识轮次", consensusTurn.String(), "高度", self.Number(),
-		"状态计算结果", "状态", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn, "轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()))
+		"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn, "轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()))
 	self.dc.state = st
 	self.dc.curReelectTurn = 0
 	self.setTimer(remainTime, self.timer)

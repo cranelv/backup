@@ -90,6 +90,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 
 	if self.dc.turnTime.SetBeginTime(mc.ConsensusTurnInfo{}, msg.parentHeader.Time.Int64()) {
 		log.Debug(self.logInfo, "开始消息处理", "更新轮次时间成功", "高度", self.dc.number)
+		self.dc.leaderCal.dumpAllValidators(self.logInfo)
 		self.mp.SaveParentHeader(msg.parentHeader)
 		if isFirstConsensusTurn(self.ConsensusTurn()) {
 			curTime := time.Now().Unix()
@@ -156,5 +157,6 @@ func (self *controller) processPOSState() {
 	}
 
 	log.Info(self.logInfo, "POS完成", "状态切换为<挖矿结果等待阶段>")
+	self.setTimer(0, self.timer)
 	self.dc.state = stMining
 }

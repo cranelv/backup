@@ -49,9 +49,9 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 1024      //2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 396       //576      //lb//2048      // Number of content download results to import at once into the chain
+	maxQueuedHeaders  = 800  //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess = 1024 //2048      // Number of header download results to import at once into the chain
+	maxResultsProcess = 396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
@@ -148,7 +148,7 @@ type Downloader struct {
 	curRemote     uint64
 	dpIpfs        *IPfsDownloader
 	ipfsBodyCh    chan BlockIpfs //result
-	bIpfsDownload int
+	bIpfsDownload int            //1 broadcast, 2 download
 }
 type BlockIpfs struct {
 	Flag             int
@@ -160,7 +160,7 @@ type BlockIpfs struct {
 }
 type BlockIpfsReq struct {
 	ReqPendflg  int
-	Flag        int
+	Flag        int //1 单个, 2 批量
 	coinstr     string
 	HeadReqipfs *types.Header
 }
@@ -223,6 +223,13 @@ type BlockChain interface {
 	GetCurrentHash() common.Hash
 
 	Genesis() *types.Block
+
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -263,6 +270,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 		dl.dpIpfs = newIpfsDownload()
 		dl.ipfsBodyCh = make(chan BlockIpfs, 1)
 		go dl.IpfsDownloadInit()
+		go dl.IpfsTimeoutTask()
 		/*if dl.IpfsDownloadInit() != nil {
 
 			//dl.IpfsMode = false
@@ -400,6 +408,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, sbs u
 	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
 	d.queue.Reset()
+	d.ClearIpfsQueue()
 	d.peers.Reset()
 	log.Trace("Downloader synchronise begin launch chan")
 	for _, ch := range []chan bool{d.bodyWakeCh, d.receiptWakeCh} {
@@ -486,7 +495,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 			log.Error("不是超级区块", "err", err)
 			return errBadPeer
 		}
-		if err := d.blockchain.DPOSEngine().CheckSuperBlock(superBLock); nil != err {
+		if err := d.blockchain.DPOSEngine().CheckSuperBlock(d.blockchain, superBLock); nil != err {
 			log.Error("验证超级区块签名", "err", err)
 			return errBadPeer
 		}
@@ -675,7 +684,7 @@ func (d *Downloader) fetchHeaderByHash(p *peerConnection, head common.Hash) (*ty
 			return head, nil
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out", "elapsedh", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -715,7 +724,7 @@ func (d *Downloader) fetchHeaderByHeight(p *peerConnection, head uint64) (*types
 			return head, nil
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out he", "elapsed", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -812,7 +821,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			}
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out an", "elapsed", ttl)
 			return 0, errTimeout
 
 		case <-d.bodyCh:
@@ -1146,7 +1155,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 	defer ticker.Stop()
 
 	update := make(chan struct{}, 1)
-
+	var interval int
 	// Prepare the queue and fetch block parts until the block header fetcher's done
 	finished := false
 	bchecked := false
@@ -1217,7 +1226,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				continue //break
 			}*/
-			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending())
+			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
 			if d.peers.Len() == 0 {
 				return errNoPeers
 			}
@@ -1249,7 +1258,9 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			//log.Trace("Data fetching 2", "type", kind, "cont", finished, "len", inFlight())
 			// If there's nothing more to fetch, wait or terminate
 			//if d.bIpfsDownload == 2 && kind == "bodies" && bchecked {
-			if d.bIpfsDownload == 2 && kind != "headers" && bchecked {
+			interval++
+			if d.bIpfsDownload == 2 && interval >= 10 && kind != "headers" && bchecked {
+				interval = 0
 				find, ipfsnum, list := d.queue.checkIpfsPool()
 				if find {
 					d.queue.BlockIpfsdeleteBatch(list)
@@ -1263,7 +1274,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				bchecked = false
 			}
-
+			//log.Debug("Data fetching  test", "type", pending(), "inFlight()", inFlight(), "finished", finished)
 			if pending() == 0 {
 				if !inFlight() && finished {
 					log.Debug("Data fetching completed", "type", kind)

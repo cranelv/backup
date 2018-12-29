@@ -7,15 +7,14 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/p2p/discover"
 )
 
 //by hezi //YY 2018-08-18由tx_pool.go转移到此
 const (
-	Heartbeat   = "Heartbeat"      // 心跳交易（广播区块Hash对99取余）
-	Publickey   = "SeedProof"      // 公钥交易
-	Privatekey  = "Seed"            // 私钥交易
-	CallTheRoll = "CallTheRoll"    //点名交易  （广播节点随机连接1000个点）
+	Heartbeat   = "Heartbeat"   // 心跳交易（广播区块Hash对99取余）
+	Publickey   = "SeedProof"   // 公钥交易
+	Privatekey  = "Seed"        // 私钥交易
+	CallTheRoll = "CallTheRoll" //点名交易  （广播节点随机连接1000个点）
 )
 
 func ReturnBroadCastType() (bType map[string]bool) {
@@ -28,7 +27,7 @@ func ReturnBroadCastType() (bType map[string]bool) {
 }
 
 type BlockToBucket struct {
-	Ms     []discover.NodeID
+	Ms     []common.Address
 	Height *big.Int
 	Role   common.RoleType
 }

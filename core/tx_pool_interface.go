@@ -44,14 +44,14 @@ type RetCallTx struct {
 
 // hezi
 type NetworkMsgData struct {
-	NodeId discover.NodeID
-	Data   []*MsgStruct
+	SendAddress common.Address
+	Data        []*MsgStruct
 }
 
 // hezi
 type MsgStruct struct {
 	Msgtype    uint32
-	NodeId     discover.NodeID
+	SendAddr   common.Address
 	MsgData    []byte
 	TxpoolType byte
 }

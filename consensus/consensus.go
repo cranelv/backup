@@ -98,7 +98,9 @@ type PoW interface {
 type StateReader interface {
 	GetCurrentHash() common.Hash
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
-	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
+	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
 	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
 }
@@ -106,7 +108,7 @@ type StateReader interface {
 type DPOSEngine interface {
 	VerifyVersion(reader StateReader, header *types.Header) error
 
-	CheckSuperBlock(header *types.Header) error
+	CheckSuperBlock(reader StateReader, header *types.Header) error
 
 	VerifyBlock(reader StateReader, header *types.Header) error
 

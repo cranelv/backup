@@ -5,19 +5,18 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
 
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	//"sync"
-	"encoding/json"
-	"github.com/matrix/go-matrix/base58"
 )
 
 var (
@@ -72,7 +71,7 @@ func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *Stat
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
-		gasPrice: msg.GasPrice(),
+		gasPrice: big.NewInt(int64(params.TxGasPrice)),
 		value:    msg.Value(),
 		data:     msg.Data(),
 		state:    evm.StateDB,
@@ -350,7 +349,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		st.state.DeleteMxData(tmphash, b)
 	}
 	for k, v := range delval {
-		st.state.GetSaveTx(st.msg.GetTxCurrency(),st.msg.From(),tx.GetMatrixType(), k, v, true)
+		st.state.GetSaveTx(st.msg.GetTxCurrency(),st.msg.From(),common.ExtraRevocable, k, v, true)
 	}
 	return ret, st.GasUsed(), vmerr != nil, err
 }
@@ -467,8 +466,8 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
-		if st.To() == common.ContractAddress{
-			interset = new(big.Int).Add(interset,st.value)
+		if st.To() == common.ContractAddress {
+			interset = new(big.Int).Add(interset, st.value)
 			issendFromContract = true
 		}
 		st.state.SetNonce(st.msg.GetTxCurrency(),tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(),sender.Address())+1)
@@ -480,8 +479,8 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 				log.Error("file state_transition", "func CallUnGasNormalTx()", "Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
-				if *ex.Recipient == common.ContractAddress{
-					interset = new(big.Int).Add(interset,ex.Amount)
+				if *ex.Recipient == common.ContractAddress {
+					interset = new(big.Int).Add(interset, ex.Amount)
 					issendFromContract = true
 				}
 				// Increment the nonce for the next transaction
@@ -499,6 +498,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		}
 	}
 	if issendFromContract {
+
 		afterAmont := st.state.GetBalanceByType(st.msg.GetTxCurrency(),common.ContractAddress,common.MainAccount)
 		difAmont := new(big.Int).Sub(afterAmont,beforAmont)
 		if difAmont.Cmp(interset) != 0{
@@ -792,7 +792,6 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
-
 	EntrustMarsha1Data := st.state.GetStateByteArray(st.msg.GetTxCurrency(),Authfrom, common.BytesToHash(Authfrom[:]))
 	if len(EntrustMarsha1Data) == 0 {
 		log.Error("没有委托数据")

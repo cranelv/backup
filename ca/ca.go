@@ -1,11 +1,14 @@
 // Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or or http://www.opensource.org/licenses/mit-license.php
+
 package ca
 
 import (
 	"math/big"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
@@ -16,7 +19,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/pkg/errors"
 )
 
 type TopologyGraphReader interface {
@@ -25,7 +27,8 @@ type TopologyGraphReader interface {
 	GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error)
 	GetOriginalElectByHash(blockHash common.Hash) ([]common.Elect, error)
 	GetNextElectByHash(blockHash common.Hash) ([]common.Elect, error)
-	GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error)
+	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetInnerMinersAccount(blockHash common.Hash) ([]common.Address, error)
 }
 
 // Identity stand for node's identity.
@@ -39,13 +42,14 @@ type Identity struct {
 	currentHeight *big.Int
 	hash          common.Hash
 
-	trChan          chan TopologyGraphReader
-	topologyReader  TopologyGraphReader
-	topology        *mc.TopologyGraph
-	specialAccounts *mc.MatrixSpecialAccounts
-	prevElect       []common.Elect
-	currentNodes    []discover.NodeID
-	frontNodes      []discover.NodeID
+	trChan           chan TopologyGraphReader
+	topologyReader   TopologyGraphReader
+	topology         *mc.TopologyGraph
+	prevElect        []common.Elect
+	currentNodes     []common.Address
+	frontNodes       []common.Address
+	broadcastAccount common.Address
+	innerMiners      []common.Address
 
 	// self previous, current and next role type
 	currentRole common.RoleType
@@ -88,17 +92,18 @@ func newIde() *Identity {
 }
 
 // init to do something before run.
-func (ide *Identity) init(id discover.NodeID, path string) {
+func (ide *Identity) init(id discover.NodeID, path string, addr common.Address) {
 	ide.once.Do(func() {
 		// check bootNode and set identity
 		ide.self = id
+		ide.addr = addr
 		ide.log = log.New()
 	})
 }
 
 // Run this Identity.
-func Start(id discover.NodeID, path string) {
-	ide.init(id, path)
+func Start(id discover.NodeID, path string, addr common.Address) {
+	ide.init(id, path, addr)
 
 	defer func() {
 		ide.sub.Unsubscribe()
@@ -140,7 +145,6 @@ func Start(id discover.NodeID, path string) {
 				ide.log.Error("get broadcast interval", "error", err)
 				continue
 			}
-			log.INFO("CA", "broadcast interval", bcInterval)
 
 			// do topology
 			tg, err := ide.topologyReader.GetTopologyGraphByHash(hash)
@@ -151,16 +155,19 @@ func Start(id discover.NodeID, path string) {
 			ide.topology = tg
 
 			// get special accounts
-			accounts, err := ide.topologyReader.GetSpecialAccounts(hash)
+			broadcastAccount, err := ide.topologyReader.GetBroadcastAccount(hash)
 			if err != nil {
-				log.Error("ca", "get special accounts err", err)
+				log.Error("ca", "get broadcast accounts err", err)
 				return
 			}
-			ide.specialAccounts = accounts
-			log.INFO("CA", "special Accounts", bcInterval)
+			ide.broadcastAccount = broadcastAccount
 
-			log.INFO("ca", "special accounts", accounts)
-
+			innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
+			if err != nil {
+				log.Error("ca", "get inner miner accounts err", err)
+				return
+			}
+			ide.innerMiners = innerMiners
 			// get elect
 			elect, err := ide.topologyReader.GetNextElectByHash(hash)
 			if err != nil {
@@ -202,30 +209,33 @@ func Stop() {
 
 // InitCurrentTopology init current topology.
 func initCurrentTopology() {
+	log.Info("current topology", "info:", ide.topology)
 	ide.lock.Lock()
 	// change default role
 	ide.currentRole = common.RoleDefault
 
 	for _, t := range ide.topology.NodeList {
 		if t.Account == ide.addr {
-			log.INFO("initCurrentTopology", "accont", t.Account.String(), "type", t.Type)
+			log.INFO("initCurrentTopology", "account", t.Account.String(), "type", t.Type)
 			ide.currentRole = t.Type
 			break
 		}
 	}
 
-	if ide.specialAccounts.BroadcastAccount.NodeID == ide.self {
+	if len(ide.innerMiners) > 0 {
+		for _, im := range ide.innerMiners {
+			if im == ide.addr {
+				ide.currentRole = common.RoleInnerMiner
+				break
+			}
+		}
+	}
+
+	if ide.broadcastAccount == ide.addr {
 		ide.currentRole = common.RoleBroadcast
 	}
 
-	for _, im := range ide.specialAccounts.InnerMinerAccounts {
-		if im.NodeID == ide.self {
-			ide.currentRole = common.RoleInnerMiner
-			break
-		}
-	}
 	ide.lock.Unlock()
-	log.Info("current topology", "info:", ide.topology)
 }
 
 // initNowTopologyResult
@@ -236,11 +246,14 @@ func initNowTopologyResult() {
 		ide.addrByGroup[node.Type] = append(ide.addrByGroup[node.Type], node.Account)
 	}
 
-	ide.addrByGroup[common.RoleBroadcast] = append(ide.addrByGroup[common.RoleBroadcast], ide.specialAccounts.BroadcastAccount.Address)
+	ide.addrByGroup[common.RoleBroadcast] = append(ide.addrByGroup[common.RoleBroadcast], ide.broadcastAccount)
 
-	for _, im := range ide.specialAccounts.InnerMinerAccounts {
-		ide.addrByGroup[common.RoleInnerMiner] = append(ide.addrByGroup[common.RoleInnerMiner], im.Address)
+	if len(ide.innerMiners) > 0 {
+		for _, im := range ide.innerMiners {
+			ide.addrByGroup[common.RoleInnerMiner] = append(ide.addrByGroup[common.RoleInnerMiner], im)
+		}
 	}
+
 	ide.lock.Unlock()
 }
 
@@ -250,19 +263,14 @@ func SetTopologyReader(topologyReader TopologyGraphReader) {
 }
 
 // GetRolesByGroup
-func GetRolesByGroup(roleType common.RoleType) (result []discover.NodeID) {
+func GetRolesByGroup(roleType common.RoleType) (result []common.Address) {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
 
 	for k, v := range ide.addrByGroup {
 		if (k & roleType) != 0 {
 			for _, addr := range v {
-				id, err := ConvertAddressToNodeId(addr)
-				if err != nil {
-					ide.log.Error("convert error", "ca", err)
-					continue
-				}
-				result = append(result, id)
+				result = append(result, addr)
 			}
 		}
 	}
@@ -270,24 +278,19 @@ func GetRolesByGroup(roleType common.RoleType) (result []discover.NodeID) {
 }
 
 // GetRolesByGroupWithBackup
-func GetRolesByGroupWithNextElect(roleType common.RoleType) (result []discover.NodeID) {
+func GetRolesByGroupWithNextElect(roleType common.RoleType) (result []common.Address) {
 	result = GetRolesByGroup(roleType)
 	for _, elect := range ide.prevElect {
 		temp := true
 		role := elect.Type.Transfer2CommonRole()
 		if (role & roleType) != 0 {
-			id, err := ConvertAddressToNodeId(elect.Account)
-			if err != nil {
-				ide.log.Error("convert error", "ca", err)
-				continue
-			}
 			for _, r := range result {
-				if r == id {
+				if r == elect.Account {
 					temp = false
 				}
 			}
 			if temp {
-				result = append(result, id)
+				result = append(result, elect.Account)
 			}
 		}
 	}
@@ -295,16 +298,11 @@ func GetRolesByGroupWithNextElect(roleType common.RoleType) (result []discover.N
 }
 
 // GetRolesByGroupOnlyBackup
-func GetRolesByGroupOnlyNextElect(roleType common.RoleType) (result []discover.NodeID) {
+func GetRolesByGroupOnlyNextElect(roleType common.RoleType) (result []common.Address) {
 	for _, elect := range ide.prevElect {
 		role := elect.Type.Transfer2CommonRole()
 		if (role & roleType) != 0 {
-			id, err := ConvertAddressToNodeId(elect.Account)
-			if err != nil {
-				ide.log.Error("convert error", "ca", err)
-				continue
-			}
-			result = append(result, id)
+			result = append(result, elect.Account)
 		}
 	}
 	return
@@ -362,7 +360,7 @@ func GetNodeNumber() (uint32, error) {
 }
 
 // GetGapValidator
-func GetGapValidator() (rlt []discover.NodeID) {
+func GetGapValidator() (rlt []common.Address) {
 	ori, err := ide.topologyReader.GetOriginalElectByHash(ide.hash)
 	if err != nil {
 		ide.log.Error("ca", "GetOriginalElect, error:", err)
@@ -371,24 +369,19 @@ func GetGapValidator() (rlt []discover.NodeID) {
 
 	for _, or := range ori {
 		if or.Type >= common.ElectRoleValidator {
-			id, err := ConvertAddressToNodeId(or.Account)
-			if err != nil {
-				ide.log.Error("ca", "GetGapValidator, error:", err)
-				continue
-			}
-			rlt = append(rlt, id)
+			rlt = append(rlt, or.Account)
 		}
 	}
 	return
 }
 
 // getNodesInBuckets get miner nodes that should be in buckets.
-func getNodesInBuckets(height *big.Int) (result []discover.NodeID) {
+func getNodesInBuckets(height *big.Int) (result []common.Address) {
 	electedMiners, _ := GetElectedByHeightAndRole(height, common.RoleMiner)
 
-	msMap := make(map[common.Address]discover.NodeID)
+	msMap := make(map[common.Address]struct{})
 	for _, m := range electedMiners {
-		msMap[m.Address] = m.NodeID
+		msMap[m.SignAddress] = struct{}{}
 	}
 	for _, node := range ide.topology.NodeList {
 		for key := range msMap {
@@ -398,62 +391,51 @@ func getNodesInBuckets(height *big.Int) (result []discover.NodeID) {
 			}
 		}
 	}
-	for key, val := range msMap {
+	for key := range msMap {
 		if ide.addr == key {
 			ide.currentRole = common.RoleBucket
 		}
-		result = append(result, val)
+		result = append(result, key)
 	}
 	return
 }
 
 // GetTopologyInLinker
-func GetTopologyInLinker() (result map[common.RoleType][]discover.NodeID) {
+func GetTopologyInLinker() (result map[common.RoleType][]common.Address) {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
 
-	ide.frontNodes = make([]discover.NodeID, 0)
+	ide.frontNodes = make([]common.Address, 0)
 	ide.frontNodes = ide.currentNodes
-	ide.currentNodes = make([]discover.NodeID, 0)
+	ide.currentNodes = make([]common.Address, 0)
 
-	result = make(map[common.RoleType][]discover.NodeID)
+	result = make(map[common.RoleType][]common.Address)
 	ide.lock.RLock()
 	for k, v := range ide.addrByGroup {
 		for _, addr := range v {
-			id, err := ConvertAddressToNodeId(addr)
-			if err != nil {
-				ide.log.Error("convert error", "ca", err)
-				continue
-			}
-			ide.currentNodes = append(ide.currentNodes, id)
-			result[k] = append(result[k], id)
+			ide.currentNodes = append(ide.currentNodes, addr)
+			result[k] = append(result[k], addr)
 		}
 	}
 	ide.lock.RUnlock()
 	for _, elect := range ide.prevElect {
-		id, err := ConvertAddressToNodeId(elect.Account)
-		if err != nil {
-			ide.log.Error("convert error", "ca", err)
-			continue
-		}
-
 		temp := true
 		role := elect.Type.Transfer2CommonRole()
 		for _, i := range result[role] {
-			if i == id {
+			if i == elect.Account {
 				temp = false
 			}
 		}
 		if temp {
-			ide.currentNodes = append(ide.currentNodes, id)
-			result[role] = append(result[role], id)
+			ide.currentNodes = append(ide.currentNodes, elect.Account)
+			result[role] = append(result[role], elect.Account)
 		}
 	}
 	return
 }
 
 // GetDropNode
-func GetDropNode() (result []discover.NodeID) {
+func GetDropNode() (result []common.Address) {
 	for _, fn := range ide.frontNodes {
 		temp := false
 		for _, cn := range ide.currentNodes {
@@ -470,7 +452,7 @@ func GetDropNode() (result []discover.NodeID) {
 }
 
 // GetFrontNodes
-func GetFrontNodes() []discover.NodeID {
+func GetFrontNodes() []common.Address {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
 	return ide.frontNodes
@@ -478,11 +460,9 @@ func GetFrontNodes() []discover.NodeID {
 
 // GetAddress
 func GetAddress() common.Address {
-	addr, err := ConvertNodeIdToAddress(ide.self)
-	if err != nil {
-		log.Error("ca get self address", "error", err)
-	}
-	return addr
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+	return ide.addr
 }
 
 // GetSelfLevel
@@ -550,14 +530,17 @@ func GetAccountTopologyInfo(account common.Address, number uint64) (*mc.Topology
 
 // GetAccountOriginalRole
 func GetAccountOriginalRole(account common.Address, hash common.Hash) (common.RoleType, error) {
-	accounts, err := ide.topologyReader.GetSpecialAccounts(hash)
+	broadcast, err := ide.topologyReader.GetBroadcastAccount(hash)
 	if err == nil {
-		if accounts.BroadcastAccount.Address == account {
+		if broadcast == account {
 			return common.RoleBroadcast, nil
 		}
+	}
 
-		for _, im := range accounts.InnerMinerAccounts {
-			if im.Address == account {
+	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
+	if err == nil && len(innerMiners) > 0 {
+		for _, im := range innerMiners {
+			if im == account {
 				return common.RoleInnerMiner, nil
 			}
 		}
@@ -577,10 +560,10 @@ func GetAccountOriginalRole(account common.Address, hash common.Hash) (common.Ro
 	return common.RoleNil, errors.New("not found")
 }
 
-// ConvertNodeIdToAddress
-func ConvertNodeIdToAddress(id discover.NodeID) (addr common.Address, err error) {
+// ConvertSignToDepositAddress
+func ConvertSignToDepositAddress(address common.Address) (addr common.Address, err error) {
 	for _, node := range ide.deposit {
-		if node.NodeID == id {
+		if node.SignAddress == address {
 			return node.Address, nil
 		}
 	}
@@ -589,54 +572,63 @@ func ConvertNodeIdToAddress(id discover.NodeID) (addr common.Address, err error)
 		return common.Address{0}, errors.New("get current hash err")
 	}
 
-	account, err := ide.topologyReader.GetSpecialAccounts(hash)
-	if nil != err {
-		return common.Address{0}, errors.New("get special account err")
+	broadcast, err := ide.topologyReader.GetBroadcastAccount(hash)
+	if err != nil {
+		return common.Address{0}, errors.New("get broadcast account err")
 	}
 
-	ide.specialAccounts = account
-
-	if ide.specialAccounts.BroadcastAccount.NodeID == id {
-		return ide.specialAccounts.BroadcastAccount.Address, nil
+	if broadcast == addr {
+		return broadcast, nil
 	}
 
-	for _, im := range ide.specialAccounts.InnerMinerAccounts {
-		if im.NodeID == id {
-			return im.Address, nil
+	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
+	if err != nil {
+		return common.Address{0}, errors.New("get inner miner accounts err")
+	}
+	if len(innerMiners) > 0 {
+		for _, im := range innerMiners {
+			if im == addr {
+				return im, nil
+			}
 		}
 	}
 
 	return addr, errors.New("not found")
 }
 
-// ConvertAddressToNodeId
-func ConvertAddressToNodeId(address common.Address) (id discover.NodeID, err error) {
+// ConvertDepositToSignAddress
+func ConvertDepositToSignAddress(address common.Address) (addr common.Address, err error) {
 	for _, node := range ide.deposit {
 		if node.Address == address {
-			return node.NodeID, nil
+			return node.SignAddress, nil
 		}
 	}
 
 	hash := ide.topologyReader.GetCurrentHash()
 	if (hash == common.Hash{}) {
-		return discover.NodeID{0}, errors.New("get current hash err")
+		return addr, errors.New("get current hash err")
 	}
 
-	account, err := ide.topologyReader.GetSpecialAccounts(hash)
+	broadcast, err := ide.topologyReader.GetBroadcastAccount(hash)
 	if nil != err {
-		return discover.NodeID{0}, errors.New("get special account err")
+		return addr, errors.New("get broadcast account err")
 	}
 
-	ide.specialAccounts = account
-	if ide.specialAccounts.BroadcastAccount.Address == address {
-		return ide.specialAccounts.BroadcastAccount.NodeID, nil
+	if broadcast == address {
+		return broadcast, nil
 	}
 
-	for _, im := range ide.specialAccounts.InnerMinerAccounts {
-		if im.Address == address {
-			return im.NodeID, nil
+	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
+	if err != nil {
+		return common.Address{0}, errors.New("get inner miner accounts err")
+	}
+	if len(innerMiners) > 0 {
+		for _, im := range innerMiners {
+			if im == addr {
+				return im, nil
+			}
 		}
 	}
 
-	return id, errors.New("not found")
+	return addr, errors.New("not found")
 }

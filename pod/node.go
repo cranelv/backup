@@ -7,12 +7,18 @@ package pod
 import (
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/p2p/discover"
+	"github.com/matrix/go-matrix/params/manparams"
+	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/matrix/go-matrix/mc"
 
@@ -143,6 +149,116 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 	return nil
 }
 
+func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
+	if common.FileExist(datadirManSignature) {
+		buf := make([]byte, 65)
+		fd, err := os.Open(datadirManSignature)
+		if err != nil {
+			n.log.Error("signature open file", "error", err)
+			return common.Signature{}, common.Address{}, time.Now()
+		}
+		defer fd.Close()
+		if _, err = io.ReadFull(fd, buf); err != nil {
+			n.log.Error("signature read file", "error", err)
+			return common.Signature{}, common.Address{}, time.Now()
+		}
+
+		log.Info("signature original2", "info", buf[:])
+		signature = common.BytesToSignature(buf[:])
+		log.Info("signature original2", "info2", signature)
+
+		info, _ := os.Stat(datadirManSignature)
+		n.config.P2P.SignTime = info.ModTime()
+
+		addrByte, err := ioutil.ReadFile(datadirManAddress)
+		if err != nil {
+			n.log.Error("man address read file", "error", err)
+			return
+		}
+		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
+		return signature, common.HexToAddress(string(addrByte)), info.ModTime()
+	}
+
+	emptyAddress := common.Address{}
+	if n.config.P2P.ManAddress == emptyAddress {
+		n.log.Info("man address is empty. default role has no signature.")
+		return
+	}
+
+	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: n.config.P2P.ManAddrStr})
+	if err != nil {
+		n.log.Error("find signature account", "error", err)
+		return
+	}
+
+	accounts := wallet.Accounts()
+	for _, account := range accounts {
+		if account.Address != n.config.P2P.ManAddress {
+			continue
+		}
+
+		if n.serverConfig.PrivateKey == nil {
+			n.log.Error("nodekey private key is empty.")
+			return
+		}
+
+		address := manparams.EntrustAccountValue.GetEntrustValue()
+		val, ok := address[n.config.P2P.ManAddress]
+		if !ok {
+			n.log.Error("get account password error")
+			return
+		}
+
+		ctn := discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes()
+		signCtn := common.BytesToHash(ctn)
+		sig, err := wallet.SignHashWithPassphrase(account, val, signCtn.Bytes())
+		if err != nil {
+			n.log.Error("signature with account", "error", err)
+			return
+		}
+
+		log.Info("signature original", "info", sig)
+
+		err = ioutil.WriteFile(datadirManSignature, sig, 0644)
+		if err != nil {
+			n.log.Error("signature write fail", "error", err)
+			return
+		}
+		err = ioutil.WriteFile(datadirManAddress, []byte(n.config.P2P.ManAddress.String()), 0644)
+		if err != nil {
+			n.log.Error("man address write fail", "error", err)
+			return
+		}
+		signature = common.BytesToSignature(sig[:])
+		log.Info("signature original", "info2", signature)
+		n.config.P2P.SignTime = time.Now()
+		return signature, n.config.P2P.ManAddress, time.Now()
+	}
+	n.log.Info("signature account not found")
+	return
+}
+
+// StartSign
+func (n *Node) StartSign() error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	// Short circuit if the node's already running
+	if n.server != nil {
+		return ErrNodeRunning
+	}
+	if err := n.openDataDir(); err != nil {
+		return err
+	}
+	n.serverConfig = n.config.P2P
+	n.serverConfig.PrivateKey = n.config.NodeKey()
+	p2p.ServerP2p.Config = n.serverConfig
+	running := p2p.ServerP2p
+	// get sign account
+	running.Signature, running.ManAddress, running.SignTime = n.Signature()
+	return nil
+}
+
 // Start create a live P2P node and starts running it.
 func (n *Node) Start() error {
 	n.lock.Lock()
@@ -173,6 +289,8 @@ func (n *Node) Start() error {
 	}
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
+	// get sign account
+	running.Signature, running.ManAddress, running.SignTime = n.Signature()
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
@@ -236,7 +354,7 @@ func (n *Node) Start() error {
 	//boot := boot.New(bc, n.Server().NodeInfo().ID)
 	//boot.Run()
 	// start ca
-	go ca.Start(running.Self().ID, n.config.DataDir)
+	go ca.Start(running.Self().ID, n.config.DataDir, n.config.P2P.ManAddress)
 
 	// Finish initializing the startup
 	n.services = services

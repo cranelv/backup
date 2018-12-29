@@ -52,7 +52,7 @@ func (p *Process) bcProcessReqVerify() {
 	p.startTxsVerify()
 }
 
-func (p *Process) bcFinishedProcess(lvResult uint8) {
+func (p *Process) bcFinishedProcess(lvResult verifyResult) {
 	p.curProcessReq.localVerifyResult = lvResult
 	if lvResult == localVerifyResultProcessing {
 		log.ERROR(p.logExtraInfo(), "req is processing now, process can't finish!", "broadcast role")
@@ -67,11 +67,12 @@ func (p *Process) bcFinishedProcess(lvResult uint8) {
 	if lvResult == localVerifyResultSuccess {
 		// notify block genor server the result
 		result := mc.BlockLocalVerifyOK{
-			Header:    p.curProcessReq.req.Header,
-			BlockHash: p.curProcessReq.hash,
-			Txs:       p.curProcessReq.txs,
-			Receipts:  p.curProcessReq.receipts,
-			State:     p.curProcessReq.stateDB,
+			Header:      p.curProcessReq.req.Header,
+			BlockHash:   p.curProcessReq.hash,
+			OriginalTxs: p.curProcessReq.originalTxs,
+			FinalTxs:    p.curProcessReq.finalTxs,
+			Receipts:    p.curProcessReq.receipts,
+			State:       p.curProcessReq.stateDB,
 		}
 		log.INFO(p.logExtraInfo(), "广播身份", "请求验证完成, 发出区块共识结果消息", "高度", p.number, "block hash", result.BlockHash.TerminalString())
 		mc.PublishEvent(mc.BlkVerify_VerifyConsensusOK, &result)

@@ -40,6 +40,10 @@ type Node struct {
 	// with ID.
 	sha common.Hash
 
+	Address   common.Address
+	Signature common.Signature
+	SignTime  time.Time
+
 	// Time when the node was added to the table.
 	addedAt time.Time
 }

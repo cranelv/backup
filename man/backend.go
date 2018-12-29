@@ -8,10 +8,11 @@ package man
 import (
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/ca"
 	"math/big"
 	"runtime"
 	"sync/atomic"
+
+	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -51,11 +52,11 @@ import (
 
 	"github.com/matrix/go-matrix/baseinterface"
 	//"github.com/matrix/go-matrix/leaderelect"
+	"time"
+
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/matrix/go-matrix/trie"
-	"time"
 )
 
 var MsgCenter *mc.Center
@@ -137,19 +138,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	/************************************************/
-	//hezi
-	trie.MatrixDb, err = CreateDB(ctx, config, "Matrixdata")
-	if err != nil {
-		return nil, err
-	}
-	trie.Mantriedb = trie.NewDatabase(trie.MatrixDb)
-	troot := rawdb.ReadMatrixRoot()
-	trie.ManTrie, err = trie.New(troot, trie.Mantriedb)
-	if err != nil {
-		return nil, err
-	}
-	/************************************************/
+
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -192,10 +181,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = man.blockchain.DPOSEngine().VerifyVersion(man.blockchain, man.blockchain.Genesis().Header())
-	if err != nil {
-		return nil, err
-	}
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -225,7 +211,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.miner.SetExtra(makeExtraData(config.ExtraData))
 
 	//algorithm
-	man.random, err = baseinterface.NewRandom(man)
+	man.random, err = baseinterface.NewRandom(man.blockchain)
 	if err != nil {
 		return nil, err
 	}
@@ -240,8 +226,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreMiner, man.reelection.ProducePreMinerData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, man.txPool.ProduceMatrixStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
 	gpoParams := config.GPO
@@ -545,25 +530,27 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 //	}
 //}
 func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
+	log.Trace("download backend func FetcherNotify ", "number", number, "hash", hash.String(), "addr", addr.String())
+	return
 	var nid discover.NodeID
 	if len(addr) == 0 || addr == (common.Address{}) {
-		ids := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
+		addrs := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
 		selfId := p2p.ServerP2p.Self().ID.String()
-		indexs := p2p.Random(len(ids), 1)
-		if len(indexs) > 0 && indexs[0] <= (len(ids)-1) {
-			nid = ids[indexs[0]]
+		indexs := p2p.Random(len(addrs), 1)
+		if len(indexs) > 0 && indexs[0] <= (len(addrs)-1) {
+			nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]])
 		}
 		if nid.String() == selfId {
 			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", nid.String())
-			if indexs[0] == (len(ids) - 1) {
-				nid = ids[indexs[0]-1]
+			if indexs[0] == (len(addrs) - 1) {
+				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]-1])
 			} else {
-				nid = ids[indexs[0]+1]
+				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]+1])
 			}
 		}
 
 	} else {
-		nid, _ = ca.ConvertAddressToNodeId(addr)
+		nid = p2p.ServerP2p.ConvertAddressToId(addr)
 	}
 	if nid.String() == "" {
 		log.Info("file backend func FetcherNotify", "NodeID is nil", nid.String(), "address", addr)

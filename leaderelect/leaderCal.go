@@ -15,33 +15,33 @@ import (
 )
 
 type leaderCalculator struct {
-	number      uint64
-	preLeader   common.Address
-	preHash     common.Hash
-	preIsSupper bool
-	leaderList  map[uint32]common.Address
-	validators  []mc.TopologyNodeInfo
-	specials    *mc.MatrixSpecialAccounts
-	chain       *core.BlockChain
-	logInfo     string
+	number          uint64
+	preLeader       common.Address
+	preHash         common.Hash
+	preIsSupper     bool
+	leaderList      map[uint32]common.Address
+	validators      []mc.TopologyNodeInfo
+	specialAccounts specialAccounts
+	chain           *core.BlockChain
+	logInfo         string
 }
 
 func newLeaderCalculator(chain *core.BlockChain, number uint64, logInfo string) *leaderCalculator {
 	return &leaderCalculator{
-		number:      number,
-		preLeader:   common.Address{},
-		preHash:     common.Hash{},
-		preIsSupper: false,
-		leaderList:  make(map[uint32]common.Address),
-		validators:  nil,
-		specials:    nil,
-		chain:       chain,
-		logInfo:     logInfo,
+		number:          number,
+		preLeader:       common.Address{},
+		preHash:         common.Hash{},
+		preIsSupper:     false,
+		leaderList:      make(map[uint32]common.Address),
+		validators:      nil,
+		specialAccounts: specialAccounts{},
+		chain:           chain,
+		logInfo:         logInfo,
 	}
 }
 
-func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, preIsSupper bool, validators []mc.TopologyNodeInfo, specials *mc.MatrixSpecialAccounts, bcInterval *manparams.BCInterval) error {
-	if validators == nil || specials == nil || bcInterval == nil {
+func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, preIsSupper bool, validators []mc.TopologyNodeInfo, specials *specialAccounts, bcInterval *manparams.BCInterval) error {
+	if preHeader == nil || validators == nil || specials == nil || bcInterval == nil {
 		return ErrValidatorsIsNil
 	}
 
@@ -68,7 +68,9 @@ func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, 
 	self.preHash.Set(preHeader.Hash())
 	self.validators = validators
 	self.preIsSupper = preIsSupper
-	self.specials = specials
+	self.specialAccounts.broadcast = specials.broadcast
+	self.specialAccounts.versionSupers = specials.versionSupers
+	self.specialAccounts.blockSupers = specials.blockSupers
 
 	return nil
 }
@@ -92,27 +94,27 @@ func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInt
 	if leaderCount == 0 {
 		return nil, ErrValidatorsIsNil
 	}
-	if self.specials == nil {
+	if self.specialAccounts.broadcast == (common.Address{}) {
 		return nil, ErrSepcialsIsNil
 	}
 
 	leaders := &leaderData{}
 	number := self.number
 	if bcInterval.IsReElectionNumber(number) {
-		leaders.leader.Set(self.specials.BroadcastAccount.Address)
+		leaders.leader.Set(self.specialAccounts.broadcast)
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])
 		return leaders, nil
 	}
 
 	if bcInterval.IsBroadcastNumber(number) {
-		leaders.leader.Set(self.specials.BroadcastAccount.Address)
+		leaders.leader.Set(self.specialAccounts.broadcast)
 		leaders.nextLeader.Set(self.leaderList[(turn)%leaderCount])
 		return leaders, nil
 	}
 
 	leaders.leader.Set(self.leaderList[turn%leaderCount])
 	if bcInterval.IsBroadcastNumber(number + 1) {
-		leaders.nextLeader.Set(self.specials.BroadcastAccount.Address)
+		leaders.nextLeader.Set(self.specialAccounts.broadcast)
 	} else {
 		leaders.nextLeader.Set(self.leaderList[(turn+1)%leaderCount])
 	}
@@ -145,4 +147,13 @@ func findLeaderIndex(preLeader common.Address, validators []mc.TopologyNodeInfo)
 		}
 	}
 	return 0, ErrValidatorNotFound
+}
+
+func (self *leaderCalculator) dumpAllValidators(logInfo string) {
+	size := len(self.validators)
+	log.Debug(logInfo, "dump info", "验证者列表", "总数", size, "高度", self.number, "parentHash", self.preHash.TerminalString(), "parentLeader", self.preLeader.Hex())
+	for i := 0; i < size; i++ {
+		item := self.validators[i]
+		log.Debug(logInfo, "dump info", "验证者列表", "index", i, "node", item.Account.Hex(), "pos", item.Position)
+	}
 }

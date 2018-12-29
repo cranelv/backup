@@ -369,6 +369,7 @@ type Elect struct {
 	Account Address
 	Stock   uint16
 	Type    ElectRoleType
+	VIP     VIPRoleType
 }
 
 //hezi
@@ -376,6 +377,7 @@ type Elect1 struct {
 	Account string
 	Stock   uint16
 	Type    ElectRoleType
+	VIP     VIPRoleType
 }
 
 //hezi
@@ -441,10 +443,9 @@ const (
 	ExtraTimeTxType    byte = 7   //定时交易
 	ExtraAItxType      byte = 8   //AI 交易
 	ExtraSuperBlockTx  byte = 120 //超级区块交易
-
 )
 
-var WhiteAddrlist  = [1]Address{InterestRewardAddress}
+var WhiteAddrlist = [1]Address{InterestRewardAddress}
 
 const (
 	RewardNomalType   byte = 0 //奖励通过普通交易发放

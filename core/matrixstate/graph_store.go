@@ -118,16 +118,28 @@ func (gs *GraphStore) GetNextElectByHash(blockHash common.Hash) ([]common.Elect,
 	return elect.TransferNextElect2CommonElect(), nil
 }
 
-func (gs *GraphStore) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
-	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyMatrixAccount, blockHash)
+func (gs *GraphStore) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
+	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcast, blockHash)
+	if err != nil {
+		return common.Address{}, err
+	}
+	account, OK := data.(common.Address)
+	if OK == false || account == (common.Address{}) {
+		return common.Address{}, errors.New("broadcast account reflect err")
+	}
+
+	return account, nil
+}
+
+func (gs *GraphStore) GetInnerMinersAccount(blockHash common.Hash) ([]common.Address, error) {
+	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyAccountInnerMiners, blockHash)
 	if err != nil {
 		return nil, err
 	}
-	accounts, OK := data.(*mc.MatrixSpecialAccounts)
+	accounts, OK := data.([]common.Address)
 	if OK == false || accounts == nil {
-		return nil, errors.New("special accounts reflect err")
+		return nil, errors.New("inner miner accounts reflect err")
 	}
 
 	return accounts, nil
-
 }

@@ -25,20 +25,22 @@ var (
 type reqData struct {
 	req               *mc.HD_BlkConsensusReqMsg
 	hash              common.Hash
-	txs               types.SelfTransactions
+	originalTxs       types.SelfTransactions
+	finalTxs          types.SelfTransactions
 	receipts          []*types.Receipt
 	stateDB           *state.StateDBManage
 	localReq          bool
-	localVerifyResult uint8
+	localVerifyResult verifyResult
 	posFinished       bool
 	votes             []*common.VerifiedSign
 }
 
-func newReqData(req *mc.HD_BlkConsensusReqMsg) *reqData {
-	return &reqData{
+func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) *reqData {
+	data := &reqData{
 		req:               req,
 		hash:              req.Header.HashNoSignsAndNonce(),
-		txs:               nil,
+		originalTxs:       nil,
+		finalTxs:          nil,
 		receipts:          nil,
 		stateDB:           nil,
 		localReq:          false,
@@ -46,13 +48,18 @@ func newReqData(req *mc.HD_BlkConsensusReqMsg) *reqData {
 		posFinished:       false,
 		votes:             make([]*common.VerifiedSign, 0),
 	}
+	if isDBRecovery {
+		data.localVerifyResult = localVerifyResultDBRecovery
+	}
+	return data
 }
 
 func newReqDataByLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) *reqData {
 	return &reqData{
 		req:               localReq.BlkVerifyConsensusReq,
 		hash:              localReq.BlkVerifyConsensusReq.Header.HashNoSignsAndNonce(),
-		txs:               localReq.Txs,
+		originalTxs:       localReq.OriginalTxs,
+		finalTxs:          localReq.FinalTxs,
 		receipts:          localReq.Receipts,
 		stateDB:           localReq.State,
 		localReq:          true,
@@ -114,7 +121,7 @@ func newReqCache() *reqCache {
 	}
 }
 
-func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg) (*reqData, error) {
+func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) (*reqData, error) {
 	if nil == req {
 		return nil, paramErr
 	}
@@ -131,13 +138,13 @@ func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg) (*reqData, error) {
 		if exit && oldReq.req.ConsensusTurn.Cmp(req.ConsensusTurn) >= 0 {
 			return nil, leaderReqExistErr
 		}
-		reqData := newReqData(req)
+		reqData := newReqData(req, isDBRecovery)
 		rc.leaderReqCache[req.From] = reqData
 		return reqData, nil
 	}
 
 	//other req
-	reqData := newReqData(req)
+	reqData := newReqData(req, isDBRecovery)
 	count := len(rc.otherReqCache)
 	if count >= rc.otherReqLimit {
 		rc.otherReqCache = append(rc.otherReqCache[1:], reqData)

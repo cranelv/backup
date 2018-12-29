@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/reelection"
@@ -23,6 +24,7 @@ type Matrix interface {
 	ReElection() *reelection.ReElection
 	EventMux() *event.TypeMux
 	Random() *baseinterface.Random
+	ChainDb() mandb.Database
 }
 
 type BlockVerify struct {
@@ -96,6 +98,9 @@ func (self *BlockVerify) update() {
 		self.leaderChangeSub.Unsubscribe()
 		self.roleUpdatedMsgSub.Unsubscribe()
 	}()
+
+	// 启动时，先恢复DB中验证过的缓存
+	self.reloadVerifiedBlocks()
 
 	for {
 		select {
@@ -220,12 +225,18 @@ func (self *BlockVerify) handleVoteMsg(voteMsg *mc.HD_ConsensusVote) {
 
 func (self *BlockVerify) handleRecoveryMsg(msg *mc.RecoveryStateMsg) {
 	if nil == msg || nil == msg.Header {
-		log.ERROR(self.logExtraInfo(), "状态恢复消息", "消息为nil")
+		log.Error(self.logExtraInfo(), "状态恢复消息", "消息为nil")
 		return
 	}
+	if msg.Type != mc.RecoveryTypePOS {
+		log.Debug(self.logExtraInfo(), "状态恢复消息", "消息类型不是POS回复，忽略消息")
+		return
+	}
+
 	number := msg.Header.Number.Uint64()
-	log.INFO(self.logExtraInfo(), "状态恢复消息", "开始", "类型", msg.Type, "高度", number, "leader", msg.Header.Leader.Hex())
-	defer log.INFO(self.logExtraInfo(), "状态恢复消息", "结束", "类型", msg.Type, "高度", number, "leader", msg.Header.Leader.Hex())
+	log.INFO(self.logExtraInfo(), "状态恢复消息", "开始", "高度", number, "leader", msg.Header.Leader.Hex(), "header hash", msg.Header.HashNoSignsAndNonce().TerminalString())
+	defer log.INFO(self.logExtraInfo(), "状态恢复消息", "结束", "高度", number, "leader", msg.Header.Leader.Hex())
+
 	curProcess := self.processManage.GetCurrentProcess()
 	if curProcess != nil {
 		if curProcess.number != number {
@@ -233,6 +244,33 @@ func (self *BlockVerify) handleRecoveryMsg(msg *mc.RecoveryStateMsg) {
 			return
 		}
 		curProcess.ProcessRecoveryMsg(msg)
+	}
+}
+
+func (self *BlockVerify) reloadVerifiedBlocks() {
+	blocks, err := readVerifiedBlocksFromDB(self.processManage.chainDB)
+	if err != nil {
+		log.Info(self.logExtraInfo(), "reloadVerifiedBlocks", "从DB中获取数据错误", "err", err)
+		return
+	}
+	if len(blocks) == 0 {
+		log.Info(self.logExtraInfo(), "reloadVerifiedBlocks", "DB中没有数据，不处理")
+		return
+	}
+
+	curNumber := uint64(0)
+	curBlock := self.processManage.bc.CurrentBlock()
+	if curBlock != nil {
+		curNumber = curBlock.Number().Uint64()
+	}
+
+	for _, block := range blocks {
+		if block.req.Header.Number.Uint64() <= curNumber {
+			log.Info(self.logExtraInfo(), "reloadVerifiedBlocks", "req 高度 <= 当前高度, 不处理", "block number", block.req.Header.Number.Uint64(), "cur number", curNumber)
+			continue
+		}
+		log.Info(self.logExtraInfo(), "reloadVerifiedBlocks", "缓存 verified block", "block number", block.req.Header.Number.Uint64(), "hash", block.hash.TerminalString())
+		self.processManage.AddVerifiedBlock(&block)
 	}
 }
 

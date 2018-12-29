@@ -4,30 +4,15 @@
 package matrixwork
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
-	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/params/manparams"
-
-	"github.com/matrix/go-matrix/reward/blkreward"
-	"github.com/matrix/go-matrix/reward/interest"
-	"github.com/matrix/go-matrix/reward/lottery"
-	"github.com/matrix/go-matrix/reward/slash"
-	"github.com/matrix/go-matrix/reward/txsreward"
-
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/mc"
-
-	"sort"
-	"sync"
-
-	"strings"
-
 	"github.com/matrix/go-matrix/accounts/abi"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/core"
@@ -37,11 +22,18 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
 )
 
 type ChainReader interface {
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	GetBlockByHash(hash common.Hash) *types.Block
+	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
 var packagename string = "matrixwork"
@@ -73,8 +65,8 @@ type Work struct {
 
 	Block *types.Block // the new block
 
-	header   *types.Header
-	uptime   map[common.Address]uint64
+	header *types.Header
+
 	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
@@ -93,7 +85,7 @@ func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gasAll := new(big.Int).SetUint64(gasuse)
-	priceAll := txer.GasPrice()
+	priceAll := new(big.Int).SetUint64(params.TxGasPrice) //txer.GasPrice()
 	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
@@ -114,6 +106,7 @@ func (cu *coingasUse) getCoinGasPrice(typ string) *big.Int {
 	}
 	return price
 }
+
 func (cu *coingasUse) getCoinGasUse(typ string) *big.Int {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
@@ -136,7 +129,6 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		signer:  types.NewEIP155Signer(config.ChainId),
 		gasPool: gasPool,
 		header:  header,
-		uptime:  make(map[common.Address]uint64, 0),
 		random:  random,
 	}
 	var err error
@@ -279,11 +271,12 @@ func (env *Work) Reverse(s []common.RewarTx) []common.RewarTx {
 	}
 	return s
 }
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, bc *core.BlockChain, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil, nil
+		return nil, nil, nil
 	}
 	mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
@@ -293,10 +286,14 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
-	listret, retTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
+	listret, originalTxs = env.commitTransactions(mux, listTx, bc, common.Address{})
+	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
-
-	rewart := env.CalcRewardAndSlash(bc)
+	from := make([]common.Address, 0)
+	for _, tx := range originalTxs {
+		from = append(from, tx.From())
+	}
+	rewart := env.CalcRewardAndSlash(bc, upTime, from)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -309,8 +306,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
-	tmps = append(tmps, retTxs...)
-	retTxs = tmps
+	tmps = append(tmps, finalTxs...)
+	finalTxs = tmps
 	return
 }
 
@@ -388,7 +385,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	for _, tx := range txs {
 		env.commitTransaction(tx, bc, common.Address{}, nil)
 	}
-	rewart := env.CalcRewardAndSlash(bc)
+	rewart := env.CalcRewardAndSlash(bc, nil, nil)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -399,7 +396,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, rewardFlag bool) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, upTime map[common.Address]uint64) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
@@ -408,6 +405,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
+	from := make([]common.Address, 0)
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -424,12 +422,10 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTrans
 		} else {
 			return err
 		}
-	}
-	var rewart []common.RewarTx
-	if rewardFlag {
-		rewart = env.CalcRewardAndSlash(bc)
+		from = append(from, tx.From())
 	}
 
+	rewart := env.CalcRewardAndSlash(bc, upTime, from)
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
@@ -462,7 +458,7 @@ func (env *Work) GetTxs() []types.SelfTransaction {
 	return env.txs
 }
 
-func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
+func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Address]uint64, account []common.Address) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(env.header.ParentHash)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
@@ -475,7 +471,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
-		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64())
+		minersRewardMap := blkReward.CalcMinerRewards(env.header.Number.Uint64(), env.header.ParentHash)
 		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
@@ -489,7 +485,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 	allGas := env.getGas()
 	txsReward := txsreward.New(bc, env.State)
 	if nil != txsReward {
-		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64())
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, env.header.Leader, env.header.Number.Uint64(), env.header.ParentHash)
 		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
@@ -500,6 +496,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 		if 0 != len(lotteryRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}
+		lottery.LotterySaveAccount(account, env.header.VrfValue)
 	}
 
 	////todo 利息
@@ -514,7 +511,7 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain) []common.RewarTx {
 
 	slash := slash.New(bc, env.State)
 	if nil != slash {
-		slash.CalcSlash(env.State, env.header.Number.Uint64(), env.uptime, interestCalcMap)
+		slash.CalcSlash(env.State, env.header.Number.Uint64(), upTime, interestCalcMap)
 	}
 	return env.Reverse(rewardList)
 }
@@ -537,193 +534,4 @@ func (env *Work) getGas() *big.Int {
 		return big.NewInt(0)
 	}
 	return allGas
-}
-func (env *Work) GetUpTimeAccounts(num uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) ([]common.Address, error) {
-	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
-	if err != nil {
-		log.ERROR("blockchain", "获取选举生成点配置失败 err", err)
-		return nil, err
-	}
-	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
-	if Ok == false {
-		log.ERROR("blockchain", "选举生成点信息失败 err", err)
-		return nil, err
-	}
-
-	log.INFO(packagename, "获取所有参与uptime点名高度", num)
-
-	upTimeAccounts := make([]common.Address, 0)
-
-	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
-	log.INFO(packagename, "参选矿工节点uptime高度", minerNum)
-	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range ans {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "矿工节点账户", v.Address.Hex())
-	}
-	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
-	log.INFO(packagename, "参选验证节点uptime高度", validatorNum)
-	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
-	if err != nil {
-		return upTimeAccounts, err
-	}
-	for _, v := range ans1 {
-		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("packagename", "验证者节点账户", v.Address.Hex())
-	}
-	return upTimeAccounts, nil
-}
-
-func (env *Work) GetUpTimeData(hash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
-
-	log.INFO(packagename, "获取所有心跳交易", "")
-	//%99
-	heatBeatUnmarshallMMap, error := core.GetBroadcastTxs(hash, mc.Heartbeat)
-	if nil != error {
-		log.WARN(packagename, "获取主动心跳交易错误", error)
-	}
-	//每个广播周期发一次
-	calltherollUnmarshall, error := core.GetBroadcastTxs(hash, mc.CallTheRoll)
-	if nil != error {
-		log.ERROR(packagename, "获取点名心跳交易错误", error)
-		return nil, nil, error
-	}
-	calltherollMap := make(map[common.Address]uint32, 0)
-	for _, v := range calltherollUnmarshall {
-		temp := make(map[string]uint32, 0)
-		error := json.Unmarshal(v, &temp)
-		if nil != error {
-			log.ERROR(packagename, "序列化点名心跳交易错误", error)
-			return nil, nil, error
-		}
-		log.INFO(packagename, "++++++++点名心跳交易++++++++", temp)
-		for k, v := range temp {
-			calltherollMap[common.HexToAddress(k)] = v
-		}
-	}
-	return calltherollMap, heatBeatUnmarshallMMap, nil
-}
-
-func (env *Work) HandleUpTime(state *state.StateDBManage, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bc *core.BlockChain, bcInterval *manparams.BCInterval) error {
-	var blockHash common.Hash
-	HeatBeatReqAccounts := make([]common.Address, 0)
-	HeartBeatMap := make(map[common.Address]bool, 0)
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	blockNumRem := blockNum % broadcastInterval
-
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal := blockNum - blockNumRem
-	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
-	subVal = subVal
-	if blockNum < broadcastInterval { //当前区块小于100说明是100区块内 (下面的if else是为了应对中途加入的参选节点)
-		blockHash = bc.GetBlockByNumber(0).Hash() //创世区块的hash
-	} else {
-		blockHash = bc.GetBlockByNumber(subVal).Hash() //获取最近的广播区块的hash
-	}
-	// todo: remove
-	//blockHash = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e4")
-	broadcastBlock := blockHash.Big()
-	val := broadcastBlock.Uint64() % (broadcastInterval - 1)
-
-	for _, v := range accounts {
-		currentAcc := v.Big() //YY TODO 这里应该是广播账户。后期需要修改
-		ret := currentAcc.Uint64() % (broadcastInterval - 1)
-		if ret == val {
-			HeatBeatReqAccounts = append(HeatBeatReqAccounts, v)
-			if _, ok := heatBeatAccounts[v]; ok {
-				HeartBeatMap[v] = true
-			} else {
-				HeartBeatMap[v] = false
-
-			}
-			log.Info(packagename, "计算主动心跳的账户", v, "心跳状态", HeartBeatMap[v])
-		}
-	}
-
-	var upTime uint64
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	log.Info(packagename, "获取原始拓扑图所有的验证者和矿工，高度为", originTopologyNum)
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-		onlineBlockNum, ok := calltherollRspAccounts[account]
-		if ok { //被点名,使用点名的uptime
-			upTime = uint64(onlineBlockNum)
-			log.INFO(packagename, "点名账号", account, "uptime", upTime)
-
-		} else { //没被点名，没有主动上报，则为最大值，
-			if v, ok := HeartBeatMap[account]; ok { //有主动上报
-				if v {
-					upTime = broadcastInterval - 3
-					log.INFO(packagename, "没被点名，有主动上报有响应", account, "uptime", upTime)
-				} else {
-					upTime = 0
-					log.INFO(packagename, "没被点名，有主动上报无响应", account, "uptime", upTime)
-				}
-			} else { //没被点名和主动上报
-				upTime = broadcastInterval - 3
-				log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-			}
-		}
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		env.uptime[account] = upTime
-		if nil == err {
-			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func (env *Work) HandleUpTimeWithSuperBlock(state *state.StateDBManage, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) error {
-	broadcastInterval := bcInterval.GetBroadcastInterval()
-	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
-	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
-	if err != nil {
-		return err
-	}
-	originTopologyMap := make(map[common.Address]uint32, 0)
-	for _, v := range originTopology.NodeList {
-		originTopologyMap[v.Account] = 0
-	}
-	for _, account := range accounts {
-
-		upTime := broadcastInterval - 3
-		log.INFO(packagename, "没被点名，没要求主动上报", account, "uptime", upTime)
-
-		// todo: add
-		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
-		env.uptime[account] = upTime
-		if nil == err {
-			log.INFO(packagename, "读取状态树", account, "upTime减半", read)
-			if _, ok := originTopologyMap[account]; ok {
-				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				log.INFO(packagename, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
-				depoistInfo.AddOnlineTime(state, account, updateData)
-			}
-		}
-
-	}
-	return nil
-
 }

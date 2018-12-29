@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/binary"
+	"math/big"
 
 	"github.com/matrix/go-matrix/params/manparams"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"sort"
 )
 
 const (
@@ -18,37 +20,49 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcast    *mc.NodeInfo           `json:"Broadcast"`
-	Foundation   *mc.NodeInfo           `json:"Foundation"`
-	InnerMiners  *[]mc.NodeInfo         `json:"InnerMiners"`
-	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" gencodec:"required"`
-	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
-	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" gencodec:"required"`
-	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg   *mc.LotteryCfgStruct   `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg  *mc.InterestCfgStruct  `json:"InterestCfg" gencodec:"required"`
-	SlashCfg     *mc.SlashCfgStruct     `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg   *mc.ElectGenTimeStruct `json:"EleTime" gencodec:"required"`
-	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" gencodec:"required"`
+	Broadcast            *common.Address         `json:"Broadcast"`
+	InnerMiners          *[]common.Address       `json:"InnerMiners"`
+	Foundation           *common.Address         `json:"Foundation"`
+	VersionSuperAccounts *[]common.Address       `json:"VersionSuperAccounts"`
+	BlockSuperAccounts   *[]common.Address       `json:"BlockSuperAccounts"`
+	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" gencodec:"required"`
+	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
+	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" gencodec:"required"`
+	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" gencodec:"required"`
+	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
+	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
+	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg    *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg    *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
+	CurElect             *[]common.Elect         `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcast    *mc.NodeInfo1          `json:"Broadcast,omitempty"`
-	Foundation   *mc.NodeInfo1          `json:"Foundation,omitempty"`
-	InnerMiners  *[]mc.NodeInfo1        `json:"InnerMiners,omitempty"`
-	BCICfg       *mc.BCIntervalInfo     `json:"BroadcastInterval" gencodec:"required"`
-	VIPCfg       *[]mc.VIPConfig        `json:"VIPCfg" ,omitempty"`
-	LeaderCfg    *mc.LeaderConfig       `json:"LeaderCfg" ,omitempty"`
-	BlkRewardCfg *mc.BlkRewardCfg       `json:"BlkRewardCfg" ,omitempty"`
-	TxsRewardCfg *mc.TxsRewardCfgStruct `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg   *mc.LotteryCfgStruct   `json:"LotteryCfg" ,omitempty"`
-	InterestCfg  *mc.InterestCfgStruct  `json:"InterestCfg" ,omitempty"`
-	SlashCfg     *mc.SlashCfgStruct     `json:"SlashCfg" ,omitempty"`
-	EleTimeCfg   *mc.ElectGenTimeStruct `json:"EleTime" ,omitempty"`
-	EleInfoCfg   *mc.ElectConfigInfo    `json:"EleInfo" ,omitempty"`
+	Broadcast            *string                 `json:"Broadcast,omitempty"`
+	InnerMiners          *[]string               `json:"InnerMiners,omitempty"`
+	Foundation           *string                 `json:"Foundation,omitempty"`
+	VersionSuperAccounts *[]string               `json:"VersionSuperAccounts,omitempty"`
+	BlockSuperAccounts   *[]string               `json:"BlockSuperAccounts,omitempty"`
+	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
+	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" ,omitempty"`
+	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" ,omitempty"`
+	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" ,omitempty"`
+	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" ,omitempty"`
+	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" ,omitempty"`
+	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" ,omitempty"`
+	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" ,omitempty"`
+	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" ,omitempty"`
+	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" ,omitempty"`
+	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg    *[]string               `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg    *[]string               `json:"ElectWhiteList" gencodec:"required"`
+	CurElect             *[]common.Elect1        `json:"curElect"    gencodec:"required"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology common.NetTopology, elect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology common.NetTopology, nextElect []common.Elect, num uint64) error {
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -57,16 +71,40 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 		return err
 	}
 
+	if err := ms.setElectMinerNumInfo(state, num); err != nil {
+		return err
+	}
+	if err := ms.setElectBlackListInfo(state, num); err != nil {
+		return err
+	}
+	if err := ms.setElectWhiteListInfo(state, num); err != nil {
+		return err
+	}
+
 	if err := ms.setTopologyToState(state, netTopology, num); err != nil {
 		return err
 	}
 
-	if err := ms.setElectToState(state, elect, num); err != nil {
+	if err := ms.setElectToState(state, nextElect, num); err != nil {
 		return err
 	}
-	if err := ms.setSpecialNodeToState(state, num); err != nil {
+
+	if err := ms.setBroadcastAccountToState(state, num); err != nil {
 		return err
 	}
+	if err := ms.setInnerMinerAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setFoundationAccountToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setVersionSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setBlockSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+
 	if err := ms.setBlkRewardCfgToState(state, num); err != nil {
 		return err
 	}
@@ -118,6 +156,7 @@ func (g *GenesisMState) setElectTime(state *state.StateDBManage, num uint64) err
 	log.Info("Geneis", "electime", g.EleTimeCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.EleTimeCfg, state)
 }
+
 func (g *GenesisMState) setElectInfo(state *state.StateDBManage, num uint64) error {
 	if g.EleInfoCfg == nil {
 		if num == 0 {
@@ -127,9 +166,54 @@ func (g *GenesisMState) setElectInfo(state *state.StateDBManage, num uint64) err
 			return nil
 		}
 	}
-
 	log.Info("Geneis", "electconfig", g.EleInfoCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.EleInfoCfg, state)
+}
+func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) error {
+	if g.ElectMinerNumCfg == nil {
+		if num == 0 {
+			return errors.New("electMinerNum为nil")
+		} else {
+			log.Info("Geneis", "没有配置ElectMinerNumCfg信息", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "ElectMinerNumCfg", g.ElectMinerNumCfg)
+	return matrixstate.SetDataToState(mc.MSKeyElectMinerNum, g.ElectMinerNumCfg, state)
+}
+
+func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) error {
+	var whiteList []common.Address = nil
+	if g.ElectWhiteListCfg == nil || *g.ElectWhiteListCfg == nil {
+		if num == 0 {
+			whiteList = make([]common.Address, 0)
+		} else {
+			log.Info("Geneis", "没有配置ElectWhiteListCfg信息", "")
+			return nil
+		}
+	} else {
+		whiteList = *g.ElectWhiteListCfg
+	}
+
+	log.Info("Geneis", "ElectWhiteListCfg", whiteList)
+	return matrixstate.SetDataToState(mc.MSKeyElectWhiteList, whiteList, state)
+}
+
+func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) error {
+	var blackList []common.Address = nil
+	if g.ElectBlackListCfg == nil || *g.ElectBlackListCfg == nil {
+		if num == 0 {
+			blackList = make([]common.Address, 0)
+		} else {
+			log.Info("Geneis", "没有配置ElectBlackListCfg信息", "")
+			return nil
+		}
+	} else {
+		blackList = *g.ElectBlackListCfg
+	}
+
+	log.Info("Geneis", "ElectBlackListCfg", blackList)
+	return matrixstate.SetDataToState(mc.MSKeyElectBlackList, blackList, state)
 }
 
 func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt common.NetTopology, num uint64) error {
@@ -169,19 +253,24 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt
 	return matrixstate.SetDataToState(mc.MSKeyTopologyGraph, newGraph, state)
 }
 
-func (g *GenesisMState) setElectToState(state *state.StateDBManage, gensisElect []common.Elect, num uint64) error {
-	if len(gensisElect) == 0 {
+func (g *GenesisMState) setElectToState(state *state.StateDBManage, nextElect []common.Elect, num uint64) error {
+	var curElect []common.Elect = nil
+	if g.CurElect != nil {
+		curElect = *g.CurElect
+	}
+	if len(nextElect) == 0 && len(curElect) == 0 {
 		return nil
 	}
 
 	elect := &mc.ElectGraph{
-		Number:    num,
-		ElectList: make([]mc.ElectNodeInfo, 0),
-		NextElect: make([]mc.ElectNodeInfo, 0),
+		Number:             num,
+		ElectList:          make([]mc.ElectNodeInfo, 0),
+		NextMinerElect:     make([]mc.ElectNodeInfo, 0),
+		NextValidatorElect: make([]mc.ElectNodeInfo, 0),
 	}
 
-	minerIndex, backUpMinerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0), uint16(0)
-	for _, item := range gensisElect {
+	minerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0)
+	for _, item := range nextElect {
 		nodeInfo := mc.ElectNodeInfo{
 			Account: item.Account,
 			Stock:   item.Stock,
@@ -191,9 +280,30 @@ func (g *GenesisMState) setElectToState(state *state.StateDBManage, gensisElect 
 		case common.ElectRoleMiner:
 			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
 			minerIndex++
-		case common.ElectRoleMinerBackUp:
-			nodeInfo.Position = common.GeneratePosition(backUpMinerIndex, item.Type)
-			backUpMinerIndex++
+			elect.NextMinerElect = append(elect.NextMinerElect, nodeInfo)
+		case common.ElectRoleValidator:
+			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
+			validatorIndex++
+			elect.NextValidatorElect = append(elect.NextValidatorElect, nodeInfo)
+		case common.ElectRoleValidatorBackUp:
+			nodeInfo.Position = common.GeneratePosition(backUpValidatorIndex, item.Type)
+			backUpValidatorIndex++
+			elect.NextValidatorElect = append(elect.NextValidatorElect, nodeInfo)
+		default:
+			nodeInfo.Position = 0
+		}
+	}
+
+	for _, item := range curElect {
+		nodeInfo := mc.ElectNodeInfo{
+			Account: item.Account,
+			Stock:   item.Stock,
+			Type:    item.Type.Transfer2CommonRole(),
+		}
+		switch item.Type {
+		case common.ElectRoleMiner:
+			nodeInfo.Position = common.GeneratePosition(minerIndex, item.Type)
+			minerIndex++
 		case common.ElectRoleValidator:
 			nodeInfo.Position = common.GeneratePosition(validatorIndex, item.Type)
 			validatorIndex++
@@ -223,58 +333,72 @@ func (g *GenesisMState) setElectToState(state *state.StateDBManage, gensisElect 
 	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
 }
 
-func (g *GenesisMState) setSpecialNodeToState(state *state.StateDBManage, num uint64) error {
-	var specialNodes *mc.MatrixSpecialAccounts
-	if num == 0 {
-		if (nil == g.Broadcast || g.Broadcast.Address == common.Address{}) {
+func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uint64) error {
+	if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
+		if num == 0 {
 			return errors.Errorf("the `broadcast` of genesis is empty")
-		}
-
-		specialNodes = &mc.MatrixSpecialAccounts{}
-		specialNodes.BroadcastAccount = *g.Broadcast
-		if nil != g.Foundation {
-			specialNodes.FoundationAccount = *g.Foundation
-		}
-		if nil != g.InnerMiners {
-			if len(*g.InnerMiners) == 0 {
-				specialNodes.InnerMinerAccounts = make([]mc.NodeInfo, 0)
-			} else {
-				specialNodes.InnerMinerAccounts = *g.InnerMiners
-			}
-		}
-
-	} else {
-		modifyBroad := g.Broadcast != nil
-		modifyFounda := g.Foundation != nil
-		modifyInner := g.InnerMiners != nil
-		if modifyBroad || modifyFounda || modifyInner {
-			data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
-			if err != nil {
-				return errors.Errorf("get pre special node err: %v", err)
-			}
-			specialNodes, _ = data.(*mc.MatrixSpecialAccounts)
-			if specialNodes == nil {
-				return errors.New("pre special node reflect err")
-			}
-
-			if modifyBroad {
-				specialNodes.BroadcastAccount = *g.Broadcast
-			}
-			if modifyFounda {
-				specialNodes.BroadcastAccount = *g.Foundation
-			}
-			if modifyInner {
-				specialNodes.InnerMinerAccounts = *g.InnerMiners
-			}
+		} else {
+			return nil
 		}
 	}
+	matrixstate.SetDataToState(mc.MSKeyAccountBroadcast, *g.Broadcast, state)
+	return nil
+}
 
-	if specialNodes != nil {
-		log.Info("Geneis", "specialNodes", specialNodes)
-		return matrixstate.SetDataToState(mc.MSKeyMatrixAccount, specialNodes, state)
+func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num uint64) error {
+	var innerMiners []common.Address = nil
+	if g.InnerMiners == nil || *g.InnerMiners == nil {
+		if num == 0 {
+			innerMiners = make([]common.Address, 0)
+		} else {
+			return nil
+		}
 	} else {
-		return nil
+		innerMiners = *g.InnerMiners
 	}
+
+	matrixstate.SetDataToState(mc.MSKeyAccountInnerMiners, innerMiners, state)
+	return nil
+}
+
+func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num uint64) error {
+	var foundation common.Address
+	if g.Foundation == nil || *g.Foundation == (common.Address{}) {
+		if num == 0 {
+			foundation = common.Address{}
+		} else {
+			return nil
+		}
+	} else {
+		foundation = *g.Foundation
+	}
+	matrixstate.SetDataToState(mc.MSKeyAccountFoundation, foundation, state)
+	return nil
+}
+
+func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num uint64) error {
+	if g.VersionSuperAccounts == nil || len(*g.VersionSuperAccounts) == 0 {
+		if num == 0 {
+			return errors.Errorf("the version superAccounts of genesis is empty")
+		} else {
+			return nil
+		}
+	}
+	matrixstate.SetDataToState(mc.MSKeyAccountVersionSupers, *g.VersionSuperAccounts, state)
+	return nil
+}
+
+func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num uint64) error {
+	if num != 0 {
+		return errors.New("the block superAccounts can't modify")
+	}
+
+	if g.BlockSuperAccounts == nil || len(*g.BlockSuperAccounts) == 0 {
+		return errors.Errorf("the block superAccounts of genesis is empty")
+	}
+
+	matrixstate.SetDataToState(mc.MSKeyAccountBlockSupers, *g.BlockSuperAccounts, state)
+	return nil
 }
 
 func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDBManage, num uint64) error {
@@ -304,6 +428,8 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDBManage, num u
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
+	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
+	matrixstate.SetDataToState(mc.MSKeyPreMinerBlkReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.BlkRewardCfg, state)
 }
 
@@ -337,15 +463,22 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDBManage, num u
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "TxsRewardCfg", g.TxsRewardCfg)
+	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
+	matrixstate.SetDataToState(mc.MSKeyPreMinerTxsReward, minerOutReward, state)
 	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.TxsRewardCfg, state)
 }
 
 func (g *GenesisMState) setLotteryCfgToState(state *state.StateDBManage, num uint64) error {
-	if g.LotteryCfg == nil {
-		if num == 0 {
-			return errors.New("彩票费配置信息为nil")
-		} else {
-			log.INFO("Geneis", "没有配置彩票费配置信息", "")
+	if num == 0 {
+		if g.LotteryCfg == nil {
+			return errors.New("利息配置信息为nil")
+		}
+		account := &mc.LotteryFrom{From: make([]common.Address, 0)}
+		matrixstate.SetDataToState(mc.MSKEYLotteryAccount, account, state)
+		matrixstate.SetNumByState(mc.MSKEYLotteryNum, state, 1)
+	} else {
+		if g.LotteryCfg == nil {
+			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
 	}
@@ -354,10 +487,14 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.StateDBManage, num uin
 }
 
 func (g *GenesisMState) setInterestCfgToState(state *state.StateDBManage, num uint64) error {
-	if g.InterestCfg == nil {
-		if num == 0 {
+	if num == 0 {
+		if g.InterestCfg == nil {
 			return errors.New("利息配置信息为nil")
-		} else {
+		}
+		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, 1)
+		matrixstate.SetNumByState(mc.MSInterestPayNum, state, 1)
+	} else {
+		if g.InterestCfg == nil {
 			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
@@ -374,17 +511,36 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDBManage, num ui
 }
 
 func (g *GenesisMState) setSlashCfgToState(state *state.StateDBManage, num uint64) error {
-	if g.SlashCfg == nil {
-		if num == 0 {
+	if num == 0 {
+		if g.SlashCfg == nil {
 			return errors.New("惩罚配置信息为nil")
-		} else {
+		}
+		matrixstate.SetNumByState(mc.MSKeySlashNum, state, 1)
+		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, 1)
+	} else {
+		if g.SlashCfg == nil {
 			log.INFO("Geneis", "没有配置惩罚配置信息", "")
 			return nil
 		}
+
 	}
 
 	log.Info("Geneis", "SlashCfg", g.SlashCfg)
 	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.SlashCfg, state)
+}
+
+type SortVIPConfig []mc.VIPConfig
+
+func (self SortVIPConfig) Len() int {
+	return len(self)
+}
+func (self SortVIPConfig) Less(i, j int) bool {
+	return self[i].MinMoney < self[j].MinMoney
+}
+func (self SortVIPConfig) Swap(i, j int) {
+	temp := self[i]
+	self[i] = self[j]
+	self[j] = temp
 }
 
 func (g *GenesisMState) setVIPCfgToState(state *state.StateDBManage, number uint64) error {
@@ -396,15 +552,22 @@ func (g *GenesisMState) setVIPCfgToState(state *state.StateDBManage, number uint
 			return nil
 		}
 	}
-	VIPCfg := *g.VIPCfg
-
-	if nil == g.VIPCfg || 0 == len(VIPCfg) {
+	if nil == g.VIPCfg || 0 == len(*g.VIPCfg) {
 
 		return errors.Errorf("vip 配置为nil")
 	}
+	sort.Sort(SortVIPConfig(*g.VIPCfg))
+	if (*g.VIPCfg)[0].MinMoney != uint64(0) {
+		return errors.New("vip配置中需包含最小值为0的配置")
+	}
+	for index := 0; index < len(*g.VIPCfg)-1; index++ {
+		if (*g.VIPCfg)[index].MinMoney == (*g.VIPCfg)[index+1].MinMoney {
+			return errors.New("vip配置中不能包含最小值相同的配置")
+		}
+	}
 
-	log.Info("Geneis", "VIPCfg", g.VIPCfg)
-	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, g.VIPCfg, state)
+	log.Info("Geneis", "VIPCfg", *g.VIPCfg)
+	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, *g.VIPCfg, state)
 }
 
 func (g *GenesisMState) setLeaderCfgToState(state *state.StateDBManage, num uint64) error {

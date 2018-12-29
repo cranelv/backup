@@ -19,11 +19,12 @@ const (
 )
 
 type BlockReward struct {
-	chain           util.ChainReader
-	st              util.StateDB
-	rewardCfg       *cfg.RewardCfg
-	specialAccounts *mc.MatrixSpecialAccounts
-	bcInterval      *manparams.BCInterval
+	chain              util.ChainReader
+	st                 util.StateDB
+	rewardCfg          *cfg.RewardCfg
+	foundationAccount  common.Address
+	innerMinerAccounts []common.Address
+	bcInterval         *manparams.BCInterval
 }
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *BlockReward {
@@ -47,23 +48,36 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *Blo
 		return nil
 	}
 
-	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, st)
+	data, err := matrixstate.GetDataByState(mc.MSKeyAccountFoundation, st)
 	if err != nil {
-		log.ERROR(PackageName, "获取特殊账户消息失败", err)
+		log.ERROR(PackageName, "获取基金会账户数据失败", err)
 		return nil
 	}
 
-	accounts, OK := data.(*mc.MatrixSpecialAccounts)
-	if OK == false || accounts == nil {
-		log.ERROR(PackageName, "获取特殊账户消息失败", "结构反射失败")
+	foundationAccount, OK := data.(common.Address)
+	if OK == false {
+		log.ERROR(PackageName, "获取基金会账户数据失败", "结构反射失败")
+		return nil
+	}
+
+	innerData, err := matrixstate.GetDataByState(mc.MSKeyAccountInnerMiners, st)
+	if err != nil {
+		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
+		return nil
+	}
+
+	innerMinerAccounts, OK := innerData.([]common.Address)
+	if OK == false {
+		log.ERROR(PackageName, "获取内部矿工账户数据失败", "结构反射失败")
 		return nil
 	}
 
 	br := &BlockReward{
-		chain:           chain,
-		rewardCfg:       rewardCfg,
-		st:              st,
-		specialAccounts: accounts,
+		chain:              chain,
+		rewardCfg:          rewardCfg,
+		st:                 st,
+		foundationAccount:  foundationAccount,
+		innerMinerAccounts: innerMinerAccounts,
 	}
 	br.bcInterval, err = manparams.NewBCIntervalWithInterval(interval)
 	if nil != err {
@@ -124,11 +138,11 @@ func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.A
 	return rewards
 }
 
-func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardType uint8, parentHash common.Hash) map[common.Address]*big.Int {
 	rewards := make(map[common.Address]*big.Int, 0)
 
 	minerOutAmount, electedMount, FoundationsMount := br.calcMinerRateMount(blockReward)
-	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, num)
+	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, parentHash, br.innerMinerAccounts, rewardType)
 	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
@@ -137,7 +151,7 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64) map[com
 	return rewards
 }
 
-func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int {
+func (br *BlockReward) CalcMinerRewards(num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.MinerMount), util.ManPrice)
 	halfNum := br.rewardCfg.RewardMount.MinerHalf
@@ -155,7 +169,7 @@ func (br *BlockReward) CalcMinerRewards(num uint64) map[common.Address]*big.Int 
 		log.WARN(PackageName, "广播周期不处理", "")
 		return nil
 	}
-	return br.getMinerRewards(blockReward, num)
+	return br.getMinerRewards(blockReward, num, util.BlkReward, parentHash)
 }
 func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64) bool {
 	if br.bcInterval.IsBroadcastNumber(num) {
@@ -175,18 +189,12 @@ func (br *BlockReward) calcFoundationRewards(blockReward *big.Int, num uint64) m
 		return nil
 	}
 	accountRewards := make(map[common.Address]*big.Int)
-	accountRewards[br.specialAccounts.FoundationAccount.Address] = blockReward
-	log.Info(PackageName,"基金会奖励,账户",br.specialAccounts.FoundationAccount.Address.Hex(),"金额",blockReward)
+	accountRewards[br.foundationAccount] = blockReward
+	log.Debug(PackageName, "基金会奖励,账户", br.foundationAccount.Hex(), "金额", blockReward)
 	return accountRewards
 }
 
-func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64) map[common.Address]*big.Int {
-
-	if blockReward.Cmp(big.NewInt(0)) <= 0 {
-		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
-		return nil
-	}
-	log.INFO(PackageName, "奖励金额", blockReward)
+func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 
 	if nil == br.rewardCfg {
 		log.Error(PackageName, "奖励配置为空", "")
@@ -200,51 +208,22 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 
 	rewards := make(map[common.Address]*big.Int, 0)
 
-	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.ValidatorsRate)
-	log.INFO(PackageName, "验证者奖励总额", validatorsBlkReward)
-	validatorReward := br.getValidatorRewards(validatorsBlkReward, Leader, num)
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
-	log.INFO(PackageName, "矿工奖励总额", validatorsBlkReward)
-	minerRewards := br.getMinerRewards(minersBlkReward, num)
+	log.Debug(PackageName, "矿工奖励总额", minersBlkReward)
+	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward, parentHash)
+	if blockReward.Cmp(big.NewInt(0)) <= 0 {
+		log.Error(PackageName, "账户余额非法，不发放奖励", blockReward)
+		return nil
+	}
+	log.Debug(PackageName, "奖励金额", blockReward)
+	validatorsBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.ValidatorsRate)
+	log.Debug(PackageName, "验证者奖励总额", validatorsBlkReward)
+	validatorReward := br.getValidatorRewards(validatorsBlkReward, Leader, num)
 
 	util.MergeReward(rewards, validatorReward)
 	util.MergeReward(rewards, minerRewards)
 	return rewards
 }
-
-//func (br *BlockReward) CalcRewardMountByBalance(state *state.StateDB, blockReward *big.Int, address common.Address) *big.Int {
-//	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
-//	halfBalance := new(big.Int).Exp(big.NewInt(10), big.NewInt(21), big.NewInt(0))
-//	balance := state.GetBalance(address)
-//	genesisState, _ := br.chain.StateAt(br.chain.Genesis().Root())
-//	genesisBalance := genesisState.GetBalance(address)
-//	log.INFO(PackageName, "计算区块奖励参数 衰减金额:", halfBalance.String(),
-//		"初始账户", address.String(), "初始金额", genesisBalance[common.MainAccount].Balance.String(), "当前金额", balance[common.MainAccount].Balance.String())
-//	var reward *big.Int
-//	if balance[common.MainAccount].Balance.Cmp(genesisBalance[common.MainAccount].Balance) >= 0 {
-//		reward = blockReward
-//	}
-//
-//	subBalance := new(big.Int).Sub(genesisBalance[common.MainAccount].Balance, balance[common.MainAccount].Balance)
-//	n := int64(0)
-//	if 0 != halfBalance.Int64() {
-//		n = new(big.Int).Div(subBalance, halfBalance).Int64()
-//	}
-//
-//	if 0 == n {
-//		reward = blockReward
-//	} else {
-//		reward = new(big.Int).Div(blockReward, new(big.Int).Exp(big.NewInt(2), big.NewInt(n), big.NewInt(0)))
-//	}
-//	log.INFO(PackageName, "计算区块奖励金额:", reward.String())
-//	if balance[common.MainAccount].Balance.Cmp(reward) < 0 {
-//		log.ERROR(PackageName, "账户余额不足，余额为", balance[common.MainAccount].Balance.String())
-//		return big.NewInt(0)
-//	} else {
-//		return reward
-//	}
-//
-//}
 
 func (br *BlockReward) calcRewardMountByNumber(blockReward *big.Int, num uint64, halfNum uint64, address common.Address) *big.Int {
 	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
@@ -267,7 +246,7 @@ func (br *BlockReward) calcRewardMountByNumber(blockReward *big.Int, num uint64,
 		return big.NewInt(0)
 	}
 
-	log.INFO(PackageName, "计算区块奖励参数 当前高度:", num, "半衰高度:", halfNum,
+	log.Debug(PackageName, "计算区块奖励参数 当前高度:", num, "半衰高度:", halfNum,
 		"初始账户", address.String(), "当前金额", balance[common.MainAccount].Balance.String())
 	var reward *big.Int
 
@@ -281,7 +260,7 @@ func (br *BlockReward) calcRewardMountByNumber(blockReward *big.Int, num uint64,
 	} else {
 		reward = new(big.Int).Div(blockReward, new(big.Int).Exp(big.NewInt(2), new(big.Int).SetUint64(n), big.NewInt(0)))
 	}
-	log.INFO(PackageName, "计算区块奖励金额:", reward.String())
+	log.Debug(PackageName, "计算区块奖励金额:", reward.String())
 	if balance[common.MainAccount].Balance.Cmp(reward) < 0 {
 		log.ERROR(PackageName, "账户余额不足，余额为", balance[common.MainAccount].Balance.String())
 		return big.NewInt(0)

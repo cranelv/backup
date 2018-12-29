@@ -40,15 +40,6 @@ func newUnverifiedVotePool(logInfo string) *unverifiedVotePool {
 }
 
 func (vp *unverifiedVotePool) AddVote(signHash common.Hash, sign common.Signature, from common.Address) error {
-	/*signAccount, validate, err := crypto.VerifySignWithValidate(signHash.Bytes(), sign.Bytes())
-	if err != nil {
-		return err
-	}
-
-	if verifyFrom && signAccount.Equal(fromAccount) == false {
-		return errors.Errorf("vote sign account[%s] != from account[%s]", signAccount.Hex(), fromAccount.Hex())
-	}*/
-
 	if (signHash == common.Hash{}) || (sign == common.Signature{}) || (from == common.Address{}) {
 		return ErrParamIsNil
 	}

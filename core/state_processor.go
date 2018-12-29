@@ -15,6 +15,13 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/blkreward"
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/lottery"
+	"github.com/matrix/go-matrix/reward/slash"
+	"github.com/matrix/go-matrix/reward/txsreward"
+	"math/big"
 	"runtime"
 	"sync"
 )
@@ -38,6 +45,87 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 	}
 }
 
+func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
+
+	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
+	log.INFO("奖励", "交易费奖励总额", allGas.String())
+	balance := state.GetBalance(common.TxGasRewardAddress)
+
+	if len(balance) == 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法", "")
+		return big.NewInt(0)
+	}
+
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
+		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
+		return big.NewInt(0)
+	}
+	return allGas
+}
+
+func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) error {
+	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+	if err != nil {
+		log.Error("work", "获取广播周期失败", err)
+		return nil
+	}
+	num := header.Number.Uint64()
+	if bcInterval.IsBroadcastNumber(num) {
+		return nil
+	}
+	blkReward := blkreward.New(p.bc, state)
+	rewardList := make([]common.RewarTx, 0)
+	if nil != blkReward {
+		//todo: read half number from state
+		minersRewardMap := blkReward.CalcMinerRewards(num, header.ParentHash)
+		if 0 != len(minersRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+		}
+
+		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
+		if 0 != len(validatorsRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+		}
+	}
+
+	txsReward := txsreward.New(p.bc, state)
+	allGas := p.getGas(state, new(big.Int).SetUint64(usedGas))
+	log.INFO(ModuleName, "交易费奖励总额", allGas.String())
+	if nil != txsReward {
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
+		if 0 != len(txsRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+		}
+	}
+	lottery := lottery.New(p.bc, state, nil)
+
+	tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.INFO(ModuleName, "lottery before root", tmproot)
+	if nil != lottery {
+		lottery.ProcessMatrixState(header.Number.Uint64())
+		tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+		log.INFO(ModuleName, "lottery middile root", tmproot)
+		lottery.LotterySaveAccount(from, header.VrfValue)
+	}
+	tmproot = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.INFO(ModuleName, "lottery after root", tmproot)
+	interestReward := interest.New(state)
+	if nil == interestReward {
+		return nil
+	}
+	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
+
+	slash := slash.New(p.bc, state)
+	if nil != slash {
+		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
+	}
+
+	return nil
+}
+
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -45,7 +133,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -84,6 +172,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		go types.Sender_self(sig, ttx, waitG)
 	}
 	waitG.Wait()
+	from := make([]common.Address, 0)
 	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
@@ -101,6 +190,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 		txcount = i
+		from = append(from, tx.From())
+	}
+	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
+	if err != nil {
+		return nil, nil, 0, err
 	}
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)

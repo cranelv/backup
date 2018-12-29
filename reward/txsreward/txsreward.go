@@ -21,7 +21,6 @@ type TxsReward struct {
 }
 
 func New(chain util.ChainReader, st util.StateDB) reward.Reward {
-
 	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyTxsRewardCfg, st)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误")

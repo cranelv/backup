@@ -13,21 +13,23 @@ import (
 	"reflect"
 	"unicode"
 
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/matrix/go-matrix/base58"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/dashboard"
-	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/man"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/naoina/toml"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 var (
@@ -201,51 +203,55 @@ func CheckEntrust(ctx *cli.Context) error {
 		return err
 	}
 
-	entrustValue :=make(map[common.Address]string,0)
+	entrustValue := make(map[common.Address]string, 0)
 	for _, v := range anss {
-		entrustValue[v.Address] = v.Password
+		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
 	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 	return nil
 }
 
-func ReadDecryptPassword(ctx *cli.Context) (string, error) {
+func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
 	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
-		return password, nil
+		h := sha256.New()
+		h.Write([]byte(password))
+		return h.Sum(nil), nil
 	}
 	var passphrase string
 	var err error
-	InputCount:=0
+	InputCount := 0
 
 	for true {
 		InputCount++
-		if InputCount>3{
-			return "",errors.New("多次输入密码错误")
+		if InputCount > 3 {
+			return []byte{}, errors.New("多次输入密码错误")
 		}
-		fmt.Printf("第 %d次密码输入 \n",InputCount)
-		passphrase,err=GetPassword()
-		if err!=nil{
-			fmt.Println("获取密码错误",err)
+		fmt.Printf("第 %d次密码输入 \n", InputCount)
+		passphrase, err = GetPassword()
+		if err != nil {
+			fmt.Println("获取密码错误", err)
 			continue
 		}
 		if CheckPassword(passphrase) {
 			break
 		}
 	}
-	return passphrase, nil
+	h := sha256.New()
+	h.Write([]byte(passphrase))
+	return h.Sum(nil), nil
 }
 
-func GetPassword()(string,error){
+func GetPassword() (string, error) {
 	password, err := console.Stdin.PromptPassword("Passphrase: ")
 	if err != nil {
 		return "", fmt.Errorf("Failed to read passphrase: %v", err)
 	}
 	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
 	if err != nil {
-		return "",fmt.Errorf("Failed to read passphrase confirmation: %v", err)
+		return "", fmt.Errorf("Failed to read passphrase confirmation: %v", err)
 	}
 	if password != confirm {
-		return "",fmt.Errorf("Passphrases do not match")
+		return "", fmt.Errorf("Passphrases do not match")
 	}
-	return password,nil
+	return password, nil
 }

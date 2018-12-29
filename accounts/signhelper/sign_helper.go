@@ -25,7 +25,8 @@ type MatrixEth interface {
 }
 
 type AuthReader interface {
-	GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error)
+	GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error)
+	GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error)
 	GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
 }
 
@@ -143,10 +144,14 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 }
 
 func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {
-	addr, password, err := reader.GetSignAccount(ca.GetAddress(), blkHash)
 	account := accounts.Account{}
+	addrs, err := reader.GetSignAccounts(ca.GetAddress(), blkHash)
+	if err != nil {
+		return account, "", err
+	}
+
+	addr, password, err := reader.GetSignAccountPassword(addrs)
 	account.Address = addr
-	//log.ERROR(ModeLog, "returnaddr", account.Address, "password", password, "err", err)
 	return account, password, err
 }
 

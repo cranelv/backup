@@ -81,13 +81,15 @@ type ElectNodeInfo struct {
 	Account  common.Address
 	Position uint16
 	Stock    uint16
+	VIPLevel common.VIPRoleType
 	Type     common.RoleType
 }
 
 type ElectGraph struct {
-	Number    uint64
-	ElectList []ElectNodeInfo
-	NextElect []ElectNodeInfo
+	Number             uint64
+	ElectList          []ElectNodeInfo
+	NextMinerElect     []ElectNodeInfo
+	NextValidatorElect []ElectNodeInfo
 }
 
 type ElectOnlineStatus struct {
@@ -100,7 +102,7 @@ type MasterMinerReElectionReqMsg struct {
 	SeqNum      uint64
 	RandSeed    *big.Int
 	MinerList   []vm.DepositDetail
-	ElectConfig ElectConfigInfo
+	ElectConfig ElectConfigInfo_All
 }
 
 //验证者主节点生成请求
@@ -109,7 +111,7 @@ type MasterValidatorReElectionReqMsg struct {
 	RandSeed                *big.Int
 	ValidatorList           []vm.DepositDetail
 	FoundationValidatorList []vm.DepositDetail
-	ElectConfig             ElectConfigInfo
+	ElectConfig             ElectConfigInfo_All
 	VIPList                 []VIPConfig
 }
 
@@ -158,7 +160,8 @@ type HD_BlkConsensusReqMsg struct {
 
 type LocalBlockVerifyConsensusReq struct {
 	BlkVerifyConsensusReq *HD_BlkConsensusReqMsg
-	Txs                   types.SelfTransactions // 交易列表
+	OriginalTxs           types.SelfTransactions // 原始交易列表
+	FinalTxs              types.SelfTransactions // 最终交易列表(含奖励交易)
 	Receipts              []*types.Receipt       // 收据
 	State                 *state.StateDBManage         // apply state changes here 状态数据库
 }
@@ -171,11 +174,12 @@ type BlockPOSFinishedNotify struct {
 }
 
 type BlockLocalVerifyOK struct {
-	Header    *types.Header // 包含签名列表的header
-	BlockHash common.Hash
-	Txs       types.SelfTransactions // 交易列表
-	Receipts  []*types.Receipt       // 收据
-	State     *state.StateDBManage         // apply state changes here 状态数据库
+	Header      *types.Header // 包含签名列表的header
+	BlockHash   common.Hash
+	OriginalTxs types.SelfTransactions // 原始交易列表
+	FinalTxs    types.SelfTransactions // 最终交易列表(含奖励交易)
+	Receipts    []*types.Receipt       // 收据
+	State       *state.StateDBManage         // apply state changes here 状态数据库
 }
 
 //BolckGenor
@@ -347,6 +351,6 @@ type VrfMsg struct {
 	Hash     common.Hash
 }
 type EntrustInfo struct {
-	Address  common.Address
+	Address  string
 	Password string
 }

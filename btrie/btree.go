@@ -1,12 +1,14 @@
-package trie
+package btrie
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/trie"
 	"io"
 	"sort"
 	"strings"
@@ -83,12 +85,12 @@ type ItemIterator func(i Item) bool
 //
 // New(2), for example, will create a 2-3-4 tree (each node contains 1-3 items
 // and 2-4 children).
-func NewBtree(degree int, db *Database) *BTree {
+func NewBtree(degree int, db *trie.Database) *BTree {
 	return NewWithFreeList(degree, NewFreeList(DefaultFreeListSize), db)
 }
 
 // NewWithFreeList creates a new B-Tree that uses the given node free list.
-func NewWithFreeList(degree int, f *FreeList, db *Database) *BTree {
+func NewWithFreeList(degree int, f *FreeList, db *trie.Database) *BTree {
 	if degree <= 1 {
 		panic("bad degree")
 	}
@@ -205,7 +207,7 @@ type bnode struct {
 	items    items
 	children children
 	cow      *copyOnWriteContext
-	db       *Database
+	db       *trie.Database
 }
 type TransferTxData struct {
 	Key_Time uint32
@@ -565,7 +567,7 @@ func (n *bnode) Printree(level int) {
 }
 
 //Used for Btree save to triedb
-func BtreeSaveHash(node *bnode, db *Database, typ byte) common.Hash {
+func BtreeSaveHash(node *bnode, db *trie.Database, typ byte, stateDB vm.StateDB) common.Hash {
 	tmpnode := &BnodeSave{[]TransferTxData{}, []common.Hash{}}
 	for _, it := range node.items {
 		switch typ {
@@ -610,7 +612,7 @@ func BtreeSaveHash(node *bnode, db *Database, typ byte) common.Hash {
 		}
 	}
 	for _, c := range node.children {
-		tmpnode.Child = append(tmpnode.Child, BtreeSaveHash(c, db, typ))
+		tmpnode.Child = append(tmpnode.Child, BtreeSaveHash(c, db, typ, stateDB))
 	}
 	encodeData, err1 := json.Marshal(tmpnode)
 	if err1 != nil {
@@ -618,11 +620,12 @@ func BtreeSaveHash(node *bnode, db *Database, typ byte) common.Hash {
 		return common.Hash{}
 	}
 	key := crypto.Keccak256Hash(encodeData)
-	db.Insert(key, encodeData)
+	stateDB.SetMatrixData(key, encodeData)
+	//db.Insert(key, encodeData)
 	return key
 }
 
-func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Database, typ byte) error {
+func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.Database, typ byte, stateDB vm.StateDB) error {
 
 	if (nodeHash == common.Hash{}) {
 		//fmt.Println("RestoreBtree nodeHash is empty hash")
@@ -634,13 +637,12 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Datab
 	}
 
 	tmpNodeSave := BnodeSave{[]TransferTxData{}, []common.Hash{}}
-	nodeData, err:= db.Node(nodeHash)
-	if err != nil{
-		log.Info("file btree","func RestoreBtree:err",err)
-	}
+	//nodeData, _ := db.Node(nodeHash)
+	nodeData := stateDB.GetMatrixData(nodeHash)
 	//err := rlp.DecodeBytes(nodeData,&tmpNodeSave)
 	err = json.Unmarshal(nodeData, &tmpNodeSave)
 	if err != nil {
+		log.Info("file btree", "func RestoreBtree:err", err)
 		return errors.New("RestoreBtree node decode err")
 	}
 	for indexItem, it := range tmpNodeSave.Key {
@@ -659,7 +661,7 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *Datab
 	}
 	for _, c := range tmpNodeSave.Child {
 		childNode := btree.cow.newNode()
-		RestoreBtree(btree, childNode, c, db, typ)
+		RestoreBtree(btree, childNode, c, db, typ, stateDB)
 		itemNode.children = append(itemNode.children, childNode)
 	}
 	return nil
@@ -677,7 +679,7 @@ type BTree struct {
 	length int
 	root   *bnode
 	cow    *copyOnWriteContext
-	db     *Database
+	db     *trie.Database
 }
 
 // copyOnWriteContext pointers determine node ownership... a tree with a write

@@ -2,13 +2,13 @@ package types
 
 import (
 	"errors"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/rlp"
 	"io"
 	"math/big"
 	"sync/atomic"
 	"time"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 type TransactionBroad struct {
@@ -101,6 +101,7 @@ func (tx *TransactionBroad) GetMatrixType() byte {
 func (tx *TransactionBroad) From() common.Address {
 	return common.Address{}
 }
+
 func (tx *TransactionBroad) GetCreateTime() uint32 {
 	return uint32(tx.data.CommitTime)
 }
@@ -129,6 +130,7 @@ func (tx *TransactionBroad) GetFromLoad() interface{} {
 func (tx *TransactionBroad) SetFromLoad(x interface{}) {
 	tx.from.Store(x)
 }
+
 func (tx *TransactionBroad) SetTxCurrency(currency string) {
 
 }
@@ -153,6 +155,7 @@ func (tx *TransactionBroad) GetTxNLen() int {
 func (tx *TransactionBroad) SetNonce(nc uint64) {
 	tx.data.AccountNonce = nc
 }
+
 func (tx *TransactionBroad) GetIsEntrustGas() bool {
 	return false
 }

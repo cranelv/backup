@@ -11,7 +11,12 @@ import (
 )
 
 func DelIndex(native AllNative, flag int) AllNative {
-	ans := AllNative{}
+	ans := AllNative{
+		Master:    native.Master,
+		BackUp:    native.BackUp,
+		Candidate: native.Candidate,
+		ElectInfo: native.ElectInfo,
+	}
 	switch flag {
 	case 1:
 		for k, v := range native.MasterQ {
@@ -109,6 +114,7 @@ func KInTop(aim uint16, topoG *mc.TopologyGraph) bool {
 	}
 	return false
 }
+
 func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	ans := []mc.Alternative{}
 	mapMaster := make(map[uint16]common.Address)
@@ -119,7 +125,6 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	//	fmt.Println(v.Position,v.Account.String())
 	//}
 	for _, v := range topoG.NodeList {
-
 		//fmt.Println("v.Pos",v.Position,"v.addr",v.Account.String())
 		types := common.GetRoleTypeFromPosition(v.Position)
 		if types == common.RoleValidator {
@@ -131,7 +136,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 	}
 	//fmt.Println("mapMaster",mapMaster,"len",len(mapMaster))
 	//fmt.Println("mapBackup",mapBackup,"len",len(mapBackup))
-	for index := 0; index <int(allNative.ElectInfo.ValidatorNum) ; index++ { //用一级在线去补
+	for index := 0; index < int(allNative.ElectInfo.ValidatorNum); index++ { //用一级在线去补
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		_, ok := mapMaster[k]
 		if ok == true {
@@ -194,7 +199,7 @@ func ToPoUpdate(allNative AllNative, topoG *mc.TopologyGraph) []mc.Alternative {
 		mapBackup[k] = addr
 	}
 
-	for index := 0; index <int(allNative.ElectInfo.ValidatorNum); index++ { //算一级下线
+	for index := 0; index < int(allNative.ElectInfo.ValidatorNum); index++ { //算一级下线
 		k := common.GeneratePosition(uint16(index), common.ElectRoleValidator)
 		if KInTop(k, topoG) == false {
 			fmt.Println("一级 该点不在顶层内", "不处理")

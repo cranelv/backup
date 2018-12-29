@@ -133,6 +133,12 @@ type Config struct {
 
 	// NetWorkId
 	NetWorkId uint64
+
+	// ManAddress
+	ManAddrStr string
+	ManAddress common.Address
+	Signature  common.Signature
+	SignTime   time.Time
 }
 
 // Server manages all peer connections.
@@ -167,6 +173,8 @@ type Server struct {
 	loopWG        sync.WaitGroup // loop, listenLoop
 	peerFeed      event.Feed
 	log           log.Logger
+	tasks         map[common.Address]int
+	taskLock      sync.RWMutex
 }
 
 var ServerP2p = &Server{}
@@ -265,6 +273,24 @@ func (srv *Server) Peers() []*Peer {
 	return ps
 }
 
+func (srv *Server) ConvertAddressToId(addr common.Address) discover.NodeID {
+	bindAddress := srv.ntab.GetAllAddress()
+	if node, ok := bindAddress[addr]; ok {
+		return node.ID
+	}
+	return discover.NodeID{}
+}
+
+func (srv *Server) ConvertIdToAddress(id discover.NodeID) common.Address {
+	bindAddress := srv.ntab.GetAllAddress()
+	for _, node := range bindAddress {
+		if node.ID == id {
+			return node.Address
+		}
+	}
+	return common.Address{}
+}
+
 // PeerCount returns the number of connected peers.
 func (srv *Server) PeerCount() int {
 	var count int
@@ -286,10 +312,44 @@ func (srv *Server) AddPeer(node *discover.Node) {
 	}
 }
 
+func (srv *Server) AddPeerByAddress(addr common.Address) {
+	if addr == srv.ManAddress {
+		return
+	}
+	srv.log.Info("add peer by address into task", "addr", addr.Hex())
+	node := srv.ntab.GetNodeByAddress(addr)
+	if node == nil {
+		srv.log.Error("add peer by address failed, node info not found", "addr", addr.Hex())
+		return
+	}
+	select {
+	case srv.addstatic <- node:
+	case <-srv.quit:
+	}
+	srv.DelTasks(addr)
+	return
+}
+
+func (srv *Server) AddPeerTask(addr common.Address) {
+	srv.AddTasks(addr)
+}
+
 // RemovePeer disconnects from the given node
 func (srv *Server) RemovePeer(node *discover.Node) {
 	select {
 	case srv.removestatic <- node:
+	case <-srv.quit:
+	}
+}
+
+func (srv *Server) RemovePeerByAddress(addr common.Address) {
+	srv.DelTasks(addr)
+	val, ok := srv.ntab.GetAllAddress()[addr]
+	if !ok {
+		return
+	}
+	select {
+	case srv.removestatic <- val:
 	case <-srv.quit:
 	}
 }
@@ -407,6 +467,7 @@ func (srv *Server) Start() (err error) {
 	srv.removestatic = make(chan *discover.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
+	srv.tasks = make(map[common.Address]int)
 
 	var (
 		conn *net.UDPConn
@@ -441,6 +502,8 @@ func (srv *Server) Start() (err error) {
 	//	sconn = &sharedUDPConn{conn, unhandled}
 	//}
 
+	srv.log.Info("server start info", "man address", srv.ManAddress, "signature", srv.Signature)
+
 	// node table
 	if !srv.NoDiscovery {
 		cfg := discover.Config{
@@ -451,6 +514,9 @@ func (srv *Server) Start() (err error) {
 			Bootnodes:    srv.BootstrapNodes,
 			Unhandled:    unhandled,
 			NetWorkId:    srv.NetWorkId,
+			Address:      srv.ManAddress,
+			Signature:    srv.Signature,
+			SignTime:     srv.SignTime,
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {
@@ -502,6 +568,7 @@ func (srv *Server) Start() (err error) {
 	go CustSend()
 	//add by zw
 	go srv.run(dialer)
+	go srv.runTask()
 
 	Custsrv = srv
 	srv.running = true
@@ -976,4 +1043,34 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) runTask() {
+	tk := time.NewTicker(time.Second * 3)
+	defer tk.Stop()
+
+	for {
+		select {
+		case <-tk.C:
+			srv.taskLock.Lock()
+			for a := range srv.tasks {
+				go srv.AddPeerByAddress(a)
+			}
+			srv.taskLock.Unlock()
+		case <-srv.quit:
+			return
+		}
+	}
+}
+
+func (srv *Server) AddTasks(addr common.Address) {
+	srv.taskLock.Lock()
+	srv.tasks[addr] = 0
+	srv.taskLock.Unlock()
+}
+
+func (srv *Server) DelTasks(addr common.Address) {
+	srv.taskLock.Lock()
+	delete(srv.tasks, addr)
+	srv.taskLock.Unlock()
 }

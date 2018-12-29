@@ -54,11 +54,17 @@ func (cm *ControllerManager) StartController(number uint64, msg *startController
 func (cm *ControllerManager) ReceiveMsgByCur(msg interface{}) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
+	if cm.curNumber <= 0 {
+		return
+	}
 	ctrl := cm.getController(cm.curNumber)
 	ctrl.ReceiveMsg(msg)
 }
 
 func (cm *ControllerManager) ReceiveMsg(number uint64, msg interface{}) error {
+	if number <= 0 {
+		return errors.New("number(0) is illegal")
+	}
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	if err := cm.isLegalNumber(number); err != nil {

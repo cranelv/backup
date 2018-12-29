@@ -7,17 +7,16 @@ package types
 import (
 	"container/heap"
 	"errors"
-	"io"
-	"math/big"
-	"sync/atomic"
-
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
+	"io"
+	"math/big"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -59,6 +58,11 @@ type Transaction struct {
 	IsEntrustGas    bool
 	IsEntrustByTime bool //是否是按时间委托（不是按时间就是按高度，二选一）
 }
+type TransactionCall struct {
+	*Transaction
+}
+
+func (tc *TransactionCall) CheckNonce() bool { return false }
 
 //YY
 type Transaction_Mx struct {
@@ -475,6 +479,7 @@ func (tx *Transaction) CheckNonce() bool   { return true }
 func (tx *Transaction) GetTxHashStruct() {
 
 }
+
 func (tx *Transaction) GetCreateTime() uint32 {
 	return uint32(tx.data.CommitTime)
 }
@@ -514,6 +519,7 @@ func (tx *Transaction) From() common.Address {
 func (tx *Transaction) GetFromLoad() interface{} {
 	return tx.from.Load()
 }
+
 func (tx *Transaction) SetFromLoad(x interface{}) {
 	from, ok := x.(common.Address)
 	if ok {
@@ -578,6 +584,7 @@ func (tx *Transaction) GetTxFrom() (from common.Address, err error) {
 	}
 	return
 }
+
 func (tx *Transaction) TotalAmount() *big.Int {
 	total := tx.data.Amount
 	for _, extra := range tx.data.Extra[0].ExtraTo {
@@ -595,12 +602,14 @@ func (tx *Transaction) CostALL() *big.Int {
 	}
 	return total
 }
+
 func (tx *Transaction) GetTxNLen() int {
 	return len(tx.N)
 }
 func (tx *Transaction) GetIsEntrustGas() bool {
 	return tx.IsEntrustGas
 }
+
 func (tx *Transaction) GetIsEntrustByTime() bool {
 	return tx.IsEntrustByTime
 }

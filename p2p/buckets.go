@@ -6,6 +6,7 @@ package p2p
 
 import (
 	"container/ring"
+	"errors"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -22,14 +23,13 @@ import (
 // hash bucket
 type Bucket struct {
 	role   common.RoleType
-	bucket map[int64][]discover.NodeID
+	bucket map[int64][]common.Address
 
 	rings *ring.Ring
 	lock  sync.RWMutex
 
+	ids  []common.Address
 	self int64
-
-	ids []discover.NodeID
 
 	sub event.Subscription
 
@@ -42,15 +42,19 @@ type Bucket struct {
 // Init bucket.
 var Buckets = &Bucket{
 	role:  common.RoleNil,
-	ids:   make([]discover.NodeID, 0),
+	ids:   make([]common.Address, 0),
 	quit:  make(chan struct{}),
 	rings: ring.New(4),
 }
 
-const MaxBucketContent = 2000
-const BucketLimit = 10
+const (
+	MaxBucketContent = 2000
+	BucketLimit      = 10
+)
 
 var (
+	errAddressEmpty = errors.New("address is empty")
+
 	MaxLink = 3
 )
 
@@ -89,10 +93,6 @@ func (b *Bucket) Start() {
 				break
 			}
 
-			if b.role != h.Role && b.role == common.RoleNil {
-				fNodes := ca.GetFrontNodes()
-				b.disconnectPeers(fNodes)
-			}
 			if b.role != h.Role {
 				b.role = h.Role
 			}
@@ -159,9 +159,9 @@ func (b *Bucket) Stop() {
 }
 
 // maintainNodes maintain nodes in buckets.
-func (b *Bucket) maintainNodes(elected []discover.NodeID) {
+func (b *Bucket) maintainNodes(elected []common.Address) {
 	// remake every time instead of delete
-	b.bucket = make(map[int64][]discover.NodeID)
+	b.bucket = make(map[int64][]common.Address)
 	for _, v := range elected {
 		b.bucketAdd(v)
 	}
@@ -182,14 +182,14 @@ func (b *Bucket) nodesCount() (count int) {
 func (b *Bucket) disconnectMiner() {
 	miners := ca.GetRolesByGroupWithNextElect(common.RoleMiner | common.RoleBackupMiner)
 	for _, miner := range miners {
-		ServerP2p.RemovePeer(discover.NewNode(miner, nil, 0, 0))
+		ServerP2p.RemovePeerByAddress(miner)
 	}
 }
 
 // disconnectPeers disconnect all peers
-func (b *Bucket) disconnectPeers(drops []discover.NodeID) {
+func (b *Bucket) disconnectPeers(drops []common.Address) {
 	for _, peer := range drops {
-		ServerP2p.RemovePeer(discover.NewNode(peer, nil, 0, 0))
+		ServerP2p.RemovePeerByAddress(peer)
 	}
 	for _, peer := range ServerP2p.Peers() {
 		ServerP2p.RemovePeer(discover.NewNode(peer.ID(), nil, 0, 0))
@@ -209,7 +209,11 @@ func (b *Bucket) maintainInner() {
 	count := 0
 	next := (b.self + 1) % 4
 	for _, peer := range ServerP2p.Peers() {
-		pid, err := b.peerBucket(peer.ID())
+		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
+		if signAddr == emptyAddress {
+			continue
+		}
+		pid, err := b.peerBucket(signAddr)
 		if err != nil {
 			b.log.Error("bucket number wrong", "error", err)
 			continue
@@ -234,7 +238,8 @@ func (b *Bucket) maintainOuter() {
 	b.log.Info("maintainOuter", "peer info", miners)
 	for _, peer := range ServerP2p.Peers() {
 		for _, miner := range miners {
-			if peer.ID() == miner {
+			id := ServerP2p.ConvertAddressToId(miner)
+			if id != emptyNodeId && peer.ID() == id {
 				count++
 				break
 			}
@@ -252,19 +257,20 @@ func (b *Bucket) maintainOuter() {
 
 // SelfBucket return self bucket number.
 func (b *Bucket) selfBucket() (int64, error) {
-	return b.peerBucket(ServerP2p.Self().ID)
+	return b.peerBucket(ServerP2p.ManAddress)
 }
 
-func (b *Bucket) peerBucket(node discover.NodeID) (int64, error) {
+func (b *Bucket) peerBucket(addr common.Address) (int64, error) {
 	m := big.Int{}
 	if b.self < common.RoleBucket {
-		return m.Mod(common.BytesToHash(node.Bytes()).Big(), big.NewInt(4)).Int64(), nil
+		return m.Mod(MockHash(ServerP2p.Self().ID).Big(), big.NewInt(4)).Int64(), nil
 	}
-	address, err := ca.ConvertNodeIdToAddress(node)
-	if err != nil {
-		return 0, err
+
+	if addr != emptyAddress {
+		return m.Mod(common.BytesToHash(addr.Bytes()).Big(), big.NewInt(4)).Int64(), nil
 	}
-	return m.Mod(address.Hash().Big(), big.NewInt(4)).Int64(), nil
+
+	return 0, errAddressEmpty
 }
 
 func (b *Bucket) linkBucketPeer() {
@@ -279,7 +285,12 @@ func (b *Bucket) linkBucketPeer() {
 	}
 	count := 0
 	for _, peer := range ServerP2p.Peers() {
-		pid, err := b.peerBucket(peer.ID())
+		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
+		if signAddr == emptyAddress {
+			b.log.Error("not found sign address", "id", peer.ID())
+			continue
+		}
+		pid, err := b.peerBucket(signAddr)
 		if err != nil {
 			b.log.Error("bucket number wrong", "error", err)
 			continue
@@ -299,24 +310,19 @@ func (b *Bucket) linkBucketPeer() {
 }
 
 // BucketAdd add to bucket.
-func (b *Bucket) bucketAdd(nodeId discover.NodeID) {
+func (b *Bucket) bucketAdd(addr common.Address) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	addr, err := ca.ConvertNodeIdToAddress(nodeId)
-	if err != nil {
-		b.log.Error("bucket add", "error:", err)
-		return
-	}
 	m := big.Int{}
 	mod := m.Mod(addr.Hash().Big(), big.NewInt(4)).Int64()
 
 	for _, n := range b.bucket[mod] {
-		if n == nodeId {
+		if n == addr {
 			return
 		}
 	}
-	b.bucket[mod] = append(b.bucket[mod], nodeId)
+	b.bucket[mod] = append(b.bucket[mod], addr)
 }
 
 // inner adjust inner network.
@@ -328,13 +334,12 @@ func (b *Bucket) inner(num int, bucket int64) {
 
 	for _, value := range peers {
 		b.log.Info("peer", "p2p", value)
-		node := discover.NewNode(value, nil, defaultPort, defaultPort)
-		ServerP2p.AddPeer(node)
+		ServerP2p.AddPeerTask(value)
 	}
 }
 
 // outer adjust outer network.
-func (b *Bucket) outer(num int, ids []discover.NodeID) {
+func (b *Bucket) outer(num int, ids []common.Address) {
 	if num <= 0 {
 		return
 	}
@@ -342,13 +347,12 @@ func (b *Bucket) outer(num int, ids []discover.NodeID) {
 
 	for _, value := range peers {
 		b.log.Info("peer", "p2p", value)
-		node := discover.NewNode(value, nil, defaultPort, defaultPort)
-		ServerP2p.AddPeer(node)
+		ServerP2p.AddPeerTask(value)
 	}
 }
 
 // RandomPeers random peers from next buckets.
-func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []discover.NodeID) {
+func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []common.Address) {
 	length := len(b.bucket[bucket])
 
 	if length <= MaxLink {
@@ -371,7 +375,7 @@ func (b *Bucket) randomInnerPeersByBucketNumber(num int, bucket int64) (nodes []
 }
 
 // RandomOuterPeers random peers from overstory.
-func (b *Bucket) randomOuterPeers(num int, ids []discover.NodeID) (nodes []discover.NodeID) {
+func (b *Bucket) randomOuterPeers(num int, ids []common.Address) (nodes []common.Address) {
 	if len(ids) <= MaxLink {
 		return ids
 	}
@@ -394,4 +398,8 @@ func Random(max, num int) (randoms []int) {
 		randoms = append(randoms, rand.Intn(max))
 	}
 	return randoms
+}
+
+func MockHash(id discover.NodeID) common.Hash {
+	return common.BytesToHash([]byte(id.String()))
 }

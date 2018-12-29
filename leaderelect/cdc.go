@@ -208,19 +208,39 @@ func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleT
 	return common.RoleNil
 }
 
-func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*mc.MatrixSpecialAccounts, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyMatrixAccount, state)
+func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*specialAccounts, error) {
+	bcData, err := matrixstate.GetDataByState(mc.MSKeyAccountBroadcast, state)
 	if err != nil {
 		return nil, err
 	}
-	specials, OK := data.(*mc.MatrixSpecialAccounts)
+	broadcast, OK := bcData.(common.Address)
 	if OK == false {
-		return nil, errors.New("reflect MatrixSpecialAccounts failed")
+		return nil, errors.New("reflect broadcast account failed")
 	}
-	if specials == nil {
-		return nil, errors.New("MatrixSpecialAccounts == nil")
+
+	vsData, err := matrixstate.GetDataByState(mc.MSKeyAccountVersionSupers, state)
+	if err != nil {
+		return nil, err
 	}
-	return specials, nil
+	versionSupers, OK := vsData.([]common.Address)
+	if OK == false {
+		return nil, errors.New("reflect version super accounts failed")
+	}
+
+	bsData, err := matrixstate.GetDataByState(mc.MSKeyAccountBlockSupers, state)
+	if err != nil {
+		return nil, err
+	}
+	blockSupers, OK := bsData.([]common.Address)
+	if OK == false {
+		return nil, errors.New("reflect block super accounts failed")
+	}
+
+	return &specialAccounts{
+		broadcast:     broadcast,
+		versionSupers: versionSupers,
+		blockSupers:   blockSupers,
+	}, nil
 }
 
 func (dc *cdc) readLeaderConfigFromState(state StateReader) (*mc.LeaderConfig, error) {
@@ -262,14 +282,34 @@ func (dc *cdc) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGra
 	return dc.chain.GetGraphByHash(hash)
 }
 
-func (dc *cdc) GetSpecialAccounts(blockHash common.Hash) (*mc.MatrixSpecialAccounts, error) {
+func (dc *cdc) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
+	if (blockHash == common.Hash{}) {
+		return common.Address{}, errors.New("输入hash为空")
+	}
+	if blockHash == dc.leaderCal.preHash {
+		return dc.leaderCal.specialAccounts.broadcast, nil
+	}
+	return dc.chain.GetBroadcastAccount(blockHash)
+}
+
+func (dc *cdc) GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
 	if (blockHash == common.Hash{}) {
 		return nil, errors.New("输入hash为空")
 	}
 	if blockHash == dc.leaderCal.preHash {
-		return dc.leaderCal.specials, nil
+		return dc.leaderCal.specialAccounts.versionSupers, nil
 	}
-	return dc.chain.GetSpecialAccounts(blockHash)
+	return dc.chain.GetVersionSuperAccounts(blockHash)
+}
+
+func (dc *cdc) GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
+	if (blockHash == common.Hash{}) {
+		return nil, errors.New("输入hash为空")
+	}
+	if blockHash == dc.leaderCal.preHash {
+		return dc.leaderCal.specialAccounts.blockSupers, nil
+	}
+	return dc.chain.GetBlockSuperAccounts(blockHash)
 }
 
 func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error) {
@@ -285,15 +325,18 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 	return dc.chain.GetBroadcastInterval(blockHash)
 }
 
-func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (common.Address, string, error) {
+func (dc *cdc) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
+	return dc.chain.GetSignAccountPassword(signAccounts)
+}
+func (dc *cdc) GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error) {
 	if blockHash.Equal(common.Hash{}) {
-		log.Error(common.SignLog, "获取签名账户阶段","cdc 最终结果","输入数据err","区块hash为空")
-		return common.Address{}, "", errors.New("cdc:输入hash为空")
+		log.Error(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "输入数据err", "区块hash为空")
+		return nil, errors.New("cdc:输入hash为空")
 	}
 
 	if blockHash != dc.leaderCal.preHash {
-		log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","调blockchain接口","")
-		return dc.chain.GetSignAccount(authFrom, blockHash)
+		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "调blockchain接口", "")
+		return dc.chain.GetSignAccounts(authFrom, blockHash)
 	}
 
 	if common.TopAccountType == common.TopAccountA0 {
@@ -301,8 +344,8 @@ func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (c
 	}
 
 	if nil == dc.parentState {
-		log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","err","dc.parentState是空")
-		return common.Address{}, "", errors.New("cdc: parent stateDB is nil, can't reader data")
+		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "err", "dc.parentState是空")
+		return nil, errors.New("cdc: parent stateDB is nil, can't reader data")
 	}
 
 	height := dc.number - 1
@@ -310,33 +353,17 @@ func (dc *cdc) GetSignAccount(authFrom common.Address, blockHash common.Hash) (c
 	if len(ans) == 0 {
 		ans = append(ans, authFrom)
 	}
-	entrustValue:=manparams.EntrustAccountValue.GetEntrustValue()
-	for _, v := range ans {
-		for kk, vv := range entrustValue {
-			if v.Equal(kk) == false {
-				continue
-			}
-			if _, ok := entrustValue[kk]; ok {
-				log.Info(common.SignLog, "获取签名账户阶段","cdc 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", kk.String())
-				return kk, entrustValue[kk], nil
-			}
-			log.ERROR(common.SignLog, "获取签名账户阶段","cdc 最终结果", "高度", height, "本地账户", authFrom.String(), "签名账户", kk.String(), "err", "无该密码")
-			return kk, vv, errors.New("cdc: 无该密码")
-
-		}
-	}
-	log.ERROR(common.SignLog, "获取签名账户阶段","cdc 最终结果","高度", height, "本地账户", authFrom.String(), "签名账户", common.Address{})
-	return common.Address{}, "", errors.New("cdc: ans为空")
+	return ans, nil
 }
 
 func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
 	if hash.Equal(common.Hash{}) {
-		log.ERROR(common.SignLog, "获取委托账户阶段","cdc 最终结果","输入的hash err", "hash为空")
+		log.ERROR(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "输入的hash err", "hash为空")
 		return common.Address{}, errors.New("cdc: 输入hash为空")
 	}
 	if hash == dc.leaderCal.preHash {
 		if nil == dc.parentState {
-			log.ERROR(common.SignLog, "获取委托账户阶段","cdc 最终结果","dc.parentState err", "preentState is nil")
+			log.ERROR(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "dc.parentState err", "preentState is nil")
 			return common.Address{}, errors.New("cdc: parent stateDB is nil, can't reader data")
 		}
 
@@ -349,9 +376,9 @@ func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (com
 			//TODO 利用CA接口将A1转换为A0
 		}
 
-		log.Info(common.SignLog, "获取委托账户阶段","cdc 最终结果", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
+		log.Info(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
 		return addr, nil
 	}
-	log.Warn(common.SignLog, "获取委托账户阶段","cdc 最终结果", "采用blockchain的接口 hash",hash.String())
+	log.Warn(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "采用blockchain的接口 hash", hash.String())
 	return dc.chain.GetAuthAccount(signAccount, hash)
 }

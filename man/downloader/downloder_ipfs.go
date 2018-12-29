@@ -7,6 +7,7 @@ package downloader
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
@@ -92,6 +93,8 @@ type IPfsDownloader struct {
 	StrIPFSExecName     string
 	HeaderIpfsCh        chan []BlockIpfsReq //[]*types.Header
 	//	BlockRcvCh          chan *types.Block
+	//runQuit      chan struct{}
+	//timeOutCh    chan struct{}
 	DownMutex    *sync.Mutex
 	DownRetrans  *list.List //*prque.Prque // []DownloadRetry prque.New()
 	BatchStBlock *BatchBlockSt
@@ -157,6 +160,11 @@ type BatchBlockSt struct {
 	bodyStoreFile      *os.File
 	receiptStoreFile   *os.File
 }
+type StopIpfs struct {
+	Stop func()
+}
+
+var StopIpfsHandler = StopIpfs{}
 
 var gIpfsCache GetIpfsCache
 var gIpfsStoreCache StoreIpfsCache
@@ -164,6 +172,10 @@ var IpfsInfo DownloadFileInfo
 var logMap bool
 var listPeerId [2]string
 var testShowlog int
+var gIpfsPath string
+var runQuit chan int //struct{}
+var timeOutFlg int   //chan int
+var gtimeOutSign chan struct{}
 
 func init() {
 	/*creatInfo := DownloadFileInfo{
@@ -175,10 +187,15 @@ func init() {
 	}
 	WriteJsFile("ipfsinfo.json", creatInfo)*/
 	//len := GetFileSize("D:\\send1.txt")
-	err := ReadJsFile("ipfsinfo.json", &IpfsInfo)
-	fmt.Println("read ipfs ", err, IpfsInfo.Downloadflg, IpfsInfo.StrIPFSServerInfo)
+	//err :=
+	ReadJsFile("ipfsinfo.json", &IpfsInfo)
+	//fmt.Println("read ipfs ", err, IpfsInfo.Downloadflg, IpfsInfo.StrIPFSServerInfo)
 	if /*IpfsInfo.IpfsPath == "" ||*/ IpfsInfo.StrIPFSServerInfo == "" || IpfsInfo.PrimaryDescription == "" {
 		IpfsInfo.Downloadflg = false
+	} else {
+		runQuit = make(chan int) //struct{})
+		gtimeOutSign = make(chan struct{})
+		//timeOutCh = make(chan int)
 	}
 }
 func GetIpfsMode() bool {
@@ -190,14 +207,16 @@ func newIpfsDownload() *IPfsDownloader {
 		BIpfsIsRunning: false,
 		HeaderIpfsCh:   make(chan []BlockIpfsReq, 1), //*types.Header, 1),
 		//	BlockRcvCh:     make(chan *types.Block, 1),
+		//runQuit:      make(chan struct{}),
 		DownRetrans:  list.New(), //prque.New(), //make([]DownloadRetry, 6),
 		DownMutex:    new(sync.Mutex),
 		BatchStBlock: new(BatchBlockSt),
+		//timeOutCh:    make(chan struct{}),
 	}
 
 }
 
-var gStrIpfsName string
+//var gStrIpfsName string
 
 func CheckDirAndCreate(dir string) error {
 	_, err := os.Stat(dir)
@@ -225,12 +244,20 @@ func (d *Downloader) IpfsDownloadTestInit() error {
 	d.dpIpfs.StrIPFSLocationPath = "D:\\lb\\go-ipfs"
 	d.dpIpfs.StrIPFSExecName = d.dpIpfs.StrIPFSLocationPath + "\\ipfs.exe"
 	//gStrIpfsPath = d.dpIpfs.StrIPFSLocationPath
-	gStrIpfsName = d.dpIpfs.StrIPFSExecName
+	gIpfsPath = d.dpIpfs.StrIPFSExecName
 	d.dpIpfs.StrIPFSServerInfo = "/ip4/192.168.3.30/tcp/4001/ipfs/QmQSazdGapokSejxeTTQc4tCRcHgqRPtoMeW3trRk4zA1S"
 	return nil // foe test
 }
 
-//IpfsDownloadInit
+func StopIpfsProcess() {
+	log.Warn("ipfs Downloader StopIpfsProcess  manual exit")
+	StopIpfsHandler.Stop()
+	fmt.Println("ipfs manual exit")
+}
+
+var strAnother = "The process cannot access the file because it is being used by another process"
+var strIPFSstdErr = "api not running"
+var strIPFSpatherr = "file does not exist"
 
 func (d *Downloader) IpfsDownloadInit() error {
 
@@ -242,7 +269,7 @@ func (d *Downloader) IpfsDownloadInit() error {
 	//
 	d.dpIpfs.StrIPFSLocationPath = IpfsInfo.IpfsPath      //"D:\\lb\\go-ipfs"
 	d.dpIpfs.StrIPFSExecName = IpfsInfo.IpfsPath + "ipfs" //d.dpIpfs.StrIPFSLocationPath + "\\ipfs.exe"
-	gStrIpfsName = d.dpIpfs.StrIPFSExecName               //gStrIpfsPath = d.dpIpfs.StrIPFSLocationPath
+	gIpfsPath = d.dpIpfs.StrIPFSExecName                  //gStrIpfsPath = d.dpIpfs.StrIPFSLocationPath
 	d.dpIpfs.StrIpfspeerID = IpfsInfo.PrimaryDescription
 	d.dpIpfs.StrIpfsSecondpeerID = IpfsInfo.SecondaryDescription
 	d.dpIpfs.StrIPFSServerInfo = IpfsInfo.StrIPFSServerInfo //"/ip4/192.168.3.30/tcp/4001/ipfs/QmQSazdGapokSejxeTTQc4tCRcHgqRPtoMeW3trRk4zA1S"
@@ -263,10 +290,17 @@ func (d *Downloader) IpfsDownloadInit() error {
 	err := c.Run()
 
 	strErrInfo := outerr.String()
-
+	strttt := err.Error()
 	if err != nil {
-		log.Warn("ipfs IpfsDownloadInit init error", "error", err, "ipfs err", strErrInfo)
+		log.Warn("ipfs IpfsDownloadInit init error", "error", err, "ipfs err", strErrInfo) //, "fff", strttt)
 		//return err
+		if strings.Index(strttt, strIPFSpatherr) > 0 {
+			d.IpfsMode = false //启动失败时 置为false
+			IpfsInfo.Downloadflg = false
+			d.bIpfsDownload = 0
+			log.Warn("ipfs IpfsDownloadInit init error", strttt)
+			return nil
+		}
 	}
 	out.Reset()
 	outerr.Reset()
@@ -303,22 +337,158 @@ func (d *Downloader) IpfsDownloadInit() error {
 	out.Reset()
 	outerr.Reset()
 
-	fmt.Println("ipfs daemon run")
+	fmt.Println("ipfs daemon run", d.dpIpfs.StrIPFSExecName)
+	/*
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "daemon") //"add", "D:\\melog3332.txt")
+		d.dpIpfs.BIpfsIsRunning = true
+		err = c.Run()
+	*/
 
-	c = exec.Command(d.dpIpfs.StrIPFSExecName, "daemon") //"add", "D:\\melog3332.txt")
-	d.dpIpfs.BIpfsIsRunning = true
-	err = c.Run()
+	ctx, cancel := context.WithCancel(context.Background())
+	StopIpfsHandler.Stop = cancel
+	//err = exec.CommandContext(ctx, d.dpIpfs.StrIPFSExecName, "daemon").Run()
+	cm := exec.CommandContext(ctx, d.dpIpfs.StrIPFSExecName, "daemon")
+	cm.Stdout = &out
+	cm.Stderr = &outerr
+	err = cm.Run()
 	strErrInfo = outerr.String()
 
 	d.dpIpfs.BIpfsIsRunning = false
 	if err != nil {
-		log.Error("ipfs IpfsDownloadInit daemon error,exit init", "error", err, "ipfs err", outerr.String())
+		log.Error("ipfs IpfsDownloadInit daemon error,exit init", "error", err, "out", out.String(), "ipfs err", outerr.String())
 		//return err
+	} //"The process cannot access the file because it is being used by another process"
+	if strings.Index(strErrInfo, strAnother) >= 0 {
+
+	} else {
+		/*d.IpfsMode = false //启动失败时 置为false
+		IpfsInfo.Downloadflg = false
+		d.bIpfsDownload = 0*/
 	}
-	//d.IpfsMode = false //启动失败时 置为false
 	fmt.Println("ipfsDownloadInit error", err)
 
 	return nil
+}
+func RestartIpfsDaemon() {
+	var outerr bytes.Buffer
+	var out bytes.Buffer
+
+	StopIpfsProcess()
+	//time.Sleep(1 * time.Second)
+	log.Warn("ipfs RestartIpfsDaemon daemon")
+	ctx, cancel := context.WithCancel(context.Background())
+	StopIpfsHandler.Stop = cancel
+	flgCh := make(chan int)
+	go func() {
+		fmt.Println("ipfs restart again", gIpfsPath)
+		cd := exec.CommandContext(ctx, gIpfsPath, "daemon")
+		cd.Stdout = &out
+		cd.Stderr = &outerr
+		log.Warn("ipfs RestartIpfsDaemon daemon again")
+		flgCh <- 0
+		err := cd.Run()
+		//strErrInfo := outerr.String()
+		//d.dpIpfs.BIpfsIsRunning = true
+		if err != nil {
+			log.Error("ipfs RestartIpfsDaemon daemon error, will exit", "error", err, "outerr", outerr.String())
+			//return err
+		}
+		//d.IpfsMode = false //启动失败时 置为false
+		fmt.Println("****RestartIpfs Daemon will exit", err, out.String(), outerr.String())
+	}()
+
+	<-flgCh
+	log.Warn("ipfs---- RestartIpfsDaemon daemon over")
+	fmt.Println("ipfs ---restart over")
+	time.Sleep(5 * time.Second)
+}
+func CheckIpfsStatus(err error) {
+	//log.Warn("ipfs---- CheckIpfsStatus--------")
+	if err.Error() == "exit status 1" {
+		RestartIpfsDaemon()
+	}
+
+}
+
+func ipfsGetTimeout() {
+	//return
+	var flg int
+	recvSync := time.NewTicker(8 * time.Minute)
+	defer func() {
+		log.Warn("ipfs---- ipfsGetTimeout out--------", "flg", flg)
+		recvSync.Stop()
+	}()
+	//log.Warn("ipfs---- ipfsGetTimeout in")
+	//quit    chan struct{}
+	for {
+		select {
+		case <-recvSync.C:
+			log.Warn("ipfs---- ipfsGetTimeout")
+			flg = 1
+			RestartIpfsDaemon()
+			timeOutFlg = 1
+		case <-runQuit:
+			flg = 0
+			return
+		}
+	}
+}
+func TimeoutExec() {
+	var flg int
+	timeOut := time.NewTicker(10 * time.Minute)
+	defer func() {
+		log.Warn("ipfs---- ipfsTimeoutExec out--------", "flg", flg)
+		timeOut.Stop()
+	}()
+	for {
+		select {
+		case <-timeOut.C:
+			log.Warn("ipfs---- TimeoutExec time out")
+			flg = 1
+			RestartIpfsDaemon()
+			timeOutFlg = 1
+		case <-runQuit:
+			flg = 0
+			return
+		}
+	}
+}
+func IpfsStartTimer() {
+	timeOutFlg = 0
+	gtimeOutSign <- struct{}{}
+}
+func IpfsStopTimer() {
+	//超时的不需要再停止
+	if timeOutFlg == 0 {
+		runQuit <- 1
+	}
+}
+func (d *Downloader) IpfsTimeoutTask() {
+	log.Warn("IpfsTimeoutTask enter in")
+	for {
+		select {
+		case <-gtimeOutSign:
+			timeOutFlg = 0
+			TimeoutExec()
+		}
+	}
+
+}
+
+func (d *Downloader) ClearDirectoryContent() {
+	tmpFile, err1 := os.OpenFile(path.Join(strCacheDirectory, strLastestBlockFile), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	fmt.Println("file1", err1)
+	tmpFile2, err2 := os.OpenFile(path.Join(strCacheDirectory, strCache1BlockFile), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	fmt.Println("file1", err2)
+
+	tmpFile.Close()
+	tmpFile2.Close()
+	if err1 == nil || err2 == nil {
+		fmt.Println("broadcast clear directory")
+		log.Warn("broadcast clear directory")
+		d.IPfsDirectoryUpdate()
+	}
+
 }
 
 //WriteJsFile serialize
@@ -393,11 +563,16 @@ func loadCache(data interface{}, len int32, file *os.File) error {
 func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 	var out bytes.Buffer
 	var outerr bytes.Buffer
-
-	c := exec.Command(gStrIpfsName, "get", strHash)
+	log.Debug("ipfs IpfsGetBlockByHash info before", "strHash", strHash)
+	c := exec.Command(gIpfsPath, "get", strHash)
 	c.Stdout = &out
 	c.Stderr = &outerr
+	timeOutFlg = 0
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	err := c.Run()
+	//runQuit <- 1 //struct{}{}
+	IpfsStopTimer()
 	c.StdinPipe()
 	//strErrInfo := outerr.String()
 
@@ -405,6 +580,9 @@ func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 
 	if err != nil {
 		log.Error("ipfs IpfsGetBlockByHash error", "error", err, "ipfs err", outerr.String())
+		if timeOutFlg == 0 {
+			CheckIpfsStatus(err)
+		}
 		return nil, err
 	}
 
@@ -417,7 +595,7 @@ func IpfsAddNewFile(filePath string) (Hash, error) {
 	var out bytes.Buffer
 	var outerr bytes.Buffer
 	//1M
-	c := exec.Command(gStrIpfsName, "add", "-q", "-s", "size-1048576", filePath)
+	c := exec.Command(gIpfsPath, "add", "-q", "-s", "size-1048576", filePath)
 	c.Stdout = &out
 	c.Stderr = &outerr
 	err := c.Run()
@@ -427,7 +605,16 @@ func IpfsAddNewFile(filePath string) (Hash, error) {
 
 	if err != nil {
 		log.Error("ipfs IpfsAddNewFile to  ipfs network", "error", err, "ipfs err", outerr.String())
-		return nil, err
+
+		RestartIpfsDaemon()
+		c = exec.Command(gIpfsPath, "add", "-q", "-s", "size-1048576", filePath)
+		err = c.Run()
+		log.Error("ipfs IpfsAddNewFile to  ipfs network error again")
+		if err != nil {
+			log.Error("ipfs IpfsAddNewFile to  ipfs network error again", "error", err, "ipfs err", outerr.String())
+			return nil, err
+		}
+		//return nil, err
 	}
 	return out.Bytes(), nil
 }
@@ -450,16 +637,23 @@ func IpfsGetFileCache2ByHash(strhash, objfileName string) (*os.File, bool, error
 	//tmp := []byte(strhash)
 	//strhash2 := string(tmp[0:IpfsHashLen])
 	strFile := "-o=" + objfileName
-	c := exec.Command(gStrIpfsName, "get", strFile, strhash)
+	c := exec.Command(gIpfsPath, "get", strFile, strhash)
 	//c := exec.Command(gStrIpfsName, "get", "-o=secondCacheInfo.gb", strhash) //strhash)
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	c.Stdout = &out
 	c.Stderr = &outerr
 	err := c.Run()
-
+	//runQuit <- 1
+	IpfsStopTimer()
 	//strErrInfo := outerr.String()
-
+	stdErr := outerr.String()
 	if err != nil {
 		log.Error("ipfs IpfsGetFileCache2ByHash get error", "error", err, "ipfs err", outerr.String())
+		if strings.Index(stdErr, strIPFSstdErr) > 0 {
+			CheckIpfsStatus(err)
+		}
+		//CheckIpfsStatus(err)
 		return nil, false, err
 	}
 
@@ -725,7 +919,13 @@ func (d *Downloader) IPfsDirectoryUpdate() error {
 	//strErrInfo := outerr.String()
 	if err != nil {
 		log.Error("ipfs IPfsDirectoryUpdate add dictory error", "error", err, "ipfs err", outerr.String())
-		return err
+		RestartIpfsDaemon()
+		c := exec.Command(d.dpIpfs.StrIPFSExecName, "add", "-Q", "-r", strCacheDirectory)
+		err := c.Run()
+		if err != nil {
+			log.Error("ipfs IPfsDirectoryUpdate add dictory error again", "error", err)
+			return err
+		}
 	}
 	publishHash := string(out.Bytes()[0 : out.Len()-1]) //0：IpfsHashLen
 
@@ -753,17 +953,24 @@ func (d *Downloader) IpfsSyncGetFirstCache(index int) (*Cache1StoreCfg, error) {
 	ipnsPath := "/ipns/" + listPeerId[index] + "/" + strCache1BlockFile
 	c := exec.Command(d.dpIpfs.StrIPFSExecName, "cat", ipnsPath) //或cat
 	//c.Stdout = &out
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	c.Stderr = &outerr
 	//err := c.Run()
 	outbuf, err := c.Output()
-
+	//runQuit <- 1
+	IpfsStopTimer()
 	//strErrInfo := outerr.String()
 
 	//new
 	curCache1Info := new(Cache1StoreCfg) // Cache1StoreCfg{}
-
+	stdErr := outerr.String()
 	if err != nil {
 		log.Error("ipfs error IpfsSyncGetFirstCache error", "error", err, "ipfs err", outerr.String())
+		if strings.Index(stdErr, strIPFSstdErr) > 0 {
+			CheckIpfsStatus(err)
+		}
+		//CheckIpfsStatus(err)
 		return curCache1Info, err
 	}
 	//ReadJsFile()
@@ -789,18 +996,25 @@ func (d *Downloader) IpfsSyncGetLatestBlock(index int) (*LastestBlcokCfg, uint64
 	ipnsPath := "/ipns/" + listPeerId[index] + "/" + strLastestBlockFile
 	//out.Reset()
 
-	c := exec.Command(gStrIpfsName, "get", "-o=ipfsCachecommon/", ipnsPath) //
+	//log.Error("ipfs IpfsSyncGetLatestBlock run cmd before", "listPeerId", listPeerId[index])
+
+	c := exec.Command(gIpfsPath, "get", "-o=ipfsCachecommon/", ipnsPath) //
 	//c.Stdout = &out
 	c.Stderr = &outerr
 	err := c.Run()
 	//outbuf, err := c.Output()
+	//log.Error("ipfs IpfsSyncGetLatestBlock run cmd after")
 
 	//strErrInfo := outerr.String()
-
+	stdErr := outerr.String()
 	curLastestInfo := new(LastestBlcokCfg) //LastestBlcokCfg{}
 	if err != nil {
 
 		log.Error("ipfs IpfsSyncGetLatestBlock run cmd error", "error", err, "ipfs err", outerr.String())
+		if strings.Index(stdErr, strIPFSstdErr) > 0 {
+			CheckIpfsStatus(err)
+		}
+		//CheckIpfsStatus(err)
 		return curLastestInfo, 0, err
 	}
 
@@ -845,8 +1059,8 @@ func insertNewValue(blockNum uint64, headHash string /*common.Hash*/, strblockha
 			//return fmt.Errorf("block hash already exist")
 		}
 	}
-	newBlock.Numberstore[blockNum].Blockhash[headHash] = strblockhash                                                  //string(blockhash[0:IpfsHashLen])
-	log.Trace("ipfs insertNewValue  head hash", "blocknum", blockNum, "headHash", headHash, "blockhash", strblockhash) //string(blockhash[0:IpfsHashLen]))
+	newBlock.Numberstore[blockNum].Blockhash[headHash] = strblockhash //string(blockhash[0:IpfsHashLen])
+	//log.Trace("ipfs insertNewValue  head hash", "blocknum", blockNum, "headHash", headHash, "blockhash", strblockhash) //string(blockhash[0:IpfsHashLen]))
 
 	return nil, BnumberNoExist
 }
@@ -971,7 +1185,7 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 	// block number
 	//curBlockNum := newBlock.NumberU64()
 
-	log.Warn("~~~~~ ipfs RecvBlockToDeal recv new block ~~~~~~", "blockNumSzie=", blockqueue.Size())
+	log.Warn("~~~~~ ipfs RecvBlockToDeal recv new block ~~~~~~", "blockNumLenSzie=", blockqueue.Size())
 
 	stCache1Cfg, _, err := d.IpfsSyncGetLatestBlock(0) //"lastestblockInfo.gb"
 
@@ -997,7 +1211,9 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		tmplistBlockInfo.coinKind = make([]string, 0, 8)
 		tmplistBlockInfo.blockIpfshash = make([]string, 0, 8)
 		tmplistBlockInfo.blockNum = newBlock.NumberU64()
-
+		if tmplistBlockInfo.blockNum == 1 {
+			d.ClearDirectoryContent()
+		}
 		tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
 		if errf != nil {
 			log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
@@ -1015,14 +1231,14 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 			log.Error("ipfs RecvBlockToDeal error IpfsAddNewFile  ", "error=", err)
 
 			// 先不返回，便于后面写进batch  return err
+		} else {
+			//待增加多币种
+			tmplistBlockInfo.coinKind = append(tmplistBlockInfo.coinKind, "0") //0：默认去不区块类型   map变为 coinkind：+headhash
+			tmplistBlockInfo.blockIpfshash = append(tmplistBlockInfo.blockIpfshash, string(hashs[0:IpfsHashLen]))
+			tmpHash := newBlock.Hash()
+			tmplistBlockInfo.blockHeadHash = string(tmpHash[:])
+			curlistBlockInfo = append(curlistBlockInfo, tmplistBlockInfo)
 		}
-		//待增加多币种
-		tmplistBlockInfo.coinKind = append(tmplistBlockInfo.coinKind, "0") //0：默认去不区块类型   map变为 coinkind：+headhash
-		tmplistBlockInfo.blockIpfshash = append(tmplistBlockInfo.blockIpfshash, string(hashs[0:IpfsHashLen]))
-		tmpHash := newBlock.Hash()
-		tmplistBlockInfo.blockHeadHash = string(tmpHash[:])
-
-		curlistBlockInfo = append(curlistBlockInfo, tmplistBlockInfo)
 
 		{
 			d.BatchStoreAllBlock(stBlock)
@@ -1427,7 +1643,7 @@ func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64
 		tmp.Transactionsipfs = obj.Sblock.Transactions()
 		tmp.Unclesipfs = obj.Sblock.Uncles()
 		tmp.Receipt = obj.SReceipt
-		tmp.BlockNum = blockNum
+		tmp.BlockNum = tmp.Headeripfs.Number.Uint64() //blockNum
 		log.Debug(" ipfs send new block to syn BlockAllSt ", "flag", flag, "blockNum", tmp.Headeripfs.Number.Uint64())
 	case 1:
 	case 2:
@@ -1439,6 +1655,9 @@ func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64
 		obj := out.(*types.Receipts)
 		tmp.Receipt = *obj
 		log.Debug(" ipfs send new block to syn Receipts", "flag", flag, "blockNum", blockNum)
+
+	case 33: //通知删除请求队列
+
 	}
 
 	//log.Debug(" ipfs send new block to syn", "number=%d", tmp.Headeripfs.Number.Uint64(), "flag", flag, "blockNum", blockNum)
@@ -1478,7 +1697,8 @@ func (d *Downloader) IpfsProcessRcvHead() {
 					//d.queue.BlockRegetByOld(req.ReqPendflg, req.HeadReqipfs)
 				}
 				if flg == 0 {
-					d.queue.BlockIpfsdeletePool(req.HeadReqipfs.Number.Uint64())
+					//d.queue.BlockIpfsdeletePool(req.HeadReqipfs.Number.Uint64())
+					d.SynOrignDownload(nil, 33, req.HeadReqipfs.Number.Uint64()) //BlockIpfsdeletePool
 				}
 			}
 			d.dpIpfs.DownMutex.Unlock()
@@ -1652,7 +1872,7 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 
 	//file test
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum == 1 {
-		compareFiletoBatchBlock()
+		//	compareFiletoBatchBlock()
 	}
 	d.BatchBlockStoreInit(true)
 }
@@ -1682,6 +1902,26 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
 		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
 	}*/
+	if d.dpIpfs.BatchStBlock.ExpectBeginNum != 0 {
+		beginNum := d.dpIpfs.BatchStBlock.ExpectBeginNum
+		//读文件时，可能原来文件中携带的值较大，而实际测试删除数据又从1开始
+		//if blockNum-d.dpIpfs.BatchStBlock.ExpectBeginNum > BATCH_NUM || d.dpIpfs.BatchStBlock.ExpectBeginNum-blockNum > BATCH_NUM {
+
+		//distance := math.Abs(float64(blockNum - d.dpIpfs.BatchStBlock.ExpectBeginNum))
+		//if distance > 300 {
+		if ((blockNum > beginNum) && (blockNum-beginNum >= BATCH_NUM)) || ((beginNum > blockNum) && (beginNum-blockNum >= BATCH_NUM)) {
+			log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
+			if d.dpIpfs.BatchStBlock.headerStoreFile != nil {
+
+				d.dpIpfs.BatchStBlock.headerStoreFile.Close()
+				d.dpIpfs.BatchStBlock.bodyStoreFile.Close()
+				d.dpIpfs.BatchStBlock.receiptStoreFile.Close()
+			}
+			d.BatchBlockStoreInit(true)
+		}
+
+	}
+
 	if blockNum%BATCH_NUM == 1 {
 		log.Debug(" ipfs BatchStoreAllBlock write ExpectBeginNum ", "blockNum", blockNum)
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
@@ -1699,13 +1939,13 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		return false
 	}
 	//file test
-	if blockNum <= 300 {
+	if blockNum <= BATCH_NUM {
 		headerBatchBuf[blockNumint] = make([]byte, len(bhead))
 		copy(headerBatchBuf[blockNum], bhead)
 	}
 
 	offset = uint64(len(bhead))
-	log.Debug(" ipfs BatchStoreAllBlock write header ", "blockNum", blockNum, "offset", offset)
+	log.Trace(" ipfs BatchStoreAllBlock write header ", "blockNum", blockNum, "offset", offset)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, HeadBatchFlag)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, offset)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, blockNum)
@@ -1720,13 +1960,13 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		log.Error(" ipfs BatchStoreAllBlock error bbody  rlp.EncodeToBytes", "blockNum", blockNum)
 	}
 	//file test
-	if blockNum <= 300 {
+	if blockNum <= BATCH_NUM {
 		bodyBatchBuf[blockNumint] = make([]byte, len(bbody))
 		copy(bodyBatchBuf[blockNum], bbody)
 	}
 
 	offset = uint64(len(bbody))
-	log.Debug(" ipfs BatchStoreAllBlock write body ", "blockNum", blockNum, "offset", offset)
+	log.Trace(" ipfs BatchStoreAllBlock write body ", "blockNum", blockNum, "offset", offset)
 	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, BodyBatchFlag)
 	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, offset)
 	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, blockNum)
@@ -1736,13 +1976,13 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		log.Error(" ipfs BatchStoreAllBlock error breceipt rlp.EncodeToBytes", "blockNum", blockNum)
 	}
 	//file test
-	if blockNum <= 300 {
+	if blockNum <= BATCH_NUM {
 		receiptBatchBuf[blockNumint] = make([]byte, len(breceipt))
 		copy(receiptBatchBuf[blockNum], breceipt)
 	}
 
 	offset = uint64(len(breceipt))
-	log.Debug(" ipfs BatchStoreAllBlock write receipt ", "blockNum", blockNum, "offset", offset)
+	log.Trace(" ipfs BatchStoreAllBlock write receipt ", "blockNum", blockNum, "offset", offset)
 
 	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, ReceiptBatchFlag)
 	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, offset)
@@ -1768,6 +2008,12 @@ func compareFiletoBatchBlock() {
 	if err != nil {
 		log.Error(" ipfs  error receiptStoreFile")
 	}
+	defer func() {
+		headerStoreFile.Close()
+		bodyStoreFile.Close()
+		receiptStoreFile.Close()
+	}()
+
 	log.Info(" compareFiletoBatchBlock begin header")
 	var offsetflag uint64
 	for {
@@ -1787,6 +2033,10 @@ func compareFiletoBatchBlock() {
 			log.Debug(" file over")
 			break
 		}
+		if blockNum > BATCH_NUM {
+			return
+		}
+
 		log.Info(" compareFiletoBatchBlock begin header", "offset", offset, "blockNum", blockNum)
 		//offset = 64
 		blockBuf := make([]byte, int(offset))
@@ -1813,7 +2063,7 @@ func compareFiletoBatchBlock() {
 		} else {
 			log.Warn(" compareFiletoBatchBlock head is not not equal ", "len", len(blockBuf), "blockNum", blockNum, "objblockNum", obj.Number.Uint64())
 		}
-		if blockNum == 300 {
+		if blockNum == BATCH_NUM {
 			break
 		}
 
@@ -1855,7 +2105,7 @@ func compareFiletoBatchBlock() {
 		} else {
 			log.Warn(" compareFiletoBatchBlock body is not not equal ", "len", len(blockBuf), "blockNum", blockNum)
 		}
-		if blockNum == 300 {
+		if blockNum == BATCH_NUM {
 			break
 		}
 	}
@@ -1894,14 +2144,12 @@ func compareFiletoBatchBlock() {
 		} else {
 			log.Warn(" compareFiletoBatchBlock receipt is not not equal ", "len", len(blockBuf), "blockNum", blockNum)
 		}
-		if blockNum == 300 {
+		if blockNum == BATCH_NUM {
 			break
 		}
 		//d.SynOrignDownload(obj,1,blockNum)
 	}
-	headerStoreFile.Close()
-	bodyStoreFile.Close()
-	receiptStoreFile.Close()
+
 }
 func (d *Downloader) BatchBlockStoreInit(bNeedClear bool) {
 	var err error = nil
@@ -1927,6 +2175,7 @@ func (d *Downloader) BatchBlockStoreInit(bNeedClear bool) {
 		log.Error(" ipfs BatchBlockStoreInit error receiptStoreFile")
 	}
 	if bNeedClear == true {
+		log.Warn(" ipfs BatchBlockStoreInit clear file ok")
 		return
 	}
 	if GetFileSize(strBatchHeaderFile) == 0 {
@@ -1953,6 +2202,7 @@ func (d *Downloader) BatchBlockStoreInit(bNeedClear bool) {
 		d.dpIpfs.BatchStBlock.curBlockNum = blast
 	}
 }
+
 func (d *Downloader) checkStoreFile(blockFile *os.File, BatchFlag uint64, headFlg bool) (bool, uint64, common.Hash, uint64) {
 	var errb error = nil
 	var blockNum, offset, offsetflag, beginNum, lastestblock uint64
@@ -2007,8 +2257,8 @@ func (d *Downloader) checkStoreFile(blockFile *os.File, BatchFlag uint64, headFl
 
 	return okFlg, beginNum, headHash, lastestblock
 }
-func (d *Downloader) ParseBatchHeader() bool {
-	var batchblockhash string
+func (d *Downloader) ParseBatchHeader(batchblockhash string, beginReqNumber uint64) bool {
+	//var batchblockhash string
 	var blockNum, offset, offsetflag uint64
 	blockFile, err := IpfsGetBlockByHash(batchblockhash)
 	defer func() {
@@ -2019,7 +2269,7 @@ func (d *Downloader) ParseBatchHeader() bool {
 		log.Debug(" ParseBatchHeader error in IpfsGetBlockByHash", "error", err)
 		return false
 	}
-	log.Debug("ipfs  ParseBatchHeader begin")
+	log.Debug("ipfs  ParseBatchHeader begin", "beginReqNumber", beginReqNumber)
 	var errb error = nil
 	for {
 		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
@@ -2041,6 +2291,10 @@ func (d *Downloader) ParseBatchHeader() bool {
 			log.Debug(" ParseBatchHeader file over", "blockNum", blockNum)
 			break
 		}
+		if (beginReqNumber > blockNum) || ((blockNum > beginReqNumber) && (blockNum-beginReqNumber > BATCH_NUM)) {
+			log.Debug(" ParseBatchHeader file error,blockNum illegality ", "blockNum", blockNum, "beginReqNumber", beginReqNumber)
+			return false
+		}
 		blockBuf := make([]byte, offset)
 		leng, errb := blockFile.Read(blockBuf)
 		if errb == io.EOF || leng != len(blockBuf) {
@@ -2061,7 +2315,7 @@ func (d *Downloader) ParseBatchHeader() bool {
 
 	return true
 }
-func (d *Downloader) ParseBatchBody(batchblockhash string) bool {
+func (d *Downloader) ParseBatchBody(batchblockhash string, beginReqNumber uint64) bool {
 
 	var blockNum, offset, offsetflag uint64
 	blockFile, err := IpfsGetBlockByHash(batchblockhash)
@@ -2073,7 +2327,7 @@ func (d *Downloader) ParseBatchBody(batchblockhash string) bool {
 		log.Debug(" ParseBatchBody error in IpfsGetBlockByHash", "error", err)
 		return false
 	}
-	log.Debug("ipfs  ParseBatchBody begin")
+	log.Debug("ipfs  ParseBatchBody begin", "beginReqNumber", beginReqNumber)
 	var errb error = nil
 	for {
 		errb = binary.Read(blockFile, binary.BigEndian, &offsetflag)
@@ -2096,6 +2350,10 @@ func (d *Downloader) ParseBatchBody(batchblockhash string) bool {
 			log.Debug(" ParseBatchBody file over", "blockNum", blockNum)
 			break
 		}
+		/*if (beginReqNumber > blockNum) || ((blockNum > beginReqNumber) && (blockNum-beginReqNumber > BATCH_NUM)) {
+			log.Debug(" ParseBatchBody file error,blockNum illegality ", "blockNum", blockNum, "beginReqNumber", beginReqNumber)
+			return false
+		}*/
 		blockBuf := make([]byte, offset)
 		leng, errb := blockFile.Read(blockBuf)
 		if errb == io.EOF || leng != len(blockBuf) {
@@ -2108,11 +2366,15 @@ func (d *Downloader) ParseBatchBody(batchblockhash string) bool {
 		if errd != nil {
 			log.Error("ipfs dencode block info from ParseBatchBody", "err", errd, "blockNum", blockNum)
 		}
-		d.SynOrignDownload(obj, 2, blockNum)
+		if (beginReqNumber > blockNum) || ((blockNum > beginReqNumber) && (blockNum-beginReqNumber >= BATCH_NUM)) {
+			log.Debug(" ParseBatchBody file error,blockNum illegality ", "blockNum", blockNum, "beginReqNumber", beginReqNumber)
+		} else {
+			d.SynOrignDownload(obj, 2, blockNum)
+		}
 	}
 	return true
 }
-func (d *Downloader) ParseBatchReceipt(batchblockhash string) bool {
+func (d *Downloader) ParseBatchReceipt(batchblockhash string, beginReqNumber uint64) bool {
 
 	var blockNum, offset, offsetflag uint64
 	blockFile, err := IpfsGetBlockByHash(batchblockhash)
@@ -2124,7 +2386,7 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string) bool {
 		log.Debug(" ParseBatchReceipt error in IpfsGetBlockByHash", "error", err)
 		return false
 	}
-	log.Debug("ipfs  ParseBatchReceipt begin")
+	log.Debug("ipfs  ParseBatchReceipt begin", "beginReqNumber", beginReqNumber)
 	var errb error = nil
 	for {
 
@@ -2148,6 +2410,10 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string) bool {
 			log.Debug(" ParseBatchReceipt file over", "blockNum", blockNum)
 			break
 		}
+		/*if (beginReqNumber > blockNum) || ((blockNum > beginReqNumber) && (blockNum-beginReqNumber > BATCH_NUM)) {
+			log.Debug(" ParseBatchReceipt file error,blockNum illegality ", "blockNum", blockNum, "beginReqNumber", beginReqNumber)
+			return false
+		}*/
 		blockBuf := make([]byte, offset)
 		leng, errb := blockFile.Read(blockBuf)
 		if errb == io.EOF || leng != len(blockBuf) {
@@ -2160,7 +2426,11 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string) bool {
 		if errd != nil {
 			log.Error("ipfs dencode block info from ParseBatchReceipt", "err", errd, "blockNum", blockNum)
 		}
-		d.SynOrignDownload(obj, 3, blockNum)
+		if (beginReqNumber > blockNum) || ((blockNum > beginReqNumber) && (blockNum-beginReqNumber >= BATCH_NUM)) {
+			log.Debug(" ParseBatchReceipt file error,blockNum illegality ", "blockNum", blockNum, "beginReqNumber", beginReqNumber)
+		} else {
+			d.SynOrignDownload(obj, 3, blockNum)
+		}
 	}
 	return true
 }
@@ -2231,10 +2501,15 @@ func (d *Downloader) DownloadBatchBlock(headhash common.Hash, headNumber uint64,
 				hstr := string([]byte(str)[:2])
 				if hstr == "2:" {
 					log.Debug(" ipfs  DownloadBatchBlock get new batchblock body form ipfs use by getCache2", "blockNum", headNumber)
-					d.ParseBatchBody(string([]byte(str)[2:]))
+					if d.ParseBatchBody(string([]byte(str)[2:]), headNumber) == false {
+						return 1
+					}
+
 				} else if hstr == "3:" && pendflag == 2 {
 					log.Debug(" ipfs  DownloadBatchBlock get new batchblock receipt form ipfs use by getCache2", "blockNum", headNumber)
-					d.ParseBatchReceipt(string([]byte(str)[2:]))
+					if d.ParseBatchReceipt(string([]byte(str)[2:]), headNumber) == false {
+						return 1
+					}
 				}
 			}
 			//strings.Index()
@@ -2254,9 +2529,12 @@ func (d *Downloader) DownloadBatchBlock(headhash common.Hash, headNumber uint64,
 
 func (d *Downloader) SynBlockFormBlockchain() {
 	log.Debug(" ipfs proc go SynBlockFormBlockchain enter")
-
 	d.BatchBlockStoreInit(false)
-
+	/*fmt.Println("aaaaaa")
+	time.Sleep(10 * time.Second)
+	fmt.Println("bbbbb down ")
+	RestartIpfsDaemon()
+	fmt.Println("ccccc")*/
 	recvSync := time.NewTicker(5 * time.Second)
 	defer recvSync.Stop()
 	for {
@@ -2326,12 +2604,13 @@ func (d *Downloader) SynIPFSCheck() {
 							} else {
 								d.dpIpfs.DownRetrans.Remove(element)
 								//加入原始下载方式
-								d.queue.BlockRegetByOld(tmpReq.ReqPendflg, tmpReq.header)
+								d.queue.BlockRegetByOldMode(tmpReq.flag, tmpReq.ReqPendflg, tmpReq.header)
 								//lb d.queue.BlockIpfsdeletePool(tmpReq.header.Number.Uint64())
 							}
 							tmpReq.downNum++
 						} else if res == 0 {
 							//lb d.queue.BlockIpfsdeletePool(tmpReq.header.Number.Uint64())
+							d.SynOrignDownload(nil, 33, tmpReq.header.Number.Uint64())
 							d.dpIpfs.DownRetrans.Remove(element)
 						}
 					}
@@ -2343,10 +2622,14 @@ func (d *Downloader) SynIPFSCheck() {
 
 }
 func (d *Downloader) ClearIpfsQueue() {
-	/*
+
+	if d.dpIpfs != nil && d.dpIpfs.DownRetrans != nil {
 		if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
+			d.dpIpfs.DownMutex.Lock()
 			for element := d.dpIpfs.DownRetrans.Front(); element != nil; element = element.Next() {
 				d.dpIpfs.DownRetrans.Remove(element)
 			}
-		}*/
+			d.dpIpfs.DownMutex.Unlock()
+		}
+	}
 }

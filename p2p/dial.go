@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/common"
 	"net"
 	"time"
 
@@ -78,6 +79,8 @@ type discoverTable interface {
 	Resolve(target discover.NodeID) *discover.Node
 	Lookup(target discover.NodeID) []*discover.Node
 	ReadRandomNodes([]*discover.Node) int
+	GetNodeByAddress(target common.Address) *discover.Node
+	GetAllAddress() map[common.Address]*discover.Node
 }
 
 // the dial history remembers recent dials.

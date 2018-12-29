@@ -10,9 +10,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/random/commonsupport"
-	//"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/random/commonsupport"
 )
 
 func init() {
@@ -47,7 +46,6 @@ func (self *MinHashPlug) Prepare(height uint64, support baseinterface.RandomChai
 	}
 	privatekeySend := common.BigToHash(self.privatekey).Bytes()
 
-
 	log.INFO(ModuleElectSeed, "投票高度", (height + voteBeforeTime))
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Publickey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: publickeySend})
 	mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.Privatekey, Height: big.NewInt(int64(height + voteBeforeTime)), Data: privatekeySend})
@@ -62,11 +60,11 @@ func (self *MinHashPlug) CalcSeed(hash common.Hash, support baseinterface.Random
 		log.ERROR(ModuleElectSeed, "计算阶段", "", "获取有效私钥出错 err", err)
 		return nil, err
 	}
-	log.Info(ModuleElectSeed,"计算阶段,有效私钥之和",SeedSum)
-	minHash ,err:= commonsupport.GetMinHash(hash, support)
-	if err!=nil{
-		log.Error(ModuleElectSeed,"计算阶段,获取最小hash错误 err",err)
-		return nil,err
+	log.Info(ModuleElectSeed, "计算阶段,有效私钥之和", SeedSum)
+	minHash, err := commonsupport.GetMinHash(hash, support)
+	if err != nil {
+		log.Error(ModuleElectSeed, "计算阶段,获取最小hash错误 err", err)
+		return nil, err
 	}
 	SeedSum.Add(SeedSum, minHash.Big())
 	log.INFO(ModuleElectSeed, "计算阶段", "", "计算结果为", SeedSum, "高度hash", hash.String())

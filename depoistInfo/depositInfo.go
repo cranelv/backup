@@ -141,7 +141,6 @@ func AddInterest(stateDB vm.StateDBManager, address common.Address, reward *big.
 func SetInterest(stateDB vm.StateDBManager, address common.Address, reward *big.Int) error {
 	return depositInfo.MatrixDeposit.SetInterest(depositInfo.Contract, stateDB, address, reward)
 }
-
 func GetDeposit(stateDB vm.StateDBManager,address common.Address) *big.Int {
 	return depositInfo.MatrixDeposit.GetDeposit(depositInfo.Contract, stateDB,address)
 }

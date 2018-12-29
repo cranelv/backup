@@ -13,8 +13,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/matrix/go-matrix/mc"
-
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
@@ -32,6 +30,9 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
+var errGenGenesisBlockNoConfig = errors.New("no genesis cfg and no genesis block")
+var errGenesisLostChainCfg = errors.New("genesis block lost chaincfg")
+var errGenesisToBlockErr = errors.New("Genesis To Block Err")
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -44,7 +45,7 @@ type Genesis struct {
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
 	VrfValue          []byte              `json:"vrfvalue"`
 	Leader            common.Address      `json:"leader"`
-	Elect             []common.Elect      `json:"elect"    gencodec:"required"`
+	NextElect         []common.Elect      `json:"nextElect"    gencodec:"required"`
 	NetTopology       common.NetTopology  `json:"nettopology"       gencodec:"required"`
 	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 
@@ -79,7 +80,7 @@ type Genesis1 struct {
 	VersionSignatures []common.Signature  `json:"versionSignatures"    gencodec:"required"`
 	VrfValue          []byte              `json:"vrfvalue"`
 	Leader            string              `json:"leader"`
-	Elect             []common.Elect1     `json:"elect"    gencodec:"required"`
+	NextElect         []common.Elect1     `json:"nextElect"    gencodec:"required"`
 	NetTopology       common.NetTopology1 `json:"nettopology"       gencodec:"required"`
 	Signatures        []common.Signature  `json:"signatures" gencodec:"required"`
 	GasLimit          uint64              `json:"gasLimit"   gencodec:"required"`
@@ -105,6 +106,7 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.ExtraData = gensis1.ExtraData
 	gensis.Version = gensis1.Version
 	gensis.VersionSignatures = gensis1.VersionSignatures
+	gensis.VrfValue = gensis1.VrfValue
 	gensis.Signatures = gensis1.Signatures
 	gensis.Difficulty = gensis1.Difficulty
 	gensis.Mixhash = gensis1.Mixhash
@@ -116,16 +118,17 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Roots = gensis1.Roots
 	gensis.Sharding = gensis1.Sharding
 	gensis.TxHash = gensis1.TxHash
-	//Elect
-	sliceElect := make([]common.Elect, 0)
-	for _, elec := range gensis1.Elect {
+	//nextElect
+	nextElect := make([]common.Elect, 0)
+	for _, elec := range gensis1.NextElect {
 		tmp := new(common.Elect)
 		tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 		tmp.Stock = elec.Stock
 		tmp.Type = elec.Type
-		sliceElect = append(sliceElect, *tmp)
+		nextElect = append(nextElect, *tmp)
 	}
-	gensis.Elect = sliceElect
+	gensis.NextElect = nextElect
+
 	//NetTopology
 	sliceNetTopologyData := make([]common.NetTopologyData, 0)
 	for _, netTopology := range gensis1.NetTopology.NetTopologyData {
@@ -145,22 +148,49 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	if nil != gensis1.MState {
 		gensis.MState = new(GenesisMState)
 		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(mc.NodeInfo)
-			gensis.MState.Broadcast.NodeID = gensis1.MState.Broadcast.NodeID
-			gensis.MState.Broadcast.Address = base58.Base58DecodeToAddress(gensis1.MState.Broadcast.Address)
+			gensis.MState.Broadcast = new(common.Address)
+			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
 		}
 		if nil != gensis1.MState.Foundation {
-			gensis.MState.Foundation = new(mc.NodeInfo)
-			gensis.MState.Foundation.NodeID = gensis1.MState.Foundation.NodeID
-			gensis.MState.Foundation.Address = base58.Base58DecodeToAddress(gensis1.MState.Foundation.Address)
+			gensis.MState.Foundation = new(common.Address)
+			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*gensis1.MState.Foundation)
+		}
+		if nil != gensis1.MState.VersionSuperAccounts {
+			versionSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.VersionSuperAccounts {
+				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
+		}
+		if nil != gensis1.MState.BlockSuperAccounts {
+			blockSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.BlockSuperAccounts {
+				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
-
+			innerMiners := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
-
-				*gensis.MState.InnerMiners = append(*gensis.MState.InnerMiners, mc.NodeInfo{NodeID: v.NodeID, Address: base58.Base58DecodeToAddress(v.Address)})
+				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
+			gensis.MState.InnerMiners = &innerMiners
 		}
+		if nil != gensis1.MState.ElectBlackListCfg {
+			blackList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectBlackListCfg {
+				blackList = append(blackList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.ElectBlackListCfg = &blackList
+		}
+		if nil != gensis1.MState.ElectWhiteListCfg {
+			whiteList := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.ElectWhiteListCfg {
+				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.InnerMiners = &whiteList
+		}
+		gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
 		gensis.MState.InterestCfg = gensis1.MState.InterestCfg
@@ -171,7 +201,20 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		gensis.MState.LeaderCfg = gensis1.MState.LeaderCfg
 		gensis.MState.EleTimeCfg = gensis1.MState.EleTimeCfg
 		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
+		if nil != gensis1.MState.CurElect {
+			//curElect
+			curElect := make([]common.Elect, 0)
+			for _, elec := range *gensis1.MState.CurElect {
+				tmp := new(common.Elect)
+				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp.Stock = elec.Stock
+				tmp.Type = elec.Type
+				curElect = append(curElect, *tmp)
+			}
+			gensis.MState.CurElect = &curElect
+		}
 	}
+
 }
 
 //**********************************************************//
@@ -270,11 +313,11 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		if genesis == nil {
-			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
-		} else {
-			log.Info("Writing custom genesis block")
+			log.Error("Without GenesisBlock and GenesisCfg")
+			return nil, common.Hash{}, errGenGenesisBlockNoConfig
 		}
+
+		log.Info("Writing custom genesis block")
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -283,29 +326,34 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	if genesis != nil {
 		block, err := genesis.ToBlock(nil)
 		if err != nil {
-			return genesis.Config, common.Hash{}, err
+			return nil, common.Hash{}, errGenesisToBlockErr
 		}
-		hash := block.Hash()
-		if hash != stored {
-			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		if block.Hash() != stored {
+			return genesis.Config, block.Hash(), &GenesisMismatchError{stored, block.Hash()}
 		}
 	}
 
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	if storedcfg == nil {
+	/*	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
+	}*/
+	if storedcfg == nil {
+		log.Warn("Genesis Block Lost Cfg")
+		return newcfg, stored, errGenesisLostChainCfg
 	}
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
-	if genesis == nil && stored != params.MainnetGenesisHash {
+	/*	if genesis == nil && stored != params.MainnetGenesisHash {
+		return storedcfg, stored, nil
+	}*/
+	if genesis == nil {
 		return storedcfg, stored, nil
 	}
-
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
@@ -324,10 +372,10 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
 		return g.Config
-	case ghash == params.MainnetGenesisHash:
+	/*case ghash == params.MainnetGenesisHash:
 		return params.MainnetChainConfig
 	case ghash == params.TestnetGenesisHash:
-		return params.TestnetChainConfig
+		return params.TestnetChainConfig*/
 	default:
 		return params.AllManashProtocolChanges
 	}
@@ -367,7 +415,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
 		return nil, errors.New("MState of genesis is nil")
 	}
-	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.Elect, g.Number); err != nil {
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.NextElect, g.Number); err != nil {
 		log.Error("genesis", "MState.setMatrixState err", err)
 		return nil, err
 	}
@@ -386,7 +434,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
 		VrfValue:          g.VrfValue,
-		Elect:             g.Elect,
+		Elect:             g.NextElect,
 		NetTopology:       g.NetTopology,
 		Signatures:        g.Signatures,
 		Leader:            g.Leader,
@@ -439,7 +487,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		}
 	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.Elect, g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
@@ -457,7 +505,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		Extra:             g.ExtraData,
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
-		Elect:             g.Elect,
+		Elect:             g.NextElect,
 		NetTopology:       g.NetTopology,
 		Signatures:        g.Signatures,
 		Leader:            g.Leader,

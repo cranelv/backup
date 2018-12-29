@@ -22,7 +22,7 @@ import (
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 	log.INFO(p.logExtraInfo(), "状态恢复消息处理", "开始", "类型", msg.Type, "高度", p.number, "leader", msg.Header.Leader.Hex())
-	defer log.INFO(p.logExtraInfo(), "状态恢复消息处理", "结束", "类型", msg.Type, "高度", p.number, "leader", msg.Header.Leader.Hex())
+	defer log.Debug(p.logExtraInfo(), "状态恢复消息处理", "结束", "类型", msg.Type, "高度", p.number, "leader", msg.Header.Leader.Hex())
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -39,7 +39,7 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 		MixDigest:  header.MixDigest,
 		Signatures: header.Signatures,
 	}
-	log.INFO(p.logExtraInfo(), "状态恢复消息处理", "开始补全挖矿结果消息")
+	log.Debug(p.logExtraInfo(), "状态恢复消息处理", "开始补全挖矿结果消息")
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
 		log.WARN(p.logExtraInfo(), "状态恢复消息处理", "挖矿结果入池失败", "err", err, "高度", p.number)
 	}
@@ -47,14 +47,14 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 
 	if p.state != StateEnd {
 		//处理完成后，状态不是完成状态，说明缺少数据
-		log.INFO(p.logExtraInfo(), "状态恢复消息处理", "处理完毕后，本地状态不是end", "本地状态", p.state, "hash", headerHash.TerminalString())
+		log.Debug(p.logExtraInfo(), "状态恢复消息处理", "处理完毕后，本地状态不是end", "本地状态", p.state, "hash", headerHash.TerminalString())
 		if p.FullBlockReqCache.IsExistMsg(headerHash) {
 			data, err := p.FullBlockReqCache.ReUseMsg(headerHash)
 			if err != nil {
 				return
 			}
 			reqMsg, _ := data.(*mc.HD_FullBlockReqMsg)
-			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
+			log.Debug(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
 			p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{msg.From})
 		} else {
 			reqMsg := &mc.HD_FullBlockReqMsg{
@@ -62,7 +62,7 @@ func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
 				Number:     header.Number.Uint64(),
 			}
 			p.FullBlockReqCache.AddMsg(headerHash, reqMsg, time.Now().Unix())
-			log.INFO(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
+			log.Debug(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", msg.From.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
 			p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{msg.From})
 		}
 	}
@@ -85,9 +85,9 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 
 	rspMsg := &mc.HD_FullBlockRspMsg{
 		Header: blockData.block.Header,
-		Txs:    blockData.block.Txs,
+		Txs:    blockData.block.OriginalTxs,
 	}
-	log.INFO(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易数量", rspMsg.Txs.Len())
+	log.Debug(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易数量", rspMsg.Txs.Len())
 	p.pm.hd.SendNodeMsg(mc.HD_FullBlockRsp, rspMsg, common.RoleNil, []common.Address{req.From})
 }
 
@@ -114,18 +114,18 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	//运行交易
-	receipts, stateDB, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
+	receipts, stateDB, finalTxs, err := p.runTxs(rsp.Header, headerHash, rsp.Txs)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
-	log.Info(p.logExtraInfo(), "执行交易root", rsp.Header.Roots)
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
-		Header:    rsp.Header,
-		BlockHash: rsp.Header.HashNoSignsAndNonce(),
-		Txs:       rsp.Txs,
-		Receipts:  receipts,
-		State:     stateDB,
+		Header:      rsp.Header,
+		BlockHash:   rsp.Header.HashNoSignsAndNonce(),
+		OriginalTxs: rsp.Txs,
+		FinalTxs:    finalTxs,
+		Receipts:    receipts,
+		State:       stateDB,
 	})
 
 	readyMsg := &mc.NewBlockReadyMsg{
@@ -138,10 +138,11 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	p.processBlockInsert(rsp.Header.Leader)
 }
 
-func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDBManage, error) {
+
+func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDBManage, types.SelfTransactions, error) {
 	parent := p.blockChain().GetBlockByHash(header.ParentHash)
 	if parent == nil {
-		return nil, nil, errors.Errorf("父区块(%s)获取失败!", header.ParentHash.TerminalString())
+		return nil, nil, nil, errors.Errorf("父区块(%s)获取失败!", header.ParentHash.TerminalString())
 	}
 
 	localHeader := types.CopyHeader(header)
@@ -149,18 +150,32 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 
 	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
 	if err != nil {
-		return nil, nil, errors.Errorf("创建worker错误(%v)", err)
+		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
-	// 跑交易不能添加奖励，增加新接口或map为空
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, false)
+
+	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
-		return nil, nil, errors.Errorf("执行交易错误(%v)", err)
+		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
 	}
-	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State,
-		Txs, nil, work.Receipts)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, uptimeMap)
 	if err != nil {
-		return nil, nil, errors.Errorf("Finalize error(%v)", err)
+		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
+	finalTxs := work.GetTxs()
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
+
+	// process matrix state
+	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
+	if err != nil {
+		return nil, nil, nil, errors.Errorf("ProcessMatrixState err(%v)", err)
+	}
+
+	// 运行完matrix state后，生成root
+	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts)
+	if err != nil {
+		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
+	}
+
 	//localBlock check
 	localHash := block.Header().HashNoSignsAndNonce()
 
@@ -173,9 +188,9 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 			"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),
 			"local GasLimit", block.Header().GasLimit, "remote GasLimit", header.GasLimit,
 			"local GasUsed", block.Header().GasUsed, "remote GasUsed", header.GasUsed)
-		return nil, nil, errors.Errorf("block hash不匹配.LocalHash(%s) != remoteHash(%s)", localHash.TerminalString(), headerHash.TerminalString())
+		return nil, nil, nil, errors.Errorf("block hash不匹配.LocalHash(%s) != remoteHash(%s)", localHash.TerminalString(), headerHash.TerminalString())
 	}
-	return work.Receipts, work.State, nil
+	return work.Receipts, work.State, finalTxs, nil
 }
 
 func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
@@ -185,15 +200,16 @@ func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {
 	if err := p.powPool.AddMinerResult(minerResult.BlockHash, minerResult.Difficulty, minerResult); err != nil {
 		return
 	}
+	log.Info(p.logExtraInfo(), "关键时间点", "收到矿工挖矿结果", "time", time.Now(), "块高", p.number)
 	log.INFO(p.logExtraInfo(), "矿工挖矿结果消息处理", "开始", "高度", minerResult.Number, "难度", minerResult.Difficulty.Uint64(), "block hash", minerResult.BlockHash.TerminalString(), "from", minerResult.From.Hex())
 	p.processMinerResultVerify(p.curLeader, true)
 }
 
 func (p *Process) minerPickTimeout() {
 	p.mu.Lock()
-	log.INFO(p.logExtraInfo(), "minerPickTimeout", "开始处理", "高度", p.number)
+	log.Debug(p.logExtraInfo(), "minerPickTimeout", "开始处理", "高度", p.number)
 	defer func() {
-		defer log.INFO(p.logExtraInfo(), "minerPickTimeout", "结束处理", "高度", p.number)
+		defer log.Debug(p.logExtraInfo(), "minerPickTimeout", "结束处理", "高度", p.number)
 		p.mu.Unlock()
 	}()
 
@@ -221,16 +237,15 @@ func (p *Process) processMinerResultVerify(leader common.Address, checkState boo
 	}
 
 	if p.bcInterval.IsBroadcastNumber(p.number) {
-		log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 		p.dealMinerResultVerifyBroadcast()
 	} else {
-		log.INFO(p.logExtraInfo(), "当前高度为普通区块, 进行普通挖矿结果验证, 高度", p.number)
 		p.dealMinerResultVerifyCommon(leader)
 	}
 }
 
 func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 	var blockData *blockCacheData = nil
+	log.INFO(p.logExtraInfo(), "当前高度为普通区块, 进行普通挖矿结果验证, 高度", p.number)
 	if p.role == common.RoleBroadcast {
 		blockData = p.blockCache.GetLastBlockData()
 	} else {
@@ -313,7 +328,7 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		}
 
 		if p.nextLeader != ca.GetAddress() {
-			log.INFO(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
+			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
 			return
 		}
 	}
@@ -324,8 +339,8 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 		log.ERROR(p.logExtraInfo(), "区块插入，错误", err)
 		return
 	}
-
-	log.INFO(p.logExtraInfo(), "区块插入", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
+	log.Info(p.logExtraInfo(), "关键时间点", "leader挂块成功", "time", time.Now(), "块高", p.number)
+	log.Debug(p.logExtraInfo(), "区块插入", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
 	p.state = StateEnd
 }
 
@@ -395,21 +410,19 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 
 	insertHeader := blockData.block.Header
 	if isSelf == false {
+		if header == nil {
+			return common.Hash{}, ParaNull
+		}
 		if header.HashNoSignsAndNonce() != insertHeader.HashNoSignsAndNonce() {
 			return common.Hash{}, HashNoSignNotMatchError
 		}
 		insertHeader = header
 	}
 
-	txs := blockData.block.Txs
+	txs := blockData.block.FinalTxs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
 	block := types.NewBlockWithTxs(insertHeader, txs)
-
-	//root, err := state.Commit(p.pm.bc.Config().IsEIP158(blockData.block.Header.Number))
-	//if root != insertHeader.Root {
-	//	log.Error("hyk_miss_trie_6", "root", insertHeader.Root.TerminalString(), "state root", root.TerminalString())
-	//}
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

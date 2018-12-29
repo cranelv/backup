@@ -8,8 +8,8 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/matrix/go-matrix/base58"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -360,6 +360,11 @@ var (
 	PasswordFileFlag = cli.StringFlag{
 		Name:  "password",
 		Usage: "Password file to use for non-interactive password input",
+		Value: "",
+	}
+	ManAddressFlag = cli.StringFlag{
+		Name:  "manAddress",
+		Usage: "deposit user signature account.",
 		Value: "",
 	}
 	AccountPasswordFileFlag = cli.StringFlag{
@@ -875,6 +880,11 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
 		cfg.NoDiscovery = true
 	}
+	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
+		innerAddr := base58.Base58DecodeToAddress(manAddr)
+		cfg.ManAddress = innerAddr
+		cfg.ManAddrStr = manAddr
+	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery
 	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
@@ -1097,7 +1107,7 @@ func SetManConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 	}
 
 	// Override any default configs for hard coded networks.
-	switch {
+	/*switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 3
@@ -1131,7 +1141,7 @@ func SetManConfig(ctx *cli.Context, stack *pod.Node, cfg *man.Config) {
 		if !ctx.GlobalIsSet(GasPriceFlag.Name) {
 			cfg.GasPrice = big.NewInt(1)
 		}
-	}
+	}*/
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)

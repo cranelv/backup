@@ -150,7 +150,7 @@ func (p *Process) SetCurLeader(leader common.Address, consensusTurn mc.Consensus
 	p.consensusTurn = consensusTurn
 	p.closeConsensusReqSender()
 	p.stopMinerPikerTimer()
-	log.INFO(p.logExtraInfo(), "process设置当前leader成功", p.curLeader.Hex(), "高度", p.number)
+	log.Debug(p.logExtraInfo(), "process设置当前leader成功", p.curLeader.Hex(), "高度", p.number)
 	if p.checkState(StateIdle) {
 		return
 	}
@@ -167,7 +167,7 @@ func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address)
 		return
 	}
 	p.nextLeader = leader
-	log.INFO(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
+	log.Debug(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
 	if p.state < StateBlockInsert {
 		return
 	}
@@ -188,7 +188,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	}
 
 	blockHash := blkInsertMsg.Header.Hash()
-	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString())
+	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString(), "from", blkInsertMsg.From.Hex(), "高度", p.number)
 
 	if p.checkRepeatInsert(blockHash) {
 		log.WARN(p.logExtraInfo(), "插入区块已处理", p.number, "区块 hash", blockHash.TerminalString())
@@ -262,16 +262,16 @@ func (p *Process) startBcBlock() {
 
 	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "广播区块阶段", "获取广播周期错误", "err", err)
+		log.ERROR(p.logExtraInfo(), "区块广播阶段", "获取广播周期错误", "err", err)
 		return
 	}
 
 	if p.number != 1 { //todo 不好理解
-		log.INFO(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "区块 hash", parentHash)
+		log.Debug(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "区块 hash", parentHash)
 		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
 	}
 
-	log.INFO(p.logExtraInfo(), "广播区块阶段 广播周期信息", bcInterval.GetBroadcastInterval())
+	log.Debug(p.logExtraInfo(), "区块广播阶段 广播周期信息", bcInterval.GetBroadcastInterval())
 	p.bcInterval = bcInterval
 	p.preBlockHash = parentHash
 	p.state = StateHeaderGen
@@ -283,12 +283,16 @@ func (p *Process) canBcBlock() bool {
 	case common.RoleBroadcast:
 		return true
 	case common.RoleValidator:
+		if p.bcInterval.IsBroadcastNumber(p.number) {
+			log.Debug(p.logExtraInfo(), "区块广播阶段", "验证者身份，当前是广播区块，直接区块广播", "高度", p.number)
+			return true
+		}
 		if (p.curLeader == common.Address{}) {
-			log.WARN(p.logExtraInfo(), "广播区块阶段", "当前leader为空，等待leader消息", "高度", p.number)
+			log.WARN(p.logExtraInfo(), "区块广播阶段", "当前leader为空，等待leader消息", "高度", p.number)
 			return false
 		}
 	default:
-		log.WARN(p.logExtraInfo(), "广播区块阶段, 错误的身份", p.role.String(), "高度", p.number)
+		log.WARN(p.logExtraInfo(), "区块广播阶段, 错误的身份", p.role.String(), "高度", p.number)
 		return false
 	}
 	return true
@@ -380,7 +384,7 @@ func (p *Process) startMinerPikerTimer(outTime int64) {
 	if p.minerPickTimer != nil {
 		return
 	}
-	log.INFO(p.logExtraInfo(), "开启minerPickTimer,超时时间", outTime, "高度", p.number)
+	log.Debug(p.logExtraInfo(), "开启minerPickTimer,超时时间", outTime, "高度", p.number)
 	p.minerPickTimer = time.AfterFunc(time.Duration(outTime)*time.Second, func() {
 		p.minerPickTimeout()
 	})

@@ -85,6 +85,8 @@ func (self *TopologyGraph) modifyGraphByChgInfo(chgInfo *common.NetTopologyData)
 			if chgInfo.Position == common.PosOffline && chgInfo.Account == topNode.Account {
 				self.NodeList = append(self.NodeList[:i], self.NodeList[i+1:]...)
 				return
+			} else {
+				continue
 			}
 		} else if chgInfo.Position == topNode.Position {
 			if (chgInfo.Account == common.Address{}) {
@@ -133,14 +135,24 @@ func (eg *ElectGraph) TransferElect2CommonElect() []common.Elect {
 }
 
 func (eg *ElectGraph) TransferNextElect2CommonElect() []common.Elect {
-	size := len(eg.NextElect)
-	rst := make([]common.Elect, size, size)
-	for i := 0; i < size; i++ {
-		rst[i].Account.Set(eg.NextElect[i].Account)
-		rst[i].Stock = eg.NextElect[i].Stock
-		rst[i].Type = eg.NextElect[i].Type.Transfer2ElectRole()
+	nextElect := []common.Elect{}
+	lenM := len(eg.NextMinerElect)
+	lenV := len(eg.NextValidatorElect)
+	for index := 0; index < lenM; index++ {
+		nextElect = append(nextElect, common.Elect{
+			Account: eg.NextMinerElect[index].Account,
+			Stock:   eg.NextMinerElect[index].Stock,
+			Type:    eg.NextMinerElect[index].Type.Transfer2ElectRole(),
+		})
 	}
-	return rst
+	for index := 0; index < lenV; index++ {
+		nextElect = append(nextElect, common.Elect{
+			Account: eg.NextValidatorElect[index].Account,
+			Stock:   eg.NextValidatorElect[index].Stock,
+			Type:    eg.NextValidatorElect[index].Type.Transfer2ElectRole(),
+		})
+	}
+	return nextElect
 }
 
 func (eos *ElectOnlineStatus) FindNodeElectOnlineState(node common.Address) *ElectNodeInfo {
@@ -172,7 +184,7 @@ func (os OnlineState) String() string {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 func (info *ConsensusTurnInfo) String() string {
-	return "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
+	return strconv.Itoa(int(info.TotalTurns())) + "[" + strconv.Itoa(int(info.PreConsensusTurn)) + "," + strconv.Itoa(int(info.UsedReelectTurn)) + "]"
 }
 
 func (info *ConsensusTurnInfo) TotalTurns() uint32 {

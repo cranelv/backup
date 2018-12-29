@@ -6,63 +6,143 @@ package support
 import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/mt19937"
-
-	"math/big"
 )
 
-func GetList(probnormalized []Pnormalized,needNum int,seed int64)([]Strallyint,[]Pnormalized){
-	probnormalized =Normalize(probnormalized)
-	ans:=[]Strallyint{}
-	RemainingProbNormalizedNodes:=[]Pnormalized{}
-	if needNum>=len(probnormalized){
-		for _,v:=range probnormalized{
-			ans=append(ans,Strallyint{Addr:v.Addr,Value:1})
-		}
-		return ans,[]Pnormalized{}
-	}
-	rand := mt19937.RandUniformInit(seed)
-	dict := make(map[common.Address]int)
-	for i := 0; i < MaxSample; i++ {
-		node := Sample1NodesInValNodes(probnormalized, float64(rand.Uniform(0.0, 1.0)))
+func GetList_VIP(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform) ([]Strallyint, []Pnormalized) {
+	probnormalized = Normalize_VIP(probnormalized)
 
+	if len(probnormalized) == 0 {
+		return []Strallyint{}, probnormalized
+	}
+	if needNum > len(probnormalized) {
+		needNum = len(probnormalized)
+	}
+	ChoseNode := []Strallyint{}
+	RemainingProbNormalizedNodes := []Pnormalized{}
+	dict := make(map[common.Address]int)
+	orderAddress := []common.Address{}
+
+	for i := 0; i < MaxSample; i++ {
+		tempRand := float64(rand.Uniform(0.0, 1.0))
+
+		node := Sample1NodesInValNodes_VIP(probnormalized, tempRand)
 		_, ok := dict[node]
 		if ok == true {
 			dict[node] = dict[node] + 1
 		} else {
 			dict[node] = 1
-		}
 
+			orderAddress = append(orderAddress, node)
+		}
 		if len(dict) == (needNum) {
 			break
 		}
 	}
+
+	for _, v := range orderAddress {
+		ChoseNode = append(ChoseNode, Strallyint{Addr: v, Value: dict[v]})
+	}
+
 	for _, item := range probnormalized {
-		_, ok := dict[item.Addr]
-		if ok == false {
-			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, Pnormalized{Addr: item.Addr, Value: item.Value})
+		if _, ok := dict[item.Addr]; ok == true {
+			continue
+		}
+		if len(ChoseNode) < needNum {
+			ChoseNode = append(ChoseNode, Strallyint{Addr: item.Addr, Value: 1})
 		} else {
-			ans = append(ans, Strallyint{Addr: item.Addr, Value: dict[item.Addr]})
+			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, item)
 		}
 	}
-	return ans,RemainingProbNormalizedNodes
+
+	return ChoseNode, RemainingProbNormalizedNodes
 }
 
+func Normalize_VIP(probVal []Pnormalized) []Pnormalized {
+	var pnormalizedlist []Pnormalized
 
+	total := 0.0
+	for _, item := range probVal {
+		pnormalizedlist = append(pnormalizedlist, Pnormalized{Addr: item.Addr, Value: total})
+		total += item.Value
 
+	}
+	for index := 0; index < len(probVal); index++ {
+		pnormalizedlist[index].Value /= total
+	}
 
-type Pnormalized struct {
-	Value float64
-	Addr  common.Address
+	return pnormalizedlist
 }
 
-func Normalize(probVal []Pnormalized) []Pnormalized {
+func Sample1NodesInValNodes_VIP(probnormalized []Pnormalized, rand01 float64) common.Address {
+	len := len(probnormalized)
+	for index := len - 1; index >= 0; index-- {
+		if rand01 >= probnormalized[index].Value {
+			return probnormalized[index].Addr
+		}
+	}
+
+	return common.Address{}
+}
+
+func GetList_Common(probnormalized []Pnormalized, needNum int, rand *mt19937.RandUniform) ([]Strallyint, []Pnormalized) {
+	probnormalized = Normalize_Common(probnormalized)
+
+	if len(probnormalized) == 0 {
+		return []Strallyint{}, probnormalized
+	}
+	if needNum > len(probnormalized) {
+		needNum = len(probnormalized)
+	}
+	ChoseNode := []Strallyint{}
+	RemainingProbNormalizedNodes := []Pnormalized{}
+	dict := make(map[common.Address]int)
+	orderAddress := []common.Address{}
+
+	for i := 0; i < MaxSample; i++ {
+		tempRand := float64(rand.Uniform(0.0, 1.0))
+
+		node := Sample1NodesInValNodes_Common(probnormalized, tempRand)
+		_, ok := dict[node]
+		if ok == true {
+			dict[node] = dict[node] + 1
+		} else {
+			dict[node] = 1
+
+			orderAddress = append(orderAddress, node)
+		}
+		if len(dict) == (needNum) {
+			break
+		}
+	}
+
+	for _, v := range orderAddress {
+		ChoseNode = append(ChoseNode, Strallyint{Addr: v, Value: dict[v]})
+	}
+
+	for _, item := range probnormalized {
+		if _, ok := dict[item.Addr]; ok == true {
+			continue
+		}
+		if len(ChoseNode) < needNum {
+			ChoseNode = append(ChoseNode, Strallyint{Addr: item.Addr, Value: 1})
+		} else {
+			RemainingProbNormalizedNodes = append(RemainingProbNormalizedNodes, item)
+		}
+	}
+
+	return ChoseNode, RemainingProbNormalizedNodes
+}
+
+func Normalize_Common(probVal []Pnormalized) []Pnormalized {
 
 	var total float64
 	for _, item := range probVal {
 		total += item.Value
 	}
+
 	var pnormalizedlist []Pnormalized
 	for _, item := range probVal {
+
 		var tmp Pnormalized
 		tmp.Value = item.Value / total
 		tmp.Addr = item.Addr
@@ -71,7 +151,7 @@ func Normalize(probVal []Pnormalized) []Pnormalized {
 	return pnormalizedlist
 }
 
-func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common.Address {
+func Sample1NodesInValNodes_Common(probnormalized []Pnormalized, rand01 float64) common.Address {
 
 	for _, iterm := range probnormalized {
 		rand01 -= iterm.Value
@@ -80,66 +160,4 @@ func Sample1NodesInValNodes(probnormalized []Pnormalized, rand01 float64) common
 		}
 	}
 	return probnormalized[0].Addr
-}
-
-
-
-
-type SelfNodeInfo struct {
-	Address  common.Address
-	Stk      *big.Int
-	Uptime   int
-	Tps      int
-	Coef_tps float64
-	Coef_stk float64
-}
-
-func (self *SelfNodeInfo) TPS_POWER() float64 {
-	tps_weight := 1.0
-	if self.Tps >= 16000 {
-		tps_weight = 5.0
-	} else if self.Tps >= 8000 {
-		tps_weight = 4.0
-	} else if self.Tps >= 4000 {
-		tps_weight = 3.0
-	} else if self.Tps >= 2000 {
-		tps_weight = 2.0
-	} else if self.Tps >= 1000 {
-		tps_weight = 1.0
-	} else {
-		tps_weight = 0.0
-	}
-	return tps_weight
-}
-
-func (self *SelfNodeInfo) Last_Time() float64 {
-	CandidateTime_weight := 4.0
-	if self.Uptime <= 64 {
-		CandidateTime_weight = 0.25
-	} else if self.Uptime <= 128 {
-		CandidateTime_weight = 0.5
-	} else if self.Uptime <= 256 {
-		CandidateTime_weight = 1
-	} else if self.Uptime <= 512 {
-		CandidateTime_weight = 2
-	} else {
-		CandidateTime_weight = 4
-	}
-	return CandidateTime_weight
-}
-
-func (self *SelfNodeInfo) Deposit_stake() float64 {
-	temp := big.NewInt(0).Set(self.Stk)
-	deposMan := temp.Div(temp, common.ManValue).Uint64()
-	stake_weight := 1.0
-	if deposMan >= 40000 {
-		stake_weight = 4.5
-	} else if deposMan >= 20000 {
-		stake_weight = 2.15
-	} else if deposMan >= 10000 {
-		stake_weight = 1.0
-	} else {
-		stake_weight = 0.0
-	}
-	return stake_weight
 }

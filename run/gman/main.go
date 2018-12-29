@@ -107,10 +107,10 @@ var (
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
-		utils.DeveloperFlag,
-		utils.DeveloperPeriodFlag,
-		utils.TestnetFlag,
-		utils.RinkebyFlag,
+		//utils.DeveloperFlag,
+		//utils.DeveloperPeriodFlag,
+		//utils.TestnetFlag,
+		//utils.RinkebyFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
@@ -123,10 +123,8 @@ var (
 		utils.GpoPercentileFlag,
 		utils.ExtraDataFlag,
 		configFileFlag,
-		utils.TestLocalMiningFlag,
-		utils.TestHeaderGenFlag,
-		utils.TestChangeRoleFlag,
 		utils.GetCommitFlag,
+		utils.ManAddressFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -150,6 +148,8 @@ func init() {
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2013-2018 The go-matrix Authors"
 	app.Commands = []cli.Command{
+		// See signcmd.go
+		signatureCommand,
 		// See chaincmd.go:
 		initCommand,
 		importCommand,
@@ -183,7 +183,6 @@ func init() {
 		dumpConfigCommand,
 		CommitCommand,
 		AesEncryptCommand,
-
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

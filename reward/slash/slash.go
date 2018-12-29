@@ -67,12 +67,6 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
 	var eleNum uint64
 
-	if num == 1 {
-		matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
-		log.INFO(PackageName, "初始化惩罚状态树高度", num)
-		return
-	}
-
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return
@@ -84,7 +78,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 		return
 	}
 	if latestNum > bp.bcInterval.GetLastBroadcastNumber() {
-		log.Info(PackageName, "当前惩罚已处理无须再处理", "")
+		log.Debug(PackageName, "当前惩罚已处理无须再处理", "")
 		return
 	}
 
@@ -103,12 +97,16 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 		eleNum = 1
 	} else {
 		// 下一个选举+1
-		eleNum = eleNum - bp.bcInterval.GetBroadcastInterval()
+		eleNum = num - bp.bcInterval.GetBroadcastInterval()
 	}
 
 	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
+		return
+	}
+	if electGraph == nil {
+		log.Error(PackageName, "获取拓扑图反射错误")
 		return
 	}
 	originElectNodes := electGraph.(*mc.ElectGraph)
@@ -141,6 +139,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 				log.ERROR(PackageName, "惩罚比例为负数", "")
 				continue
 			}
+			log.Debug(PackageName, "惩罚账户", v.Account, "惩罚金额", slash)
 			depoistInfo.AddSlash(currentState, v.Account, slash)
 		}
 

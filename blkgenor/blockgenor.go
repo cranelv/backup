@@ -180,7 +180,7 @@ func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 func (self *BlockGenor) leaderChangeNotifyHandle(leaderMsg *mc.LeaderChangeNotify) {
 	log.INFO(self.logExtraInfo(), "Leader变更消息处理", "开始", "高度", leaderMsg.Number, "轮次",
 		leaderMsg.ReelectTurn, "有效", leaderMsg.ConsensusState, "leader", leaderMsg.Leader.Hex(), "next leader", leaderMsg.NextLeader.Hex())
-	defer log.INFO(self.logExtraInfo(), "Leader变更消息处理", "结束", "高度", leaderMsg.Number, "轮次", leaderMsg.ReelectTurn, "有效", leaderMsg.ConsensusState)
+	defer log.Debug(self.logExtraInfo(), "Leader变更消息处理", "结束", "高度", leaderMsg.Number, "轮次", leaderMsg.ReelectTurn, "有效", leaderMsg.ConsensusState)
 
 	number := leaderMsg.Number
 	var process, preProcess *Process
@@ -233,7 +233,7 @@ func (self *BlockGenor) minerResultHandle(minerResult *mc.HD_MiningRspMsg) {
 func (self *BlockGenor) broadcastMinerResultHandle(result *mc.HD_BroadcastMiningRspMsg) {
 	number := result.BlockMainData.Header.Number.Uint64()
 	log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "开始", "高度", number, "交易数量", result.BlockMainData.Txs.Len())
-	defer log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "结束", "高度", number)
+	defer log.Debug(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "结束", "高度", number)
 
 	process, err := self.pm.GetProcess(number)
 	if err != nil {
@@ -249,7 +249,7 @@ func (self *BlockGenor) consensusBlockMsgHandle(data *mc.BlockLocalVerifyOK) {
 	defer log.INFO(self.logExtraInfo(), "共识结果消息处理", "结束", "高度", data.Header.Number)
 	process, err := self.pm.GetProcess(data.Header.Number.Uint64())
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "共识结果消息 获取Process失败", err)
+		log.Error(self.logExtraInfo(), "共识结果消息 获取Process失败", err)
 		return
 	}
 
@@ -262,14 +262,14 @@ func (self *BlockGenor) blockInsertMsgHandle(blockInsert *mc.HD_BlockInsertNotif
 	log.INFO(self.logExtraInfo(), "收到的区块插入消息广播高度", number, "from", blockInsert.From.Hex(), "当前高度", curNumber)
 
 	if number > curNumber {
-		log.INFO(self.logExtraInfo(), "+++++fetch 区块高度", number, "from", blockInsert.From.Hex())
+		log.Debug(self.logExtraInfo(), "fetch 区块高度", number, "from", blockInsert.From.Hex())
 		self.pm.matrix.FetcherNotify(blockInsert.Header.Hash(), blockInsert.Header.Number.Uint64(), blockInsert.From)
 		return
 	}
 
 	process, err := self.pm.GetProcess(number)
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "最终区块插入 获取Process失败", err)
+		log.Error(self.logExtraInfo(), "最终区块插入 获取Process失败", err)
 		return
 	}
 	process.AddInsertBlockInfo(blockInsert)
@@ -281,13 +281,13 @@ func (self *BlockGenor) handleRecoveryMsg(msg *mc.RecoveryStateMsg) {
 		return
 	}
 	if msg.Type != mc.RecoveryTypeFullHeader {
-		log.INFO(self.logExtraInfo(), "状态恢复消息", "类型不是恢复区块，忽略消息")
+		log.Warn(self.logExtraInfo(), "状态恢复消息", "类型不是恢复区块，忽略消息")
 		return
 	}
 	number := msg.Header.Number.Uint64()
 	process, err := self.pm.GetProcess(number)
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "状态恢复消息", "获取Process失败", "err", err)
+		log.Warn(self.logExtraInfo(), "状态恢复消息", "获取Process失败", "err", err)
 		return
 	}
 
@@ -301,10 +301,10 @@ func (self *BlockGenor) handleNewBlockReqMsg(req *mc.HD_FullBlockReqMsg) {
 	}
 
 	log.INFO(self.logExtraInfo(), "完整区块请求消息", "开始", "高度", req.Number)
-	defer log.INFO(self.logExtraInfo(), "完整区块请求消息", "结束", "高度", req.Number)
+	defer log.Debug(self.logExtraInfo(), "完整区块请求消息", "结束", "高度", req.Number)
 	process, err := self.pm.GetProcess(req.Number)
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "完整区块请求消息", "获取Process失败", "err", err)
+		log.Warn(self.logExtraInfo(), "完整区块请求消息", "获取Process失败", "err", err)
 		return
 	}
 
@@ -319,10 +319,10 @@ func (self *BlockGenor) handleNewBlockRspMsg(rsp *mc.HD_FullBlockRspMsg) {
 
 	number := rsp.Header.Number.Uint64()
 	log.INFO(self.logExtraInfo(), "完整区块响应消息", "开始", "高度", number)
-	defer log.INFO(self.logExtraInfo(), "完整区块响应消息", "结束", "高度", number)
+	defer log.Debug(self.logExtraInfo(), "完整区块响应消息", "结束", "高度", number)
 	process, err := self.pm.GetProcess(number)
 	if err != nil {
-		log.INFO(self.logExtraInfo(), "完整区块响应消息", "获取Process失败", "err", err)
+		log.Warn(self.logExtraInfo(), "完整区块响应消息", "获取Process失败", "err", err)
 		return
 	}
 

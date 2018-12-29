@@ -377,7 +377,7 @@ func Test_cdc_GetConsensusLeader(t *testing.T) {
 		fields fields
 		want   common.Address
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -420,7 +420,7 @@ func Test_cdc_GetReelectMaster(t *testing.T) {
 		fields fields
 		want   common.Address
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -464,7 +464,7 @@ func Test_cdc_PrepareLeaderMsg(t *testing.T) {
 		want    *mc.LeaderChangeNotify
 		wantErr bool
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -512,7 +512,7 @@ func Test_cdc_GetCurrentHash(t *testing.T) {
 		fields fields
 		want   common.Hash
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -560,7 +560,7 @@ func Test_cdc_GetValidatorByHash(t *testing.T) {
 		want    *mc.TopologyGraph
 		wantErr bool
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

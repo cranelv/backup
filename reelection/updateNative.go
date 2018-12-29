@@ -5,12 +5,12 @@ package reelection
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"errors"
 )
 
 func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnlineStatus, top *mc.TopologyGraph) support.AllNative {
@@ -109,7 +109,7 @@ func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.Topology
 		log.ERROR("ElectConfigInfo", "ElectConfigInfo ", "反射失败", "高度", height)
 		return nil, errors.New("反射失败")
 	}
-	allNative.ElectInfo=electInfo
+	allNative.ElectInfo = electInfo
 	return elect.ToPoUpdate(allNative, top), nil
 }
 
@@ -136,6 +136,7 @@ func (self *ReElection) LastMinerGenTimeStamp(height uint64, types common.RoleTy
 	}
 
 }
+
 func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
@@ -168,14 +169,14 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 
 	switch types {
 	case common.RoleMiner:
-		for _, v := range electState.NextElect {
+		for _, v := range electState.NextMinerElect {
 			switch v.Type {
 			case common.RoleMiner:
 				master = append(master, v)
 			}
 		}
 	case common.RoleValidator:
-		for _, v := range electState.NextElect {
+		for _, v := range electState.NextValidatorElect {
 			switch v.Type {
 			case common.RoleValidator:
 				master = append(master, v)

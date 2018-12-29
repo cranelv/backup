@@ -10,7 +10,8 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/rawdb"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -61,23 +62,21 @@ func (bPool *BroadCastTxPool) checkTxFrom(tx types.SelfTransaction) (common.Addr
 	return common.Address{}, ErrInvalidSender
 }
 
-// SetBroadcastTxs
-func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
-	if manparams.IsBroadcastNumberByHash(head.Number().Uint64(), head.ParentHash()) == false {
-		return
+func ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
+		return nil, nil
 	}
 
 	var (
-		signer  = types.NewEIP155Signer(chainId)
 		tempMap = make(map[string]map[common.Address][]byte)
 	)
-	log.Info("Block insert message", "height", head.Number().Uint64(), "head.Hash=", head.Hash())
+	log.Info("ProduceMatrixStateData message", "height", block.Number().Uint64(), "block.Hash=", block.Hash())
 
 	tempMap[mc.Publickey] = make(map[common.Address][]byte)
 	tempMap[mc.Heartbeat] = make(map[common.Address][]byte)
 	tempMap[mc.Privatekey] = make(map[common.Address][]byte)
 	tempMap[mc.CallTheRoll] = make(map[common.Address][]byte)
-	txs := head.Transactions()
+	txs := block.Transactions()
 	for _, tx := range txs {
 		if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
 			temp := make(map[string][]byte)
@@ -86,12 +85,12 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 				continue
 			}
 
+			signer := types.NewEIP155Signer(tx.ChainId())
 			from, err := types.Sender(signer, tx)
 			if err != nil {
 				log.Error("SetBroadcastTxs", "get from error", err)
 				continue
 			}
-
 			for key, val := range temp {
 				if strings.Contains(key, mc.Publickey) {
 					tempMap[mc.Publickey][from] = val
@@ -105,15 +104,37 @@ func SetBroadcastTxs(head *types.Block, chainId *big.Int) {
 			}
 		}
 	}
+	if len(tempMap) > 0 {
+		log.INFO("ProduceMatrixStateData", "tempMap", tempMap)
+		return tempMap, nil
+	}
+	return nil, errors.New("without broadcatTxs")
+}
 
-	hash := head.Hash()
-	for typeStr, content := range tempMap {
-		if err := insertManTrie(typeStr, hash, content); err != nil {
-			log.Error("SetBroadcastTxs insertDB", "height", head.Number().Uint64(), "hash", hash)
-		} else {
-			log.Info("SetBroadcastTxs success", "content", content)
+type ChainReader interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
+}
+
+func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+	state, err := bc.StateAt(root)
+	if err != nil {
+		log.Error("GetBroadcastTxMap StateAt err")
+		return nil, err
+	}
+
+	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
+	if err != nil {
+		log.Error("GetBroadcastTxMap GetDataByState err")
+		return nil, err
+	}
+	mapdata := broadInterface.(map[string]map[common.Address][]byte)
+	for typekey, mapVal := range mapdata {
+		if txtype == typekey {
+			return mapVal, nil
 		}
 	}
+	log.Error("GetBroadcastTxMap get broadcast map is nil")
+	return nil, errors.New("GetBroadcastTxMap is nil")
 }
 
 // ProcessMsg
@@ -142,7 +163,7 @@ func (bPool *BroadCastTxPool) ProcessMsg(m NetworkMsgData) {
 func (bPool *BroadCastTxPool) SendMsg(data MsgStruct) {
 	if data.Msgtype == BroadCast {
 		data.TxpoolType = types.BroadCastTxIndex
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	}
 }
 
@@ -224,7 +245,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 	tval := curBlockNum / bcInterval.GetBroadcastInterval()
 	strVal := fmt.Sprintf("%v", tval+1)
 	index := strings.Index(keydata, strVal)
-	if index < 0{
+	if index < 0 {
 		return false
 	}
 	numStr := keydata[index:]
@@ -247,13 +268,8 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			log.Error("The current block height is higher than the broadcast block height. (func filter())")
 			return false
 		}
-		bids := ca.GetRolesByGroup(common.RoleBroadcast)
-		for _, bid := range bids {
-			addr, err := ca.ConvertNodeIdToAddress(bid)
-			if err != nil {
-				log.Error("ConvertNodeIdToAddress error (func filter()  BroadCastTxPool)", "error", err)
-				return false
-			}
+		addrs := ca.GetRolesByGroup(common.RoleBroadcast)
+		for _, addr := range addrs {
 			if addr == from {
 				return true
 			}
@@ -303,38 +319,6 @@ func (bPool *BroadCastTxPool) Pending() (map[common.Address][]types.SelfTransact
 	return nil, nil
 }
 
-// insertDB
-//func insertManTrie(keyData []byte, val map[common.Address][]byte,bc *BlockChain) error {
-func insertManTrie(txtype string, hash common.Hash, val map[common.Address][]byte) error {
-	keyData := types.RlpHash(txtype + hash.String())
-	dataVal, err := json.Marshal(val)
-	if err != nil {
-		log.Error("insertDB", "json.Marshal(val) err", err)
-		return err
-	}
-	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
-	return rawdb.SetManTrie(key, dataVal)
-}
-
-// GetBroadcastTxs get broadcast transactions' data from stateDB.
-func GetBroadcastTxs(hash common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
-	keyData := types.RlpHash(txtype + hash.String())
-	key := append(rawdb.BroadcastPrefix, keyData.Bytes()...)
-	dataVal, err := trie.ManTrie.TryGet(key)
-	//dataVal, err := ldb.Get(hv.Bytes(), nil)
-	if err != nil {
-		log.Error("GetBroadcastTxs from trie failed", "keydata", key)
-		return nil, err
-	}
-
-	err = json.Unmarshal(dataVal, &reqVal)
-	if err != nil {
-		log.Error("GetBroadcastTxs", "Unmarshal failed", err)
-	}
-	log.Info("GetBroadcastTxs", "type", txtype, "reqval", reqVal, "keydata", key)
-	return reqVal, err
-}
-
 // GetAllSpecialTxs get BroadCast transaction. (use apply SelfTransaction)
 func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.SelfTransaction {
 	bPool.mu.Lock()
@@ -355,29 +339,4 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 }
 func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
 
-}
-
-type Backend interface {
-	BlockChain() *BlockChain
-}
-func GetBroadcastTxMap(bc Backend, root []common.CoinRoot, txtype string) (reqVal map[common.Address][]byte, err error) {
-	state, err := bc.BlockChain().StateAt(root)
-	if err != nil {
-		log.Error("GetBroadcastTxMap StateAt err")
-		return nil, err
-	}
-
-	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
-	if err != nil {
-		log.Error("GetBroadcastTxMap GetDataByState err")
-		return nil, err
-	}
-	mapdata := broadInterface.(map[string]map[common.Address][]byte)
-	for typekey, mapVal := range mapdata {
-		if txtype == typekey {
-			return mapVal, nil
-		}
-	}
-	log.Error("GetBroadcastTxMap get broadcast map is nil")
-	return nil, errors.New("GetBroadcastTxMap is nil")
 }

@@ -63,6 +63,7 @@ func SetTransactionToMx(txer SelfTransaction) (txm *Transaction_Mx) {
 	}
 	return
 }
+
 func SetMxToTransaction(txm *Transaction_Mx) (txer SelfTransaction) {
 	txer = nil
 	if txm.TxType_Mx == common.ExtraNormalTxType {

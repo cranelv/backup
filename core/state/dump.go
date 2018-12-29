@@ -10,10 +10,10 @@ import (
 
 	"math/big"
 
+	"bytes"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
-	"bytes"
 	"strconv"
 )
 
@@ -26,15 +26,15 @@ type DumpAccount struct {
 	Storage  map[string]string `json:"storage"`
 }
 type Dump struct {
-	Root     string                 `json:"root"`
-	Accounts map[string]DumpAccount `json:"accounts"`
-	MatrixData   map[string]string `json:"matrixData"`
+	Root       string                 `json:"root"`
+	Accounts   map[string]DumpAccount `json:"accounts"`
+	MatrixData map[string]string      `json:"matrixData"`
 }
 
 func (self *StateDB) RawDump() Dump {
 	dump := Dump{
-		Root:     fmt.Sprintf("%x", self.trie.Hash()),
-		Accounts: make(map[string]DumpAccount),
+		Root:       fmt.Sprintf("%x", self.trie.Hash()),
+		Accounts:   make(map[string]DumpAccount),
 		MatrixData: make(map[string]string),
 	}
 
@@ -42,7 +42,7 @@ func (self *StateDB) RawDump() Dump {
 	for it.Next() {
 		addr := self.trie.GetKey(it.Key)
 		matrixdt := it.Value[:4]
-		if bytes.Compare(matrixdt,[]byte("MAN-")) == 0{
+		if bytes.Compare(matrixdt, []byte("MAN-")) == 0 {
 			dump.MatrixData[common.Bytes2Hex(addr)] = common.Bytes2Hex(it.Value[4:])
 			continue
 		}
@@ -53,15 +53,15 @@ func (self *StateDB) RawDump() Dump {
 
 		tBalance := new(big.Int)
 		var total_balance string
-		for _,tAccount := range data.Balance{
+		for _, tAccount := range data.Balance {
 			tBalance = tAccount.Balance
 			str_account := strconv.Itoa(int(tAccount.AccountType))
-			str_balance := str_account+":"+tBalance.String()
-			total_balance += str_balance  + ","
+			str_balance := str_account + ":" + tBalance.String()
+			total_balance += str_balance + ","
 		}
 		obj := newObject(nil, common.BytesToAddress(addr), data)
 		account := DumpAccount{
-			Balance: total_balance[:len(total_balance)-1],
+			Balance:  total_balance[:len(total_balance)-1],
 			Nonce:    data.Nonce,
 			Root:     common.Bytes2Hex(data.Root[:]),
 			CodeHash: common.Bytes2Hex(data.CodeHash),

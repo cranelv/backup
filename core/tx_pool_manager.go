@@ -5,14 +5,12 @@ import (
 	"errors"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
 	"sync"
 	"time"
 )
@@ -296,7 +294,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 // SendMsg
 func (pm *TxPoolManager) SendMsg(data MsgStruct) {
 	if data.Msgtype == BroadCast {
-		p2p.SendToSingle(data.NodeId, common.NetworkMsg, []interface{}{data})
+		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	}
 }
 
@@ -317,7 +315,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
-			pm.SendMsg(MsgStruct{Msgtype: BroadCast, NodeId: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
+			pm.SendMsg(MsgStruct{Msgtype: BroadCast, SendAddr: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
 		}
 		return nil
 	}
@@ -392,23 +390,6 @@ func (pm *TxPoolManager) GetAllSpecialTxs() (reqVal map[common.Address][]types.S
 	return
 }
 
-func (pm *TxPoolManager) ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
-	pm.txPoolsMutex.RLock()
-	defer pm.txPoolsMutex.RUnlock()
-	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
-		return nil, nil
-	}
-
-	bPool, ok := pm.txPools[types.NormalTxIndex]
-	if !ok {
-		log.Error("TxPoolManager", "get broadcast txpool error", ErrTxPoolNonexistent)
-		return nil, ErrTxPoolNonexistent
-	}
-	if bTxPool, ok := bPool.(*NormalTxPool); ok {
-		return bTxPool.ProduceMatrixStateData(block, readFn)
-	}
-	return nil, ErrTxPoolNonexistent
-}
 func (pm *TxPoolManager) Stats() (int, int) {
 	return 0, 0
 }

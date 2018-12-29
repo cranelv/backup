@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"time"
 
@@ -83,7 +82,7 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		Nonce:             parentHeader.Nonce.Uint64(),
 		Number:            num,
 		GasUsed:           parentHeader.GasUsed,
-		VrfValue:          parentHeader.VrfValue,
+		VrfValue:          make([]byte, 0),
 	}
 
 	sbs, err := bc.GetSuperBlockSeq()
@@ -101,9 +100,10 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
+			tmp.VIP = elec.VIP
 			sliceElect = append(sliceElect, *tmp)
 		}
-		genesis.Elect = sliceElect
+		genesis.NextElect = sliceElect
 		//NetTopology
 		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
 		for _, netTopology := range curHeader.NetTopology.NetTopologyData {
@@ -116,15 +116,11 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		genesis.NetTopology.Type = curHeader.NetTopology.Type
 
 	} else {
-		genesis.Elect = make([]common.Elect1, 0)
+		genesis.NextElect = make([]common.Elect1, 0)
 		genesis.NetTopology = common.NetTopology1{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData1, 0)}
 	}
 
 	// Figure out which consensus engine to choose
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkMinerRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.BlkValidatorRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.TxGasRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
-	genesis.Alloc[base58.Base58EncodeToString("MAN", common.LotteryRewardAddress)] = core.GenesisAccount{Balance: new(big.Int).Exp(big.NewInt(2), big.NewInt(200), big.NewInt(0))}
 	// All done, store the genesis and flush to disk
 	log.Info("Configured new genesis block")
 

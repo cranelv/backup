@@ -7,13 +7,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
-	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/reelection"
@@ -42,10 +40,8 @@ var (
 )
 
 type Backend interface {
-	AccountManager() *accounts.Manager
 	BlockChain() *core.BlockChain
 	TxPool() *core.TxPoolManager //YYY
-	ChainDb() mandb.Database
 	EventMux() *event.TypeMux
 	SignHelper() *signhelper.SignHelper
 	HD() *msgsend.HD

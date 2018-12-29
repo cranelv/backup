@@ -4,19 +4,20 @@
 package vrf
 
 import (
-	"crypto/ecdsa"
-
-	"github.com/matrix/go-matrix/baseinterface"
 	"bytes"
-
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/log"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/matrix/go-matrix/mc"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
-	"github.com/matrix/go-matrix/crypto"
 	"fmt"
+
+	"github.com/btcsuite/btcd/btcec"
+
+	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 )
 
 type vrfWithHash struct {
@@ -43,7 +44,7 @@ func (self *vrfWithHash) verifyVrf(pk *ecdsa.PublicKey, prevVrf, newVrf, proof [
 	return nil
 }
 
-func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header) error {
+func (self *vrfWithHash) VerifyVrf(header *types.Header, preHeader *types.Header, signAccount common.Address) error {
 	log.INFO("vrf", "len header.VrfValue", len(header.VrfValue), "data", header.VrfValue, "高度", header.Number.Uint64())
 	account, _, _ := self.GetVrfInfoFromHeader(header.VrfValue)
 
@@ -59,7 +60,6 @@ func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header)
 
 	pk1_1 := (*ecdsa.PublicKey)(pk1)
 	_, vrfValue, vrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(header.VrfValue)
-
 
 	_, preVrfValue, preVrfProof := self.GetVrfInfoFromHeader(preHeader.VrfValue)
 
@@ -77,21 +77,20 @@ func (self *vrfWithHash) VerifyVrf(header *types.Header,preHeader *types.Header)
 		log.Error("生成vrfmsg成功")
 	}
 	//log.Info("msgggggvrf_verify","preVrfMsg",preVrfMsg,"高度",header.Number.Uint64(),"VrfProof",preMsg.VrfProof,"VrfValue",preMsg.VrfValue,"Hash",preMsg.Hash)
-	if err :=self.verifyVrf(pk1_1, preVrfMsg, vrfValue, vrfProof); err != nil {
+	if err := self.verifyVrf(pk1_1, preVrfMsg, vrfValue, vrfProof); err != nil {
 		log.Error("vrf verify ", "err", err)
 		return err
 	}
 
 	ans := crypto.PubkeyToAddress(*pk1_1)
-	if ans.Equal(header.Leader) {
+	if ans.Equal(signAccount) {
 		log.Error("vrf leader comparre", "与leader不匹配", "nil")
 		return nil
 	}
 	return errors.New("公钥与leader账户不匹配")
 }
 
-
-func (self *vrfWithHash)GetHeaderVrf(account []byte, vrfvalue []byte, vrfproof []byte) []byte {
+func (self *vrfWithHash) GetHeaderVrf(account []byte, vrfvalue []byte, vrfproof []byte) []byte {
 	var buf bytes.Buffer
 	buf.Write(account)
 	buf.Write(vrfvalue)
@@ -101,7 +100,7 @@ func (self *vrfWithHash)GetHeaderVrf(account []byte, vrfvalue []byte, vrfproof [
 
 }
 
-func (self *vrfWithHash)GetVrfInfoFromHeader(headerVrf []byte) ([]byte, []byte, []byte) {
+func (self *vrfWithHash) GetVrfInfoFromHeader(headerVrf []byte) ([]byte, []byte, []byte) {
 	var account, vrfvalue, vrfproof []byte
 	if len(headerVrf) >= 33 {
 		account = headerVrf[0:33]

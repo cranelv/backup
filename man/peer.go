@@ -311,6 +311,7 @@ func (p *peer) AsyncSendNewBlock(block *types.Block, td *big.Int, sbh uint64, sb
 
 // SendBlockHeaders sends a batch of block headers to the remote peer.
 func (p *peer) SendBlockHeaders(headers []*types.Header) error {
+	p.Log().Debug("download SendBlockHeaders", "len", len(headers))
 	return p2p.Send(p.rw, BlockHeadersMsg, headers)
 }
 

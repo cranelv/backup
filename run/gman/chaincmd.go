@@ -32,11 +32,11 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 )
 
@@ -252,8 +252,8 @@ It expects the genesis file as argument.`,
 
 	signVersionCommand = cli.Command{
 		Action:    utils.MigrateFlags(signVersion),
-		Name:      "sighverison",
-		Usage:     "Bootstrap and rollback a new super block",
+		Name:      "signversion",
+		Usage:     "sign  version",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
@@ -295,13 +295,19 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	genesis, err := core.GetDefaultGeneis()
+
+	if err != nil {
+		utils.Fatalf("获取默认配置文件失败:%v", err)
+	}
 	genesis1 := new(core.Genesis1)
 	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 	//hezi
-	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(genesis1, genesis)
+
+	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	for _, name := range []string{"chaindata", "lightchaindata"} {
@@ -756,7 +762,7 @@ func signVersion(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis)
+	genesis := new(core.Genesis1)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
@@ -826,16 +832,62 @@ func aesEncrypt(ctx *cli.Context) error {
 	return nil
 }
 
-func CheckPassword(password string) bool {
-	if len(password) == 16 {
+func IsValidChar(aim byte) bool {
+	if aim >= 33 && aim <= 126 {
 		return true
 	}
-	fmt.Println("你的密码不符合规则 请重新输入")
 	return false
 }
+func CheckPassword(password string) bool {
+	flagLowerChar := false
+	flagUpperChar := false
+	flagNum := false
+	flagSpecialChar := false
+	for _, v := range password {
+		if IsValidChar(byte(v)) == false {
+			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
+			return false
+		}
+		switch {
+		case v >= 'a' && v <= 'z':
+			flagLowerChar = true
+		case v >= 'A' && v <= 'Z':
+			flagUpperChar = true
+		case v >= '0' && v <= '9':
+			flagNum = true
+		default:
+			flagSpecialChar = true
+		}
 
+	}
 
+	if flagSpecialChar == false {
+		fmt.Println("你的密码不包含特殊字符 请重新输入")
+		return false
+	}
+	if flagNum == false {
+		fmt.Println("你的密码不包含数字 请重新输入")
+		return false
+	}
+	if flagUpperChar == false {
+		fmt.Println("你的密码不包含大写字母 请重新输入")
+		return false
+	}
+	if flagLowerChar == false {
+		fmt.Println("你的密码不包含小写字符 请重新输入")
+		return false
+	}
 
+	if len(password) > 16 {
+		fmt.Println("你的密码大于16位 请重新输入")
+		return false
+	}
+	if len(password) < 8 {
+		fmt.Println("你的密码小于8位 请重新输入")
+		return false
+	}
+	return true
+}
 
 type JsonStruct struct {
 }
@@ -853,7 +905,7 @@ func (jst *JsonStruct) Load(filename string, v interface{}) {
 	}
 	err = json.Unmarshal(data, v)
 	if err != nil {
-		fmt.Println("通用配置文件数据获取失败 err", err,"filename",filename)
+		fmt.Println("通用配置文件数据获取失败 err", err, "filename", filename)
 		os.Exit(-1)
 		return
 	}

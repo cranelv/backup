@@ -105,3 +105,35 @@ func WriteBloomBits(db DatabaseWriter, bit uint, section uint64, head common.Has
 		log.Crit("Failed to store bloom bits", "err", err)
 	}
 }
+
+///////////////////////////////////////////////////////////////////////
+// 验证服务，验证过的区块缓存
+func HasVerifiedBlockIndex(db DatabaseReader) bool {
+	if has, err := db.Has(verifiedBlockIndex); !has || err != nil {
+		return false
+	}
+	return true
+}
+
+func ReadVerifiedBlockIndex(db DatabaseReader) ([]byte, error) {
+	return db.Get(verifiedBlockIndex)
+}
+
+func WriteVerifiedBlockIndex(db DatabaseWriter, data []byte) {
+	if err := db.Put(verifiedBlockIndex, data); err != nil {
+		log.Crit("Failed to store verified block index", "err", err)
+	}
+}
+
+func ReadVerifiedBlock(db DatabaseReader, index uint8) ([]byte, error) {
+	key := append(verifiedBlockPrefix, index)
+	return db.Get(key)
+}
+
+func WriteVerifiedBlock(db DatabaseWriter, index uint8, blockData []byte) {
+	key := append(verifiedBlockPrefix, index)
+
+	if err := db.Put(key, blockData); err != nil {
+		log.Crit("Failed to store verified block", "err", err)
+	}
+}

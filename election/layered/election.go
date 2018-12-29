@@ -5,16 +5,18 @@ package layered
 
 import (
 	"github.com/matrix/go-matrix/baseinterface"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type layered struct {
 }
 
 func init() {
-	baseinterface.RegElectPlug("layered", RegInit)
+	baseinterface.RegElectPlug(manparams.ElectPlug_layerd, RegInit)
 }
 
 func RegInit() baseinterface.ElectionInterface {
@@ -22,58 +24,87 @@ func RegInit() baseinterface.ElectionInterface {
 }
 
 func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
-	log.INFO("分层方案", "矿工拓扑生成", len(mmrerm.MinerList))
-	nodeElect:=support.NewElelection(nil,mmrerm.MinerList,mmrerm.ElectConfig,mmrerm.RandSeed,mmrerm.SeqNum)
-	nodeElect.Disorder()
-	nodeElect.Sort()
-	nodeElect.ProcessBlackNode()
-	nodeElect.ProcessWhiteNode()
+	log.INFO("分层方案", "矿工拓扑生成", mmrerm)
+	vipEle := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 
-
-	value:=nodeElect.GetWeight()
-	//for _,v:=range value{
-	//	fmt.Println("--",v.Value,v.Addr.String())
-	//}
-	Master,value:=support.GetList(value,int(nodeElect.EleCfg.MinerNum)-len(nodeElect.WhiteNodeInfo),nodeElect.RandSeed.Int64())
-
-	Master=append(Master,nodeElect.WhiteNodeInfo...)
-
-	return support.MakeMinerAns(Master,nodeElect.SeqNum)
+	vipEle.ProcessBlackNode()
+	vipEle.ProcessWhiteNode()
+	nodeList := vipEle.GetNodeByLevel(common.VIP_Nil)
+	value := support.CalcValue(nodeList, common.RoleMiner)
+	Chosed, value := support.GetList_Common(value, vipEle.NeedNum, vipEle.RandSeed)
+	return support.MakeMinerAns(Chosed, vipEle.SeqNum)
 
 }
 
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	log.INFO("分层方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
-	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed,mvrerm.SeqNum)
+	log.INFO("分层方案", "验证者拓扑生成", mvrerm)
+
+	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
 	vipEle.ProcessBlackNode()
 	vipEle.ProcessWhiteNode()
+	//vipEle.DisPlayNode()
 
-	var maxVipEleLevelNum = support.MaxVipEleLevelNum
-	if maxVipEleLevelNum > len(vipEle.VipLevelCfg) {
-		maxVipEleLevelNum = len(vipEle.VipLevelCfg)
-	}
-	var MasterList = make([]support.Node, 0)
-	for vipEleLoop := 0; vipEleLoop < maxVipEleLevelNum; vipEleLoop++ {
-		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 {
+	for vipEleLoop := len(vipEle.VipLevelCfg) - 1; vipEleLoop >= 0; vipEleLoop-- {
+		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 && vipEleLoop != 0 { //vip0继续处理
 			continue
 		}
-		nodeList := vipEle.GetNodeByLevel(vipEleLoop)
-		electedNode := vipEle.VipElection(nodeList, int(vipEle.VipLevelCfg[vipEleLoop].ElectUserNum))
-		MasterList = append(MasterList, electedNode...)
+		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
+
+		value := support.CalcValue(nodeList, common.RoleValidator)
+		curNeed := 0
+		if vipEleLoop == 0 {
+			curNeed = vipEle.NeedNum - vipEle.ChosedNum
+		} else {
+			curNeed = int(vipEle.VipLevelCfg[vipEleLoop].ElectUserNum)
+		}
+		if curNeed > vipEle.NeedNum-vipEle.ChosedNum {
+			curNeed = vipEle.NeedNum - vipEle.ChosedNum
+		}
+
+		Chosed := []support.Strallyint{}
+
+		if vipEleLoop == 0 {
+			Chosed, value = support.GetList_Common(value, curNeed, vipEle.RandSeed)
+		} else {
+			Chosed, value = support.GetList_VIP(value, curNeed, vipEle.RandSeed)
+		}
+
+		vipEle.SetChosed(Chosed)
+
 	}
 
-	MasterChosed := TransVIPNode(MasterList)
-	MasterChosed = append(MasterChosed, vipEle.WhiteNodeInfo...)
-	weight := vipEle.GetWeight()
+	Master := []support.Strallyint{}
+	Backup := []support.Strallyint{}
+	Candidate := []support.Strallyint{}
 
+	for k, v := range vipEle.HasChosedNode {
+		for _, vv := range v {
+			temp := support.Strallyint{}
+			if k == len(vipEle.HasChosedNode)-1 {
+				temp = support.Strallyint{Addr: vv.Addr, Value: vv.Value, VIPLevel: common.VIP_Nil}
+			} else {
+				temp = support.Strallyint{Addr: vv.Addr, Value: vipEle.GetVipStock(vv.Addr), VIPLevel: common.GetVIPLevel(len(vipEle.VipLevelCfg) - 1 - k)}
+			}
 
-	Master,weight:=support.GetList(weight,int(vipEle.EleCfg.ValidatorNum)-len(MasterChosed),vipEle.RandSeed.Int64())
+			if len(Master) < int(vipEle.EleCfg.ValidatorNum) {
 
-	Backup,weight:=support.GetList(weight,int(vipEle.EleCfg.BackValidator),vipEle.RandSeed.Int64())
+				Master = append(Master, temp)
+				continue
+			}
+			if len(Backup) < int(vipEle.EleCfg.BackValidator) {
+				Backup = append(Backup, temp)
+				continue
+			}
+		}
+	}
 
-	Candidate,weight:=support.GetList(weight,len(weight),vipEle.RandSeed.Int64())
-	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, MasterChosed, Master, Backup, Candidate)
-
+	lastNode := vipEle.GetLastNode()
+	for _, v := range lastNode {
+		if len(Candidate) < int(4*vipEle.EleCfg.ValidatorNum-vipEle.EleCfg.BackValidator) {
+			Candidate = append(Candidate, support.Strallyint{Addr: v.Address, Value: 1})
+		}
+	}
+	return support.MakeValidatoeTopGenAns(mvrerm.SeqNum, Master, Backup, Candidate)
 }
 
 func TransVIPNode(vipnode []support.Node) []support.Strallyint {

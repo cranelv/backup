@@ -45,6 +45,10 @@ const (
 	EveryBlockSeed_Plug_NonceAndCoinbase = "NonceAndCoinbase"
 	EveryBroadcastSeed                   = "everybroadcastseed"
 	EveryBroadcastSeed_Plug_MaxNonce     = "MaxNonce"
+
+	ElectPlug_layerd = "layerd"
+	ElectPlug_stock  = "stock"
+	ELectPlug_direct = "direct"
 )
 
 var (
@@ -70,9 +74,6 @@ type NodeInfo struct {
 	Address common.Address
 }
 
-var SuperVersionNodes = []NodeInfo{}
-var SuperRollbackNodes = []NodeInfo{}
-
 func Config_Init(Config_PATH string) {
 	log.INFO("Config_Init 函数", "Config_PATH", Config_PATH)
 
@@ -86,30 +87,10 @@ func Config_Init(Config_PATH string) {
 		os.Exit(-1)
 	}
 	log.INFO("MainBootNode", "data", params.MainnetBootnodes)
-
-	SuperVersionNodes = v.SuperVersion
-	if len(SuperVersionNodes) <= 0 {
-		fmt.Println("无版本超级节点")
-		os.Exit(-1)
-	}
-
-	SuperRollbackNodes = v.SuperRollback
-	if len(SuperRollbackNodes) <= 0 {
-		fmt.Println("无回滚超级节点")
-		os.Exit(-1)
-	}
-
 }
 
 type Config struct {
-	BootNode       []string
-	BroadNode      []NodeInfo
-	InnerMinerNode []NodeInfo
-	FoundationNode []NodeInfo
-	SuperVersion   []NodeInfo
-	SuperRollback  []NodeInfo
-	ElectPlugs     string
-	Echelon        []common.Echelon
+	BootNode []string
 }
 
 type JsonStruct struct {
