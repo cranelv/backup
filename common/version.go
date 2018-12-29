@@ -127,5 +127,12 @@ var (
 				"去掉高层使用fetch请求区块",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.15",
+			Submitter: "Ryan",
+			Commit: []string{
+				"modify the way to create signature file.",
+			},
+		},
 	}
 )

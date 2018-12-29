@@ -150,7 +150,13 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 }
 
 func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
-	if common.FileExist(datadirManSignature) {
+	emptyAddress := common.Address{}
+	if n.config.P2P.ManAddress == emptyAddress {
+		n.log.Info("man input sign address is empty.")
+
+		if !common.FileExist(datadirManSignature) {
+			return
+		}
 		buf := make([]byte, 65)
 		fd, err := os.Open(datadirManSignature)
 		if err != nil {
@@ -177,12 +183,6 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 		}
 		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
 		return signature, common.HexToAddress(string(addrByte)), info.ModTime()
-	}
-
-	emptyAddress := common.Address{}
-	if n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man address is empty. default role has no signature.")
-		return
 	}
 
 	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: n.config.P2P.ManAddrStr})
