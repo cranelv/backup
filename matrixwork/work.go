@@ -32,7 +32,7 @@ import (
 
 type ChainReader interface {
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
-	GetBlockByHash(hash []common.CoinRoot) *types.Block
+	GetBlockByHash(hash common.Hash) *types.Block
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 }
 
