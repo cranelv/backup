@@ -425,6 +425,7 @@ func (s *PrivateAccountAPI) LockAccount(strAddr string) bool {
 // signTransactions sets defaults and signs the given transaction
 // NOTE: the caller needs to ensure that the nonceLock is held, if applicable,
 // and release it after the transaction has been submitted to the tx pool
+//var txcountaaaaaaa = uint64(0)
 func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs, passwd string) (types.SelfTransaction, error) {
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
@@ -432,16 +433,17 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 	if err != nil {
 		return nil, err
 	}
+	//YYYYYYYYYYYYYYYYYYYYYYYYYYY
+	//if (txcountaaaaaaa % uint64(2)) == 0{
+	//	args.Currency = "BTC"
+	//	txcountaaaaaaa ++
+	//}
+	//YYYYYYYYYYYYYYYYYYYYYYYYYY
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return nil, err
 	}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-	n := uint64(*args.Nonce)
-	if (n % uint64(2)) == 0{
-		args.Currency = "BTC"
-	}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYY
+
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
 	tx.Currency = args.Currency

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 )
 
 type account struct {
@@ -21,14 +22,14 @@ type ManagedState struct {
 
 	mu sync.RWMutex
 
-	accounts map[common.Address]*account
+	accounts map[common.Hash]*account
 }
 
 // ManagedState returns a new managed state with the statedb as it's backing layer
 func ManageState(statedb *StateDBManage) *ManagedState {
 	return &ManagedState{
 		StateDBManage:  statedb.Copy(),
-		accounts: make(map[common.Address]*account),
+		accounts: make(map[common.Hash]*account),
 	}
 }
 
@@ -41,7 +42,7 @@ func (ms *ManagedState) SetState(statedb *StateDBManage) {
 
 // RemoveNonce removed the nonce from the managed state and all future pending nonces
 func (ms *ManagedState) RemoveNonce(cointype string ,addr common.Address, n uint64) {
-	if ms.hasAccount(addr) {
+	if ms.hasAccount(cointype,addr) {
 		ms.mu.Lock()
 		defer ms.mu.Unlock()
 
@@ -77,7 +78,8 @@ func (ms *ManagedState) GetNonce(cointype string ,addr common.Address) uint64 {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	if ms.hasAccount(addr) {
+
+	if ms.hasAccount(cointype,addr) {
 		account := ms.getAccount(cointype,addr)
 		return uint64(len(account.nonces)) + account.nstart
 	} else {
@@ -92,38 +94,43 @@ func (ms *ManagedState) SetNonce(cointype string,addr common.Address, nonce uint
 
 	so := ms.GetOrNewStateObject(cointype,addr)
 	so.SetNonce(nonce)
-
-	ms.accounts[addr] = newAccount(so)
+	str := cointype+addr.String()
+	hash := types.RlpHash(str)
+	ms.accounts[hash] = newAccount(so)
 }
 
 // HasAccount returns whether the given address is managed or not
-func (ms *ManagedState) HasAccount(addr common.Address) bool {
+func (ms *ManagedState) HasAccount(cointype string,addr common.Address) bool {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
-	return ms.hasAccount(addr)
+	return ms.hasAccount(cointype,addr)
 }
 
-func (ms *ManagedState) hasAccount(addr common.Address) bool {
-	_, ok := ms.accounts[addr]
+func (ms *ManagedState) hasAccount(cointype string,addr common.Address) bool {
+	str := cointype+addr.String()
+	hash := types.RlpHash(str)
+	_, ok := ms.accounts[hash]
 	return ok
 }
 
 // populate the managed state
 func (ms *ManagedState) getAccount(cointype string,addr common.Address) *account {
-	if account, ok := ms.accounts[addr]; !ok {
+	str := cointype+addr.String()
+	hash := types.RlpHash(str)
+	if account, ok := ms.accounts[hash]; !ok {
 		so := ms.GetOrNewStateObject(cointype,addr)
-		ms.accounts[addr] = newAccount(so)
+		ms.accounts[hash] = newAccount(so)
 	} else {
 		// Always make sure the state account nonce isn't actually higher
 		// than the tracked one.
 		so := ms.StateDBManage.getStateObject(cointype,addr)
 		if so != nil && uint64(len(account.nonces))+account.nstart < so.Nonce() {
-			ms.accounts[addr] = newAccount(so)
+			ms.accounts[hash] = newAccount(so)
 		}
 
 	}
 
-	return ms.accounts[addr]
+	return ms.accounts[hash]
 }
 
 func newAccount(so *stateObject) *account {
