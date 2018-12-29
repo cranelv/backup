@@ -36,7 +36,7 @@ var (
 	errInterestAddrEmpty = errors.New("interest addr is empty")
 
 	depositDef = ` [{"constant": true,"inputs": [],"name": "getDepositList","outputs": [{"name": "","type": "address[]"}],"payable": false,"stateMutability": "view","type": "function"},
-			{"constant": true,"inputs": [{"name": "addr","type": "address"}],"name": "getDepositInfo","outputs": [{"name": "","type": "uint256"},{"name": "","type": "bytes"},{"name": "","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},
+			{"constant": true,"inputs": [{"name": "addr","type": "address"}],"name": "getDepositInfo","outputs": [{"name": "","type": "uint256"},{"name": "","type": "address"},{"name": "","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},
     		{"constant": false,"inputs": [{"name": "address","type": "address"}],"name": "valiDeposit","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
     		{"constant": false,"inputs": [{"name": "address","type": "address"}],"name": "minerDeposit","outputs": [],"payable": true,"stateMutability": "payable","type": "function"},
     		{"constant": false,"inputs": [],"name": "withdraw","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},
@@ -511,7 +511,7 @@ func (md *MatrixDeposit) getDepositInfo(in []byte, contract *Contract, evm *EVM)
 	}
 	signAddr := md.getAddress(contract, evm.StateDB, addr)
 	withdraw := md.getWithdrawHeight(contract, evm.StateDB, addr)
-	return depositAbi.Methods["getDepositInfo"].Outputs.Pack(deposit, signAddr[:], withdraw)
+	return depositAbi.Methods["getDepositInfo"].Outputs.Pack(deposit, signAddr, withdraw)
 }
 
 func (md *MatrixDeposit) modifyDepositState(contract *Contract, evm *EVM, addr common.Address) error {
