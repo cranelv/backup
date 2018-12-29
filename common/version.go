@@ -112,6 +112,13 @@ var (
 		},
 		CommitContext{
 			Version:   "Gman_Alg_0.0.13",
+			Submitter: "张文",
+			Commit: []string{
+				"修改默认创世文件配置",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.14",
 			Submitter: "liubo",
 			Commit: []string{
 				"区块同步fetch增加log部分打印，便于定位问题",

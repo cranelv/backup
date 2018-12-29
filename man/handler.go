@@ -454,6 +454,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				query.Origin.Number += query.Skip + 1
 			}
 		}
+		if len(headers) > 0 {
+			p.Log().Trace("download handleMsg recv GetBlockHeadersMsg", "headers len", len(headers), "number", headers[0].Number.Uint64())
+		} else {
+			p.Log().Trace("download handleMsg recv GetBlockHeadersMsg", "headers len", len(headers))
+		}
 		return p.SendBlockHeaders(headers)
 
 	case msg.Code == BlockHeadersMsg:
@@ -463,13 +468,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 
-		log.Debug("BlockHeadersMsg")
+		p.Log().Trace("download handleMsg BlockHeadersMsg", "len", len(headers))
 
 		// If no headers were received, but we're expending a DAO fork check, maybe it's that
 		if len(headers) == 0 && p.forkDrop != nil {
 			// Possibly an empty reply to the fork header checks, sanity check TDs
 			verifyDAO := true
-
+			p.Log().Trace("download BlockHeadersMsg forkDrop")
 			// If we already have a DAO header, we can check the peer's TD against it. If
 			// the peer's ahead of this, it too must have a reply to the DAO check
 			if daoHeader := pm.blockchain.GetHeaderByNumber(pm.chainconfig.DAOForkBlock.Uint64()); daoHeader != nil {
@@ -516,6 +521,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Irrelevant of the fork checks, send the header to the fetcher just in case
 			headers = pm.fetcher.FilterHeaders(p.id, headers, time.Now())
 		}
+		p.Log().Trace("download handleMsg BlockHeadersMsg after", "len", len(headers), "!filter", !filter)
 		if len(headers) > 0 || !filter {
 			err := pm.downloader.DeliverHeaders(p.id, headers)
 			if err != nil {
@@ -548,6 +554,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				bytes += len(data)
 			}
 		}
+		p.Log().Trace("download handleMsg recv GetBlockBodiesMsg", "bodies len", len(bodies), "hash", hash)
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:
@@ -569,6 +576,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if filter {
 			transactions, uncles = pm.fetcher.FilterBodies(p.id, transactions, uncles, time.Now())
 		}
+		p.Log().Trace("download handleMsg BlockBodiesMsg after filter", "len transaction", len(transactions), "!filter", !filter)
 		if len(transactions) > 0 || len(uncles) > 0 || !filter {
 			err := pm.downloader.DeliverBodies(p.id, transactions, uncles)
 			if err != nil {
@@ -677,6 +685,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				unknown = append(unknown, block)
 			}
 		}
+
 		for _, block := range unknown {
 			pm.fetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
 		}
@@ -692,7 +701,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
-		log.Trace("handleMsg receive NewBlockMsg", "number", request.Block.NumberU64())
+		log.Trace("download fetch handleMsg receive NewBlockMsg", "number", request.Block.NumberU64())
 		pm.fetcher.Enqueue(p.id, request.Block)
 
 		// Assuming the block is importable by the peer, but possibly not yet done so,
