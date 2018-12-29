@@ -94,6 +94,7 @@ type IPfsDownloader struct {
 	HeaderIpfsCh        chan []BlockIpfsReq //[]*types.Header
 	//	BlockRcvCh          chan *types.Block
 	//runQuit      chan struct{}
+	//timeOutCh    chan struct{}
 	DownMutex    *sync.Mutex
 	DownRetrans  *list.List //*prque.Prque // []DownloadRetry prque.New()
 	BatchStBlock *BatchBlockSt
@@ -173,7 +174,8 @@ var listPeerId [2]string
 var testShowlog int
 var gIpfsPath string
 var runQuit chan int //struct{}
-var timeOutCh int    //chan int
+var timeOutFlg int   //chan int
+var gtimeOutSign chan struct{}
 
 func init() {
 	/*creatInfo := DownloadFileInfo{
@@ -185,12 +187,14 @@ func init() {
 	}
 	WriteJsFile("ipfsinfo.json", creatInfo)*/
 	//len := GetFileSize("D:\\send1.txt")
-	err := ReadJsFile("ipfsinfo.json", &IpfsInfo)
-	fmt.Println("read ipfs ", err, IpfsInfo.Downloadflg, IpfsInfo.StrIPFSServerInfo)
+	//err :=
+	ReadJsFile("ipfsinfo.json", &IpfsInfo)
+	//fmt.Println("read ipfs ", err, IpfsInfo.Downloadflg, IpfsInfo.StrIPFSServerInfo)
 	if /*IpfsInfo.IpfsPath == "" ||*/ IpfsInfo.StrIPFSServerInfo == "" || IpfsInfo.PrimaryDescription == "" {
 		IpfsInfo.Downloadflg = false
 	} else {
 		runQuit = make(chan int) //struct{})
+		gtimeOutSign = make(chan struct{})
 		//timeOutCh = make(chan int)
 	}
 }
@@ -207,6 +211,7 @@ func newIpfsDownload() *IPfsDownloader {
 		DownRetrans:  list.New(), //prque.New(), //make([]DownloadRetry, 6),
 		DownMutex:    new(sync.Mutex),
 		BatchStBlock: new(BatchBlockSt),
+		//timeOutCh:    make(chan struct{}),
 	}
 
 }
@@ -370,7 +375,7 @@ func RestartIpfsDaemon() {
 
 	StopIpfsProcess()
 	//time.Sleep(1 * time.Second)
-	//log.Warn("ipfs RestartIpfsDaemon daemon")
+	log.Warn("ipfs RestartIpfsDaemon daemon")
 	ctx, cancel := context.WithCancel(context.Background())
 	StopIpfsHandler.Stop = cancel
 	flgCh := make(chan int)
@@ -421,13 +426,55 @@ func ipfsGetTimeout() {
 			log.Warn("ipfs---- ipfsGetTimeout")
 			flg = 1
 			RestartIpfsDaemon()
-			timeOutCh = 1
+			timeOutFlg = 1
 		case <-runQuit:
 			flg = 0
 			return
 		}
 	}
 }
+func TimeoutExec() {
+	var flg int
+	timeOut := time.NewTicker(10 * time.Minute)
+	defer func() {
+		log.Warn("ipfs---- ipfsTimeoutExec out--------", "flg", flg)
+		timeOut.Stop()
+	}()
+	for {
+		select {
+		case <-timeOut.C:
+			log.Warn("ipfs---- TimeoutExec time out")
+			flg = 1
+			RestartIpfsDaemon()
+			timeOutFlg = 1
+		case <-runQuit:
+			flg = 0
+			return
+		}
+	}
+}
+func IpfsStartTimer() {
+	timeOutFlg = 0
+	gtimeOutSign <- struct{}{}
+}
+func IpfsStopTimer() {
+	//超时的不需要再停止
+	if timeOutFlg == 0 {
+		runQuit <- 1
+	}
+}
+func (d *Downloader) IpfsTimeoutTask() {
+	log.Warn("IpfsTimeoutTask enter in")
+	for {
+		select {
+		case <-gtimeOutSign:
+			timeOutFlg = 0
+			TimeoutExec()
+		}
+	}
+
+}
+
 func (d *Downloader) ClearDirectoryContent() {
 	tmpFile, err1 := os.OpenFile(path.Join(strCacheDirectory, strLastestBlockFile), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	fmt.Println("file1", err1)
@@ -520,10 +567,12 @@ func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 	c := exec.Command(gIpfsPath, "get", strHash)
 	c.Stdout = &out
 	c.Stderr = &outerr
-	timeOutCh = 0
-	go ipfsGetTimeout()
+	timeOutFlg = 0
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	err := c.Run()
-	runQuit <- 1 //struct{}{}
+	//runQuit <- 1 //struct{}{}
+	IpfsStopTimer()
 	c.StdinPipe()
 	//strErrInfo := outerr.String()
 
@@ -531,7 +580,7 @@ func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 
 	if err != nil {
 		log.Error("ipfs IpfsGetBlockByHash error", "error", err, "ipfs err", outerr.String())
-		if timeOutCh == 0 {
+		if timeOutFlg == 0 {
 			CheckIpfsStatus(err)
 		}
 		return nil, err
@@ -590,11 +639,13 @@ func IpfsGetFileCache2ByHash(strhash, objfileName string) (*os.File, bool, error
 	strFile := "-o=" + objfileName
 	c := exec.Command(gIpfsPath, "get", strFile, strhash)
 	//c := exec.Command(gStrIpfsName, "get", "-o=secondCacheInfo.gb", strhash) //strhash)
-	go ipfsGetTimeout()
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	c.Stdout = &out
 	c.Stderr = &outerr
 	err := c.Run()
-	runQuit <- 1
+	//runQuit <- 1
+	IpfsStopTimer()
 	//strErrInfo := outerr.String()
 	stdErr := outerr.String()
 	if err != nil {
@@ -902,11 +953,13 @@ func (d *Downloader) IpfsSyncGetFirstCache(index int) (*Cache1StoreCfg, error) {
 	ipnsPath := "/ipns/" + listPeerId[index] + "/" + strCache1BlockFile
 	c := exec.Command(d.dpIpfs.StrIPFSExecName, "cat", ipnsPath) //或cat
 	//c.Stdout = &out
-	go ipfsGetTimeout()
+	//go ipfsGetTimeout()
+	IpfsStartTimer()
 	c.Stderr = &outerr
 	//err := c.Run()
 	outbuf, err := c.Output()
-	runQuit <- 1
+	//runQuit <- 1
+	IpfsStopTimer()
 	//strErrInfo := outerr.String()
 
 	//new

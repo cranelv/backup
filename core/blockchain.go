@@ -8,13 +8,15 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/matrix/go-matrix/common/readstatedb"
 	"io"
 	"math/big"
 	mrand "math/rand"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/matrix/go-matrix/common/readstatedb"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -1179,6 +1181,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 // with deferred statements.
 func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*types.Log, error) {
 	// Do a sanity check that the provided chain is actually ordered and linked
+	log.Trace("BlockChain insertChain in")
 	for i := 1; i < len(chain); i++ {
 		if chain[i].NumberU64() != chain[i-1].NumberU64()+1 || chain[i].ParentHash() != chain[i-1].Hash() {
 			// Chain broke ancestry, log a messge (programming error) and skip insertion
@@ -1195,7 +1198,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-
+	log.Trace("BlockChain insertChain in2")
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
 	// acquiring.
@@ -1209,6 +1212,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
 		// If the chain is terminating, stop processing blocks
+		log.Trace("BlockChain insertChain in3 range", "blockNum", block.NumberU64())
 		if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 			log.Debug("Premature abort during blocks processing")
 			break
@@ -1234,6 +1238,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		case err == ErrKnownBlock:
 			// Block and state both already known. However if the current block is below
 			// this number we did a rollback and we should reimport it nonetheless.
+			log.Trace("BlockChain insertChain in3 ErrKnownBlock")
 			if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
 				stats.ignored++
 				continue
@@ -1242,6 +1247,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		case err == consensus.ErrFutureBlock:
 			// Allow up to MaxFuture second in the future blocks. If this limit is exceeded
 			// the chain is discarded and processed at a later time if given.
+			log.Trace("BlockChain insertChain in3 ErrFutureBlock")
 			max := big.NewInt(time.Now().Unix() + maxTimeFutureBlocks)
 			if block.Time().Cmp(max) > 0 {
 				return i, events, coalescedLogs, fmt.Errorf("future block: %v > %v", block.Time(), max)
@@ -1251,6 +1257,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			continue
 
 		case err == consensus.ErrUnknownAncestor && bc.futureBlocks.Contains(block.ParentHash()):
+			log.Trace("BlockChain insertChain in3 ErrUnknownAncestor")
 			bc.futureBlocks.Add(block.Hash(), block)
 			stats.queued++
 			continue
@@ -1258,6 +1265,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		case err == consensus.ErrPrunedAncestor:
 			// Block competing with the canonical chain, store in the db, but don't process
 			// until the competitor TD goes above the canonical TD
+			log.Trace("BlockChain insertChain in3 ErrPrunedAncestor")
 			currentBlock := bc.CurrentBlock()
 			localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 			externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
@@ -1289,6 +1297,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			}
 
 		case err != nil:
+			log.Trace("BlockChain insertChain in3 reportBlock")
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
@@ -1308,6 +1317,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		} else {
 			parent = chain[i-1]
 		}
+		log.Trace("BlockChain insertChain in3 parent")
 		// Process block using the parent state as reference point.
 		state, err := state.New(parent.Root(), bc.stateCache)
 		if err != nil {
@@ -1319,6 +1329,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			usedGas  uint64         = 0
 		)
 		if block.IsSuperBlock() {
+			log.Trace("BlockChain insertChain in3 IsSuperBlock")
 			sbs, err := bc.GetSuperBlockSeq()
 			if nil != err {
 				return i, events, coalescedLogs, errors.Errorf("get super seq error")
@@ -1326,6 +1337,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			if block.Header().SuperBlockSeq() <= sbs {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)", block.Header().SuperBlockSeq(), sbs)
 			}
+			log.Trace("BlockChain insertChain in3 IsSuperBlock processSuperBlockState")
 			err = bc.processSuperBlockState(block, state)
 			if err != nil {
 				bc.reportBlock(block, receipts, err)
@@ -1337,9 +1349,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
 			}
 		} else {
-
+			log.Trace("BlockChain insertChain in3 Process Block")
 			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
 			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err1")
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
@@ -1347,6 +1360,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap)
 			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err2")
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
@@ -1354,19 +1368,21 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// Process matrix state
 			err = bc.matrixState.ProcessMatrixState(block, state)
 			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err3")
 				return i, events, coalescedLogs, err
 			}
 
 			// Validate the state using the default validator
 			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err4")
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
 		}
 
 		proctime := time.Since(bstart)
-
+		log.Trace("BlockChain insertChain in3 WriteBlockWithState")
 		// Write the block to the chain and get the status.
 		status, err := bc.WriteBlockWithState(block, receipts, state)
 		if err != nil {
@@ -1395,7 +1411,29 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		stats.processed++
 		stats.usedGas += usedGas
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())
+		//lb
+		tmp := block.Transactions()
+		log.Trace("BlockChain insertChain mem", len(tmp))
+
+		tmp = nil
+
+		thd := block.Header()
+		thd.Elect = nil
+		thd.Difficulty = nil
+		thd.Number = nil
+		thd.Time = nil
+		thd.Extra = nil
+		thd.Signatures = nil
+		thd.Version = nil
+		thd = nil
+		receipts = nil
+		block = nil
+		logs = nil
+		time.Sleep(10 * time.Millisecond)
 	}
+	debug.FreeOSMemory() //lb
+
+	log.Trace("BlockChain insertChain out")
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
