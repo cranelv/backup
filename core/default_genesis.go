@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/types"
 )
 
 var (
@@ -645,9 +646,9 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 	if gensis1.Coinbase != "" {
 		gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
 	}
-	//if types.RlpHash(gensis1.Roots).Equal(common.Hash{}) == false {
-	//	gensis.Roots = gensis1.Roots
-	//}
+	if types.RlpHash(gensis1.Roots).Equal(common.Hash{}) == false {
+		gensis.Roots = gensis1.Roots
+	}
 	if gensis1.TxHash.Equal(common.Hash{}) == false {
 		gensis.TxHash = gensis1.TxHash
 	}
