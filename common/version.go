@@ -110,5 +110,14 @@ var (
 				"修改二级备份节点会多选一个问题",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.13",
+			Submitter: "liubo",
+			Commit: []string{
+				"区块同步fetch增加log部分打印，便于定位问题",
+				"去掉ipfs 相关printf打印",
+				"ipfs同步频繁启动协程异常判断改为管道方式",
+			},
+		},
 	}
 )
