@@ -127,7 +127,7 @@ func (p *Process) processHeaderGen() error {
 		header.Signatures = make([]common.Signature, 0, 1)
 		header.Signatures = append(header.Signatures, sign)
 		sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
-		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Root.TerminalString(), "tx数量", sendMsg.Txs.Len())
+		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", types.RlpHash(header.Roots), "tx数量", sendMsg.Txs.Len())
 		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
 	} else {
 		header = block.Header()

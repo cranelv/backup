@@ -561,7 +561,7 @@ func (p *Process) verifyTxsAndState() {
 	}
 
 	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
+	log.Info("miss tree node debug", "finalize root", types.RlpHash(localBlock.Root()).Hex(), "remote root", types.RlpHash(remoteHeader.Roots).Hex())
 
 	// verify election info
 	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
