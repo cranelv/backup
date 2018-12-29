@@ -645,9 +645,9 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 	if gensis1.Coinbase != "" {
 		gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
 	}
-	if gensis1.Root.Equal(common.Hash{}) == false {
-		gensis.Root = gensis1.Root
-	}
+	//if types.RlpHash(gensis1.Roots).Equal(common.Hash{}) == false {
+	//	gensis.Roots = gensis1.Roots
+	//}
 	if gensis1.TxHash.Equal(common.Hash{}) == false {
 		gensis.TxHash = gensis1.TxHash
 	}

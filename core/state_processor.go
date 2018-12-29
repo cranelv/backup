@@ -45,11 +45,11 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 	}
 }
 
-func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
+func (env *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big.Int {
 
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
-	balance := state.GetBalance(common.TxGasRewardAddress)
+	balance := state.GetBalance(params.MAN_COIN,common.TxGasRewardAddress)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法", "")
@@ -63,7 +63,7 @@ func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
 	return allGas
 }
 
-func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) error {
+func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) error {
 	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
@@ -99,16 +99,16 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	}
 	lottery := lottery.New(p.bc, state, nil)
 
-	tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery before root", tmproot)
+	tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.INFO(ModuleName, "lottery before root", tmproot,"lottery before coinbyte",Coinbyte)
 	if nil != lottery {
 		lottery.ProcessMatrixState(header.Number.Uint64())
-		tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-		log.INFO(ModuleName, "lottery middile root", tmproot)
+		tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+		log.INFO(ModuleName, "lottery middile root", tmproot,"lottery middile coinbyte",Coinbyte)
 		lottery.LotterySaveAccount(from, header.VrfValue)
 	}
-	tmproot = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery after root", tmproot)
+	tmproot,Coinbyte = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.INFO(ModuleName, "lottery after root", tmproot,"lottery after coinbyte",Coinbyte)
 	interestReward := interest.New(state)
 	if nil == interestReward {
 		return nil

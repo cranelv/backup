@@ -10,7 +10,7 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/matrixstate"
+	//"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
@@ -19,7 +19,8 @@ import (
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/trie"
+	//"github.com/matrix/go-matrix/trie"
+	//"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
@@ -112,10 +113,10 @@ func ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadF
 }
 
 type ChainReader interface {
-	StateAt(root common.Hash) (*state.StateDB, error)
+	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 }
 
-func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal map[common.Address][]byte, err error) {
+func GetBroadcastTxMap(bc ChainReader, root []common.CoinRoot, txtype string) (reqVal map[common.Address][]byte, err error) {
 	state, err := bc.StateAt(root)
 	if err != nil {
 		log.Error("GetBroadcastTxMap StateAt err")

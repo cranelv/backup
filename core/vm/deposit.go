@@ -273,29 +273,29 @@ func (md *MatrixDeposit) setDeposit(contract *Contract, stateDB StateDBManager, 
 //	return big.NewInt(0)
 //}
 
-func (md *MatrixDeposit) getAddress(contract *Contract, stateDB StateDB, addr common.Address) common.Address {
+func (md *MatrixDeposit) getAddress(contract *Contract, stateDB StateDBManager, addr common.Address) common.Address {
 	// get signature address
 	signAddrKey := append(addr[:], 'N', 'X')
-	signAddr := stateDB.GetState(contract.Address(), common.BytesToHash(signAddrKey))
+	signAddr := stateDB.GetState(contract.CoinTyp,contract.Address(), common.BytesToHash(signAddrKey))
 	if signAddr == emptyHash {
 		return common.Address{}
 	}
 	return common.BytesToAddress(signAddr.Bytes())
 }
 
-func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address common.Address) error {
+func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDBManager, address common.Address) error {
 	if (address == common.Address{}) {
 		return nil
 	}
 	nodeYKey := append(address[:], 'N', 'Y')
-	hs := stateDB.GetState(contract.Address(), common.BytesToHash(nodeYKey))
+	hs := stateDB.GetState(contract.CoinTyp,contract.Address(), common.BytesToHash(nodeYKey))
 	if hs != emptyHash {
 		return errExist
 	}
-	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())
+	stateDB.SetState(contract.CoinTyp,contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())
 
 	nodeXKey := append(contract.CallerAddress[:], 'N', 'X')
-	stateDB.SetState(contract.Address(), common.BytesToHash(nodeXKey), address.Hash())
+	stateDB.SetState(contract.CoinTyp,contract.Address(), common.BytesToHash(nodeXKey), address.Hash())
 	return nil
 }
 

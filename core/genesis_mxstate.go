@@ -169,7 +169,7 @@ func (g *GenesisMState) setElectInfo(state *state.StateDBManage, num uint64) err
 	log.Info("Geneis", "electconfig", g.EleInfoCfg)
 	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.EleInfoCfg, state)
 }
-func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDBManage, num uint64) error {
 	if g.ElectMinerNumCfg == nil {
 		if num == 0 {
 			return errors.New("electMinerNum为nil")
@@ -182,7 +182,7 @@ func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) e
 	return matrixstate.SetDataToState(mc.MSKeyElectMinerNum, g.ElectMinerNumCfg, state)
 }
 
-func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDBManage, num uint64) error {
 	var whiteList []common.Address = nil
 	if g.ElectWhiteListCfg == nil || *g.ElectWhiteListCfg == nil {
 		if num == 0 {
@@ -199,7 +199,7 @@ func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) 
 	return matrixstate.SetDataToState(mc.MSKeyElectWhiteList, whiteList, state)
 }
 
-func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setElectBlackListInfo(state *state.StateDBManage, num uint64) error {
 	var blackList []common.Address = nil
 	if g.ElectBlackListCfg == nil || *g.ElectBlackListCfg == nil {
 		if num == 0 {
@@ -333,7 +333,7 @@ func (g *GenesisMState) setElectToState(state *state.StateDBManage, nextElect []
 	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
 }
 
-func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDBManage, num uint64) error {
 	if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
 		if num == 0 {
 			return errors.Errorf("the `broadcast` of genesis is empty")
@@ -345,7 +345,7 @@ func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uin
 	return nil
 }
 
-func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDBManage, num uint64) error {
 	var innerMiners []common.Address = nil
 	if g.InnerMiners == nil || *g.InnerMiners == nil {
 		if num == 0 {
@@ -361,7 +361,7 @@ func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num u
 	return nil
 }
 
-func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setFoundationAccountToState(state *state.StateDBManage, num uint64) error {
 	var foundation common.Address
 	if g.Foundation == nil || *g.Foundation == (common.Address{}) {
 		if num == 0 {
@@ -376,7 +376,7 @@ func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num ui
 	return nil
 }
 
-func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDBManage, num uint64) error {
 	if g.VersionSuperAccounts == nil || len(*g.VersionSuperAccounts) == 0 {
 		if num == 0 {
 			return errors.Errorf("the version superAccounts of genesis is empty")
@@ -388,7 +388,7 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 	return nil
 }
 
-func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDBManage, num uint64) error {
 	if num != 0 {
 		return errors.New("the block superAccounts can't modify")
 	}

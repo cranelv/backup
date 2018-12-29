@@ -1687,10 +1687,10 @@ func (bc *BlockChain) sendBroadTx() {
 			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
 			return
 		}
-		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
+		log.INFO(ModuleName, "sendBroadTx获取最新的root", types.RlpHash(preBroadcastRoot.LastStateRoot).String())
 		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
-		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
+		broadcastBlock := types.RlpHash(preBroadcastRoot.LastStateRoot).Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
 		if ret.Cmp(val) == 0 {
 			height := new(big.Int).Add(new(big.Int).SetUint64(subVal), big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度

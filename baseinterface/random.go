@@ -50,8 +50,8 @@ type ChainReader interface {
 	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
 	// GetBlock retrieves a block sfrom the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
-	State() (*state.StateDB, error)
+	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
+	State() (*state.StateDBManage, error)
 	GetMatrixStateData(key string) (interface{}, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	GetSuperBlockNum() (uint64, error)
