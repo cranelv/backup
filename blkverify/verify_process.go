@@ -536,7 +536,7 @@ func (p *Process) verifyTxsAndState() {
 		log.Error(p.logExtraInfo(), "uptime处理错误", err)
 		return
 	}
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, p.pm.bc, uptimeMap)
+	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, uptimeMap)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)

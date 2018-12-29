@@ -6,6 +6,7 @@ package core
 
 import (
 	"errors"
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
@@ -34,6 +35,7 @@ type StateProcessor struct {
 	config *params.ChainConfig // Chain configuration options
 	bc     *BlockChain         // Canonical block chain
 	engine consensus.Engine    // Consensus engine used for block rewards
+	random *baseinterface.Random
 }
 
 // NewStateProcessor initialises a new StateProcessor.
@@ -45,7 +47,10 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 	}
 }
 
-func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
+func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
+	p.random = random
+}
+func (p *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
 
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
@@ -62,56 +67,57 @@ func (env *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
 	}
 	return allGas
 }
-
-func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) error {
+func (env *StateProcessor) reverse(s []common.RewarTx) []common.RewarTx {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
+}
+func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
 	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
 		return nil
 	}
-	num := header.Number.Uint64()
-	if bcInterval.IsBroadcastNumber(num) {
+	if bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		return nil
 	}
 	blkReward := blkreward.New(p.bc, state)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
-		minersRewardMap := blkReward.CalcMinerRewards(num, header.ParentHash)
+		minersRewardMap := blkReward.CalcMinerRewards(header.Number.Uint64(), header.ParentHash)
 		if 0 != len(minersRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
-		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
+		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, header.Number.Uint64())
 		if 0 != len(validatorsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
 
-	txsReward := txsreward.New(p.bc, state)
 	allGas := p.getGas(state, new(big.Int).SetUint64(usedGas))
-	log.INFO(ModuleName, "交易费奖励总额", allGas.String())
+	txsReward := txsreward.New(p.bc, state)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(p.bc, state, nil)
-
-	tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery before root", tmproot)
+	lottery := lottery.New(p.bc, state, p.random)
 	if nil != lottery {
-		lottery.ProcessMatrixState(header.Number.Uint64())
-		tmproot := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-		log.INFO(ModuleName, "lottery middile root", tmproot)
-		lottery.LotterySaveAccount(from, header.VrfValue)
+		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
+		if 0 != len(lotteryRewardMap) {
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+		}
+		lottery.LotterySaveAccount(account, header.VrfValue)
 	}
-	tmproot = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery after root", tmproot)
+
+	////todo 利息
 	interestReward := interest.New(state)
 	if nil == interestReward {
-		return nil
+		return p.reverse(rewardList)
 	}
 	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
@@ -122,8 +128,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	if nil != slash {
 		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
 	}
-
-	return nil
+	return p.reverse(rewardList)
 }
 
 // Process processes the state changes according to the Matrix rules by running
@@ -191,10 +196,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		txcount = i
 		from = append(from, tx.From())
 	}
-	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
-	if err != nil {
-		return nil, nil, 0, err
-	}
+	p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
+
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)

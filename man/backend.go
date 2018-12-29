@@ -213,7 +213,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	man.blockchain.Processor().SetRandom(man.random)
 	man.reelection, err = reelection.New(man.blockchain, man.random)
 	if err != nil {
 		return nil, err
