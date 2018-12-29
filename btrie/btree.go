@@ -640,7 +640,7 @@ func RestoreBtree(btree *BTree, itemNode *bnode, nodeHash common.Hash, db *trie.
 	//nodeData, _ := db.Node(nodeHash)
 	nodeData := stateDB.GetMatrixData(nodeHash)
 	//err := rlp.DecodeBytes(nodeData,&tmpNodeSave)
-	err = json.Unmarshal(nodeData, &tmpNodeSave)
+	err := json.Unmarshal(nodeData, &tmpNodeSave)
 	if err != nil {
 		log.Info("file btree", "func RestoreBtree:err", err)
 		return errors.New("RestoreBtree node decode err")
