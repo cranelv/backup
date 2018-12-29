@@ -772,7 +772,7 @@ func (self *StateDBManage) CommitSaveTx(cointyp string,addr common.Address) {
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 		for _,rm:=range cm.Rmanage{
-			if rm.Range==addr[1]{
+			if rm.Range==addr[0]{
 				rm.State.CommitSaveTx()
 				break
 			}
@@ -787,7 +787,7 @@ func (self *StateDBManage) NewBTrie(cointyp string,addr common.Address,typ byte)
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
-				if rm.Range==addr[1]{
+				if rm.Range==addr[0]{
 					rm.State.NewBTrie(typ)
 					break
 				}
@@ -801,7 +801,7 @@ func (self *StateDBManage) GetSaveTx(cointyp string,addr common.Address,typ byte
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
-				if rm.Range==addr[1]{
+				if rm.Range==addr[0]{
 					rm.State.GetSaveTx(typ,key,hashlist,isdel)
 					break
 				}
@@ -814,7 +814,7 @@ func (self *StateDBManage) SaveTx(cointyp string,addr common.Address,typ byte, k
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
-				if rm.Range==addr[1]{
+				if rm.Range==addr[0]{
 					rm.State.SaveTx(typ,key,data)
 					break
 				}
