@@ -110,5 +110,12 @@ var (
 				"修改二级备份节点会多选一个问题",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.13",
+			Submitter: "张文",
+			Commit: []string{
+				"修改默认创世文件配置",
+			},
+		},
 	}
 )
