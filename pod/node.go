@@ -152,7 +152,7 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
 	emptyAddress := common.Address{}
 	if n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man sign address is empty.")
+		n.log.Info("man input sign address is empty.")
 
 		if !common.FileExist(datadirManSignature) {
 			return
