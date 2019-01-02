@@ -309,12 +309,19 @@ func (p *Process) startHeaderGen() {
 	}
 
 	log.INFO(p.logExtraInfo(), "开始生成验证请求, 高度", p.number)
-	err := p.processHeaderGen()
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "生成验证请求错误", err, "高度", p.number)
-		return
+	if p.bcInterval.IsBroadcastNumber(p.number) {
+		err := p.processHeaderGen()
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "生成普通区块验证请求错误", err, "高度", p.number)
+			return
+		}
+	} else {
+		err := p.processBcHeaderGen()
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "生成广播区块验证请求错误", err, "高度", p.number)
+			return
+		}
 	}
-
 	p.state = StateMinerResultVerify
 	p.processMinerResultVerify(p.curLeader, true)
 }

@@ -318,6 +318,7 @@ func (self *BlockGenor) handleNewBlockRspMsg(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	number := rsp.Header.Number.Uint64()
+
 	log.INFO(self.logExtraInfo(), "完整区块响应消息", "开始", "高度", number)
 	defer log.Debug(self.logExtraInfo(), "完整区块响应消息", "结束", "高度", number)
 	process, err := self.pm.GetProcess(number)
