@@ -208,11 +208,11 @@ func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleT
 }
 
 func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*specialAccounts, error) {
-	bcData, err := matrixstate.GetDataByState(mc.MSKeyAccountBroadcast, state)
+	bcData, err := matrixstate.GetDataByState(mc.MSKeyAccountBroadcasts, state)
 	if err != nil {
 		return nil, err
 	}
-	broadcast, OK := bcData.(common.Address)
+	broadcasts, OK := bcData.([]common.Address)
 	if OK == false {
 		return nil, errors.New("reflect broadcast account failed")
 	}
@@ -236,7 +236,7 @@ func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*specialAccounts
 	}
 
 	return &specialAccounts{
-		broadcast:     broadcast,
+		broadcasts:    broadcasts,
 		versionSupers: versionSupers,
 		blockSupers:   blockSupers,
 	}, nil
@@ -281,14 +281,14 @@ func (dc *cdc) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGra
 	return dc.chain.GetGraphByHash(hash)
 }
 
-func (dc *cdc) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
+func (dc *cdc) GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error) {
 	if (blockHash == common.Hash{}) {
-		return common.Address{}, errors.New("输入hash为空")
+		return nil, errors.New("输入hash为空")
 	}
 	if blockHash == dc.leaderCal.preHash {
-		return dc.leaderCal.specialAccounts.broadcast, nil
+		return dc.leaderCal.specialAccounts.broadcasts, nil
 	}
-	return dc.chain.GetBroadcastAccount(blockHash)
+	return dc.chain.GetBroadcastAccounts(blockHash)
 }
 
 func (dc *cdc) GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error) {

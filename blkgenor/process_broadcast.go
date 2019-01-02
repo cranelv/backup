@@ -12,8 +12,16 @@ import (
 )
 
 func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
+	if result == nil || result.BlockMainData == nil || result.BlockMainData.Header == nil {
+		log.Warn(p.logExtraInfo(), "广播区块挖矿结果", "消息为nil")
+		return
+	}
+	if result.From != result.BlockMainData.Header.Leader {
+		log.Info(p.logExtraInfo(), "广播区块挖矿结果", "消息from != 消息leader", "leader", result.BlockMainData.Header.Leader.Hex(), "from", result.From.Hex())
+		return
+	}
 	if p.preVerifyBroadcastMinerResult(result.BlockMainData) == false {
-		log.WARN(p.logExtraInfo(), "预验证广播区块挖矿结果错误", "抛弃该消息")
+		log.WARN(p.logExtraInfo(), "广播区块挖矿结果", "预验证事变, 抛弃该消息")
 		return
 	}
 
@@ -22,8 +30,7 @@ func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
 
 	// 缓存广播区块挖矿结果
 	log.INFO(p.logExtraInfo(), "缓存广播区块挖矿结果成功，高度", p.number)
-	p.broadcastRstCache = append(p.broadcastRstCache, result.BlockMainData)
-
+	p.broadcastRstCache[result.From] = result.BlockMainData
 	p.processMinerResultVerify(p.curLeader, true)
 }
 

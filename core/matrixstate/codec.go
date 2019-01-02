@@ -14,7 +14,7 @@ func (self *keyManager) initCodec() {
 	self.codecMap[mc.MSKeyElectOnlineState] = new(ElectOnlineStateCodec)
 	self.codecMap[mc.MSKeyBroadcastInterval] = new(BroadcastIntervalCodec)
 	self.codecMap[mc.MSKeyElectGenTime] = new(ElectGenTimeCodec)
-	self.codecMap[mc.MSKeyAccountBroadcast] = new(AccountCodec)
+	self.codecMap[mc.MSKeyAccountBroadcasts] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyAccountInnerMiners] = new(AccountsCodec)
 	self.codecMap[mc.MSKeyAccountFoundation] = new(AccountCodec)
 	self.codecMap[mc.MSKeyAccountVersionSupers] = new(AccountsCodec)

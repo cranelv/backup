@@ -119,7 +119,7 @@ func (gs *GraphStore) GetNextElectByHash(blockHash common.Hash) ([]common.Elect,
 }
 
 func (gs *GraphStore) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
-	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcast, blockHash)
+	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcasts, blockHash)
 	if err != nil {
 		return common.Address{}, err
 	}

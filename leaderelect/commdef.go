@@ -110,7 +110,7 @@ func calcNextConsensusTurn(curConsensusTurn mc.ConsensusTurnInfo, curReelectTurn
 }
 
 type specialAccounts struct {
-	broadcast     common.Address
+	broadcasts    []common.Address
 	versionSupers []common.Address
 	blockSupers   []common.Address
 }

@@ -1969,14 +1969,14 @@ func (bc *BlockChain) GetMatrixStateDataByNumber(key string, number uint64) (int
 	return matrixstate.GetDataByState(key, state)
 }
 
-func (bc *BlockChain) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
-	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcast, blockHash)
+func (bc *BlockChain) GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error) {
+	data, err := bc.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcasts, blockHash)
 	if err != nil {
-		return common.Address{}, err
+		return nil, err
 	}
-	broadcast, OK := data.(common.Address)
+	broadcast, OK := data.([]common.Address)
 	if OK == false {
-		return common.Address{}, errors.New("反射结构体失败")
+		return nil, errors.New("反射结构体失败")
 	}
 	return broadcast, nil
 }

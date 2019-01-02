@@ -402,18 +402,20 @@ func (md *MtxDPOS) verifyBroadcastBlock(reader consensus.StateReader, header *ty
 	if from != header.Leader {
 		return errors.Errorf("broadcast block's sign account(%s) is not block leader(%s)", from.Hex(), header.Leader.Hex())
 	}
-
-	broadcast, err := reader.GetBroadcastAccount(header.ParentHash)
-	if err != nil || broadcast == (common.Address{}) {
-		return errors.Errorf("get broadcast account from state err(%s)", err)
-	}
-	if broadcast != from {
-		return errBroadcastVerifySign
-	}
 	if result == false {
 		return errBroadcastVerifySignFalse
 	}
-	return nil
+
+	broadcasts, err := reader.GetBroadcastAccounts(header.ParentHash)
+	if err != nil || len(broadcasts) == 0 {
+		return errors.Errorf("get broadcast account from state err(%s)", err)
+	}
+	for _, bc := range broadcasts {
+		if from == bc {
+			return nil
+		}
+	}
+	return errBroadcastVerifySign
 }
 
 func (md *MtxDPOS) getValidatorStocks(reader consensus.StateReader, hash common.Hash) (map[common.Address]uint16, error) {

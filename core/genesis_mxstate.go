@@ -20,7 +20,7 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcast            *common.Address         `json:"Broadcast"`
+	Broadcasts           *[]common.Address       `json:"Broadcasts"`
 	InnerMiners          *[]common.Address       `json:"InnerMiners"`
 	Foundation           *common.Address         `json:"Foundation"`
 	VersionSuperAccounts *[]common.Address       `json:"VersionSuperAccounts"`
@@ -41,7 +41,7 @@ type GenesisMState struct {
 	CurElect             *[]common.Elect         `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcast            *string                 `json:"Broadcast,omitempty"`
+	Broadcasts           *[]string               `json:"Broadcasts,omitempty"`
 	InnerMiners          *[]string               `json:"InnerMiners,omitempty"`
 	Foundation           *string                 `json:"Foundation,omitempty"`
 	VersionSuperAccounts *[]string               `json:"VersionSuperAccounts,omitempty"`
@@ -336,14 +336,14 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 }
 
 func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uint64) error {
-	if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
+	if g.Broadcasts == nil || len(*g.Broadcasts) == 0 {
 		if num == 0 {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		} else {
 			return nil
 		}
 	}
-	matrixstate.SetDataToState(mc.MSKeyAccountBroadcast, *g.Broadcast, state)
+	matrixstate.SetDataToState(mc.MSKeyAccountBroadcasts, *g.Broadcasts, state)
 	return nil
 }
 

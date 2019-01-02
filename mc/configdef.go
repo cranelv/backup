@@ -14,7 +14,7 @@ const (
 	//通用
 	MSKeyBroadcastInterval    = "broad_interval" // 广播区块周期
 	MSKeyElectGenTime         = "elect_gen_time"
-	MSKeyAccountBroadcast     = "account_broadcast"      //广播账户  			common.Address
+	MSKeyAccountBroadcasts    = "account_broadcasts"     //广播账户  			common.Address
 	MSKeyAccountInnerMiners   = "account_inner_miners"   //基金会矿工 		[]common.Address
 	MSKeyAccountFoundation    = "account_foundation"     //基金会账户			common.Address
 	MSKeyAccountVersionSupers = "account_version_supers" //版本签名账户		[]common.Address

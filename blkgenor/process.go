@@ -64,7 +64,7 @@ type Process struct {
 	state              State
 	pm                 *ProcessManage
 	powPool            *PowPool
-	broadcastRstCache  []*mc.BlockData
+	broadcastRstCache  map[common.Address]*mc.BlockData
 	blockCache         *blockCache
 	insertBlockHash    []common.Hash
 	FullBlockReqCache  *common.ReuseMsgController
@@ -85,7 +85,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		state:              StateIdle,
 		pm:                 pm,
 		powPool:            NewPowPool("矿工结果池(高度)" + strconv.Itoa(int(number))),
-		broadcastRstCache:  make([]*mc.BlockData, 0),
+		broadcastRstCache:  make(map[common.Address]*mc.BlockData),
 		blockCache:         newBlockCache(),
 		FullBlockReqCache:  common.NewReuseMsgController(3),
 		consensusReqSender: nil,

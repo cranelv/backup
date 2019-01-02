@@ -68,7 +68,7 @@ func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, 
 	self.preHash.Set(preHeader.Hash())
 	self.validators = validators
 	self.preIsSupper = preIsSupper
-	self.specialAccounts.broadcast = specials.broadcast
+	self.specialAccounts.broadcasts = specials.broadcasts
 	self.specialAccounts.versionSupers = specials.versionSupers
 	self.specialAccounts.blockSupers = specials.blockSupers
 
@@ -94,27 +94,24 @@ func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInt
 	if leaderCount == 0 {
 		return nil, ErrValidatorsIsNil
 	}
-	if self.specialAccounts.broadcast == (common.Address{}) {
-		return nil, ErrSepcialsIsNil
-	}
 
 	leaders := &leaderData{}
 	number := self.number
 	if bcInterval.IsReElectionNumber(number) {
-		leaders.leader.Set(self.specialAccounts.broadcast)
+		leaders.leader = common.Address{}
 		leaders.nextLeader.Set(self.leaderList[turn%leaderCount])
 		return leaders, nil
 	}
 
 	if bcInterval.IsBroadcastNumber(number) {
-		leaders.leader.Set(self.specialAccounts.broadcast)
+		leaders.leader = common.Address{}
 		leaders.nextLeader.Set(self.leaderList[(turn)%leaderCount])
 		return leaders, nil
 	}
 
 	leaders.leader.Set(self.leaderList[turn%leaderCount])
 	if bcInterval.IsBroadcastNumber(number + 1) {
-		leaders.nextLeader.Set(self.specialAccounts.broadcast)
+		leaders.nextLeader = common.Address{}
 	} else {
 		leaders.nextLeader.Set(self.leaderList[(turn+1)%leaderCount])
 	}
