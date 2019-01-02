@@ -3,6 +3,8 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/readstatedb"
@@ -14,7 +16,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"math/big"
 )
 
 func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {

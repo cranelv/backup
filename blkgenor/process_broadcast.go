@@ -67,7 +67,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		}
 
 		//执行交易
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs)
 		retTxs := work.GetTxs()
 		// 运行matrix状态树
 		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts)

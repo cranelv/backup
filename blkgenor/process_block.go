@@ -157,7 +157,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
 	}
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, uptimeMap)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, uptimeMap)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
