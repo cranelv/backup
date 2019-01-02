@@ -19,7 +19,7 @@ PullImages:
     - cp ./build/bin/gman /home/public/dailybuild/go-matrix/gman$tag
     - make clean 
     - make gman-windows-amd64
-    - cp ./build/bin/gman-windows-amd64.exe /home/public/dailybuild/go-matrix/gman$tag-windows.exe
+    - cp build/bin/gman-windows-4.0-amd64.exe /home/public/dailybuild/go-matrix/gman$tag-windows.exe
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
 #    - cp ./build/bin/geth /home/public/geth_backup/2geth$tag
