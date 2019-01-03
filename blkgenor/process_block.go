@@ -301,36 +301,8 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 }
 
 func (p *Process) processBlockInsert(blockLeader common.Address) {
-	if p.state < StateBlockInsert {
-		log.WARN(p.logExtraInfo(), "准备进行区块插入，状态错误", p.state.String(), "高度", p.number)
+	if false == p.canGenBlock() {
 		return
-	}
-
-	if p.bcInterval == nil {
-		log.WARN(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
-		return
-	}
-
-	if p.bcInterval.IsBroadcastNumber(p.number + 1) {
-		if p.role != common.RoleBroadcast {
-			log.WARN(p.logExtraInfo(), "准备进行区块插入，广播区块前一个区块，由广播节点插入", p.role.String(), "高度", p.number)
-			return
-		}
-	} else {
-		if p.role != common.RoleValidator {
-			log.WARN(p.logExtraInfo(), "准备进行区块插入，身份错误", "当前身份不是验证者", "高度", p.number, "身份", p.role.String())
-			return
-		}
-
-		if (p.nextLeader == common.Address{}) {
-			log.WARN(p.logExtraInfo(), "准备进行区块插入", "下个区块leader为空", "需要等待leader的高度", p.number+1)
-			return
-		}
-
-		if p.nextLeader != ca.GetAddress() {
-			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
-			return
-		}
 	}
 
 	log.INFO(p.logExtraInfo(), "区块插入", "开始", "高度", p.number)
@@ -342,6 +314,39 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 	log.Info(p.logExtraInfo(), "关键时间点", "leader挂块成功", "time", time.Now(), "块高", p.number)
 	log.Debug(p.logExtraInfo(), "区块插入", "完成", "高度", p.number, "插入区块hash", hash.TerminalString())
 	p.state = StateEnd
+}
+
+func (p *Process) canGenBlock() bool {
+	if p.state < StateBlockInsert {
+		log.WARN(p.logExtraInfo(), "准备进行区块插入，状态错误", p.state.String(), "高度", p.number)
+		return false
+	}
+	if p.bcInterval == nil {
+		log.WARN(p.logExtraInfo(), "准备进行区块插入", "广播周期信息为nil")
+		return false
+	}
+	if p.bcInterval.IsBroadcastNumber(p.number + 1) {
+		if p.role != common.RoleBroadcast {
+			log.WARN(p.logExtraInfo(), "准备进行区块插入，广播区块前一个区块，由广播节点插入", p.role.String(), "高度", p.number)
+			return false
+		}
+	} else {
+		if p.role != common.RoleValidator {
+			log.WARN(p.logExtraInfo(), "准备进行区块插入，身份错误", "当前身份不是验证者", "高度", p.number, "身份", p.role.String())
+			return false
+		}
+
+		if (p.nextLeader == common.Address{}) {
+			log.WARN(p.logExtraInfo(), "准备进行区块插入", "下个区块leader为空", "需要等待leader的高度", p.number+1)
+			return false
+		}
+
+		if p.nextLeader != ca.GetAddress() {
+			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
+			return false
+		}
+	}
+	return true
 }
 
 func (p *Process) pickSatisfyMinerResults(header *types.Header, results []*mc.HD_MiningRspMsg, innerMinerPick bool) (*mc.HD_MiningRspMsg, error) {
