@@ -1,8 +1,9 @@
 package slash
 
 import (
-	"github.com/matrix/go-matrix/depoistInfo"
 	"math/big"
+
+	"github.com/matrix/go-matrix/depoistInfo"
 
 	"github.com/matrix/go-matrix/params/manparams"
 
@@ -65,7 +66,6 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 }
 
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
-	var eleNum uint64
 
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
@@ -93,13 +93,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 	//计算选举的拓扑图的高度
-	if num < bp.bcInterval.GetReElectionInterval()+2 {
-		eleNum = 1
-	} else {
-		// 下一个选举+1
-		eleNum = num - bp.bcInterval.GetBroadcastInterval()
-	}
-
+	eleNum := bp.bcInterval.GetLastBroadcastNumber() - 2
 	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)

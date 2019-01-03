@@ -96,13 +96,7 @@ func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state
 }
 
 func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint32, map[common.Address]uint32, error) {
-	var eleNum uint64
-	if blockNum < bcInterval.GetReElectionInterval()+2 {
-		eleNum = 1
-	} else {
-		// 下一个选举+1
-		eleNum = blockNum - bcInterval.GetBroadcastInterval()
-	}
+	eleNum := bcInterval.GetLastBroadcastNumber() - 2
 	electGraph, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
 	if err != nil {
 		log.Error(ModuleName, "获取拓扑图错误", err)
