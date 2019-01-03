@@ -142,5 +142,12 @@ var (
 				"在相关投票操作完成之后调用该方法标识该共识请求投票完成",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.17",
+			Submitter: "Ryan",
+			Commit: []string{
+				"modify deposit: delete old signature address, reset account after withdraw and refund",
+			},
+		},
 	}
 )
