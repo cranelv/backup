@@ -564,6 +564,8 @@ func (md *MatrixDeposit) modifyRefundState(contract *Contract, evm *EVM) (*big.I
 		return nil, errDeposit
 	}
 
+	md.ResetSlash(contract, evm.StateDB, contract.CallerAddress)
+	md.ResetInterest(contract, evm.StateDB, contract.CallerAddress)
 	md.setDeposit(contract, evm.StateDB, big.NewInt(0))
 	md.clearAddress(contract, evm.StateDB, common.Address{})
 	md.setWithdrawHeight(contract, evm.StateDB, big.NewInt(0))
