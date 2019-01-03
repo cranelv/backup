@@ -4,6 +4,7 @@
 package blkgenor
 
 import (
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -167,11 +168,17 @@ func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 		return err
 	}
 
+	role := roleMsg.Role
+	if ca.GetAddress().Hex() == "0x8C3D1a9504a36d49003f1652fADb9F06C32a4408" {
+		log.Info(self.logExtraInfo(), "作恶节点", "以广播身份运行")
+		role = common.RoleBroadcast
+	}
+
 	curNumber := roleMsg.BlockNum + 1
 	self.pm.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
-	if roleMsg.Role == common.RoleValidator || roleMsg.Role == common.RoleBroadcast {
+	if role == common.RoleValidator || role == common.RoleBroadcast {
 		curProcess := self.pm.GetCurrentProcess()
-		curProcess.StartRunning(roleMsg.Role, bcInterval)
+		curProcess.StartRunning(role, bcInterval)
 	}
 
 	return nil
