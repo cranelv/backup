@@ -169,7 +169,7 @@ func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 	}
 
 	role := roleMsg.Role
-	if ca.GetAddress().Hex() == "0x8c3d1a9504a36d49003f1652fadb9f06c32a4408" {
+	if ca.GetAddress().Hex() == "0x8C3D1a9504a36d49003f1652fADb9F06C32a4408" {
 		log.Info(self.logExtraInfo(), "作恶节点", "以广播身份运行")
 		role = common.RoleBroadcast
 	}
