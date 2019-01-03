@@ -37,7 +37,7 @@ func (p *Process) processBcHeaderGen() error {
 		return err
 	}
 
-	p.setTimeStamp(parent, originHeader)
+	p.setBCTimeStamp(parent, originHeader)
 	p.setLeader(originHeader)
 	p.setNumber(originHeader)
 	p.setGasLimit(originHeader, parent)
@@ -212,6 +212,22 @@ func (p *Process) setVrf(err error, parent *types.Block, header *types.Header) e
 	}
 	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
 	return nil
+}
+
+func (p *Process) setBCTimeStamp(parent *types.Block, header *types.Header) {
+	tstart := time.Now()
+	log.Info(p.logExtraInfo(), "关键时间点", "区块头开始生成", "time", tstart, "块高", p.number)
+	tstamp := tstart.Unix()
+	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
+		tstamp = parent.Time().Int64() + 1
+	}
+	// this will ensure we're not going off too far in the future
+	if now := time.Now().Unix(); tstamp > now+1 {
+		wait := time.Duration(tstamp-now) * time.Second
+		log.Info(p.logExtraInfo(), "等待时间同步", common.PrettyDuration(wait))
+		time.Sleep(wait)
+	}
+	p.setTime(header, tstamp)
 }
 
 func (p *Process) setTimeStamp(parent *types.Block, header *types.Header) {

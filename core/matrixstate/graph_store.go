@@ -118,17 +118,20 @@ func (gs *GraphStore) GetNextElectByHash(blockHash common.Hash) ([]common.Elect,
 	return elect.TransferNextElect2CommonElect(), nil
 }
 
-func (gs *GraphStore) GetBroadcastAccount(blockHash common.Hash) (common.Address, error) {
+func (gs *GraphStore) GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error) {
 	data, err := gs.reader.GetMatrixStateDataByHash(mc.MSKeyAccountBroadcasts, blockHash)
 	if err != nil {
-		return common.Address{}, err
+		return nil, err
 	}
-	account, OK := data.(common.Address)
-	if OK == false || account == (common.Address{}) {
-		return common.Address{}, errors.New("broadcast account reflect err")
+	accounts, OK := data.([]common.Address)
+	if OK == false {
+		return nil, errors.New("broadcast accounts reflect err")
+	}
+	if len(accounts) == 0 {
+		return nil, errors.New("broadcast accounts is empty")
 	}
 
-	return account, nil
+	return accounts, nil
 }
 
 func (gs *GraphStore) GetInnerMinersAccount(blockHash common.Hash) ([]common.Address, error) {
