@@ -163,7 +163,11 @@ func (tx *TransactionBroad) GetIsEntrustGas() bool {
 func (tx *TransactionBroad) GetIsEntrustByTime() bool {
 	return false
 }
+func (tx *TransactionBroad) SetIsEntrustGas(b bool) {
 
+}
+func (tx *TransactionBroad) SetIsEntrustByTime(b bool) {
+}
 //hezi
 func (tx *TransactionBroad) SetTxS(S *big.Int) { tx.data.S = S }
 func (tx *TransactionBroad) To() *common.Address {
