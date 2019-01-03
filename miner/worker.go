@@ -210,9 +210,16 @@ func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
 	if data.BlockNum+1 > self.mineReqCtrl.curNumber {
 		self.stopMineResultSender()
 	}
-	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role)
+
+	role := data.Role
+	if ca.GetAddress().Hex() == "0x8C3D1a9504a36d49003f1652fADb9F06C32a4408" {
+		log.Info(ModuleMiner, "作恶节点", "以广播身份运行")
+		role = common.RoleBroadcast
+	}
+
+	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, role)
 	canMining := self.mineReqCtrl.CanMining()
-	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", data.Role, "是否可以挖矿", canMining)
+	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
 	if canMining {
 		self.StartAgent()
 		self.processMineReq()
