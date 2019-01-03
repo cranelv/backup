@@ -24,8 +24,8 @@ import (
 )
 
 func (p *Process) processBcHeaderGen() error {
-	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
-	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
+	log.INFO(p.logExtraInfo(), "processBCHeaderGen", "start")
+	defer log.INFO(p.logExtraInfo(), "processBCHeaderGen", "end")
 	if p.bcInterval == nil {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
