@@ -100,11 +100,11 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			Header: result.Header,
 			State:  work.State.Copy(),
 		}
-		log.INFO(p.logExtraInfo(), "广播区块验证完成", "发送新区块准备完毕消息", "高度", p.number)
+		log.INFO(p.logExtraInfo(), "广播区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", result.Header.Leader.Hex())
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
 		p.changeState(StateBlockInsert)
-		p.processBlockInsert(p.curLeader)
+		p.processBlockInsert(result.Header.Leader)
 		return
 	}
 }
