@@ -215,19 +215,17 @@ func (p *Process) setVrf(err error, parent *types.Block, header *types.Header) e
 }
 
 func (p *Process) setBCTimeStamp(parent *types.Block, header *types.Header) {
-	tstart := time.Now()
-	log.Info(p.logExtraInfo(), "关键时间点", "区块头开始生成", "time", tstart, "块高", p.number)
-	tstamp := tstart.Unix()
-	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
-		tstamp = parent.Time().Int64() + 1
-	}
+	nowTime := time.Now()
+	// 广播区块时间戳默认为父区块+1s， 保证所有广播节点出块的时间戳一致
+	tsTamp := parent.Time().Int64() + 1
+	log.Info(p.logExtraInfo(), "关键时间点", "广播区块头开始生成", "cur time", nowTime, "header time", tsTamp, "块高", p.number)
 	// this will ensure we're not going off too far in the future
-	if now := time.Now().Unix(); tstamp > now+1 {
-		wait := time.Duration(tstamp-now) * time.Second
+	if now := time.Now().Unix(); tsTamp > now+1 {
+		wait := time.Duration(tsTamp-now) * time.Second
 		log.Info(p.logExtraInfo(), "等待时间同步", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
-	p.setTime(header, tstamp)
+	p.setTime(header, tsTamp)
 }
 
 func (p *Process) setTimeStamp(parent *types.Block, header *types.Header) {
