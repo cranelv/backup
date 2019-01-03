@@ -134,5 +134,13 @@ var (
 				"modify the way to create signature file.",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.16",
+			Submitter: "sunyang",
+			Commit: []string{
+				"增加setVoted方法，标识节点已对某共识请求投过票",
+				"在相关投票操作完成之后调用该方法标识该共识请求投票完成",
+			},
+		},
 	}
 )

@@ -27,6 +27,14 @@ func getTestNodeList() (list []TopologyNodeInfo) {
 	})
 
 	list = append(list, TopologyNodeInfo{
+		Account:  common.HexToAddress("0x0007"),
+		Position: 7,
+		Type:     common.RoleNil,
+		//	Stock:      0,
+		NodeNumber: 0,
+	})
+
+	list = append(list, TopologyNodeInfo{
 		Account:  common.HexToAddress("0x0003"),
 		Position: 3,
 		Type:     common.RoleNil,
@@ -35,6 +43,14 @@ func getTestNodeList() (list []TopologyNodeInfo) {
 	})
 
 	return list
+}
+
+func TestTopologyGraph_sort(t *testing.T) {
+	graph := &TopologyGraph{
+		NodeList:      getTestNodeList(),
+		CurNodeNumber: 0,
+	}
+	graph.sort()
 }
 
 func TestTopologyGraph_Transfer2NextGraph(t *testing.T) {
