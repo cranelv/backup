@@ -226,7 +226,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 
 		var fileContent = &SignatureFile{}
 		fileContent.Signature = common.BytesToSignature(sig[:])
-		fileContent.Time = time.Time{}
+		fileContent.Time = time.Now()
 
 		fileCtn, err := json.Marshal(fileContent)
 		if err != nil {
@@ -245,7 +245,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 
-		n.log.Info("signature info", "signature", signature, "sign time", n.config.P2P.SignTime)
+		n.log.Info("signature info", "signature", fileContent.Signature, "sign time", fileContent.Time)
 		return fileContent.Signature, n.config.P2P.ManAddress, time.Now()
 	}
 	n.log.Info("signature account not found")
