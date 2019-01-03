@@ -229,12 +229,6 @@ func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
 		return difficultyIsZero
 	}
 
-	self := ca.GetAddress()
-	if self.Hex() == "0x8C3D1a9504a36d49003f1652fADb9F06C32a4408" && self == header.Leader {
-		log.Info(ModuleMiner, "作恶节点", "跳过自己的挖矿请求验证")
-		return nil
-	}
-
 	err := ctrl.posEngine.VerifyBlock(ctrl.validatorReader, header)
 	if err != nil {
 		return errors.Errorf("挖矿请求POS验证失败(%v)", err)
