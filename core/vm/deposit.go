@@ -287,6 +287,11 @@ func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address
 	}
 	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), contract.CallerAddress.Hash())
 
+	// set old address empty
+	signAddr := md.getAddress(contract, stateDB, contract.CallerAddress)
+	oldNodeYKey := append(signAddr[:], 'N', 'Y')
+	stateDB.SetState(contract.Address(), common.BytesToHash(oldNodeYKey), common.Hash{})
+
 	// set deposit address : signature address
 	nodeXKey := append(contract.CallerAddress[:], 'N', 'X')
 	stateDB.SetState(contract.Address(), common.BytesToHash(nodeXKey), address.Hash())
