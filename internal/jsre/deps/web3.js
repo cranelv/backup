@@ -4307,13 +4307,8 @@ SolidityFunction.prototype.signature = function () {
 
 
 SolidityFunction.prototype.unpackOutput = function (output) {
-  console.log('resultresultresultresult')
-    console.log(JSON.stringify(result))
     if (!output) {
         return;
-    }
-    if(output == '0x') {
-      return output;
     }
     output = output.length >= 2 ? output.slice(2) : output;
     var result = coder.decodeParams(this._outputTypes, output);
