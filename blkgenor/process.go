@@ -168,9 +168,6 @@ func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address)
 	}
 	p.nextLeader = leader
 	log.Debug(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
-	if p.state < StateBlockInsert {
-		return
-	}
 	p.processBlockInsert(preLeader)
 }
 
