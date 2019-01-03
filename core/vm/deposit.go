@@ -267,7 +267,7 @@ func (md *MatrixDeposit) setDeposit(contract *Contract, stateDB StateDB, dep *bi
 
 func (md *MatrixDeposit) getAddress(contract *Contract, stateDB StateDB, addr common.Address) common.Address {
 	// get signature address
-	signAddrKey := append(contract.CallerAddress[:], 'N', 'X')
+	signAddrKey := append(addr[:], 'N', 'X')
 	signAddr := stateDB.GetState(contract.Address(), common.BytesToHash(signAddrKey))
 	if signAddr == emptyHash {
 		return common.Address{}
@@ -298,7 +298,7 @@ func (md *MatrixDeposit) clearAddress(contract *Contract, stateDB StateDB, addre
 		return errClear
 	}
 
-	signAddr := md.getAddress(contract, stateDB, address)
+	signAddr := md.getAddress(contract, stateDB, contract.CallerAddress)
 	// signature address : []
 	nodeYKey := append(signAddr[:], 'N', 'Y')
 	stateDB.SetState(contract.Address(), common.BytesToHash(nodeYKey), common.Hash{})
