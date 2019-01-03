@@ -310,13 +310,13 @@ func (p *Process) startHeaderGen() {
 
 	log.INFO(p.logExtraInfo(), "开始生成验证请求, 高度", p.number)
 	if p.bcInterval.IsBroadcastNumber(p.number) {
-		err := p.processHeaderGen()
+		err := p.processBcHeaderGen()
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "生成普通区块验证请求错误", err, "高度", p.number)
 			return
 		}
 	} else {
-		err := p.processBcHeaderGen()
+		err := p.processHeaderGen()
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "生成广播区块验证请求错误", err, "高度", p.number)
 			return
