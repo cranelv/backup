@@ -5306,6 +5306,9 @@ Method.prototype.buildCall = function() {
     var method = this;
     var send = function () {
         var payload = method.toPayload(Array.prototype.slice.call(arguments));
+        if(payload.method == 'debug_dumpBlock') {
+            payload.params[0] = '0x' + Number(payload.params[0]).toString(16)
+        }
         if (payload.callback) {
             return method.requestManager.sendAsync(payload, function (err, result) {
                 payload.callback(err, method.formatOutput(result));
