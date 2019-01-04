@@ -1413,7 +1413,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())
 		//lb
 		tmp := block.Transactions()
-		log.Trace("BlockChain insertChain mem", len(tmp))
+		log.Trace("BlockChain insertChain mem", "len tx", len(tmp))
 
 		tmp = nil
 
