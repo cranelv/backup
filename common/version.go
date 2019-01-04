@@ -149,5 +149,12 @@ var (
 				"modify deposit: delete old signature address, reset account after withdraw and refund",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.18",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"upTime初选节点由折半修改为一直累加",
+			},
+		},
 	}
 )
