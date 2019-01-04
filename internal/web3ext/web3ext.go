@@ -379,6 +379,11 @@ web3._extend({
 			params: 2,
 			inputFormatter:[null, null],
 		}),
+		new web3._extend.Method({
+			name:'evilFunc',
+			call:'debug_evilFunc',
+			params:4
+		}),
 	],
 	properties: []
 });
