@@ -79,12 +79,12 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(num, header.ParentHash)
 		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType:params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
 
@@ -94,28 +94,28 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
 	lottery := lottery.New(p.bc, state, nil)
 
-	tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery before root", tmproot,"lottery before coinbyte",Coinbyte)
+	//tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	//log.INFO(ModuleName, "lottery before root", tmproot,"lottery before coinbyte",Coinbyte)
 	if nil != lottery {
 		lottery.ProcessMatrixState(header.Number.Uint64())
-		tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-		log.INFO(ModuleName, "lottery middile root", tmproot,"lottery middile coinbyte",Coinbyte)
+		//tmproot,Coinbyte := state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+		//log.INFO(ModuleName, "lottery middile root", tmproot,"lottery middile coinbyte",Coinbyte)
 		lottery.LotterySaveAccount(from, header.VrfValue)
 	}
-	tmproot,Coinbyte = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.INFO(ModuleName, "lottery after root", tmproot,"lottery after coinbyte",Coinbyte)
+	//tmproot,Coinbyte = state.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	//log.INFO(ModuleName, "lottery after root", tmproot,"lottery after coinbyte",Coinbyte)
 	interestReward := interest.New(state)
 	if nil == interestReward {
 		return nil
 	}
 	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+		rewardList = append(rewardList, common.RewarTx{CoinType:params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
 	}
 
 	slash := slash.New(p.bc, state)
@@ -173,6 +173,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	}
 	waitG.Wait()
 	from := make([]common.Address, 0)
+
 	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
@@ -211,7 +212,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		tmpl = append(tmpl, allLogs...)
 		allLogs = tmpl
 	}
-
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 

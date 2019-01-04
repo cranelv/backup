@@ -650,6 +650,7 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
+//TODO
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte){
 	coinbytes :=make([]common.Coinbyte,0)
 	for _,cm:=range shard.shardings  {
@@ -667,8 +668,10 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 			panic(err)
 		}
 		isex := false
+		//log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY11111","coin",cm.Cointyp,"256Hash",bshash)
 		for i,croot := range shard.retcoinRoot{
 			if croot.Cointyp == cm.Cointyp{
+				//log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY22222","coin",cm.Cointyp,"256Hash",bshash,"shard.retcoinRoot[i].Root",shard.retcoinRoot[i].Root)
 				shard.retcoinRoot[i].Root = bshash
 				isex = true
 				break
@@ -919,29 +922,23 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Addr
 	return  self.GetStateDb(cointyp,authFrom).GetAllEntrustList(authFrom)
 }
 
-
 //TODO	===========================================================================================
-//TODO	===========================================================================================
-//TODO	========================================未完===============================================
-//TODO	===========================================================================================
-//TODO	===========================================================================================
-//TODO	===========================================================================================
-func (self *StateDBManage)RawDump(cointype string)Dump {
-	//var dumps []Dump
-	//for _,cm:=range self.shardings  {
-	//	if cointype==cm.Cointyp {
-	//	for _,rm:=range cm.Rmanage{
-	//		dmup:=rm.State.RawDump()
-	//		dumps=append(dumps,dmup)
-	//	}
-	//	break
-	//	}
-	//}
+func (self *StateDBManage)RawDump(cointype string,address common.Address)Dump {
+	for _,cm:=range self.shardings  {
+		if cointype==cm.Cointyp {
+		for _,rm:=range cm.Rmanage{
+			if rm.Range==address[0] {
+				return 	rm.State.RawDump()
+			}
+		}
+		break
+		}
+	}
 	return Dump{}
 }
 
-func (self *StateDBManage)Dump(cointype string) []byte {
-	json, err := json.MarshalIndent(self.RawDump(cointype), "", "    ")
+func (self *StateDBManage)Dump(cointype string,address common.Address) []byte {
+	json, err := json.MarshalIndent(self.RawDump(cointype,address), "", "    ")
 	if err != nil {
 		fmt.Println("dump err", err)
 	}

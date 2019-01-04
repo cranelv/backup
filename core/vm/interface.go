@@ -163,7 +163,7 @@ type StateDBManager interface {
 	GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address
 	GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address
 
-	Dump(cointype string) []byte
+	Dump(cointype string,address common.Address) []byte
 	//RawDump(cointype string)state.Dump
 	//RawDumpAcccount(cointype string,address common.Address) state.Dump
 }

@@ -111,7 +111,7 @@ func (st *StateTransition) BuyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.GetTxCurrency(),common.MainAccount, st.msg.AmontFrom(), mgval)
+	st.state.SubBalance(params.MAN_COIN,common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
 
@@ -563,7 +563,7 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(st.msg.GetTxCurrency(),from, st.state.GetNonce(st.msg.GetTxCurrency(),from)+1)
+		st.state.SetNonce(tx.GetTxCurrency(),from, st.state.GetNonce(tx.GetTxCurrency(),from)+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	//YY=========begin===============

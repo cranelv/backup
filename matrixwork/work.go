@@ -28,6 +28,7 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
+	"fmt"
 )
 
 type ChainReader interface {
@@ -84,16 +85,18 @@ var mapcoingasUse coingasUse = coingasUse{mapcoin: make(map[string]*big.Int), ma
 func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
+	coin := txer.GetTxCurrency()
+	coin = params.MAN_COIN
 	gasAll := new(big.Int).SetUint64(gasuse)
 	priceAll := new(big.Int).SetUint64(params.TxGasPrice) //txer.GasPrice()
-	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
+	if gas, ok := cu.mapcoin[coin]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
-	cu.mapcoin[txer.GetTxCurrency()] = gasAll
+	cu.mapcoin[coin] = gasAll
 
-	if _, ok := cu.mapprice[txer.GetTxCurrency()]; !ok {
+	if _, ok := cu.mapprice[coin]; !ok {
 		if priceAll.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) >= 0 {
-			cu.mapprice[txer.GetTxCurrency()] = priceAll
+			cu.mapprice[coin] = priceAll
 		}
 	}
 }

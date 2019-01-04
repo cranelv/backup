@@ -439,13 +439,13 @@ func NewPublicDebugAPI(man *Matrix) *PublicDebugAPI {
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error) {
+func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,address common.Address) (state.Dump, error) {
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN), nil
+		return stateDb.RawDump(params.MAN_COIN,address), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
@@ -460,7 +460,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 	if err != nil {
 		return state.Dump{}, err
 	}
-	return stateDb.RawDump(params.MAN_COIN), nil
+	return stateDb.RawDump(params.MAN_COIN,address), nil
 }
 // DumpBlock retrieves the entire state of the database at a given block.
 func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber,address common.Address) (state.Dump, error) {
@@ -469,7 +469,7 @@ func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber,address comm
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN), nil
+		return stateDb.RawDump(params.MAN_COIN,address), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
