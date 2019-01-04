@@ -1642,7 +1642,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Gas = new(hexutil.Uint64)
 		//YY
 		if len(args.ExtraTo) > 0 && args.LockHeight > 0 && args.TxType > 0 {
-			*(*uint64)(args.Gas) = 21000 * uint64(len(args.ExtraTo))
+			*(*uint64)(args.Gas) = 21000 * uint64(len(args.ExtraTo)) + 21000
 		} else {
 			*(*uint64)(args.Gas) = 21000
 		}
