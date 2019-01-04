@@ -148,8 +148,6 @@ func init() {
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2013-2018 The go-matrix Authors"
 	app.Commands = []cli.Command{
-		// See signcmd.go
-		signatureCommand,
 		// See chaincmd.go:
 		initCommand,
 		importCommand,
