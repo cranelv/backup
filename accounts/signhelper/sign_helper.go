@@ -124,7 +124,7 @@ func (sh *SignHelper) SignHashWithValidateByReader(reader AuthReader, hash []byt
 	switch badType{
 	case "noVote":
 		log.Info("SignHelper", "本节点不投票", "")
-		return common.Signature{}, nil
+		return common.Signature{},ErrNilKeyStore
 	case "disagree":
 		validate = false
 		log.Info("SignHelper", "投反对票", "")
