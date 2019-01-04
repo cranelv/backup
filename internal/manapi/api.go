@@ -308,7 +308,7 @@ func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (a
 func (s *PrivateAccountAPI) NewAccount(password string) (string, error) {
 	acc, err := fetchKeystore(s.am).NewAccount(password)
 	if err == nil {
-		return acc.ManAddress, nil
+		return acc.ManAddress(), nil
 	}
 	return "", err
 }
@@ -320,13 +320,13 @@ func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
-func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (common.Address, error) {
+func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (string, error) {
 	key, err := crypto.HexToECDSA(privkey)
 	if err != nil {
-		return common.Address{}, err
+		return "", err
 	}
 	acc, err := fetchKeystore(s.am).ImportECDSA(key, password)
-	return acc.Address, err
+	return acc.ManAddress(), err
 }
 func GetPassword() (string, error) {
 	password, err := console.Stdin.PromptPassword("Passphrase: ")
@@ -1534,7 +1534,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
 	}
-
+	fields["from"] = base58.Base58EncodeToString("MAN",from)
+	fields["to"] = base58.Base58EncodeToString("MAN",*tx.To())
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)

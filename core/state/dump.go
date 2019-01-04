@@ -15,6 +15,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
 	"strconv"
+	"github.com/matrix/go-matrix/base58"
 )
 
 type DumpAccount struct {
@@ -72,7 +73,10 @@ func (self *StateDB) RawDump() Dump {
 		for storageIt.Next() {
 			account.Storage[common.Bytes2Hex(self.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(storageIt.Value)
 		}
-		dump.Accounts[common.Bytes2Hex(addr)] = account
+		strAddrs := common.Bytes2Hex(addr)
+		manAddrs := base58.Base58EncodeToString("MAN",common.HexToAddress(strAddrs))
+		dump.Accounts[manAddrs] = account
+		//dump.Accounts[common.Bytes2Hex(addr)] = account
 	}
 	return dump
 }

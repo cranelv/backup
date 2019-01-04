@@ -12,16 +12,19 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/base58"
 )
 
 // Account represents an Matrix account located at a specific location defined
 // by the optional URL field.
 type Account struct {
 	Address    common.Address `json:"address"`    // Matrix account address derived from the key
-	ManAddress string         `json:"manAddress"` // hezi
+//	ManAddress string         `json:"manAddress"` // hezi
 	URL        URL            `json:"url"`        // Optional resource locator within a backend
 }
-
+func (Ac* Account) ManAddress()string{
+	return base58.Base58EncodeToString("MAN", Ac.Address)
+}
 // Wallet represents a software or hardware wallet that might contain one or more
 // accounts (derived from the same seed).
 type Wallet interface {

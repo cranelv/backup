@@ -192,7 +192,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 		return fileContent.Signature, common.HexToAddress(string(addrByte)), fileContent.Time
 	}
 
-	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: n.config.P2P.ManAddrStr})
+	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress})
 	if err != nil {
 		n.log.Error("find signature account", "error", err)
 		return
