@@ -32,15 +32,17 @@ const (
 type Key struct {
 	Id uuid.UUID // Version 4 "random" for unique id not derived from key data
 	// to simplify lookups we also store the address
-	Address    common.Address
-//	ManAddress string //hezi
+	Address common.Address
+	//	ManAddress string //hezi
 	// we only store privkey as pubkey/address can be derived from it
 	// privkey in this struct is always in plaintext
 	PrivateKey *ecdsa.PrivateKey
 }
-func (key* Key) ManAddress()string{
+
+func (key *Key) ManAddress() string {
 	return base58.Base58EncodeToString("MAN", key.Address)
 }
+
 type keyStore interface {
 	// Loads and decrypts the key from disk.
 	GetKey(addr common.Address, filename string, auth string) (*Key, error)
@@ -166,7 +168,7 @@ func storeNewKey(ks keyStore, rand io.Reader, auth string) (*Key, accounts.Accou
 	}
 	//hezi 由common.Address转为base58编码后的string
 	//key.ManAddress = base58.Encode([]byte(fmt.Sprintf("%x",key.Address)))
-//	key.ManAddress = base58.Base58EncodeToString("MAN", key.Address)
+	//	key.ManAddress = base58.Base58EncodeToString("MAN", key.Address)
 	//log.Info("=========test","key.address:",fmt.Sprintf("%x",key.Address))
 	a := accounts.Account{Address: key.Address, URL: accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(MankeyFileName(key.ManAddress()))}}
 	//a := accounts.Account{Address: key.Address, URL: accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(keyFileName(key.Address))}}

@@ -1534,8 +1534,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
 	}
-	fields["from"] = base58.Base58EncodeToString("MAN",from)
-	fields["to"] = base58.Base58EncodeToString("MAN",*tx.To())
+	fields["from"] = base58.Base58EncodeToString("MAN", from)
+	fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)

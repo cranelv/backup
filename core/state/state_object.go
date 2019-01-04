@@ -332,7 +332,7 @@ func (c *stateObject) SubBalance(accountType uint32, amount *big.Int) {
 func (self *stateObject) SetBalance(accountType uint32, amount *big.Int) {
 	tmpPrev := make(common.BalanceType, len(self.data.Balance))
 	//copy(tmpPrev, self.data.Balance)
-	for i:=0;i<len(self.data.Balance);i++{
+	for i := 0; i < len(self.data.Balance); i++ {
 		tmpPrev[i].AccountType = self.data.Balance[i].AccountType
 		tmpPrev[i].Balance = new(big.Int).Set(self.data.Balance[i].Balance)
 	}
