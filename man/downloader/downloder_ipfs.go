@@ -1648,7 +1648,7 @@ func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64
 	case 1:
 	case 2:
 		obj := out.(*types.Body)
-		tmp.Transactionsipfs = obj.Transactions
+		tmp.Transactionsipfs = obj.Transactions.GetTransactions()
 		tmp.Unclesipfs = obj.Uncles
 		log.Debug(" ipfs send new block to syn Body", "flag", flag, "blockNum", blockNum)
 	case 3:
@@ -1951,7 +1951,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, blockNum)
 	d.dpIpfs.BatchStBlock.headerStoreFile.Write(bhead)
 
-	if len(stBlock.Sblock.Body().Transactions) == 0 {
+	if len(stBlock.Sblock.Body().Transactions.GetTransactions()) == 0 {
 		return true
 	}
 

@@ -124,20 +124,19 @@ func (evm *EVM) Cancel() {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64,shardings []uint, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, gas,nil, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas,nil, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value,evm.Cointyp) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, gas,nil, ErrInsufficientBalance
 	}
-
 	var (
 		to       = AccountRef(addr)
 		snapshot = evm.StateDB.Snapshot(evm.Cointyp)
@@ -150,7 +149,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, gas, nil
+			return nil, gas,shardings, nil
 		}
 		evm.StateDB.CreateAccount(evm.Cointyp,addr)
 	}
@@ -182,7 +181,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+	if caller.Address()[0] == to.Address()[0]{
+		shardings = append(shardings,uint(caller.Address()[0]))
+	}else {
+		shardings = append(shardings,uint(caller.Address()[0]))
+		shardings = append(shardings,uint(to.Address()[0]))
+	}
+	return ret, contract.Gas,shardings, err
 }
 
 // CallCode executes the contract associated with the addr with the given input

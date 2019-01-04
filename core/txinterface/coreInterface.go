@@ -30,7 +30,7 @@ type Message interface {
 
 type StateTransitioner interface {
 	//InitStateTransition(evm *vm.EVM, msg Message, gp uint64)
-	TransitionDb() (ret []byte, usedGas uint64, failed bool, err error)
+	TransitionDb() (ret []byte, usedGas uint64, failed bool,shardings []uint, err error)
 	To() common.Address
 	UseGas(amount uint64) error
 	BuyGas() error

@@ -162,7 +162,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
 	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts,nil)
 
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
@@ -171,7 +171,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	}
 
 	// 运行完matrix state后，生成root
-	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts)
+	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts,nil)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
 	}
@@ -422,7 +422,7 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 	txs := blockData.block.FinalTxs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
-	block := types.NewBlockWithTxs(insertHeader, txs)
+	block := types.NewBlockWithTxs(insertHeader, txs,nil)
 
 	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
 	if err != nil {

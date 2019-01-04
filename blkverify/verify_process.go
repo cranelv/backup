@@ -543,7 +543,7 @@ func (p *Process) verifyTxsAndState() {
 		return
 	}
 	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts,nil)
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {
@@ -553,7 +553,7 @@ func (p *Process) verifyTxsAndState() {
 	}
 
 	// 运行完matrix state后，生成root
-	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
+	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts,nil)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)

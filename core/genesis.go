@@ -463,7 +463,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	statedb.Database().TrieDB().CommitRoots(roots, true) //ShardingYY
 
 
-	return types.NewBlock(head, nil, nil, nil), nil
+	return types.NewBlock(head, nil, nil, nil,nil), nil
 }
 
 func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, sdb state.Database, chainCfg *params.ChainConfig) *types.Block {
@@ -551,7 +551,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		txs = append(txs, tx1)
 	}
 
-	return types.NewBlock(head, txs, nil, nil)
+	return types.NewBlock(head, txs, nil, nil,nil)
 }
 
 // Commit writes the block and state of a genesis specification to the database.

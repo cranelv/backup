@@ -229,11 +229,78 @@ func RlpHash(x interface{}) (h common.Hash) {
 	hw.Sum(h[:0])
 	return h
 }
+//1. Complete Block transactions = []SelfTransaction
+//2. Sharding Block transactions = []TxInfo
+type BodyTransactions struct {
+	Sharding []uint		// if complete block sharding = []
+	Transactions []SelfTransaction		//complete transactions
+	TransactionInfos []TransactionInfo  //sharding transactions
+}
+func (bt* BodyTransactions)GetTransactions()[]SelfTransaction{
+	if len(bt.Sharding) == 0{
+		return bt.Transactions
+	}else{
+		txser := make([]SelfTransaction,0)
+		for _,txer:=range bt.TransactionInfos{
+			txser = append(txser,txer.Tx)
+		}
+		if len(txser) == 0{
+			return nil
+		}
+		return txser
+	}
+}
+func SetTransactions(txser SelfTransactions,shadings[]uint)BodyTransactions{
+	bt := BodyTransactions{}
+	if len(shadings) == 0{
+		bt.Transactions = txser
+	}else{
+		bt.TransactionInfos = bt.setTransactionInfo(txser)
+		bt.Sharding = shadings
+	}
+	return bt
+}
+func (bt* BodyTransactions)setTransactionInfo(txser SelfTransactions)[]TransactionInfo{
+	for i,txer := range txser{
+		if txer == nil{
+			continue
+		}
+		bt.TransactionInfos = append(bt.TransactionInfos,TransactionInfo{uint64(i),txer})
+	}
+	return bt.TransactionInfos
+}
+func (bt* BodyTransactions)EncodeRLP(w io.Writer) error {
+	err := rlp.Encode(w,bt.Sharding)
+	if err!= nil{
+		return err
+	}
+	if len(bt.Sharding) == 0 {
+		return rlp.Encode(w,bt.Transactions)
+	}else{
+		return rlp.Encode(w,bt.TransactionInfos)
+	}
+}
+func (bt* BodyTransactions)DecodeRLP(s *rlp.Stream) error {
+	err := s.Decode(&bt.Sharding)
+	if err!= nil{
+		return err
+	}
+	if len(bt.Sharding)==0{
+		return s.Decode(&bt.Transactions)
+	}else{
+		return s.Decode(&bt.TransactionInfos)
+	}
+}
+type TransactionInfo struct {
+	Index uint64
+	Tx SelfTransaction
+}
 
 // Body is a simple (mutable, non-safe) data container for storing and moving
 // a block's data contents (transactions and uncles) together.
 type Body struct {
-	Transactions []SelfTransaction
+	Transactions BodyTransactions
+//	Transactions []SelfTransaction
 	Uncles       []*Header
 }
 
@@ -241,7 +308,8 @@ type Body struct {
 type Block struct {
 	header       *Header
 	uncles       []*Header
-	transactions []SelfTransaction
+	transactions BodyTransactions
+//	transactions []SelfTransaction
 
 	// caches
 	hash atomic.Value
@@ -279,7 +347,7 @@ type StorageBlock Block
 // "external" block encoding. used for man protocol, etc.
 type extblock struct {
 	Header *Header
-	Txs    []SelfTransaction
+	Txs    BodyTransactions//[]SelfTransaction
 	Uncles []*Header
 }
 
@@ -287,7 +355,7 @@ type extblock struct {
 // "storage" block encoding. used for database.
 type storageblock struct {
 	Header *Header
-	Txs    []SelfTransaction
+	Txs    BodyTransactions//[]SelfTransaction
 	Uncles []*Header
 	TD     *big.Int
 }
@@ -299,15 +367,15 @@ type storageblock struct {
 // The values of TxHash, UncleHash, ReceiptHash and Bloom in header
 // are ignored and set to values derived from the given txs, uncles
 // and receipts.
-func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts []*Receipt) *Block {
+func NewBlock(header *Header, txs []SelfTransaction, uncles []*Header, receipts []*Receipt,shardings []uint) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
 		b.header.TxHash = DeriveSha(SelfTransactions(txs))
-		b.transactions = make(SelfTransactions, len(txs))
-		copy(b.transactions, txs)
+		b.transactions = SetTransactions(txs,shardings)
+		//copy(b.transactions, txs)
 	}
 
 	if len(receipts) == 0 {
@@ -340,14 +408,14 @@ func NewBlockWithHeader(header *Header) *Block {
 // NewBlockWithHeader creates a block with the given header data. The
 // header data is copied, changes to header and to the field values
 // will not affect the block.
-func NewBlockWithTxs(header *Header, txs []SelfTransaction) *Block {
+func NewBlockWithTxs(header *Header, txs []SelfTransaction,shardings []uint) *Block {
 	b := &Block{header: CopyHeader(header)}
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
 		b.header.TxHash = DeriveSha(SelfTransactions(txs))
-		b.transactions = make(SelfTransactions, len(txs))
-		copy(b.transactions, txs)
+		b.transactions = SetTransactions(txs,shardings)
+		//copy(b.transactions, txs)
 	}
 
 	return b
@@ -449,10 +517,11 @@ func (b *Block) IsSuperBlock() bool {
 // TODO: copies
 
 func (b *Block) Uncles() []*Header               { return b.uncles }
-func (b *Block) Transactions() []SelfTransaction { return b.transactions }
+func (b *Block) Transactions() []SelfTransaction { return b.transactions.GetTransactions() }
 
 func (b *Block) Transaction(hash common.Hash) SelfTransaction {
-	for _, transaction := range b.transactions {
+	txser := b.transactions.GetTransactions()
+	for _, transaction := range txser {
 		if transaction.Hash() == hash {
 			return transaction
 		}
@@ -528,13 +597,13 @@ func (b *Block) WithSeal(header *Header) *Block {
 }
 
 // WithBody returns a new block with the given transaction and uncle contents.
-func (b *Block) WithBody(transactions []SelfTransaction, uncles []*Header) *Block {
+func (b *Block) WithBody(transactions []SelfTransaction, uncles []*Header,shardings []uint) *Block {
 	block := &Block{
 		header:       CopyHeader(b.header),
-		transactions: make([]SelfTransaction, len(transactions)),
+		transactions: SetTransactions(transactions,shardings),
 		uncles:       make([]*Header, len(uncles)),
 	}
-	copy(block.transactions, transactions)
+	//copy(block.transactions, transactions)
 	for i := range uncles {
 		block.uncles[i] = CopyHeader(uncles[i])
 	}

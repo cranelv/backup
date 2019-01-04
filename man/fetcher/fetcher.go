@@ -527,7 +527,7 @@ func (f *Fetcher) loop() {
 
 							if f.getBlock(hash) == nil {
 								log.Trace("download fetch bodyFilter getBlock")
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i])
+								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i],nil)
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)

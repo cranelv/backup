@@ -60,11 +60,11 @@ func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction
 		return nil, common.Hash{}, 0, 0
 	}
 	body := ReadBody(db, blockHash, blockNumber)
-	if body == nil || len(body.Transactions) <= int(txIndex) {
+	if body == nil || len(body.Transactions.GetTransactions()) <= int(txIndex) {
 		log.Error("Transaction referenced missing", "number", blockNumber, "hash", blockHash, "index", txIndex)
 		return nil, common.Hash{}, 0, 0
 	}
-	return body.Transactions[txIndex], blockHash, blockNumber, txIndex
+	return body.Transactions.GetTransactions()[txIndex], blockHash, blockNumber, txIndex
 }
 
 // ReadReceipt retrieves a specific transaction receipt from the database, along with

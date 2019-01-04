@@ -170,7 +170,8 @@ type newBlockData struct {
 
 // blockBody represents the data content of a single block.
 type blockBody struct {
-	Transactions []types.SelfTransaction // Transactions contained within a block
+	/*Transactions []types.SelfTransaction // Transactions contained within a block*/
+	Transactions  types.BodyTransactions
 	Uncles       []*types.Header         // Uncles contained within a block
 }
 

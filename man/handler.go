@@ -568,7 +568,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		uncles := make([][]*types.Header, len(request))
 
 		for i, body := range request {
-			transactions[i] = body.Transactions
+			transactions[i] = body.Transactions.GetTransactions()
 			uncles[i] = body.Uncles
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
@@ -576,6 +576,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if filter {
 			transactions, uncles = pm.fetcher.FilterBodies(p.id, transactions, uncles, time.Now())
 		}
+
 		p.Log().Trace("download handleMsg BlockBodiesMsg after filter", "len transaction", len(transactions), "!filter", !filter)
 		if len(transactions) > 0 || len(uncles) > 0 || !filter {
 			err := pm.downloader.DeliverBodies(p.id, transactions, uncles)
@@ -854,9 +855,21 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		}
 
 	default:
-		for _, peer := range peers {
-			pairOfPeer[false] = append(pairOfPeer[false], peer)
-		}
+		//roles ,_:=ca.GetElectedByHeightAndRole(new(big.Int).Sub(block.Header().Number,big.NewInt(1)),common.RoleValidator)
+		//isgoon := false
+		//for _,role := range roles{
+		//	if role.SignAddress == ca.GetAddress(){
+				for _, peer := range peers {
+					pairOfPeer[false] = append(pairOfPeer[false], peer)
+				}
+		//		isgoon = true
+		//		break
+		//	}
+		//}
+		//if !isgoon{
+		//	return
+		//}
+
 	}
 
 	if peerSender, ok := pairOfPeer[true]; ok {

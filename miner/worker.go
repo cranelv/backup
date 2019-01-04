@@ -299,6 +299,7 @@ func (self *worker) pending() (*types.Block, *state.StateDBManage) {
 			self.current.txs,
 			nil,
 			self.current.receipts,
+			nil,   //YYDownloder
 		), self.current.state.Copy()
 	}
 	return self.current.Block, self.current.state.Copy()
@@ -314,6 +315,7 @@ func (self *worker) pendingBlock() *types.Block {
 			self.current.txs,
 			nil,
 			self.current.receipts,
+			nil, //YYDownloder
 		)
 	}
 

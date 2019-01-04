@@ -934,7 +934,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
 			//copy(tmpBlock.SReceipt, receipts)
 			tmpBlock.SReceipt = receipts
-			tmpBlock.Pading = uint64(len(block.Body().Transactions))
+			tmpBlock.Pading = uint64(len(block.Body().Transactions.GetTransactions()))
 			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
@@ -1042,7 +1042,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
 		//copy(tmpBlock.SReceipt, receipts)
 		//tmpBlock.SReceipt = receipts
-		tmpBlock.Pading = uint64(len(block.Body().Transactions))
+		tmpBlock.Pading = uint64(len(block.Body().Transactions.GetTransactions()))
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 	}
@@ -1391,7 +1391,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			}
 
 			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap)
+			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap,nil)
 			if err != nil {
 				log.Trace("BlockChain insertChain in3 Process Block err2")
 				bc.reportBlock(block, receipts, err)

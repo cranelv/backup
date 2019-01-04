@@ -610,7 +610,7 @@ func (self *StateDB) UpdateTxForBtree(key uint32) {
 		out = append(out, a)
 		return true
 	})
-	log.Info("file statedb", "func UpdateTxForBtree:len(out)", len(out), "time", key)
+	//log.Info("file statedb", "func UpdateTxForBtree:len(out)", len(out), "time", key)
 	for _, it := range out {
 		item, ok := it.(btrie.SpcialTxData)
 		if !ok {
@@ -657,7 +657,7 @@ func (self *StateDB) UpdateTxForBtreeBytime(key uint32) {
 		out = append(out, a)
 		return true
 	})
-	log.Info("file statedb", "func UpdateTxForBtreeBytime:len(out)", len(out), "time", key)
+	//log.Info("file statedb", "func UpdateTxForBtreeBytime:len(out)", len(out), "time", key)
 	for _, it := range out {
 		item, ok := it.(btrie.SpcialTxData)
 		if !ok {
@@ -1185,7 +1185,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
-	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
+	//log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 
