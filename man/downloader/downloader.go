@@ -49,9 +49,9 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 1024      //2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 396       //576      //lb//2048      // Number of content download results to import at once into the chain
+	maxQueuedHeaders  = 800  //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess = 1024 //2048      // Number of header download results to import at once into the chain
+	maxResultsProcess = 396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
@@ -270,6 +270,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 		dl.dpIpfs = newIpfsDownload()
 		dl.ipfsBodyCh = make(chan BlockIpfs, 1)
 		go dl.IpfsDownloadInit()
+		go dl.IpfsTimeoutTask()
 		/*if dl.IpfsDownloadInit() != nil {
 
 			//dl.IpfsMode = false
@@ -684,7 +685,7 @@ func (d *Downloader) fetchHeaderByHash(p *peerConnection, head common.Hash) (*ty
 			return head, nil
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out", "elapsedh", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -724,7 +725,7 @@ func (d *Downloader) fetchHeaderByHeight(p *peerConnection, head uint64) (*types
 			return head, nil
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out he", "elapsed", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -821,7 +822,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			}
 
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Debug("Waiting for head header timed out an", "elapsed", ttl)
 			return 0, errTimeout
 
 		case <-d.bodyCh:

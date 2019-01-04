@@ -8,10 +8,11 @@ package man
 import (
 	"errors"
 	"fmt"
-	"github.com/matrix/go-matrix/ca"
 	"math/big"
 	"runtime"
 	"sync/atomic"
+
+	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
@@ -51,10 +52,11 @@ import (
 
 	"github.com/matrix/go-matrix/baseinterface"
 	//"github.com/matrix/go-matrix/leaderelect"
+	"time"
+
 	"github.com/matrix/go-matrix/leaderelect"
 	"github.com/matrix/go-matrix/olconsensus"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"time"
 )
 
 var MsgCenter *mc.Center
@@ -528,6 +530,8 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 //	}
 //}
 func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
+	log.Trace("download backend func FetcherNotify ", "number", number, "hash", hash.String(), "addr", addr.String())
+	return
 	var nid discover.NodeID
 	if len(addr) == 0 || addr == (common.Address{}) {
 		addrs := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)

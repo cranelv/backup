@@ -5,6 +5,7 @@
 package pod
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/matrix/go-matrix/common"
@@ -149,8 +150,19 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 	return nil
 }
 
+type SignatureFile struct {
+	Signature common.Signature `json:"signature"`
+	Time      time.Time        `json:"time"`
+}
+
 func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
-	if common.FileExist(datadirManSignature) {
+	emptyAddress := common.Address{}
+	if n.config.P2P.ManAddress == emptyAddress {
+		n.log.Info("man input sign address is empty.")
+
+		if !common.FileExist(datadirManSignature) {
+			return
+		}
 		buf := make([]byte, 65)
 		fd, err := os.Open(datadirManSignature)
 		if err != nil {
@@ -163,12 +175,11 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return common.Signature{}, common.Address{}, time.Now()
 		}
 
-		log.Info("signature original2", "info", buf[:])
-		signature = common.BytesToSignature(buf[:])
-		log.Info("signature original2", "info2", signature)
-
-		info, _ := os.Stat(datadirManSignature)
-		n.config.P2P.SignTime = info.ModTime()
+		var fileContent = &SignatureFile{}
+		if err = json.Unmarshal(buf[:], fileContent); err != nil {
+			n.log.Error("json unmarshal file content failed", "error", err)
+			return
+		}
 
 		addrByte, err := ioutil.ReadFile(datadirManAddress)
 		if err != nil {
@@ -176,13 +187,9 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
-		return signature, common.HexToAddress(string(addrByte)), info.ModTime()
-	}
 
-	emptyAddress := common.Address{}
-	if n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man address is empty. default role has no signature.")
-		return
+		n.log.Info("signature info", "signature", fileContent.Signature, "sign time", fileContent.Time)
+		return fileContent.Signature, common.HexToAddress(string(addrByte)), fileContent.Time
 	}
 
 	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress, ManAddress: n.config.P2P.ManAddrStr})
@@ -217,9 +224,17 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return
 		}
 
-		log.Info("signature original", "info", sig)
+		var fileContent = &SignatureFile{}
+		fileContent.Signature = common.BytesToSignature(sig[:])
+		fileContent.Time = time.Now()
 
-		err = ioutil.WriteFile(datadirManSignature, sig, 0644)
+		fileCtn, err := json.Marshal(fileContent)
+		if err != nil {
+			n.log.Error("json marshal signature failed", "error", err)
+			return
+		}
+
+		err = ioutil.WriteFile(datadirManSignature, fileCtn, 0644)
 		if err != nil {
 			n.log.Error("signature write fail", "error", err)
 			return
@@ -229,10 +244,9 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			n.log.Error("man address write fail", "error", err)
 			return
 		}
-		signature = common.BytesToSignature(sig[:])
-		log.Info("signature original", "info2", signature)
-		n.config.P2P.SignTime = time.Now()
-		return signature, n.config.P2P.ManAddress, time.Now()
+
+		n.log.Info("signature info", "signature", fileContent.Signature, "sign time", fileContent.Time)
+		return fileContent.Signature, n.config.P2P.ManAddress, time.Now()
 	}
 	n.log.Info("signature account not found")
 	return

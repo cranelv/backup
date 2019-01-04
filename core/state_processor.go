@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"time"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -185,6 +186,27 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			tmpstxs = append(tmpstxs, stxs...)
 			stxs = tmpstxs
 			continue
+		}
+		if tx.IsEntrustTx() {
+			from := tx.From()
+			entrustFrom := statedb.GetGasAuthFrom(from, p.bc.CurrentBlock().NumberU64()) //
+			if !entrustFrom.Equal(common.Address{}) {
+				tx.Setentrustfrom(entrustFrom)
+				//tx.IsEntrustGas = true
+				tx.SetIsEntrustGas(true)
+			} else {
+				entrustFrom := statedb.GetGasAuthFromByTime(from, uint64(time.Now().Unix()))
+				if !entrustFrom.Equal(common.Address{}) {
+					tx.Setentrustfrom(entrustFrom)
+					//tx.IsEntrustGas = true
+					//tx.IsEntrustByTime = true
+					tx.SetIsEntrustGas(true)
+					tx.SetIsEntrustByTime(true)
+				} else {
+					log.Error("该用户没有被授权过委托Gas")
+					return nil, nil, 0, ErrWithoutAuth
+				}
+			}
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)

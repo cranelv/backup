@@ -53,6 +53,8 @@ type SelfTransaction interface {
 	GetLocalHeight() uint32
 	GetIsEntrustGas() bool
 	GetIsEntrustByTime() bool
+	SetIsEntrustGas(b bool)
+	SetIsEntrustByTime(b bool)
 }
 
 func SetTransactionToMx(txer SelfTransaction) (txm *Transaction_Mx) {

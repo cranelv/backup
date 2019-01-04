@@ -110,5 +110,44 @@ var (
 				"修改二级备份节点会多选一个问题",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.13",
+			Submitter: "张文",
+			Commit: []string{
+				"修改默认创世文件配置",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.14",
+			Submitter: "liubo",
+			Commit: []string{
+				"区块同步fetch增加log部分打印，便于定位问题",
+				"去掉ipfs 相关printf打印",
+				"ipfs同步频繁启动协程异常判断改为管道方式",
+				"去掉高层使用fetch请求区块",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.15",
+			Submitter: "Ryan",
+			Commit: []string{
+				"modify the way to create signature file.",
+			},
+		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.16",
+			Submitter: "sunyang",
+			Commit: []string{
+				"增加setVoted方法，标识节点已对某共识请求投过票",
+				"在相关投票操作完成之后调用该方法标识该共识请求投票完成",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.17",
+			Submitter: "Ryan",
+			Commit: []string{
+				"modify deposit: delete old signature address, reset account after withdraw and refund",
+			},
+		},
 	}
 )
