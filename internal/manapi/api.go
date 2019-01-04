@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/matrix/go-matrix/depoistInfo"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -20,6 +22,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"os"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/base58"
@@ -43,8 +48,6 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
-	"io/ioutil"
-	"os"
 )
 
 const (
@@ -602,6 +605,18 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 
 	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*big.Int, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address := base58.Base58DecodeToAddress(strAddress)
+
+	read, _ := depoistInfo.GetOnlineTime(state, address)
+
+	return read, state.Error()
 }
 
 //钱包调用
