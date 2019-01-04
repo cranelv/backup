@@ -303,13 +303,13 @@ func (self *StateDB) GetStateByteArray(a common.Address, b common.Hash) []byte {
 	return nil
 }
 
-func (self *StateDB) GetEntrustStateByteArray(addr common.Address)[]byte {
-	hashkey := append([]byte("ET"),addr[:]...)
-	return self.GetStateByteArray(addr,common.BytesToHash(hashkey[:]))
+func (self *StateDB) GetEntrustStateByteArray(addr common.Address) []byte {
+	hashkey := append([]byte("ET"), addr[:]...)
+	return self.GetStateByteArray(addr, common.BytesToHash(hashkey[:]))
 }
-func (self *StateDB) GetAuthStateByteArray(addr common.Address)[]byte {
-	hashkey := append([]byte("AU"),addr[:]...)
-	return self.GetStateByteArray(addr,common.BytesToHash(hashkey[:]))
+func (self *StateDB) GetAuthStateByteArray(addr common.Address) []byte {
+	hashkey := append([]byte("AU"), addr[:]...)
+	return self.GetStateByteArray(addr, common.BytesToHash(hashkey[:]))
 }
 
 //根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名) A2 s
@@ -789,14 +789,15 @@ func (self *StateDB) SetStateByteArray(addr common.Address, key common.Hash, val
 		stateObject.SetStateByteArray(self.db, key, value)
 	}
 }
-func (self *StateDB) SetEntrustStateByteArray(addr common.Address ,value []byte) {
-	hashkey := append([]byte("ET"),addr[:]...)
-	self.SetStateByteArray(addr,common.BytesToHash(hashkey[:]),value)
+func (self *StateDB) SetEntrustStateByteArray(addr common.Address, value []byte) {
+	hashkey := append([]byte("ET"), addr[:]...)
+	self.SetStateByteArray(addr, common.BytesToHash(hashkey[:]), value)
 }
-func (self *StateDB) SetAuthStateByteArray(addr common.Address ,value []byte) {
-	hashkey := append([]byte("AU"),addr[:]...)
-	self.SetStateByteArray(addr,common.BytesToHash(hashkey[:]),value)
+func (self *StateDB) SetAuthStateByteArray(addr common.Address, value []byte) {
+	hashkey := append([]byte("AU"), addr[:]...)
+	self.SetStateByteArray(addr, common.BytesToHash(hashkey[:]), value)
 }
+
 // Suicide marks the given account as suicided.
 // This clears the account balance.
 //

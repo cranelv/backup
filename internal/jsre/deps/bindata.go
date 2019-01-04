@@ -103,7 +103,7 @@ func web3Js() (*asset, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	info := bindataFileInfo{name: "web3.js", size: 425915, mode: os.FileMode(438), modTime: time.Unix(1546595742, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
@@ -162,7 +162,7 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"bignumber.js": bignumberJs,
-	"web3.js": web3Js,
+	"web3.js":      web3Js,
 }
 
 // AssetDir returns the file names below a certain
@@ -204,9 +204,10 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"bignumber.js": &bintree{bignumberJs, map[string]*bintree{}},
-	"web3.js": &bintree{web3Js, map[string]*bintree{}},
+	"web3.js":      &bintree{web3Js, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -255,4 +256,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

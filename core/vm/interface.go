@@ -41,10 +41,10 @@ type StateDB interface {
 
 	//GetStateByteArray(common.Address, common.Hash) []byte
 	//SetStateByteArray(common.Address, common.Hash, []byte)
-	GetEntrustStateByteArray(addr common.Address)[]byte
-	GetAuthStateByteArray(addr common.Address)[]byte
-	SetEntrustStateByteArray(addr common.Address ,value []byte)
-	SetAuthStateByteArray(addr common.Address ,value []byte)
+	GetEntrustStateByteArray(addr common.Address) []byte
+	GetAuthStateByteArray(addr common.Address) []byte
+	SetEntrustStateByteArray(addr common.Address, value []byte)
+	SetAuthStateByteArray(addr common.Address, value []byte)
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
 

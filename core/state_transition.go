@@ -677,7 +677,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 				return nil, 0, false, err
 			}
 			//marsha1AuthData是authData的Marsha1编码
-			st.state.SetAuthStateByteArray(addres, marshalAuthData)  //设置授权数据
+			st.state.SetAuthStateByteArray(addres, marshalAuthData) //设置授权数据
 		}
 
 		if EntrustData.EnstrustSetType == params.EntrustByTime {
@@ -788,7 +788,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, 0, false, err
 	}
-	EntrustMarsha1Data := st.state.GetEntrustStateByteArray(Authfrom)  //获取委托数据
+	EntrustMarsha1Data := st.state.GetEntrustStateByteArray(Authfrom) //获取委托数据
 	if len(EntrustMarsha1Data) == 0 {
 		log.Error("没有委托数据")
 		return nil, 0, false, errors.New("without entrust data")
@@ -825,7 +825,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 				if err != nil {
 					return nil, 0, false, err
 				}
-				st.state.SetAuthStateByteArray(addres, newAuthDatalist)  //设置授权数据
+				st.state.SetAuthStateByteArray(addres, newAuthDatalist) //设置授权数据
 			}
 		} else {
 			//新的切片数据
