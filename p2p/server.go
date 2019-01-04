@@ -135,7 +135,6 @@ type Config struct {
 	NetWorkId uint64
 
 	// ManAddress
-	ManAddrStr string
 	ManAddress common.Address
 	Signature  common.Signature
 	SignTime   time.Time

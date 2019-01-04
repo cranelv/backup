@@ -883,7 +883,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
 		innerAddr := base58.Base58DecodeToAddress(manAddr)
 		cfg.ManAddress = innerAddr
-		cfg.ManAddrStr = manAddr
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery
