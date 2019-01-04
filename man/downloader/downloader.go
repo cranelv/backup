@@ -499,6 +499,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 			return errBadPeer
 		}
 	} else {
+		//todo：高度,序号一样只验证hash
 		if d.blockchain.Genesis().Hash() != superBLock.Hash() {
 			log.Error("创世文件不一致")
 			return err

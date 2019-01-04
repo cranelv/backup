@@ -704,8 +704,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		)
 		// Update the peers total difficulty if better than the previous
 		_, td, sbs, _ := p.Head()
-		log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS)
+		log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "缓存序号", sbs)
 		if trueSBS < sbs {
+			//todo:日志
 			break
 		}
 
@@ -721,7 +722,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Error("td is nil", "peer", p.id)
 				break
 			}
-			if trueTD.Cmp(td) > 0 {
+			sbs, err := pm.blockchain.GetSuperBlockSeq()
+			if nil != err {
+				log.Error("get super seq error")
+				break
+			}
+
+			if trueSBS > sbs || trueTD.Cmp(td) > 0 {
+				log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "本地序号", sbs, "远程td", trueTD, "本地td", td)
 				go pm.synchronise(p)
 			}
 		}
