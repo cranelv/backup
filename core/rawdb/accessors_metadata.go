@@ -67,12 +67,14 @@ func ReadPreimage(db DatabaseReader, hash common.Hash) []byte {
 
 // WritePreimages writes the provided set of preimages to the database. `number` is the
 // current block number, and is used for debug messages only.
-func WritePreimages(db DatabaseWriter, number uint64, preimages map[common.Hash][]byte) {
-	for hash, preimage := range preimages {
-		if err := db.Put(append(preimagePrefix, hash.Bytes()...), preimage); err != nil {
+func WritePreimages(db DatabaseWriter, number uint64, preimages  map[string]map[common.Hash][]byte) {
+	for  _,preimage:= range preimages	{
+	for hash, image := range preimage {
+		if err := db.Put(append(preimagePrefix, hash.Bytes()...), image); err != nil {
 			log.Crit("Failed to store trie preimage", "err", err)
 		}
 	}
+}
 	preimageCounter.Inc(int64(len(preimages)))
 	preimageHitCounter.Inc(int64(len(preimages)))
 }

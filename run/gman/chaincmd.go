@@ -582,7 +582,7 @@ func dump(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump(params.MAN_COIN,common.Address{}))
+			fmt.Printf("%s\n", state.Dump(params.MAN_COIN,common.Address{}))	//TODO
 		}
 	}
 	chainDb.Close()

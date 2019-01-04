@@ -138,8 +138,8 @@ type StateDBManager interface {
 	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
 	Logs() []*types.Log
 
-	AddPreimage(hash common.Hash, preimage []byte)
-	Preimages() map[common.Hash][]byte
+	AddPreimage(cointype string,addr common.Address,hash common.Hash, preimage []byte)
+	Preimages()  map[string]map[common.Hash][]byte
 
 	ForEachStorage(cointyp string,addr common.Address, cb func(key, value common.Hash) bool)
 	IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte)

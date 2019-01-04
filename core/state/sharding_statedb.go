@@ -202,16 +202,20 @@ func (shard *StateDBManage) Logs() []*types.Log {
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
-//TODO	只区分币种？还要区分256么
-func (shard *StateDBManage) AddPreimage(hash common.Hash, preimage []byte) {
-
+func (shard *StateDBManage) AddPreimage(cointype string,addr common.Address,hash common.Hash, preimage []byte) {
+	state:=shard.GetStateDb(cointype,addr)
+	state.AddPreimage(hash,preimage)
 }
 
 // Preimages returns a list of SHA3 preimages that have been submitted.
-//TODO	取所有的，还是某个statedb的
-func (shard *StateDBManage) Preimages() map[common.Hash][]byte {
-
-	return nil//shard.sharding[idx].preimages
+func (shard *StateDBManage) Preimages() map[string]map[common.Hash][]byte {
+	var mm =make(map[string](map[common.Hash][]byte),0)
+	for _,cm:=range shard.shardings{
+		for _,rm:=range cm.Rmanage{
+			mm[cm.Cointyp]=rm.State.preimages
+		}
+	}
+	return mm
 }
 
 func (shard *StateDBManage) AddRefund(cointyp string,address common.Address,gas uint64) {
@@ -650,7 +654,7 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
-//TODO
+
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte){
 	coinbytes :=make([]common.Coinbyte,0)
 	for _,cm:=range shard.shardings  {
@@ -717,7 +721,7 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string,deleteEmp
 }
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-//TODO	=============================================================
+
 func (shard *StateDBManage) Prepare(thash, bhash common.Hash, ti int) {
 	for _,cm:=range shard.shardings{
 		for _,rm:=range cm.Rmanage  {
@@ -922,7 +926,6 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Addr
 	return  self.GetStateDb(cointyp,authFrom).GetAllEntrustList(authFrom)
 }
 
-//TODO	===========================================================================================
 func (self *StateDBManage)RawDump(cointype string,address common.Address)Dump {
 	for _,cm:=range self.shardings  {
 		if cointype==cm.Cointyp {

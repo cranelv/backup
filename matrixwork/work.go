@@ -28,7 +28,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-	"fmt"
 )
 
 type ChainReader interface {
