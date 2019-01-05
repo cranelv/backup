@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/metrics"
@@ -237,6 +238,14 @@ func (api *PublicAdminAPI) Peers() ([]*p2p.PeerInfo, error) {
 		return nil, ErrNodeStopped
 	}
 	return server.PeersInfo(), nil
+}
+
+func (api *PublicAdminAPI) AddressTable() (map[common.Address]*discover.Node, error) {
+	server := api.node.Server()
+	if server == nil {
+		return nil, ErrNodeStopped
+	}
+	return server.AddressTable(), nil
 }
 
 // NodeInfo retrieves all the information we know about the host node at the

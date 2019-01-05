@@ -272,6 +272,10 @@ func (srv *Server) Peers() []*Peer {
 	return ps
 }
 
+func (srv *Server) AddressTable() map[common.Address]*discover.Node {
+	return srv.ntab.GetAllAddress()
+}
+
 func (srv *Server) ConvertAddressToId(addr common.Address) discover.NodeID {
 	bindAddress := srv.ntab.GetAllAddress()
 	if node, ok := bindAddress[addr]; ok {

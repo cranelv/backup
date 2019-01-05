@@ -162,6 +162,10 @@ web3._extend({
 			name: 'datadir',
 			getter: 'admin_datadir'
 		}),
+		new web3._extend.Property({
+			name: 'addressTable',
+			getter: 'admin_addressTable'
+		}),
 	]
 });
 `
