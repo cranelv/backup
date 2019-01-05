@@ -15,14 +15,17 @@ import (
 	"github.com/matrix/go-matrix/mandb"
 )
 type RangeManage struct {
+
 	Range   byte
 	State 	*StateDB
 }
 type CoinManage struct {
+
 	Cointyp string
 	Rmanage  []*RangeManage
 }
 type StateDBManage struct {
+
 	db          Database
 	mdb		mandb.Database
 	shardings	[]*CoinManage
@@ -32,6 +35,7 @@ type StateDBManage struct {
 
 // Create a new state from a given trie.
 func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database,db Database) (*StateDBManage, error) {
+
 	if len(roots) == 0{
 		roots = append(roots,common.CoinRoot{Cointyp:params.MAN_COIN,Root:common.Hash{}})
 		roots = append(roots,common.CoinRoot{Cointyp:params.BTC_COIN,Root:common.Hash{}})//YYYYYYYYYYYYYYYYYYYYYYYY
@@ -125,6 +129,7 @@ func (shard *StateDBManage) addShardings(cointyp string){
 	}
 }
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
+
 	for _,cr := range roots{
 		//var hashs []common.Hash
 		//json.Unmarshal(cr.Root,&hashs)
@@ -141,6 +146,7 @@ func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
 }
 
 func (shard *StateDBManage)GetStateDb(cointyp string,address common.Address) *StateDB {
+
 	if cointyp == ""{
 		cointyp = params.MAN_COIN
 	}
@@ -159,15 +165,21 @@ func (shard *StateDBManage)GetStateDb(cointyp string,address common.Address) *St
 	return nil
 }
 
-func (shard *StateDBManage) setError(err error) {
+func (shard *StateDBManage) setError(cointype string,addr common.Address, err error) {
 
+	self:=shard.GetStateDb(cointype,addr)
+	if self.dbErr == nil {
+		self.dbErr = err
+	}
 }
 
 func (shard *StateDBManage) Error() error {
+
 	return nil
 }
 
 func (shard *StateDBManage) AddLog(cointyp string,address common.Address,log *types.Log) {
+
 	self:=shard.GetStateDb(cointyp,address)
 	self.journal.append(addLogChange{txhash: self.thash})
 
@@ -180,12 +192,14 @@ func (shard *StateDBManage) AddLog(cointyp string,address common.Address,log *ty
 }
 
 func (shard *StateDBManage) GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log {
+
 	sd:=shard.GetStateDb(cointyp,address)
 	return sd.logs[hash]
 
 }
 
 func (shard *StateDBManage) Logs() []*types.Log {
+
 	cms:=shard.shardings
 	var logs []*types.Log
 	for _,cm:=range cms {
@@ -203,12 +217,14 @@ func (shard *StateDBManage) Logs() []*types.Log {
 
 // AddPreimage records a SHA3 preimage seen by the VM.
 func (shard *StateDBManage) AddPreimage(cointype string,addr common.Address,hash common.Hash, preimage []byte) {
+
 	state:=shard.GetStateDb(cointype,addr)
 	state.AddPreimage(hash,preimage)
 }
 
 // Preimages returns a list of SHA3 preimages that have been submitted.
 func (shard *StateDBManage) Preimages() map[string]map[common.Hash][]byte {
+
 	var mm =make(map[string](map[common.Hash][]byte),0)
 	for _,cm:=range shard.shardings{
 		for _,rm:=range cm.Rmanage{
@@ -219,21 +235,25 @@ func (shard *StateDBManage) Preimages() map[string]map[common.Hash][]byte {
 }
 
 func (shard *StateDBManage) AddRefund(cointyp string,address common.Address,gas uint64) {
+
 	shard.GetStateDb(cointyp,address).AddRefund(gas)
 }
 func (self *StateDBManage) GetRefund(cointyp string,address common.Address) uint64 {
+
 	sd:=self.GetStateDb(cointyp,address)
 	return sd.refund
 }
 // Exist reports whether the given account address exists in the state.
 // Notably this also returns true for suicided accounts.
 func (shard *StateDBManage) Exist(cointyp string,addr common.Address) bool {
+
 	return shard.getStateObject(cointyp,addr)!=nil
 }
 
 // Empty returns whether the state object is either non-existent
 // or empty according to the EIP161 specification (balance = nonce = code = 0)
 func (shard *StateDBManage) Empty(cointyp string,addr common.Address) bool {
+
 	so := shard.getStateObject(cointyp,addr)
 	return so == nil || so.empty()
 }
@@ -248,9 +268,11 @@ func (shard *StateDBManage) GetBalance(cointyp string,addr common.Address) commo
 	return nil
 }
 func (shard *StateDBManage)GetBalanceAll(common.Address) common.BalanceType{
+
 	return nil
 }
 func (self *StateDBManage)GetBalanceByType(cointyp string,addr common.Address, accType uint32) *big.Int{
+
 	stateObject := self.getStateObject(cointyp,addr)
 	if stateObject != nil {
 		for _, tAccount := range stateObject.data.Balance {
@@ -263,6 +285,7 @@ func (self *StateDBManage)GetBalanceByType(cointyp string,addr common.Address, a
 	return big.NewInt(0)
 }
 func (shard *StateDBManage) GetNonce(cointyp string,addr common.Address) uint64 {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject != nil {
 		return stateObject.Nonce()
@@ -282,6 +305,7 @@ func (shard *StateDBManage) GetCode(cointyp string,addr common.Address) []byte{
 }
 
 func (shard *StateDBManage) GetCodeSize(cointyp string,addr common.Address) int {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject == nil {
 		return 0
@@ -297,6 +321,7 @@ func (shard *StateDBManage) GetCodeSize(cointyp string,addr common.Address) int 
 }
 
 func (shard *StateDBManage) GetCodeHash(cointyp string,addr common.Address) common.Hash {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject == nil {
 		return common.Hash{}
@@ -305,6 +330,7 @@ func (shard *StateDBManage) GetCodeHash(cointyp string,addr common.Address) comm
 }
 
 func (shard *StateDBManage) GetState(cointyp string,addr common.Address, bhash common.Hash) common.Hash {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject != nil {
 		return stateObject.GetState(shard.GetStateDb(cointyp,addr).db, bhash)
@@ -313,6 +339,7 @@ func (shard *StateDBManage) GetState(cointyp string,addr common.Address, bhash c
 }
 
 func (shard *StateDBManage) GetStateByteArray(cointyp string,a common.Address, b common.Hash) []byte {
+
 	stateObject := shard.getStateObject(cointyp,a)
 	if stateObject != nil {
 		return stateObject.GetStateByteArray(shard.GetStateDb(cointyp,a).db, b)
@@ -322,6 +349,7 @@ func (shard *StateDBManage) GetStateByteArray(cointyp string,a common.Address, b
 
 // Database retrieves the low level database supporting the lower level trie ops.
 func (shard *StateDBManage) Database() Database {
+
 	return shard.db
 }
 
@@ -338,6 +366,7 @@ func (shard *StateDBManage) StorageTrie(cointyp string,addr common.Address) Trie
 }
 
 func (shard *StateDBManage) HasSuicided(cointyp string,addr common.Address) bool {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject != nil {
 		return stateObject.suicided
@@ -351,6 +380,7 @@ func (shard *StateDBManage) HasSuicided(cointyp string,addr common.Address) bool
 
 // AddBalance adds amount to the account associated with addr.
 func (shard *StateDBManage) AddBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int) {
+
 	stateObject := shard.GetOrNewStateObject(cointyp,addr)
 	if stateObject != nil {
 		stateObject.AddBalance(accountType, amount)
@@ -359,6 +389,7 @@ func (shard *StateDBManage) AddBalance(cointyp string,accountType uint32, addr c
 
 // SubBalance subtracts amount from the account associated with addr.
 func (shard *StateDBManage) SubBalance(cointyp string,accountType uint32,addr common.Address,amount *big.Int) {
+
 	stateObject := shard.GetOrNewStateObject(cointyp,addr)
 	if stateObject != nil {
 		stateObject.SubBalance(accountType, amount)
@@ -366,6 +397,7 @@ func (shard *StateDBManage) SubBalance(cointyp string,accountType uint32,addr co
 }
 
 func (shard *StateDBManage) SetBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int) {
+
 	stateObject := shard.GetOrNewStateObject(cointyp,addr)
 	if stateObject != nil {
 		stateObject.SetBalance(accountType, amount)
@@ -373,6 +405,7 @@ func (shard *StateDBManage) SetBalance(cointyp string,accountType uint32, addr c
 }
 
 func (shard *StateDBManage) SetNonce(cointyp string,addr common.Address, nonce uint64) {
+
 	stateObject := shard.GetOrNewStateObject(cointyp,addr)
 	if stateObject != nil {
 		stateObject.SetNonce(nonce | params.NonceAddOne) //YY
@@ -380,6 +413,7 @@ func (shard *StateDBManage) SetNonce(cointyp string,addr common.Address, nonce u
 }
 
 func (shard *StateDBManage) SetCode(cointyp string,addr common.Address, code []byte) {
+
 	stateObject := shard.GetOrNewStateObject(cointyp,addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
@@ -408,6 +442,7 @@ func (shard *StateDBManage) SetStateByteArray(cointyp string,addr common.Address
 // The account's state object is still available until the state is committed,
 // getStateObject will return a non-nil account after Suicide.
 func (shard *StateDBManage) Suicide(cointyp string,addr common.Address) bool {
+
 	var self *StateDB
 	if cointyp!="" {
 		self=shard.GetStateDb(cointyp,addr)
@@ -449,6 +484,7 @@ func (shard *StateDBManage) Suicide(cointyp string,addr common.Address) bool {
 // updateStateObject writes the given object to the trie.
 
 func (shard *StateDBManage) updateStateObject(cointyp string,a common.Address,stateObject *stateObject) {
+
 	self:=shard.GetStateDb(cointyp,a)
 	addr := stateObject.Address()
 	data, err := rlp.EncodeToBytes(stateObject)
@@ -460,6 +496,7 @@ func (shard *StateDBManage) updateStateObject(cointyp string,a common.Address,st
 
 // deleteStateObject removes the given object from the state trie.
 func (shard *StateDBManage) deleteStateObject(cointyp string,a common.Address,stateObject *stateObject) {
+
 	self:=shard.GetStateDb(cointyp,a)
 	stateObject.deleted = true
 	addr := stateObject.Address()
@@ -468,6 +505,7 @@ func (shard *StateDBManage) deleteStateObject(cointyp string,a common.Address,st
 
 // Retrieve a state object given by the address. Returns nil if not found.
 func (shard StateDBManage) getStateObject(cointyp string,addr common.Address) (stateObject *stateObject) {
+
 	self:=shard.GetStateDb(cointyp,addr)
 	if self == nil{
 		shard.MakeStatedb(cointyp)
@@ -503,11 +541,13 @@ func (shard StateDBManage) getStateObject(cointyp string,addr common.Address) (s
 }
 
 func (shard *StateDBManage) setStateObject(cointyp string,a common.Address,object *stateObject) {
+
 	shard.GetStateDb(cointyp,a).stateObjects[object.Address()] = object
 }
 
 // Retrieve a state object or create a new state object if nil.
 func (shard *StateDBManage) GetOrNewStateObject(cointyp string,addr common.Address) *stateObject {
+
 	stateObject := shard.getStateObject(cointyp,addr)
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = shard.createObject(cointyp,addr)
@@ -518,6 +558,7 @@ func (shard *StateDBManage) GetOrNewStateObject(cointyp string,addr common.Addre
 // createObject creates a new state object. If there is an existing account with
 // the given address, it is overwritten and returned as the second return value.
 func (shard *StateDBManage) createObject(cointyp string,addr common.Address) (newobj, prev *stateObject) {
+
 	self:=shard.GetStateDb(cointyp,addr)
 	prev = self.getStateObject(addr)
 	newobj = newObject(self, addr, Account{})
@@ -542,6 +583,7 @@ func (shard *StateDBManage) createObject(cointyp string,addr common.Address) (ne
 //
 // Carrying over the balance ensures that Maner doesn't disappear.
 func (shard *StateDBManage) CreateAccount(cointyp string,addr common.Address) {
+
 	new, prev := shard.createObject(cointyp,addr)
 	if prev != nil {
 		//new.setBalance(prev.data.Balance)
@@ -552,6 +594,7 @@ func (shard *StateDBManage) CreateAccount(cointyp string,addr common.Address) {
 }
 
 func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, cb func(key, value common.Hash) bool) {
+
 	so := shard.getStateObject(cointyp,addr)
 	if so == nil {
 		return
@@ -576,6 +619,7 @@ func (shard *StateDBManage) ForEachStorage(cointyp string,addr common.Address, c
 // Snapshots of the copied state cannot be applied to the copy.
 
 func (shard *StateDBManage) Copy() *StateDBManage {
+
 	state := &StateDBManage{
 		db:                shard.db,
 		mdb:               shard.mdb,
@@ -603,10 +647,12 @@ func (shard *StateDBManage) Copy() *StateDBManage {
 		})
 	}
 	return state
+
 }
 
 // Snapshot returns an identifier for the current revision of the state.
 func (shard *StateDBManage) Snapshot(cointyp string) map[byte]int {
+
 	ss:=make(map[byte]int,0)
 	for _,cm:=range shard.shardings{
 		if cm.Cointyp==cointyp{
@@ -618,7 +664,6 @@ func (shard *StateDBManage) Snapshot(cointyp string) map[byte]int {
 			break
 		}
 	}
-
 	return ss
 }
 
@@ -641,6 +686,7 @@ func (shard *StateDBManage) RevertToSnapshot(cointyp string,ss map[byte]int) {
 // Finalise finalises the state by removing the self destructed objects
 // and clears the journal as well as the refunds.
 func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
+
 	for _,cm:=range shard.shardings  {
 		if cm.Cointyp==cointyp {
 			for _,cm:=range cm.Rmanage{
@@ -656,6 +702,7 @@ func (shard *StateDBManage) Finalise(cointyp string,deleteEmptyObjects bool) {
 // goes into transaction receipts.
 
 func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte){
+
 	coinbytes :=make([]common.Coinbyte,0)
 	for _,cm:=range shard.shardings  {
 		var bshash	common.Hash
@@ -690,6 +737,7 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 }
 
 func (shard *StateDBManage) IntermediateRootByCointype(cointype string,deleteEmptyObjects bool) common.Hash {
+
 	var root256 []common.Hash
 	for _,cm:=range shard.shardings {
 		if cointype == cm.Cointyp {
@@ -723,6 +771,7 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string,deleteEmp
 // used when the EVM emits new state logs.
 
 func (shard *StateDBManage) Prepare(thash, bhash common.Hash, ti int) {
+
 	for _,cm:=range shard.shardings{
 		for _,rm:=range cm.Rmanage  {
 			rm.State.Prepare(thash,bhash,ti)
@@ -731,6 +780,7 @@ func (shard *StateDBManage) Prepare(thash, bhash common.Hash, ti int) {
 }
 
 func (shard *StateDBManage) clearJournalAndRefund() {
+
 	for _,cm:=range shard.shardings  {
 		for _,rm:=range cm.Rmanage  {
 			rm.State.clearJournalAndRefund()
@@ -776,6 +826,7 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot,[
 }
 
 func (self *StateDBManage) CommitSaveTx(cointyp string,addr common.Address) {
+
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 		for _,rm:=range cm.Rmanage{
@@ -791,6 +842,7 @@ func (self *StateDBManage) CommitSaveTx(cointyp string,addr common.Address) {
 }
 
 func (self *StateDBManage) NewBTrie(cointyp string,addr common.Address,typ byte) {
+
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
@@ -805,6 +857,7 @@ func (self *StateDBManage) NewBTrie(cointyp string,addr common.Address,typ byte)
 }
 //isdel:true 表示需要从map中删除hash，false 表示不需要删除
 func (self *StateDBManage) GetSaveTx(cointyp string,addr common.Address,typ byte, key uint32, hashlist []common.Hash, isdel bool) {
+
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
@@ -818,6 +871,7 @@ func (self *StateDBManage) GetSaveTx(cointyp string,addr common.Address,typ byte
 	}
 }
 func (self *StateDBManage) SaveTx(cointyp string,addr common.Address,typ byte, key uint32, data map[common.Hash][]byte) {
+
 	for _,cm:=range self.shardings{
 		if cm.Cointyp==cointyp {
 			for _,rm:=range cm.Rmanage{
@@ -834,6 +888,7 @@ func (self *StateDBManage) SaveTx(cointyp string,addr common.Address,typ byte, k
 
 //SetMatrixData，GetMatrixData，DeleteMxData都是针对man币种 分区[0]
 func (self *StateDBManage) SetMatrixData(hash common.Hash, val []byte) {
+
 	for _,cm:=range self.shardings {
 		if cm.Cointyp==params.MAN_COIN{
 			cm.Rmanage[0].State.SetMatrixData(hash,val)
@@ -843,6 +898,7 @@ func (self *StateDBManage) SetMatrixData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDBManage) GetMatrixData(hash common.Hash) (val []byte) {
+
 	for _,cm:=range self.shardings {
 		if cm.Cointyp==params.MAN_COIN{
 			return cm.Rmanage[0].State.GetMatrixData(hash)
@@ -853,6 +909,7 @@ func (self *StateDBManage) GetMatrixData(hash common.Hash) (val []byte) {
 }
 
 func (self *StateDBManage) DeleteMxData(hash common.Hash, val []byte) {
+
 	for _,cm:=range self.shardings {
 		if cm.Cointyp==params.MAN_COIN{
 			cm.Rmanage[0].State.deleteMatrixData(hash,val)
@@ -862,6 +919,7 @@ func (self *StateDBManage) DeleteMxData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDBManage) UpdateTxForBtree(key uint32){
+
 	for _,cm:=range self.shardings{
 		for _,rm:=range cm.Rmanage  {
 			rm.State.UpdateTxForBtree(key)
@@ -869,6 +927,7 @@ func (self *StateDBManage) UpdateTxForBtree(key uint32){
 	}
 }
 func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32){
+
 	for _,cm:=range self.shardings{
 		for _,rm:=range cm.Rmanage  {
 			rm.State.UpdateTxForBtreeBytime(key)
@@ -877,6 +936,7 @@ func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32){
 }
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDBManage) GetGasAuthFromByTime(cointyp string,entrustFrom common.Address, time uint64) common.Address {
+
 	AuthMarsha1Data := self.GetStateByteArray(cointyp,entrustFrom, common.BytesToHash(entrustFrom[:]))
 	if len(AuthMarsha1Data) == 0 {
 		return common.Address{}
@@ -896,37 +956,49 @@ func (self *StateDBManage) GetGasAuthFromByTime(cointyp string,entrustFrom commo
 
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDBManage) GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
+
 	return self.GetStateDb(cointyp,entrustFrom).GetGasAuthFrom(entrustFrom,height)
 }
 func (self *StateDBManage) GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address {
+
 	return self.GetStateDb(cointyp,entrustFrom).GetAuthFrom(entrustFrom,height)
 }
 //根据授权人from和高度获取委托人的from列表,返回委托人地址列表(算法组调用,仅适用委托签名)
 func (self *StateDBManage) GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address {
+
 	return self.GetStateDb(cointyp,authFrom).GetEntrustFrom(authFrom,height)
 }
 //根据授权人获取所有委托签名列表,(该方法用于取消委托时调用)
 func (self *StateDBManage) GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address {
+
 	return self.GetStateDb(cointyp,authFrom).GetAllEntrustSignFrom(authFrom)
 }
 
 func (self *StateDBManage) GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address{
+
 	return self.GetStateDb(cointyp,authFrom).GetAllEntrustGasFrom(authFrom)
 }
 
 func (self *StateDBManage) GetEntrustFromByTime(cointyp string,authFrom common.Address, time uint64) []common.Address {
 
+
 	return self.GetStateDb(cointyp,authFrom).GetEntrustFromByTime(authFrom,time)
 }
 
+//判断根据时间委托是否满足条件，用于执行按时间委托的交易(跑交易),此处time应该为header里的时间戳
 func (self *StateDBManage) GetIsEntrustByTime(cointyp string,entrustFrom common.Address, time uint64) bool {
+
 	return self.GetStateDb(cointyp,entrustFrom).GetIsEntrustByTime(entrustFrom,time)
 }
+
+//钱包调用显示
 func (self *StateDBManage) GetAllEntrustList(cointyp string,authFrom common.Address) []common.EntrustType {
+
 	return  self.GetStateDb(cointyp,authFrom).GetAllEntrustList(authFrom)
 }
 
 func (self *StateDBManage)RawDump(cointype string,address common.Address)Dump {
+
 	for _,cm:=range self.shardings  {
 		if cointype==cm.Cointyp {
 		for _,rm:=range cm.Rmanage{
@@ -938,16 +1010,20 @@ func (self *StateDBManage)RawDump(cointype string,address common.Address)Dump {
 		}
 	}
 	return Dump{}
+
 }
 
 func (self *StateDBManage)Dump(cointype string,address common.Address) []byte {
+
 	json, err := json.MarshalIndent(self.RawDump(cointype,address), "", "    ")
 	if err != nil {
 		fmt.Println("dump err", err)
 	}
 	return json
+
 }
 func (self *StateDBManage)RawDumpAcccount(cointype string,address common.Address) Dump {
+
 	var dump Dump
 	for _,cm:=range self.shardings  {
 		if cm.Cointyp==cointype {
@@ -960,4 +1036,5 @@ func (self *StateDBManage)RawDumpAcccount(cointype string,address common.Address
 		}
 	}
 	return dump
+
 }
