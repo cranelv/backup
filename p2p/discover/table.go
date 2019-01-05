@@ -764,11 +764,16 @@ func (tab *Table) add(new *Node) {
 	b := tab.bucket(new.sha)
 	emptyAddr := common.Address{}
 	if new.Address != emptyAddr {
-		if val, ok := tab.nodeBindAddress[new.Address]; !ok {
+		val, ok := tab.nodeBindAddress[new.Address]
+		if !ok {
 			tab.nodeBindAddress[new.Address] = new
-		} else if val.ID != new.ID && val.SignTime.Before(new.SignTime) {
-			log.Info("replace node info", "old", val.ID, "new", new.ID)
-			tab.nodeBindAddress[new.Address] = new
+		} else {
+			log.Info("sign time", "before", val.SignTime)
+			log.Info("sign time", "after", new.SignTime)
+			if val.SignTime.Before(new.SignTime) {
+				log.Info("replace node info", "old", val.ID, "new", new.ID)
+				tab.nodeBindAddress[new.Address] = new
+			}
 		}
 	}
 
