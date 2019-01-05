@@ -210,7 +210,7 @@ func (b *Bucket) maintainInner() {
 	next := (b.self + 1) % 4
 	for _, peer := range ServerP2p.Peers() {
 		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
-		if signAddr == emptyAddress {
+		if signAddr == EmptyAddress {
 			continue
 		}
 		pid, err := b.peerBucket(signAddr)
@@ -239,7 +239,7 @@ func (b *Bucket) maintainOuter() {
 	for _, peer := range ServerP2p.Peers() {
 		for _, miner := range miners {
 			id := ServerP2p.ConvertAddressToId(miner)
-			if id != emptyNodeId && peer.ID() == id {
+			if id != EmptyNodeId && peer.ID() == id {
 				count++
 				break
 			}
@@ -266,7 +266,7 @@ func (b *Bucket) peerBucket(addr common.Address) (int64, error) {
 		return m.Mod(MockHash(ServerP2p.Self().ID).Big(), big.NewInt(4)).Int64(), nil
 	}
 
-	if addr != emptyAddress {
+	if addr != EmptyAddress {
 		return m.Mod(common.BytesToHash(addr.Bytes()).Big(), big.NewInt(4)).Int64(), nil
 	}
 
@@ -286,7 +286,7 @@ func (b *Bucket) linkBucketPeer() {
 	count := 0
 	for _, peer := range ServerP2p.Peers() {
 		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
-		if signAddr == emptyAddress {
+		if signAddr == EmptyAddress {
 			b.log.Error("not found sign address", "id", peer.ID())
 			continue
 		}

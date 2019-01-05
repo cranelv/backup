@@ -277,21 +277,19 @@ func (srv *Server) AddressTable() map[common.Address]*discover.Node {
 }
 
 func (srv *Server) ConvertAddressToId(addr common.Address) discover.NodeID {
-	bindAddress := srv.ntab.GetAllAddress()
-	if node, ok := bindAddress[addr]; ok {
+	node := srv.ntab.ResolveNode(addr, EmptyNodeId)
+	if node != nil {
 		return node.ID
 	}
-	return discover.NodeID{}
+	return EmptyNodeId
 }
 
 func (srv *Server) ConvertIdToAddress(id discover.NodeID) common.Address {
-	bindAddress := srv.ntab.GetAllAddress()
-	for _, node := range bindAddress {
-		if node.ID == id {
-			return node.Address
-		}
+	node := srv.ntab.ResolveNode(EmptyAddress, id)
+	if node != nil {
+		return node.Address
 	}
-	return common.Address{}
+	return EmptyAddress
 }
 
 // PeerCount returns the number of connected peers.
@@ -348,9 +346,9 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 func (srv *Server) RemovePeerByAddress(addr common.Address) {
 	srv.DelTasks(addr)
 
-	bindAddress := srv.ntab.GetAllAddress()
-	if val, ok := bindAddress[addr]; ok {
-		srv.RemovePeer(val)
+	node := srv.ntab.ResolveNode(addr, EmptyNodeId)
+	if node != nil {
+		srv.RemovePeer(node)
 		return
 	}
 	srv.log.Info("can not found node info and remove from table", "addr", addr)

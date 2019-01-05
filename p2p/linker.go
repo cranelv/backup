@@ -59,8 +59,8 @@ var Link = &Linker{
 }
 
 var (
-	emptyNodeId  = discover.NodeID{}
-	emptyAddress = common.Address{}
+	EmptyNodeId  = discover.NodeID{}
+	EmptyAddress = common.Address{}
 )
 
 func (l *Linker) Start() {
@@ -253,7 +253,7 @@ func (l *Linker) recordTopNodeActiveInfo() {
 			ok := false
 			for _, peer := range ServerP2p.Peers() {
 				id := ServerP2p.ConvertAddressToId(key)
-				if id != emptyNodeId && peer.ID() == id {
+				if id != EmptyNodeId && peer.ID() == id {
 					ok = true
 				}
 			}
@@ -320,7 +320,7 @@ func Record(id discover.NodeID) error {
 	defer Link.mu.Unlock()
 
 	signAddr := ServerP2p.ConvertIdToAddress(id)
-	if signAddr == emptyAddress {
+	if signAddr == EmptyAddress {
 		return nil
 	}
 

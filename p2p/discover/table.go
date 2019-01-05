@@ -165,6 +165,31 @@ func (tab *Table) GetAllAddress() map[common.Address]*Node {
 	return tab.nodeBindAddress
 }
 
+var (
+	EmptyNodeId  = NodeID{}
+	EmptyAddress = common.Address{}
+)
+
+func (tab *Table) ResolveNode(addr common.Address, id NodeID) *Node {
+	tab.mutex.Lock()
+	defer tab.mutex.Unlock()
+	if id == EmptyNodeId && addr != EmptyAddress {
+		for key, val := range tab.nodeBindAddress {
+			if key == addr {
+				return val
+			}
+		}
+	}
+	if id != EmptyNodeId && addr == EmptyAddress {
+		for _, val := range tab.nodeBindAddress {
+			if val.ID == id {
+				return val
+			}
+		}
+	}
+	return nil
+}
+
 func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 	tab.mutex.Lock()
 	if val, ok := tab.nodeBindAddress[address]; ok {
