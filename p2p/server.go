@@ -347,14 +347,13 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 
 func (srv *Server) RemovePeerByAddress(addr common.Address) {
 	srv.DelTasks(addr)
-	val, ok := srv.ntab.GetAllAddress()[addr]
-	if !ok {
+
+	bindAddress := srv.ntab.GetAllAddress()
+	if val, ok := bindAddress[addr]; ok {
+		srv.RemovePeer(val)
 		return
 	}
-	select {
-	case srv.removestatic <- val:
-	case <-srv.quit:
-	}
+	srv.log.Info("can not found node info and remove from table", "addr", addr)
 }
 
 // SubscribePeers subscribes the given channel to peer events
