@@ -577,7 +577,7 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 		return common.Address{0}, errors.New("get broadcast account err")
 	}
 
-	if broadcast == addr {
+	if broadcast == address {
 		return broadcast, nil
 	}
 
@@ -587,7 +587,7 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 	}
 	if len(innerMiners) > 0 {
 		for _, im := range innerMiners {
-			if im == addr {
+			if im == address {
 				return im, nil
 			}
 		}
@@ -624,7 +624,7 @@ func ConvertDepositToSignAddress(address common.Address) (addr common.Address, e
 	}
 	if len(innerMiners) > 0 {
 		for _, im := range innerMiners {
-			if im == addr {
+			if im == address {
 				return im, nil
 			}
 		}
