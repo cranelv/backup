@@ -736,6 +736,11 @@ running:
 			d := common.PrettyDuration(mclock.Now() - pd.created)
 			pd.log.Debug("Removing p2p peer", "duration", d, "peers", len(peers)-1, "req", pd.requested, "err", pd.err)
 			delete(peers, pd.ID())
+			// delete each peers
+			n := srv.ntab.ResolveNode(EmptyAddress, pd.ID())
+			if n != nil {
+				srv.RemovePeer(n)
+			}
 			if pd.Inbound() {
 				inboundCount--
 			}

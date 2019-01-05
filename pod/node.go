@@ -210,10 +210,6 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 		}
 
 		address := manparams.EntrustAccountValue.GetEntrustValue()
-		for key, val := range address {
-			log.Info("address table _______", "key", key.String(), "val", val)
-		}
-
 		val, ok := address[n.config.P2P.ManAddress]
 		if !ok {
 			n.log.Error("get account password error")
