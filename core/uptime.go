@@ -302,18 +302,16 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) 
 			return upTimeMap, nil
 		} else {
 			log.Debug(ModuleName, "获取所有心跳交易", "")
-			preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
-			if err != nil {
-				log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
-				return nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
+			LastStateRoot, BeforeLastStateRoot, err := bc.getPreRoot(header, bcInterval)
+			if nil != err {
+				return nil, err
 			}
-			log.Debug(ModuleName, "获取最新的root", preBroadcastRoot.LastStateRoot.Hex(), "上一个root", preBroadcastRoot.BeforeLastStateRoot)
 
-			calltherollMap, heatBeatUnmarshallMMap, err := bc.getUpTimeData(preBroadcastRoot.LastStateRoot, header.Number.Uint64(), header.ParentHash)
+			calltherollMap, heatBeatUnmarshallMMap, err := bc.getUpTimeData(LastStateRoot, header.Number.Uint64(), header.ParentHash)
 			if err != nil {
 				log.WARN("core", "获取心跳交易错误!", err, "高度", header.Number.Uint64())
 			}
-			upTimeMap, err := bc.handleUpTime(preBroadcastRoot.BeforeLastStateRoot, state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
+			upTimeMap, err := bc.handleUpTime(BeforeLastStateRoot, state, upTimeAccounts, calltherollMap, heatBeatUnmarshallMMap, header.Number.Uint64(), bcInterval)
 			if nil != err {
 				log.ERROR("core", "处理uptime错误", err)
 				return nil, err
@@ -324,4 +322,30 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) 
 	}
 
 	return nil, nil
+}
+
+func (bc *BlockChain) getPreRoot(header *types.Header, bcInterval *manparams.BCInterval) (common.Hash, common.Hash, error) {
+	var LastStateRoot common.Hash
+	var BeforeLastStateRoot common.Hash
+	if header.Number.Uint64() == bcInterval.GetLastBroadcastNumber()+1 {
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+		if err != nil {
+			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
+			return common.Hash{}, common.Hash{}, fmt.Errorf("从状态树获取前2个广播区块root失败")
+		}
+		BeforeLastStateRoot = preBroadcastRoot.LastStateRoot
+		LastStateRoot = bc.GetBlockByHash(header.ParentHash).Root()
+
+	} else {
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+		if err != nil {
+			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
+			return common.Hash{}, common.Hash{}, fmt.Errorf("从状态树获取前2个广播区块root失败")
+		}
+		LastStateRoot = preBroadcastRoot.LastStateRoot
+		BeforeLastStateRoot = preBroadcastRoot.BeforeLastStateRoot
+
+	}
+	log.Debug(ModuleName, "获取最新的root", LastStateRoot.Hex(), "上一个root", BeforeLastStateRoot)
+	return LastStateRoot, BeforeLastStateRoot, nil
 }
