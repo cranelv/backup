@@ -354,6 +354,12 @@ type CurrencyHeader struct {
 	TxHash common.Hash
 	ReceiptHash common.Hash
 }
+func MakeCurencyBlock(txser []CoinSelfTransaction,rece []CoinReceipts,shardings []uint)(cb []CurrencyBlock){
+	for i,txer:=range txser{
+		cb = append(cb,CurrencyBlock{CurrencyName:txer.CoinType,Transactions:SetTransactions(txer.Txser,shardings),Receipts:SetReceipts(rece[i].Receiptlist,shardings)})
+	}
+	return
+}
 //币种block
 //1 Validator :
 //2 Miner : return len([]Sharding) == 0 discard tx
@@ -405,7 +411,7 @@ type Block struct {
 
 type BlockAllSt struct {
 	Sblock   *Block
-	SReceipt Receipts //`rlp:"sreceipt"`
+	//SReceipt CoinReceipts //`rlp:"sreceipt"`
 	Pading   uint64
 }
 

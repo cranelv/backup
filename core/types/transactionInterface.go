@@ -11,6 +11,10 @@ const (
 	BroadCastTxIndex             // BroadcastPool save broadcast transaction
 
 )
+type CoinSelfTransaction struct {
+	CoinType string
+	Txser    SelfTransactions
+}
 
 type SelfTransaction interface {
 	TxType() byte

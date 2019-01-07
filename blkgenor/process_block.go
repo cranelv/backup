@@ -422,9 +422,9 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 	txs := blockData.block.FinalTxs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
-	block := types.NewBlockWithTxs(insertHeader, txs,nil)
+	block := types.NewBlockWithTxs(insertHeader, types.MakeCurencyBlock(txs,receipts,nil))
 
-	stat, err := p.blockChain().WriteBlockWithState(block, receipts, state)
+	stat, err := p.blockChain().WriteBlockWithState(block,state)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "插入区块失败", err)
 		return common.Hash{}, err

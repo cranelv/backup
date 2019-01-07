@@ -1009,7 +1009,7 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (e
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
-func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDBManage) (status WriteStatus, err error) {
+func (bc *BlockChain) WriteBlockWithState(block *types.Block,state *state.StateDBManage) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
@@ -1030,6 +1030,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
+	receipts:=make(types.Receipts,0)
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
 		return NonStatTy, err
@@ -1038,11 +1039,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, block)
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-		//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
-		tmpBlock := &types.BlockAllSt{Sblock: block, SReceipt: receipts}
-		//copy(tmpBlock.SReceipt, receipts)
-		//tmpBlock.SReceipt = receipts
-		tmpBlock.Pading = uint64(len(block.Body().Transactions.GetTransactions()))
+		tmpBlock := &types.BlockAllSt{Sblock: block}
+		txcount := uint64(0)
+		for _,cb := range block.Currencies(){
+			txcount +=uint64(len(cb.Transactions.GetTransactions()))
+			receipts = append(receipts,cb.Receipts.GetReceipts()...)
+		}
+		tmpBlock.Pading = txcount
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 	}

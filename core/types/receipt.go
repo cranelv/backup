@@ -180,6 +180,11 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 	return nil
 }
 
+type CoinReceipts struct {
+	CoinType  string
+	Receiptlist Receipts
+}
+
 // Receipts is a wrapper around a Receipt array to implement DerivableList.
 type Receipts []*Receipt
 
