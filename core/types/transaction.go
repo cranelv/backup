@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"github.com/matrix/go-matrix/log"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -150,10 +151,12 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 	data1.TxEnterType = data.TxEnterType
 	data1.IsEntrustTx = data.IsEntrustTx
 	data1.CommitTime = data.CommitTime
-	data1.Recipient = new(string)
-	to := *data.Recipient
-	*data1.Recipient = base58.Base58EncodeToString(currency, to)
-	//data1.Extra1 = data.Extra
+	if data.Recipient != nil{
+		data1.Recipient = new(string)
+		to := *data.Recipient
+		*data1.Recipient = base58.Base58EncodeToString(currency, to)
+	}
+
 	if len(data.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra1, 0)
 		for _, er := range data.Extra {
@@ -163,14 +166,14 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 			exto := make([]Tx_to1, 0)
 			if len(er.ExtraTo) > 0 {
 				for _, tto := range er.ExtraTo {
+					tmTo := new(Tx_to1)
 					if tto.Recipient != nil {
-						tmTo := new(Tx_to1)
 						tmTo.Recipient = new(string)
 						*tmTo.Recipient = base58.Base58EncodeToString(currency, *tto.Recipient)
-						tmTo.Payload = tto.Payload
-						tmTo.Amount = tto.Amount
-						exto = append(exto, *tmTo)
 					}
+					tmTo.Payload = tto.Payload
+					tmTo.Amount = tto.Amount
+					exto = append(exto, *tmTo)
 				}
 			}
 			tmpEr1.ExtraTo = exto
@@ -192,8 +195,11 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 	data.TxEnterType = data1.TxEnterType
 	data.IsEntrustTx = data1.IsEntrustTx
 	data.CommitTime = data1.CommitTime
-	data.Recipient = new(common.Address)
-	*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+	if data1.Recipient != nil{
+		data.Recipient = new(common.Address)
+		*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+	}
+
 	if len(data1.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra, 0)
 		for _, er := range data1.Extra {
@@ -203,14 +209,14 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 			exto := make([]Tx_to, 0)
 			if len(er.ExtraTo) > 0 {
 				for _, tto := range er.ExtraTo {
+					tmTo := new(Tx_to)
 					if tto.Recipient != nil {
-						tmTo := new(Tx_to)
 						tmTo.Recipient = new(common.Address)
 						*tmTo.Recipient = base58.Base58DecodeToAddress(*tto.Recipient)
-						tmTo.Payload = tto.Payload
-						tmTo.Amount = tto.Amount
-						exto = append(exto, *tmTo)
 					}
+					tmTo.Payload = tto.Payload
+					tmTo.Amount = tto.Amount
+					exto = append(exto, *tmTo)
 				}
 			}
 			tmpEr1.ExtraTo = exto
@@ -710,6 +716,9 @@ func ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx {
 		tx_Mx.TxType_Mx = tx.data.Extra[0].TxType
 		tx_Mx.LockHeight = tx.data.Extra[0].LockHeight
 		tx_Mx.ExtraTo = tx.data.Extra[0].ExtraTo
+	}else{
+		log.Error("tx.data.Extra is nil")
+		return nil
 	}
 	return tx_Mx
 }
@@ -731,17 +740,14 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		CommitTime:  tx_Mx.Data.CommitTime,
 		Extra:       tx_Mx.Data.Extra,
 	}
-	if len(tx_Mx.ExtraTo) > 0 {
-		mx := Matrix_Extra{
-			TxType:     tx_Mx.TxType_Mx,
-			LockHeight: tx_Mx.LockHeight,
-			ExtraTo:    tx_Mx.ExtraTo,
-		}
-		if mx.TxType == 0 {
-			mx.LockHeight = tx_Mx.LockHeight
-		}
-		txd.Extra = append(txd.Extra, mx)
+	mx := Matrix_Extra{
+		TxType:     tx_Mx.TxType_Mx,
+		LockHeight: tx_Mx.LockHeight,
 	}
+	if len(tx_Mx.ExtraTo) > 0 {
+		mx.ExtraTo = tx_Mx.ExtraTo
+	}
+	txd.Extra = append(txd.Extra, mx)
 	tx := &Transaction{Mtype: tx_Mx.Mtype, Currency: tx_Mx.Currency, data: txd}
 	return tx
 }
