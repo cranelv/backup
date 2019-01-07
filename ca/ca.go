@@ -136,8 +136,6 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 
 			// init current height deposit
 			ide.deposit, _ = GetElectedByHeightWithdraw(header.Number)
-			// get self address from deposit
-			ide.addr = GetAddress()
 
 			// get broadcast interval
 			bcInterval, err := manparams.GetBCIntervalInfoByHash(hash)
@@ -152,7 +150,17 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 				ide.log.Error("get topology", "error", err)
 				continue
 			}
-			ide.topology = tg
+			newTg := &mc.TopologyGraph{}
+			for _, value := range tg.NodeList {
+				sAddr, err := ConvertDepositToSignAddress(value.Account)
+				if err != nil {
+					log.Error("convert address failed", "error", err)
+					continue
+				}
+				newTg.NodeList = append(newTg.NodeList, mc.TopologyNodeInfo{sAddr, value.Position, value.Type, value.NodeNumber})
+			}
+			newTg.CurNodeNumber = tg.CurNodeNumber
+			ide.topology = newTg
 
 			// get special accounts
 			broadcastAccount, err := ide.topologyReader.GetBroadcastAccount(hash)
@@ -451,17 +459,11 @@ func GetDropNode() (result []common.Address) {
 	return
 }
 
-// GetFrontNodes
-func GetFrontNodes() []common.Address {
-	ide.lock.RLock()
-	defer ide.lock.RUnlock()
-	return ide.frontNodes
-}
-
 // GetAddress
 func GetAddress() common.Address {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
+
 	return ide.addr
 }
 
@@ -577,7 +579,7 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 		return common.Address{0}, errors.New("get broadcast account err")
 	}
 
-	if broadcast == addr {
+	if broadcast == address {
 		return broadcast, nil
 	}
 
@@ -587,7 +589,7 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 	}
 	if len(innerMiners) > 0 {
 		for _, im := range innerMiners {
-			if im == addr {
+			if im == address {
 				return im, nil
 			}
 		}
@@ -624,7 +626,7 @@ func ConvertDepositToSignAddress(address common.Address) (addr common.Address, e
 	}
 	if len(innerMiners) > 0 {
 		for _, im := range innerMiners {
-			if im == addr {
+			if im == address {
 				return im, nil
 			}
 		}
