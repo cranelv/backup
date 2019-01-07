@@ -5510,13 +5510,7 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
     });
-    var getUpTime = new Method({
-        name: 'getUpTime',
-        call: 'eth_getUpTime',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
-        outputFormatter: formatters.outputNewBigNumberFormatter
-    });
+
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
@@ -5738,7 +5732,6 @@ var methods = function () {
 
     return [
         getBalance,
-        getUpTime,
         getEntrustList,
         getAuthFrom,
         getEntrustFrom,

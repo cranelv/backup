@@ -203,11 +203,11 @@ func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *s
 	if _, ok := originValidatorMap[account]; ok {
 
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
-		log.Debug(ModuleName, "是原始验证节点，upTime累加", account, "upTime", newTime.Uint64())
+		log.Debug(ModuleName, "是原始验证节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else if _, ok := originMinerMap[account]; ok {
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
-		log.Debug(ModuleName, "是原始矿工节点，upTime累加", account, "upTime", newTime.Uint64())
+		log.Debug(ModuleName, "是原始矿工节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else {
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
@@ -241,11 +241,11 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts 
 		read, err := depoistInfo.GetOnlineTime(state, account)
 		upTimeMap[account] = upTime
 		if nil == err {
-			log.Debug(ModuleName, "读取状态树", account, "upTime累加", read)
+			log.Debug(ModuleName, "读取状态树", account, "upTime减半", read)
 			if _, ok := originTopologyMap[account]; ok {
-				//updateData := new(big.Int).SetUint64(read.Uint64() / 2)
-				//log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", read.Uint64())
-				//depoistInfo.AddOnlineTime(state, account, updateData)
+				updateData := new(big.Int).SetUint64(read.Uint64() / 2)
+				log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", updateData.Uint64())
+				depoistInfo.AddOnlineTime(state, account, updateData)
 			}
 		}
 
