@@ -737,10 +737,7 @@ running:
 			pd.log.Debug("Removing p2p peer", "duration", d, "peers", len(peers)-1, "req", pd.requested, "err", pd.err)
 			delete(peers, pd.ID())
 			// delete each peers
-			n := srv.ntab.ResolveNode(EmptyAddress, pd.ID())
-			if n != nil {
-				srv.RemovePeer(n)
-			}
+			dialstate.removeStatic(discover.NewNode(pd.ID(), net.IP{}, 0, 0))
 			if pd.Inbound() {
 				inboundCount--
 			}
