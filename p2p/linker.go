@@ -101,11 +101,9 @@ func (l *Linker) Start() {
 
 				if bcInterval.IsReElectionNumber(height) {
 					l.topNodeCache = l.topNode
-					l.topNode = make(map[common.RoleType]map[common.Address][]uint8)
 					l.initTopNodeMap()
 				}
 				if bcInterval.IsReElectionNumber(height - 10) {
-					l.topNodeCache = make(map[common.RoleType]map[common.Address][]uint8)
 					l.initTopNodeMapCache()
 				}
 
@@ -161,6 +159,7 @@ func (l *Linker) Stop() {
 
 func (l *Linker) initTopNodeMap() {
 	l.topMu.Lock()
+	l.topNode = make(map[common.RoleType]map[common.Address][]uint8)
 	for i := int(common.RoleBackupMiner); i <= int(common.RoleValidator); i = i << 1 {
 		l.topNode[common.RoleType(i)] = make(map[common.Address][]uint8)
 	}
@@ -169,6 +168,7 @@ func (l *Linker) initTopNodeMap() {
 
 func (l *Linker) initTopNodeMapCache() {
 	l.topMu.Lock()
+	l.topNodeCache = make(map[common.RoleType]map[common.Address][]uint8)
 	for i := int(common.RoleBackupMiner); i <= int(common.RoleValidator); i = i << 1 {
 		l.topNodeCache[common.RoleType(i)] = make(map[common.Address][]uint8)
 	}
