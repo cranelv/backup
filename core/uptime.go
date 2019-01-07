@@ -3,8 +3,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/readstatedb"
@@ -16,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
+	"math/big"
 )
 
 func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {
@@ -202,11 +201,11 @@ func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *s
 	var newTime *big.Int
 	if _, ok := originValidatorMap[account]; ok {
 
-		newTime = bc.upTimesReset(old, 1, int64(upTime))
+		newTime = bc.upTimesReset(old, 0.5, int64(upTime/2))
 		log.Debug(ModuleName, "是原始验证节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else if _, ok := originMinerMap[account]; ok {
-		newTime = bc.upTimesReset(old, 1, int64(upTime))
+		newTime = bc.upTimesReset(old, 0.5, int64(upTime/2))
 		log.Debug(ModuleName, "是原始矿工节点，upTime减半", account, "upTime", newTime.Uint64())
 
 	} else {
