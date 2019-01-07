@@ -26,7 +26,7 @@ const (
 
 var (
 	SignLog        = "SignLog"
-	TopAccountType = TopAccountA0
+	TopAccountType = TopAccountA1
 )
 
 func (ert ElectRoleType) Transfer2CommonRole() RoleType {
