@@ -452,10 +452,14 @@ func (f *Fetcher) loop() {
 					if f.getBlock(hash) == nil {
 						announce.header = header
 						announce.time = task.time
-
+						isok := false
 						// If the block is empty (header only), short circuit into the final import queue
-						//for _,coinRoot:=range header.Roots  {
-						if header.TxHash == types.DeriveSha(types.SelfTransactions{}) && header.UncleHash == types.CalcUncleHash([]*types.Header{}) {
+						for _,coinRoot:=range header.Roots  {
+							if coinRoot.TxHash != types.DeriveSha(types.SelfTransactions{}){
+								isok = true
+							}
+						}
+						if !isok{
 							log.Trace("fetch Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 
 							block := types.NewBlockWithHeader(header)
@@ -464,8 +468,7 @@ func (f *Fetcher) loop() {
 							complete = append(complete, block)
 							f.completing[hash] = announce
 							continue
-							}
-						//}
+						}
 						// Otherwise add to the list of blocks needing completion
 						incomplete = append(incomplete, announce)
 					} else {
@@ -517,19 +520,29 @@ func (f *Fetcher) loop() {
 			for i := 0; i < len(task.transactions) && i < len(task.uncles); i++ {
 				// Match up a body to any possible completion request
 				matched := false
-
+				tmpmap := make(map[string]types.SelfTransactions)
+				for _,txer := range task.transactions[i]{
+					tmpmap[txer.GetTxCurrency()] = append(tmpmap[txer.GetTxCurrency()],txer)
+				}
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
-						txnHash := types.DeriveSha(types.SelfTransactions(task.transactions[i]))
-						uncleHash := types.CalcUncleHash(task.uncles[i])
-						log.Trace("download fetch bodyFilter map", "hash", hash, "announce", announce.header.TxHash, "txnHash", txnHash, "origin id", announce.origin)
-						if txnHash == announce.header.TxHash && uncleHash == announce.header.UncleHash && announce.origin == task.peer {
+						isok := true
+						cointx := make([]types.CoinSelfTransaction,0)
+						for _,coinHeader := range announce.header.Roots{
+							txnHash := types.DeriveSha(types.SelfTransactions(tmpmap[coinHeader.Cointyp]))
+							uncleHash := types.CalcUncleHash(task.uncles[i])
+							log.Trace("download fetch bodyFilter map", "hash", hash, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin)
+							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
+								isok = false
+							}
+							cointx = append(cointx,types.CoinSelfTransaction{CoinType:coinHeader.Cointyp,Txser:tmpmap[coinHeader.Cointyp]})
+						}
+						if isok {
 							// Mark the body matched, reassemble if still unknown
 							matched = true
-
 							if f.getBlock(hash) == nil {
 								log.Trace("download fetch bodyFilter getBlock")
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i],nil)
+								block := types.NewBlockWithHeader(announce.header).WithBody(types.MakeCurencyBlock(cointx,nil,nil), task.uncles[i])
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)
