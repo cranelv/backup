@@ -23,8 +23,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Coinbase    common.Address `json:"miner"            gencodec:"required"`
 		Roots       []common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
 		Sharding       []common.Coinbyte    `json:"sharding"        gencodec:"required"`
-		TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
-		ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+		//TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`			BBBBBBB
+		//ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 		Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 		Number      *hexutil.Big   `json:"number"           gencodec:"required"`
@@ -51,8 +51,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Coinbase = h.Coinbase
 	enc.Roots = h.Roots
 	enc.Sharding = h.Sharding
-	enc.TxHash = h.TxHash
-	enc.ReceiptHash = h.ReceiptHash
+	//enc.TxHash = h.TxHash
+	//enc.ReceiptHash = h.ReceiptHash
 	enc.Bloom = h.Bloom
 	enc.Difficulty = (*hexutil.Big)(h.Difficulty)
 	enc.Number = (*hexutil.Big)(h.Number)
@@ -80,8 +80,8 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Coinbase    *common.Address `json:"miner"            gencodec:"required"`
 		Roots       *[]common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
 		Sharding       *[]common.Coinbyte    `json:"sharding"        gencodec:"required"`
-		TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`
-		ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+		//TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`		//BBBBBBBBBBBB
+		//ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 		Bloom       *Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty  *hexutil.Big    `json:"difficulty"       gencodec:"required"`
 		Number      *hexutil.Big    `json:"number"           gencodec:"required"`
@@ -128,11 +128,11 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Sharding == nil {
 		return errors.New("missing required field 'transactionsRoot' for Header")
 	}
-	h.TxHash = *dec.TxHash
-	if dec.ReceiptHash == nil {
-		return errors.New("missing required field 'receiptsRoot' for Header")
-	}
-	h.ReceiptHash = *dec.ReceiptHash
+	//h.TxHash = *dec.TxHash
+	//if dec.ReceiptHash == nil {
+	//	return errors.New("missing required field 'receiptsRoot' for Header")
+	//}
+	//h.ReceiptHash = *dec.ReceiptHash
 	if dec.Bloom == nil {
 		return errors.New("missing required field 'logsBloom' for Header")
 	}

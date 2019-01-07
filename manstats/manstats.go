@@ -446,7 +446,7 @@ func (s *Service) reportLatency(conn *websocket.Conn) error {
 // blockStats is the information to report about individual blocks.
 type blockStats struct {
 	Number     *big.Int       `json:"number"`
-	Hash       common.Hash    `json:"hash"`
+	Hash       common.Hash    `json:"hash"`	//BBBBBBBBB
 	ParentHash common.Hash    `json:"parentHash"`
 	Timestamp  *big.Int       `json:"timestamp"`
 	Miner      common.Address `json:"miner"`
@@ -455,7 +455,7 @@ type blockStats struct {
 	Diff       string         `json:"difficulty"`
 	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
-	TxHash     common.Hash    `json:"transactionsRoot"`
+	//TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       []common.CoinRoot    `json:"stateRoot"`
 	Uncles     uncleStats     `json:"uncles"`
 

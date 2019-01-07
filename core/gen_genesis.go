@@ -42,7 +42,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		ParentHash        common.Hash                       `json:"parentHash"`
 		Roots             []common.CoinRoot                       `json:"stateRoot,omitempty"`
 		Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
-		TxHash            common.Hash                       `json:"transactionsRoot,omitempty"`
+		//TxHash            common.Hash                       `json:"transactionsRoot,omitempty"`		//BBBBBBBB
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -100,7 +100,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		ParentHash        *common.Hash                                `json:"parentHash"`
 		Roots             *[]common.CoinRoot                                `json:"stateRoot,omitempty"`
 		Sharding          *[]common.Coinbyte                       `json:"sharding,omitempty"`
-		TxHash            *common.Hash                                `json:"transactionsRoot,omitempty"`
+		//TxHash            *common.Hash                                `json:"transactionsRoot,omitempty"`		//BBBBBB
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -211,7 +211,7 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 		ParentHash        common.Hash               `json:"parentHash"`
 		Roots             []common.CoinRoot               `json:"stateRoot,omitempty"`
 		Sharding          []common.Coinbyte               `json:"sharding,omitempty"`
-		TxHash            common.Hash               `json:"transactionsRoot,omitempty"`
+		//TxHash            common.Hash               `json:"transactionsRoot,omitempty"`		//BBBBB
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -269,7 +269,7 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		ParentHash        *common.Hash              `json:"parentHash"`
 		Roots             *[]common.CoinRoot              `json:"stateRoot,omitempty"`
 		Sharding             *[]common.Coinbyte              `json:"sharding,omitempty"`
-		TxHash            *common.Hash              `json:"transactionsRoot,omitempty"`
+		//TxHash            *common.Hash              `json:"transactionsRoot,omitempty"`		//BBBBBBBBB
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {

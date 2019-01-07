@@ -63,7 +63,7 @@ type Genesis struct {
 	ParentHash common.Hash `json:"parentHash"`
 	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
 	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
-	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
+	//TxHash     common.Hash `json:"transactionsRoot,omitempty"`			//BBBBBBBB
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -96,7 +96,7 @@ type Genesis1 struct {
 	ParentHash common.Hash `json:"parentHash"`
 	Roots      []common.CoinRoot `json:"stateRoot,omitempty"`
 	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
-	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
+	//TxHash     common.Hash `json:"transactionsRoot,omitempty"`			//BBBBBBBBBB
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
 func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {

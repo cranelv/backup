@@ -522,13 +522,13 @@ func (manash *Manash) Prepare(chain consensus.ChainReader, header *types.Header)
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state and assembling the block.
-func (manash *Manash) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDBManage, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt,shardings []uint) (*types.Block, error) {
+func (manash *Manash) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDBManage,  uncles []*types.Header, currencyBlock []types.CurrencyBlock) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	//	accumulateRewards(chain.Config(), state, header, uncles)
 	header.Roots,header.Sharding = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))  //ShardingYY
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, uncles, receipts,shardings), nil
+	return types.NewBlock(header,currencyBlock, uncles), nil
 }
 
 // Some weird constants to avoid constant memory allocs for them.
