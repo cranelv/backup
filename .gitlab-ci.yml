@@ -16,7 +16,8 @@ PullImages:
 #     -date 
 #    when: on_failure
     - cd /home/shang/ci/go-matrix
-    - git pull
+    - git fetch --all 
+    - git reset --hard origin/master
     - make clean
     - make gman
     - cp ./build/bin/gman /home/public/dailybuild/go-matrix/gman-linux-amd64-$tag
