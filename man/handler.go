@@ -564,11 +564,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver them all to the downloader for queuing
+		//transactions := make([][]types.SelfTransaction, len(request))
 		transactions := make([][]types.SelfTransaction, len(request))
 		uncles := make([][]*types.Header, len(request))
 
 		for i, body := range request {
-			transactions[i] = body.Transactions.GetTransactions()
+			transactions[i] = body.Transactions//.GetTransactions()
 			uncles[i] = body.Uncles
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader

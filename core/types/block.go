@@ -229,7 +229,11 @@ func RlpHash(x interface{}) (h common.Hash) {
 	hw.Sum(h[:0])
 	return h
 }
-//1. Complete Block transactions = []SelfTransaction
+//1. Complete Block transactions = []SelfTransactio
+//
+//
+//
+// n
 //2. Sharding Block transactions = []TxInfo
 type BodyTransactions struct {
 	Sharding []uint		// if complete block sharding = []
