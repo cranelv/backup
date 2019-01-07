@@ -226,10 +226,11 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot(tx.GetTxCurrency())
+	snap1 := env.State.Snapshot(params.MAN_COIN)
 	receipt, _,_, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		log.Info("file work", "func commitTransaction", err)
 		env.State.RevertToSnapshot(tx.GetTxCurrency(),snap)
+		env.State.RevertToSnapshot(params.MAN_COIN,snap1)
 		return err, nil
 	}
 	env.txs = append(env.txs, tx)
@@ -296,6 +297,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		from = append(from, tx.From())
 	}
 	rewart := env.CalcRewardAndSlash(bc, upTime, from)
+
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
