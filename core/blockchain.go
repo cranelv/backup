@@ -2321,3 +2321,129 @@ func (bc *BlockChain) GetAuthAccount(signAccount common.Address, blockHash commo
 	}
 	return addr, nil
 }
+
+//根据A1账户得到A2账户集合
+func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, blockHash common.Hash) ([]common.Address, error){
+	//根据区块哈希得到区块
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "从A1账户获取A2账户", "失败", "根据区块hash获取区块失败 hash", blockHash)
+		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	//根据区块根得到区块链数据库
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "从A1账户获取A2账户", "失败", "根据区块root获取statedb失败 err", err)
+		return nil, errors.New("获取stateDB失败")
+	}
+	//得到区块高度
+	height := block.NumberU64()
+
+	a2Accounts := []common.Address{}
+	//根据区块高度、A1账户从区块链数据库中获取A2账户
+	a2Accounts = st.GetEntrustFrom(a1Account, height)
+	if len(a2Accounts) == 0 {
+		a2Accounts = append(a2Accounts, a1Account)
+		log.INFO(common.SignLog, "从A1账户获取A2账户", "失败", "无委托交易,使用A1账户", a1Account.String())
+	}
+	//返回A2账户
+	return a2Accounts, nil
+}
+
+//根据A2账户得到A1账户
+func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address, blockHash common.Hash) (common.Address, error){
+	//根据区块哈希得到区块
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块hash算区块失败", "err")
+		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	//根据区块根得到区块链数据库
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
+		return common.Address{}, errors.New("获取stateDB失败")
+	}
+	//得到区块高度
+	height := block.NumberU64()
+	//根据区块高度、A2账户从区块链数据库中获取A1账户
+	a1Account := st.GetAuthFrom(a2Account, height)
+	if a1Account.Equal(common.Address{}) {
+		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "高度", height)
+		return common.Address{}, errors.New("获取的A1账户为空")
+	}
+	log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "高度", height, "a2Account", a2Account, "a1Account", a1Account)
+
+	return a1Account, nil
+}
+
+//根据A0账户得到A1账户
+func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address) (common.Address, error){
+	a1Account,err := ca.ConvertDepositToSignAddress(a0Account)
+	if err != nil{
+		log.Error(common.SignLog,"从A0账户获取A1账户", "失败","不存在A1账户 a0Account", a0Account)
+		return common.Address{},err
+	}
+	log.Info(common.SignLog,"从A0账户获取A1账户", "成功","存在A1账户 a0Account", a0Account,"a1Account",a1Account)
+	return a1Account,nil
+}
+
+//根据A1账户得到A0账户
+func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address) (common.Address, error){
+	a0Account,err := ca.ConvertSignToDepositAddress(a1Account)
+	if err != nil{
+		log.Error(common.SignLog,"从A1账户获取A0账户", "失败","不存在A0账户 a1Account", a1Account)
+		return common.Address{},err
+	}
+	log.Info(common.SignLog,"从A1账户获取A0账户", "成功","存在A0账户 a1Account", a1Account,"a0Account",a0Account)
+	return a0Account,nil
+}
+
+//根据A2账户得到A0账户
+func (bc *BlockChain) GetA0AccountFromA2Account(a2Account common.Address, blockHash common.Hash) (common.Address, error){
+	a1Account,err := bc.GetA1AccountFromA2Account(a2Account,blockHash)
+	if err != nil{
+		return common.Address{},err
+	}
+	a0Account,err := bc.GetA0AccountFromA1Account(a1Account)
+	if err != nil{
+		return common.Address{},err
+	}
+	return a0Account,nil
+}
+
+//根据A0账户得到A2账户集合
+func (bc *BlockChain) GetA2AccountsFromA0Account(a0Account common.Address, blockHash common.Hash) ([]common.Address, error){
+	a1Account,err := bc.GetA1AccountFromA0Account(a0Account)
+	if err != nil{
+		return nil,err
+	}
+	a2Accounts,err := bc.GetA2AccountsFromA1Account(a1Account,blockHash)
+	if err != nil{
+		return nil,err
+	}
+	return a2Accounts,nil
+}
+
+//根据任意账户得到A0和A1账户
+func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address,common.Address, error){
+	//假设传入的account为A1账户
+	a0Account,err := bc.GetA0AccountFromA1Account(account)
+	if err == nil{
+		log.Debug(common.SignLog,"根据任意账户得到A0和A1账户，输入为A1账户","输入A1",account.Hex(),"输出A0",a0Account.Hex())
+		return a0Account,common.Address{0},nil
+	}
+	//走到这，说明是输入账户不是A1账户
+	a1Account,err := bc.GetA1AccountFromA2Account(account,blockHash)
+	if err != nil{
+		log.Error(common.SignLog,"根据任意账户得到A0和A1账户，输入为非法账户","输入非法",account.Hex())
+		return common.Address{0},common.Address{0},err
+	}
+	//走到这，说明是A2账户
+	a0Account,err = bc.GetA0AccountFromA1Account(a1Account)
+	if err != nil{
+		log.Error(common.SignLog,"根据任意账户得到A0和A1账户，输入为A2账户","输入A2",account.Hex(),"输出A1",a1Account.Hex(),"输出A0","失败")
+	}
+	log.Info(common.SignLog,"根据任意账户得到A0和A1账户，输入为A2账户","输入A2",account.Hex(),"输出A1",a1Account.Hex(),"输出A0",a0Account.Hex())
+	return a0Account,a1Account,err
+}
