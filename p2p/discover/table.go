@@ -659,7 +659,7 @@ func (tab *Table) bondall(nodes []*Node) (result []*Node) {
 //
 // If pinged is true, the remote node has just pinged us and one half
 // of the process can be skipped.
-func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16, reqAddr common.Address, reqSign common.Signature, reqTime time.Time) (*Node, error) {
+func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16, reqAddr common.Address, reqSign common.Signature, reqTime uint64) (*Node, error) {
 	if id == tab.self.ID {
 		return nil, errors.New("is self")
 	}
@@ -707,7 +707,7 @@ func (tab *Table) bond(pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16
 	return node, result
 }
 
-func (tab *Table) pingpong(w *bondproc, pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16, reqAddr common.Address, reqSign common.Signature, reqTime time.Time) {
+func (tab *Table) pingpong(w *bondproc, pinged bool, id NodeID, addr *net.UDPAddr, tcpPort uint16, reqAddr common.Address, reqSign common.Signature, reqTime uint64) {
 	// Request a bonding slot to limit network usage
 	<-tab.bondslots
 	defer func() { tab.bondslots <- struct{}{} }()
@@ -770,7 +770,7 @@ func (tab *Table) add(new *Node) {
 		} else {
 			log.Info("sign time", "before", val.SignTime)
 			log.Info("sign time", "after", new.SignTime)
-			if val.SignTime.Before(new.SignTime) {
+			if val.SignTime < new.SignTime {
 				log.Info("replace node info", "old", val.ID, "new", new.ID)
 				tab.nodeBindAddress[new.Address] = new
 			}

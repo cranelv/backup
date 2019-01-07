@@ -516,7 +516,7 @@ func (srv *Server) Start() (err error) {
 			NetWorkId:    srv.NetWorkId,
 			Address:      srv.ManAddress,
 			Signature:    srv.Signature,
-			SignTime:     srv.SignTime,
+			SignTime:     uint64(srv.SignTime.Unix()),
 		}
 		ntab, err := discover.ListenUDP(conn, cfg)
 		if err != nil {
