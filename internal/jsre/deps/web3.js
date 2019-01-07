@@ -5718,7 +5718,7 @@ var methods = function () {
         params: 0
     });
 
-    //hezi
+    //
     var getTopology = new Method({
         name: 'getTopology',
         call: 'eth_getTopology',

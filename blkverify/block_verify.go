@@ -19,7 +19,7 @@ import (
 type Matrix interface {
 	HD() *msgsend.HD
 	BlockChain() *core.BlockChain
-	TxPool() *core.TxPoolManager //YYY
+	TxPool() *core.TxPoolManager //Y
 	SignHelper() *signhelper.SignHelper
 	ReElection() *reelection.ReElection
 	EventMux() *event.TypeMux

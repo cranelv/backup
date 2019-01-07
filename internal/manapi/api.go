@@ -1213,7 +1213,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	return fields, nil
 }
 
-//hezi
+//
 type RPCTransaction1 struct {
 	BlockHash        common.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big   `json:"blockNumber"`
@@ -1491,7 +1491,7 @@ func (s *PublicTransactionPoolAPI) getTransactionByHash1(ctx context.Context, ha
 	return nil
 }
 
-//hezi
+//
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction1 {
 	rpcTrans := s.getTransactionByHash1(ctx, hash)
 	if rpcTrans != nil {
@@ -1586,7 +1586,7 @@ func (s *PublicTransactionPoolAPI) sign(strAddr string, tx types.SelfTransaction
 	return wallet.SignTx(account, tx, chainID)
 }
 
-//YY
+//
 type ExtraTo_Mx struct {
 	To2    *common.Address `json:"to"`
 	Value2 *hexutil.Big    `json:"value"`
@@ -1606,10 +1606,10 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	TxType      byte           `json:"txType"`     //YY
-	LockHeight  uint64         `json:"lockHeight"` //YY
+	TxType      byte           `json:"txType"`     //
+	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //YY
+	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //
 }
 
 type ExtraTo_Mx1 struct {
@@ -1630,17 +1630,17 @@ type SendTxArgs1 struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	TxType      byte           `json:"txType"`     //YY
-	LockHeight  uint64         `json:"lockHeight"` //YY
+	TxType      byte           `json:"txType"`     //
+	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //YY
+	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Gas == nil {
 		args.Gas = new(hexutil.Uint64)
-		//YY
+		//
 		if len(args.ExtraTo) > 0 && args.LockHeight > 0 && args.TxType > 0 {
 			*(*uint64)(args.Gas) = 21000 * uint64(len(args.ExtraTo)) + 21000
 		} else {
@@ -1695,10 +1695,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
 	}
-	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
+	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //
 		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
 	}
-	//YY
+	//
 	txtr := make([]*types.ExtraTo_tr, 0)
 	if len(args.ExtraTo) > 0 {
 		for _, extra := range args.ExtraTo {
@@ -1841,7 +1841,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
-	} else { //YY add else
+	} else { // add else
 		nc1 := params.NonceAddOne
 		nc := uint64(*args.Nonce)
 		if nc < nc1 {
@@ -1849,7 +1849,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 			return common.Hash{}, err
 		}
 	}
-	//YY
+	//
 	if len(args.ExtraTo) > 0 { //扩展交易中的to和input属性不填写则删掉这个扩展交易
 		extra := make([]*ExtraTo_Mx, 0)
 		for _, ar := range args.ExtraTo {

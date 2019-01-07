@@ -200,7 +200,7 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 		return nil, 0, false, err
 	}
 	mapTOAmonts := make([]common.AddrAmont, 0)
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -275,7 +275,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		return nil, 0, false, err
 	}
 
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -372,7 +372,7 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 		return nil, 0, false, err
 	}
 	mapTOAmonts := make([]common.AddrAmont, 0)
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -445,7 +445,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		vmerr error
 	)
 
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -457,7 +457,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	beforAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
 	interestbefor := st.state.GetBalanceByType(common.InterestRewardAddress, common.MainAccount) // Test
 	interset := big.NewInt(0)
-	if toaddr == nil { //YY
+	if toaddr == nil { //
 		log.Error("file state_transition", "func CallUnGasNormalTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
@@ -536,7 +536,7 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	if err != nil {
 		return nil, 0, false, err
 	}
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -554,14 +554,14 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	if err = st.UseGas(gas); err != nil {
 		return nil, 0, false, err
 	}
-	if toaddr == nil { //YY
+	if toaddr == nil { //
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(from, st.state.GetNonce(from)+1)
 		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
-	//YY=========begin===============
+	//=========begin===============
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
@@ -721,7 +721,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		log.Error("委托条件不满足")
 	}
 
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -729,7 +729,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		}
 	}
 	st.gas = 0
-	if toaddr == nil { //YY
+	if toaddr == nil { //
 		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
@@ -839,7 +839,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	}
 	st.state.SetEntrustStateByteArray(Authfrom, newEntrustList) //设置委托数据
 
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
@@ -847,7 +847,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		}
 	}
 	st.gas = 0
-	if toaddr == nil { //YY
+	if toaddr == nil { //
 		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {

@@ -763,7 +763,7 @@ func (p *Process) signHelper() *signhelper.SignHelper { return p.pm.signHelper }
 
 func (p *Process) blockChain() *core.BlockChain { return p.pm.bc }
 
-func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //YYY
+func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //Y
 
 func (p *Process) reElection() *reelection.ReElection { return p.pm.reElection }
 

@@ -1618,7 +1618,7 @@ func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 
 		case ChainHeadEvent:
 			bc.chainHeadFeed.Send(ev)
-			//YY=========Begin===============
+			//=========Begin===============
 			bc.sendBroadTx()
 			//=============end===============
 			mc.PublishEvent(mc.NewBlockMessage, ev.Block)
@@ -1629,9 +1629,9 @@ func (bc *BlockChain) PostChainEvents(events []interface{}, logs []*types.Log) {
 	}
 }
 
-//YY 发送心跳交易
-var viSendHeartTx bool = false         //是否验证过发送心跳交易，每100块内只验证一次 //YY
-var saveBroacCastblockHash common.Hash //YY 广播区块的hash  默认值应该为创世区块的hash
+// 发送心跳交易
+var viSendHeartTx bool = false         //是否验证过发送心跳交易，每100块内只验证一次 //
+var saveBroacCastblockHash common.Hash // 广播区块的hash  默认值应该为创世区块的hash
 func (bc *BlockChain) sendBroadTx() {
 	block := bc.CurrentBlock()
 	bcInterval, err := bc.GetBroadcastInterval(block.Hash())
@@ -1655,7 +1655,7 @@ func (bc *BlockChain) sendBroadTx() {
 			return
 		}
 		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
-		currentAcc := ca.GetAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		currentAcc := ca.GetAddress().Big() // TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))

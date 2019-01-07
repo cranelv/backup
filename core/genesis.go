@@ -69,7 +69,7 @@ type Genesis struct {
 type GenesisAlloc map[common.Address]GenesisAccount
 
 //**********************************************************//
-//hezi
+//
 type Genesis1 struct {
 	Config            *params.ChainConfig `json:"config"`
 	Nonce             uint64              `json:"nonce"`
@@ -96,7 +96,7 @@ type Genesis1 struct {
 	Root       common.Hash `json:"stateRoot,omitempty"`
 	TxHash     common.Hash `json:"transactionsRoot,omitempty"`
 }
-type GenesisAlloc1 map[string]GenesisAccount //hezi
+type GenesisAlloc1 map[string]GenesisAccount //
 func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Config = gensis1.Config
 	gensis.Nonce = gensis1.Nonce
@@ -388,7 +388,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		///*******************************************************/
-		////hezi 应该是通过发特殊交易添加账户
+		////  应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
 		//statedb.AddBalance(common.EntrustAccount,addr, account.Balance)
 		//statedb.AddBalance(common.FreezeAccount,addr, account.Balance)

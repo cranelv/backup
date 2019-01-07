@@ -15,7 +15,7 @@ type NewTxsEvent struct {
 	poolType byte
 }
 
-//type NewSNEvent struct{ SN map[*big.Int]uint32 } //by hezi
+//type NewSNEvent struct{ SN map[*big.Int]uint32 } //by
 
 // PendingLogsEvent is posted pre mining and notifies of pending logs.
 type PendingLogsEvent struct {

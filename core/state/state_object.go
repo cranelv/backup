@@ -117,7 +117,7 @@ type Account struct {
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Balance == nil {
 		//data.Balance = new(big.Int)
-		//hezi初始化账户
+		//初始化账户
 		data.Balance = make(common.BalanceType, 0)
 		tmp := new(common.BalanceSlice)
 		var i uint32

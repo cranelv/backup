@@ -273,7 +273,7 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx types.SelfTransaction, chainID
 	if !found {
 		return nil, ErrLocked
 	}
-	//YYY ==================begin======================
+	//Y ==================begin======================
 	// Depending on the presence of the chain ID, sign with EIP155 or homestead
 	//if chainID != nil {
 	//	return types.SignTx(tx, types.NewEIP155Signer(chainID), unlockedKey.PrivateKey)
@@ -281,7 +281,7 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx types.SelfTransaction, chainID
 	//return types.SignTx(tx, types.HomesteadSigner{}, unlockedKey.PrivateKey)
 
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), unlockedKey.PrivateKey)
-	//YYY===================end=======================
+	//Y===================end=======================
 }
 
 // SignHashWithPassphrase signs hash if the private key matching the given address

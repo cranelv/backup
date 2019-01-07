@@ -253,7 +253,7 @@ func (self *StateDB) GetNonce(addr common.Address) uint64 {
 		return stateObject.Nonce()
 	}
 
-	return 0 | params.NonceAddOne //YY
+	return 0 | params.NonceAddOne //
 }
 
 func (self *StateDB) GetCode(addr common.Address) []byte {
@@ -765,7 +765,7 @@ func (self *StateDB) SetBalance(accountType uint32, addr common.Address, amount 
 func (self *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetNonce(nonce | params.NonceAddOne) //YY
+		stateObject.SetNonce(nonce | params.NonceAddOne) //
 	}
 }
 
@@ -941,7 +941,7 @@ func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
 func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) {
 	prev = self.getStateObject(addr)
 	newobj = newObject(self, addr, Account{})
-	newobj.setNonce(0 | params.NonceAddOne) // sets the object to dirty    //YY
+	newobj.setNonce(0 | params.NonceAddOne) // sets the object to dirty    //
 	if prev == nil {
 		self.journal.append(createObjectChange{account: &addr})
 	} else {

@@ -207,7 +207,7 @@ func (w *trezorDriver) trezorSign(derivationPath []uint32, tx types.SelfTransact
 	var signer types.Signer
 	if chainID == nil {
 		//signer = new(types.HomesteadSigner)
-		signer = types.NewEIP155Signer(chainID) //YYY
+		signer = types.NewEIP155Signer(chainID) //Y
 	} else {
 		signer = types.NewEIP155Signer(chainID)
 		signature[64] = signature[64] - byte(chainID.Uint64()*2+35)
