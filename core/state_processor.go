@@ -189,24 +189,27 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		if err != nil {
 			return nil, 0, err
 		}
-		var tmptx types.SelfTransaction
 		if p.isValidater(header.Number) {
-			tmptx = tx
+			receipts = append(receipts, receipt)
+			allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
+			tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
+			tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
 		} else {
 			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
-				shardings = append(shardings, shard...)
-				tmptx = tx
+				receipts = append(receipts, receipt)
+				allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
+				tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
+				tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
 			}else{
-				tmptx = nil
-				receipt=nil
+				if _,ok:=tmpMaptx[tx.GetTxCurrency()];ok{
+					receipts = append(receipts, nil)
+					tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],nil)
+					tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
+				}
 			}
 		}
-		receipts = append(receipts, receipt)
-		allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
 		txcount = i
 		from = append(from, tx.From())
-		tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tmptx)
-		tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
 	}
 	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
 	if err != nil {
@@ -223,7 +226,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			tmptx = tx
 		} else {
 			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
-				shardings = append(shardings, shard...)
 				tmptx = tx
 			} else {
 				tmptx = nil
@@ -243,16 +245,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	}
 	ftxs = append(ftxs,tmpMaptx[params.MAN_COIN]...)
 	tmpMaptx[params.MAN_COIN] = ftxs
-	tmpm := make(map[uint]bool)
-	shards := make([]uint, 0)
-	for _, ui := range shardings {
-		if _, ok := tmpm[ui]; !ok {
-			tmpm[ui] = true
-			shards = append(shards, ui)
-		}
-	}
+
 	for i,bc := range block.Currencies(){
-		block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],shards)
+		block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],shardings)
+		block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],shardings)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb,block.Uncles(),block.Currencies())
