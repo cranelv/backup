@@ -37,21 +37,35 @@ func Test_Manager(t *testing.T) {
 	account1 := common.HexToAddress("0x12345")
 	account2 := common.HexToAddress("0x543210")
 
-	opt, _ := v1Manger.FindOperator(mc.OldMSKeyAccountBroadcast)
+	opt, _ := mangerAlpha.FindOperator(mc.OldMSKeyAccountBroadcast)
 	opt.SetValue(st, account1)
 
-	optV2, _ := v2Manger.FindOperator(mc.MSKeyAccountBroadcasts)
+	optV2, _ := mangerBeta.FindOperator(mc.MSKeyAccountBroadcasts)
 	optV2.SetValue(st, []common.Address{account2, account1})
 
 	use_st(st)
 }
 
 func use_st(state *TestState) {
-	opt, _ := v1Manger.FindOperator(mc.OldMSKeyAccountBroadcast)
+	opt, _ := mangerAlpha.FindOperator(mc.OldMSKeyAccountBroadcast)
 	account, err := opt.GetValue(state)
 	log.Info("old get", "account", account.(common.Address).Hex(), "err", err)
 
-	optV2, _ := v2Manger.FindOperator(mc.MSKeyAccountBroadcasts)
+	optV2, _ := mangerBeta.FindOperator(mc.MSKeyAccountBroadcasts)
 	accounts, err := optV2.GetValue(state)
 	log.Info("new get", "accounts", accounts.([]common.Address), "err", err)
+}
+
+func Test_GetUpTime(t *testing.T) {
+	log.InitLog(3)
+	st := newTestState()
+	if err := SetUpTimeNum(st, uint64(333)); err != nil {
+		t.Fatal(err)
+	}
+	num, err := GetUpTimeNum(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(num)
 }

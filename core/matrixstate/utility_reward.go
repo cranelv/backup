@@ -97,15 +97,15 @@ func SetInterestCfg(st StateDB, cfg *mc.InterestCfgStruct) error {
 func GetInterestCalcNum(st StateDB) (uint64, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
-		return 0, ErrFindManager
+		return uint64(0), ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSKeyInterestCalcNum)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	return value.(uint64), nil
 }
@@ -125,15 +125,15 @@ func SetInterestCalcNum(st StateDB, num uint64) error {
 func GetInterestPayNum(st StateDB) (uint64, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
-		return 0, ErrFindManager
+		return uint64(0), ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSKeyInterestPayNum)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	return value.(uint64), nil
 }
@@ -211,15 +211,15 @@ func SetLotteryAccount(st StateDB, account *mc.LotteryFrom) error {
 func GetLotteryNum(st StateDB) (uint64, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
-		return 0, ErrFindManager
+		return uint64(0), ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSKeyLotteryNum)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	return value.(uint64), nil
 }
@@ -269,15 +269,15 @@ func SetSlashCfg(st StateDB, cfg *mc.SlashCfgStruct) error {
 func GetSlashNum(st StateDB) (uint64, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
-		return 0, ErrFindManager
+		return uint64(0), ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSKeySlashNum)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	return value.(uint64), nil
 }
@@ -297,15 +297,15 @@ func SetSlashNum(st StateDB, num uint64) error {
 func GetUpTimeNum(st StateDB) (uint64, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
-		return 0, ErrFindManager
+		return uint64(0), ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSKeyUpTimeNum)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 	return value.(uint64), nil
 }

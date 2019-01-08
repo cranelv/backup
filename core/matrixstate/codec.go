@@ -55,5 +55,5 @@ func decodeUint64(data []byte) (uint64, error) {
 		log.Error(logInfo, "decode uint64 failed", "data size is not enough", "size", len(data))
 		return 0, ErrDataSize
 	}
-	return uint64(binary.BigEndian.Uint64(data[:8])), nil
+	return binary.BigEndian.Uint64(data[:8]), nil
 }
