@@ -1588,7 +1588,7 @@ func (d *Downloader) processFullSyncContent() error {
 	}
 }
 
-func (d *Downloader) importBlockResults(results []*fetchResult,shardings []uint) error {
+func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	// Check for any early termination requests
 	if len(results) == 0 {
 		return nil
@@ -1606,7 +1606,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult,shardings []uint)
 	)
 	blocks := make([]*types.Block, len(results))
 	for i, result := range results {
-		cb:=types.MakeCurencyBlock(result.Transactions,result.Receipts,shardings)
+		cb:=types.MakeCurencyBlock(result.Transactions,result.Receipts,nil)
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cb, result.Uncles)
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
