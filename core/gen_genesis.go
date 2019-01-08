@@ -239,7 +239,7 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 	enc.ParentHash = g.ParentHash
 	enc.Roots = g.Roots
 	enc.Sharding = g.Sharding
-	enc.TxHash = g.TxHash
+	//enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
 }
 
@@ -344,8 +344,8 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 	if dec.Sharding != nil {
 		g.Sharding = *dec.Sharding
 	}
-	if dec.TxHash != nil {
-		g.TxHash = *dec.TxHash
-	}
+	//if dec.TxHash != nil {
+	//	g.TxHash = *dec.TxHash
+	//}
 	return nil
 }
