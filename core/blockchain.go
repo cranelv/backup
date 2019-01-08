@@ -707,7 +707,7 @@ func (bc *BlockChain) GetBlockByNumber(number uint64) *types.Block {
 }
 
 // GetReceiptsByHash retrieves the receipts for all transactions in a given block.
-func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
+func (bc *BlockChain) GetReceiptsByHash(hash common.Hash) []types.CoinReceipts {
 	number := rawdb.ReadHeaderNumber(bc.db, hash)
 	if number == nil {
 		return nil
@@ -915,49 +915,54 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 		batch = bc.db.NewBatch()
 	)
 	for i, block := range blockChain {
+		txs := make([]types.CoinSelfTransaction,0)
+		res := make([]types.CoinReceipts,0)
 		for _, currencie := range block.Currencies() { //TODO BB
-
-			// Short circuit insertion if shutting down or processing failed
-			if atomic.LoadInt32(&bc.procInterrupt) == 1 {
-				return 0, nil
-			}
-			// Short circuit if the owner header is unknown
-			if !bc.HasHeader(block.Hash(), block.NumberU64()) {
-				return i, fmt.Errorf("containing header #%d [%x…] unknown", block.Number(), block.Hash().Bytes()[:4])
-			}
-			// Skip if the entire data is already known
-			if bc.HasBlock(block.Hash(), block.NumberU64()) {
-				stats.ignored++
-				continue
-			}
-			// Compute all the non-consensus fields of the receipts
-			if err := SetReceiptsData(bc.chainConfig, block); err != nil {
-				return i, fmt.Errorf("failed to set receipts data: %v", err)
-			}
-			// Write all the data out into the database
-			rawdb.WriteBody(batch, block.Hash(), block.NumberU64(), block.Body())
-			rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), currencie.Receipts.GetReceipts())
-			rawdb.WriteTxLookupEntries(batch, block)
-			//lb
-			if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
-				tmpBlock := &types.BlockAllSt{Sblock: block}
-				//copy(tmpBlock.SReceipt, receipts)
-				//tmpBlock.SReceipt = receipts
-				tmpBlock.Pading = uint64(len(currencie.Transactions.GetTransactions()))
-				bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
-				log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
-				//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
-			}
-			stats.processed++
-
-			if batch.ValueSize() >= mandb.IdealBatchSize {
-				if err := batch.Write(); err != nil {
-					return 0, err
-				}
-				bytes += batch.ValueSize()
-				batch.Reset()
-			}
+			res = append(res,types.CoinReceipts{CoinType:currencie.CurrencyName,Receiptlist:currencie.Receipts.GetReceipts()})
+			txs = append(txs,types.CoinSelfTransaction{CoinType:currencie.CurrencyName,Txser:currencie.Transactions.GetTransactions()})
 		}
+
+		// Short circuit insertion if shutting down or processing failed
+		if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+			return 0, nil
+		}
+		// Short circuit if the owner header is unknown
+		if !bc.HasHeader(block.Hash(), block.NumberU64()) {
+			return i, fmt.Errorf("containing header #%d [%x…] unknown", block.Number(), block.Hash().Bytes()[:4])
+		}
+		// Skip if the entire data is already known
+		if bc.HasBlock(block.Hash(), block.NumberU64()) {
+			stats.ignored++
+			continue
+		}
+		// Compute all the non-consensus fields of the receipts
+		if err := SetReceiptsData(bc.chainConfig, block); err != nil {
+			return i, fmt.Errorf("failed to set receipts data: %v", err)
+		}
+		// Write all the data out into the database
+		rawdb.WriteBody(batch, block.Hash(), block.NumberU64(), block.Body())
+		rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), res)
+		rawdb.WriteTxLookupEntries(batch, block)
+		//lb
+		if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
+			tmpBlock := &types.BlockAllSt{Sblock: block}
+			//copy(tmpBlock.SReceipt, receipts)
+			//tmpBlock.SReceipt = receipts
+			tmpBlock.Pading = uint64(len(txs))
+			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
+			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+		}
+		stats.processed++
+
+		if batch.ValueSize() >= mandb.IdealBatchSize {
+			if err := batch.Write(); err != nil {
+				return 0, err
+			}
+			bytes += batch.ValueSize()
+			batch.Reset()
+		}
+
 	}
 	if batch.ValueSize() > 0 {
 		bytes += batch.ValueSize()
@@ -1040,7 +1045,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
-	receipts := make(types.Receipts, 0)
+	receipts := make([]types.CoinReceipts, 0)
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
 		return NonStatTy, err
@@ -1053,7 +1058,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		txcount := uint64(0)
 		for _, cb := range block.Currencies() {
 			txcount += uint64(len(cb.Transactions.GetTransactions()))
-			receipts = append(receipts, cb.Receipts.GetReceipts()...)
+			receipts = append(receipts, types.CoinReceipts{CoinType:cb.CurrencyName,Receiptlist:cb.Receipts.GetReceipts()})
 		}
 		tmpBlock.Pading = txcount
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
