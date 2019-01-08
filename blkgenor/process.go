@@ -19,7 +19,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/olconsensus"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reelection"
 )
 
@@ -70,7 +69,7 @@ type Process struct {
 	FullBlockReqCache  *common.ReuseMsgController
 	consensusReqSender *common.ResendMsgCtrl
 	minerPickTimer     *time.Timer
-	bcInterval         *manparams.BCInterval
+	bcInterval         *mc.BCIntervalInfo
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -95,7 +94,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	return p
 }
 
-func (p *Process) StartRunning(role common.RoleType, bcInterval *manparams.BCInterval) {
+func (p *Process) StartRunning(role common.RoleType, bcInterval *mc.BCIntervalInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.role = role
@@ -199,7 +198,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		return
 	}
 
-	bcInterval, err := manparams.NewBCIntervalByHash(blkInsertMsg.Header.ParentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(blkInsertMsg.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期错误", "err", err)
 		return
@@ -257,7 +256,7 @@ func (p *Process) startBcBlock() {
 	parentHeader := p.blockChain().GetHeaderByNumber(p.number - 1)
 	parentHash := parentHeader.Hash()
 
-	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(parentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块广播阶段", "获取广播周期错误", "err", err)
 		return

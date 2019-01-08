@@ -9,7 +9,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -634,7 +633,7 @@ func (self *controller) processNewBlockReadyRsp(header *types.Header, from commo
 	}
 
 	//POW验证
-	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+	bcInterval, err := self.matrix.BlockChain().GetBroadcastIntervalByHash(header.ParentHash)
 	if err != nil {
 		log.Warn(self.logInfo, "处理新区块响应", "获取广播周期信息失败", "err", err)
 		return

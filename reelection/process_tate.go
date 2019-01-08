@@ -3,14 +3,13 @@ package reelection
 import (
 	"errors"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
-func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.PreStateReadFn) (interface{}, error) {
 	log.INFO(Module, "ProduceElectGraphData", "start", "height", block.Header().Number.Uint64())
 	defer log.INFO(Module, "ProduceElectGraphData", "end", "height", block.Header().Number.Uint64())
 	if err := CheckBlock(block); err != nil {
@@ -50,9 +49,9 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
 		return nil, err
 	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
+	bcInterval, OK := bciData.(*mc.BCIntervalInfo)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
+		log.Error(Module, "ProducePreAllTopData broadcast interval reflect err", err)
 	}
 	if bcInterval.IsReElectionNumber(block.NumberU64() + 1) {
 		nextElect := electStates.NextMinerElect
@@ -77,7 +76,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn matrixs
 	return electStates, nil
 }
 
-func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn core.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return []byte{}, err
@@ -88,12 +87,12 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
+		log.Error(Module, "ProduceElectOnlineStateData read broadcast interval err", err)
 		return nil, err
 	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
+	bcInterval, OK := bciData.(*mc.BCIntervalInfo)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
+		log.Error(Module, "ProduceElectOnlineStateData broadcast interval reflect err", err)
 	}
 
 	if bcInterval.IsReElectionNumber(height + 1) {
@@ -156,19 +155,19 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn m
 	return electStates, nil
 }
 
-func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn core.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProducePreBroadcastStateData CheckBlock err ", err)
 		return []byte{}, err
 	}
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData read broadcast interval err", err)
+		log.Error(Module, "ProducePreBroadcastStateData read broadcast interval err", err)
 		return nil, err
 	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
+	bcInterval, OK := bciData.(*mc.BCIntervalInfo)
 	if err != nil {
-		log.Error(Module, "ProducePreAllTopData create broadcast interval err", err)
+		log.Error(Module, "ProducePreBroadcastStateData broadcast interval reflect err", err)
 	}
 	height := block.Header().Number.Uint64()
 	if height == 1 {
@@ -204,7 +203,7 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 	return preBroadcast, nil
 
 }
-func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+func (self *ReElection) ProduceMinHashData(block *types.Block, readFn core.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceMinHashData CheckBlock err ", err)
 		return []byte{}, err
@@ -214,10 +213,9 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 		log.Error(Module, "ProduceMinHashData read broadcast interval err", err)
 		return nil, err
 	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(bciData)
+	bcInterval, OK := bciData.(*mc.BCIntervalInfo)
 	if err != nil {
-		log.Error(Module, "ProduceMinHashData create broadcast interval err", err)
-		return nil, err
+		log.Error(Module, "ProduceMinHashData broadcast interval reflect err", err)
 	}
 	height := block.Number().Uint64()
 	preHeader := self.bc.GetHeaderByHash(block.ParentHash())
@@ -251,7 +249,7 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn matrixstat
 	return randomInfo, nil
 }
 
-func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+/*func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
 
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProducePreAllTopData CheckBlock err ", err)
@@ -283,3 +281,4 @@ func (self *ReElection) ProducePreAllTopData(block *types.Block, readFn matrixst
 	log.INFO("高度", block.Number().Uint64(), "ProducePreAllTopData", "preAllTop.PreAllTopRoot", preAllTop.PreAllTopRoot.String())
 	return preAllTop, nil
 }
+*/

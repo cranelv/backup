@@ -242,7 +242,7 @@ var (
         }
     },
     "mstate":{
-        "Broadcast":"MAN.2y5fqzGDWVznvkd49qqWpXiqjcmJF",
+        "Broadcasts":["MAN.2y5fqzGDWVznvkd49qqWpXiqjcmJF"],
         "curElect":[
             {
                 "Account":"MAN.44EuST4f2vLeEMw2bsMWmBYqLMBhi",

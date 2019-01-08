@@ -39,7 +39,8 @@ type MessageCenterInterface interface {
 }
 
 type StateReaderInterface interface {
-	GetMatrixStateDataByHash(key string, hash common.Hash) (interface{}, error)
+	GetTopologyGraphByHash(blockHash common.Hash) (*mc.TopologyGraph, error)
+	GetElectOnlineStateByHash(blockHash common.Hash) (*mc.ElectOnlineStatus, error)
 }
 
 ////////////////////////////////////////////////////////////////////

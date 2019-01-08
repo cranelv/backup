@@ -8,7 +8,6 @@ import (
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type BlockGenor struct {
@@ -161,7 +160,7 @@ func (self *BlockGenor) update() {
 
 func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 	log.INFO(self.logExtraInfo(), "CA身份消息处理", "开始", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String(), "block hash", roleMsg.BlockHash.TerminalString())
-	bcInterval, err := manparams.NewBCIntervalByHash(roleMsg.BlockHash)
+	bcInterval, err := self.man.BlockChain().GetBroadcastIntervalByHash(roleMsg.BlockHash)
 	if err != nil {
 		log.Error(self.logExtraInfo(), "CA身份消息处理", "获取广播周期信息by hash 失败", "err", err)
 		return err

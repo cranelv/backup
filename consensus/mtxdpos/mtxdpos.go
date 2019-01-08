@@ -12,7 +12,6 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -154,14 +153,6 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 	return verifiedSigh
 }
 
-func (md *MtxDPOS) getBroadcastInterval(reader consensus.StateReader, blockHash common.Hash) (*manparams.BCInterval, error) {
-	data, err := reader.GetBroadcastInterval(blockHash)
-	if err != nil {
-		return nil, errors.Errorf("get broadcast interval from reader err(%v)", err)
-	}
-	return manparams.NewBCIntervalWithInterval(data)
-}
-
 func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Header) error {
 	if nil == header {
 		return errors.New("header is nil")
@@ -175,9 +166,9 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 		return md.CheckSuperBlock(reader, header)
 	}
 
-	bcInterval, err := md.getBroadcastInterval(reader, header.ParentHash)
+	bcInterval, err := reader.GetBroadcastIntervalByHash(header.ParentHash)
 	if err != nil {
-		return err
+		return errors.Errorf("get broadcast interval from reader err: %v", err)
 	}
 
 	number := header.Number.Uint64()

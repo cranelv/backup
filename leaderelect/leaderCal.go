@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +39,7 @@ func newLeaderCalculator(chain *core.BlockChain, number uint64, logInfo string) 
 	}
 }
 
-func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, preIsSupper bool, validators []mc.TopologyNodeInfo, specials *specialAccounts, bcInterval *manparams.BCInterval) error {
+func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, preIsSupper bool, validators []mc.TopologyNodeInfo, specials *specialAccounts, bcInterval *mc.BCIntervalInfo) error {
 	if preHeader == nil || validators == nil || specials == nil || bcInterval == nil {
 		return ErrValidatorsIsNil
 	}
@@ -86,7 +85,7 @@ func (self *leaderCalculator) GetValidators() (*mc.TopologyGraph, error) {
 	return rlt, nil
 }
 
-func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInterval) (*leaderData, error) {
+func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *mc.BCIntervalInfo) (*leaderData, error) {
 	if bcInterval == nil {
 		return nil, errors.New("leader calculator: param bcInterval is nil")
 	}
@@ -118,7 +117,7 @@ func (self *leaderCalculator) GetLeader(turn uint32, bcInterval *manparams.BCInt
 	return leaders, nil
 }
 
-func calLeaderList(preLeader common.Address, preNumber uint64, preIsSupper bool, validators []mc.TopologyNodeInfo, bcInterval *manparams.BCInterval) (map[uint32]common.Address, error) {
+func calLeaderList(preLeader common.Address, preNumber uint64, preIsSupper bool, validators []mc.TopologyNodeInfo, bcInterval *mc.BCIntervalInfo) (map[uint32]common.Address, error) {
 	ValidatorNum := len(validators)
 	var startPos = 0
 	if preIsSupper || bcInterval.IsReElectionNumber(preNumber) || bcInterval.IsReElectionNumber(preNumber+1) {

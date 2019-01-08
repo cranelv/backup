@@ -60,7 +60,7 @@ func (bPool *BroadCastTxPool) checkTxFrom(tx types.SelfTransaction) (common.Addr
 	return common.Address{}, ErrInvalidSender
 }
 
-func ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadFn) (interface{}, error) {
+func ProduceMatrixStateData(block *types.Block, readFn PreStateReadFn) (interface{}, error) {
 	if manparams.IsBroadcastNumberByHash(block.Number().Uint64(), block.ParentHash()) == false {
 		return nil, nil
 	}
@@ -120,12 +120,11 @@ func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal 
 		return nil, err
 	}
 
-	broadInterface, err := matrixstate.GetDataByState(mc.MSKeyBroadcastTx, state)
+	mapdata, err := matrixstate.GetBroadcastTxs(state)
 	if err != nil {
 		log.Error("GetBroadcastTxMap GetDataByState err")
 		return nil, err
 	}
-	mapdata := broadInterface.(map[string]map[common.Address][]byte)
 	for typekey, mapVal := range mapdata {
 		if txtype == typekey {
 			return mapVal, nil
@@ -235,7 +234,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			4、广播交易的类型必须是已知的如果是未知的则丢弃。（心跳、点名、公钥、私钥）
 	*/
 
-	bcInterval := manparams.NewBCInterval()
+	bcInterval := manparams.GetBCIntervalInfo()
 
 	height := bPool.chain.CurrentBlock().Number()
 	blockHash := bPool.chain.CurrentBlock().Hash()

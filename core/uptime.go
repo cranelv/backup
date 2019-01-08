@@ -7,7 +7,6 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/common/readstatedb"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -18,15 +17,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInterval) ([]common.Address, error) {
-	originData, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, num-1)
+func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInfo) ([]common.Address, error) {
+	prState, err := bc.StateAtNumber(num - 1)
 	if err != nil {
-		log.ERROR(ModuleName, "获取选举生成点配置失败 err", err)
+		log.ERROR(ModuleName, "获取pre区块的state err", err)
 		return nil, err
 	}
-	electGenConf, Ok := originData.(*mc.ElectGenTimeStruct)
-	if Ok == false {
-		log.ERROR(ModuleName, "选举生成点信息失败 err", err)
+
+	electGenConf, err := matrixstate.GetElectGenTime(prState)
+	if err != nil || nil == electGenConf {
+		log.ERROR(ModuleName, "获取选举生成点配置失败 err", err)
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64) (map[common.Ad
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
 }
-func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint64, error) {
+func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state.StateDB, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]uint64, error) {
 	HeartBeatMap := bc.getHeatBeatAccount(BeforeLastStateRoot, bcInterval, blockNum, accounts, heatBeatAccounts)
 
 	originValidatorMap, originMinerMap, err := bc.getElectMap(blockNum, bcInterval)
@@ -95,7 +95,7 @@ func (bc *BlockChain) handleUpTime(BeforeLastStateRoot common.Hash, state *state
 	return bc.calcUpTime(accounts, calltherollRspAccounts, HeartBeatMap, bcInterval, state, originValidatorMap, originMinerMap), nil
 }
 
-func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint32, map[common.Address]uint32, error) {
+func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]uint32, map[common.Address]uint32, error) {
 	var eleNum uint64
 	if blockNum < bcInterval.GetReElectionInterval()+2 {
 		eleNum = 1
@@ -103,7 +103,12 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInter
 		// 下一个选举+1
 		eleNum = blockNum - bcInterval.GetBroadcastInterval()
 	}
-	electGraph, err := bc.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
+	st, err := bc.StateAtNumber(eleNum)
+	if err != nil {
+		log.Error(ModuleName, "获取选举高度的状态树失败", err, "eleNum", eleNum)
+		return nil, nil, err
+	}
+	electGraph, err := matrixstate.GetElectGraph(st)
 	if err != nil {
 		log.Error(ModuleName, "获取拓扑图错误", err)
 		return nil, nil, errors.New("获取拓扑图错误")
@@ -112,15 +117,14 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInter
 		log.Error(ModuleName, "获取拓扑图反射错误")
 		return nil, nil, errors.New("获取拓扑图反射错误")
 	}
-	originElectNodes := electGraph.(*mc.ElectGraph)
-	if 0 == len(originElectNodes.ElectList) {
+	if 0 == len(electGraph.ElectList) {
 		log.Error(ModuleName, "get获取初选列表为空", "")
 		return nil, nil, errors.New("get获取初选列表为空")
 	}
 	log.Debug(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
 	originValidatorMap := make(map[common.Address]uint32, 0)
 	originMinerMap := make(map[common.Address]uint32, 0)
-	for _, v := range originElectNodes.ElectList {
+	for _, v := range electGraph.ElectList {
 		if v.Type == common.RoleValidator || v.Type == common.RoleBackupValidator {
 			originValidatorMap[v.Account] = 0
 		} else if v.Type == common.RoleMiner || v.Type == common.RoleBackupMiner {
@@ -130,7 +134,7 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *manparams.BCInter
 	return originValidatorMap, originMinerMap, nil
 }
 
-func (bc *BlockChain) getHeatBeatAccount(beforeLastStateRoot common.Hash, bcInterval *manparams.BCInterval, blockNum uint64, accounts []common.Address, heatBeatAccounts map[common.Address][]byte) map[common.Address]bool {
+func (bc *BlockChain) getHeatBeatAccount(beforeLastStateRoot common.Hash, bcInterval *mc.BCIntervalInfo, blockNum uint64, accounts []common.Address, heatBeatAccounts map[common.Address][]byte) map[common.Address]bool {
 	HeatBeatReqAccounts := make([]common.Address, 0)
 	HeartBeatMap := make(map[common.Address]bool, 0)
 	//subVal就是最新的广播区块，例如当前区块高度是198或者是101，那么subVal就是100
@@ -154,7 +158,7 @@ func (bc *BlockChain) getHeatBeatAccount(beforeLastStateRoot common.Hash, bcInte
 	return HeartBeatMap
 }
 
-func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, HeartBeatMap map[common.Address]bool, bcInterval *manparams.BCInterval, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32) map[common.Address]uint64 {
+func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, HeartBeatMap map[common.Address]bool, bcInterval *mc.BCIntervalInfo, state *state.StateDB, originValidatorMap map[common.Address]uint32, originMinerMap map[common.Address]uint32) map[common.Address]uint64 {
 	var upTime uint64
 	maxUptime := bcInterval.GetBroadcastInterval() - 3
 	upTimeMap := make(map[common.Address]uint64, 0)
@@ -219,7 +223,7 @@ func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *s
 	depoistInfo.GetOnlineTime(state, account)
 	log.Debug(ModuleName, "读取存入upTime账户", account, "upTime处理后", newTime.Uint64())
 }
-func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint64, error) {
+func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts []common.Address, blockNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]uint64, error) {
 	broadcastInterval := bcInterval.GetBroadcastInterval()
 	originTopologyNum := blockNum - blockNum%broadcastInterval - 1
 	originTopology, err := ca.GetTopologyByNumber(common.RoleValidator|common.RoleBackupValidator|common.RoleMiner|common.RoleBackupMiner, originTopologyNum)
@@ -254,13 +258,12 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDB, accounts 
 
 }
 func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) (map[common.Address]uint64, error) {
-
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeyUpTimeNum, state)
+	latestNum, err := matrixstate.GetUpTimeNum(state)
 	if nil != err {
 		return nil, err
 	}
 
-	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+	bcInterval, err := manparams.GetBCIntervalInfoByHash(header.ParentHash)
 	if err != nil {
 		log.Error(ModuleName, "获取广播周期失败", err)
 		return nil, err
@@ -275,7 +278,7 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) 
 	}
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		log.Debug(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, header.Number.Uint64())
+		matrixstate.SetUpTimeNum(state, header.Number.Uint64())
 		upTimeAccounts, err := bc.getUpTimeAccounts(header.Number.Uint64(), bcInterval)
 		if err != nil {
 			log.ERROR("core", "获取所有抵押账户错误!", err, "高度", header.Number.Uint64())
@@ -291,7 +294,13 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDB, header *types.Header) 
 			return upTimeMap, nil
 		} else {
 			log.Debug(ModuleName, "获取所有心跳交易", "")
-			preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+
+			prState, err := bc.StateAtBlockHash(header.ParentHash)
+			if err != nil {
+				log.Error("获取父区块的state失败", err)
+				return nil, err
+			}
+			preBroadcastRoot, err := matrixstate.GetPreBroadcastRoot(prState)
 			if err != nil {
 				log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
 				return nil, fmt.Errorf("从状态树获取前2个广播区块root失败")

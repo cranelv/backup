@@ -153,19 +153,19 @@ func (serv *TopNodeService) update() {
 		select {
 		case data := <-serv.roleUpdateCh:
 			if serv.msgCheck.CheckRoleUpdateMsg(data) {
-				topology, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyTopologyGraph, data.BlockHash)
+				topology, err := serv.stateReader.GetTopologyGraphByHash(data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
 					continue
 				}
-				electOline, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyElectOnlineState, data.BlockHash)
+				electOnline, err := serv.stateReader.GetElectOnlineStateByHash(data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
 					continue
 				}
 
 				//log.Debug(serv.extraInfo, "处理CA通知消息", "", "块高", data.BlockNum)
-				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectOnlineStatus))
+				serv.stateMap.SetCurStates(data.BlockNum+1, topology, electOnline)
 				go serv.LeaderChangeNotifyHandler(serv.msgCheck.GetCurLeader())
 			}
 		case data := <-serv.leaderChangeCh:

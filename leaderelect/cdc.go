@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +24,7 @@ type cdc struct {
 	reelectMaster    common.Address
 	isMaster         bool
 	leaderCal        *leaderCalculator
-	bcInterval       *manparams.BCInterval
+	bcInterval       *mc.BCIntervalInfo
 	parentState      StateReader
 	turnTime         *turnTimes
 	chain            *core.BlockChain
@@ -141,7 +140,7 @@ func (dc *cdc) SetReelectTurn(reelectTurn uint32) error {
 	return nil
 }
 
-func (dc *cdc) GetLeader(turn uint32, bcInterval *manparams.BCInterval) (common.Address, error) {
+func (dc *cdc) GetLeader(turn uint32, bcInterval *mc.BCIntervalInfo) (common.Address, error) {
 	leaders, err := dc.leaderCal.GetLeader(turn, bcInterval)
 	if err != nil {
 		return common.Address{}, err
@@ -177,14 +176,12 @@ func (dc *cdc) PrepareLeaderMsg() (*mc.LeaderChangeNotify, error) {
 }
 
 func (dc *cdc) readValidatorsAndRoleFromState(state StateReader) ([]mc.TopologyNodeInfo, common.RoleType, error) {
-	graphData, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+	topology, err := matrixstate.GetTopologyGraph(state)
 	if err != nil {
 		return nil, common.RoleNil, err
 	}
-
-	topology, OK := graphData.(*mc.TopologyGraph)
-	if OK == false || topology == nil {
-		return nil, common.RoleNil, errors.New("reflect topology data failed")
+	if topology == nil {
+		return nil, common.RoleNil, errors.New("topology data is nil")
 	}
 
 	role := dc.getRoleFromTopology(topology)
@@ -208,31 +205,19 @@ func (dc *cdc) getRoleFromTopology(TopologyGraph *mc.TopologyGraph) common.RoleT
 }
 
 func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*specialAccounts, error) {
-	bcData, err := matrixstate.GetDataByState(mc.MSKeyAccountBroadcasts, state)
+	broadcasts, err := matrixstate.GetBroadcastAccounts(state)
 	if err != nil {
 		return nil, err
-	}
-	broadcasts, OK := bcData.([]common.Address)
-	if OK == false {
-		return nil, errors.New("reflect broadcast account failed")
 	}
 
-	vsData, err := matrixstate.GetDataByState(mc.MSKeyAccountVersionSupers, state)
+	versionSupers, err := matrixstate.GetVersionSuperAccounts(state)
 	if err != nil {
 		return nil, err
-	}
-	versionSupers, OK := vsData.([]common.Address)
-	if OK == false {
-		return nil, errors.New("reflect version super accounts failed")
 	}
 
-	bsData, err := matrixstate.GetDataByState(mc.MSKeyAccountBlockSupers, state)
+	blockSupers, err := matrixstate.GetBlockSuperAccounts(state)
 	if err != nil {
 		return nil, err
-	}
-	blockSupers, OK := bsData.([]common.Address)
-	if OK == false {
-		return nil, errors.New("reflect block super accounts failed")
 	}
 
 	return &specialAccounts{
@@ -243,13 +228,9 @@ func (dc *cdc) readSpecialAccountsFromState(state StateReader) (*specialAccounts
 }
 
 func (dc *cdc) readLeaderConfigFromState(state StateReader) (*mc.LeaderConfig, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyLeaderConfig, state)
+	config, err := matrixstate.GetLeaderConfig(state)
 	if err != nil {
 		return nil, err
-	}
-	config, OK := data.(*mc.LeaderConfig)
-	if OK == false {
-		return nil, errors.New("reflect LeaderConfig failed")
 	}
 	if config == nil {
 		return nil, errors.New("LeaderConfig == nil")
@@ -257,12 +238,15 @@ func (dc *cdc) readLeaderConfigFromState(state StateReader) (*mc.LeaderConfig, e
 	return config, nil
 }
 
-func (dc *cdc) readBroadCastIntervalFromState(state StateReader) (*manparams.BCInterval, error) {
-	data, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
+func (dc *cdc) readBroadCastIntervalFromState(state StateReader) (*mc.BCIntervalInfo, error) {
+	interval, err := matrixstate.GetBroadcastInterval(state)
 	if err != nil {
 		return nil, err
 	}
-	return manparams.NewBCIntervalWithInterval(data)
+	if interval == nil {
+		return nil, errors.New("broadcast interval is nil")
+	}
+	return interval, nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -311,7 +295,7 @@ func (dc *cdc) GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, e
 	return dc.chain.GetBlockSuperAccounts(blockHash)
 }
 
-func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error) {
+func (dc *cdc) GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error) {
 	if (blockHash == common.Hash{}) {
 		return nil, errors.New("输入hash为空")
 	}
@@ -319,9 +303,9 @@ func (dc *cdc) GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, 
 		if dc.bcInterval == nil {
 			return nil, errors.New("缓存中不存在广播周期信息")
 		}
-		return dc.bcInterval.ToInfoStu(), nil
+		return dc.bcInterval, nil
 	}
-	return dc.chain.GetBroadcastInterval(blockHash)
+	return dc.chain.GetBroadcastIntervalByHash(blockHash)
 }
 
 func (dc *cdc) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
