@@ -67,7 +67,7 @@ type subscription struct {
 	typ       Type
 	created   time.Time
 	logsCrit  matrix.FilterQuery
-	logs      chan []*types.Log
+	logs      chan []types.CoinLogs
 	hashes    chan []common.Hash
 	headers   chan *types.Header
 	installed chan struct{} // closed when the filter is installed
@@ -311,7 +311,7 @@ func (es *EventSystem) broadcast(filters filterIndex, ev interface{}) {
 	}
 
 	switch e := ev.(type) {
-	case []*types.Log:
+	case []types.CoinLogs:
 		if len(e) > 0 {
 			for _, f := range filters[LogsSubscription] {
 				if matchedLogs := filterLogs(e, f.logsCrit.FromBlock, f.logsCrit.ToBlock, f.logsCrit.Addresses, f.logsCrit.Topics); len(matchedLogs) > 0 {

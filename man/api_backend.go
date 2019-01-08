@@ -98,14 +98,14 @@ func (b *ManAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.
 func (b *ManAPIBackend) GetState() (*state.StateDBManage, error) {
 	return b.man.BlockChain().State()
 }
-func (b *ManAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
+func (b *ManAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) ([]types.CoinReceipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.man.chainDb, hash); number != nil {
 		return rawdb.ReadReceipts(b.man.chainDb, hash, *number), nil
 	}
 	return nil, nil
 }
 
-func (b *ManAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
+func (b *ManAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([]types.CoinLogs, error) {
 	number := rawdb.ReadHeaderNumber(b.man.chainDb, hash)
 	if number == nil {
 		return nil, nil
@@ -114,9 +114,15 @@ func (b *ManAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 	if receipts == nil {
 		return nil, nil
 	}
-	logs := make([][]*types.Log, len(receipts))
-	for i, receipt := range receipts {
-		logs[i] = receipt.Logs
+	logs := make([]types.CoinLogs, len(receipts))
+	var mm map [string][]*types.Log
+	for _, cr := range receipts {
+		for _, receipt := range cr.Receiptlist{
+			mm[cr.CoinType]=append(mm[cr.CoinType],receipt.Logs...)
+		}
+	}
+	for k,v:=range mm{
+		logs=append(logs,types.CoinLogs{k,v})
 	}
 	return logs, nil
 }
