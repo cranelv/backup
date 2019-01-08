@@ -1568,12 +1568,14 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			receipts := rawdb.ReadReceipts(bc.db, hash, *number)
 			for _, receipt := range receipts {
 				logs := make([]*types.Log,0)
-				for _, log := range receipt.Logs {
-					del := *log
-					del.Removed = true
-					logs = append(logs,&del)
+				for _,re := range receipt.Receiptlist{
+					for _, log := range re.Logs {
+						del := *log
+						del.Removed = true
+						logs = append(logs,&del)
+					}
 				}
-				deletedLogs = append(deletedLogs, types.CoinLogs{CoinType:params.MAN_COIN,Logs:logs})
+				deletedLogs = append(deletedLogs, types.CoinLogs{CoinType:receipt.CoinType,Logs:logs})
 			}
 		}
 	)
