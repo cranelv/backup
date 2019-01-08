@@ -289,6 +289,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		//}
 	}
 	p.stopMinerPikerTimer()
+	p.closeConsensusReqSender()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
 		State:  blockData.block.State.Copy(),
