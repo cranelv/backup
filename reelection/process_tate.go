@@ -224,8 +224,8 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn core.PreSt
 		return nil, errors.New("header is nil")
 	}
 	if bcInterval.IsBroadcastNumber(height - 1) {
-		log.ERROR(Module, "ProduceMinHashData", "", "是广播区块后一块", height)
-		return mc.RandomInfoStruct{MinHash: block.ParentHash(), MaxNonce: preHeader.Nonce.Uint64()}, nil
+		log.Info(Module, "ProduceMinHashData", "是广播区块后一块", "高度", height)
+		return &mc.RandomInfoStruct{MinHash: block.ParentHash(), MaxNonce: preHeader.Nonce.Uint64()}, nil
 	}
 	data, err := readFn(mc.MSKeyMinHash)
 	if err != nil {
