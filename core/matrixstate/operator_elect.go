@@ -20,6 +20,10 @@ func newTopologyGraphOpt() *operatorTopologyGraph {
 	}
 }
 
+func (opt *operatorTopologyGraph) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorTopologyGraph) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -71,6 +75,10 @@ func newELectGraphOpt() *operatorElectGraph {
 	return &operatorElectGraph{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyElectGraph),
 	}
+}
+
+func (opt *operatorElectGraph) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorElectGraph) GetValue(st StateDB) (interface{}, error) {
@@ -126,6 +134,10 @@ func newELectOnlineStateOpt() *operatorElectOnlineState {
 	}
 }
 
+func (opt *operatorElectOnlineState) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorElectOnlineState) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -177,6 +189,10 @@ func newElectGenTimeOpt() *operatorElectGenTime {
 	return &operatorElectGenTime{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyElectGenTime),
 	}
+}
+
+func (opt *operatorElectGenTime) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorElectGenTime) GetValue(st StateDB) (interface{}, error) {
@@ -232,6 +248,10 @@ func newElectMinerNumOpt() *operatorElectMinerNum {
 	}
 }
 
+func (opt *operatorElectMinerNum) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorElectMinerNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -283,6 +303,10 @@ func newElectConfigInfoOpt() *operatorElectConfigInfo {
 	return &operatorElectConfigInfo{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyElectConfigInfo),
 	}
+}
+
+func (opt *operatorElectConfigInfo) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorElectConfigInfo) GetValue(st StateDB) (interface{}, error) {
@@ -338,6 +362,10 @@ func newElectBlackListOpt() *operatorElectBlackList {
 	}
 }
 
+func (opt *operatorElectBlackList) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorElectBlackList) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -386,6 +414,10 @@ func newElectWhiteListOpt() *operatorElectWhiteList {
 	}
 }
 
+func (opt *operatorElectWhiteList) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorElectWhiteList) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -432,6 +464,10 @@ func newVIPConfigOpt() *operatorVIPConfig {
 	return &operatorVIPConfig{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyVIPConfig),
 	}
+}
+
+func (opt *operatorVIPConfig) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorVIPConfig) GetValue(st StateDB) (interface{}, error) {

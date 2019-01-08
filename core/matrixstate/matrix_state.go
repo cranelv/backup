@@ -1,6 +1,7 @@
 package matrixstate
 
 import (
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
@@ -19,6 +20,7 @@ func init() {
 }
 
 type MatrixOperator interface {
+	KeyHash() common.Hash
 	GetValue(st StateDB) (interface{}, error)
 	SetValue(st StateDB, value interface{}) error
 }

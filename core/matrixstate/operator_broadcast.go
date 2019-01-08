@@ -20,6 +20,10 @@ func newBroadcastTxOpt() *operatorBroadcastTx {
 	}
 }
 
+func (opt *operatorBroadcastTx) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorBroadcastTx) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -66,6 +70,10 @@ func newBroadcastIntervalOpt() *operatorBroadcastInterval {
 	return &operatorBroadcastInterval{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyBroadcastInterval),
 	}
+}
+
+func (opt *operatorBroadcastInterval) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorBroadcastInterval) GetValue(st StateDB) (interface{}, error) {
@@ -119,6 +127,10 @@ func newBroadcastAccountOpt() *operatorBroadcastAccount {
 	return &operatorBroadcastAccount{
 		key: types.RlpHash(matrixStatePrefix + mc.OldMSKeyAccountBroadcast),
 	}
+}
+
+func (opt *operatorBroadcastAccount) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorBroadcastAccount) GetValue(st StateDB) (interface{}, error) {
@@ -179,6 +191,10 @@ func newBroadcastAccountOptV2() *operatorBroadcastAccountV2 {
 	}
 }
 
+func (opt *operatorBroadcastAccountV2) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorBroadcastAccountV2) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -235,6 +251,10 @@ func newPreBroadcastRootOpt() *operatorPreBroadcastRoot {
 	return &operatorPreBroadcastRoot{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyPreBroadcastRoot),
 	}
+}
+
+func (opt *operatorPreBroadcastRoot) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorPreBroadcastRoot) GetValue(st StateDB) (interface{}, error) {

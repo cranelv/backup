@@ -20,6 +20,10 @@ func newVersionInfoOpt() *operatorVersionInfo {
 	}
 }
 
+func (opt *operatorVersionInfo) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorVersionInfo) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -53,6 +57,10 @@ func newInnerMinerAccountsOpt() *operatorInnerMinerAccounts {
 	return &operatorInnerMinerAccounts{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyAccountInnerMiners),
 	}
+}
+
+func (opt *operatorInnerMinerAccounts) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorInnerMinerAccounts) GetValue(st StateDB) (interface{}, error) {
@@ -103,6 +111,10 @@ func newFoundationAccountOpt() *operatorFoundationAccount {
 	}
 }
 
+func (opt *operatorFoundationAccount) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorFoundationAccount) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -149,6 +161,10 @@ func newVersionSuperAccountsOpt() *operatorVersionSuperAccounts {
 	return &operatorVersionSuperAccounts{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyAccountVersionSupers),
 	}
+}
+
+func (opt *operatorVersionSuperAccounts) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorVersionSuperAccounts) GetValue(st StateDB) (interface{}, error) {
@@ -203,6 +219,10 @@ func newBlockSuperAccountsOpt() *operatorBlockSuperAccounts {
 	}
 }
 
+func (opt *operatorBlockSuperAccounts) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorBlockSuperAccounts) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -253,6 +273,10 @@ func newLeaderConfigOpt() *operatorLeaderConfig {
 	return &operatorLeaderConfig{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLeaderConfig),
 	}
+}
+
+func (opt *operatorLeaderConfig) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorLeaderConfig) GetValue(st StateDB) (interface{}, error) {
@@ -306,6 +330,10 @@ func newMinHashOpt() *operatorMinHash {
 	}
 }
 
+func (opt *operatorMinHash) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorMinHash) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -354,6 +382,10 @@ func newSuperBlockCfgOpt() *operatorSuperBlockCfg {
 	return &operatorSuperBlockCfg{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeySuperBlockCfg),
 	}
+}
+
+func (opt *operatorSuperBlockCfg) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorSuperBlockCfg) GetValue(st StateDB) (interface{}, error) {

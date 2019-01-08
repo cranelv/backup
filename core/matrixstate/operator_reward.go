@@ -21,6 +21,10 @@ func newBlkRewardCfgOpt() *operatorBlkRewardCfg {
 	}
 }
 
+func (opt *operatorBlkRewardCfg) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorBlkRewardCfg) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -74,6 +78,10 @@ func newTxsRewardCfgOpt() *operatorTxsRewardCfg {
 	return &operatorTxsRewardCfg{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyTxsRewardCfg),
 	}
+}
+
+func (opt *operatorTxsRewardCfg) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorTxsRewardCfg) GetValue(st StateDB) (interface{}, error) {
@@ -131,6 +139,10 @@ func newInterestCfgOpt() *operatorInterestCfg {
 	}
 }
 
+func (opt *operatorInterestCfg) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorInterestCfg) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -184,6 +196,10 @@ func newLotteryCfgOpt() *operatorLotteryCfg {
 	return &operatorLotteryCfg{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCfg),
 	}
+}
+
+func (opt *operatorLotteryCfg) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorLotteryCfg) GetValue(st StateDB) (interface{}, error) {
@@ -241,6 +257,10 @@ func newSlashCfgOpt() *operatorSlashCfg {
 	}
 }
 
+func (opt *operatorSlashCfg) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorSlashCfg) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -294,6 +314,10 @@ func newPreMinerBlkRewardOpt() *operatorPreMinerBlkReward {
 	return &operatorPreMinerBlkReward{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyPreMinerBlkReward),
 	}
+}
+
+func (opt *operatorPreMinerBlkReward) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorPreMinerBlkReward) GetValue(st StateDB) (interface{}, error) {
@@ -350,6 +374,10 @@ func newPreMinerTxsRewardOpt() *operatorPreMinerTxsReward {
 	}
 }
 
+func (opt *operatorPreMinerTxsReward) KeyHash() common.Hash {
+	return opt.key
+}
+
 func (opt *operatorPreMinerTxsReward) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
 		return nil, err
@@ -400,8 +428,12 @@ type operatorUpTimeNum struct {
 
 func newUpTimeNumOpt() *operatorUpTimeNum {
 	return &operatorUpTimeNum{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyUpTimeNum),
+		key: common.BytesToHash([]byte(mc.MSKeyUpTimeNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyUpTimeNum),
 	}
+}
+
+func (opt *operatorUpTimeNum) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorUpTimeNum) GetValue(st StateDB) (interface{}, error) {
@@ -443,8 +475,12 @@ type operatorLotteryNum struct {
 
 func newLotteryNumOpt() *operatorLotteryNum {
 	return &operatorLotteryNum{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryNum),
+		key: common.BytesToHash([]byte(mc.MSKeyLotteryNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryNum),
 	}
+}
+
+func (opt *operatorLotteryNum) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorLotteryNum) GetValue(st StateDB) (interface{}, error) {
@@ -488,6 +524,10 @@ func newLotteryAccountOpt() *operatorLotteryAccount {
 	return &operatorLotteryAccount{
 		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryAccount),
 	}
+}
+
+func (opt *operatorLotteryAccount) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorLotteryAccount) GetValue(st StateDB) (interface{}, error) {
@@ -540,8 +580,12 @@ type operatorInterestCalcNum struct {
 
 func newInterestCalcNumOpt() *operatorInterestCalcNum {
 	return &operatorInterestCalcNum{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcNum),
+		key: common.BytesToHash([]byte(mc.MSKeyInterestCalcNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcNum),
 	}
+}
+
+func (opt *operatorInterestCalcNum) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorInterestCalcNum) GetValue(st StateDB) (interface{}, error) {
@@ -583,8 +627,12 @@ type operatorInterestPayNum struct {
 
 func newInterestPayNumOpt() *operatorInterestPayNum {
 	return &operatorInterestPayNum{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestPayNum),
+		key: common.BytesToHash([]byte(mc.MSKeyInterestPayNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyInterestPayNum),
 	}
+}
+
+func (opt *operatorInterestPayNum) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorInterestPayNum) GetValue(st StateDB) (interface{}, error) {
@@ -626,8 +674,12 @@ type operatorSlashNum struct {
 
 func newSlashNumOpt() *operatorSlashNum {
 	return &operatorSlashNum{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashNum),
+		key: common.BytesToHash([]byte(mc.MSKeySlashNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeySlashNum),
 	}
+}
+
+func (opt *operatorSlashNum) KeyHash() common.Hash {
+	return opt.key
 }
 
 func (opt *operatorSlashNum) GetValue(st StateDB) (interface{}, error) {
