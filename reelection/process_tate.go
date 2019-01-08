@@ -79,7 +79,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.Pr
 func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn core.PreStateReadFn) (interface{}, error) {
 	if err := CheckBlock(block); err != nil {
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
-		return []byte{}, err
+		return nil, err
 	}
 	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
 	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
@@ -96,7 +96,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 	}
 
 	if bcInterval.IsReElectionNumber(height + 1) {
-		electOnline := mc.ElectOnlineStatus{
+		electOnline := &mc.ElectOnlineStatus{
 			Number: height,
 		}
 		masterV, backupV, CandV, err := self.GetTopNodeInfo(block.Header().ParentHash, common.RoleValidator)
@@ -128,12 +128,12 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 	//log.INFO(Module, "data", data, "err", err)
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectOnlineState, "err", err)
-		return []byte{}, err
+		return nil, err
 	}
 	electStates, OK := data.(*mc.ElectOnlineStatus)
 	if OK == false || electStates == nil {
 		log.ERROR(Module, "ElectStates 非法", "反射失败")
-		return []byte{}, err
+		return nil, err
 	}
 	mappStatus := make(map[common.Address]uint16)
 	for _, v := range header.NetTopology.NetTopologyData {
