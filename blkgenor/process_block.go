@@ -18,6 +18,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/miner"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -119,6 +120,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
+
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:      rsp.Header,
 		BlockHash:   rsp.Header.HashNoSignsAndNonce(),
@@ -151,17 +153,20 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
+	finalTxs := work.GetTxs()
+	ctx,crs:=types.GetCoinTXRS(finalTxs,work.Receipts)
+	cb:=types.MakeCurencyBlock(ctx,crs,nil)
 
 	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
 	}
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, uptimeMap)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), ctx, p.pm.bc, uptimeMap)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
-	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts, nil)
+
+	localBlock := types.NewBlock(localHeader, cb, nil)
 
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
@@ -170,7 +175,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	}
 
 	// 运行完matrix state后，生成root
-	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts, nil)
+	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State,nil,cb)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
 	}
@@ -182,9 +187,9 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", headerHash.TerminalString(),
 			"local root", block.Header().Roots, "remote root", header.Roots,
-			"local txHash", block.Header().TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
-			"local ReceiptHash", block.Header().ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
-			"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),
+			//"local txHash", block.Header().TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
+			//"local ReceiptHash", block.Header().ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
+			//"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),
 			"local GasLimit", block.Header().GasLimit, "remote GasLimit", header.GasLimit,
 			"local GasUsed", block.Header().GasUsed, "remote GasUsed", header.GasUsed)
 		return nil, nil, nil, errors.Errorf("block hash不匹配.LocalHash(%s) != remoteHash(%s)", localHash.TerminalString(), headerHash.TerminalString())

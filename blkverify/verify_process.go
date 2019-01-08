@@ -543,7 +543,11 @@ func (p *Process) verifyTxsAndState() {
 		return
 	}
 	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts, nil)
+
+
+
+
+	localBlock := types.NewBlock(localHeader, finalTxs, nil)
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {

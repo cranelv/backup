@@ -25,9 +25,9 @@ var (
 type reqData struct {
 	req               *mc.HD_BlkConsensusReqMsg
 	hash              common.Hash
-	originalTxs       types.SelfTransactions
-	finalTxs          types.SelfTransactions
-	receipts          []*types.Receipt
+	originalTxs       []types.CoinSelfTransaction
+	finalTxs          []types.CoinSelfTransaction
+	receipts          []types.CoinReceipts
 	stateDB           *state.StateDBManage
 	localReq          bool
 	localVerifyResult verifyResult

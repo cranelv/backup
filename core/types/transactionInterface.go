@@ -90,3 +90,32 @@ func SetMxToTransaction(txm *Transaction_Mx) (txer SelfTransaction) {
 	}
 	return
 }
+
+func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
+	var mm map[string][]SelfTransaction //BB
+	for _, tx := range txs {
+		cointype := tx.GetTxCurrency()
+		mm[cointype] = append(mm[cointype], tx)
+	}
+	cs := []CoinSelfTransaction{}
+	for k, v := range mm {
+		cs = append(cs, CoinSelfTransaction{k, v})
+	}
+	return cs
+}
+
+func GetCoinTXRS(txs []SelfTransaction,rxs []*Receipt) ([]CoinSelfTransaction,[]CoinReceipts) {
+	var tx []CoinSelfTransaction	//BB
+	var rx []CoinReceipts
+	var tm map[string][]SelfTransaction
+	var rm map[string][]*Receipt
+	for i,t := range txs  {
+		tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
+		rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],rxs[i])
+	}
+	for k,v:=range tm  {
+		tx=append(tx,CoinSelfTransaction{k,v})
+		rx=append(rx,CoinReceipts{k,rm[k]})
+	}
+	return tx,rx
+}

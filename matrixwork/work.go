@@ -400,7 +400,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Se
 	return
 }
 
-func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain, upTime map[common.Address]uint64) error {
+func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfTransaction, bc *core.BlockChain, upTime map[common.Address]uint64) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}

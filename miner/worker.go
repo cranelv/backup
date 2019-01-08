@@ -289,17 +289,20 @@ func (self *worker) setExtra(extra []byte) {
 	self.extra = extra
 }
 
+
+
 func (self *worker) pending() (*types.Block, *state.StateDBManage) {
 	self.currentMu.Lock()
 	defer self.currentMu.Unlock()
 
+	tx,rx:=types.GetCoinTXRS(self.current.txs,self.current.receipts)
+	cb:=types.MakeCurencyBlock(tx,rx,nil)
 	if atomic.LoadInt32(&self.mining) == 0 {
 		return types.NewBlock(
 			self.current.header,
-			self.current.txs,
+			cb,
 			nil,
-			self.current.receipts,
-			nil, //YYDownloder
+			 //YYDownloder
 		), self.current.state.Copy()
 	}
 	return self.current.Block, self.current.state.Copy()
@@ -310,11 +313,23 @@ func (self *worker) pendingBlock() *types.Block {
 	defer self.currentMu.Unlock()
 
 	if atomic.LoadInt32(&self.mining) == 0 {
+		//	var tx []types.CoinSelfTransaction	//BB
+		//	var rx []types.CoinReceipts
+		//	var tm map[string][]types.SelfTransaction
+		//	var rm map[string][]*types.Receipt
+		//for i,t := range self.current.txs  {
+		//	tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
+		//	rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],self.current.receipts[i])
+		//}
+		//for k,v:=range tm  {
+		//	tx=append(tx,types.CoinSelfTransaction{k,v})
+		//	rx=append(rx,types.CoinReceipts{k,rm[k]})
+		//}
+		tx,rx:=GetCoinTXRS(self.current.txs,self.current.receipts)
+		cb:=types.MakeCurencyBlock(tx,rx,nil)
 		return types.NewBlock(
 			self.current.header,
-			self.current.txs,
-			nil,
-			self.current.receipts,
+			cb,
 			nil, //YYDownloder
 		)
 	}
