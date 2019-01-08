@@ -480,9 +480,10 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 				}
 			}
 		} else {
-			for _, coinRoot := range b.header.Roots {
+			for i, coinRoot := range b.header.Roots {
 				if coinRoot.Cointyp == currencyBlock.CurrencyName {
 					coinRoot.ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.Rs))
+					b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.Rs)
 					for _, currencie := range b.currencies {
 						currencie.Receipts = SetReceipts(currencyBlock.Receipts.GetReceipts(), currencyBlock.Receipts.Sharding)
 					}
@@ -490,7 +491,7 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 				//copy(b.transactions, txs)
 			}
 			//b.header.ReceiptHash = DeriveSha(Receipts(receipts))
-			b.header.Bloom = CreateBloom(currencyBlock.Receipts.Rs)
+
 		}
 	}
 
@@ -669,7 +670,14 @@ func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 func (b *Block) NumberU64() uint64           { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash      { return b.header.MixDigest }
 func (b *Block) Nonce() uint64               { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
-func (b *Block) Bloom() Bloom                { return b.header.Bloom }		//BB?
+func (b *Block) Bloom(cointype string) Bloom                {
+	for _,h := range b.header.Roots{
+		if h.Cointyp == cointype{
+			return h.Bloom
+		}
+	}
+	return Bloom{}
+}
 func (b *Block) Coinbase() common.Address    { return b.header.Coinbase }
 func (b *Block) Root() []common.CoinRoot     { return b.header.Roots }
 func (b *Block) Sharding() []common.Coinbyte { return b.header.Sharding }
