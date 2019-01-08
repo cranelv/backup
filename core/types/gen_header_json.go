@@ -23,9 +23,9 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Coinbase   common.Address    `json:"miner"            gencodec:"required"`
 		Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
 		Sharding   []common.Coinbyte `json:"sharding"        gencodec:"required"`
-		//TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`			BBBBBBB
+		//TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`			//BB
 		//ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-		Bloom      Bloom          `json:"logsBloom"        gencodec:"required"`
+		//Bloom      Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 		Number     *hexutil.Big   `json:"number"           gencodec:"required"`
 		GasLimit   hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
@@ -53,7 +53,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Sharding = h.Sharding
 	//enc.TxHash = h.TxHash
 	//enc.ReceiptHash = h.ReceiptHash
-	enc.Bloom = h.Bloom
+	//enc.Bloom = h.Bloom
 	enc.Difficulty = (*hexutil.Big)(h.Difficulty)
 	enc.Number = (*hexutil.Big)(h.Number)
 	enc.GasLimit = hexutil.Uint64(h.GasLimit)
@@ -80,9 +80,9 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Coinbase   *common.Address    `json:"miner"            gencodec:"required"`
 		Roots      *[]common.CoinRoot `json:"stateRoot"        gencodec:"required"`
 		Sharding   *[]common.Coinbyte `json:"sharding"        gencodec:"required"`
-		//TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`		//BBBBBBBBBBBB
+		//TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`		//BB
 		//ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-		Bloom      *Bloom          `json:"logsBloom"        gencodec:"required"`
+		//Bloom      *Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty *hexutil.Big    `json:"difficulty"       gencodec:"required"`
 		Number     *hexutil.Big    `json:"number"           gencodec:"required"`
 		GasLimit   *hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
@@ -133,13 +133,13 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	//	return errors.New("missing required field 'receiptsRoot' for Header")
 	//}
 	//h.ReceiptHash = *dec.ReceiptHash
-	if dec.Bloom == nil {
-		return errors.New("missing required field 'logsBloom' for Header")
-	}
-	h.Bloom = *dec.Bloom
-	if dec.Difficulty == nil {
-		return errors.New("missing required field 'difficulty' for Header")
-	}
+	//if dec.Bloom == nil {
+	//	return errors.New("missing required field 'logsBloom' for Header")
+	//}
+	//h.Bloom = *dec.Bloom
+	//if dec.Difficulty == nil {
+	//	return errors.New("missing required field 'difficulty' for Header")
+	//}
 	h.Difficulty = (*big.Int)(dec.Difficulty)
 	if dec.Number == nil {
 		return errors.New("missing required field 'number' for Header")

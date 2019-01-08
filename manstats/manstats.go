@@ -540,7 +540,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Diff:              header.Difficulty.String(),
 		TotalDiff:         td.String(),
 		Txs:               txs,
-		TxHash:            header.TxHash,
+		//TxHash:            header.TxHash,
 		Root:              header.Roots,
 		Uncles:            uncles,
 		Leader:            header.Leader,

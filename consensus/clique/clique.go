@@ -141,7 +141,7 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.Roots,
 		//header.TxHash,
 		//header.ReceiptHash,
-		header.Bloom,
+		//header.Bloom,
 		header.Difficulty,
 		header.Number,
 		header.GasLimit,
