@@ -17,8 +17,7 @@ func GetVersionInfo(st StateDB) string {
 
 	version, _ := value.(string)
 	if len(version) == 0 {
-		// 第一版本state中没有版本信息
-		log.Debug(logInfo, "not version in state", "使用Alpha版本")
+		// Alpha版本state中没有版本信息
 		return manparams.VersionAlpha
 	}
 	return version

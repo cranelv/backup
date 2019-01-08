@@ -406,17 +406,17 @@ func newUpTimeNumOpt() *operatorUpTimeNum {
 
 func (opt *operatorUpTimeNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return 0, nil
+		return uint64(0), nil
 	}
 	num, err := decodeUint64(data)
 	if err != nil {
 		log.Error(logInfo, "upTimeNum decode failed", err)
-		return 0, err
+		return uint64(0), err
 	}
 	return num, nil
 }
@@ -449,17 +449,17 @@ func newLotteryNumOpt() *operatorLotteryNum {
 
 func (opt *operatorLotteryNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return 0, nil
+		return uint64(0), nil
 	}
 	num, err := decodeUint64(data)
 	if err != nil {
 		log.Error(logInfo, "lotteryNum decode failed", err)
-		return 0, err
+		return uint64(0), err
 	}
 	return num, nil
 }
@@ -546,17 +546,17 @@ func newInterestCalcNumOpt() *operatorInterestCalcNum {
 
 func (opt *operatorInterestCalcNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return 0, nil
+		return uint64(0), nil
 	}
 	num, err := decodeUint64(data)
 	if err != nil {
 		log.Error(logInfo, "interestCalcNum decode failed", err)
-		return 0, err
+		return uint64(0), err
 	}
 	return num, nil
 }
@@ -589,17 +589,17 @@ func newInterestPayNumOpt() *operatorInterestPayNum {
 
 func (opt *operatorInterestPayNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return 0, nil
+		return uint64(0), nil
 	}
 	num, err := decodeUint64(data)
 	if err != nil {
 		log.Error(logInfo, "interestPayNum decode failed", err)
-		return 0, err
+		return uint64(0), err
 	}
 	return num, nil
 }
@@ -632,17 +632,17 @@ func newSlashNumOpt() *operatorSlashNum {
 
 func (opt *operatorSlashNum) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return 0, err
+		return uint64(0), err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return 0, nil
+		return uint64(0), nil
 	}
 	num, err := decodeUint64(data)
 	if err != nil {
 		log.Error(logInfo, "slashNum decode failed", err)
-		return 0, err
+		return uint64(0), err
 	}
 	return num, nil
 }
