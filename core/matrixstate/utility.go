@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ReaderVersionInfo(st StateDB) string {
+func GetVersionInfo(st StateDB) string {
 	value, err := versionOpt.GetValue(st)
 	if err != nil {
 		log.Error(logInfo, "get version failed", err)
@@ -24,8 +24,12 @@ func ReaderVersionInfo(st StateDB) string {
 	return version
 }
 
+func SetVersionInfo(st StateDB, version string) error {
+	return versionOpt.SetValue(st, version)
+}
+
 func GetBroadcastInterval(st StateDB) (*mc.BCIntervalInfo, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -41,7 +45,7 @@ func GetBroadcastInterval(st StateDB) (*mc.BCIntervalInfo, error) {
 }
 
 func SetBroadcastInterval(st StateDB, interval *mc.BCIntervalInfo) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -53,7 +57,7 @@ func SetBroadcastInterval(st StateDB, interval *mc.BCIntervalInfo) error {
 }
 
 func GetBroadcastAccounts(st StateDB) ([]common.Address, error) {
-	version := ReaderVersionInfo(st)
+	version := GetVersionInfo(st)
 	mgr := GetManager(version)
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -76,7 +80,7 @@ func GetBroadcastAccounts(st StateDB) ([]common.Address, error) {
 }
 
 func SetBroadcastAccounts(st StateDB, accounts []common.Address) error {
-	version := ReaderVersionInfo(st)
+	version := GetVersionInfo(st)
 	mgr := GetManager(version)
 	if mgr == nil {
 		return ErrFindManager
@@ -98,7 +102,7 @@ func SetBroadcastAccounts(st StateDB, accounts []common.Address) error {
 }
 
 func GetInnerMinerAccounts(st StateDB) ([]common.Address, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -114,7 +118,7 @@ func GetInnerMinerAccounts(st StateDB) ([]common.Address, error) {
 }
 
 func SetInnerMinerAccounts(st StateDB, accounts []common.Address) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -126,7 +130,7 @@ func SetInnerMinerAccounts(st StateDB, accounts []common.Address) error {
 }
 
 func GetFoundationAccount(st StateDB) (common.Address, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return common.Address{}, ErrFindManager
 	}
@@ -142,7 +146,7 @@ func GetFoundationAccount(st StateDB) (common.Address, error) {
 }
 
 func SetFoundationAccount(st StateDB, account common.Address) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -154,7 +158,7 @@ func SetFoundationAccount(st StateDB, account common.Address) error {
 }
 
 func GetVersionSuperAccounts(st StateDB) ([]common.Address, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -170,7 +174,7 @@ func GetVersionSuperAccounts(st StateDB) ([]common.Address, error) {
 }
 
 func SetVersionSuperAccounts(st StateDB, accounts []common.Address) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -182,7 +186,7 @@ func SetVersionSuperAccounts(st StateDB, accounts []common.Address) error {
 }
 
 func GetBlockSuperAccounts(st StateDB) ([]common.Address, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -198,7 +202,7 @@ func GetBlockSuperAccounts(st StateDB) ([]common.Address, error) {
 }
 
 func SetBlockSuperAccounts(st StateDB, accounts []common.Address) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -210,7 +214,7 @@ func SetBlockSuperAccounts(st StateDB, accounts []common.Address) error {
 }
 
 func GetPreBroadcastRoot(st StateDB) (*mc.PreBroadStateRoot, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -226,7 +230,7 @@ func GetPreBroadcastRoot(st StateDB) (*mc.PreBroadStateRoot, error) {
 }
 
 func GetLeaderConfig(st StateDB) (*mc.LeaderConfig, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -242,7 +246,7 @@ func GetLeaderConfig(st StateDB) (*mc.LeaderConfig, error) {
 }
 
 func SetLeaderConfig(st StateDB, cfg *mc.LeaderConfig) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -254,7 +258,7 @@ func SetLeaderConfig(st StateDB, cfg *mc.LeaderConfig) error {
 }
 
 func GetSuperBlockCfg(st StateDB) (*mc.SuperBlkCfg, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -270,7 +274,7 @@ func GetSuperBlockCfg(st StateDB) (*mc.SuperBlkCfg, error) {
 }
 
 func SetSuperBlockCfg(st StateDB, cfg *mc.SuperBlkCfg) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -282,7 +286,7 @@ func SetSuperBlockCfg(st StateDB, cfg *mc.SuperBlkCfg) error {
 }
 
 func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -298,7 +302,7 @@ func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
 }
 
 func SetBroadcastTxs(st StateDB, txs map[string]map[common.Address][]byte) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}

@@ -6,12 +6,14 @@ package mtxdpos
 import (
 	"math"
 
+	"bytes"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -52,6 +54,8 @@ var (
 	errSuperBlockSignCount = errors.New("super block sign count err, not one")
 
 	errSuperBlockVerifySign = errors.New("super block sign is not from super super block account")
+
+	errVersionErr = errors.New("version is err")
 )
 
 type dposTarget struct {
@@ -69,8 +73,21 @@ type MtxDPOS struct {
 func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
+
 func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Header) error {
 	var blockHash common.Hash
+	number := header.Number.Uint64()
+	// 验证版本号
+	if number >= manparams.VersionBetaEnableHeight {
+		if bytes.Equal(header.Version, []byte(manparams.VersionBeta)) == false {
+			return errVersionErr
+		}
+	} else {
+		if bytes.Equal(header.Version, []byte(manparams.VersionAlpha)) == false {
+			return errVersionErr
+		}
+	}
+
 	if 0 == header.Number.Uint64() {
 		blockHash = header.Hash()
 	} else {

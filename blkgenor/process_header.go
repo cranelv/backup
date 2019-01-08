@@ -200,8 +200,16 @@ func (p *Process) setSignatures(header *types.Header) error {
 }
 
 func (p *Process) setVersion(header *types.Header, parent *types.Block) {
-	header.Version = parent.Header().Version
-	header.VersionSignatures = parent.Header().VersionSignatures
+	if p.number >= manparams.VersionBetaEnableHeight {
+		header.Version = []byte(manparams.VersionBeta)
+		err := json.Unmarshal([]byte(manparams.VersionBetaSigns), &header.Signatures)
+		if err != nil {
+			log.Error(p.logExtraInfo(), "区块生成阶段", "解析beta签名失败", "err", err)
+		}
+	} else {
+		header.Version = parent.Header().Version
+		header.VersionSignatures = parent.Header().VersionSignatures
+	}
 }
 
 func (p *Process) setVrf(err error, parent *types.Block, header *types.Header) error {

@@ -7,7 +7,7 @@ import (
 /////////////////////////////////////////////////////////////////////
 // 区块奖励相关
 func GetBlkRewardCfg(st StateDB) (*mc.BlkRewardCfg, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -23,7 +23,7 @@ func GetBlkRewardCfg(st StateDB) (*mc.BlkRewardCfg, error) {
 }
 
 func SetBlkRewardCfg(st StateDB, cfg *mc.BlkRewardCfg) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -37,7 +37,7 @@ func SetBlkRewardCfg(st StateDB, cfg *mc.BlkRewardCfg) error {
 /////////////////////////////////////////////////////////////////////
 // 交易奖励相关
 func GetTxsRewardCfg(st StateDB) (*mc.TxsRewardCfgStruct, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -53,7 +53,7 @@ func GetTxsRewardCfg(st StateDB) (*mc.TxsRewardCfgStruct, error) {
 }
 
 func SetTxsRewardCfg(st StateDB, cfg *mc.TxsRewardCfgStruct) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -67,7 +67,7 @@ func SetTxsRewardCfg(st StateDB, cfg *mc.TxsRewardCfgStruct) error {
 /////////////////////////////////////////////////////////////////////
 // 利息相关
 func GetInterestCfg(st StateDB) (*mc.InterestCfgStruct, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -83,7 +83,7 @@ func GetInterestCfg(st StateDB) (*mc.InterestCfgStruct, error) {
 }
 
 func SetInterestCfg(st StateDB, cfg *mc.InterestCfgStruct) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -95,7 +95,7 @@ func SetInterestCfg(st StateDB, cfg *mc.InterestCfgStruct) error {
 }
 
 func GetInterestCalcNum(st StateDB) (uint64, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return 0, ErrFindManager
 	}
@@ -111,7 +111,7 @@ func GetInterestCalcNum(st StateDB) (uint64, error) {
 }
 
 func SetInterestCalcNum(st StateDB, num uint64) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -123,7 +123,7 @@ func SetInterestCalcNum(st StateDB, num uint64) error {
 }
 
 func GetInterestPayNum(st StateDB) (uint64, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return 0, ErrFindManager
 	}
@@ -139,7 +139,7 @@ func GetInterestPayNum(st StateDB) (uint64, error) {
 }
 
 func SetInterestPayNum(st StateDB, num uint64) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -153,7 +153,7 @@ func SetInterestPayNum(st StateDB, num uint64) error {
 /////////////////////////////////////////////////////////////////////
 // 彩票相关
 func GetLotteryCfg(st StateDB) (*mc.LotteryCfgStruct, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -169,7 +169,7 @@ func GetLotteryCfg(st StateDB) (*mc.LotteryCfgStruct, error) {
 }
 
 func SetLotteryCfg(st StateDB, cfg *mc.LotteryCfgStruct) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -181,7 +181,7 @@ func SetLotteryCfg(st StateDB, cfg *mc.LotteryCfgStruct) error {
 }
 
 func GetLotteryAccount(st StateDB) (*mc.LotteryFrom, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -197,7 +197,7 @@ func GetLotteryAccount(st StateDB) (*mc.LotteryFrom, error) {
 }
 
 func SetLotteryAccount(st StateDB, account *mc.LotteryFrom) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -209,7 +209,7 @@ func SetLotteryAccount(st StateDB, account *mc.LotteryFrom) error {
 }
 
 func GetLotteryNum(st StateDB) (uint64, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return 0, ErrFindManager
 	}
@@ -225,7 +225,7 @@ func GetLotteryNum(st StateDB) (uint64, error) {
 }
 
 func SetLotteryNum(st StateDB, num uint64) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -239,7 +239,7 @@ func SetLotteryNum(st StateDB, num uint64) error {
 /////////////////////////////////////////////////////////////////////
 // 惩罚相关
 func GetSlashCfg(st StateDB) (*mc.SlashCfgStruct, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -255,7 +255,7 @@ func GetSlashCfg(st StateDB) (*mc.SlashCfgStruct, error) {
 }
 
 func SetSlashCfg(st StateDB, cfg *mc.SlashCfgStruct) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -267,7 +267,7 @@ func SetSlashCfg(st StateDB, cfg *mc.SlashCfgStruct) error {
 }
 
 func GetSlashNum(st StateDB) (uint64, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return 0, ErrFindManager
 	}
@@ -283,7 +283,7 @@ func GetSlashNum(st StateDB) (uint64, error) {
 }
 
 func SetSlashNum(st StateDB, num uint64) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -295,7 +295,7 @@ func SetSlashNum(st StateDB, num uint64) error {
 }
 
 func GetUpTimeNum(st StateDB) (uint64, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return 0, ErrFindManager
 	}
@@ -311,7 +311,7 @@ func GetUpTimeNum(st StateDB) (uint64, error) {
 }
 
 func SetUpTimeNum(st StateDB, num uint64) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -325,7 +325,7 @@ func SetUpTimeNum(st StateDB, num uint64) error {
 /////////////////////////////////////////////////////////////////////
 //
 func GetPreMinerBlkReward(st StateDB) (*mc.MinerOutReward, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -341,7 +341,7 @@ func GetPreMinerBlkReward(st StateDB) (*mc.MinerOutReward, error) {
 }
 
 func SetPreMinerBlkReward(st StateDB, reward *mc.MinerOutReward) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}
@@ -353,7 +353,7 @@ func SetPreMinerBlkReward(st StateDB, reward *mc.MinerOutReward) error {
 }
 
 func GetPreMinerTxsReward(st StateDB) (*mc.MinerOutReward, error) {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
 	}
@@ -369,7 +369,7 @@ func GetPreMinerTxsReward(st StateDB) (*mc.MinerOutReward, error) {
 }
 
 func SetPreMinerTxsReward(st StateDB, reward *mc.MinerOutReward) error {
-	mgr := GetManager(ReaderVersionInfo(st))
+	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
 	}

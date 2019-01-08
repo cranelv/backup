@@ -40,7 +40,16 @@ func (mp *MatrixProcessor) ProcessMatrixState(block *types.Block, state *state.S
 	mp.mu.RLock()
 	defer mp.mu.RUnlock()
 
-	version := matrixstate.ReaderVersionInfo(state)
+	// 版本控制
+	version := matrixstate.GetVersionInfo(state)
+	headerVersion := string(block.Header().Version)
+	if version != headerVersion {
+		log.Info("MatrixProcessor", "版本号更新", block.Number(), "旧版本", version, "新版本", headerVersion)
+		version = headerVersion
+		matrixstate.SetVersionInfo(state, version)
+	}
+
+	// 获取matrix状态树管理类
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
 		return matrixstate.ErrFindManager
