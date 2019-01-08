@@ -100,7 +100,19 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	r.CumulativeGasUsed, r.Bloom, r.Logs = dec.CumulativeGasUsed, dec.Bloom, dec.Logs
 	return nil
 }
+/*
+func (r *Receipt) EncodeRlpForDb(w io.Writer) error{
+	err := rlp.Encode(w,r.statusEncoding())
+	if err != nil{return err}
+	err = rlp.Encode(w,r.CumulativeGasUsed)
+	if err != nil{return err}
+	err = rlp.Encode(w,r.Bloom)
+	if err != nil{return err}
+}
+func (r *Receipt) DecodeRlpForDb(r io.Reader)error{
 
+}
+*/
 func (r *Receipt) setStatus(postStateOrStatus []byte) error {
 	switch {
 	case bytes.Equal(postStateOrStatus, receiptStatusSuccessfulRLP):
@@ -139,6 +151,7 @@ func (r *Receipt) Size() common.StorageSize {
 
 // ReceiptForStorage is a wrapper around a Receipt that flattens and parses the
 // entire content of a receipt, as opposed to only the consensus fields originally.
+
 type ReceiptForStorage Receipt
 
 // EncodeRLP implements rlp.Encoder, and flattens all content fields of a receipt
@@ -184,7 +197,25 @@ type CoinReceipts struct {
 	CoinType    string
 	Receiptlist Receipts
 }
-
+/*
+func (rl *Receipts)EncodeRlpForDb(w io.Writer) error{
+	Len := uint(rl.Len())
+	rlp.Encode(w,Len)
+	for i:=0;i<rl.Len();i++{
+		rl[i].EncodeRlpForDb(w)
+	}
+}
+func (rl *Receipts)DecodeRlpForDb(raw []byte)error{
+	r := bytes.NewReader(raw)
+	var Len uint
+	rlp.Decode(r,&Len)
+	rl1 := make([]*Receipt,Len)
+	for i:=uint(0);i<Len;i++ {
+		rl1[i].DecodeRlpForDb(r)
+	}
+	rl = rlp.Decode()
+}
+*/
 // Receipts is a wrapper around a Receipt array to implement DerivableList.
 type Receipts []*Receipt
 

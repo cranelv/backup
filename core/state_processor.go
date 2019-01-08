@@ -134,12 +134,12 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64,shardings []uint) ([]*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64,shardings []uint) ([]types.CoinLogs, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
 		header   = block.Header()
-		allLogs  []*types.Log
+		allLogs  []types.CoinLogs
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 	// Iterate over and process the individual transactions
@@ -149,6 +149,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	ftxs := make([]types.SelfTransaction, 0)
 	txs := make([]types.SelfTransaction, 0)
 	var txcount int
+	tmpMaptx := make(map[string]types.SelfTransactions)
+	tmpMapre := make(map[string]types.Receipts)
 	for _,cb := range block.Currencies(){
 		txs = append(txs,cb.Transactions.GetTransactions()...)
 	}
@@ -189,22 +191,22 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		}
 		var tmptx types.SelfTransaction
 		if p.isValidater(header.Number) {
-			receipts = append(receipts, receipt)
-			allLogs = append(allLogs, receipt.Logs...)
 			tmptx = tx
 		} else {
 			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
-				receipts = append(receipts, receipt)
-				allLogs = append(allLogs, receipt.Logs...)
 				shardings = append(shardings, shard...)
 				tmptx = tx
-			} else {
+			}else{
 				tmptx = nil
+				receipt=nil
 			}
 		}
-		ftxs = append(ftxs, tmptx)
+		receipts = append(receipts, receipt)
+		allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
 		txcount = i
 		from = append(from, tx.From())
+		tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tmptx)
+		tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
 	}
 	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
 	if err != nil {
@@ -218,33 +220,29 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		}
 		var tmptx types.SelfTransaction
 		if p.isValidater(header.Number) {
-			tmpr := make(types.Receipts, 0)
-			tmpr = append(tmpr, receipt)
-			tmpr = append(tmpr, receipts...)
-			receipts = tmpr
-			tmpl := make([]*types.Log, 0)
-			tmpl = append(tmpl, receipt.Logs...)
-			tmpl = append(tmpl, allLogs...)
-			allLogs = tmpl
 			tmptx = tx
 		} else {
 			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
-				tmpr := make(types.Receipts, 0)
-				tmpr = append(tmpr, receipt)
-				tmpr = append(tmpr, receipts...)
-				receipts = tmpr
-				tmpl := make([]*types.Log, 0)
-				tmpl = append(tmpl, receipt.Logs...)
-				tmpl = append(tmpl, allLogs...)
-				allLogs = tmpl
 				shardings = append(shardings, shard...)
 				tmptx = tx
 			} else {
 				tmptx = nil
+				receipt = nil
 			}
 		}
-		ftxs = append(ftxs, tmptx)
+		tmpr := make(types.Receipts, 0)
+		tmpr = append(tmpr, receipt)
+		tmpr = append(tmpr, receipts...)
+		receipts = tmpr
+		tmpl := make([]types.CoinLogs, 0)
+		tmpl = append(tmpl, types.CoinLogs{CoinType:params.MAN_COIN,Logs:receipt.Logs})
+		tmpl = append(tmpl, allLogs...)
+		allLogs = tmpl
+		ftxs = append(ftxs,tmptx)
+		tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipts...)
 	}
+	ftxs = append(ftxs,tmpMaptx[params.MAN_COIN]...)
+	tmpMaptx[params.MAN_COIN] = ftxs
 	tmpm := make(map[uint]bool)
 	shards := make([]uint, 0)
 	for _, ui := range shardings {
@@ -253,8 +251,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			shards = append(shards, ui)
 		}
 	}
-	shards = nil //TODO test
-	ftxs = txs  //TODO test
+	for i,bc := range block.Currencies(){
+		block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],shards)
+	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb,block.Uncles(),block.Currencies())
 
