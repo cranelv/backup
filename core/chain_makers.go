@@ -189,7 +189,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 
 		if b.engine != nil {
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts, nil)
+			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.uncles,types.MakeCurencyBlock(nil,nil,nil) )//该文件专用于测试所以此处就写个空
 			// Write state changes to db
 			root, _, err := statedb.Commit(config.IsEIP158(b.header.Number)) //ShardingBB1
 			if err != nil {

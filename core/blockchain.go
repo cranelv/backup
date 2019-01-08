@@ -1424,7 +1424,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			}
 
 			// Validate the state using the default validator
-			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
+			err = bc.Validator().ValidateState(block, parent, state, usedGas)
 			if err != nil {
 				log.Trace("BlockChain insertChain in3 Process Block err4")
 				bc.reportBlock(block, receipts, err)
