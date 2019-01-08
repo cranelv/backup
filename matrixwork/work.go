@@ -418,15 +418,18 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		}
 
 		// Start executing the transaction
-		env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
-		err, logs := env.commitTransaction(tx, bc, common.Address{}, env.gasPool)
+
+		for _, t := range tx.Txser {
+		env.State.Prepare(t.Hash(), common.Hash{}, env.tcount)
+		err, logs := env.commitTransaction(t, bc, common.Address{}, env.gasPool)
 		if err == nil {
 			env.tcount++
 			coalescedLogs = append(coalescedLogs, logs...)
 		} else {
 			return err
 		}
-		from = append(from, tx.From())
+		from = append(from, t.From())
+		}
 	}
 
 	rewart := env.CalcRewardAndSlash(bc, upTime, from)

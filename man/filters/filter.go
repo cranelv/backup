@@ -175,18 +175,16 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*types.Log, e
 		if header == nil || err != nil {
 			return logs, err
 		}
-		//for _,cr:=range header.Roots{
-		//	if cr.Cointyp==  {
-		//
-		//	}
-		//}
-		if bloomFilter(header.Bloom, f.addresses, f.topics) {
+		for _,cr:=range header.Roots{
+		if bloomFilter(cr.Bloom, f.addresses, f.topics) {
 			found, err := f.checkMatches(ctx, header)
 			if err != nil {
 				return logs, err
 			}
 			logs = append(logs, found...)
 		}
+		}
+
 	}
 	return logs, nil
 }

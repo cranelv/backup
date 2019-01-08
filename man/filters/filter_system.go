@@ -394,8 +394,10 @@ func (es *EventSystem) lightFilterNewHead(newHeader *types.Header, callBack func
 }
 
 // filter logs of a single header in light client mode
-func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.Address, topics [][]common.Hash, remove bool) []*types.Log {
-	if bloomFilter(header.Bloom, addresses, topics) {
+func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.Address, topics [][]common.Hash, remove bool) []types.CoinLogs {
+	var ls []types.CoinLogs
+for _,cr:= range header.Roots{
+	if bloomFilter(cr.Bloom, addresses, topics) {
 		// Get the logs of the block
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
@@ -428,9 +430,11 @@ func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.
 			}
 			logs = filterLogs(unfiltered, nil, nil, addresses, topics)
 		}
-		return logs
+		ls=append(ls,types.CoinLogs{cr.Cointyp,logs})
+
 	}
-	return nil
+}
+	return ls
 }
 
 // eventLoop (un)installs filters and processes mux events.

@@ -325,7 +325,7 @@ func (self *worker) pendingBlock() *types.Block {
 		//	tx=append(tx,types.CoinSelfTransaction{k,v})
 		//	rx=append(rx,types.CoinReceipts{k,rm[k]})
 		//}
-		tx,rx:=GetCoinTXRS(self.current.txs,self.current.receipts)
+		tx,rx:=types.GetCoinTXRS(self.current.txs,self.current.receipts)
 		cb:=types.MakeCurencyBlock(tx,rx,nil)
 		return types.NewBlock(
 			self.current.header,
