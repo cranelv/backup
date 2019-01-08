@@ -51,10 +51,12 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *manparams.BCInte
 	if err != nil {
 		return upTimeAccounts, err
 	}
+	log.Debug(ModuleName, "获取所有uptime账户为", "")
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
+		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	log.Debug(ModuleName, "获取所有uptime账户为", upTimeAccounts)
+
 	return upTimeAccounts, nil
 }
 func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64, parentHash common.Hash) (map[common.Address]uint32, map[common.Address][]byte, error) {
@@ -90,7 +92,7 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64, parentHash com
 			return nil, nil, error
 		}
 		for k, v := range temp {
-			log.INFO(ModuleName, "点名心跳交易A1", k)
+			log.INFO(ModuleName, "参选验证节点uptime高度", k)
 			account0, _, err := bc.GetA0AccountFromAnyAccount(common.HexToAddress(k), parentHash)
 			log.INFO(ModuleName, "点名心跳交易A0", account0.Hex())
 			if nil != err {
