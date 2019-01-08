@@ -84,7 +84,11 @@ func ReadReceipt(db DatabaseReader, hash common.Hash) (*types.Receipt, common.Ha
 	if blockHash == (common.Hash{}) {
 		return nil, common.Hash{}, 0, 0
 	}
-	receipts := ReadReceipts(db, blockHash, blockNumber)
+	creceipts := ReadReceipts(db, blockHash, blockNumber)
+	receipts := make(types.Receipts,0)
+	for _,rcps := range creceipts{
+		receipts = append(receipts,rcps.Receiptlist...)
+	}
 	if len(receipts) <= int(receiptIndex) {
 		log.Error("Receipt refereced missing", "number", blockNumber, "hash", blockHash, "index", receiptIndex)
 		return nil, common.Hash{}, 0, 0
