@@ -111,7 +111,7 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Sharding,
 		//h.TxHash,
 		//h.ReceiptHash,
-		h.Bloom,
+		//h.Bloom,
 		h.Difficulty,
 		h.Number,
 		h.GasLimit,
@@ -135,7 +135,7 @@ func (h *Header) HashNoSigns() common.Hash {
 		h.Sharding,
 		//h.TxHash,
 		//h.ReceiptHash,
-		h.Bloom,
+		//h.Bloom,
 		h.Difficulty,
 		h.Number,
 		h.GasLimit,
@@ -159,7 +159,7 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.Sharding,
 		//h.TxHash,
 		//h.ReceiptHash,
-		h.Bloom,
+		//h.Bloom,
 		h.Difficulty,
 		h.Number,
 		h.GasLimit,
@@ -230,7 +230,7 @@ func RlpHash(x interface{}) (h common.Hash) {
 	return h
 }
 
-//1. Complete Block transactions = []SelfTransaction
+//1. Complete Block transactions = []SelfTransactio
 //2. Sharding Block transactions = []TxInfo
 type BodyTransactions struct {
 	Sharding         []uint            // if complete block sharding = []

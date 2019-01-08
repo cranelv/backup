@@ -134,7 +134,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64, shardings []uint) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64,shardings []uint) ([]*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -147,8 +147,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
 	stxs := make([]types.SelfTransaction, 0)
 	ftxs := make([]types.SelfTransaction, 0)
+	txs := make([]types.SelfTransaction, 0)
 	var txcount int
-	txs := block.Transactions()
+	for _,cb := range block.Currencies(){
+		txs = append(txs,cb.Transactions.GetTransactions()...)
+	}
 	var waitG = &sync.WaitGroup{}
 	maxProcs := runtime.NumCPU() //获取cpu个数
 	if maxProcs >= 2 {
@@ -182,7 +185,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, 0, err
 		}
 		var tmptx types.SelfTransaction
 		if p.isValidater(header.Number) {
@@ -205,13 +208,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	}
 	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
 	if err != nil {
-		return nil, nil, 0, err
+		return  nil, 0, err
 	}
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
-			return nil, nil, 0, err
+			return  nil, 0, err
 		}
 		var tmptx types.SelfTransaction
 		if p.isValidater(header.Number) {
@@ -251,11 +254,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		}
 	}
 	shards = nil //TODO test
-	ftxs = txs   //TODO test
+	ftxs = txs  //TODO test
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, ftxs, block.Uncles(), receipts, shards)
+	p.engine.Finalize(p.bc, header, statedb,block.Uncles(),block.Currencies())
 
-	return receipts, allLogs, *usedGas, nil
+	return allLogs, *usedGas, nil
 }
 func (p *StateProcessor) isValidater(h *big.Int) bool {
 	roles, _ := ca.GetElectedByHeightAndRole(new(big.Int).Sub(h, big.NewInt(1)), common.RoleValidator)
