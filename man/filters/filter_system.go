@@ -183,7 +183,7 @@ func (es *EventSystem) subscribe(sub *subscription) *Subscription {
 // SubscribeLogs creates a subscription that will write all logs matching the
 // given criteria to the given logs channel. Default value for the from and to
 // block is "latest". If the fromBlock > toBlock an error is returned.
-func (es *EventSystem) SubscribeLogs(crit matrix.FilterQuery, logs chan []*types.Log) (*Subscription, error) {
+func (es *EventSystem) SubscribeLogs(crit matrix.FilterQuery, logs chan []types.CoinLogs) (*Subscription, error) {
 	var from, to rpc.BlockNumber
 	if crit.FromBlock == nil {
 		from = rpc.LatestBlockNumber
@@ -221,7 +221,7 @@ func (es *EventSystem) SubscribeLogs(crit matrix.FilterQuery, logs chan []*types
 
 // subscribeMinedPendingLogs creates a subscription that returned mined and
 // pending logs that match the given criteria.
-func (es *EventSystem) subscribeMinedPendingLogs(crit matrix.FilterQuery, logs chan []*types.Log) *Subscription {
+func (es *EventSystem) subscribeMinedPendingLogs(crit matrix.FilterQuery, logs chan []types.CoinLogs) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       MinedAndPendingLogsSubscription,
@@ -238,7 +238,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit matrix.FilterQuery, logs c
 
 // subscribeLogs creates a subscription that will write all logs matching the
 // given criteria to the given logs channel.
-func (es *EventSystem) subscribeLogs(crit matrix.FilterQuery, logs chan []*types.Log) *Subscription {
+func (es *EventSystem) subscribeLogs(crit matrix.FilterQuery, logs chan []types.CoinLogs) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       LogsSubscription,
@@ -255,7 +255,7 @@ func (es *EventSystem) subscribeLogs(crit matrix.FilterQuery, logs chan []*types
 
 // subscribePendingLogs creates a subscription that writes transaction hashes for
 // transactions that enter the transaction pool.
-func (es *EventSystem) subscribePendingLogs(crit matrix.FilterQuery, logs chan []*types.Log) *Subscription {
+func (es *EventSystem) subscribePendingLogs(crit matrix.FilterQuery, logs chan []types.CoinLogs) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       PendingLogsSubscription,
@@ -277,7 +277,7 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 		id:        rpc.NewID(),
 		typ:       BlocksSubscription,
 		created:   time.Now(),
-		logs:      make(chan []*types.Log),
+		logs:      make(chan []types.CoinLogs),
 		hashes:    make(chan []common.Hash),
 		headers:   headers,
 		installed: make(chan struct{}),
@@ -293,7 +293,7 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		id:        rpc.NewID(),
 		typ:       PendingTransactionsSubscription,
 		created:   time.Now(),
-		logs:      make(chan []*types.Log),
+		logs:      make(chan []types.CoinLogs),
 		hashes:    hashes,
 		headers:   make(chan *types.Header),
 		installed: make(chan struct{}),
@@ -405,16 +405,19 @@ for _,cr:= range header.Roots{
 		if err != nil {
 			return nil
 		}
-		var unfiltered []*types.Log
+		var unfiltered []types.CoinLogs
 		for _, logs := range logsList {
-			for _, log := range logs {
-				logcopy := *log
-				logcopy.Removed = remove
-				unfiltered = append(unfiltered, &logcopy)
-			}
+			//for _, log := range logs.Logs {
+				//logcopy := *log
+				//logcopy.Removed = remove
+				logcopy:=logs
+				logcopy.CoinType=logs.CoinType
+				unfiltered = append(unfiltered, logcopy)
+			//}
 		}
 		logs := filterLogs(unfiltered, nil, nil, addresses, topics)
-		if len(logs) > 0 && logs[0].TxHash == (common.Hash{}) {
+		for _,l:=range logs{
+		if len(l.Logs) > 0 && l.Logs[0].TxHash == (common.Hash{}) {
 			// We have matching but non-derived logs
 			receipts, err := es.backend.GetReceipts(ctx, header.Hash())
 			if err != nil {
@@ -422,16 +425,19 @@ for _,cr:= range header.Roots{
 			}
 			unfiltered = unfiltered[:0]
 			for _, receipt := range receipts {
-				for _, log := range receipt.Logs {
-					logcopy := *log
-					logcopy.Removed = remove
-					unfiltered = append(unfiltered, &logcopy)
+				//receipt.CoinType
+				for _, log := range receipt.Receiptlist {
+					logcopy:=types.CoinLogs{receipt.CoinType,log.Logs}
+					//logcopy := *log
+					//logcopy.Removed = remove
+					unfiltered = append(unfiltered, logcopy)
 				}
 			}
 			logs = filterLogs(unfiltered, nil, nil, addresses, topics)
 		}
-		ls=append(ls,types.CoinLogs{cr.Cointyp,logs})
 
+		}
+		ls=append(ls,logs...)
 	}
 }
 	return ls

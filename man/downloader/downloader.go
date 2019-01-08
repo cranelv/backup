@@ -1803,7 +1803,7 @@ func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) (err err
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions [][]types.SelfTransaction, uncles [][]*types.Header) (err error) {
+func (d *Downloader) DeliverBodies(id string, transactions []types.CoinSelfTransaction, uncles [][]*types.Header) (err error) {
 	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, uncles}, bodyInMeter, bodyDropMeter)
 }
 

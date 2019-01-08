@@ -149,7 +149,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
-	var coalescedLogs []*types.Log
+	var coalescedLogs []types.CoinLogs
 	tmpRetmap := make(map[byte][]uint32)
 	for _, txer := range txser {
 		// If we don't have enough gas for any further transactions then we're done
@@ -191,7 +191,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 				}
 				retTxs = append(retTxs, txer)
 			}
-			coalescedLogs = append(coalescedLogs, logs...)
+			coalescedLogs = append(coalescedLogs, types.CoinLogs{txer.GetTxCurrency(),logs})
 			env.tcount++
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
@@ -207,19 +207,19 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
 		// cause a race condition if a log was "upgraded" before the PendingLogsEvent is processed.
-		cpy := make([]*types.Log, len(coalescedLogs))
-		for i, l := range coalescedLogs {
-			cpy[i] = new(types.Log)
-			*cpy[i] = *l
-		}
-		go func(logs []*types.Log, tcount int) {
+		//cpy := make([]types.CoinLogs, len(coalescedLogs))
+		//for i, l := range coalescedLogs {
+		//	cpy[i] = new(types.CoinLogs)
+		//	*cpy[i] = *l
+		//}
+		go func(logs []types.CoinLogs, tcount int) {
 			if len(logs) > 0 {
 				mux.Post(core.PendingLogsEvent{Logs: logs})
 			}
 			if tcount > 0 {
 				mux.Post(core.PendingStateEvent{})
 			}
-		}(cpy, env.tcount)
+		}(coalescedLogs, env.tcount)
 	}
 	return listret, retTxs
 }
@@ -405,7 +405,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 	mapcoingasUse.clearmap()
-	var coalescedLogs []*types.Log
+	var coalescedLogs []types.CoinLogs
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
@@ -424,7 +424,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		err, logs := env.commitTransaction(t, bc, common.Address{}, env.gasPool)
 		if err == nil {
 			env.tcount++
-			coalescedLogs = append(coalescedLogs, logs...)
+			coalescedLogs = append(coalescedLogs,types.CoinLogs{tx.CoinType,logs})
 		} else {
 			return err
 		}
@@ -444,19 +444,19 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
 		// cause a race condition if a log was "upgraded" before the PendingLogsEvent is processed.
-		cpy := make([]*types.Log, len(coalescedLogs))
-		for i, l := range coalescedLogs {
-			cpy[i] = new(types.Log)
-			*cpy[i] = *l
-		}
-		go func(logs []*types.Log, tcount int) {
+		//cpy := make([]*types.Log, len(coalescedLogs))
+		//for i, l := range coalescedLogs {
+		//	cpy[i] = new(types.Log)
+		//	*cpy[i] = *l
+		//}
+		go func(logs []types.CoinLogs, tcount int) {
 			if len(logs) > 0 {
 				mux.Post(core.PendingLogsEvent{Logs: logs})
 			}
 			if tcount > 0 {
 				mux.Post(core.PendingStateEvent{})
 			}
-		}(cpy, env.tcount)
+		}(coalescedLogs, env.tcount)
 	}
 
 	return nil

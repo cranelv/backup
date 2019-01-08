@@ -120,7 +120,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 
 // indexedLogs returns the logs matching the filter criteria based on the bloom
 // bits indexed available locally or via the network.
-func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*types.Log, error) {
+func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]types.CoinLogs, error) {
 	// Create a matcher session and request servicing from the backend
 	matches := make(chan uint64, 64)
 
@@ -133,7 +133,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*types.Log, err
 	f.backend.ServiceFilter(ctx, session)
 
 	// Iterate over the matches until exhausted or context closed
-	var logs []*types.Log
+	var logs []types.CoinLogs
 
 	for {
 		select {
@@ -167,8 +167,8 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*types.Log, err
 
 // indexedLogs returns the logs matching the filter criteria based on raw block
 // iteration and bloom matching.
-func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*types.Log, error) {
-	var logs []*types.Log
+func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]types.CoinLogs, error) {
+	var logs []types.CoinLogs
 
 	for ; f.begin <= int64(end); f.begin++ {
 		header, err := f.backend.HeaderByNumber(ctx, rpc.BlockNumber(f.begin))
