@@ -21,8 +21,8 @@ type Backend interface {
 	ChainDb() mandb.Database
 	EventMux() *event.TypeMux
 	HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error)
-	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
-	GetLogs(ctx context.Context, blockHash common.Hash) ([][]*types.Log, error)
+	GetReceipts(ctx context.Context, blockHash common.Hash) ([]types.CoinReceipts, error)
+	GetLogs(ctx context.Context, blockHash common.Hash) ([]types.CoinLogs, error)
 
 	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //YYY
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
@@ -191,33 +191,39 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*types.Log, e
 
 // checkMatches checks if the receipts belonging to the given header contain any log events that
 // match the filter criteria. This function is called when the bloom filter signals a potential match.
-func (f *Filter) checkMatches(ctx context.Context, header *types.Header) (logs []*types.Log, err error) {
+func (f *Filter) checkMatches(ctx context.Context, header *types.Header) (logs []types.CoinLogs, err error) {
 	// Get the logs of the block
 	logsList, err := f.backend.GetLogs(ctx, header.Hash())
 	if err != nil {
 		return nil, err
 	}
-	var unfiltered []*types.Log
+	var unfiltered []types.CoinLogs
 	for _, logs := range logsList {
-		unfiltered = append(unfiltered, logs...)
+		unfiltered = append(unfiltered, logs)
 	}
 	logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
-	if len(logs) > 0 {
+	for _,ls:= range logs{
+	if len(ls.Logs) > 0 {
 		// We have matching logs, check if we need to resolve full logs via the light client
-		if logs[0].TxHash == (common.Hash{}) {
+		if ls.Logs[0].TxHash == (common.Hash{}) {
 			receipts, err := f.backend.GetReceipts(ctx, header.Hash())
 			if err != nil {
 				return nil, err
 			}
 			unfiltered = unfiltered[:0]
 			for _, receipt := range receipts {
-				unfiltered = append(unfiltered, receipt.Logs...)
+				if receipt.CoinType==ls.CoinType {
+					for _,r:=range receipt.Receiptlist{
+				unfiltered = append(unfiltered,types.CoinLogs{ls.CoinType, r.Logs})
+					}
+				}
 			}
-			logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
 		}
-		return logs, nil
+
 	}
-	return nil, nil
+}
+	logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
+	return logs, nil
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
@@ -231,12 +237,14 @@ func includes(addresses []common.Address, a common.Address) bool {
 }
 
 // filterLogs creates a slice of logs matching the given criteria.
-func filterLogs(logs []*types.Log, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) []*types.Log {
-	var ret []*types.Log
+func filterLogs(logs []types.CoinLogs, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) (ret []types.CoinLogs) {
+	for _, l := range logs {
+		var r []*types.Log
 Logs:
-	for _, log := range logs {
+	for _, log := range l.Logs {
 		if fromBlock != nil && fromBlock.Int64() >= 0 && fromBlock.Uint64() > log.BlockNumber {
 			continue
+
 		}
 		if toBlock != nil && toBlock.Int64() >= 0 && toBlock.Uint64() < log.BlockNumber {
 			continue
@@ -261,9 +269,12 @@ Logs:
 				continue Logs
 			}
 		}
-		ret = append(ret, log)
+		r=append(r,log)
+
 	}
-	return ret
+		ret = append(ret, types.CoinLogs{l.CoinType,r})
+}
+	return
 }
 
 func bloomFilter(bloom types.Bloom, addresses []common.Address, topics [][]common.Hash) bool {
