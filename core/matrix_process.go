@@ -99,10 +99,10 @@ func (mp *MatrixProcessor) ProcessMatrixState(block *types.Block, state *state.S
 	for key := range dataMap {
 		opt, err := mgr.FindOperator(key)
 		if err != nil {
-			return errors.Errorf("key(%s) find operator err: %v", err)
+			return errors.Errorf("key(%s) find operator err: %v", key, err)
 		}
 		if err := opt.SetValue(state, dataMap[key]); err != nil {
-			return errors.Errorf("key(%s) set value err: %v", err)
+			return errors.Errorf("key(%s) set value err: %v", key, err)
 		}
 	}
 
