@@ -110,5 +110,8 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 	if dec.Hash != nil {
 		t.Hash = dec.Hash
 	}
+	t.TxEnterType = dec.TxEnterType
+	t.IsEntrustTx = dec.IsEntrustTx
+	t.CommitTime = dec.CommitTime
 	return nil
 }
