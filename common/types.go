@@ -524,3 +524,8 @@ type Coinbyte struct {
 	Root    Hash
 	Byte256 []Hash
 }
+
+type CoinSharding struct {
+	CoinType string
+	Shardings []uint
+}
