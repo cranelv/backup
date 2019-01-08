@@ -1350,6 +1350,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			if err != nil {
 				log.Trace("BlockChain insertChain in3 Process Block err4")
 				bc.reportBlock(block, receipts, err)
+				dump := state.RawDump()
+				log.Info("dump info", "root", dump.Root)
+				for account, data := range dump.Accounts {
+					log.Info("dump info", "account", account, "data", data)
+				}
+
+				for matrixKey, data := range dump.MatrixData {
+					log.Info("dump info", "matrix", matrixKey, "data", data)
+				}
 				return i, events, coalescedLogs, err
 			}
 		}
