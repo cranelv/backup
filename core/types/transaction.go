@@ -11,6 +11,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/crypto"
+	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"io"
@@ -18,7 +19,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-	"github.com/matrix/go-matrix/log"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -151,7 +151,7 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 	data1.TxEnterType = data.TxEnterType
 	data1.IsEntrustTx = data.IsEntrustTx
 	data1.CommitTime = data.CommitTime
-	if data.Recipient != nil{
+	if data.Recipient != nil {
 		data1.Recipient = new(string)
 		to := *data.Recipient
 		*data1.Recipient = base58.Base58EncodeToString(currency, to)
@@ -195,7 +195,7 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 	data.TxEnterType = data1.TxEnterType
 	data.IsEntrustTx = data1.IsEntrustTx
 	data.CommitTime = data1.CommitTime
-	if data1.Recipient != nil{
+	if data1.Recipient != nil {
 		data.Recipient = new(common.Address)
 		*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
 	}
@@ -716,7 +716,7 @@ func ConvTxtoMxtx(txer SelfTransaction) *Transaction_Mx {
 		tx_Mx.TxType_Mx = tx.data.Extra[0].TxType
 		tx_Mx.LockHeight = tx.data.Extra[0].LockHeight
 		tx_Mx.ExtraTo = tx.data.Extra[0].ExtraTo
-	}else{
+	} else {
 		log.Error("tx.data.Extra is nil")
 		return nil
 	}

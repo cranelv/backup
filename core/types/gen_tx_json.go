@@ -28,10 +28,10 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 		R            *hexutil.Big    `json:"r" gencodec:"required"`
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		TxEnterType byte           `json:"TxEnterType" gencodec:"required"`
-		IsEntrustTx byte           `json:"IsEntrustTx" gencodec:"required"`
-		CommitTime  uint64         `json:"CommitTime" gencodec:"required"`
-		Extra       []Matrix_Extra ` rlp:"tail"`
+		TxEnterType  byte            `json:"TxEnterType" gencodec:"required"`
+		IsEntrustTx  byte            `json:"IsEntrustTx" gencodec:"required"`
+		CommitTime   uint64          `json:"CommitTime" gencodec:"required"`
+		Extra        []Matrix_Extra  ` rlp:"tail"`
 	}
 	var enc txdata
 	enc.AccountNonce = hexutil.Uint64(t.AccountNonce)
@@ -63,10 +63,10 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 		R            *hexutil.Big    `json:"r" gencodec:"required"`
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		TxEnterType byte           `json:"TxEnterType" gencodec:"required"`
-		IsEntrustTx byte           `json:"IsEntrustTx" gencodec:"required"`
-		CommitTime  uint64         `json:"CommitTime" gencodec:"required"`
-		Extra       []Matrix_Extra ` rlp:"tail"`
+		TxEnterType  byte            `json:"TxEnterType" gencodec:"required"`
+		IsEntrustTx  byte            `json:"IsEntrustTx" gencodec:"required"`
+		CommitTime   uint64          `json:"CommitTime" gencodec:"required"`
+		Extra        []Matrix_Extra  ` rlp:"tail"`
 	}
 	var dec txdata
 	if err := json.Unmarshal(input, &dec); err != nil {
