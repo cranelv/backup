@@ -439,13 +439,13 @@ func NewPublicDebugAPI(man *Matrix) *PublicDebugAPI {
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,address common.Address) (state.Dump, error) {
+func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber, address common.Address) (state.Dump, error) {
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN,address), nil
+		return stateDb.RawDump(params.MAN_COIN, address), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
@@ -460,16 +460,17 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,address common.Addr
 	if err != nil {
 		return state.Dump{}, err
 	}
-	return stateDb.RawDump(params.MAN_COIN,address), nil
+	return stateDb.RawDump(params.MAN_COIN, address), nil
 }
+
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber,address common.Address) (state.Dump, error) {
+func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber, address common.Address) (state.Dump, error) {
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN,address), nil
+		return stateDb.RawDump(params.MAN_COIN, address), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
@@ -484,8 +485,9 @@ func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber,address comm
 	if err != nil {
 		return state.Dump{}, err
 	}
-	return stateDb.RawDumpAcccount(params.MAN_COIN,address), nil
+	return stateDb.RawDumpAcccount(params.MAN_COIN, address), nil
 }
+
 // PrivateDebugAPI is the collection of Matrix full node APIs exposed over
 // the private debugging endpoint.
 type PrivateDebugAPI struct {
@@ -539,7 +541,7 @@ func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common
 		return StorageRangeResult{}, err
 	}
 
-	st := statedb.StorageTrie(tx.GetTxCurrency(),contractAddress)
+	st := statedb.StorageTrie(tx.GetTxCurrency(), contractAddress)
 	if st == nil {
 		return StorageRangeResult{}, fmt.Errorf("account %x doesn't exist", contractAddress)
 	}
@@ -629,12 +631,12 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		return nil, fmt.Errorf("start block height (%d) must be less than end block height (%d)", startBlock.Number().Uint64(), endBlock.Number().Uint64())
 	}
 
-	stR:=types.RlpHash(startBlock.Root())
+	stR := types.RlpHash(startBlock.Root())
 	oldTrie, err := trie.NewSecure(stR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err
 	}
-	enR:=types.RlpHash(endBlock.Root())
+	enR := types.RlpHash(endBlock.Root())
 	newTrie, err := trie.NewSecure(enR, trie.NewDatabase(api.man.chainDb), 0)
 	if err != nil {
 		return nil, err

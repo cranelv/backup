@@ -209,7 +209,7 @@ type BlockChain interface {
 	InsertChain(types.Blocks) (int, error)
 
 	// InsertReceiptChain inserts a batch of receipts into the local chain.
-	InsertReceiptChain(types.Blocks, []types.Receipts) (int, error)
+	InsertReceiptChain(types.Blocks) (int, error)
 
 	//lb ipfs
 	SetbSendIpfsFlg(bool)
@@ -1606,7 +1606,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	)
 	blocks := make([]*types.Block, len(results))
 	for i, result := range results {
-		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles,nil)
+		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles, nil)
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
@@ -1620,7 +1620,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
-	root:=types.RlpHash(latest.Roots)
+	root := types.RlpHash(latest.Roots)
 	stateSync := d.syncState(root)
 	defer stateSync.Cancel()
 	go func() {
@@ -1746,12 +1746,25 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 		"lastnumn", last.Number, "lasthash", last.Hash(),
 	)
 	blocks := make([]*types.Block, len(results))
-	receipts := make([]types.Receipts, len(results))
+	//receipts := make([]types.Receipts, len(results))
 	for i, result := range results {
-		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles,nil)
-		receipts[i] = result.Receipts
+		var cbs []types.CurrencyBlock
+
+		for i, ct := range result.Transactions {
+			var ch types.CurrencyHeader
+			for _, coinRoot := range result.Header.Roots {
+				ch = types.CurrencyHeader{
+					Root:        coinRoot.Root,
+					TxHash:      coinRoot.TxHash,
+					ReceiptHash: coinRoot.ReceiptHash}
+			}
+			cbs = append(cbs, types.CurrencyBlock{ct.CoinType, ch, types.SetTransactions(ct.Txser, nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
+		}
+		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
+		//receipts[i] = result.Receipts
+
 	}
-	if index, err := d.blockchain.InsertReceiptChain(blocks, receipts); err != nil {
+	if index, err := d.blockchain.InsertReceiptChain(blocks); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
 		return errInvalidChain
 	}
@@ -1759,9 +1772,20 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 }
 
 func (d *Downloader) commitPivotBlock(result *fetchResult) error {
-	block := types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles,nil)
+	var cbs []types.CurrencyBlock
+	for i, ct := range result.Transactions {
+		var ch types.CurrencyHeader
+		for _, coinRoot := range result.Header.Roots {
+			ch = types.CurrencyHeader{
+				Root:        coinRoot.Root,
+				TxHash:      coinRoot.TxHash,
+				ReceiptHash: coinRoot.ReceiptHash}
+		}
+		cbs = append(cbs, types.CurrencyBlock{ct.CoinType, ch, types.SetTransactions(ct.Txser, nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
+	}
+	block := types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
-	if _, err := d.blockchain.InsertReceiptChain([]*types.Block{block}, []types.Receipts{result.Receipts}); err != nil {
+	if _, err := d.blockchain.InsertReceiptChain([]*types.Block{block}); err != nil {
 		return err
 	}
 	if err := d.blockchain.FastSyncCommitHead(block.Hash()); err != nil {

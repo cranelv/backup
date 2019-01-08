@@ -45,10 +45,10 @@ type Work struct {
 	signer types.Signer
 
 	state     *state.StateDBManage // apply state changes here
-	ancestors *set.Set       // ancestor set (used for checking uncle parent validity)
-	family    *set.Set       // family set (used for checking uncle invalidity)
-	uncles    *set.Set       // uncle set
-	tcount    int            // tx count in cycle
+	ancestors *set.Set             // ancestor set (used for checking uncle parent validity)
+	family    *set.Set             // family set (used for checking uncle invalidity)
+	uncles    *set.Set             // uncle set
+	tcount    int                  // tx count in cycle
 
 	Block *types.Block // the new block
 
@@ -299,7 +299,7 @@ func (self *worker) pending() (*types.Block, *state.StateDBManage) {
 			self.current.txs,
 			nil,
 			self.current.receipts,
-			nil,   //YYDownloder
+			nil, //YYDownloder
 		), self.current.state.Copy()
 	}
 	return self.current.Block, self.current.state.Copy()

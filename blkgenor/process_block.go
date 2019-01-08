@@ -138,7 +138,6 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	p.processBlockInsert(rsp.Header.Leader)
 }
 
-
 func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDBManage, types.SelfTransactions, error) {
 	parent := p.blockChain().GetBlockByHash(header.ParentHash)
 	if parent == nil {
@@ -162,7 +161,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
 	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts,nil)
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts, nil)
 
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
@@ -171,7 +170,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	}
 
 	// 运行完matrix state后，生成root
-	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts,nil)
+	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts, nil)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
 	}
@@ -422,9 +421,9 @@ func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *t
 	txs := blockData.block.FinalTxs
 	receipts := blockData.block.Receipts
 	state := blockData.block.State
-	block := types.NewBlockWithTxs(insertHeader, types.MakeCurencyBlock(txs,receipts,nil))
+	block := types.NewBlockWithTxs(insertHeader, types.MakeCurencyBlock(txs, receipts, nil))
 
-	stat, err := p.blockChain().WriteBlockWithState(block,state)
+	stat, err := p.blockChain().WriteBlockWithState(block, state)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "插入区块失败", err)
 		return common.Hash{}, err

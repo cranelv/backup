@@ -747,7 +747,7 @@ func (tx *Transaction) SetTxCurrency(currency string) {
 }
 func (tx *Transaction) GetTxCurrency() string {
 	str := tx.Currency
-	if str == ""{
+	if str == "" {
 		str = params.MAN_COIN
 	}
 	return str
@@ -798,7 +798,7 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (SelfTransaction
 	if err != nil {
 		return nil, err
 	}
-	cpy := &Transaction{data: tx.data,Mtype:tx.Mtype,Currency:tx.Currency,IsEntrustGas:tx.IsEntrustGas,IsEntrustByTime:tx.IsEntrustByTime}
+	cpy := &Transaction{data: tx.data, Mtype: tx.Mtype, Currency: tx.Currency, IsEntrustGas: tx.IsEntrustGas, IsEntrustByTime: tx.IsEntrustByTime}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
 	return cpy, nil
 }

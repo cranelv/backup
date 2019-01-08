@@ -82,7 +82,7 @@ func (bc *BlockChain) getUpTimeData(root []common.CoinRoot, num uint64) (map[com
 		}
 	}
 	return calltherollMap, heatBeatUnmarshallMMap, nil
-}											//[]coinRoot?
+} //[]coinRoot?
 func (bc *BlockChain) handleUpTime(BeforeLastStateRoot []common.CoinRoot, state *state.StateDBManage, accounts []common.Address, calltherollRspAccounts map[common.Address]uint32, heatBeatAccounts map[common.Address][]byte, blockNum uint64, bcInterval *manparams.BCInterval) (map[common.Address]uint64, error) {
 	HeartBeatMap := bc.getHeatBeatAccount(BeforeLastStateRoot, bcInterval, blockNum, accounts, heatBeatAccounts)
 

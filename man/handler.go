@@ -859,9 +859,9 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		//isgoon := false
 		//for _,role := range roles{
 		//	if role.SignAddress == ca.GetAddress(){
-				for _, peer := range peers {
-					pairOfPeer[false] = append(pairOfPeer[false], peer)
-				}
+		for _, peer := range peers {
+			pairOfPeer[false] = append(pairOfPeer[false], peer)
+		}
 		//		isgoon = true
 		//		break
 		//	}

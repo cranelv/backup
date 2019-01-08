@@ -611,21 +611,21 @@ func (s *PublicBlockChainAPI) GetBalance(cointype string, ctx context.Context, s
 }
 
 //钱包调用
-func (s *PublicBlockChainAPI) GetEntrustList(cointype string,strAuthFrom string) []common.EntrustType {
+func (s *PublicBlockChainAPI) GetEntrustList(cointype string, strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
 	}
 	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
-	return state.GetAllEntrustList(cointype,authFrom)
+	return state.GetAllEntrustList(cointype, authFrom)
 }
-func (s *PublicBlockChainAPI) GetAuthFrom(cointype string,strEntrustFrom string, height uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFrom(cointype string, strEntrustFrom string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
 	}
 	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
-	addr := state.GetAuthFrom(cointype,entrustFrom, height)
+	addr := state.GetAuthFrom(cointype, entrustFrom, height)
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
@@ -647,7 +647,7 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(cointype string, strAuthFrom string
 	}
 	return strAddrList
 }
-func (s *PublicBlockChainAPI) GetAuthFromByTime(cointype string,strEntrustFrom string, time uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFromByTime(cointype string, strEntrustFrom string, time uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
@@ -851,7 +851,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, failed,_, err := core.ApplyMessage(evm, msg, gp)
+	res, gas, failed, _, err := core.ApplyMessage(evm, msg, gp)
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
@@ -1651,7 +1651,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Value = new(hexutil.Big)
 	}
 	if args.Nonce == nil {
-		nonce, err := b.GetPoolNonce(args.Currency,ctx, args.From)
+		nonce, err := b.GetPoolNonce(args.Currency, ctx, args.From)
 		if err != nil {
 			return err
 		}

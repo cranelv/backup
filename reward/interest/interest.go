@@ -125,7 +125,7 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 		}
 		Deposit = new(big.Int).Add(Deposit, interest)
 	}
-	balance := state.GetBalance(params.MAN_COIN,common.InterestRewardAddress)
+	balance := state.GetBalance(params.MAN_COIN, common.InterestRewardAddress)
 	log.INFO(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
 	if balance[common.MainAccount].Balance.Cmp(Deposit) < 0 {
 		log.ERROR(PackageName, "利息账户余额不足，余额为", balance[common.MainAccount].Balance.String())

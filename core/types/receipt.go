@@ -181,7 +181,7 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 }
 
 type CoinReceipts struct {
-	CoinType  string
+	CoinType    string
 	Receiptlist Receipts
 }
 

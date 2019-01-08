@@ -5,25 +5,26 @@
 package types
 
 import (
-	"testing"
-	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/rlp"
+	"testing"
 )
 
 func TestHeaderEncoding(t *testing.T) {
 	header := Header{}
-	header.Roots = append(header.Roots, common.CoinRoot{"man",common.BytesToHash([]byte{10,20})})
-	buff,err := rlp.EncodeToBytes(&header)
+	header.Roots = append(header.Roots, common.CoinRoot{"man", common.BytesToHash([]byte{10, 20})})
+	buff, err := rlp.EncodeToBytes(&header)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(common.ToHex(buff))
-	err = rlp.DecodeBytes(buff,&header)
+	err = rlp.DecodeBytes(buff, &header)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(header.Roots[0])
 }
+
 /*
 // from bcValidBlockTest.json, "SimpleTx"
 func TestBlockEncoding(t *testing.T) {

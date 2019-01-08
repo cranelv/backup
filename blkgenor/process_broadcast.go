@@ -63,22 +63,22 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs, p.pm.bc)
 		retTxs := work.GetTxs()
 		// 运行matrix状态树
-		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts,nil)
+		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts, nil)
 		if err := p.blockChain().ProcessMatrixState(block, work.State); err != nil {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, matrix 状态树运行错误", err)
 			continue
 		}
 
-		localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), block.Header(), work.State, retTxs, nil, work.Receipts,nil)
+		localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), block.Header(), work.State, retTxs, nil, work.Receipts, nil)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
 			continue
 		}
 
-		r1:=types.RlpHash(localBlock.Root())
-		r2:=types.RlpHash(result.Header.Roots)
+		r1 := types.RlpHash(localBlock.Root())
+		r2 := types.RlpHash(result.Header.Roots)
 		if r1 != r2 {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot",r1, "remote root",r2)
+			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", r1, "remote root", r2)
 			continue
 		}
 

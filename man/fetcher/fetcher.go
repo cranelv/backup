@@ -464,7 +464,7 @@ func (f *Fetcher) loop() {
 							complete = append(complete, block)
 							f.completing[hash] = announce
 							continue
-							}
+						}
 						//}
 						// Otherwise add to the list of blocks needing completion
 						incomplete = append(incomplete, announce)
@@ -529,7 +529,7 @@ func (f *Fetcher) loop() {
 
 							if f.getBlock(hash) == nil {
 								log.Trace("download fetch bodyFilter getBlock")
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i],nil)
+								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i], nil)
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)

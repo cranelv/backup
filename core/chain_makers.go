@@ -85,7 +85,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _,_, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
+	receipt, _, _, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -110,10 +110,10 @@ func (b *BlockGen) AddUncheckedReceipt(receipt *types.Receipt) {
 // TxNonce returns the next valid transaction nonce for the
 // account at addr. It panics if the account does not exist.
 func (b *BlockGen) TxNonce(addr common.Address) uint64 {
-	if !b.statedb.Exist(params.MAN_COIN,addr) {
+	if !b.statedb.Exist(params.MAN_COIN, addr) {
 		panic("account does not exist")
 	}
-	return b.statedb.GetNonce(params.MAN_COIN,addr)
+	return b.statedb.GetNonce(params.MAN_COIN, addr)
 }
 
 // AddUncle adds an uncle header to the generated block.
@@ -189,9 +189,9 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 
 		if b.engine != nil {
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts,nil)
+			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts, nil)
 			// Write state changes to db
-			root,_, err := statedb.Commit(config.IsEIP158(b.header.Number))		//ShardingBB1
+			root, _, err := statedb.Commit(config.IsEIP158(b.header.Number)) //ShardingBB1
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
@@ -203,7 +203,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		return nil, nil
 	}
 	for i := 0; i < n; i++ {
-		statedb, err := state.NewStateDBManage(parent.Root(),db,state.NewDatabase(db))
+		statedb, err := state.NewStateDBManage(parent.Root(), db, state.NewDatabase(db))
 		if err != nil {
 			panic(err)
 		}
@@ -223,11 +223,11 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = new(big.Int).Add(parent.Time(), big.NewInt(10)) // block time is fixed at 10 seconds
 	}
 
-	roots,sharding:=state.IntermediateRoot(chain.Config().IsEIP158(parent.Number()))
+	roots, sharding := state.IntermediateRoot(chain.Config().IsEIP158(parent.Number()))
 
-	head:= &types.Header{
-		Roots:             make([]common.CoinRoot,len(roots)),
-		Sharding:          make([]common.Coinbyte,len(sharding)), 	//shardingBB
+	head := &types.Header{
+		Roots:      make([]common.CoinRoot, len(roots)),
+		Sharding:   make([]common.Coinbyte, len(sharding)), //shardingBB
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
 		Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{
@@ -241,8 +241,8 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Time:     time,
 	}
 	copy(head.Sharding, sharding)
-	copy(head.Roots, roots)		//shardingBB
-	return 		head
+	copy(head.Roots, roots) //shardingBB
+	return head
 }
 
 // newCanonical creates a chain database, and injects a deterministic canonical

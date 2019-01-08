@@ -10,8 +10,8 @@ import (
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -236,7 +236,7 @@ func (br *BlockReward) calcRewardMountByNumber(blockReward *big.Int, num uint64,
 		log.ERROR(PackageName, "状态树是空", "")
 		return big.NewInt(0)
 	}
-	balance := br.st.GetBalance(params.MAN_COIN,address)
+	balance := br.st.GetBalance(params.MAN_COIN, address)
 	if len(balance) == 0 {
 		log.ERROR(PackageName, "账户余额获取不到", "")
 		return nil

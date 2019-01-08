@@ -6,9 +6,10 @@ package core
 
 import (
 	"errors"
+	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
-	_"github.com/matrix/go-matrix/consensus/misc"
+	_ "github.com/matrix/go-matrix/consensus/misc"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
@@ -24,7 +25,6 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
-	"github.com/matrix/go-matrix/ca"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -50,7 +50,7 @@ func (env *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big
 
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
-	balance := state.GetBalance(params.MAN_COIN,common.TxGasRewardAddress)
+	balance := state.GetBalance(params.MAN_COIN, common.TxGasRewardAddress)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法", "")
@@ -85,7 +85,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, num)
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType:params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
 		}
 	}
 
@@ -116,7 +116,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 	}
 	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType:params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
 	}
 
 	slash := slash.New(p.bc, state)
@@ -134,7 +134,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64,shardings []uint) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64, shardings []uint) (types.Receipts, []*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -180,26 +180,26 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			continue
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _,shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		var tmptx types.SelfTransaction
-		if p.isValidater(header.Number){
+		if p.isValidater(header.Number) {
 			receipts = append(receipts, receipt)
 			allLogs = append(allLogs, receipt.Logs...)
 			tmptx = tx
-		}else {
-			if p.isaddSharding(shard,shardings,tx.GetTxCurrency()){
+		} else {
+			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
 				receipts = append(receipts, receipt)
 				allLogs = append(allLogs, receipt.Logs...)
-				shardings = append(shardings,shard...)
+				shardings = append(shardings, shard...)
 				tmptx = tx
-			}else {
+			} else {
 				tmptx = nil
 			}
 		}
-		ftxs = append(ftxs,tmptx)
+		ftxs = append(ftxs, tmptx)
 		txcount = i
 		from = append(from, tx.From())
 	}
@@ -209,12 +209,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	}
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
-		receipt, _,shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		var tmptx types.SelfTransaction
-		if p.isValidater(header.Number){
+		if p.isValidater(header.Number) {
 			tmpr := make(types.Receipts, 0)
 			tmpr = append(tmpr, receipt)
 			tmpr = append(tmpr, receipts...)
@@ -224,8 +224,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			tmpl = append(tmpl, allLogs...)
 			allLogs = tmpl
 			tmptx = tx
-		}else {
-			if p.isaddSharding(shard,shardings,tx.GetTxCurrency()){
+		} else {
+			if p.isaddSharding(shard, shardings, tx.GetTxCurrency()) {
 				tmpr := make(types.Receipts, 0)
 				tmpr = append(tmpr, receipt)
 				tmpr = append(tmpr, receipts...)
@@ -234,60 +234,61 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 				tmpl = append(tmpl, receipt.Logs...)
 				tmpl = append(tmpl, allLogs...)
 				allLogs = tmpl
-				shardings = append(shardings,shard...)
+				shardings = append(shardings, shard...)
 				tmptx = tx
-			}else {
+			} else {
 				tmptx = nil
 			}
 		}
-		ftxs = append(ftxs,tmptx)
+		ftxs = append(ftxs, tmptx)
 	}
 	tmpm := make(map[uint]bool)
-	shards := make([]uint,0)
-	for _,ui := range shardings{
-		if _,ok := tmpm[ui];!ok{
+	shards := make([]uint, 0)
+	for _, ui := range shardings {
+		if _, ok := tmpm[ui]; !ok {
 			tmpm[ui] = true
-			shards = append(shards,ui)
+			shards = append(shards, ui)
 		}
 	}
 	shards = nil //TODO test
-	ftxs = txs  //TODO test
+	ftxs = txs   //TODO test
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, ftxs, block.Uncles(), receipts,shards)
+	p.engine.Finalize(p.bc, header, statedb, ftxs, block.Uncles(), receipts, shards)
 
 	return receipts, allLogs, *usedGas, nil
 }
-func (p *StateProcessor) isValidater(h *big.Int)bool{
-	roles ,_:=ca.GetElectedByHeightAndRole(new(big.Int).Sub(h,big.NewInt(1)),common.RoleValidator)
-	for _,role := range roles{
-		if role.SignAddress == ca.GetAddress(){
+func (p *StateProcessor) isValidater(h *big.Int) bool {
+	roles, _ := ca.GetElectedByHeightAndRole(new(big.Int).Sub(h, big.NewInt(1)), common.RoleValidator)
+	for _, role := range roles {
+		if role.SignAddress == ca.GetAddress() {
 			return true
 		}
 	}
 	return false
 }
-func (p *StateProcessor) isaddSharding(shard,shardings []uint,cointyp string)bool{
+func (p *StateProcessor) isaddSharding(shard, shardings []uint, cointyp string) bool {
 	return true //TODO test
-	if len(shardings) == 0 || (len(shardings)>0 && shardings[0] == 0){
+	if len(shardings) == 0 || (len(shardings) > 0 && shardings[0] == 0) {
 		return true
 	}
-	for _,s := range shard{
-		if s == 0 && cointyp == params.MAN_COIN{
+	for _, s := range shard {
+		if s == 0 && cointyp == params.MAN_COIN {
 			return true
 		}
-		for _,ss := range shardings{
-			if s == ss{
+		for _, ss := range shardings {
+			if s == ss {
 				return true
 			}
 		}
 	}
 	return false
 }
+
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDBManage, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64,[]uint, error) {
+func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDBManage, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, []uint, error) {
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
@@ -296,36 +297,36 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 	statedb.MakeStatedb(tx.GetTxCurrency())
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
-	vmenv := vm.NewEVM(context, statedb, config, cfg,tx.GetTxCurrency())
+	vmenv := vm.NewEVM(context, statedb, config, cfg, tx.GetTxCurrency())
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64
 	var failed bool
-	shardings := make([]uint,0)
+	shardings := make([]uint, 0)
 	if tx.TxType() == types.BroadCastTxIndex {
 		if extx := tx.GetMatrix_EX(); (extx != nil) && len(extx) > 0 && extx[0].TxType == 1 {
 			gas = uint64(0)
 			failed = true
 		}
 	} else {
-		_, gas, failed,shardings, err = ApplyMessage(vmenv, tx, gp)
+		_, gas, failed, shardings, err = ApplyMessage(vmenv, tx, gp)
 		if err != nil {
-			return nil, 0,nil, err
+			return nil, 0, nil, err
 		}
 	}
 	//如果是委托gas并且是按时间委托
 	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
 		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(),from, header.Time.Uint64()) {
+		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(), from, header.Time.Uint64()) {
 			log.Error("按时间委托gas的交易失效")
-			return nil, 0,nil, errors.New("entrustTx is invalid")
+			return nil, 0, nil, errors.New("entrustTx is invalid")
 		}
 	}
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(tx.GetTxCurrency(),true)
+		statedb.Finalise(tx.GetTxCurrency(), true)
 	} else {
-		root= statedb.IntermediateRootByCointype(tx.GetTxCurrency(),config.IsEIP158(header.Number)).Bytes()	//shardingBB
+		root = statedb.IntermediateRootByCointype(tx.GetTxCurrency(), config.IsEIP158(header.Number)).Bytes() //shardingBB
 	}
 	*usedGas += gas
 
@@ -339,8 +340,8 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.GetTxCurrency(),tx.From(),tx.Hash())
+	receipt.Logs = statedb.GetLogs(tx.GetTxCurrency(), tx.From(), tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
-	return receipt, gas,shardings, err
+	return receipt, gas, shardings, err
 }

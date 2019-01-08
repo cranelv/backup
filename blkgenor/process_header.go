@@ -108,7 +108,7 @@ func (p *Process) processHeaderGen() error {
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root
 	finalTxs := tsBlock.Transactions()
-	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, finalTxs, nil, receipts,nil)
+	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "最终finalize错误", err)
 		return err
@@ -173,7 +173,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs := work.GetTxs()
-		block := types.NewBlock(header, retTxs, nil, work.Receipts,nil)
+		block := types.NewBlock(header, retTxs, nil, work.Receipts, nil)
 		return block, nil, work.State, work.Receipts, retTxs, nil
 
 	} else {
@@ -190,7 +190,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		}
 		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
-		block := types.NewBlock(header, finalTxs, nil, work.Receipts,nil)
+		block := types.NewBlock(header, finalTxs, nil, work.Receipts, nil)
 		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
 		return block, txsCode, work.State, work.Receipts, originalTxs, nil
 	}

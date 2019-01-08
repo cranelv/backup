@@ -33,11 +33,11 @@ import (
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/matrix/go-matrix/params"
 )
 
 var (
@@ -578,11 +578,11 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.NewStateDBManage(block.Root(), chainDb,state.NewDatabase(chainDb))
+			state, err := state.NewStateDBManage(block.Root(), chainDb, state.NewDatabase(chainDb))
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump(params.MAN_COIN,common.Address{}))	//TODO
+			fmt.Printf("%s\n", state.Dump(params.MAN_COIN, common.Address{})) //TODO
 		}
 	}
 	chainDb.Close()
@@ -712,7 +712,7 @@ func signBlock(ctx *cli.Context) error {
 	genesis := new(core.Genesis)
 	core.ManGenesisToEthGensis(matrixGenesis, genesis)
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
-	superBlock := genesis.GenSuperBlock(parent,chainDB ,state.NewDatabase(chainDB), chain.Config())
+	superBlock := genesis.GenSuperBlock(parent, chainDB, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
 		utils.Fatalf("genesis super block err")
 	}
@@ -738,7 +738,7 @@ func signBlock(ctx *cli.Context) error {
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	matrixGenesis.Roots=make([]common.CoinRoot, len(superBlock.Root()))
+	matrixGenesis.Roots = make([]common.CoinRoot, len(superBlock.Root()))
 	copy(matrixGenesis.Roots, superBlock.Root())
 	matrixGenesis.TxHash = superBlock.TxHash()
 	matrixGenesis.Signatures = append(genesis.Signatures, sign)

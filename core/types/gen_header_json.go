@@ -18,22 +18,22 @@ var _ = (*headerMarshaling)(nil)
 
 func (h Header) MarshalJSON() ([]byte, error) {
 	type Header struct {
-		ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-		UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
-		Coinbase    common.Address `json:"miner"            gencodec:"required"`
-		Roots       []common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
-		Sharding       []common.Coinbyte    `json:"sharding"        gencodec:"required"`
+		ParentHash common.Hash       `json:"parentHash"       gencodec:"required"`
+		UncleHash  common.Hash       `json:"sha3Uncles"       gencodec:"required"`
+		Coinbase   common.Address    `json:"miner"            gencodec:"required"`
+		Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
+		Sharding   []common.Coinbyte `json:"sharding"        gencodec:"required"`
 		//TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`			BBBBBBB
 		//ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-		Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
-		Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
-		Number      *hexutil.Big   `json:"number"           gencodec:"required"`
-		GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
-		GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
-		Time        *hexutil.Big   `json:"timestamp"        gencodec:"required"`
-		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-		MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
-		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+		Bloom      Bloom          `json:"logsBloom"        gencodec:"required"`
+		Difficulty *hexutil.Big   `json:"difficulty"       gencodec:"required"`
+		Number     *hexutil.Big   `json:"number"           gencodec:"required"`
+		GasLimit   hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
+		GasUsed    hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
+		Time       *hexutil.Big   `json:"timestamp"        gencodec:"required"`
+		Extra      hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+		MixDigest  common.Hash    `json:"mixHash"          gencodec:"required"`
+		Nonce      BlockNonce     `json:"nonce"            gencodec:"required"`
 
 		Leader            common.Address     `json:"leader"            gencodec:"required"`
 		Elect             []common.Elect     `json:"elect"        gencodec:"required"`
@@ -75,22 +75,22 @@ func (h Header) MarshalJSON() ([]byte, error) {
 
 func (h *Header) UnmarshalJSON(input []byte) error {
 	type Header struct {
-		ParentHash  *common.Hash    `json:"parentHash"       gencodec:"required"`
-		UncleHash   *common.Hash    `json:"sha3Uncles"       gencodec:"required"`
-		Coinbase    *common.Address `json:"miner"            gencodec:"required"`
-		Roots       *[]common.CoinRoot    `json:"stateRoot"        gencodec:"required"`
-		Sharding       *[]common.Coinbyte    `json:"sharding"        gencodec:"required"`
+		ParentHash *common.Hash       `json:"parentHash"       gencodec:"required"`
+		UncleHash  *common.Hash       `json:"sha3Uncles"       gencodec:"required"`
+		Coinbase   *common.Address    `json:"miner"            gencodec:"required"`
+		Roots      *[]common.CoinRoot `json:"stateRoot"        gencodec:"required"`
+		Sharding   *[]common.Coinbyte `json:"sharding"        gencodec:"required"`
 		//TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`		//BBBBBBBBBBBB
 		//ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-		Bloom       *Bloom          `json:"logsBloom"        gencodec:"required"`
-		Difficulty  *hexutil.Big    `json:"difficulty"       gencodec:"required"`
-		Number      *hexutil.Big    `json:"number"           gencodec:"required"`
-		GasLimit    *hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
-		GasUsed     *hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
-		Time        *hexutil.Big    `json:"timestamp"        gencodec:"required"`
-		Extra       *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-		MixDigest   *common.Hash    `json:"mixHash"          gencodec:"required"`
-		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
+		Bloom      *Bloom          `json:"logsBloom"        gencodec:"required"`
+		Difficulty *hexutil.Big    `json:"difficulty"       gencodec:"required"`
+		Number     *hexutil.Big    `json:"number"           gencodec:"required"`
+		GasLimit   *hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
+		GasUsed    *hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
+		Time       *hexutil.Big    `json:"timestamp"        gencodec:"required"`
+		Extra      *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+		MixDigest  *common.Hash    `json:"mixHash"          gencodec:"required"`
+		Nonce      *BlockNonce     `json:"nonce"            gencodec:"required"`
 
 		Leader            *common.Address     `json:"leader"            gencodec:"required"`
 		Elect             *[]common.Elect     `json:"elect"        gencodec:"required"`

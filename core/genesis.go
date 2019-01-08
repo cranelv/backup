@@ -58,11 +58,11 @@ type Genesis struct {
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
-	Number     uint64      `json:"number"`
-	GasUsed    uint64      `json:"gasUsed"`
-	ParentHash common.Hash `json:"parentHash"`
-	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
-	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
+	Number     uint64            `json:"number"`
+	GasUsed    uint64            `json:"gasUsed"`
+	ParentHash common.Hash       `json:"parentHash"`
+	Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
+	Sharding   []common.Coinbyte `json:"sharding,omitempty"`
 	//TxHash     common.Hash `json:"transactionsRoot,omitempty"`			//BBBBBBBB
 }
 
@@ -91,11 +91,11 @@ type Genesis1 struct {
 	MState            *GenesisMState1     `json:"mstate,omitempty"`
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
-	Number     uint64      `json:"number"`
-	GasUsed    uint64      `json:"gasUsed"`
-	ParentHash common.Hash `json:"parentHash"`
+	Number     uint64            `json:"number"`
+	GasUsed    uint64            `json:"gasUsed"`
+	ParentHash common.Hash       `json:"parentHash"`
 	Roots      []common.CoinRoot `json:"stateRoot,omitempty"`
-	Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
+	Sharding   []common.Coinbyte `json:"sharding,omitempty"`
 	//TxHash     common.Hash `json:"transactionsRoot,omitempty"`			//BBBBBBBBBB
 }
 type GenesisAlloc1 map[string]GenesisAccount //hezi
@@ -117,7 +117,6 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	gensis.Coinbase = base58.Base58DecodeToAddress(gensis1.Coinbase)
 	gensis.Roots = gensis1.Roots
 	gensis.Sharding = gensis1.Sharding
-	gensis.TxHash = gensis1.TxHash
 	//nextElect
 	nextElect := make([]common.Elect, 0)
 	for _, elec := range gensis1.NextElect {
@@ -387,26 +386,26 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
-	statedb, _ := state.NewStateDBManage(nil,db,state.NewDatabase(db)) //ShardingYY
+	statedb, _ := state.NewStateDBManage(nil, db, state.NewDatabase(db)) //ShardingYY
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(params.MAN_COIN,common.MainAccount, addr, account.Balance) //ShardingYY
+		statedb.AddBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance) //ShardingYY
 		///*******************************************************/
 		////hezi 应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
 		//statedb.AddBalance(common.EntrustAccount,addr, account.Balance)
 		//statedb.AddBalance(common.FreezeAccount,addr, account.Balance)
 		///*******************************************************/
-		statedb.SetCode(params.MAN_COIN,addr, account.Code) //ShardingYY
-		statedb.SetNonce(params.MAN_COIN,addr, account.Nonce) //ShardingYY
+		statedb.SetCode(params.MAN_COIN, addr, account.Code)   //ShardingYY
+		statedb.SetNonce(params.MAN_COIN, addr, account.Nonce) //ShardingYY
 		for key, value := range account.Storage {
-			statedb.SetState(params.MAN_COIN,addr, key, value) //ShardingYY
+			statedb.SetState(params.MAN_COIN, addr, key, value) //ShardingYY
 		}
 		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-		statedb.AddBalance(params.BTC_COIN,common.MainAccount, addr, account.Balance) //ShardingYY
-		statedb.SetCode(params.BTC_COIN,addr, account.Code) //ShardingYY
-		statedb.SetNonce(params.BTC_COIN,addr, account.Nonce) //ShardingYY
+		statedb.AddBalance(params.BTC_COIN, common.MainAccount, addr, account.Balance) //ShardingYY
+		statedb.SetCode(params.BTC_COIN, addr, account.Code)                           //ShardingYY
+		statedb.SetNonce(params.BTC_COIN, addr, account.Nonce)                         //ShardingYY
 		for key, value := range account.Storage {
-			statedb.SetState(params.BTC_COIN,addr, key, value) //ShardingYY
+			statedb.SetState(params.BTC_COIN, addr, key, value) //ShardingYY
 		}
 		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
 
@@ -424,7 +423,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		log.Error("genesis", "MState.SetSuperBlkToState err", err)
 		return nil, err
 	}
-	roots,sharding := statedb.IntermediateRoot(false)
+	roots, sharding := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:            new(big.Int).SetUint64(g.Number),
 		Nonce:             types.EncodeNonce(g.Nonce),
@@ -443,8 +442,8 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Difficulty:        g.Difficulty,
 		MixDigest:         g.Mixhash,
 		Coinbase:          g.Coinbase,
-		Roots:             make([]common.CoinRoot,len(roots)), //ShardingYY
-		Sharding:          make([]common.Coinbyte,len(sharding)), //ShardingBB
+		Roots:             make([]common.CoinRoot, len(roots)),    //ShardingYY
+		Sharding:          make([]common.Coinbyte, len(sharding)), //ShardingBB
 	}
 	copy(head.Roots, roots)
 	copy(head.Sharding, sharding)
@@ -462,28 +461,27 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	statedb.Commit(false)
 	statedb.Database().TrieDB().CommitRoots(roots, true) //ShardingYY
 
-
-	return types.NewBlock(head, nil, nil, nil,nil), nil
+	return types.NewBlock(head, nil, nil), nil
 }
 
-func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, sdb state.Database, chainCfg *params.ChainConfig) *types.Block {
+func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, sdb state.Database, chainCfg *params.ChainConfig) *types.Block {
 	if nil == parentHeader || nil == sdb {
 		log.ERROR("genesis super block", "param err", "nil")
 		return nil
 	}
 
-	stateDB, err := state.NewStateDBManage(parentHeader.Roots, mdb,sdb)
+	stateDB, err := state.NewStateDBManage(parentHeader.Roots, mdb, sdb)
 	if err != nil {
 		log.Error("genesis super block", "get parent state db err", err)
 		return nil
 	}
 
 	for addr, account := range g.Alloc {
-		stateDB.SetBalance(params.MAN_COIN,common.MainAccount, addr, account.Balance)
-		stateDB.SetCode(params.MAN_COIN,addr, account.Code)
-		stateDB.SetNonce(params.MAN_COIN,addr, account.Nonce)
+		stateDB.SetBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance)
+		stateDB.SetCode(params.MAN_COIN, addr, account.Code)
+		stateDB.SetNonce(params.MAN_COIN, addr, account.Nonce)
 		for key, value := range account.Storage {
-			stateDB.SetState(params.MAN_COIN,addr, key, value)
+			stateDB.SetState(params.MAN_COIN, addr, key, value)
 		}
 	}
 	if nil != g.MState {
@@ -516,7 +514,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		Coinbase:          g.Coinbase,
 	}
 
-	head.Roots,head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
+	head.Roots, head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
@@ -551,7 +549,11 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header,mdb mandb.Database, s
 		txs = append(txs, tx1)
 	}
 
-	return types.NewBlock(head, txs, nil, nil,nil)
+	var cts []types.CoinSelfTransaction
+	ct := types.CoinSelfTransaction{params.MAN_COIN, txs}
+	cts = append(cts, ct)
+
+	return types.NewBlock(head, types.MakeCurencyBlock(cts, nil, nil), nil)
 }
 
 // Commit writes the block and state of a genesis specification to the database.

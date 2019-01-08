@@ -86,66 +86,66 @@ type CallContext interface {
 }
 
 type StateDBManager interface {
-	CreateAccount(cointyp string,addr common.Address)
+	CreateAccount(cointyp string, addr common.Address)
 
-	SetBalance(cointyp string,accountType uint32, addr common.Address, amount *big.Int)
-	SubBalance(cointyp string,idx uint32,addr common.Address,am *big.Int)
-	AddBalance(cointyp string,idx uint32,addr common.Address,am *big.Int)
+	SetBalance(cointyp string, accountType uint32, addr common.Address, amount *big.Int)
+	SubBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)
+	AddBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)
 
 	GetBalanceAll(common.Address) common.BalanceType
-	GetBalance(cointyp string,addr common.Address) common.BalanceType
-	GetBalanceByType(cointyp string,addr common.Address, accType uint32) *big.Int
+	GetBalance(cointyp string, addr common.Address) common.BalanceType
+	GetBalanceByType(cointyp string, addr common.Address, accType uint32) *big.Int
 
-	GetNonce(cointyp string,addr common.Address) uint64
-	SetNonce(cointyp string,addr common.Address,noc uint64)
+	GetNonce(cointyp string, addr common.Address) uint64
+	SetNonce(cointyp string, addr common.Address, noc uint64)
 
-	GetCodeHash(cointyp string,addr common.Address) common.Hash
-	GetCode(cointyp string,addr common.Address) []byte
-	SetCode(cointyp string,addr common.Address,b []byte)
-	GetCodeSize(cointyp string,addr common.Address) int
+	GetCodeHash(cointyp string, addr common.Address) common.Hash
+	GetCode(cointyp string, addr common.Address) []byte
+	SetCode(cointyp string, addr common.Address, b []byte)
+	GetCodeSize(cointyp string, addr common.Address) int
 
-	AddRefund(cointyp string,address common.Address,gas uint64)
-	GetRefund(cointyp string,address common.Address) uint64
+	AddRefund(cointyp string, address common.Address, gas uint64)
+	GetRefund(cointyp string, address common.Address) uint64
 
-	GetState(cointyp string,addr common.Address,hash  common.Hash) common.Hash
-	SetState(cointyp string,addr common.Address, hash,hash2 common.Hash)
+	GetState(cointyp string, addr common.Address, hash common.Hash) common.Hash
+	SetState(cointyp string, addr common.Address, hash, hash2 common.Hash)
 
-	CommitSaveTx(cointyp string,addr common.Address)
-	GetSaveTx(cointyp string,addr common.Address,typ byte, key uint32, hash []common.Hash, isdel bool)
-	SaveTx(cointyp string,addr common.Address,typ byte, key uint32, data map[common.Hash][]byte)
-	NewBTrie(cointyp string,addr common.Address,typ byte)
+	CommitSaveTx(cointyp string, addr common.Address)
+	GetSaveTx(cointyp string, addr common.Address, typ byte, key uint32, hash []common.Hash, isdel bool)
+	SaveTx(cointyp string, addr common.Address, typ byte, key uint32, data map[common.Hash][]byte)
+	NewBTrie(cointyp string, addr common.Address, typ byte)
 
-	GetStateByteArray(cointyp string,addr common.Address,hash  common.Hash) []byte
-	SetStateByteArray(cointyp string,addr common.Address,hash  common.Hash,b []byte)
+	GetStateByteArray(cointyp string, addr common.Address, hash common.Hash) []byte
+	SetStateByteArray(cointyp string, addr common.Address, hash common.Hash, b []byte)
 
-	Suicide(cointyp string,addr common.Address) bool
-	HasSuicided(cointyp string,addr common.Address) bool
+	Suicide(cointyp string, addr common.Address) bool
+	HasSuicided(cointyp string, addr common.Address) bool
 
 	//// Exist reports whether the given account exists in state.
 	//// Notably this should also return true for suicided accounts.
-	Exist(cointyp string,addr common.Address) bool
+	Exist(cointyp string, addr common.Address) bool
 	// Empty returns whether the given account is empty. Empty
 	// is defined according to EIP161 (balance = nonce = code = 0).
-	Empty(cointyp string,addr common.Address) bool
+	Empty(cointyp string, addr common.Address) bool
 
-	RevertToSnapshot(cointyp string,ss map[byte]int)
+	RevertToSnapshot(cointyp string, ss map[byte]int)
 	Snapshot(cointyp string) map[byte]int
 
 	//setError(err error)
 	Error() error
 
-	AddLog(cointyp string,address common.Address,log *types.Log)
-	GetLogs(cointyp string,address common.Address,hash common.Hash) []*types.Log
+	AddLog(cointyp string, address common.Address, log *types.Log)
+	GetLogs(cointyp string, address common.Address, hash common.Hash) []*types.Log
 	Logs() []*types.Log
 
-	AddPreimage(cointype string,addr common.Address,hash common.Hash, preimage []byte)
-	Preimages()  map[string]map[common.Hash][]byte
+	AddPreimage(cointype string, addr common.Address, hash common.Hash, preimage []byte)
+	Preimages() map[string]map[common.Hash][]byte
 
-	ForEachStorage(cointyp string,addr common.Address, cb func(key, value common.Hash) bool)
-	IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot,[]common.Coinbyte)
-	IntermediateRootByCointype(cointype string,deleteEmptyObjects bool) common.Hash
+	ForEachStorage(cointyp string, addr common.Address, cb func(key, value common.Hash) bool)
+	IntermediateRoot(deleteEmptyObjects bool) ([]common.CoinRoot, []common.Coinbyte)
+	IntermediateRootByCointype(cointype string, deleteEmptyObjects bool) common.Hash
 	Prepare(thash, bhash common.Hash, ti int)
-	Commit(deleteEmptyObjects bool) ( []common.CoinRoot, []common.Coinbyte, error)
+	Commit(deleteEmptyObjects bool) ([]common.CoinRoot, []common.Coinbyte, error)
 
 	SetMatrixData(hash common.Hash, val []byte)
 	GetMatrixData(hash common.Hash) (val []byte)
@@ -154,16 +154,16 @@ type StateDBManager interface {
 	UpdateTxForBtree(key uint32)
 	UpdateTxForBtreeBytime(key uint32)
 
-	GetGasAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
-	GetAuthFrom(cointyp string,entrustFrom common.Address, height uint64) common.Address
-	GetGasAuthFromByTime(cointyp string,entrustFrom common.Address, time uint64) common.Address
-	GetEntrustFrom(cointyp string,authFrom common.Address, height uint64) []common.Address
+	GetGasAuthFrom(cointyp string, entrustFrom common.Address, height uint64) common.Address
+	GetAuthFrom(cointyp string, entrustFrom common.Address, height uint64) common.Address
+	GetGasAuthFromByTime(cointyp string, entrustFrom common.Address, time uint64) common.Address
+	GetEntrustFrom(cointyp string, authFrom common.Address, height uint64) []common.Address
 
-	Finalise(cointyp string,deleteEmptyObjects bool)
-	GetAllEntrustSignFrom(cointyp string,authFrom common.Address) []common.Address
-	GetAllEntrustGasFrom(cointyp string,authFrom common.Address) []common.Address
+	Finalise(cointyp string, deleteEmptyObjects bool)
+	GetAllEntrustSignFrom(cointyp string, authFrom common.Address) []common.Address
+	GetAllEntrustGasFrom(cointyp string, authFrom common.Address) []common.Address
 
-	Dump(cointype string,address common.Address) []byte
+	Dump(cointype string, address common.Address) []byte
 	//RawDump(cointype string)state.Dump
 	//RawDumpAcccount(cointype string,address common.Address) state.Dump
 }

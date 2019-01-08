@@ -126,11 +126,11 @@ func (b *ManAPIBackend) GetTd(blockHash common.Hash) *big.Int {
 }
 
 func (b *ManAPIBackend) GetEVM(ctx context.Context, msg txinterface.Message, state *state.StateDBManage, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
-	state.SetBalance(msg.GetTxCurrency(),common.MainAccount, msg.From(), math.MaxBig256)
+	state.SetBalance(msg.GetTxCurrency(), common.MainAccount, msg.From(), math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg.From(), msg.GasPrice(), header, b.man.BlockChain(), nil)
-	return vm.NewEVM(context, state, b.man.chainConfig, vmCfg,msg.GetTxCurrency()), vmError, nil
+	return vm.NewEVM(context, state, b.man.chainConfig, vmCfg, msg.GetTxCurrency()), vmError, nil
 }
 
 func (b *ManAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -218,12 +218,12 @@ func (b *ManAPIBackend) GetPoolTransaction(hash common.Hash) types.SelfTransacti
 	return nil
 }
 
-func (b *ManAPIBackend) GetPoolNonce(cointyp string,ctx context.Context, addr common.Address) (uint64, error) {
+func (b *ManAPIBackend) GetPoolNonce(cointyp string, ctx context.Context, addr common.Address) (uint64, error) {
 	npooler, nerr := b.man.TxPool().GetTxPoolByType(types.NormalTxIndex)
 	if nerr == nil {
 		npool, ok := npooler.(*core.NormalTxPool)
 		if ok {
-			return npool.State().GetNonce(cointyp,addr), nil
+			return npool.State().GetNonce(cointyp, addr), nil
 		} else {
 			return 0, errors.New("GetPoolNonce() unknown txpool")
 		}

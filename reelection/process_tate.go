@@ -173,8 +173,8 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 	height := block.Header().Number.Uint64()
 	if height == 1 {
 		firstData := &mc.PreBroadStateRoot{
-			LastStateRoot:       make([]common.CoinRoot,0),
-			BeforeLastStateRoot: make([]common.CoinRoot,0),
+			LastStateRoot:       make([]common.CoinRoot, 0),
+			BeforeLastStateRoot: make([]common.CoinRoot, 0),
 		}
 		return firstData, nil
 	}
@@ -198,9 +198,9 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 		return nil, errors.New("header is nil")
 	}
 	preBroadcast.BeforeLastStateRoot = make([]common.CoinRoot, len(preBroadcast.LastStateRoot))
-	copy(preBroadcast.BeforeLastStateRoot,preBroadcast.LastStateRoot)
-	preBroadcast.LastStateRoot =make([] common.CoinRoot, len(header.Roots))
-	copy(preBroadcast.LastStateRoot,header.Roots)
+	copy(preBroadcast.BeforeLastStateRoot, preBroadcast.LastStateRoot)
+	preBroadcast.LastStateRoot = make([]common.CoinRoot, len(header.Roots))
+	copy(preBroadcast.LastStateRoot, header.Roots)
 	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot, "last", preBroadcast.LastStateRoot)
 	return preBroadcast, nil
 

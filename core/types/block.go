@@ -58,15 +58,15 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 
 // Header represents a block header in the Matrix blockchain.
 type Header struct {
-	ParentHash  common.Hash        `json:"parentHash"       gencodec:"required"`
-	UncleHash   common.Hash        `json:"sha3Uncles"       gencodec:"required"`
-	Leader      common.Address     `json:"leader"            gencodec:"required"`
-	Coinbase    common.Address     `json:"miner"            gencodec:"required"`
-	Roots       []common.CoinRoot  `json:"stateRoot"        gencodec:"required"`
-	Sharding    []common.Coinbyte  `json:"sharding"        gencodec:"required"`
+	ParentHash common.Hash       `json:"parentHash"       gencodec:"required"`
+	UncleHash  common.Hash       `json:"sha3Uncles"       gencodec:"required"`
+	Leader     common.Address    `json:"leader"            gencodec:"required"`
+	Coinbase   common.Address    `json:"miner"            gencodec:"required"`
+	Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
+	Sharding   []common.Coinbyte `json:"sharding"        gencodec:"required"`
 	//TxHash      common.Hash        `json:"transactionsRoot" gencodec:"required"`
 	//ReceiptHash common.Hash        `json:"receiptsRoot"     gencodec:"required"`
-	Bloom       Bloom              `json:"logsBloom"        gencodec:"required"`
+	//Bloom       Bloom              `json:"logsBloom"        gencodec:"required"`
 	Difficulty  *big.Int           `json:"difficulty"       gencodec:"required"`
 	Number      *big.Int           `json:"number"           gencodec:"required"`
 	GasLimit    uint64             `json:"gasLimit"         gencodec:"required"`
@@ -229,171 +229,170 @@ func RlpHash(x interface{}) (h common.Hash) {
 	hw.Sum(h[:0])
 	return h
 }
+
 //1. Complete Block transactions = []SelfTransaction
 //2. Sharding Block transactions = []TxInfo
 type BodyTransactions struct {
-	Sharding []uint		// if complete block sharding = []
-	Transactions []SelfTransaction		//complete transactions
-	TransactionInfos []TransactionInfo  //sharding transactions
+	Sharding         []uint            // if complete block sharding = []
+	Transactions     []SelfTransaction //complete transactions
+	TransactionInfos []TransactionInfo //sharding transactions
 }
-func (bt* BodyTransactions)GetTransactions()[]SelfTransaction{
-	if len(bt.Sharding) == 0{
+
+func (bt *BodyTransactions) GetTransactions() []SelfTransaction {
+	if len(bt.Sharding) == 0 {
 		return bt.Transactions
-	}else{
-		txser := make([]SelfTransaction,0)
-		for _,txer:=range bt.TransactionInfos{
-			txser = append(txser,txer.Tx)
+	} else {
+		txser := make([]SelfTransaction, 0)
+		for _, txer := range bt.TransactionInfos {
+			txser = append(txser, txer.Tx)
 		}
-		if len(txser) == 0{
+		if len(txser) == 0 {
 			return nil
 		}
 		return txser
 	}
 }
 
-
-func (br* BodyReceipts)GetReceipts()Receipts{
-	if len(br.Sharding) == 0{
+func (br *BodyReceipts) GetReceipts() Receipts {
+	if len(br.Sharding) == 0 {
 		return br.Rs
-	}else{
-		Receiptser := make([]*Receipt,0)
-		for _,Receipter:=range br.ReceiptsInfos{
-			Receiptser = append(Receiptser,&Receipter.Receipt)
+	} else {
+		Receiptser := make([]*Receipt, 0)
+		for _, Receipter := range br.ReceiptsInfos {
+			Receiptser = append(Receiptser, &Receipter.Receipt)
 		}
-		if len(Receiptser) == 0{
+		if len(Receiptser) == 0 {
 			return nil
 		}
 		return Receiptser
 	}
 }
 
-func SetTransactions(txser SelfTransactions,shadings[]uint)BodyTransactions{
+func SetTransactions(txser SelfTransactions, shadings []uint) BodyTransactions {
 	bt := BodyTransactions{}
-	if len(shadings) == 0{
+	if len(shadings) == 0 {
 		bt.Transactions = txser
-	}else{
+	} else {
 		bt.TransactionInfos = bt.setTransactionInfo(txser)
 		bt.Sharding = shadings
 	}
 	return bt
 }
 
-
-func SetReceipts(Receiptser []*Receipt,shadings[]uint)BodyReceipts{
+func SetReceipts(Receiptser []*Receipt, shadings []uint) BodyReceipts {
 	br := BodyReceipts{}
-	if len(shadings) == 0{
+	if len(shadings) == 0 {
 		br.Rs = Receiptser
-	}else{
+	} else {
 		br.ReceiptsInfos = br.setSetReceiptInfo(Receiptser)
 		br.Sharding = shadings
 	}
 	return br
 }
 
-func (br* BodyReceipts)setSetReceiptInfo(Receiptser Receipts)[]ReceiptsInfo{
-	for i,receipter := range Receiptser{
-		if &receipter == nil{
+func (br *BodyReceipts) setSetReceiptInfo(Receiptser Receipts) []ReceiptsInfo {
+	for i, receipter := range Receiptser {
+		if &receipter == nil {
 			continue
 		}
-		br.ReceiptsInfos = append(br.ReceiptsInfos,ReceiptsInfo{uint64(i),*receipter})
+		br.ReceiptsInfos = append(br.ReceiptsInfos, ReceiptsInfo{uint64(i), *receipter})
 	}
 	return br.ReceiptsInfos
 }
 
-
-func (bt* BodyTransactions)setTransactionInfo(txser SelfTransactions)[]TransactionInfo{
-	for i,txer := range txser{
-		if txer == nil{
+func (bt *BodyTransactions) setTransactionInfo(txser SelfTransactions) []TransactionInfo {
+	for i, txer := range txser {
+		if txer == nil {
 			continue
 		}
-		bt.TransactionInfos = append(bt.TransactionInfos,TransactionInfo{uint64(i),txer})
+		bt.TransactionInfos = append(bt.TransactionInfos, TransactionInfo{uint64(i), txer})
 	}
 	return bt.TransactionInfos
 }
 
-
-
-
-
-func (bt* BodyTransactions)EncodeRLP(w io.Writer) error {
-	err := rlp.Encode(w,bt.Sharding)
-	if err!= nil{
+func (bt *BodyTransactions) EncodeRLP(w io.Writer) error {
+	err := rlp.Encode(w, bt.Sharding)
+	if err != nil {
 		return err
 	}
 	if len(bt.Sharding) == 0 {
-		return rlp.Encode(w,bt.Transactions)
-	}else{
-		return rlp.Encode(w,bt.TransactionInfos)
+		return rlp.Encode(w, bt.Transactions)
+	} else {
+		return rlp.Encode(w, bt.TransactionInfos)
 	}
 }
-func (bt* BodyTransactions)DecodeRLP(s *rlp.Stream) error {
+func (bt *BodyTransactions) DecodeRLP(s *rlp.Stream) error {
 	err := s.Decode(&bt.Sharding)
-	if err!= nil{
+	if err != nil {
 		return err
 	}
-	if len(bt.Sharding)==0{
+	if len(bt.Sharding) == 0 {
 		return s.Decode(&bt.Transactions)
-	}else{
+	} else {
 		return s.Decode(&bt.TransactionInfos)
 	}
 }
+
 type TransactionInfo struct {
 	Index uint64
-	Tx SelfTransaction
+	Tx    SelfTransaction
 }
 
 // Body is a simple (mutable, non-safe) data container for storing and moving
 // a block's data contents (transactions and uncles) together.
 type Body struct {
-	CurrencyBody	[]CurrencyBlock
-//	Transactions []SelfTransaction
-	Uncles        	[]*Header
+	CurrencyBody []CurrencyBlock
+	//	Transactions []SelfTransaction
+	Uncles []*Header
 }
 type CurrencyHeader struct {
-	Root common.Hash
-	TxHash common.Hash
+	Root        common.Hash
+	TxHash      common.Hash
 	ReceiptHash common.Hash
 }
-func MakeCurencyBlock(txser []CoinSelfTransaction,rece []CoinReceipts,shardings []uint)(cb []CurrencyBlock){
-	for i,txer:=range txser{
-		cb = append(cb,CurrencyBlock{CurrencyName:txer.CoinType,Transactions:SetTransactions(txer.Txser,shardings),Receipts:SetReceipts(rece[i].Receiptlist,shardings)})
+
+func MakeCurencyBlock(txser []CoinSelfTransaction, rece []CoinReceipts, shardings []uint) (cb []CurrencyBlock) {
+	for i, txer := range txser {
+		cb = append(cb, CurrencyBlock{CurrencyName: txer.CoinType, Transactions: SetTransactions(txer.Txser, shardings), Receipts: SetReceipts(rece[i].Receiptlist, shardings)})
 	}
 	return
 }
+
 //币种block
 //1 Validator :
 //2 Miner : return len([]Sharding) == 0 discard tx
 //Call Txs : input CurrencyBlock
 type CurrencyBlock struct {
 	CurrencyName string
-	Header CurrencyHeader
+	Header       CurrencyHeader
 	Transactions BodyTransactions
-	Receipts BodyReceipts
+	Receipts     BodyReceipts
 	//Bloom 	 []byte
 }
 
 type BodyReceipts struct {
-	Sharding []uint		// if complete block sharding = []
-	Rs Receipts		//complete transactions
-	ReceiptsInfos []ReceiptsInfo		//complete transactions
+	Sharding      []uint         // if complete block sharding = []
+	Rs            Receipts       //complete transactions
+	ReceiptsInfos []ReceiptsInfo //complete transactions
 }
 
 type ReceiptsInfo struct {
-	Index uint64
+	Index   uint64
 	Receipt Receipt
 }
+
 // if RPC
-	//Block: Block header uncles Currencies.Transactions
-	//Tx and TxReceipts : []Currencies.Transactions,[]Currencies.Receipts
-	//Save Raw Body []Currencies.Transactions
-	//Save Receipts []Currencies.Receipts
+//Block: Block header uncles Currencies.Transactions
+//Tx and TxReceipts : []Currencies.Transactions,[]Currencies.Receipts
+//Save Raw Body []Currencies.Transactions
+//Save Receipts []Currencies.Receipts
 // Block represents an entire block in the Matrix blockchain.
 type Block struct {
-	header       *Header
-	uncles       []*Header
-	currencies   []CurrencyBlock
-//	transactions []BodyTransactions
-//	transactions []SelfTransaction
+	header     *Header
+	uncles     []*Header
+	currencies []CurrencyBlock
+	//	transactions []BodyTransactions
+	//	transactions []SelfTransaction
 
 	// caches
 	hash atomic.Value
@@ -410,9 +409,9 @@ type Block struct {
 }
 
 type BlockAllSt struct {
-	Sblock   *Block
+	Sblock *Block
 	//SReceipt CoinReceipts //`rlp:"sreceipt"`
-	Pading   uint64
+	Pading uint64
 }
 
 // DeprecatedTd is an old relic for extracting the TD of a block. It is in the
@@ -430,18 +429,18 @@ type StorageBlock Block
 
 // "external" block encoding. used for man protocol, etc.
 type extblock struct {
-	Header *Header
-	Currencies    []CurrencyBlock//BodyTransactions//[]SelfTransaction
-	Uncles []*Header
+	Header     *Header
+	Currencies []CurrencyBlock //BodyTransactions//[]SelfTransaction
+	Uncles     []*Header
 }
 
 // [deprecated by man/63]
 // "storage" block encoding. used for database.
 type storageblock struct {
-	Header *Header
-	Currencies    []CurrencyBlock//[]SelfTransaction
-	Uncles []*Header
-	TD     *big.Int
+	Header     *Header
+	Currencies []CurrencyBlock //[]SelfTransaction
+	Uncles     []*Header
+	TD         *big.Int
 }
 
 // NewBlock creates a new block. The input data is copied,
@@ -454,46 +453,46 @@ type storageblock struct {
 func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
 	// TODO: panic if len(txs) != len(receipts)
-	for _,currencyBlock :=range  currencyBlocks  {	//BB
-	if len(currencyBlock.Transactions.GetTransactions()) == 0 {
-		for _,coinRoot := range b.header.Roots{//BB
-			if coinRoot.Cointyp==currencyBlock.CurrencyName {
-				coinRoot.TxHash=EmptyRootHash
-			}
-		}
-	} else {
-		for _,coinRoot:=range b.header.Roots{
-			if coinRoot.Cointyp==currencyBlock.CurrencyName {
-				coinRoot.TxHash = DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions()))
-				for _,currencie :=range b.currencies{
-					currencie.Transactions	= SetTransactions(currencyBlock.Transactions.GetTransactions(),currencyBlock.Transactions.Sharding)
+	for _, currencyBlock := range currencyBlocks { //BB
+		if len(currencyBlock.Transactions.GetTransactions()) == 0 {
+			for _, coinRoot := range b.header.Roots { //BB
+				if coinRoot.Cointyp == currencyBlock.CurrencyName {
+					coinRoot.TxHash = EmptyRootHash
 				}
+			}
+		} else {
+			for _, coinRoot := range b.header.Roots {
+				if coinRoot.Cointyp == currencyBlock.CurrencyName {
+					coinRoot.TxHash = DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions()))
+					for _, currencie := range b.currencies {
+						currencie.Transactions = SetTransactions(currencyBlock.Transactions.GetTransactions(), currencyBlock.Transactions.Sharding)
+					}
 				}
 
-		//copy(b.transactions, txs)
-		}
-	}
-
-	if len(currencyBlock.Receipts.Rs) == 0 {
-		for _,coinRoot:=range b.header.Roots{
-			if coinRoot.Cointyp==currencyBlock.CurrencyName {
-				coinRoot.ReceiptHash= EmptyRootHash
+				//copy(b.transactions, txs)
 			}
 		}
-	} else {
-		for _,coinRoot:=range b.header.Roots{
-			if coinRoot.Cointyp==currencyBlock.CurrencyName {
-				coinRoot.ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.Rs))
-				for _,currencie :=range b.currencies{
-					currencie.Receipts	= SetReceipts(currencyBlock.Receipts.GetReceipts(),currencyBlock.Receipts.Sharding)
+
+		if len(currencyBlock.Receipts.Rs) == 0 {
+			for _, coinRoot := range b.header.Roots {
+				if coinRoot.Cointyp == currencyBlock.CurrencyName {
+					coinRoot.ReceiptHash = EmptyRootHash
 				}
 			}
-			//copy(b.transactions, txs)
+		} else {
+			for _, coinRoot := range b.header.Roots {
+				if coinRoot.Cointyp == currencyBlock.CurrencyName {
+					coinRoot.ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.Rs))
+					for _, currencie := range b.currencies {
+						currencie.Receipts = SetReceipts(currencyBlock.Receipts.GetReceipts(), currencyBlock.Receipts.Sharding)
+					}
+				}
+				//copy(b.transactions, txs)
+			}
+			//b.header.ReceiptHash = DeriveSha(Receipts(receipts))
+			b.header.Bloom = CreateBloom(currencyBlock.Receipts.Rs)
 		}
-		//b.header.ReceiptHash = DeriveSha(Receipts(receipts))
-		b.header.Bloom = CreateBloom(currencyBlock.Receipts.Rs)
 	}
-		}
 
 	if len(uncles) == 0 {
 		b.header.UncleHash = EmptyUncleHash
@@ -507,10 +506,6 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 	return b
 }
 
-
-
-
-
 // NewBlockWithHeader creates a block with the given header data. The
 // header data is copied, changes to header and to the field values
 // will not affect the block.
@@ -521,30 +516,29 @@ func NewBlockWithHeader(header *Header) *Block {
 // NewBlockWithHeader creates a block with the given header data. The
 // header data is copied, changes to header and to the field values
 // will not affect the block.
-func NewBlockWithTxs(header *Header,currencyBlocks []CurrencyBlock) *Block {
+func NewBlockWithTxs(header *Header, currencyBlocks []CurrencyBlock) *Block {
 	b := &Block{header: CopyHeader(header)}
-	for _,Block:=range currencyBlocks {
+	for _, Block := range currencyBlocks {
 		if len(Block.Transactions.GetTransactions()) == 0 {
 			//b.header.Roots = EmptyRootHash
-			for _,coinRoot := range b.header.Roots{//BB
-				if coinRoot.Cointyp==Block.CurrencyName {
-					coinRoot.TxHash=EmptyRootHash
+			for _, coinRoot := range b.header.Roots { //BB
+				if coinRoot.Cointyp == Block.CurrencyName {
+					coinRoot.TxHash = EmptyRootHash
 				}
 			}
 
 		} else {
-			for _,coinRoot:=range b.header.Roots{
-				if coinRoot.Cointyp==Block.CurrencyName {
+			for _, coinRoot := range b.header.Roots {
+				if coinRoot.Cointyp == Block.CurrencyName {
 					coinRoot.TxHash = DeriveSha(SelfTransactions(Block.Transactions.GetTransactions()))
-					for _,currencie :=range b.currencies{
-						currencie.Transactions	= SetTransactions(Block.Transactions.GetTransactions(),Block.Transactions.Sharding)
+					for _, currencie := range b.currencies {
+						currencie.Transactions = SetTransactions(Block.Transactions.GetTransactions(), Block.Transactions.Sharding)
 					}
 				}
 				//copy(b.transactions, txs)
 			}
 		}
 	}
-
 
 	return b
 }
@@ -619,9 +613,9 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 // EncodeRLP serializes b into the Matrix RLP block format.
 func (b *Block) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, extblock{
-		Header: 		b.header,
-		Currencies:   	b.currencies,
-		Uncles: 		b.uncles,
+		Header:     b.header,
+		Currencies: b.currencies,
+		Uncles:     b.uncles,
 	})
 }
 
@@ -645,12 +639,12 @@ func (b *Block) IsSuperBlock() bool {
 
 // TODO: copies
 
-func (b *Block) Uncles() []*Header               { return b.uncles }
+func (b *Block) Uncles() []*Header           { return b.uncles }
 func (b *Block) Currencies() []CurrencyBlock { return b.currencies }
 
 func (b *Block) Transaction(hash common.Hash) SelfTransaction {
-	for _,currencyblock:=range b.currencies {
-		txser:=currencyblock.Transactions.GetTransactions()
+	for _, currencyblock := range b.currencies {
+		txser := currencyblock.Transactions.GetTransactions()
 		for _, transaction := range txser {
 			if transaction.Hash() == hash {
 				return transaction
@@ -672,18 +666,19 @@ func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
 func (b *Block) Difficulty() *big.Int { return new(big.Int).Set(b.header.Difficulty) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 
-func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
-func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
-func (b *Block) Nonce() uint64            { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
-func (b *Block) Bloom() Bloom             { return b.header.Bloom }
-func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
-func (b *Block) Root() []common.CoinRoot  { return b.header.Roots }
-func (b *Block) Sharding() []common.Coinbyte  { return b.header.Sharding }
-func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
+func (b *Block) NumberU64() uint64           { return b.header.Number.Uint64() }
+func (b *Block) MixDigest() common.Hash      { return b.header.MixDigest }
+func (b *Block) Nonce() uint64               { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
+func (b *Block) Bloom() Bloom                { return b.header.Bloom }
+func (b *Block) Coinbase() common.Address    { return b.header.Coinbase }
+func (b *Block) Root() []common.CoinRoot     { return b.header.Roots }
+func (b *Block) Sharding() []common.Coinbyte { return b.header.Sharding }
+func (b *Block) ParentHash() common.Hash     { return b.header.ParentHash }
+
 //func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 //func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
-func (b *Block) UncleHash() common.Hash   { return b.header.UncleHash }
-func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
+func (b *Block) UncleHash() common.Hash { return b.header.UncleHash }
+func (b *Block) Extra() []byte          { return common.CopyBytes(b.header.Extra) }
 
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
@@ -727,18 +722,18 @@ func (b *Block) WithSeal(header *Header) *Block {
 	cpy := *header
 
 	return &Block{
-		header:       	&cpy,
-		currencies: 	b.currencies,
-		uncles:       	b.uncles,
+		header:     &cpy,
+		currencies: b.currencies,
+		uncles:     b.uncles,
 	}
 }
 
 // WithBody returns a new block with the given transaction and uncle contents.
 func (b *Block) WithBody(cb []CurrencyBlock, uncles []*Header) *Block {
 	block := &Block{
-		header:       	CopyHeader(b.header),
-		currencies: 	cb,
-		uncles:       	make([]*Header, len(uncles)),
+		header:     CopyHeader(b.header),
+		currencies: cb,
+		uncles:     make([]*Header, len(uncles)),
 	}
 	//copy(block.transactions, transactions)
 	for i := range uncles {

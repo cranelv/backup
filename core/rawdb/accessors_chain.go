@@ -161,7 +161,7 @@ func WriteHeader(db DatabaseWriter, header *types.Header) {
 	// Write the encoded header
 	data, err := rlp.EncodeToBytes(header)
 	if err != nil {
-		log.Error("","",err)
+		log.Error("", "", err)
 	}
 	if err != nil {
 		log.Crit("Failed to RLP encode header", "err", err)

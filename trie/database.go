@@ -162,18 +162,19 @@ func (db *Database) Nodes() []common.Hash {
 	return hashes
 }
 func (db *Database) ReferenceRoot(childs []common.CoinRoot, parent common.Hash) {
-	for _,cr := range childs {
+	for _, cr := range childs {
 		var hashs []common.Hash
-		err:=rlp.DecodeBytes(cr.Root[:],&hashs)
-		if err != nil{
-			log.Error("file database","func CommitRoots:err",err)
+		err := rlp.DecodeBytes(cr.Root[:], &hashs)
+		if err != nil {
+			log.Error("file database", "func CommitRoots:err", err)
 			continue
 		}
-		for _,hash := range hashs{
-			db.Reference(hash,parent)
+		for _, hash := range hashs {
+			db.Reference(hash, parent)
 		}
 	}
 }
+
 // Reference adds a new reference from a parent node to a child node.
 func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.lock.RLock()
@@ -238,21 +239,21 @@ func (db *Database) dereference(child common.Hash, parent common.Hash) {
 	}
 }
 func (db *Database) CommitRoots(nodes []common.CoinRoot, report bool) error {
-	for _,cr := range nodes {
+	for _, cr := range nodes {
 		var hashs []common.Hash
-		root,err:=db.diskdb.Get(cr.Root[:])
-		if err != nil{
-			log.Error("file database","func CommitRoots:err","db.diskdb.Get",err)
+		root, err := db.diskdb.Get(cr.Root[:])
+		if err != nil {
+			log.Error("file database", "func CommitRoots:err", "db.diskdb.Get", err)
 			continue
 		}
 		//err=json.Unmarshal(root,&hashs)
-		err=rlp.DecodeBytes(root,&hashs)
-		if err != nil{
-			log.Error("file database","func CommitRoots:err","DecodeBytes",err)
+		err = rlp.DecodeBytes(root, &hashs)
+		if err != nil {
+			log.Error("file database", "func CommitRoots:err", "DecodeBytes", err)
 			continue
 		}
-		for _,hash := range hashs{
-			db.Commit(hash,report)
+		for _, hash := range hashs {
+			db.Commit(hash, report)
 		}
 	}
 	return nil

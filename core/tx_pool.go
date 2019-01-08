@@ -186,9 +186,9 @@ type NormalTxPool struct {
 	signer       types.Signer
 	mu           sync.RWMutex
 
-	currentState  *state.StateDBManage      // Current state in the blockchain head
-	pendingState  *state.ManagedState // Pending state tracking virtual nonces
-	currentMaxGas uint64              // Current gas limit for transaction caps
+	currentState  *state.StateDBManage // Current state in the blockchain head
+	pendingState  *state.ManagedState  // Pending state tracking virtual nonces
+	currentMaxGas uint64               // Current gas limit for transaction caps
 
 	pending map[common.Address]*txList // All currently processable transactions
 	all     *txLookup                  // All transactions to allow lookups
@@ -594,7 +594,7 @@ func (nPool *NormalTxPool) reset(oldHead, newHead *types.Header) {
 	for addr, list := range nPool.pending {
 		for cointype, txs := range list.txs {
 			txs := txs.Flatten() // Heavy but will be cached and is needed by the miner anyway
-			nPool.pendingState.SetNonce(cointype,addr, txs[len(txs)-1].Nonce()+1)
+			nPool.pendingState.SetNonce(cointype, addr, txs[len(txs)-1].Nonce()+1)
 		}
 	}
 }
@@ -1241,14 +1241,14 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction adheres to nonce ordering
-	if nPool.currentState.GetNonce(tx.Currency,from) > tx.Nonce() {
+	if nPool.currentState.GetNonce(tx.Currency, from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
 	//YY add if
-	balance:=big.NewInt(0)
-	entrustbalance:=big.NewInt(0)
+	balance := big.NewInt(0)
+	entrustbalance := big.NewInt(0)
 	//当前账户余额
-	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency,from) {
+	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency, from) {
 		if tAccount.AccountType == common.MainAccount {
 			balance = tAccount.Balance
 			break
@@ -1256,7 +1256,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	//委托账户的余额
 	if tx.IsEntrustGas {
-		for _, tAccount := range nPool.currentState.GetBalance(tx.Currency,tx.AmontFrom()) {
+		for _, tAccount := range nPool.currentState.GetBalance(tx.Currency, tx.AmontFrom()) {
 			if tAccount.AccountType == common.MainAccount {
 				entrustbalance = tAccount.Balance
 				break
@@ -1321,12 +1321,12 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		//通过from获得的数据为授权人marsha1过的数据
 		from := tx.From()
 		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		entrustFrom := nPool.currentState.GetGasAuthFrom(tx.Currency,from, nPool.chain.CurrentBlock().NumberU64()+1) //当前块高加1，因为该笔交易要上到下一个区块
+		entrustFrom := nPool.currentState.GetGasAuthFrom(tx.Currency, from, nPool.chain.CurrentBlock().NumberU64()+1) //当前块高加1，因为该笔交易要上到下一个区块
 		if !entrustFrom.Equal(common.Address{}) {
 			tx.Setentrustfrom(entrustFrom)
 			tx.IsEntrustGas = true
 		} else {
-			entrustFrom := nPool.currentState.GetGasAuthFromByTime(tx.Currency,from, uint64(time.Now().Unix()))
+			entrustFrom := nPool.currentState.GetGasAuthFromByTime(tx.Currency, from, uint64(time.Now().Unix()))
 			if !entrustFrom.Equal(common.Address{}) {
 				tx.Setentrustfrom(entrustFrom)
 				tx.IsEntrustGas = true
@@ -1373,7 +1373,7 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 	}
 	nPool.pending[from].Add(tx, 0)
 	nPool.all.Add(tx)
-	nPool.pendingState.SetNonce(tx.Currency,from, tx.Nonce()+1)
+	nPool.pendingState.SetNonce(tx.Currency, from, tx.Nonce()+1)
 	selfRole := ca.GetRole()
 	if selfRole == common.RoleMiner || selfRole == common.RoleValidator {
 		tx_s := tx.GetTxS()
@@ -1480,8 +1480,8 @@ func (nPool *NormalTxPool) removeTx(hash common.Hash, outofbound bool) {
 				delete(nPool.pending, addr)
 			}
 			// Update the account nonce if needed
-			if nonce := tx.Nonce(); nPool.pendingState.GetNonce(tx.Currency,addr) > nonce {
-				nPool.pendingState.SetNonce(tx.Currency,addr, nonce)
+			if nonce := tx.Nonce(); nPool.pendingState.GetNonce(tx.Currency, addr) > nonce {
+				nPool.pendingState.SetNonce(tx.Currency, addr, nonce)
 			}
 			return
 		}
@@ -1495,7 +1495,7 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range nPool.pending {
 		for typ, txs := range list.txs {
-			nonce := nPool.currentState.GetNonce(typ,addr)
+			nonce := nPool.currentState.GetNonce(typ, addr)
 			// Drop all transactions that are deemed too old (low nonce)
 			for _, tx := range txs.Forward(nonce) {
 				//YY ========begin=========
@@ -1508,7 +1508,7 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 			}
 			// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
 			tBalance := new(big.Int)
-			for _, tAccount := range nPool.currentState.GetBalance(typ,addr) {
+			for _, tAccount := range nPool.currentState.GetBalance(typ, addr) {
 				if tAccount.AccountType == common.MainAccount {
 					tBalance = tAccount.Balance
 					break
@@ -1598,4 +1598,3 @@ func (t *txLookup) Remove(hash common.Hash) {
 
 	delete(t.all, hash)
 }
-

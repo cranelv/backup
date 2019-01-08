@@ -227,10 +227,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot(tx.GetTxCurrency())
 	snap1 := env.State.Snapshot(params.MAN_COIN)
-	receipt, _,_, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
+	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		env.State.RevertToSnapshot(tx.GetTxCurrency(),snap)
-		env.State.RevertToSnapshot(params.MAN_COIN,snap1)
+		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
+		env.State.RevertToSnapshot(params.MAN_COIN, snap1)
 		return err, nil
 	}
 	env.txs = append(env.txs, tx)
@@ -241,10 +241,10 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 	snap := env.State.Snapshot(tx.GetTxCurrency())
-	receipt, _,_, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
+	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Info("file work", "func s_commitTransaction", err)
-		env.State.RevertToSnapshot(tx.GetTxCurrency(),snap)
+		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		return err, nil
 	}
 	tmps := make([]types.SelfTransaction, 0)
@@ -368,7 +368,7 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType, rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		tx.SetTxS(big.NewInt(1))
 		tx.SetTxV(big.NewInt(1))
@@ -526,7 +526,7 @@ func (env *Work) getGas() *big.Int {
 	gas := mapcoingasUse.getCoinGasUse(params.MAN_COIN)
 	allGas := new(big.Int).Mul(gas, price)
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
-	balance := env.State.GetBalance(params.MAN_COIN,common.TxGasRewardAddress)
+	balance := env.State.GetBalance(params.MAN_COIN, common.TxGasRewardAddress)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法", "")

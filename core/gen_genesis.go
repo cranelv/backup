@@ -40,8 +40,8 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Number            math.HexOrDecimal64               `json:"number"`
 		GasUsed           math.HexOrDecimal64               `json:"gasUsed"`
 		ParentHash        common.Hash                       `json:"parentHash"`
-		Roots             []common.CoinRoot                       `json:"stateRoot,omitempty"`
-		Sharding          []common.Coinbyte                       `json:"sharding,omitempty"`
+		Roots             []common.CoinRoot                 `json:"stateRoot,omitempty"`
+		Sharding          []common.Coinbyte                 `json:"sharding,omitempty"`
 		//TxHash            common.Hash                       `json:"transactionsRoot,omitempty"`		//BBBBBBBB
 	}
 	var enc Genesis
@@ -72,7 +72,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.ParentHash = g.ParentHash
 	enc.Roots = g.Roots
 	enc.Sharding = g.Sharding
-	enc.TxHash = g.TxHash
+	//enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
 }
 
@@ -98,8 +98,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Number            *math.HexOrDecimal64                        `json:"number"`
 		GasUsed           *math.HexOrDecimal64                        `json:"gasUsed"`
 		ParentHash        *common.Hash                                `json:"parentHash"`
-		Roots             *[]common.CoinRoot                                `json:"stateRoot,omitempty"`
-		Sharding          *[]common.Coinbyte                       `json:"sharding,omitempty"`
+		Roots             *[]common.CoinRoot                          `json:"stateRoot,omitempty"`
+		Sharding          *[]common.Coinbyte                          `json:"sharding,omitempty"`
 		//TxHash            *common.Hash                                `json:"transactionsRoot,omitempty"`		//BBBBBB
 	}
 	var dec Genesis
@@ -179,9 +179,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.Sharding != nil {
 		g.Sharding = *dec.Sharding
 	}
-	if dec.TxHash != nil {
-		g.TxHash = *dec.TxHash
-	}
+
 	return nil
 }
 
@@ -209,8 +207,8 @@ func (g Genesis1) MarshalJSON() ([]byte, error) {
 		Number            math.HexOrDecimal64       `json:"number"`
 		GasUsed           math.HexOrDecimal64       `json:"gasUsed"`
 		ParentHash        common.Hash               `json:"parentHash"`
-		Roots             []common.CoinRoot               `json:"stateRoot,omitempty"`
-		Sharding          []common.Coinbyte               `json:"sharding,omitempty"`
+		Roots             []common.CoinRoot         `json:"stateRoot,omitempty"`
+		Sharding          []common.Coinbyte         `json:"sharding,omitempty"`
 		//TxHash            common.Hash               `json:"transactionsRoot,omitempty"`		//BBBBB
 	}
 	var enc Genesis
@@ -267,8 +265,8 @@ func (g *Genesis1) UnmarshalJSON(input []byte) error {
 		Number            *math.HexOrDecimal64      `json:"number"`
 		GasUsed           *math.HexOrDecimal64      `json:"gasUsed"`
 		ParentHash        *common.Hash              `json:"parentHash"`
-		Roots             *[]common.CoinRoot              `json:"stateRoot,omitempty"`
-		Sharding             *[]common.Coinbyte              `json:"sharding,omitempty"`
+		Roots             *[]common.CoinRoot        `json:"stateRoot,omitempty"`
+		Sharding          *[]common.Coinbyte        `json:"sharding,omitempty"`
 		//TxHash            *common.Hash              `json:"transactionsRoot,omitempty"`		//BBBBBBBBB
 	}
 	var dec Genesis

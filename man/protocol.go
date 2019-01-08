@@ -172,7 +172,7 @@ type newBlockData struct {
 type blockBody struct {
 	/*Transactions []types.SelfTransaction // Transactions contained within a block*/
 	Transactions []types.BodyTransactions
-	Uncles       []*types.Header         // Uncles contained within a block
+	Uncles       []*types.Header // Uncles contained within a block
 }
 
 // blockBodiesData is the network packet for block content distribution.

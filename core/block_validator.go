@@ -7,11 +7,11 @@ package core
 import (
 	"fmt"
 
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/common"
 )
 
 // BlockValidator is responsible for validating block headers, uncles and
@@ -56,10 +56,10 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	if hash := types.CalcUncleHash(block.Uncles()); hash != header.UncleHash {
 		return fmt.Errorf("uncle root hash mismatch: have %x, want %x", hash, header.UncleHash)
 	}
-	for _,currencie:=range block.Currencies(){
-		for _,head := range header.Roots{
-			if head.Cointyp == currencie.CurrencyName{
-				if hash := types.DeriveSha(types.SelfTransactions(currencie.Transactions.GetTransactions())); hash != head.TxHash{
+	for _, currencie := range block.Currencies() {
+		for _, head := range header.Roots {
+			if head.Cointyp == currencie.CurrencyName {
+				if hash := types.DeriveSha(types.SelfTransactions(currencie.Transactions.GetTransactions())); hash != head.TxHash {
 					return fmt.Errorf("transaction root hash mismatch: have %x, want %x", hash, head.TxHash)
 				}
 			}
@@ -72,34 +72,40 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 // transition, such as amount of used gas, the receipt roots and the state root
 // itself. ValidateState returns a database batch if the validation was a success
 // otherwise nil and an error is returned.
-func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *state.StateDBManage, receipts types.Receipts, usedGas uint64) error {
+func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *state.StateDBManage, usedGas uint64) error {
 	header := block.Header()
 	if block.GasUsed() != usedGas {
 		return fmt.Errorf("invalid gas used (remote: %d local: %d)", block.GasUsed(), usedGas)
 	}
 	// Validate the received block's bloom with the one derived from the generated receipts.
 	// For valid blocks this should always validate to true.
-	rbloom := types.CreateBloom(receipts)
-	if rbloom != header.Bloom {
-		return fmt.Errorf("invalid bloom (remote: %x  local: %x)", header.Bloom, rbloom)
-	}
-	// Tre receipt Trie's root (R = (Tr [[H1, R1], ... [Hn, R1]]))
-	receiptSha := types.DeriveSha(receipts)
-	if receiptSha != header.ReceiptHash {
-		return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", header.ReceiptHash, receiptSha)
+	for _, currencie := range block.Currencies() {
+		ct,rbloom := currencie.CurrencyName,types.CreateBloom(currencie.Receipts.GetReceipts())
+		receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
+		for _,cr:=range header.Roots{
+			if cr.Cointyp==ct {
+				if rbloom != cr.Bloom {
+					return fmt.Errorf("invalid bloom (remote: %x  local: %x)", cr.Bloom, rbloom)
+				}
+		// Tre receipt Trie's root (R = (Tr [[H1, R1], ... [Hn, R1]]))
+				if receiptSha != cr.ReceiptHash {
+					return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", cr.ReceiptHash, receiptSha)
+					}
+				break
+			}
+		}
 	}
 	// Validate the state root against the received state root and throw
 	// an error if they don't match.
 	var root []common.CoinRoot
 	//var Coinbyte	[] common.Coinbyte
-	root,_= statedb.IntermediateRoot(v.config.IsEIP158(header.Number))
-	if  types.RlpHash(root) != types.RlpHash(header.Roots) { //ShardingYY
+	root, _ = statedb.IntermediateRoot(v.config.IsEIP158(header.Number))
+	if types.RlpHash(root) != types.RlpHash(header.Roots) { //ShardingYY
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Roots, root)
 	}
 	//if types.RlpHash(Coinbyte)	!=types.RlpHash(header.Sharding){//ShardingBB
 	//	return fmt.Errorf("invalid merkle Coinbyte (remote: %x local: %x)", header.Sharding, Coinbyte)
 	//}
-
 
 	return nil
 }

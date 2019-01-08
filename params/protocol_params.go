@@ -86,11 +86,12 @@ const (
 	MaxUdpBuf uint32 = 1024 * 64
 )
 const (
-	MAN_COIN     string = "MAN"   //ShardingYY
-	BTC_COIN     string = "EHC"   //ShardingYY   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
-	RANGE_MOUNTS int =	256
-	COIN_NAME	  string = "COIN_TYPE"
+	MAN_COIN     string = "MAN" //ShardingYY
+	BTC_COIN     string = "EHC" //ShardingYY   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
+	RANGE_MOUNTS int    = 256
+	COIN_NAME    string = "COIN_TYPE"
 )
+
 var (
 	DifficultyBoundDivisor = big.NewInt(10)  // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(10)  // Difficulty of the Genesis block.

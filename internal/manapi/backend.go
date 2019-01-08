@@ -53,7 +53,7 @@ type Backend interface {
 	SendTx(ctx context.Context, signedTx types.SelfTransaction) error
 	GetPoolTransactions() (types.SelfTransactions, error)
 	GetPoolTransaction(txHash common.Hash) types.SelfTransaction
-	GetPoolNonce(cointyp string,ctx context.Context, addr common.Address) (uint64, error)
+	GetPoolNonce(cointyp string, ctx context.Context, addr common.Address) (uint64, error)
 	Stats() (pending int, queued int)
 	TxPoolContent() (map[common.Address]types.SelfTransactions, map[common.Address]types.SelfTransactions)
 	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //YYY

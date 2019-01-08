@@ -649,8 +649,15 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 	if types.RlpHash(gensis1.Roots).Equal(common.Hash{}) == false {
 		gensis.Roots = gensis1.Roots
 	}
-	if gensis1.TxHash.Equal(common.Hash{}) == false {
-		gensis.TxHash = gensis1.TxHash
+	for _, coinRoot := range gensis1.Roots {
+		if coinRoot.TxHash.Equal(common.Hash{}) == false {
+			for _, cr := range gensis.Roots {
+				if cr.Cointyp == coinRoot.Cointyp {
+					cr.TxHash = coinRoot.TxHash
+					break
+				}
+			}
+		}
 	}
 	//nextElect
 	if nil != gensis1.NextElect {

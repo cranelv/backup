@@ -91,8 +91,8 @@ func (self *StateDB) RawDumpAcccount(address common.Address) Dump {
 		Accounts: make(map[string]DumpAccount),
 	}
 
-	value,err := self.trie.TryGet(address[:])
-	if value!= nil && err == nil {
+	value, err := self.trie.TryGet(address[:])
+	if value != nil && err == nil {
 		var data Account
 		if err := rlp.DecodeBytes(value, &data); err != nil {
 			panic(err)
@@ -100,11 +100,11 @@ func (self *StateDB) RawDumpAcccount(address common.Address) Dump {
 
 		tBalance := new(big.Int)
 		var total_balance string
-		for _,tAccount := range data.Balance{
+		for _, tAccount := range data.Balance {
 			tBalance = tAccount.Balance
 			str_account := strconv.Itoa(int(tAccount.AccountType))
-			str_balance := str_account+":"+tBalance.String()
-			total_balance += str_balance  + ","
+			str_balance := str_account + ":" + tBalance.String()
+			total_balance += str_balance + ","
 		}
 		obj := newObject(nil, address, data)
 		account := DumpAccount{

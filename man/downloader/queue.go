@@ -48,8 +48,8 @@ type fetchResult struct {
 
 	Header       *types.Header
 	Uncles       []*types.Header
-	Transactions types.SelfTransactions
-	Receipts     types.Receipts
+	Transactions []types.CoinSelfTransaction
+	Receipts     []types.CoinReceipts
 }
 type ipfsRequest struct {
 	Header  *types.Header

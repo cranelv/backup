@@ -196,7 +196,7 @@ func (tlr *TxsLottery) canChooseLottery(num uint64) bool {
 		return false
 	}
 
-	balance := tlr.state.GetBalance(params.MAN_COIN,common.LotteryRewardAddress)
+	balance := tlr.state.GetBalance(params.MAN_COIN, common.LotteryRewardAddress)
 	if len(balance) == 0 {
 		log.ERROR(PackageName, "状态树获取彩票账户余额错误", "")
 		//return false

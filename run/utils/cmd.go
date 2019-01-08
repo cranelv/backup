@@ -23,9 +23,9 @@ import (
 	"github.com/matrix/go-matrix/internal/debug"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
+	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/rlp"
-	"github.com/matrix/go-matrix/params"
 )
 
 const (
@@ -247,7 +247,7 @@ func ImportPreimages(db *mandb.LDBDatabase, fn string) error {
 
 	// Import the preimages in batches to prevent disk trashing
 	//preimages := make(map[common.Hash][]byte)
-	preimages :=make(map[string]map[common.Hash][]byte)
+	preimages := make(map[string]map[common.Hash][]byte)
 	for {
 		// Read the next entry and ensure it's not junk
 		var blob []byte

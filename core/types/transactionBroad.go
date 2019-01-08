@@ -2,13 +2,13 @@ package types
 
 import (
 	"errors"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/rlp"
 	"io"
 	"math/big"
 	"sync/atomic"
 	"time"
-	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/rlp"
 )
 
 type TransactionBroad struct {

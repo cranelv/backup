@@ -33,7 +33,7 @@ func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) (common.Hash, uint64
 func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
 	var i uint64
 	for _, currencies := range block.Currencies() {
-		for _,tx :=range currencies.Transactions.GetTransactions() {
+		for _, tx := range currencies.Transactions.GetTransactions() {
 			entry := TxLookupEntry{
 				BlockHash:  block.Hash(),
 				BlockIndex: block.NumberU64(),
@@ -66,10 +66,10 @@ func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction
 
 	body := ReadBody(db, blockHash, blockNumber)
 	var txs types.SelfTransactions
-	for _,currencyBlock:=range body.CurrencyBody{
-		txs =append(txs,currencyBlock.Transactions.GetTransactions()...)
-		}
-	if  len(txs) <= int(txIndex) {
+	for _, currencyBlock := range body.CurrencyBody {
+		txs = append(txs, currencyBlock.Transactions.GetTransactions()...)
+	}
+	if len(txs) <= int(txIndex) {
 		log.Error("Transaction referenced missing", "number", blockNumber, "hash", blockHash, "index", txIndex)
 		return nil, common.Hash{}, 0, 0
 	}
