@@ -77,7 +77,10 @@ func ProduceMatrixStateData(block *types.Block, readFn matrixstate.PreStateReadF
 	tempMap[mc.Heartbeat] = make(map[common.Address][]byte)
 	tempMap[mc.Privatekey] = make(map[common.Address][]byte)
 	tempMap[mc.CallTheRoll] = make(map[common.Address][]byte)
-	txs := block.Transactions()
+	txs := make(types.SelfTransactions,0)
+	for _,curr := range block.Currencies(){
+		txs = append(txs,curr.Transactions.GetTransactions()...)
+	}
 	for _, tx := range txs {
 		if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
 			temp := make(map[string][]byte)
