@@ -1,142 +1,26 @@
 package manblk
 
 import (
+	"encoding/json"
 	"math/big"
 	"time"
 
+	"github.com/matrix/go-matrix/matrixwork"
+
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/reelection"
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 )
-
-// ChainReader defines a small collection of methods needed to access the local
-// blockchain during header and/or uncle verification.
-type ChainReader interface {
-	// Config retrieves the blockchain's chain configuration.
-	Config() *params.ChainConfig
-
-	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
-
-	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
-
-	// GetHeaderByNumber retrieves a block header from the database by number.
-	GetHeaderByNumber(number uint64) *types.Header
-
-	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
-
-	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
-
-	Genesis() *types.Block
-
-	GetBlockByHash(hash common.Hash) *types.Block
-}
-
-type StateReader interface {
-	GetCurrentHash() common.Hash
-	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
-	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
-	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
-	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
-	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
-}
-
-type MANBLK interface {
-	// Prepare initializes the consensus fields of a block header according to the
-	// rules of a particular engine. The changes are executed inline.
-	Prepare(chain ChainReader, header *types.Header) error
-	ProcessState(chain ChainReader, header *types.Header) error
-	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
-	VerifyBlock(reader StateReader, header *types.Header) error
-}
-
-type MANBLKPlUGS interface {
-	// Prepare initializes the consensus fields of a block header according to the
-	// rules of a particular engine. The changes are executed inline.
-	Prepare(chain ChainReader, interval *manparams.BCInterval, num uint64) (*types.Header, error)
-	ProcessState(chain ChainReader, header *types.Header) error
-	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
-	VerifyBlock(reader StateReader, header *types.Header) error
-}
-type TopNodeService interface {
-	GetConsensusOnlineResults() []*mc.HD_OnlineConsensusVoteResultMsg
-}
-
-type Reelection interface {
-	GetTopoChange(hash common.Hash, offline []common.Address, online []common.Address) ([]mc.Alternative, error)
-	GetNetTopologyAll(hash common.Hash) (*reelection.ElectReturnInfo, error)
-	TransferToNetTopologyAllStu(info *reelection.ElectReturnInfo) *common.NetTopology
-}
-
-var (
-	ModuleManBlk   = "区块生成验证"
-	mapManBlkPlugs = make(map[string]MANBLKPlUGS)
-)
-
-type BlKSupport interface {
-	ChainReader
-	consensus.PoW
-	consensus.DPOSEngine
-	TopNodeService
-	Reelection
-	VrfInterface
-}
-
-type ManBlkDeal struct {
-	num     uint64
-	version string
-	support BlKSupport
-}
-
-func New(version string, support BlKSupport, num uint64) (MANBLK, error) {
-	obj := new(ManBlkDeal)
-	obj.version = version
-	obj.support = support
-	obj.num = num
-	return obj, nil
-}
-
-func (bd *ManBlkDeal) RegisterManBLkPlugs(version string, plug MANBLKPlUGS) {
-	mapManBlkPlugs[bd.version] = plug
-}
-
-func (bd *ManBlkDeal) Prepare(chain ChainReader, header *types.Header, interval *manparams.BCInterval) error {
-
-	mapManBlkPlugs[bd.version].Prepare(chain, interval, bd.num)
-	return nil
-}
-
-func (bd *ManBlkDeal) ProcessState(chain ChainReader, header *types.Header) error {
-	mapManBlkPlugs[bd.version].ProcessState(chain, header)
-	return nil
-}
-
-func (bd *ManBlkDeal) Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-	uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	return &types.Block{}, nil
-}
-
-func (bd *ManBlkDeal) VerifyBlock(reader StateReader, header *types.Header) error {
-	return nil
-}
 
 type ManBlkPlug1 struct {
 	preBlockHash common.Hash
@@ -147,35 +31,45 @@ func NewBlkPlug1(preBlockHash common.Hash) (*ManBlkPlug1, error) {
 	obj.preBlockHash = preBlockHash
 	return obj, nil
 }
-func (bd *ManBlkPlug1) Prepare(chain ChainReader, interval *manparams.BCInterval, num uint64) (*types.Header, error) {
-	originHeader := new(types.Header)
-	parent, err := bd.setParentHash(chain, originHeader, num)
-	if nil != err {
-		log.ERROR(ModuleManBlk, "区块生成阶段", "获取父区块失败")
-		return nil, err
-	}
 
-	bd.setTimeStamp(parent, originHeader, num)
-	bd.setLeader(originHeader)
-	bd.setNumber(originHeader, num)
-	bd.setGasLimit(originHeader, parent)
-	bd.setExtra(originHeader)
-	bd.setTopology(parent.Hash(), originHeader, interval, num)
-	return originHeader, nil
+func (p *ManBlkPlug1) getVrfValue(support BlKSupport, parent *types.Block) ([]byte, []byte, []byte, error) {
+	_, preVrfValue, preVrfProof := support.GetVrfInfoFromHeader(parent.Header().VrfValue)
+	parentMsg := VrfMsg{
+		VrfProof: preVrfProof,
+		VrfValue: preVrfValue,
+		Hash:     parent.Hash(),
+	}
+	vrfmsg, err := json.Marshal(parentMsg)
+	if err != nil {
+		log.Error(ModuleManBlk, "生成vrfmsg出错", err, "parentMsg", parentMsg)
+		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
+	}
+	return support.SignVrf(vrfmsg, p.preBlockHash)
 }
 
-func (bd *ManBlkPlug1) setTopology(parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
-	NetTopology, onlineConsensusResults := bd.getNetTopology(num, parentHash, p.bcInterval)
+func (p *ManBlkPlug1) setVrf(support BlKSupport, parent *types.Block, header *types.Header) error {
+	account, vrfValue, vrfProof, err := p.getVrfValue(support, parent)
+	if err != nil {
+		log.Error(ModuleManBlk, "区块生成阶段 获取vrfValue失败 错误", err)
+		return err
+	}
+	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
+	return nil
+}
+
+func (bd *ManBlkPlug1) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
+	NetTopology, onlineConsensusResults := bd.getNetTopology(support, num, parentHash, interval)
 	if nil == NetTopology {
 		log.Error(ModuleManBlk, "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
+		return nil, errors.New("获取网络拓扑图错误 ")
 	}
 	if nil == onlineConsensusResults {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
 	log.Debug(ModuleManBlk, "获取拓扑结果 ", NetTopology, "高度", num)
 	header.NetTopology = *NetTopology
-	return onlineConsensusResults
+	return onlineConsensusResults, nil
 }
 
 func (bd *ManBlkPlug1) setTime(header *types.Header, tstamp int64) {
@@ -230,4 +124,62 @@ func (bd *ManBlkPlug1) setParentHash(chain ChainReader, header *types.Header, nu
 	parentHash := parent.Hash()
 	header.ParentHash = parentHash
 	return parent, nil
+}
+
+func (bd *ManBlkPlug1) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64) (*types.Header, error) {
+	originHeader := new(types.Header)
+	parent, err := bd.setParentHash(support, originHeader, num)
+	if nil != err {
+		log.ERROR(ModuleManBlk, "区块生成阶段", "获取父区块失败")
+		return nil, err
+	}
+
+	bd.setTimeStamp(parent, originHeader, num)
+	bd.setLeader(originHeader)
+	bd.setNumber(originHeader, num)
+	bd.setGasLimit(originHeader, parent)
+	bd.setExtra(originHeader)
+	bd.setTopology(support, parent.Hash(), originHeader, interval, num)
+	err = bd.setVrf(support, parent, originHeader)
+	if nil != err {
+		return nil, err
+	}
+	if err := support.Engine().Prepare(support, originHeader); err != nil {
+		log.ERROR(ModuleManBlk, "Failed to prepare header for mining", err)
+		return nil, err
+	}
+	return originHeader, nil
+}
+
+func (bd *ManBlkPlug1) ProcessState(support BlKSupport, header *types.Header) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
+	work, err := matrixwork.NewWork(support.Config(), support, nil, header)
+	upTimeMap, err := support.ProcessUpTime(work.State, header)
+	if err != nil {
+		log.ERROR(ModuleManBlk, "执行uptime错误", err, "高度", header.Number)
+		return nil, nil, nil, nil, nil, err
+	}
+	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support, upTimeMap)
+	block := types.NewBlock(header, finalTxs, nil, work.Receipts)
+	log.Debug(ModuleManBlk, "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
+
+	err = support.ProcessMatrixState(block, work.State)
+	if err != nil {
+		log.Error(ModuleManBlk, "运行matrix状态树失败", err)
+		return nil, nil, nil, nil, nil, err
+	}
+	return txsCode, work.State, work.Receipts, originalTxs, finalTxs, nil
+}
+
+func (bd *ManBlkPlug1) Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+
+	block, err := support.Engine().Finalize(support, header, state, txs, uncles, receipts)
+	if err != nil {
+		log.Error(ModuleManBlk, "最终finalize错误", err)
+		return nil, err
+	}
+	return block, nil
+}
+
+func VerifyBlock(support BlKSupport, header *types.Header) error {
+	return nil
 }

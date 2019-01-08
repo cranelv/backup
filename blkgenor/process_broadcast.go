@@ -53,7 +53,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			continue
 		}
 
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, result.Header, p.pm.random)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, result.Header)
 		if err != nil {
 			log.WARN(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
 			continue

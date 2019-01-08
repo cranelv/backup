@@ -288,7 +288,7 @@ func (p *Process) setParentHash(header *types.Header) (*types.Block, error, comm
 func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, error) {
 	//broadcast txs deal,remove no validators txs
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
 	upTimeMap, err := p.blockChain().ProcessUpTime(work.State, header)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
@@ -302,7 +302,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 }
 
 func (p *Process) genBcHeaderTxs(header *types.Header) (*types.Block, *state.StateDB, []*types.Receipt, error) {
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
 		return nil, nil, nil, err

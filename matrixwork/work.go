@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/abi"
-	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
+	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -28,6 +28,14 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+	Engine() consensus.Engine
+	GetHeader(common.Hash, uint64) *types.Header
+	Processor() core.Processor
+}
+type txPoolReader interface {
+	// Pending should return pending transactions.
+	// The slice should be modifiable by the caller.
+	Pending() (map[common.Address]types.SelfTransactions, error)
 }
 
 var packagename string = "matrixwork"
@@ -60,9 +68,8 @@ type Work struct {
 	Block *types.Block // the new block
 
 	header *types.Header
-	bc     *core.BlockChain
+	bc     ChainReader
 
-	random   *baseinterface.Random
 	txs      []types.SelfTransaction
 	Receipts []*types.Receipt
 
@@ -117,14 +124,13 @@ func (cu *coingasUse) clearmap() {
 	cu.mapcoin = make(map[string]*big.Int)
 	cu.mapprice = make(map[string]*big.Int)
 }
-func NewWork(config *params.ChainConfig, bc *core.BlockChain, gasPool *core.GasPool, header *types.Header, random *baseinterface.Random) (*Work, error) {
+func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, header *types.Header) (*Work, error) {
 
 	Work := &Work{
 		config:  config,
 		signer:  types.NewEIP155Signer(config.ChainId),
 		gasPool: gasPool,
 		header:  header,
-		random:  random,
 		bc:      bc,
 	}
 	var err error
@@ -218,7 +224,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 	return listret, retTxs
 }
 
-func (env *Work) commitTransaction(tx types.SelfTransaction, bc *core.BlockChain, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
+func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
@@ -261,7 +267,7 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)

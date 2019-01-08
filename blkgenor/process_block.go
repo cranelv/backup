@@ -148,7 +148,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	localHeader := types.CopyHeader(header)
 	localHeader.GasUsed = 0
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}

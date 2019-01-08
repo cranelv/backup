@@ -6,6 +6,11 @@ package core
 
 import (
 	"errors"
+	"math/big"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
@@ -22,10 +27,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-	"math/big"
-	"runtime"
-	"sync"
-	"time"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -246,7 +247,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {

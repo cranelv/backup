@@ -524,7 +524,7 @@ func (p *Process) verifyTxsAndState() {
 	localHeader := types.CopyHeader(remoteHeader)
 	localHeader.GasUsed = 0
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
+	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "交易验证，创建work失败!", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
