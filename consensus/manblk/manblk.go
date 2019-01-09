@@ -26,7 +26,7 @@ type ManBlkBasePlug struct {
 	preBlockHash common.Hash
 }
 
-func NewBlkBasePlug(preBlockHash common.Hash) (*ManBlkBasePlug, error) {
+func NewBlkBasePlug() (*ManBlkBasePlug, error) {
 	obj := new(ManBlkBasePlug)
 	return obj, nil
 }
