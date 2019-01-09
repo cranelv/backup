@@ -43,7 +43,7 @@ var LastAccount uint32 = EntrustAccount //必须赋值最后一个账户
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
 
-//hezi账户属性定义
+//账户属性定义
 type BalanceSlice struct {
 	AccountType uint32
 	Balance     *big.Int
@@ -372,7 +372,7 @@ type Elect struct {
 	VIP     VIPRoleType
 }
 
-//hezi
+//
 type Elect1 struct {
 	Account string
 	Stock   uint16
@@ -380,13 +380,13 @@ type Elect1 struct {
 	VIP     VIPRoleType
 }
 
-//hezi
+//
 type NetTopology1 struct {
 	Type            uint8
 	NetTopologyData []NetTopologyData1
 }
 
-//hezi
+//
 type NetTopologyData1 struct {
 	Account  string
 	Position uint16

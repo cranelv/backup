@@ -21,7 +21,7 @@ var (
 	ErrTxPoolNonexistent  = errors.New("txpool nonexistent")
 )
 
-//YY
+//
 type RetChan struct {
 	//Rxs   []types.SelfTransaction
 	AllTxs []*RetCallTx

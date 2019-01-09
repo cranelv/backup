@@ -102,7 +102,7 @@ type Matrix struct {
 	networkId     uint64
 	netRPCService *manapi.PublicNetAPI
 
-	broadTx *broadcastTx.BroadCast //YY
+	broadTx *broadcastTx.BroadCast //
 
 	//algorithm
 	ca         *ca.Identity //node传进来的
@@ -235,7 +235,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
 	depoistInfo.NewDepositInfo(man.APIBackend)
-	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //YY
+	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
 
@@ -461,7 +461,7 @@ func (s *Matrix) Miner() *miner.Miner { return s.miner }
 
 func (s *Matrix) AccountManager() *accounts.Manager        { return s.accountManager }
 func (s *Matrix) BlockChain() *core.BlockChain             { return s.blockchain }
-func (s *Matrix) TxPool() *core.TxPoolManager              { return s.txPool } //YYY
+func (s *Matrix) TxPool() *core.TxPoolManager              { return s.txPool } //Y
 func (s *Matrix) EventMux() *event.TypeMux                 { return s.eventMux }
 func (s *Matrix) Engine() consensus.Engine                 { return s.engine }
 func (s *Matrix) DPOSEngine() consensus.DPOSEngine         { return s.blockchain.DPOSEngine() }
@@ -510,7 +510,7 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
-	//s.broadTx.Start()//YY
+	//s.broadTx.Start()//
 	return nil
 }
 
@@ -582,7 +582,7 @@ func (s *Matrix) Stop() error {
 	s.eventMux.Stop()
 
 	s.chainDb.Close()
-	s.broadTx.Stop() //YY
+	s.broadTx.Stop() //
 	close(s.shutdownChan)
 
 	return nil

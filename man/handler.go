@@ -328,7 +328,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
-	//pm.syncTransactions(p) //YY 2018-08-29 新节点连接时不去要其他的交易
+	//pm.syncTransactions(p) // 2018-08-29 新节点连接时不去要其他的交易
 
 	// If we're DAO hard-fork aware, validate any remote peer with regard to the hard-fork
 	if daoBlock := pm.chainconfig.DAOForkBlock; daoBlock != nil {

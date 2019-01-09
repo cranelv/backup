@@ -327,17 +327,17 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 	}
 }
 
-//YY
+//
 func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
 	return b.man.signHelper.SignTx(signedTx, chainID, b.man.blockchain.CurrentBlock().ParentHash())
 }
 
-//YY
+//
 func (b *ManAPIBackend) SendBroadTx(ctx context.Context, signedTx types.SelfTransaction, bType bool) error {
 	return b.man.txPool.AddBroadTx(signedTx, bType)
 }
 
-//YY
+//
 func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 
 	/*

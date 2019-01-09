@@ -65,7 +65,7 @@ type (
 		Expiration, NetWorkId uint64
 		Address               common.Address
 		Signature             common.Signature
-		SignTime              time.Time
+		SignTime              uint64
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -118,7 +118,7 @@ type (
 		ID   NodeID
 		Addr common.Address
 		Sign common.Signature
-		Time time.Time
+		Time uint64
 	}
 
 	rpcEndpoint struct {
@@ -187,7 +187,7 @@ type udp struct {
 
 	address   common.Address
 	signature common.Signature
-	signTime  time.Time
+	signTime  uint64
 
 	*Table
 }
@@ -249,7 +249,7 @@ type Config struct {
 	NetWorkId    uint64
 	Address      common.Address
 	Signature    common.Signature
-	SignTime     time.Time
+	SignTime     uint64
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
@@ -645,6 +645,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	emptyAddr := common.Address{}
 	emptySign := common.Signature{}
 	if req.Address != emptyAddr || req.Signature != emptySign {
+		log.Info("request info", "id", fromID, "sign time", req.SignTime)
 		signCtn := common.BytesToHash(fromID.Bytes()).Bytes()
 		addr, _, _ := crypto.VerifySignWithValidate(signCtn, req.Signature[:])
 		if addr.Hex() != req.Address.Hex() {

@@ -1888,7 +1888,8 @@ func (d *Downloader) requestTTL() time.Duration {
 	if ttl > ttlLimit {
 		ttl = ttlLimit
 	}
-	return ttl
+	//return ttl //lb
+	return ttl * 3
 }
 func (d *Downloader) SetbStoreSendIpfsFlg(flg bool) {
 	if flg {

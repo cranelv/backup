@@ -162,6 +162,10 @@ web3._extend({
 			name: 'datadir',
 			getter: 'admin_datadir'
 		}),
+		new web3._extend.Property({
+			name: 'addressTable',
+			getter: 'admin_addressTable'
+		}),
 	]
 });
 `
@@ -430,7 +434,7 @@ web3._extend({
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
 		}),
-		//hezi
+		// 
 		new web3._extend.Method({
 			name: 'getEntrustList',
 			call: 'man_getEntrustList',

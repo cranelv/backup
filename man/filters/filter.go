@@ -24,7 +24,7 @@ type Backend interface {
 	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
 	GetLogs(ctx context.Context, blockHash common.Hash) ([][]*types.Log, error)
 
-	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //YYY
+	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //Y
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
 	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
