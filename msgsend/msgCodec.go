@@ -527,17 +527,19 @@ func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{
 	sendMsg := &mc.HD_FullBlockRspMsg{
 		From:   from,
 		Header: msg.Header,
-		Txs:    make(types.SelfTransactions, 0),
+		Txs:    make([]types.CoinSelfTransaction, 0),
 	}
 
 	size := len(msg.Txs)
+	var txs	[]types.SelfTransaction
 	for i := 0; i < size; i++ {
 		tx := types.SetMxToTransaction(msg.Txs[i])
 		if nil == tx {
 			return nil, errors.Errorf("decode tx err: the (%d/%d) tx is nil", i, size)
 		}
-		sendMsg.Txs = append(sendMsg.Txs, tx)
+		txs=append(txs,tx)
 	}
-
+	cointx:=types.GetCoinTX(txs)
+	sendMsg.Txs =cointx
 	return sendMsg, nil
 }

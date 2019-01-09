@@ -22,7 +22,7 @@ type HdRev struct {
 
 type BlockData struct {
 	Header *types.Header
-	Txs    types.SelfTransactions
+	Txs    types.CoinSelfTransaction
 }
 
 //Miner Module

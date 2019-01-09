@@ -91,6 +91,16 @@ func SetMxToTransaction(txm *Transaction_Mx) (txer SelfTransaction) {
 	return
 }
 
+func GetTX(ctx []CoinSelfTransaction)[] SelfTransaction  {
+	var txs []SelfTransaction
+	for _,tx:= range ctx{
+		for _,t:= range tx.Txser  {
+			txs=append(txs,t)
+		}
+	}
+	return txs
+}
+
 func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
 	var mm map[string][]SelfTransaction //BB
 	for _, tx := range txs {
