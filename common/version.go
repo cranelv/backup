@@ -156,5 +156,12 @@ var (
 				"fix peer bug after change identity, fix change nodeId bug",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.19",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"uptime一直累加",
+			},
+		},
 	}
 )

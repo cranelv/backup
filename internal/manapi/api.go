@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/matrix/go-matrix/depoistInfo"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -602,6 +604,18 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 
 	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*big.Int, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address := base58.Base58DecodeToAddress(strAddress)
+
+	read, _ := depoistInfo.GetOnlineTime(state, address)
+
+	return read, state.Error()
 }
 
 //钱包调用
