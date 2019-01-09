@@ -337,7 +337,7 @@ type HD_FullBlockReqMsg struct {
 
 type HD_FullBlockRspMsg struct {
 	Header *types.Header
-	Txs    types.SelfTransactions
+	Txs    []types.CoinSelfTransaction
 	From   common.Address
 }
 

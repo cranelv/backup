@@ -18,7 +18,6 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/miner"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -88,14 +87,14 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 		Header: blockData.block.Header,
 		Txs:    blockData.block.OriginalTxs,
 	}
-	log.Debug(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易数量", rspMsg.Txs.Len())
+	log.Debug(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易", rspMsg.Txs)
 	p.pm.hd.SendNodeMsg(mc.HD_FullBlockRsp, rspMsg, common.RoleNil, []common.Address{req.From})
 }
 
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	fullHash := rsp.Header.Hash()
 	headerHash := rsp.Header.HashNoSignsAndNonce()
-	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "区块 hash", fullHash.TerminalString(), "交易数量", rsp.Txs.Len(), "root", rsp.Header.Roots, "高度", p.number)
+	log.INFO(p.logExtraInfo(), "处理完整区块响应", "开始", "区块 hash", fullHash.TerminalString(), "交易", rsp.Txs, "root", rsp.Header.Roots, "高度", p.number)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -120,7 +119,6 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
-	rtxs:=types.GetCoinTX(rsp.Txs)
 
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:      rsp.Header,
@@ -141,7 +139,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	p.processBlockInsert(rsp.Header.Leader)
 }
 
-func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types.SelfTransactions) ([]*types.Receipt, *state.StateDBManage, types.SelfTransactions, error) {
+func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []types.CoinSelfTransaction) ([]types.CoinReceipts, *state.StateDBManage, []types.CoinSelfTransaction, error) {
 	parent := p.blockChain().GetBlockByHash(header.ParentHash)
 	if parent == nil {
 		return nil, nil, nil, errors.Errorf("父区块(%s)获取失败!", header.ParentHash.TerminalString())
@@ -155,14 +153,14 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
 	finalTxs := work.GetTxs()
-	ctx,crs:=types.GetCoinTXRS(finalTxs,work.Receipts)
-	cb:=types.MakeCurencyBlock(ctx,crs,nil)
+	//ctx,crs:=types.GetCoinTXRS(finalTxs,)
+	cb:=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
 
 	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
 	}
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), ctx, p.pm.bc, uptimeMap)
+	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc, uptimeMap)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}

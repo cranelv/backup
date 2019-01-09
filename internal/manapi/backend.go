@@ -40,7 +40,7 @@ type Backend interface {
 	BlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Block, error)
 	StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDBManage, *types.Header, error)
 	GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error)
-	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
+	GetReceipts(ctx context.Context, blockHash common.Hash) ([]types.CoinReceipts, error)
 	GetTd(blockHash common.Hash) *big.Int
 	GetEVM(ctx context.Context, msg txinterface.Message, state *state.StateDBManage, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error)
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
