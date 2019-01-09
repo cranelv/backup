@@ -565,11 +565,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver them all to the downloader for queuing
 		//transactions := make([][]types.SelfTransaction, len(request))
-		transactions := make([][]types.SelfTransaction, len(request))
+		transactions := make([][]types.CoinSelfTransaction, len(request))
 		uncles := make([][]*types.Header, len(request))
 
 		for i, body := range request {
-			transactions[i] = body.Transactions//.GetTransactions()
+			cointx := make([]types.CoinSelfTransaction,0)
+			for _,curr := range body.Transactions{
+				cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
+			}
+			transactions[i] = cointx//.GetTransactions()
 			uncles[i] = body.Uncles
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
@@ -646,9 +650,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Retrieve the requested block's receipts, skipping if unknown to us
 			results := pm.blockchain.GetReceiptsByHash(hash)
 			if results == nil {
-				if header := pm.blockchain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyRootHash {
-					continue
-				}
+				log.Info("Get receipt err","Get receipt err","Get receipt err")
+				continue
 			}
 			// If known, encode and queue for response packet
 			if encoded, err := rlp.EncodeToBytes(results); err != nil {
@@ -662,7 +665,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	case p.version >= man63 && msg.Code == ReceiptsMsg:
 		// A batch of receipts arrived to one of our previous requests
-		var receipts [][]*types.Receipt
+		var receipts [][]types.CoinReceipts
 		if err := msg.Decode(&receipts); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}

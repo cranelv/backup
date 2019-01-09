@@ -80,7 +80,7 @@ type headerFilterTask struct {
 // needing fetcher filtering.
 type bodyFilterTask struct {
 	peer         string                    // The source peer of block bodies
-	transactions [][]types.SelfTransaction // Collection of transactions per block bodies
+	transactions [][]types.CoinSelfTransaction // Collection of transactions per block bodies
 	uncles       [][]*types.Header         // Collection of uncles per block bodies
 	time         time.Time                 // Arrival time of the blocks' contents
 }
@@ -236,7 +236,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]types.SelfTransaction, uncles [][]*types.Header, time time.Time) ([][]types.SelfTransaction, [][]*types.Header) {
+func (f *Fetcher) FilterBodies(peer string, transactions [][]types.CoinSelfTransaction, uncles [][]*types.Header, time time.Time) ([][]types.CoinSelfTransaction, [][]*types.Header) {
 	log.Trace("download fetch Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
 
 	// Send the filter channel to the fetcher
@@ -522,7 +522,9 @@ func (f *Fetcher) loop() {
 				matched := false
 				tmpmap := make(map[string]types.SelfTransactions)
 				for _,txer := range task.transactions[i]{
-					tmpmap[txer.GetTxCurrency()] = append(tmpmap[txer.GetTxCurrency()],txer)
+					for _,tx := range txer.Txser{
+						tmpmap[tx.GetTxCurrency()] = append(tmpmap[tx.GetTxCurrency()],tx)
+					}
 				}
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
