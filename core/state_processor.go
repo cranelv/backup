@@ -176,6 +176,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	}
 	waitG.Wait()
 	from := make([]common.Address, 0)
+	isvadter := p.isValidater(header.Number)
 	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
@@ -189,7 +190,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		if err != nil {
 			return nil, 0, err
 		}
-		if p.isValidater(header.Number) {
+		if isvadter {
 			receipts = append(receipts, receipt)
 			allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
 			tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
@@ -222,7 +223,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			return  nil, 0, err
 		}
 		var tmptx types.SelfTransaction
-		if p.isValidater(header.Number) {
+		if isvadter {
 			tmptx = tx
 		} else {
 			if p.isaddSharding(shard, coinShard, tx.GetTxCurrency()) {
@@ -248,7 +249,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 
 	//todo:
 	for i,bc := range block.Currencies(){
-		if len(coinShard)>0{
+		if !isvadter{
 			for _,cs := range coinShard{
 				if bc.CurrencyName == cs.CoinType{
 					block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],cs.Shardings)
