@@ -30,7 +30,7 @@ func (self *MinHashPlug) Prepare(height uint64, support baseinterface.RandomChai
 		return err
 	}
 	voteBeforeTime := uint64(data.VoteBeforeTime)
-	bcInterval := manparams.NewBCInterval()
+	bcInterval := manparams.GetBCIntervalInfo()
 	if bcInterval.IsBroadcastNumber(height+voteBeforeTime) == false {
 		log.INFO(ModuleElectSeed, "RoleUpdateMsgHandle", "当前不是投票点,忽略")
 		return nil

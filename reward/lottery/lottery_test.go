@@ -153,7 +153,7 @@ func TestTxsLottery_LotteryCalc1(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 2, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -196,7 +196,7 @@ func TestTxsLottery_LotteryCalc2(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -241,7 +241,7 @@ func TestTxsLottery_LotteryCalc3(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 2, PrizeNum: 3, PrizeMoney: 1})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 50, PrizeMoney: 1})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil

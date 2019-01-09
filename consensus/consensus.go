@@ -98,10 +98,10 @@ type PoW interface {
 type StateReader interface {
 	GetCurrentHash() common.Hash
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
-	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
-	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
 	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
 }
 
