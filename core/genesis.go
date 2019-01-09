@@ -475,7 +475,6 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
-
 	}
 	if err := g.MState.SetSuperBlkToState(stateDB, g.ExtraData, g.Number); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)

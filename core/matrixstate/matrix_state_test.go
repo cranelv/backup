@@ -36,10 +36,6 @@ func Test_Manager(t *testing.T) {
 
 	account1 := common.HexToAddress("0x12345")
 	account2 := common.HexToAddress("0x543210")
-
-	opt, _ := mangerAlpha.FindOperator(mc.OldMSKeyAccountBroadcast)
-	opt.SetValue(st, account1)
-
 	optV2, _ := mangerBeta.FindOperator(mc.MSKeyAccountBroadcasts)
 	optV2.SetValue(st, []common.Address{account2, account1})
 
@@ -47,10 +43,6 @@ func Test_Manager(t *testing.T) {
 }
 
 func use_st(state *TestState) {
-	opt, _ := mangerAlpha.FindOperator(mc.OldMSKeyAccountBroadcast)
-	account, err := opt.GetValue(state)
-	log.Info("old get", "account", account.(common.Address).Hex(), "err", err)
-
 	optV2, _ := mangerBeta.FindOperator(mc.MSKeyAccountBroadcasts)
 	accounts, err := optV2.GetValue(state)
 	log.Info("new get", "accounts", accounts.([]common.Address), "err", err)

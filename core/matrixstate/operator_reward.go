@@ -428,7 +428,7 @@ type operatorUpTimeNum struct {
 
 func newUpTimeNumOpt() *operatorUpTimeNum {
 	return &operatorUpTimeNum{
-		key: common.BytesToHash([]byte(mc.MSKeyUpTimeNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyUpTimeNum),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyUpTimeNum),
 	}
 }
 
@@ -475,7 +475,7 @@ type operatorLotteryNum struct {
 
 func newLotteryNumOpt() *operatorLotteryNum {
 	return &operatorLotteryNum{
-		key: common.BytesToHash([]byte(mc.MSKeyLotteryNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryNum),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryNum),
 	}
 }
 
@@ -580,7 +580,7 @@ type operatorInterestCalcNum struct {
 
 func newInterestCalcNumOpt() *operatorInterestCalcNum {
 	return &operatorInterestCalcNum{
-		key: common.BytesToHash([]byte(mc.MSKeyInterestCalcNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcNum),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcNum),
 	}
 }
 
@@ -627,7 +627,7 @@ type operatorInterestPayNum struct {
 
 func newInterestPayNumOpt() *operatorInterestPayNum {
 	return &operatorInterestPayNum{
-		key: common.BytesToHash([]byte(mc.MSKeyInterestPayNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeyInterestPayNum),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestPayNum),
 	}
 }
 
@@ -674,7 +674,7 @@ type operatorSlashNum struct {
 
 func newSlashNumOpt() *operatorSlashNum {
 	return &operatorSlashNum{
-		key: common.BytesToHash([]byte(mc.MSKeySlashNum)), //types.RlpHash(matrixStatePrefix + mc.MSKeySlashNum),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashNum),
 	}
 }
 
