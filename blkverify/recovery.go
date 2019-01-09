@@ -168,7 +168,7 @@ func encodeVerifiedBlock(req *mc.HD_BlkConsensusReqMsg, txs []types.CoinSelfTran
 	marshalTxs := make([]*types.Transaction_Mx, txSize)
 	for i := 0; i < txSize; i++ {
 		tx := txs[i]
-		for _,t :=tx.Txser{
+		for _,t := range tx.Txser{
 		if mtx := types.SetTransactionToMx(t); mtx == nil {
 			return nil, errors.Errorf("tx(%d/%d) transfer to mtx err,tx=%v", i+1, txSize, tx)
 		} else {

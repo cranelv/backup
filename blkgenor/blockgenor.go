@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/core/types"
 )
 
 type BlockGenor struct {
@@ -232,7 +233,7 @@ func (self *BlockGenor) minerResultHandle(minerResult *mc.HD_MiningRspMsg) {
 
 func (self *BlockGenor) broadcastMinerResultHandle(result *mc.HD_BroadcastMiningRspMsg) {
 	number := result.BlockMainData.Header.Number.Uint64()
-	log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "开始", "高度", number, "交易数量", result.BlockMainData.Txs.Len())
+	log.INFO(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "开始", "高度", number, "交易数量", len(types.GetTX(result.BlockMainData.Txs)))
 	defer log.Debug(self.logExtraInfo(), "广播矿工挖矿结果消息处理", "结束", "高度", number)
 
 	process, err := self.pm.GetProcess(number)

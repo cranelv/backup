@@ -156,13 +156,14 @@ func (*broadcastMiningRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 		return nil, errors.New("reflect err! broadcast_mining_rsp_msg")
 	}
 
-	size := rsp.BlockMainData.Txs.Len()
+	txs:=types.GetTX(rsp.BlockMainData.Txs)
+	size := len(txs)
 	marshalMsg := fullBlockMsgForMarshal{}
 	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
 	for i := 0; i < size; i++ {
-		tx := rsp.BlockMainData.Txs[i]
-		log.DEBUG("HD", "广播挖矿结果消息, Marshal前的tx", tx)
-		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(tx))
+		//tx := rsp.BlockMainData.Txs[i]
+		log.DEBUG("HD", "广播挖矿结果消息, Marshal前的tx", txs[i])
+		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(txs[i]))
 	}
 	marshalMsg.Header = rsp.BlockMainData.Header
 	data, err := json.Marshal(marshalMsg)
@@ -186,16 +187,21 @@ func (*broadcastMiningRspCodec) DecodeFn(data []byte, from common.Address) (inte
 		From: from,
 		BlockMainData: &mc.BlockData{
 			Header: msg.Header,
-			Txs:    make(types.SelfTransactions, 0),
+			Txs:    make([]types.CoinSelfTransaction, 0),
 		},
 	}
 	size := len(msg.Txs)
+	var txs [] types.SelfTransaction
 	for i := 0; i < size; i++ {
 		tx := types.SetTransactionMx(msg.Txs[i])
 		log.DEBUG("HD", "广播挖矿结果消息, Unmarshal后的tx", tx)
-		sendMsg.BlockMainData.Txs = append(sendMsg.BlockMainData.Txs, tx)
+		txs=append(txs,tx)
 	}
+	ctxs:=types.GetCoinTX(txs)
+	for _,ctx :=range ctxs{
+		sendMsg.BlockMainData.Txs = append(sendMsg.BlockMainData.Txs, ctx)
 
+	}
 	return sendMsg, nil
 }
 

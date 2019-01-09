@@ -388,13 +388,15 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 }
 
 //Broadcast
-func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.SelfTransaction, bc *core.BlockChain) {
+func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.CoinSelfTransaction, bc *core.BlockChain) {
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	mapcoingasUse.clearmap()
 	for _, tx := range txs {
-		env.commitTransaction(tx, bc, common.Address{}, nil)
+		for _,t:=range  tx.Txser{
+		env.commitTransaction(t, bc, common.Address{}, nil)
+		}
 	}
 	rewart := env.CalcRewardAndSlash(bc, nil, nil)
 	txers := env.makeTransaction(rewart)
