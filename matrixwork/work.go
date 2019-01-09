@@ -505,14 +505,15 @@ func (env *Work) CalcRewardAndSlash(bc *core.BlockChain, upTime map[common.Addre
 	if nil == interestReward {
 		return env.Reverse(rewardList)
 	}
-	interestCalcMap, interestPayMap := interestReward.InterestCalc(env.State, env.header.Number.Uint64())
-	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
-	}
+	interestCalcMap := interestReward.CalcInterest(env.State, env.header.Number.Uint64())
 
 	slash := slash.New(bc, env.State)
 	if nil != slash {
 		slash.CalcSlash(env.State, env.header.Number.Uint64(), upTime, interestCalcMap)
+	}
+	interestPayMap := interestReward.PayInterest(env.State, env.header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
 	}
 	return env.Reverse(rewardList)
 }

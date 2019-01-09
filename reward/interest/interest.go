@@ -1,10 +1,11 @@
 package interest
 
 import (
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/reward/util"
-	"math/big"
 
 	"github.com/matrix/go-matrix/mc"
 
@@ -96,17 +97,8 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, blockInterest *big.Rat) 
 	return result
 }
 
-func (ic *interest) InterestCalc(state vm.StateDB, num uint64) (map[common.Address]*big.Int, map[common.Address]*big.Int) {
-	if nil == state {
-		log.ERROR(PackageName, "状态树是空", state)
-		return nil, nil
-	}
-
-	return ic.calcInterest(ic.CalcInterval, num, state), ic.payInterest(ic.PayInterval, num, state)
-}
-
-func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.StateDB) map[common.Address]*big.Int {
-	if !ic.canPayInterst(state, num, payInterestPeriod) {
+func (ic *interest) PayInterest(state vm.StateDB, num uint64) map[common.Address]*big.Int {
+	if !ic.canPayInterst(state, num, ic.PayInterval) {
 		return nil
 	}
 
@@ -116,13 +108,26 @@ func (ic *interest) payInterest(payInterestPeriod uint64, num uint64, state vm.S
 	AllInterestMap := depoistInfo.GetAllInterest(state)
 	Deposit := big.NewInt(0)
 
-	for account, interest := range AllInterestMap {
-		log.Debug(PackageName, "账户", account, "利息", interest.String())
-		if interest.Cmp(big.NewInt(0)) <= 0 {
-			log.ERROR(PackageName, "获取的利息非法", interest)
+	for account, originInterest := range AllInterestMap {
+		if originInterest.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "获取的利息非法", originInterest)
 			continue
 		}
-		Deposit = new(big.Int).Add(Deposit, interest)
+		slash, _ := depoistInfo.GetSlash(state, account)
+		if slash.Cmp(big.NewInt(0)) < 0 {
+			log.ERROR(PackageName, "获取的惩罚非法", originInterest)
+			continue
+		}
+
+		finalInterest := new(big.Int).Sub(originInterest, slash)
+		if finalInterest.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "支付的的利息非法", finalInterest)
+			continue
+		}
+		log.Debug(PackageName, "账户", account, "原始利息", originInterest.String(), "惩罚利息", slash.String(), "剩余利息", finalInterest.String())
+		AllInterestMap[account] = finalInterest
+		Deposit = new(big.Int).Add(Deposit, finalInterest)
+		depoistInfo.ResetSlash(state, account)
 	}
 	balance := state.GetBalance(common.InterestRewardAddress)
 	log.Debug(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
@@ -156,8 +161,8 @@ func (ic *interest) getLastInterestNumber(number uint64, InterestInterval uint64
 	return ans
 }
 
-func (ic *interest) calcInterest(calcInterestInterval uint64, num uint64, state vm.StateDB) map[common.Address]*big.Int {
-	if !ic.canCalcInterest(state, num, calcInterestInterval) {
+func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Address]*big.Int {
+	if !ic.canCalcInterest(state, num, ic.CalcInterval) {
 		return nil
 	}
 

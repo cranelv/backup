@@ -6,6 +6,11 @@ package core
 
 import (
 	"errors"
+	"math/big"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
@@ -21,10 +26,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-	"math/big"
-	"runtime"
-	"sync"
-	"time"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -114,16 +115,18 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	if nil == interestReward {
 		return nil
 	}
-	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
-	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
-	}
+
+	interestCalcMap := interestReward.CalcInterest(state, header.Number.Uint64())
 
 	slash := slash.New(p.bc, state)
 	if nil != slash {
 		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
 	}
 
+	interestPayMap := interestReward.PayInterest(state, header.Number.Uint64())
+	if 0 != len(interestPayMap) {
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+	}
 	return nil
 }
 
