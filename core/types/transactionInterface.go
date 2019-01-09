@@ -102,7 +102,7 @@ func GetTX(ctx []CoinSelfTransaction)[] SelfTransaction  {
 }
 
 func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
-	var mm map[string][]SelfTransaction //BB
+	mm := make(map[string][]SelfTransaction) //BB
 	for _, tx := range txs {
 		cointype := tx.GetTxCurrency()
 		mm[cointype] = append(mm[cointype], tx)
@@ -117,8 +117,8 @@ func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
 func GetCoinTXRS(txs []SelfTransaction,rxs []*Receipt) ([]CoinSelfTransaction,[]CoinReceipts) {
 	var tx []CoinSelfTransaction	//BB
 	var rx []CoinReceipts
-	var tm map[string][]SelfTransaction
-	var rm map[string][]*Receipt
+	tm := make(map[string][]SelfTransaction)
+	rm := make(map[string][]*Receipt)
 	for i,t := range txs  {
 		tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
 		rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],rxs[i])
