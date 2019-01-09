@@ -31,22 +31,39 @@ func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) (common.Hash, uint64
 // WriteTxLookupEntries stores a positional metadata for every transaction from
 // a block, enabling hash based transaction and receipt lookups.
 func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
-	var i uint64
 	for _, currencies := range block.Currencies() {
-		for _, tx := range currencies.Transactions.GetTransactions() {
-			entry := TxLookupEntry{
-				BlockHash:  block.Hash(),
-				BlockIndex: block.NumberU64(),
-				Index:      i,
+		if len(currencies.Transactions.Sharding) > 0{
+			for _, tx := range currencies.Transactions.TransactionInfos {
+				entry := TxLookupEntry{
+					BlockHash:  block.Hash(),
+					BlockIndex: block.NumberU64(),
+					Index:      tx.Index,
+				}
+				data, err := rlp.EncodeToBytes(entry)
+				if err != nil {
+					log.Crit("Failed to encode transaction lookup entry", "err", err)
+				}
+				if err := db.Put(append(txLookupPrefix, tx.Tx.Hash().Bytes()...), data); err != nil {
+					log.Crit("Failed to store transaction lookup entry", "err", err)
+				}
 			}
-			data, err := rlp.EncodeToBytes(entry)
-			if err != nil {
-				log.Crit("Failed to encode transaction lookup entry", "err", err)
+		}else {
+			var i uint64
+			for _, tx := range currencies.Transactions.GetTransactions() {
+				entry := TxLookupEntry{
+					BlockHash:  block.Hash(),
+					BlockIndex: block.NumberU64(),
+					Index:      i,
+				}
+				data, err := rlp.EncodeToBytes(entry)
+				if err != nil {
+					log.Crit("Failed to encode transaction lookup entry", "err", err)
+				}
+				if err := db.Put(append(txLookupPrefix, tx.Hash().Bytes()...), data); err != nil {
+					log.Crit("Failed to store transaction lookup entry", "err", err)
+				}
+				i++
 			}
-			if err := db.Put(append(txLookupPrefix, tx.Hash().Bytes()...), data); err != nil {
-				log.Crit("Failed to store transaction lookup entry", "err", err)
-			}
-			i++
 		}
 	}
 }
