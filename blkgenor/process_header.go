@@ -132,7 +132,7 @@ func (p *Process) processHeaderGen() error {
 		header.Signatures = make([]common.Signature, 0, 1)
 		header.Signatures = append(header.Signatures, sign)
 		sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
-		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", types.RlpHash(header.Roots), "tx数量", sendMsg.Txs.Len())
+		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", types.RlpHash(header.Roots), "tx数量", len(types.GetTX(sendMsg.Txs)))
 		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
 	} else {
 		header = block.Header()
@@ -145,7 +145,7 @@ func (p *Process) processHeaderGen() error {
 		//send to local block verify module
 		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
 		if len(originalTxs) > 0 {
-			txpoolCache.MakeStruck(originalTxs, header.HashNoSignsAndNonce(), p.number)
+			txpoolCache.MakeStruck(types.GetTX(originalTxs), header.HashNoSignsAndNonce(), p.number)
 		}
 		log.INFO(p.logExtraInfo(), "本地发送区块验证请求, root", types.RlpHash(p2pBlock.Header.Roots), "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
@@ -155,7 +155,7 @@ func (p *Process) processHeaderGen() error {
 	return nil
 }
 
-func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDBManage, []*types.Receipt, []types.SelfTransaction, error) {
+func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDBManage, []types.CoinReceipts, []types.CoinSelfTransaction, error) {
 	//broadcast txs deal,remove no validators txs
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
@@ -175,10 +175,10 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		// todo: add rewward and run
 		//rewardList:=p.calcRewardAndSlash(work.State, header)
 
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
+		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), types.GetCoinTX(Txs), p.pm.bc)
 		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs := work.GetTxs()
-		block := types.NewBlock(header, retTxs, nil, work.Receipts, nil)
+		block := types.NewBlock(header, types.MakeCurencyBlock(retTxs,work.Receipts,nil), nil)
 		return block, nil, work.State, work.Receipts, retTxs, nil
 
 	} else {
@@ -195,9 +195,9 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		}
 		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
-		block := types.NewBlock(header, finalTxs, nil, work.Receipts, nil)
-		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
-		return block, txsCode, work.State, work.Receipts, originalTxs, nil
+		block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs),work.Receipts,nil), nil)
+		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash","")
+		return block, txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), nil
 	}
 }
 
