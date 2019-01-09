@@ -110,7 +110,7 @@ func SetElectGenTime(st StateDB, genTime *mc.ElectGenTimeStruct) error {
 	if mgr == nil {
 		return ErrFindManager
 	}
-	opt, err := mgr.FindOperator(mc.MSKeyElectGraph)
+	opt, err := mgr.FindOperator(mc.MSKeyElectGenTime)
 	if err != nil {
 		return err
 	}

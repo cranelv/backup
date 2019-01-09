@@ -58,7 +58,11 @@ type GenesisMState1 struct {
 	CurElect             *[]common.Elect1        `json:"curElect"    gencodec:"required"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, num uint64) error {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
+	if err := ms.setVersionInfo(state, num, version); err != nil {
+		return err
+	}
+
 	if err := ms.setElectTime(state, num); err != nil {
 		return err
 	}
@@ -126,6 +130,18 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	return nil
+}
+
+func (g *GenesisMState) setVersionInfo(state *state.StateDB, num uint64, version string) error {
+	if len(version) == 0 {
+		if num == 0 {
+			return errors.New("版本信息为空")
+		} else {
+			log.INFO("Geneis", "没有配置版本信息", "")
+			return nil
+		}
+	}
+	return matrixstate.SetVersionInfo(state, version)
 }
 
 func (g *GenesisMState) setElectTime(state *state.StateDB, num uint64) error {

@@ -4,8 +4,6 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/pkg/errors"
 )
 
 func GetVersionInfo(st StateDB) string {
@@ -14,13 +12,7 @@ func GetVersionInfo(st StateDB) string {
 		log.Error(logInfo, "get version failed", err)
 		return ""
 	}
-
-	version, _ := value.(string)
-	if len(version) == 0 {
-		// Alpha版本state中没有版本信息
-		return manparams.VersionAlpha
-	}
-	return version
+	return value.(string)
 }
 
 func SetVersionInfo(st StateDB, version string) error {
@@ -69,13 +61,7 @@ func GetBroadcastAccounts(st StateDB) ([]common.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if version == manparams.VersionAlpha {
-		// Alpha版，广播节点为单common.Address
-		return []common.Address{value.(common.Address)}, nil
-	} else {
-		return value.([]common.Address), nil
-	}
+	return value.([]common.Address), nil
 }
 
 func SetBroadcastAccounts(st StateDB, accounts []common.Address) error {
@@ -88,16 +74,7 @@ func SetBroadcastAccounts(st StateDB, accounts []common.Address) error {
 	if err != nil {
 		return err
 	}
-	if version == manparams.VersionAlpha {
-		// Alpha版，广播节点为单common.Address
-		if len(accounts) == 0 {
-			return errors.New("account size is 0")
-		}
-		log.Info(logInfo, "Alpha版广播节点设置", "只保存第一个账户", "广播账户", accounts[0].Hex())
-		return opt.SetValue(st, accounts[0])
-	} else {
-		return opt.SetValue(st, accounts)
-	}
+	return opt.SetValue(st, accounts)
 }
 
 func GetInnerMinerAccounts(st StateDB) ([]common.Address, error) {
