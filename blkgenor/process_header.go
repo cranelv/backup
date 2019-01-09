@@ -107,8 +107,13 @@ func (p *Process) processHeaderGen() error {
 	header = tsBlock.Header()
 	header.Elect = Elect
 	//运行完matrix状态树后，生成root
-	finalTxs := tsBlock.Transactions()
-	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, finalTxs, nil, receipts, nil)
+	var txs [] types.SelfTransaction
+	for _,currencie:=range tsBlock.Currencies(){
+		txs =append(txs,currencie.Transactions.GetTransactions()...)
+	}
+	finalTxs:=types.GetCoinTX(txs)
+
+	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
 	if err != nil {
 		log.Error(p.logExtraInfo(), "最终finalize错误", err)
 		return err

@@ -160,9 +160,9 @@ type HD_BlkConsensusReqMsg struct {
 
 type LocalBlockVerifyConsensusReq struct {
 	BlkVerifyConsensusReq *HD_BlkConsensusReqMsg
-	OriginalTxs           types.SelfTransactions // 原始交易列表
-	FinalTxs              types.SelfTransactions // 最终交易列表(含奖励交易)
-	Receipts              []*types.Receipt       // 收据
+	OriginalTxs           []types.CoinSelfTransaction // 原始交易列表
+	FinalTxs              []types.CoinSelfTransaction // 最终交易列表(含奖励交易)
+	Receipts              []types.CoinReceipts       // 收据
 	State                 *state.StateDBManage   // apply state changes here 状态数据库
 }
 
