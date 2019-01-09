@@ -1639,21 +1639,33 @@ func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64
 	switch flag {
 	case 0:
 		obj := out.(*types.BlockAllSt)
+		txs := make(types.SelfTransactions,0)
+		res := make(types.Receipts,0)
+		for _,cub := range obj.Sblock.Currencies(){
+			txs = append(txs,cub.Transactions.GetTransactions()...)
+			res = append(res,cub.Receipts.GetReceipts()...)
+		}
+		cointxs,coinres := types.GetCoinTXRS(txs,res)
 		tmp.Headeripfs = obj.Sblock.Header()
-		tmp.Transactionsipfs = obj.Sblock.Transactions()
+		tmp.Transactionsipfs = cointxs
 		tmp.Unclesipfs = obj.Sblock.Uncles()
-		tmp.Receipt = obj.SReceipt
+		tmp.Receipt = coinres
 		tmp.BlockNum = tmp.Headeripfs.Number.Uint64() //blockNum
 		log.Debug(" ipfs send new block to syn BlockAllSt ", "flag", flag, "blockNum", tmp.Headeripfs.Number.Uint64())
 	case 1:
 	case 2:
 		obj := out.(*types.Body)
-		tmp.Transactionsipfs = obj.Transactions.GetTransactions()
+		txs := make(types.SelfTransactions,0)
+		for _,cub := range obj.CurrencyBody{
+			txs = append(txs,cub.Transactions.GetTransactions()...)
+		}
+		cointxs:= types.GetCoinTX(txs)
+		tmp.Transactionsipfs = cointxs
 		tmp.Unclesipfs = obj.Uncles
 		log.Debug(" ipfs send new block to syn Body", "flag", flag, "blockNum", blockNum)
 	case 3:
-		obj := out.(*types.Receipts)
-		tmp.Receipt = *obj
+		obj := out.([]types.CoinReceipts)
+		tmp.Receipt = obj
 		log.Debug(" ipfs send new block to syn Receipts", "flag", flag, "blockNum", blockNum)
 
 	case 33: //通知删除请求队列
@@ -1950,8 +1962,14 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, offset)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, blockNum)
 	d.dpIpfs.BatchStBlock.headerStoreFile.Write(bhead)
+	recpts := make([]types.CoinReceipts,0)
+	txsCount := 0
+	for _,curr := range stBlock.Sblock.Currencies(){
+		recpts = append(recpts,types.CoinReceipts{CoinType:curr.CurrencyName,Receiptlist:curr.Receipts.GetReceipts()})
+		txsCount += len(curr.Transactions.GetTransactions())
+	}
 
-	if len(stBlock.Sblock.Body().Transactions.GetTransactions()) == 0 {
+	if txsCount == 0 {
 		return true
 	}
 
@@ -1971,7 +1989,8 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, offset)
 	binary.Write(d.dpIpfs.BatchStBlock.bodyStoreFile, binary.BigEndian, blockNum)
 	d.dpIpfs.BatchStBlock.bodyStoreFile.Write(bbody)
-	breceipt, err := rlp.EncodeToBytes(stBlock.SReceipt)
+
+	breceipt, err := rlp.EncodeToBytes(recpts)
 	if err != nil {
 		log.Error(" ipfs BatchStoreAllBlock error breceipt rlp.EncodeToBytes", "blockNum", blockNum)
 	}

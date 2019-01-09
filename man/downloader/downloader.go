@@ -155,8 +155,8 @@ type BlockIpfs struct {
 	BlockNum         uint64
 	Headeripfs       *types.Header
 	Unclesipfs       []*types.Header
-	Transactionsipfs []types.SelfTransaction //Transactions//SelfTransaction?????
-	Receipt          types.Receipts
+	Transactionsipfs []types.CoinSelfTransaction //Transactions//SelfTransaction?????
+	Receipt          []types.CoinReceipts
 }
 type BlockIpfsReq struct {
 	ReqPendflg  int
@@ -1803,12 +1803,12 @@ func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) (err err
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions []types.CoinSelfTransaction, uncles [][]*types.Header) (err error) {
+func (d *Downloader) DeliverBodies(id string, transactions [][]types.CoinSelfTransaction, uncles [][]*types.Header) (err error) {
 	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, uncles}, bodyInMeter, bodyDropMeter)
 }
 
 // DeliverReceipts injects a new batch of receipts received from a remote node.
-func (d *Downloader) DeliverReceipts(id string, receipts []types.CoinReceipts) (err error) {
+func (d *Downloader) DeliverReceipts(id string, receipts [][]types.CoinReceipts) (err error) {
 	return d.deliver(id, d.receiptCh, &receiptPack{id, receipts}, receiptInMeter, receiptDropMeter)
 }
 

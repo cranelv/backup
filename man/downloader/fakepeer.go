@@ -111,15 +111,16 @@ func (p *FakePeer) RequestHeadersByNumber(number uint64, amount int, skip int, r
 // corresponding to the specified block hashes.
 func (p *FakePeer) RequestBodies(hashes []common.Hash) error {
 	var (
-		txs    []types.CoinSelfTransaction
+		txs    [][]types.CoinSelfTransaction
 		uncles [][]*types.Header
 	)
 	for _, hash := range hashes {
 		block := rawdb.ReadBlock(p.db, hash, *p.hc.GetBlockNumber(hash))
+		cointx := make([]types.CoinSelfTransaction,0)
 		for _,currencie := range block.Currencies(){
-			cointx:=types.CoinSelfTransaction{currencie.CurrencyName,currencie.Transactions.Transactions}
-		txs = append(txs,cointx)
+			cointx = append(cointx,types.CoinSelfTransaction{currencie.CurrencyName,currencie.Transactions.Transactions})
 		}
+		txs = append(txs,cointx)
 		uncles = append(uncles, block.Uncles())
 	}
 	p.dl.DeliverBodies(p.id, txs, uncles)
@@ -129,9 +130,9 @@ func (p *FakePeer) RequestBodies(hashes []common.Hash) error {
 // RequestReceipts implements downloader.Peer, returning a batch of transaction
 // receipts corresponding to the specified block hashes.
 func (p *FakePeer) RequestReceipts(hashes []common.Hash) error {
-	var receipts []types.CoinReceipts
+	var receipts [][]types.CoinReceipts
 	for _, hash := range hashes {
-		receipts = append(receipts, rawdb.ReadReceipts(p.db, hash, *p.hc.GetBlockNumber(hash))...)
+		receipts = append(receipts, rawdb.ReadReceipts(p.db, hash, *p.hc.GetBlockNumber(hash)))
 	}
 	p.dl.DeliverReceipts(p.id, receipts)
 	return nil

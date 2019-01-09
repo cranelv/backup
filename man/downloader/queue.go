@@ -425,10 +425,14 @@ func (q *queue) Results(block bool) []*fetchResult {
 				size += uncle.Size()
 			}
 			for _, receipt := range result.Receipts {
-				size += receipt.Size()
+				for _,r:=range receipt.Receiptlist{
+					size += r.Size()
+				}
 			}
 			for _, tx := range result.Transactions {
-				size += tx.Size()
+				for _,t:=range tx.Txser {
+					size += t.Size()
+				}
 			}
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}
@@ -533,7 +537,14 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 	RequsetHeader := make([]BlockIpfsReq, 0)
 	progress := false
 	isNil := func(header *types.Header) bool {
-		return header.TxHash == types.EmptyRootHash && header.UncleHash == types.EmptyUncleHash
+		isOK := true
+		for _,hr := range header.Roots{
+			if hr.TxHash != types.EmptyRootHash || header.UncleHash != types.EmptyUncleHash{
+				isOK = false
+				break
+			}
+		}
+		return isOK
 	}
 	components := 1
 	if q.mode == FastSync { // fast
@@ -974,16 +985,28 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]types.SelfTransaction, uncleLists [][]*types.Header) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]types.CoinSelfTransaction, uncleLists [][]*types.Header) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.SelfTransactions(txLists[index])) != header.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
-			return errInvalidBody
+		for _,cointx := range txLists[index]{
+			for _,hr := range header.Roots{
+				if hr.Cointyp == cointx.CoinType{
+					if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+						return errInvalidBody
+					}
+					break
+				}
+			}
 		}
 		result.Transactions = txLists[index]
 		result.Uncles = uncleLists[index]
+		//if types.DeriveSha(types.SelfTransactions(txLists[index])) != header.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+		//	return errInvalidBody
+		//}
+		//result.Transactions = txLists[index]
+		//result.Uncles = uncleLists[index]
 		return nil
 	}
 	log.Info("download queue DeliverBodies  ", "id=%s", id, "len", len(txLists))
@@ -993,14 +1016,24 @@ func (q *queue) DeliverBodies(id string, txLists [][]types.SelfTransaction, uncl
 // DeliverReceipts injects a receipt retrieval response into the results queue.
 // The method returns the number of transaction receipts accepted from the delivery
 // and also wakes any threads waiting for data delivery.
-func (q *queue) DeliverReceipts(id string, receiptList [][]*types.Receipt) (int, error) {
+func (q *queue) DeliverReceipts(id string, receiptList [][]types.CoinReceipts) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Receipts(receiptList[index])) != header.ReceiptHash {
-			return errInvalidReceipt
+		for _,cointx := range receiptList[index]{
+			for _,hr := range header.Roots{
+				if hr.Cointyp == cointx.CoinType{
+					if types.DeriveSha(types.Receipts(cointx.Receiptlist)) != hr.ReceiptHash {
+						return errInvalidReceipt
+					}
+					break
+				}
+			}
 		}
+		//if types.DeriveSha(types.Receipts(receiptList[index])) != header.ReceiptHash {
+		//	return errInvalidReceipt
+		//}
 		result.Receipts = receiptList[index]
 		return nil
 	}
@@ -1166,22 +1199,41 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			q.resultCache[index].Uncles = bodyBlock.Unclesipfs
 			q.resultCache[index].Pending--*/
 		if q.resultCache[index].Pending == 1 { //[]*types.Transaction
-			if types.DeriveSha(types.SelfTransactions(bodyBlock.Transactionsipfs)) != q.resultCache[index].Header.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
-				log.Warn("recvIpfsBody deal tx hash 0error")
-				return
+			for _,cointx := range bodyBlock.Transactionsipfs{
+				for _,hr := range q.resultCache[index].Header.Roots{
+					if hr.Cointyp == cointx.CoinType{
+						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+							log.Warn("recvIpfsBody deal tx hash 0error")
+							return
+						}
+					}
+				}
 			}
 			q.resultCache[index].Transactions = bodyBlock.Transactionsipfs
 			q.resultCache[index].Uncles = bodyBlock.Unclesipfs
 			q.resultCache[index].Pending = 0
 		} else if q.resultCache[index].Pending == 2 {
-			if types.DeriveSha(types.SelfTransactions(bodyBlock.Transactionsipfs)) != q.resultCache[index].Header.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
-				log.Warn("recvIpfsBody deal tx hash 02error")
-				return
+			for _,cointx := range bodyBlock.Transactionsipfs {
+				for _, hr := range q.resultCache[index].Header.Roots {
+					if hr.Cointyp == cointx.CoinType {
+						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+							log.Warn("recvIpfsBody deal tx hash 02error")
+							return
+						}
+					}
+				}
 			}
-			if types.DeriveSha(types.Receipts(bodyBlock.Receipt)) != q.resultCache[index].Header.ReceiptHash {
-				log.Warn("recvIpfsBody deal receipt hash 02error")
-				return
+			for _,coinre := range bodyBlock.Receipt {
+				for _, hr := range q.resultCache[index].Header.Roots {
+					if hr.Cointyp == coinre.CoinType {
+						if types.DeriveSha(types.Receipts(coinre.Receiptlist)) != hr.ReceiptHash {
+							log.Warn("recvIpfsBody deal receipt hash 02error")
+							return
+						}
+					}
+				}
 			}
+
 			q.resultCache[index].Transactions = bodyBlock.Transactionsipfs
 			q.resultCache[index].Uncles = bodyBlock.Unclesipfs
 			q.resultCache[index].Receipts = bodyBlock.Receipt
@@ -1191,19 +1243,32 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 
 	case 2:
 		if q.resultCache[index].Pending >= 1 {
-			if types.DeriveSha(types.SelfTransactions(bodyBlock.Transactionsipfs)) != q.resultCache[index].Header.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
-				log.Warn("recvIpfsBody deal tx hash 2error")
-				return
+			for _,cointx := range bodyBlock.Transactionsipfs {
+				for _, hr := range q.resultCache[index].Header.Roots {
+					if hr.Cointyp == cointx.CoinType {
+						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+							log.Warn("recvIpfsBody deal tx hash 2error")
+							return
+						}
+					}
+				}
 			}
+
 			q.resultCache[index].Transactions = bodyBlock.Transactionsipfs
 			q.resultCache[index].Uncles = bodyBlock.Unclesipfs
 			q.resultCache[index].Pending--
 		}
 	case 3:
 		if q.resultCache[index].Pending >= 1 {
-			if types.DeriveSha(types.Receipts(bodyBlock.Receipt)) != q.resultCache[index].Header.ReceiptHash {
-				log.Warn("recvIpfsBody deal receipt hash 3error")
-				return
+			for _,coinre := range bodyBlock.Receipt {
+				for _, hr := range q.resultCache[index].Header.Roots {
+					if hr.Cointyp == coinre.CoinType {
+						if types.DeriveSha(types.Receipts(coinre.Receiptlist)) != hr.ReceiptHash {
+							log.Warn("recvIpfsBody deal receipt hash 3error")
+							return
+						}
+					}
+				}
 			}
 			q.resultCache[index].Receipts = bodyBlock.Receipt
 			q.resultCache[index].Pending--

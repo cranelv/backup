@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"io"
 	"math/big"
-	"sort"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -20,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/crypto/sha3"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/rlp"
+	"sort"
 )
 
 var (
@@ -407,6 +407,7 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 }
+
 
 type BlockAllSt struct {
 	Sblock *Block
