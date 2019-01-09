@@ -2,10 +2,6 @@ package core
 
 import (
 	"encoding/binary"
-	"math/big"
-
-	"github.com/matrix/go-matrix/params/manparams"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
@@ -20,7 +16,7 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcast            *common.Address         `json:"Broadcast"`
+	Broadcasts           *[]common.Address       `json:"Broadcasts"`
 	InnerMiners          *[]common.Address       `json:"InnerMiners"`
 	Foundation           *common.Address         `json:"Foundation"`
 	VersionSuperAccounts *[]common.Address       `json:"VersionSuperAccounts"`
@@ -41,7 +37,7 @@ type GenesisMState struct {
 	CurElect             *[]common.Elect         `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcast            *string                 `json:"Broadcast,omitempty"`
+	Broadcasts           *[]string               `json:"Broadcasts,omitempty"`
 	InnerMiners          *[]string               `json:"InnerMiners,omitempty"`
 	Foundation           *string                 `json:"Foundation,omitempty"`
 	VersionSuperAccounts *[]string               `json:"VersionSuperAccounts,omitempty"`
@@ -129,12 +125,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
-	if err := ms.setPreMinHashToStat(state, num); err != nil {
-		return err
-	}
-	if err := ms.setPreBroadcastRootToStat(state, num); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -154,7 +144,7 @@ func (g *GenesisMState) setElectTime(state *state.StateDB, num uint64) error {
 		return errors.New("矿工切换点小于矿工生效时间点")
 	}
 	log.Info("Geneis", "electime", g.EleTimeCfg)
-	return matrixstate.SetDataToState(mc.MSKeyElectGenTime, g.EleTimeCfg, state)
+	return matrixstate.SetElectGenTime(state, g.EleTimeCfg)
 }
 
 func (g *GenesisMState) setElectInfo(state *state.StateDB, num uint64) error {
@@ -167,7 +157,7 @@ func (g *GenesisMState) setElectInfo(state *state.StateDB, num uint64) error {
 		}
 	}
 	log.Info("Geneis", "electconfig", g.EleInfoCfg)
-	return matrixstate.SetDataToState(mc.MSKeyElectConfigInfo, g.EleInfoCfg, state)
+	return matrixstate.SetElectConfigInfo(state, g.EleInfoCfg)
 }
 
 func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) error {
@@ -180,41 +170,33 @@ func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) e
 		}
 	}
 	log.Info("Geneis", "ElectMinerNumCfg", g.ElectMinerNumCfg)
-	return matrixstate.SetDataToState(mc.MSKeyElectMinerNum, g.ElectMinerNumCfg, state)
+	return matrixstate.SetElectMinerNum(state, g.ElectMinerNumCfg)
 }
 
 func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) error {
 	var whiteList []common.Address = nil
 	if g.ElectWhiteListCfg == nil || *g.ElectWhiteListCfg == nil {
-		if num == 0 {
-			whiteList = make([]common.Address, 0)
-		} else {
-			log.Info("Geneis", "没有配置ElectWhiteListCfg信息", "")
-			return nil
-		}
+		log.Info("Geneis", "没有配置ElectWhiteListCfg信息", "")
+		return nil
 	} else {
 		whiteList = *g.ElectWhiteListCfg
 	}
 
 	log.Info("Geneis", "ElectWhiteListCfg", whiteList)
-	return matrixstate.SetDataToState(mc.MSKeyElectWhiteList, whiteList, state)
+	return matrixstate.SetElectWhiteList(state, whiteList)
 }
 
 func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) error {
 	var blackList []common.Address = nil
 	if g.ElectBlackListCfg == nil || *g.ElectBlackListCfg == nil {
-		if num == 0 {
-			blackList = make([]common.Address, 0)
-		} else {
-			log.Info("Geneis", "没有配置ElectBlackListCfg信息", "")
-			return nil
-		}
+		log.Info("Geneis", "没有配置ElectBlackListCfg信息", "")
+		return nil
 	} else {
 		blackList = *g.ElectBlackListCfg
 	}
 
 	log.Info("Geneis", "ElectBlackListCfg", blackList)
-	return matrixstate.SetDataToState(mc.MSKeyElectBlackList, blackList, state)
+	return matrixstate.SetElectBlackList(state, blackList)
 }
 
 func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt common.NetTopology, num uint64) error {
@@ -233,12 +215,10 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 			return err
 		}
 	} else {
-
-		data, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+		preGraph, err := matrixstate.GetTopologyGraph(state)
 		if err != nil {
 			return errors.Errorf("get pre topology graph from state err: %v", err)
 		}
-		preGraph, _ := data.(*mc.TopologyGraph)
 		if preGraph == nil {
 			return errors.New("pre topology graph is nil")
 		}
@@ -251,7 +231,7 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 	if newGraph == nil {
 		return errors.New("topology graph is nil")
 	}
-	return matrixstate.SetDataToState(mc.MSKeyTopologyGraph, newGraph, state)
+	return matrixstate.SetTopologyGraph(state, newGraph)
 }
 
 func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common.Elect, num uint64) error {
@@ -318,7 +298,7 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 		elect.ElectList = append(elect.ElectList, nodeInfo)
 	}
 
-	err := matrixstate.SetDataToState(mc.MSKeyElectGraph, elect, state)
+	err := matrixstate.SetElectGraph(state, elect)
 	if err != nil {
 		return err
 	}
@@ -332,19 +312,18 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 		electOnlineData.ElectOnline = append(electOnlineData.ElectOnline, tt)
 	}
 
-	return matrixstate.SetDataToState(mc.MSKeyElectOnlineState, electOnlineData, state)
+	return matrixstate.SetElectOnlineState(state, electOnlineData)
 }
 
 func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uint64) error {
-	if g.Broadcast == nil || *g.Broadcast == (common.Address{}) {
+	if g.Broadcasts == nil || len(*g.Broadcasts) == 0 {
 		if num == 0 {
 			return errors.Errorf("the `broadcast` of genesis is empty")
 		} else {
 			return nil
 		}
 	}
-	matrixstate.SetDataToState(mc.MSKeyAccountBroadcast, *g.Broadcast, state)
-	return nil
+	return matrixstate.SetBroadcastAccounts(state, *g.Broadcasts)
 }
 
 func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num uint64) error {
@@ -359,7 +338,7 @@ func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num u
 		innerMiners = *g.InnerMiners
 	}
 
-	matrixstate.SetDataToState(mc.MSKeyAccountInnerMiners, innerMiners, state)
+	matrixstate.SetInnerMinerAccounts(state, innerMiners)
 	return nil
 }
 
@@ -374,7 +353,7 @@ func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num ui
 	} else {
 		foundation = *g.Foundation
 	}
-	matrixstate.SetDataToState(mc.MSKeyAccountFoundation, foundation, state)
+	matrixstate.SetFoundationAccount(state, foundation)
 	return nil
 }
 
@@ -386,7 +365,7 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 			return nil
 		}
 	}
-	matrixstate.SetDataToState(mc.MSKeyAccountVersionSupers, *g.VersionSuperAccounts, state)
+	matrixstate.SetVersionSuperAccounts(state, *g.VersionSuperAccounts)
 	return nil
 }
 
@@ -394,17 +373,14 @@ func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num u
 	if num != 0 {
 		return errors.New("the block superAccounts can't modify")
 	}
-
 	if g.BlockSuperAccounts == nil || len(*g.BlockSuperAccounts) == 0 {
 		return errors.Errorf("the block superAccounts of genesis is empty")
 	}
-
-	matrixstate.SetDataToState(mc.MSKeyAccountBlockSupers, *g.BlockSuperAccounts, state)
+	matrixstate.SetBlockSuperAccounts(state, *g.BlockSuperAccounts)
 	return nil
 }
 
 func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64) error {
-
 	if g.BlkRewardCfg == nil {
 		if num == 0 {
 			return errors.New("固定区块配置信息为nil")
@@ -430,9 +406,7 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64)
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
-	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
-	matrixstate.SetDataToState(mc.MSKeyPreMinerBlkReward, minerOutReward, state)
-	return matrixstate.SetDataToState(mc.MSKeyBlkRewardCfg, g.BlkRewardCfg, state)
+	return matrixstate.SetBlkRewardCfg(state, g.BlkRewardCfg)
 }
 
 func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDB, num uint64) error {
@@ -465,9 +439,7 @@ func (g *GenesisMState) setTxsRewardCfgToState(state *state.StateDB, num uint64)
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
 	log.Info("Geneis", "TxsRewardCfg", g.TxsRewardCfg)
-	minerOutReward := &mc.MinerOutReward{Reward: *big.NewInt(0)}
-	matrixstate.SetDataToState(mc.MSKeyPreMinerTxsReward, minerOutReward, state)
-	return matrixstate.SetDataToState(mc.MSKeyTxsRewardCfg, g.TxsRewardCfg, state)
+	return matrixstate.SetTxsRewardCfg(state, g.TxsRewardCfg)
 }
 
 func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) error {
@@ -475,9 +447,7 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) e
 		if g.LotteryCfg == nil {
 			return errors.New("利息配置信息为nil")
 		}
-		account := &mc.LotteryFrom{From: make([]common.Address, 0)}
-		matrixstate.SetDataToState(mc.MSKEYLotteryAccount, account, state)
-		matrixstate.SetNumByState(mc.MSKEYLotteryNum, state, 1)
+		matrixstate.SetLotteryNum(state, 1)
 	} else {
 		if g.LotteryCfg == nil {
 			log.INFO("Geneis", "没有配置利息配置信息", "")
@@ -485,7 +455,7 @@ func (g *GenesisMState) setLotteryCfgToState(state *state.StateDB, num uint64) e
 		}
 	}
 	log.Info("Geneis", "LotteryCfg", g.LotteryCfg)
-	return matrixstate.SetDataToState(mc.MSKeyLotteryCfg, g.LotteryCfg, state)
+	return matrixstate.SetLotteryCfg(state, g.LotteryCfg)
 }
 
 func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) error {
@@ -493,8 +463,8 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 		if g.InterestCfg == nil {
 			return errors.New("利息配置信息为nil")
 		}
-		matrixstate.SetNumByState(mc.MSInterestCalcNum, state, 1)
-		matrixstate.SetNumByState(mc.MSInterestPayNum, state, 1)
+		matrixstate.SetInterestCalcNum(state, 1)
+		matrixstate.SetInterestPayNum(state, 1)
 	} else {
 		if g.InterestCfg == nil {
 			log.INFO("Geneis", "没有配置利息配置信息", "")
@@ -509,7 +479,7 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 	}
 
 	log.Info("Geneis", "InterestCfg", g.InterestCfg)
-	return matrixstate.SetDataToState(mc.MSKeyInterestCfg, g.InterestCfg, state)
+	return matrixstate.SetInterestCfg(state, g.InterestCfg)
 }
 
 func (g *GenesisMState) setSlashCfgToState(state *state.StateDB, num uint64) error {
@@ -517,18 +487,16 @@ func (g *GenesisMState) setSlashCfgToState(state *state.StateDB, num uint64) err
 		if g.SlashCfg == nil {
 			return errors.New("惩罚配置信息为nil")
 		}
-		matrixstate.SetNumByState(mc.MSKeySlashNum, state, 1)
-		matrixstate.SetNumByState(mc.MSKeyUpTimeNum, state, 1)
+		matrixstate.SetSlashNum(state, 1)
+		matrixstate.SetUpTimeNum(state, 1)
 	} else {
 		if g.SlashCfg == nil {
 			log.INFO("Geneis", "没有配置惩罚配置信息", "")
 			return nil
 		}
-
 	}
-
 	log.Info("Geneis", "SlashCfg", g.SlashCfg)
-	return matrixstate.SetDataToState(mc.MSKeySlashCfg, g.SlashCfg, state)
+	return matrixstate.SetSlashCfg(state, g.SlashCfg)
 }
 
 type SortVIPConfig []mc.VIPConfig
@@ -569,7 +537,7 @@ func (g *GenesisMState) setVIPCfgToState(state *state.StateDB, number uint64) er
 	}
 
 	log.Info("Geneis", "VIPCfg", *g.VIPCfg)
-	return matrixstate.SetDataToState(mc.MSKeyVIPConfig, *g.VIPCfg, state)
+	return matrixstate.SetVIPConfig(state, *g.VIPCfg)
 }
 
 func (g *GenesisMState) setLeaderCfgToState(state *state.StateDB, num uint64) error {
@@ -596,7 +564,7 @@ func (g *GenesisMState) setLeaderCfgToState(state *state.StateDB, num uint64) er
 	}
 
 	log.Info("Geneis", "LeaderCfg", g.LeaderCfg)
-	return matrixstate.SetDataToState(mc.MSKeyLeaderConfig, g.LeaderCfg, state)
+	return matrixstate.SetLeaderConfig(state, g.LeaderCfg)
 }
 
 func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, num uint64) error {
@@ -613,10 +581,10 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, n
 		superBlkCfg = &mc.SuperBlkCfg{Seq: seq, Num: num}
 	}
 	log.INFO("Geneis", "超级区块配置", superBlkCfg)
-	return matrixstate.SetDataToState(mc.MSKeySuperBlockCfg, superBlkCfg, state)
+	return matrixstate.SetSuperBlockCfg(state, superBlkCfg)
 }
 
-func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) error {
+func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
 		if nil == g.BCICfg {
@@ -645,39 +613,25 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDB, num uint64) e
 			return errors.Errorf("广播周期生效高度(%d)非法, < 当前高度(%d)", g.BCICfg.BackupEnableNumber, num)
 		}
 
-		preData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, state)
-		if err != nil {
+		bcInterval, err := matrixstate.GetBroadcastInterval(st)
+		if err != nil || bcInterval == nil {
 			return errors.Errorf("获取前广播周期数据失败(%v)", err)
 		}
-
-		bcInterval, err := manparams.NewBCIntervalWithInterval(preData)
-		if err != nil {
-			return errors.Errorf("前广播周期数据异常(%v)", err)
-		}
-
 		if bcInterval.GetBroadcastInterval() == g.BCICfg.BackupBCInterval {
 			log.INFO("GenesisMState", "广播周期一致，不配置", g.BCICfg.BackupBCInterval)
 			return nil
 		}
-
 		if bcInterval.IsReElectionNumber(g.BCICfg.BackupBCInterval) {
 			return errors.Errorf("生效高度(%d)必须是选举周期, 上个选举高度(%d), 原广播周期(%d)",
 				g.BCICfg.BackupBCInterval, bcInterval.GetLastReElectionNumber(), bcInterval.GetBroadcastInterval())
 		}
 
 		bcInterval.SetBackupBCInterval(g.BCICfg.BackupBCInterval, g.BCICfg.BackupEnableNumber)
-		interval = bcInterval.ToInfoStu()
+		interval = bcInterval
 	}
 
 	if interval != nil {
-		return matrixstate.SetDataToState(mc.MSKeyBroadcastInterval, interval, state)
+		return matrixstate.SetBroadcastInterval(st, interval)
 	}
 	return nil
-}
-
-func (g *GenesisMState) setPreMinHashToStat(state *state.StateDB, num uint64) error {
-	return matrixstate.SetDataToState(mc.MSKeyMinHash, &mc.RandomInfoStruct{}, state)
-}
-func (g *GenesisMState) setPreBroadcastRootToStat(state *state.StateDB, num uint64) error {
-	return matrixstate.SetDataToState(mc.MSKeyPreBroadcastRoot, &mc.PreBroadStateRoot{}, state)
 }

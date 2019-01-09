@@ -6,6 +6,7 @@ package mtxdpos
 import (
 	"math"
 
+	"bytes"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
@@ -53,6 +54,8 @@ var (
 	errSuperBlockSignCount = errors.New("super block sign count err, not one")
 
 	errSuperBlockVerifySign = errors.New("super block sign is not from super super block account")
+
+	errVersionErr = errors.New("version is err")
 )
 
 type dposTarget struct {
@@ -70,9 +73,16 @@ type MtxDPOS struct {
 func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
+
 func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Header) error {
 	var blockHash common.Hash
-	if 0 == header.Number.Uint64() {
+	number := header.Number.Uint64()
+	// 验证版本号
+	if bytes.Equal(header.Version, []byte(manparams.VersionAlpha)) == false {
+		return errVersionErr
+	}
+
+	if 0 == number {
 		blockHash = header.Hash()
 	} else {
 		blockHash = header.ParentHash
@@ -154,14 +164,6 @@ func (md *MtxDPOS) verifyHashWithSuperNodes(hash common.Hash, signatures []commo
 	return verifiedSigh
 }
 
-func (md *MtxDPOS) getBroadcastInterval(reader consensus.StateReader, blockHash common.Hash) (*manparams.BCInterval, error) {
-	data, err := reader.GetBroadcastInterval(blockHash)
-	if err != nil {
-		return nil, errors.Errorf("get broadcast interval from reader err(%v)", err)
-	}
-	return manparams.NewBCIntervalWithInterval(data)
-}
-
 func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Header) error {
 	if nil == header {
 		return errors.New("header is nil")
@@ -175,9 +177,9 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 		return md.CheckSuperBlock(reader, header)
 	}
 
-	bcInterval, err := md.getBroadcastInterval(reader, header.ParentHash)
+	bcInterval, err := reader.GetBroadcastIntervalByHash(header.ParentHash)
 	if err != nil {
-		return err
+		return errors.Errorf("get broadcast interval from reader err: %v", err)
 	}
 
 	number := header.Number.Uint64()
@@ -402,18 +404,20 @@ func (md *MtxDPOS) verifyBroadcastBlock(reader consensus.StateReader, header *ty
 	if from != header.Leader {
 		return errors.Errorf("broadcast block's sign account(%s) is not block leader(%s)", from.Hex(), header.Leader.Hex())
 	}
-
-	broadcast, err := reader.GetBroadcastAccount(header.ParentHash)
-	if err != nil || broadcast == (common.Address{}) {
-		return errors.Errorf("get broadcast account from state err(%s)", err)
-	}
-	if broadcast != from {
-		return errBroadcastVerifySign
-	}
 	if result == false {
 		return errBroadcastVerifySignFalse
 	}
-	return nil
+
+	broadcasts, err := reader.GetBroadcastAccounts(header.ParentHash)
+	if err != nil || len(broadcasts) == 0 {
+		return errors.Errorf("get broadcast account from state err(%s)", err)
+	}
+	for _, bc := range broadcasts {
+		if from == bc {
+			return nil
+		}
+	}
+	return errBroadcastVerifySign
 }
 
 func (md *MtxDPOS) getValidatorStocks(reader consensus.StateReader, hash common.Hash) (map[common.Address]uint16, error) {

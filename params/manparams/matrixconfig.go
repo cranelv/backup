@@ -10,18 +10,11 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/p2p/discover"
 	"github.com/matrix/go-matrix/params"
 )
 
 const (
-	LRSParentMiningTime = int64(20)
-	LRSPOSOutTime       = int64(20)
-	LRSReelectOutTime   = int64(40)
-	LRSReelectInterval  = 5
-
 	VotePoolTimeout    = 55 * 1000
 	VotePoolCountLimit = 5
 
@@ -67,11 +60,6 @@ func init() {
 	RandomServiceDefaultPlugs[RandomServiceName[0]] = RandomServicePlugs[RandomServiceName[0]][0]
 	RandomServiceDefaultPlugs[RandomServiceName[1]] = RandomServicePlugs[RandomServiceName[1]][0]
 	RandomServiceDefaultPlugs[RandomServiceName[2]] = RandomServicePlugs[RandomServiceName[2]][0]
-}
-
-type NodeInfo struct {
-	NodeID  discover.NodeID
-	Address common.Address
 }
 
 func Config_Init(Config_PATH string) {

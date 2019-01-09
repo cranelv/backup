@@ -242,3 +242,12 @@ func (info *ConsensusTurnInfo) Cmp(target ConsensusTurnInfo) int64 {
 		}
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+func (req *HD_BlkConsensusReqMsg) TxsCodeCount() int {
+	txsCodeCount := 0
+	for _, item := range req.TxsCode {
+		txsCodeCount += len(item.ListN)
+	}
+	return txsCodeCount
+}

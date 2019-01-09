@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -23,7 +22,7 @@ type BlockReward struct {
 	rewardCfg          *cfg.RewardCfg
 	foundationAccount  common.Address
 	innerMinerAccounts []common.Address
-	bcInterval         *manparams.BCInterval
+	bcInterval         *mc.BCIntervalInfo
 }
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *BlockReward {
@@ -41,33 +40,21 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *Blo
 		return nil
 	}
 
-	interval, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	interval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
 		log.ERROR(PackageName, "获取广播周期失败", err)
 		return nil
 	}
 
-	data, err := matrixstate.GetDataByState(mc.MSKeyAccountFoundation, st)
+	foundationAccount, err := matrixstate.GetFoundationAccount(st)
 	if err != nil {
 		log.ERROR(PackageName, "获取基金会账户数据失败", err)
 		return nil
 	}
 
-	foundationAccount, OK := data.(common.Address)
-	if OK == false {
-		log.ERROR(PackageName, "获取基金会账户数据失败", "结构反射失败")
-		return nil
-	}
-
-	innerData, err := matrixstate.GetDataByState(mc.MSKeyAccountInnerMiners, st)
+	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(st)
 	if err != nil {
 		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
-		return nil
-	}
-
-	innerMinerAccounts, OK := innerData.([]common.Address)
-	if OK == false {
-		log.ERROR(PackageName, "获取内部矿工账户数据失败", "结构反射失败")
 		return nil
 	}
 
@@ -78,11 +65,7 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *Blo
 		foundationAccount:  foundationAccount,
 		innerMinerAccounts: innerMinerAccounts,
 	}
-	br.bcInterval, err = manparams.NewBCIntervalWithInterval(interval)
-	if nil != err {
-		log.ERROR(PackageName, "获取广播周期失败", "")
-		return nil
-	}
+	br.bcInterval = interval
 	return br
 }
 func (br *BlockReward) calcValidatorRateMount(blockReward *big.Int) (*big.Int, *big.Int, *big.Int) {

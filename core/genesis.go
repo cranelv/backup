@@ -144,9 +144,12 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	}
 	if nil != gensis1.MState {
 		gensis.MState = new(GenesisMState)
-		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(common.Address)
-			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
+		if nil != gensis1.MState.Broadcasts {
+			broadcasts := make([]common.Address, 0)
+			for _, b := range *gensis1.MState.Broadcasts {
+				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
+			}
+			gensis.MState.Broadcasts = &broadcasts
 		}
 		if nil != gensis1.MState.Foundation {
 			gensis.MState.Foundation = new(common.Address)

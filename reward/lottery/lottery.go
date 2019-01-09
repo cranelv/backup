@@ -53,7 +53,7 @@ type TxsLottery struct {
 	seed        LotterySeed
 	state       util.StateDB
 	lotteryCfg  *mc.LotteryCfgStruct
-	bcInterval  *manparams.BCInterval
+	bcInterval  *mc.BCIntervalInfo
 	accountList []common.Address
 }
 
@@ -62,24 +62,17 @@ type LotterySeed interface {
 }
 
 func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
-	intervalData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
 		log.ERROR(PackageName, "获取广播周期失败", err)
 		return nil
 	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(intervalData)
-	if err != nil {
-		log.ERROR(PackageName, "创建广播周期数据结构失败", err)
-		return nil
-	}
 
-	lotteryCfg, err := matrixstate.GetDataByState(mc.MSKeyLotteryCfg, st)
-	if nil != err {
+	cfg, err := matrixstate.GetLotteryCfg(st)
+	if nil != err || nil == cfg {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
 		return nil
 	}
-
-	cfg := lotteryCfg.(*mc.LotteryCfgStruct)
 	if cfg.LotteryCalc == util.Stop {
 		log.ERROR(PackageName, "停止发放彩票奖励", "")
 		return nil
@@ -106,22 +99,16 @@ func abs(n int64) int64 {
 }
 
 func (tlr *TxsLottery) GetAccountFromState(state util.StateDB) ([]common.Address, error) {
-	accounts, err := matrixstate.GetDataByState(mc.MSKEYLotteryAccount, state)
+	lotteryFrom, err := matrixstate.GetLotteryAccount(state)
 	if nil != err {
 		log.Error(PackageName, "获取矿工奖励金额错误", err)
 		return nil, errors.New("获取矿工金额错误")
 	}
-	if accounts == nil {
-		log.Error(PackageName, "反射失败", err)
-		return nil, errors.New("反射失败")
-	}
-	lotteryFrom, ok := accounts.(*mc.LotteryFrom)
-	if !ok {
-		log.Error(PackageName, "类型转换失败", err)
-		return nil, errors.New("类型转换失败")
+	if lotteryFrom == nil {
+		log.Error(PackageName, "lotteryFrom", "is nil")
+		return nil, errors.New("lotteryFrom is nil")
 	}
 	return lotteryFrom.From, nil
-
 }
 
 func (tlr *TxsLottery) AddAccountToState(state util.StateDB, account common.Address) {
@@ -132,13 +119,13 @@ func (tlr *TxsLottery) AddAccountToState(state util.StateDB, account common.Addr
 	}
 	accountList = append(accountList, account)
 	from := &mc.LotteryFrom{From: accountList}
-	matrixstate.SetDataToState(mc.MSKEYLotteryAccount, from, state)
+	matrixstate.SetLotteryAccount(state, from)
 	return
 }
 
 func (tlr *TxsLottery) ResetAccountToState() {
 	account := &mc.LotteryFrom{From: make([]common.Address, 0)}
-	matrixstate.SetDataToState(mc.MSKEYLotteryAccount, account, tlr.state)
+	matrixstate.SetLotteryAccount(tlr.state, account)
 	return
 
 }
@@ -225,7 +212,7 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return false
 	}
-	latestNum, err := matrixstate.GetNumByState(mc.MSKEYLotteryNum, tlr.state)
+	latestNum, err := matrixstate.GetLotteryNum(tlr.state)
 	if nil != err {
 		log.ERROR(PackageName, "状态树获取前一发放彩票高度错误", err)
 		return false
@@ -234,7 +221,9 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 		log.Debug(PackageName, "当前彩票奖励已发放无须补发", "")
 		return false
 	}
-	matrixstate.SetNumByState(mc.MSKEYLotteryNum, tlr.state, num)
+	if err := matrixstate.SetLotteryNum(tlr.state, num); err != nil {
+		log.Error(PackageName, "谁知彩票奖状态错误", err)
+	}
 	accountList, err := tlr.GetAccountFromState(tlr.state)
 	if nil != err {
 		log.Error(PackageName, "获取候选账户错误", err)
