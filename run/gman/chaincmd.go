@@ -740,7 +740,7 @@ func signBlock(ctx *cli.Context) error {
 	sign := common.BytesToSignature(signBytes)
 	matrixGenesis.Roots = make([]common.CoinRoot, len(superBlock.Root()))
 	copy(matrixGenesis.Roots, superBlock.Root())
-	matrixGenesis.TxHash = superBlock.TxHash()
+	//matrixGenesis.TxHash = superBlock.TxHash()
 	matrixGenesis.Signatures = append(genesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
 	out, _ := json.MarshalIndent(matrixGenesis, "", "  ")
