@@ -68,8 +68,8 @@ type Work struct {
 	header *types.Header
 
 	random   *baseinterface.Random
-	txs      []types.SelfTransaction
-	Receipts []*types.Receipt
+	txs      []types.CoinSelfTransaction
+	Receipts []types.CoinReceipts
 
 	createdAt time.Time
 }
@@ -461,7 +461,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 
 	return nil
 }
-func (env *Work) GetTxs() []types.SelfTransaction {
+func (env *Work) GetTxs() []types.CoinSelfTransaction {
 	return env.txs
 }
 

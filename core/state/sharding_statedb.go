@@ -196,17 +196,17 @@ func (shard *StateDBManage) GetLogs(cointyp string, address common.Address, hash
 
 }
 
-func (shard *StateDBManage) Logs() []*types.Log {
+func (shard *StateDBManage) Logs() []types.CoinLogs {
 
 	cms := shard.shardings
-	var logs []*types.Log
+	var logs []types.CoinLogs
 	for _, cm := range cms {
 		//if cm.Cointyp==cointyp {
 		rms := cm.Rmanage
 		for _, rm := range rms {
 			log := rm.State.logs
 			for _, l := range log {
-				logs = append(logs, l...)
+				logs = append(logs, types.CoinLogs{cm.Cointyp,l})
 			}
 		}
 		break

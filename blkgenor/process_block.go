@@ -120,6 +120,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "执行交易错误", "err", err, "高度", p.number)
 		return
 	}
+	rtxs:=types.GetCoinTX(rsp.Txs)
 
 	p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 		Header:      rsp.Header,
