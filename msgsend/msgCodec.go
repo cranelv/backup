@@ -493,19 +493,24 @@ func (*fullBlockRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	if !OK {
 		return nil, errors.New("reflect err! HD_FullBlockRspMsg")
 	}
-
-	size := rsp.Txs.Len()
+	var ts []types.SelfTransaction
+	for _,coinTX := range rsp.Txs{
+		ts=append(ts,coinTX.Txser...)
+	}
+	size := len(ts)
 	marshalMsg := fullBlockMsgForMarshal{}
 	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
 	for i := 0; i < size; i++ {
-		tx := rsp.Txs[i]
+		tx := ts[i]
 		marshalMsg.Txs = append(marshalMsg.Txs, types.SetTransactionToMx(tx))
 	}
 	marshalMsg.Header = rsp.Header
-	data, err := json.Marshal(marshalMsg)
-	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
-	}
+
+	data, err :=  json.Marshal(marshalMsg)
+		if err != nil {
+			return nil, errors.Errorf("json.Marshal failed: %s", err)
+		}
+
 	return data, nil
 }
 
