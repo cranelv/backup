@@ -250,7 +250,8 @@ func (p *Process) AddVerifiedBlock(block *verifiedBlock) {
 		log.Info(p.logExtraInfo(), "AddVerifiedBlock", "添加缓存失败", "err", err, "高度", p.number)
 		return
 	}
-	reqData.originalTxs = block.txs
+	ctx:=types.GetCoinTX(block.txs)
+	reqData.originalTxs = ctx
 	return
 }
 
@@ -438,7 +439,7 @@ func (p *Process) startTxsVerify() {
 
 	p.changeState(StateTxsVerify)
 
-	txsCodeSize := len(p.curProcessReq.req.TxsCode)
+	txsCodeSize := p.curProcessReq.req.TxsCodeCount()
 	if txsCodeSize == 0 || txsCodeSize == len(p.curProcessReq.originalTxs) {
 		// 交易为空，或者已经得到全交易，跳过交易获取
 		log.Info(p.logExtraInfo(), "无需获取交易", "直接进入交易及状态验证", "txsCode size", txsCodeSize, "txs size", len(p.curProcessReq.originalTxs))
@@ -447,7 +448,7 @@ func (p *Process) startTxsVerify() {
 		// 开启交易获
 		p.txsAcquireSeq++
 		leader := p.curProcessReq.req.Header.Leader
-		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", len(p.curProcessReq.req.TxsCode), "leader", leader.Hex(), "高度", p.number)
+		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", p.curProcessReq.req.TxsCodeCount(), "leader", leader.Hex(), "高度", p.number)
 		txAcquireCh := make(chan *core.RetChan, 1)
 		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, leader, txAcquireCh)
 		go p.processTxsAcquire(txAcquireCh, p.txsAcquireSeq)
@@ -509,8 +510,10 @@ func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
+
 	for _, listN := range result.AllTxs {
-		p.curProcessReq.originalTxs = append(p.curProcessReq.originalTxs, listN.Txser...)
+		ctx:=types.GetCoinTX(listN.Txser)
+		p.curProcessReq.originalTxs = append(p.curProcessReq.originalTxs, ctx...)
 	}
 
 	p.verifyTxsAndState()
@@ -544,10 +547,8 @@ func (p *Process) verifyTxsAndState() {
 	}
 	finalTxs := work.GetTxs()
 
-
-
-
-	localBlock := types.NewBlock(localHeader, finalTxs, nil)
+	currencyblock:=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
+	localBlock := types.NewBlock(localHeader, currencyblock, nil)
 	// process matrix state
 	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {
@@ -557,14 +558,15 @@ func (p *Process) verifyTxsAndState() {
 	}
 
 	// 运行完matrix state后，生成root
-	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts, nil)
+	currencyblock=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
+	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, nil,currencyblock)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
 
-	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
+	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.Header().Roots, "共识后的交易远程hash", remoteHeader.Roots)
 	log.Info("miss tree node debug", "finalize root", types.RlpHash(localBlock.Root()).Hex(), "remote root", types.RlpHash(remoteHeader.Roots).Hex())
 
 	// verify election info
@@ -582,9 +584,9 @@ func (p *Process) verifyTxsAndState() {
 		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
 			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
 			"local root", localHeader.Roots, "remote root", remoteHeader.Roots,
-			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),
-			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", remoteHeader.ReceiptHash.TerminalString(),
-			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", remoteHeader.Bloom.Big(),
+			"local txHash", localHeader.Roots[0].TxHash.TerminalString(), "remote txHash", remoteHeader.Roots[0].TxHash.TerminalString(),
+			"local ReceiptHash", localHeader.Roots[0].ReceiptHash.TerminalString(), "remote ReceiptHash", remoteHeader.Roots[0].ReceiptHash.TerminalString(),
+			"local Bloom", localHeader.Roots[0].Bloom, "remote Bloom", remoteHeader.Roots[0].Bloom,
 			"local GasLimit", localHeader.GasLimit, "remote GasLimit", remoteHeader.GasLimit,
 			"local GasUsed", localHeader.GasUsed, "remote GasUsed", remoteHeader.GasUsed)
 		p.startDPOSVerify(localVerifyResultStateFailed)
@@ -646,6 +648,7 @@ func (p *Process) startDPOSVerify(lvResult verifyResult) {
 		p.sendVote(true)
 		// 验证成功的请求，做持久化缓存
 		log.Info(p.logExtraInfo(), "区块持久化", "开始缓存")
+
 		if err := saveVerifiedBlockToDB(p.ChainDb(), p.curProcessReq.hash, p.curProcessReq.req, p.curProcessReq.originalTxs); err != nil {
 			log.Error(p.logExtraInfo(), "验证成功的区块持久化缓存失败", err)
 		}

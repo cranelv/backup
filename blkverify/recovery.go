@@ -53,7 +53,8 @@ type verifiedBlock struct {
 	txs  types.SelfTransactions
 }
 
-func saveVerifiedBlockToDB(db mandb.Database, hash common.Hash, req *mc.HD_BlkConsensusReqMsg, txs types.SelfTransactions) error {
+func saveVerifiedBlockToDB(db mandb.Database, hash common.Hash, req *mc.HD_BlkConsensusReqMsg, txs []types.CoinSelfTransaction) error {
+
 	data, err := encodeVerifiedBlock(req, txs)
 	if err != nil {
 		return err
@@ -105,8 +106,8 @@ func readVerifiedBlocksFromDB(db mandb.Database) (blocks []verifiedBlock, err er
 			log.Info("verified block recovery", "req data illegal", "hash not match", "pos", pos, "data hash", req.Header.HashNoSignsAndNonce().TerminalString(), "index hash", hash.TerminalString())
 			continue
 		}
-		if len(req.TxsCode) != len(txs) {
-			log.Info("verified block recovery", "req data illegal", "txs size not match", "pos", pos, "txsCode size", len(req.TxsCode), "txs size", len(txs), "hash", hash.TerminalString())
+		if req.TxsCodeCount() != len(txs) {
+			log.Info("verified block recovery", "req data illegal", "txs size not match", "pos", pos, "txsCode size", req.TxsCodeCount(), "txs size", len(txs), "hash", hash.TerminalString())
 			continue
 		}
 
@@ -149,12 +150,13 @@ func decodeVerifiedBlockIndex(data []byte) (*VerifiedBlockIndex, error) {
 	return index, nil
 }
 
-func encodeVerifiedBlock(req *mc.HD_BlkConsensusReqMsg, txs types.SelfTransactions) ([]byte, error) {
+func encodeVerifiedBlock(req *mc.HD_BlkConsensusReqMsg, txs []types.CoinSelfTransaction) ([]byte, error) {
 	if req == nil {
 		return nil, errors.New("req msg is nil")
 	}
-
-	if len(req.TxsCode) != txs.Len() {
+	txss:=types.GetTX(txs)
+	txSize := req.TxsCodeCount()
+	if txSize != len(txss) {
 		return nil, errors.New("txs count is not match txCodes count")
 	}
 
@@ -163,14 +165,15 @@ func encodeVerifiedBlock(req *mc.HD_BlkConsensusReqMsg, txs types.SelfTransactio
 		return nil, errors.Errorf("req msg json.Marshal failed: %s", err)
 	}
 
-	txSize := txs.Len()
 	marshalTxs := make([]*types.Transaction_Mx, txSize)
 	for i := 0; i < txSize; i++ {
 		tx := txs[i]
-		if mtx := types.SetTransactionToMx(tx); mtx == nil {
+		for _,t :=tx.Txser{
+		if mtx := types.SetTransactionToMx(t); mtx == nil {
 			return nil, errors.Errorf("tx(%d/%d) transfer to mtx err,tx=%v", i+1, txSize, tx)
 		} else {
 			marshalTxs[i] = mtx
+		}
 		}
 	}
 	txsData, err := json.Marshal(marshalTxs)

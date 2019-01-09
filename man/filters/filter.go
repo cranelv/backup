@@ -82,7 +82,7 @@ func New(backend Backend, begin, end int64, addresses []common.Address, topics [
 
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
-func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
+func (f *Filter) Logs(ctx context.Context) ([]types.CoinLogs, error) {
 	// Figure out the limits of the filter range
 	header, _ := f.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
 	if header == nil {
@@ -99,7 +99,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	}
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
-		logs []*types.Log
+		logs []types.CoinLogs
 		err  error
 	)
 	size, sections := f.backend.BloomStatus()

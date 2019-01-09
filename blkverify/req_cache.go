@@ -55,12 +55,15 @@ func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) *reqData {
 }
 
 func newReqDataByLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) *reqData {
+
+	ftx,res:=types.GetCoinTXRS(localReq.FinalTxs,localReq.Receipts)
+	ortx:=types.GetCoinTX(localReq.OriginalTxs)
 	return &reqData{
 		req:               localReq.BlkVerifyConsensusReq,
 		hash:              localReq.BlkVerifyConsensusReq.Header.HashNoSignsAndNonce(),
-		originalTxs:       localReq.OriginalTxs,
-		finalTxs:          localReq.FinalTxs,
-		receipts:          localReq.Receipts,
+		originalTxs:       ortx,
+		finalTxs:		   ftx,
+		receipts:          res,
 		stateDB:           localReq.State,
 		localReq:          true,
 		localVerifyResult: localVerifyResultProcessing,
