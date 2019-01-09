@@ -27,32 +27,33 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *manparams.BCInterv
 }
 
 func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
-	work, err := matrixwork.NewWork(support.Config(), support, nil, header)
-	upTimeMap, err := support.ProcessUpTime(work.State, header)
-	if err != nil {
-		log.ERROR(ModuleManBlk, "执行uptime错误", err, "高度", header.Number)
-		return nil, nil, nil, nil, nil, err
-	}
-	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support, upTimeMap)
-	block := types.NewBlock(header, finalTxs, nil, work.Receipts)
-	log.Debug(ModuleManBlk, "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
 
-	err = support.ProcessMatrixState(block, work.State)
+	work, err := matrixwork.NewWork(support.Config(), support, nil, header)
 	if err != nil {
-		log.Error(ModuleManBlk, "运行matrix状态树失败", err)
+		log.ERROR(ModuleManBlk, "NewWork!", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, err
 	}
-	return txsCode, work.State, work.Receipts, originalTxs, finalTxs, nil
+
+	mapTxs := support.GetAllSpecialTxs()
+	Txs := make([]types.SelfTransaction, 0)
+	for _, txs := range mapTxs {
+		for _, tx := range txs {
+			log.Trace(ModuleManBlk, "交易数据", tx)
+		}
+		Txs = append(Txs, txs...)
+	}
+	work.ProcessBroadcastTransactions(support.EventMux(), Txs)
+
+	return nil, work.State, work.Receipts, Txs, Txs, nil
 }
 
 func (bd *ManBCBlkPlug) Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, error) {
 
-	block, err := bd.baseInterface.Finalize(support)
+	block, err := bd.baseInterface.Finalize(support, header, state, txs, uncles, receipts, nil)
 	if err != nil {
 		log.Error(ModuleManBlk, "最终finalize错误", err)
 		return nil, err
 	}
-	err = p.setSignatures(finalHeader)
 	return block, nil
 }
 

@@ -56,6 +56,9 @@ func (p *ManBlkBasePlug) setVrf(support BlKSupport, parent *types.Block, header 
 	return nil
 }
 
+func (p *ManBlkBasePlug) setSignatures(header *types.Header) {
+	header.Signatures = make([]common.Signature, 0)
+}
 func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
 	NetTopology, onlineConsensusResults := support.GetNetTopology(num, parentHash, interval)
 	if nil == NetTopology {
@@ -145,6 +148,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInte
 	bd.setGasLimit(originHeader, parent)
 	bd.setExtra(originHeader)
 	bd.setTopology(support, parent.Hash(), originHeader, interval, num)
+	bd.setSignatures(originHeader)
 	err = bd.setVrf(support, parent, originHeader)
 	if nil != err {
 		return nil, err

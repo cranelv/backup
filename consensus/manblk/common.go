@@ -93,6 +93,7 @@ type txPool interface {
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
 	Pending() (map[common.Address]types.SelfTransactions, error)
+	GetAllSpecialTxs() (reqVal map[common.Address][]types.SelfTransaction)
 }
 
 type Mux interface {
@@ -134,8 +135,8 @@ func New(version string, support BlKSupport, num uint64) (*ManBlkDeal, error) {
 	return obj, nil
 }
 
-func (bd *ManBlkDeal) RegisterManBLkPlugs(version string, plug MANBLKPlUGS) {
-	bd.mapManBlkPlugs[bd.version] = plug
+func (bd *ManBlkDeal) RegisterManBLkPlugs(types string, version string, plug MANBLKPlUGS) {
+	bd.mapManBlkPlugs[types+bd.version] = plug
 }
 
 func (bd *ManBlkDeal) Prepare(interval *manparams.BCInterval, args ...interface{}) (*types.Header, error) {
