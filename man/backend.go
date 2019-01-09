@@ -216,7 +216,21 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 	man.blockchain.Processor().SetRandom(man.random)
-	man.reelection, err = reelection.New(man.blockchain, man.random)
+
+	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
+	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
+	man.olConsensus.SetValidatorReader(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain)
+	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
+	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
+	man.olConsensus.SetMessageSendInterface(topNodeInstance)
+	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
+
+	if err = man.olConsensus.Start(); err != nil {
+		return nil, err
+	}
+
+	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
 	if err != nil {
 		return nil, err
 	}
@@ -238,19 +252,6 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //YY
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
-
-	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
-	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
-	man.olConsensus.SetValidatorReader(man.blockchain)
-	man.olConsensus.SetStateReaderInterface(man.blockchain)
-	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
-	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
-	man.olConsensus.SetMessageSendInterface(topNodeInstance)
-	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
-
-	if err = man.olConsensus.Start(); err != nil {
-		return nil, err
-	}
 
 	man.blockGen, err = blkgenor.New(man)
 	if err != nil {

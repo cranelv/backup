@@ -34,15 +34,21 @@ type ElectReturnInfo struct {
 	BackUpValidator []mc.ElectNodeInfo
 }
 type ReElection struct {
-	bc     *core.BlockChain
-	random *baseinterface.Random
-	lock   sync.Mutex
+	bc      *core.BlockChain
+	topNode TopNodeService
+	random  *baseinterface.Random
+	lock    sync.Mutex
 }
 
-func New(bc *core.BlockChain, random *baseinterface.Random) (*ReElection, error) {
+type TopNodeService interface {
+	GetConsensusOnlineResults() []*mc.HD_OnlineConsensusVoteResultMsg
+}
+
+func New(bc *core.BlockChain, random *baseinterface.Random, topNode TopNodeService) (*ReElection, error) {
 	reelection := &ReElection{
-		bc:     bc,
-		random: random,
+		bc:      bc,
+		random:  random,
+		topNode: topNode,
 	}
 	return reelection, nil
 }

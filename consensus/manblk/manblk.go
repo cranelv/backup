@@ -22,18 +22,17 @@ import (
 	"github.com/matrix/go-matrix/mc"
 )
 
-type ManBlkPlug1 struct {
+type ManBlkBasePlug struct {
 	preBlockHash common.Hash
 }
 
-func NewBlkPlug1(preBlockHash common.Hash) (*ManBlkPlug1, error) {
-	obj := new(ManBlkPlug1)
-	obj.preBlockHash = preBlockHash
+func NewBlkBasePlug(preBlockHash common.Hash) (*ManBlkBasePlug, error) {
+	obj := new(ManBlkBasePlug)
 	return obj, nil
 }
 
-func (p *ManBlkPlug1) getVrfValue(support BlKSupport, parent *types.Block) ([]byte, []byte, []byte, error) {
-	_, preVrfValue, preVrfProof := support.GetVrfInfoFromHeader(parent.Header().VrfValue)
+func (p *ManBlkBasePlug) getVrfValue(support BlKSupport, parent *types.Block) ([]byte, []byte, []byte, error) {
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
 	parentMsg := VrfMsg{
 		VrfProof: preVrfProof,
 		VrfValue: preVrfValue,
@@ -47,7 +46,7 @@ func (p *ManBlkPlug1) getVrfValue(support BlKSupport, parent *types.Block) ([]by
 	return support.SignVrf(vrfmsg, p.preBlockHash)
 }
 
-func (p *ManBlkPlug1) setVrf(support BlKSupport, parent *types.Block, header *types.Header) error {
+func (p *ManBlkBasePlug) setVrf(support BlKSupport, parent *types.Block, header *types.Header) error {
 	account, vrfValue, vrfProof, err := p.getVrfValue(support, parent)
 	if err != nil {
 		log.Error(ModuleManBlk, "区块生成阶段 获取vrfValue失败 错误", err)
@@ -57,8 +56,8 @@ func (p *ManBlkPlug1) setVrf(support BlKSupport, parent *types.Block, header *ty
 	return nil
 }
 
-func (bd *ManBlkPlug1) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
-	NetTopology, onlineConsensusResults := bd.getNetTopology(support, num, parentHash, interval)
+func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
+	NetTopology, onlineConsensusResults := support.GetNetTopology(num, parentHash, interval)
 	if nil == NetTopology {
 		log.Error(ModuleManBlk, "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
@@ -72,26 +71,26 @@ func (bd *ManBlkPlug1) setTopology(support BlKSupport, parentHash common.Hash, h
 	return onlineConsensusResults, nil
 }
 
-func (bd *ManBlkPlug1) setTime(header *types.Header, tstamp int64) {
+func (bd *ManBlkBasePlug) setTime(header *types.Header, tstamp int64) {
 	header.Time = big.NewInt(tstamp)
 }
 
-func (bd *ManBlkPlug1) setExtra(header *types.Header) {
+func (bd *ManBlkBasePlug) setExtra(header *types.Header) {
 	header.Extra = make([]byte, 0)
 }
 
-func (bd *ManBlkPlug1) setGasLimit(header *types.Header, parent *types.Block) {
+func (bd *ManBlkBasePlug) setGasLimit(header *types.Header, parent *types.Block) {
 	header.GasLimit = core.CalcGasLimit(parent)
 }
 
-func (bd *ManBlkPlug1) setNumber(header *types.Header, num uint64) {
+func (bd *ManBlkBasePlug) setNumber(header *types.Header, num uint64) {
 	header.Number = new(big.Int).SetUint64(num)
 }
 
-func (bd *ManBlkPlug1) setLeader(header *types.Header) {
+func (bd *ManBlkBasePlug) setLeader(header *types.Header) {
 	header.Leader = ca.GetAddress()
 }
-func (bd *ManBlkPlug1) setTimeStamp(parent *types.Block, header *types.Header, num uint64) {
+func (bd *ManBlkBasePlug) setTimeStamp(parent *types.Block, header *types.Header, num uint64) {
 	tstart := time.Now()
 	log.Info(ModuleManBlk, "关键时间点", "区块头开始生成", "time", tstart, "块高", num)
 	tstamp := tstart.Unix()
@@ -107,7 +106,7 @@ func (bd *ManBlkPlug1) setTimeStamp(parent *types.Block, header *types.Header, n
 	bd.setTime(header, tstamp)
 }
 
-func (bd *ManBlkPlug1) setParentHash(chain ChainReader, header *types.Header, num uint64) (*types.Block, error) {
+func (bd *ManBlkBasePlug) setParentHash(chain ChainReader, header *types.Header, num uint64) (*types.Block, error) {
 	if num == 1 { // 第一个块直接返回创世区块作为父区块
 		return chain.Genesis(), nil
 	}
@@ -126,7 +125,13 @@ func (bd *ManBlkPlug1) setParentHash(chain ChainReader, header *types.Header, nu
 	return parent, nil
 }
 
-func (bd *ManBlkPlug1) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64) (*types.Header, error) {
+func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args ...interface{}) (*types.Header, error) {
+	preBlockHash, ok := args[0].(common.Hash)
+	if !ok {
+		log.Error(ModuleManBlk, "反射失败", "")
+		return nil, errors.New("反射失败")
+	}
+	bd.preBlockHash = preBlockHash
 	originHeader := new(types.Header)
 	parent, err := bd.setParentHash(support, originHeader, num)
 	if nil != err {
@@ -151,7 +156,7 @@ func (bd *ManBlkPlug1) Prepare(support BlKSupport, interval *manparams.BCInterva
 	return originHeader, nil
 }
 
-func (bd *ManBlkPlug1) ProcessState(support BlKSupport, header *types.Header) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
+func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
 	work, err := matrixwork.NewWork(support.Config(), support, nil, header)
 	upTimeMap, err := support.ProcessUpTime(work.State, header)
 	if err != nil {
@@ -170,7 +175,7 @@ func (bd *ManBlkPlug1) ProcessState(support BlKSupport, header *types.Header) ([
 	return txsCode, work.State, work.Receipts, originalTxs, finalTxs, nil
 }
 
-func (bd *ManBlkPlug1) Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (bd *ManBlkBasePlug) Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, error) {
 
 	block, err := support.Engine().Finalize(support, header, state, txs, uncles, receipts)
 	if err != nil {
@@ -180,6 +185,99 @@ func (bd *ManBlkPlug1) Finalize(support BlKSupport, header *types.Header, state 
 	return block, nil
 }
 
-func VerifyBlock(support BlKSupport, header *types.Header) error {
+func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header, args ...interface{}) error {
+	if err := support.VerifyHeader(header); err != nil {
+		log.ERROR(ModuleManBlk, "预验证头信息失败", err, "高度", header.Number.Uint64())
+		return err
+	}
+
+	// verify net topology info
+	onlineConsensusResults, ok := args[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
+	if !ok {
+		log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
+	}
+	if err := support.VerifyNetTopology(header, onlineConsensusResults); err != nil {
+		log.ERROR(ModuleManBlk, "验证拓扑信息失败", err, "高度", header.Number.Uint64())
+		return err
+	}
+
+	if err := support.DPOSEngine().VerifyVersion(support, header); err != nil {
+		log.ERROR(ModuleManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
+		return err
+	}
+
+	//verify vrf
+	if err := support.VerifyVrf(header); err != nil {
+		log.Error(ModuleManBlk, "验证vrf失败", err, "高度", header.Number.Uint64())
+		return err
+	}
+	log.INFO(ModuleManBlk, "验证vrf成功 高度", header.Number.Uint64())
+
+	return nil
+}
+
+func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args ...interface{}) error {
+	log.INFO(ModuleManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
+
+	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
+	localHeader := types.CopyHeader(verifyHeader)
+	localHeader.GasUsed = 0
+	verifyHeaderHash := verifyHeader.HashNoSignsAndNonce()
+	work, err := matrixwork.NewWork(support.Config(), support, nil, localHeader)
+	if err != nil {
+		log.ERROR(ModuleManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
+		return err
+	}
+
+	uptimeMap, err := support.ProcessUpTime(work.State, localHeader)
+	if err != nil {
+		log.Error(ModuleManBlk, "uptime处理错误", err)
+		return err
+	}
+	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
+	if err != nil {
+		log.ERROR(ModuleManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
+		return err
+	}
+	finalTxs := work.GetTxs()
+	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
+	// process matrix state
+	err = support.ProcessMatrixState(localBlock, work.State)
+	if err != nil {
+		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
+		return err
+	}
+
+	// 运行完matrix state后，生成root
+	localBlock, err = support.Engine().Finalize(support, localHeader, work.State, finalTxs, nil, work.Receipts)
+	if err != nil {
+		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
+		return err
+	}
+
+	log.Info(ModuleManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
+	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", verifyHeader.Root.Hex())
+
+	// verify election info
+	if err := support.VerifyElection(verifyHeader, work.State); err != nil {
+		log.ERROR(ModuleManBlk, "验证选举信息失败", err, "高度", verifyHeader.Number.Uint64())
+		return err
+	}
+
+	//localBlock check
+	localHeader = localBlock.Header()
+	localHash := localHeader.HashNoSignsAndNonce()
+
+	if localHash != verifyHeaderHash {
+		log.ERROR(ModuleManBlk, "交易验证及状态，错误", "block hash不匹配",
+			"local hash", localHash.TerminalString(), "remote hash", verifyHeaderHash.TerminalString(),
+			"local root", localHeader.Root.TerminalString(), "remote root", verifyHeader.Root.TerminalString(),
+			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", verifyHeader.TxHash.TerminalString(),
+			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", verifyHeader.ReceiptHash.TerminalString(),
+			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", verifyHeader.Bloom.Big(),
+			"local GasLimit", localHeader.GasLimit, "remote GasLimit", verifyHeader.GasLimit,
+			"local GasUsed", localHeader.GasUsed, "remote GasUsed", verifyHeader.GasUsed)
+		return errors.New("hash 不一致")
+	}
 	return nil
 }

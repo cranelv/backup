@@ -1,7 +1,6 @@
 package manblk
 
 import (
-	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
@@ -11,17 +10,16 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/reelection"
 )
 
 type MANBLK interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(interval *manparams.BCInterval) (*types.Header, error)
-	ProcessState(header *types.Header) (*state.StateDB, []*types.Receipt, []types.SelfTransaction, error)
-	Finalize(header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
-	VerifyBlock(header *types.Header) error
+	Prepare(interval *manparams.BCInterval, args ...interface{}) (*types.Header, error)
+	ProcessState(header *types.Header, args ...interface{}) (*state.StateDB, []*types.Receipt, []types.SelfTransaction, error)
+	Finalize(header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, error)
+	VerifyHeader(header *types.Header, args ...interface{}) error
+	VerifyTxsAndState(header *types.Header, Txs types.SelfTransactions, args ...interface{}) error
 }
 
 type ChainReader interface {
@@ -63,16 +61,18 @@ type ChainReader interface {
 	Engine() consensus.Engine
 	DPOSEngine() consensus.DPOSEngine
 	Processor() core.Processor
+	VerifyHeader(header *types.Header) error
 }
 
 type MANBLKPlUGS interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64) (*types.Header, error)
-	ProcessState(support BlKSupport, header *types.Header) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error)
+	Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args ...interface{}) (*types.Header, error)
+	ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error)
 	Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
-	VerifyBlock(support BlKSupport, header *types.Header) error
+		uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, error)
+	VerifyHeader(support BlKSupport, header *types.Header, args ...interface{}) error
+	VerifyTxsAndState(support BlKSupport, header *types.Header, Txs types.SelfTransactions, args ...interface{}) error
 }
 
 type TopNodeService interface {
@@ -80,12 +80,11 @@ type TopNodeService interface {
 }
 
 type Reelection interface {
-	GetTopoChange(hash common.Hash, offline []common.Address, online []common.Address) ([]mc.Alternative, error)
-	GetNetTopologyAll(hash common.Hash) (*reelection.ElectReturnInfo, error)
-	TransferToNetTopologyAllStu(info *reelection.ElectReturnInfo) *common.NetTopology
-	GetElection(state *state.StateDB, hash common.Hash) (*reelection.ElectReturnInfo, error)
-	TransferToNetTopologyChgStu(alterInfo []mc.Alternative) *common.NetTopology
-	TransferToElectionStu(info *reelection.ElectReturnInfo) []common.Elect
+	VerifyNetTopology(header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error
+	VerifyElection(header *types.Header, state *state.StateDB) error
+	GetNetTopology(num uint64, parentHash common.Hash, bcInterval *manparams.BCInterval) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg)
+	GenElection(state *state.StateDB, preBlockHash common.Hash) []common.Elect
+	VerifyVrf(header *types.Header) error
 }
 type SignHelper interface {
 	SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, []byte, error)
@@ -101,11 +100,10 @@ type Mux interface {
 	// The slice should be modifiable by the caller.
 	EventMux() *event.TypeMux
 }
+
 type BlKSupport interface {
 	ChainReader
-	TopNodeService
 	Reelection
-	baseinterface.VrfInterface
 	SignHelper
 	txPool
 	Mux
@@ -140,21 +138,25 @@ func (bd *ManBlkDeal) RegisterManBLkPlugs(version string, plug MANBLKPlUGS) {
 	bd.mapManBlkPlugs[bd.version] = plug
 }
 
-func (bd *ManBlkDeal) Prepare(interval *manparams.BCInterval) (*types.Header, error) {
+func (bd *ManBlkDeal) Prepare(interval *manparams.BCInterval, args ...interface{}) (*types.Header, error) {
 
-	return bd.mapManBlkPlugs[bd.version].Prepare(bd.support, interval, bd.num)
+	return bd.mapManBlkPlugs[bd.version].Prepare(bd.support, interval, bd.num, args)
 }
 
-func (bd *ManBlkDeal) ProcessState(header *types.Header) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
+func (bd *ManBlkDeal) ProcessState(header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, error) {
 
-	return bd.mapManBlkPlugs[bd.version].ProcessState(bd.support, header)
+	return bd.mapManBlkPlugs[bd.version].ProcessState(bd.support, header, args)
 }
 
 func (bd *ManBlkDeal) Finalize(header *types.Header, state *state.StateDB, txs []types.SelfTransaction,
-	uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	return &types.Block{}, nil
+	uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, error) {
+	return bd.mapManBlkPlugs[bd.version].Finalize(bd.support, header, state, txs, uncles, receipts, args)
 }
 
-func (bd *ManBlkDeal) VerifyBlock(header *types.Header) error {
-	return nil
+func (bd *ManBlkDeal) VerifyHeader(header *types.Header, args ...interface{}) error {
+	return bd.mapManBlkPlugs[bd.version].VerifyHeader(bd.support, header)
+}
+
+func (bd *ManBlkDeal) VerifyTxsAndState(header *types.Header, Txs types.SelfTransactions, args ...interface{}) error {
+	return bd.mapManBlkPlugs[bd.version].VerifyTxsAndState(bd.support, header, Txs, args)
 }
