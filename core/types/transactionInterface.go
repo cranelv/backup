@@ -102,7 +102,7 @@ func GetTX(ctx []CoinSelfTransaction)[] SelfTransaction  {
 }
 
 func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
-	var mm map[string][]SelfTransaction //BB
+	 mm := make (map[string][]SelfTransaction) //BB
 	for _, tx := range txs {
 		cointype := tx.GetTxCurrency()
 		mm[cointype] = append(mm[cointype], tx)

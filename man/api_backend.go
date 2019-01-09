@@ -115,7 +115,7 @@ func (b *ManAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([]types.
 		return nil, nil
 	}
 	logs := make([]types.CoinLogs, len(receipts))
-	var mm map [string][]*types.Log
+	mm:=make( map [string][]*types.Log)
 	for _, cr := range receipts {
 		for _, receipt := range cr.Receiptlist{
 			mm[cr.CoinType]=append(mm[cr.CoinType],receipt.Logs...)
