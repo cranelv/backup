@@ -4,11 +4,12 @@
 package leaderelect
 
 import (
+	"time"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"time"
 )
 
 func (self *controller) handleMsg(data interface{}) {
@@ -55,9 +56,11 @@ func (self *controller) handleMsg(data interface{}) {
 	}
 }
 
-func (self *controller) SetSelfAddress(addr common.Address) {
+func (self *controller) SetSelfAddress(addr common.Address, nodeAddr common.Address) {
 	self.dc.selfAddr = addr
+	self.dc.selfNodeAddr = nodeAddr
 	self.selfCache.selfAddr = addr
+	self.selfCache.selfNodeAddr = nodeAddr
 }
 
 func (self *controller) handleStartMsg(msg *startControllerMsg) {
@@ -66,10 +69,10 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		return
 	}
 
-	//self.SetSelfAddress(ca.GetAddress())
 	a0Address := ca.GetDepositAddress()
-	self.SetSelfAddress(a0Address)
-	log.Info("测试测试测试", "selfDepositAddress", a0Address.String())
+	nodeAddress := ca.GetSignAddress()
+	self.SetSelfAddress(a0Address, nodeAddress)
+	log.Info("测试测试测试", "selfDepositAddress", a0Address.String(), "nodeAddress", nodeAddress.String())
 
 	log.INFO(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "isSupper", msg.parentIsSupper, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
 	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentIsSupper, msg.parentStateDB); err != nil {

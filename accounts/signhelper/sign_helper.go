@@ -197,7 +197,7 @@ func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []by
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	accountA0, _, err := sh.authReader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
+	log.ERROR(ModeLog, "addr", addr, "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
 	return accountA0, addr, flag, err
 }
 
@@ -208,6 +208,6 @@ func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	accountA0, _, err := reader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
+	log.ERROR(ModeLog, "addr", addr.Hex(), "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0.Hex())
 	return accountA0, addr, flag, err
 }
