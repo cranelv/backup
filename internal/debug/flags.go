@@ -99,12 +99,12 @@ var (
 )
 
 func init() {
-	usecolor := term.IsTty(os.Stderr.Fd()) && os.Getenv("TERM") != "dumb"
+	usecolor := term.IsTty(os.Stdout.Fd()) && os.Getenv("TERM") != "dumb"
 
-	output := io.Writer(os.Stderr)
+	output := io.Writer(os.Stdout)
 
 	if usecolor {
-		output = colorable.NewColorableStderr()
+		output = colorable.NewColorableStdout()
 	}
 	ostream = log.StreamHandler(output, log.TerminalFormat(usecolor))
 	glogger = log.NewGlogHandler(ostream)

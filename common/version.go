@@ -156,5 +156,13 @@ var (
 				"fix peer bug after change identity, fix change nodeId bug",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.19",
+			Submitter: "liubo",
+			Commit: []string{
+				"更新linux下终端无法显示log问题",
+				"ipfs下载请求修正及偶然的崩溃问题",
+			},
+		},
 	}
 )
