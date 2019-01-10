@@ -73,6 +73,8 @@ func (b *Bucket) Start() {
 
 	b.log.Info("buckets start!")
 
+	timeoutTimer := time.NewTimer(time.Second * 30)
+
 	defer func() {
 		b.log.Info("buckets stop!")
 		b.sub.Unsubscribe()
@@ -86,7 +88,18 @@ func (b *Bucket) Start() {
 
 	for {
 		select {
+		case <-timeoutTimer.C:
+			b.maintainOuter()
+			if !timeoutTimer.Stop() {
+				<-timeoutTimer.C
+			}
+			timeoutTimer.Reset(time.Second * 30)
 		case h := <-b.blockChain:
+			if !timeoutTimer.Stop() {
+				<-timeoutTimer.C
+			}
+			timeoutTimer.Reset(time.Second * 30)
+
 			// only bottom nodes will into this buckets.
 			if h.Role > common.RoleBucket {
 				b.role = common.RoleNil
