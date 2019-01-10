@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/manblk"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/msgsend"
@@ -34,6 +35,7 @@ type Backend interface {
 	FetcherNotify(hash common.Hash, number uint64, addr common.Address)
 	OLConsensus() *olconsensus.TopNodeService
 	Random() *baseinterface.Random
+	ManBlkDeal() *manblk.ManBlkDeal
 }
 
 type VrfMsg struct {

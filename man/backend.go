@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/matrix/go-matrix/consensus/manblk"
+
 	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
@@ -68,6 +70,13 @@ type LesServer interface {
 	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
 }
 
+//type BlKSupport struct {
+//	bc *core.BlockChain
+//	re *reelection.ReElection
+//	sg *signhelper.SignHelper
+//	txPool
+//	Mux
+//}
 // Matrix implements the Matrix full node service.
 type Matrix struct {
 	config      *Config
@@ -114,6 +123,7 @@ type Matrix struct {
 	random       *baseinterface.Random
 	olConsensus  *olconsensus.TopNodeService
 	blockGen     *blkgenor.BlockGenor
+	manBlockDeal *manblk.ManBlkDeal
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
 
@@ -252,6 +262,18 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //YY
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
+	man.manBlockDeal, err = manblk.New(man)
+	if err != nil {
+		return nil, err
+	}
+	manCommonplug, err := manblk.NewBlkBasePlug()
+	if err != nil {
+		return nil, err
+	}
+	man.manBlockDeal.RegisterManBLkPlugs(manblk.CommonBlk, manblk.AVERSION, manCommonplug)
+	if err != nil {
+		return nil, err
+	}
 
 	man.blockGen, err = blkgenor.New(man)
 	if err != nil {
@@ -478,6 +500,7 @@ func (s *Matrix) ReElection() *reelection.ReElection       { return s.reelection
 func (s *Matrix) HD() *msgsend.HD                          { return s.hd }
 func (s *Matrix) OLConsensus() *olconsensus.TopNodeService { return s.olConsensus }
 func (s *Matrix) Random() *baseinterface.Random            { return s.random }
+func (s *Matrix) ManBlkDeal() *manblk.ManBlkDeal           { return s.manBlockDeal }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
