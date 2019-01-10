@@ -245,7 +245,7 @@ func (p *Process) AddVerifiedBlock(block *verifiedBlock) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	log.Info(p.logExtraInfo(), "AddVerifiedBlock", "开始处理", "block hash", block.hash.TerminalString(), "leader", block.req.Header.Leader.Hex(), "高度", p.number)
-	reqData, err := p.reqCache.AddReq(block.req, true)
+	reqData, err := p.reqCache.AddReq(block.req, block.req.Header.Leader, true)
 	if err != nil {
 		log.Info(p.logExtraInfo(), "AddVerifiedBlock", "添加缓存失败", "err", err, "高度", p.number)
 		return
@@ -258,7 +258,13 @@ func (p *Process) AddReq(reqMsg *mc.HD_BlkConsensusReqMsg) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	reqData, err := p.reqCache.AddReq(reqMsg, false)
+	fromLeader, _, err := p.blockChain().GetA0AccountFromAnyAccount(reqMsg.From, reqMsg.Header.ParentHash)
+	if err != nil {
+		log.Debug(p.logExtraInfo(), "区块共识请求处理", "获取from的抵押账户失败", "from", reqMsg.From.Hex(), "err", err)
+		return
+	}
+
+	reqData, err := p.reqCache.AddReq(reqMsg, fromLeader, false)
 	if err != nil {
 		//log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
 		return
