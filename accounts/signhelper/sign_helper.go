@@ -147,6 +147,22 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 	return sh.keyStore.SignTxWithPassAndTemp(signAccount, signPassword, tx, chainID)
 }
 
+func (sh *SignHelper) SignVrfByAccount(msg []byte, account common.Address) ([]byte, []byte, []byte, error) {
+	signAccount, password, err := sh.authReader.GetSignAccountPassword([]common.Address{account})
+	if err != nil {
+		log.Error(ModeLog, "SignVrfByAccount", "获取密码失败", "err", err, "account", account.Hex())
+		return nil, nil, nil, errors.New("get sign account password err!")
+	}
+
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+	if nil == sh.keyStore {
+		return nil, nil, nil, ErrNilKeyStore
+	}
+	ac := accounts.Account{Address: signAccount}
+	return sh.keyStore.SignVrfWithPass(ac, password, msg)
+}
+
 func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, []byte, error) {
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
 	//log.ERROR(ModeLog, "signAccount", signAccount, "signPassword", signPassword, "err", err, "blkhash", blkHash)
