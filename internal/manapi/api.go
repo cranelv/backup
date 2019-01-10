@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
 	"github.com/matrix/go-matrix/depoistInfo"
 
 	"github.com/davecgh/go-spew/spew"
@@ -618,6 +620,23 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	read, _ := depoistInfo.GetOnlineTime(state, address)
 
 	return read, state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetTopologyGraph(ctx context.Context, blockNr rpc.BlockNumber) (*mc.TopologyGraph, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
+	if err != nil {
+		return nil, err
+	}
+	topology, ok := topologyGraph.(*mc.TopologyGraph)
+	if !ok {
+		return nil, errors.New("反射失败")
+	}
+
+	return topology, state.Error()
 }
 
 //钱包调用
