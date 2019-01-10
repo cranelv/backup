@@ -457,17 +457,18 @@ type storageblock struct {
 // and receipts.
 func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
+	ischeck := len(b.header.Roots)>0
 	// TODO: panic if len(txs) != len(receipts)
 	for _, currencyBlock := range currencyBlocks { //BB
 		if len(currencyBlock.Transactions.GetTransactions()) == 0 {
 			b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:EmptyRootHash,ReceiptHash:EmptyRootHash})
 		} else {
-			if len(b.header.Roots)>0{
+			if ischeck{
 				for i, coinRoot := range b.header.Roots {
 					if coinRoot.Cointyp == currencyBlock.CurrencyName {
 						b.header.Roots[i].TxHash = DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions()))
-						b.header.Roots[i].ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.Rs))
-						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.Rs)
+						b.header.Roots[i].ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.GetReceipts()))
+						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
 						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
 						b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:currencyBlock.CurrencyName,Transactions:currencyBlock.Transactions,
 						Receipts:currencyBlock.Receipts})
@@ -475,7 +476,7 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 				}
 			}else {
 				b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions())),
-					ReceiptHash:DeriveSha(Receipts(currencyBlock.Receipts.Rs)),Bloom: CreateBloom(currencyBlock.Receipts.Rs)})
+					ReceiptHash:DeriveSha(Receipts(currencyBlock.Receipts.GetReceipts())),Bloom: CreateBloom(currencyBlock.Receipts.GetReceipts())})
 				b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:currencyBlock.CurrencyName,Transactions:currencyBlock.Transactions,
 					Receipts:currencyBlock.Receipts})
 			}

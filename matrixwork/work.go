@@ -385,7 +385,6 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		tx.SetTxCurrency(rewart.CoinType)
 		txers = append(txers, tx)
 	}
-
 	return
 }
 

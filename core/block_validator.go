@@ -80,10 +80,11 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	// Validate the received block's bloom with the one derived from the generated receipts.
 	// For valid blocks this should always validate to true.
 	for _, currencie := range block.Currencies() {
-		ct,rbloom := currencie.CurrencyName,types.CreateBloom(currencie.Receipts.GetReceipts())
-		receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
+		ct := currencie.CurrencyName
 		for _,cr:=range header.Roots{
 			if cr.Cointyp==ct {
+				rbloom := types.CreateBloom(currencie.Receipts.GetReceipts())
+				receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
 				if rbloom != cr.Bloom {
 					return fmt.Errorf("invalid bloom (remote: %x  local: %x)", cr.Bloom, rbloom)
 				}

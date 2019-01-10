@@ -172,11 +172,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 			}
 			Txs = append(Txs, txs...)
 		}
-		// todo: add rewward and run
-		//rewardList:=p.calcRewardAndSlash(work.State, header)
-
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), types.GetCoinTX(Txs), p.pm.bc)
-		//work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), Txs, p.pm.bc)
 		retTxs := work.GetTxs()
 		block := types.NewBlock(header, types.MakeCurencyBlock(retTxs,work.Receipts,nil), nil)
 		return block, nil, work.State, work.Receipts, retTxs, nil
@@ -194,9 +190,8 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 			return nil, nil, nil, nil, nil, err
 		}
 		txsCode, originalTxs, _ := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
-		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
 		block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(),work.Receipts,nil), nil)
-		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash","")
+		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash",block.Header().Roots)
 		return block, txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), nil
 	}
 }
