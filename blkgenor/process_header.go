@@ -43,7 +43,7 @@ func (p *Process) processBcHeaderGen() error {
 	p.setGasLimit(originHeader, parent)
 	p.setExtra(originHeader)
 	p.setTopology(parentHash, originHeader)
-	err = p.setVrf(err, parent, originHeader)
+	err = p.setBCVrf(err, parent, originHeader)
 	if nil != err {
 		return err
 	}
@@ -203,6 +203,16 @@ func (p *Process) setSignatures(header *types.Header) error {
 func (p *Process) setVersion(header *types.Header, parent *types.Block) {
 	header.Version = parent.Header().Version
 	header.VersionSignatures = parent.Header().VersionSignatures
+}
+
+func (p *Process) setBCVrf(err error, parent *types.Block, header *types.Header) error {
+	account, vrfValue, vrfProof, err := p.getBCVrfValue(parent)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "广播区块生成阶段 获取vrfValue失败 错误", err)
+		return err
+	}
+	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
+	return nil
 }
 
 func (p *Process) setVrf(err error, parent *types.Block, header *types.Header) error {
@@ -365,6 +375,21 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	}
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", len(req.TxsCode), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
+}
+
+func (p *Process) getBCVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	parentMsg := VrfMsg{
+		VrfProof: preVrfProof,
+		VrfValue: preVrfValue,
+		Hash:     parent.Hash(),
+	}
+	vrfmsg, err := json.Marshal(parentMsg)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "生成vrfmsg出错", err, "parentMsg", parentMsg)
+		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
+	}
+	return p.signHelper().SignVrfByAccount(vrfmsg, ca.GetDepositAddress())
 }
 
 func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {

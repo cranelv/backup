@@ -353,28 +353,28 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)
-		return "error1" + err.Error()
+		return err.Error()
 	}
 
 	b, err := ioutil.ReadAll(f)
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
 		fmt.Println("解密失败", err)
-		return "error2" + err.Error()
+		return err.Error()
 	}
 	h := sha256.New()
 	h.Write([]byte(password))
 	tpass, err := aes.AesDecrypt(bytesPass, h.Sum(nil))
 	if err != nil {
 		fmt.Println("AedDecrypt失败", bytesPass, password)
-		return "error3" + err.Error()
+		return err.Error()
 	}
 
 	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
 		fmt.Println("加密文件解码失败 密码不正确")
-		return "error4" + err.Error()
+		return err.Error()
 	}
 	entrustValue := make(map[common.Address]string, 0)
 
@@ -382,6 +382,9 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
 	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
+	if err != nil {
+		return err.Error()
+	}
 	go manparams.SetTimer(times)
 	return "successful"
 }

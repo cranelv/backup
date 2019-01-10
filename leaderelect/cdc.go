@@ -390,7 +390,7 @@ func (dc *cdc) GetA0AccountFromAnyAccount(account common.Address, blockHash comm
 	// 根据A1获取A0
 	a0Account = depoistInfo.GetDepositAccount(dc.parentState, a1Account)
 	if a0Account != (common.Address{}) {
-		log.Debug(common.SignLog, "CDC获取A0账户", "输入A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+		log.Debug(common.SignLog, "CDC获取A0账户", "成功", "输入A1", a1Account.Hex(), "输出A0", a0Account.Hex())
 		return a0Account, a1Account, nil
 	} else {
 		log.Error(common.SignLog, "CDC获取A0账户", "A1账户获取A0账户失败", "A1Account", a1Account.Hex())
