@@ -2,6 +2,7 @@ package matrixstate
 
 import (
 	"encoding/json"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -257,6 +258,174 @@ func (opt *operatorBlockSuperAccounts) SetValue(st StateDB, value interface{}) e
 	data, err := encodeAccounts(accounts)
 	if err != nil {
 		log.Error(logInfo, "blockSuperAccounts encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, data)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 超级交易签名账户
+type operatorTxsSuperAccounts struct {
+	key common.Hash
+}
+
+func newTxsSuperAccountsOpt() *operatorTxsSuperAccounts {
+	return &operatorTxsSuperAccounts{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyAccountTxsSupers),
+	}
+}
+
+func (opt *operatorTxsSuperAccounts) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorTxsSuperAccounts) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return nil, err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return make([]common.Address, 0), nil
+	}
+	accounts, err := decodeAccounts(data)
+	if err != nil {
+		log.Error(logInfo, "TxsSuperAccounts decode failed", err)
+		return nil, err
+	}
+	return accounts, nil
+}
+
+func (opt *operatorTxsSuperAccounts) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	accounts, OK := value.([]common.Address)
+	if !OK {
+		log.Error(logInfo, "input param(TxsSuperAccounts) err", "reflect failed")
+		return ErrParamReflect
+	}
+	if len(accounts) == 0 {
+		log.Error(logInfo, "input param(TxsSuperAccounts) err", "accounts is empty")
+		return ErrParamReflect
+	}
+	data, err := encodeAccounts(accounts)
+	if err != nil {
+		log.Error(logInfo, "TxsSuperAccounts encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, data)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 多币种签名账户
+type operatorMultiCoinSuperAccounts struct {
+	key common.Hash
+}
+
+func newMultiCoinSuperAccountsOpt() *operatorMultiCoinSuperAccounts {
+	return &operatorMultiCoinSuperAccounts{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyAccountMultiCoinSupers),
+	}
+}
+
+func (opt *operatorMultiCoinSuperAccounts) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorMultiCoinSuperAccounts) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return nil, err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return make([]common.Address, 0), nil
+	}
+	accounts, err := decodeAccounts(data)
+	if err != nil {
+		log.Error(logInfo, "MultiCoinSupers decode failed", err)
+		return nil, err
+	}
+	return accounts, nil
+}
+
+func (opt *operatorMultiCoinSuperAccounts) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	accounts, OK := value.([]common.Address)
+	if !OK {
+		log.Error(logInfo, "input param(MultiCoinSupers) err", "reflect failed")
+		return ErrParamReflect
+	}
+	if len(accounts) == 0 {
+		log.Error(logInfo, "input param(MultiCoinSupers) err", "accounts is empty")
+		return ErrParamReflect
+	}
+	data, err := encodeAccounts(accounts)
+	if err != nil {
+		log.Error(logInfo, "MultiCoinSupers encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, data)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 子链签名账户
+type operatorSubChainSuperAccounts struct {
+	key common.Hash
+}
+
+func newSubChainSuperAccountsOpt() *operatorSubChainSuperAccounts {
+	return &operatorSubChainSuperAccounts{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyAccountSubChainSupers),
+	}
+}
+
+func (opt *operatorSubChainSuperAccounts) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorSubChainSuperAccounts) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return nil, err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return make([]common.Address, 0), nil
+	}
+	accounts, err := decodeAccounts(data)
+	if err != nil {
+		log.Error(logInfo, "SubChainSupers decode failed", err)
+		return nil, err
+	}
+	return accounts, nil
+}
+
+func (opt *operatorSubChainSuperAccounts) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	accounts, OK := value.([]common.Address)
+	if !OK {
+		log.Error(logInfo, "input param(SubChainSupers) err", "reflect failed")
+		return ErrParamReflect
+	}
+	if len(accounts) == 0 {
+		log.Error(logInfo, "input param(SubChainSupers) err", "accounts is empty")
+		return ErrParamReflect
+	}
+	data, err := encodeAccounts(accounts)
+	if err != nil {
+		log.Error(logInfo, "SubChainSupers encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

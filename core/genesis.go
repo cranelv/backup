@@ -162,6 +162,29 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			}
 			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
 		}
+		if nil != gensis1.MState.TxsSuperAccounts {
+			TxsSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.TxsSuperAccounts {
+				TxsSuperAccounts = append(TxsSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.TxsSuperAccounts = &TxsSuperAccounts
+		}
+		if nil != gensis1.MState.MultiCoinSuperAccounts {
+			MultiCoinSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.MultiCoinSuperAccounts {
+				MultiCoinSuperAccounts = append(MultiCoinSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
+		}
+
+		if nil != gensis1.MState.SubChainSuperAccounts {
+			SubChainSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.SubChainSuperAccounts {
+				SubChainSuperAccounts = append(SubChainSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+			gensis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
+		}
+
 		if nil != gensis1.MState.BlockSuperAccounts {
 			blockSuperAccounts := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.BlockSuperAccounts {
@@ -319,6 +342,9 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 
 		log.Info("Writing custom genesis block")
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return nil, common.Hash{}, errGenGenesisBlockNoConfig
+		}
 		return genesis.Config, block.Hash(), err
 	}
 

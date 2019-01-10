@@ -2,13 +2,14 @@ package core
 
 import (
 	"encoding/binary"
+	"sort"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"sort"
 )
 
 const (
@@ -16,46 +17,52 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcasts           *[]common.Address       `json:"Broadcasts"`
-	InnerMiners          *[]common.Address       `json:"InnerMiners"`
-	Foundation           *common.Address         `json:"Foundation"`
-	VersionSuperAccounts *[]common.Address       `json:"VersionSuperAccounts"`
-	BlockSuperAccounts   *[]common.Address       `json:"BlockSuperAccounts"`
-	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" gencodec:"required"`
-	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
-	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" gencodec:"required"`
-	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" gencodec:"required"`
-	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
-	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
-	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg    *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg    *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
-	CurElect             *[]common.Elect         `json:"CurElect"  gencodec:"required"`
+	Broadcasts             *[]common.Address       `json:"Broadcasts"`
+	InnerMiners            *[]common.Address       `json:"InnerMiners"`
+	Foundation             *common.Address         `json:"Foundation"`
+	VersionSuperAccounts   *[]common.Address       `json:"VersionSuperAccounts"`
+	BlockSuperAccounts     *[]common.Address       `json:"BlockSuperAccounts"`
+	TxsSuperAccounts       *[]common.Address       `json:"TxsSuperAccounts"`
+	MultiCoinSuperAccounts *[]common.Address       `json:"MultiCoinSuperAccounts"`
+	SubChainSuperAccounts  *[]common.Address       `json:"SubChainSuperAccounts"`
+	VIPCfg                 *[]mc.VIPConfig         `json:"VIPCfg" gencodec:"required"`
+	BCICfg                 *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
+	LeaderCfg              *mc.LeaderConfig        `json:"LeaderCfg" gencodec:"required"`
+	BlkRewardCfg           *mc.BlkRewardCfg        `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg           *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg             *mc.LotteryCfgStruct    `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg            *mc.InterestCfgStruct   `json:"InterestCfg" gencodec:"required"`
+	SlashCfg               *mc.SlashCfgStruct      `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg             *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
+	EleInfoCfg             *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
+	ElectMinerNumCfg       *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg      *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg      *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
+	CurElect               *[]common.Elect         `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcasts           *[]string               `json:"Broadcasts,omitempty"`
-	InnerMiners          *[]string               `json:"InnerMiners,omitempty"`
-	Foundation           *string                 `json:"Foundation,omitempty"`
-	VersionSuperAccounts *[]string               `json:"VersionSuperAccounts,omitempty"`
-	BlockSuperAccounts   *[]string               `json:"BlockSuperAccounts,omitempty"`
-	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
-	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" ,omitempty"`
-	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" ,omitempty"`
-	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" ,omitempty"`
-	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" ,omitempty"`
-	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" ,omitempty"`
-	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" ,omitempty"`
-	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" ,omitempty"`
-	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" ,omitempty"`
-	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg    *[]string               `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg    *[]string               `json:"ElectWhiteList" gencodec:"required"`
-	CurElect             *[]common.Elect1        `json:"curElect"    gencodec:"required"`
+	Broadcasts             *[]string               `json:"Broadcasts,omitempty"`
+	InnerMiners            *[]string               `json:"InnerMiners,omitempty"`
+	Foundation             *string                 `json:"Foundation,omitempty"`
+	VersionSuperAccounts   *[]string               `json:"VersionSuperAccounts,omitempty"`
+	BlockSuperAccounts     *[]string               `json:"BlockSuperAccounts,omitempty"`
+	TxsSuperAccounts       *[]string               `json:"TxsSuperAccounts,omitempty"`
+	MultiCoinSuperAccounts *[]string               `json:"MultiCoinSuperAccounts,omitempty"`
+	SubChainSuperAccounts  *[]string               `json:"SubChainSuperAccounts,omitempty"`
+	BCICfg                 *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
+	VIPCfg                 *[]mc.VIPConfig         `json:"VIPCfg" ,omitempty"`
+	LeaderCfg              *mc.LeaderConfig        `json:"LeaderCfg" ,omitempty"`
+	BlkRewardCfg           *mc.BlkRewardCfg        `json:"BlkRewardCfg" ,omitempty"`
+	TxsRewardCfg           *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" ,omitempty"`
+	LotteryCfg             *mc.LotteryCfgStruct    `json:"LotteryCfg" ,omitempty"`
+	InterestCfg            *mc.InterestCfgStruct   `json:"InterestCfg" ,omitempty"`
+	SlashCfg               *mc.SlashCfgStruct      `json:"SlashCfg" ,omitempty"`
+	EleTimeCfg             *mc.ElectGenTimeStruct  `json:"EleTime" ,omitempty"`
+	EleInfoCfg             *mc.ElectConfigInfo     `json:"EleInfo" ,omitempty"`
+	ElectMinerNumCfg       *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg      *[]string               `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg      *[]string               `json:"ElectWhiteList" gencodec:"required"`
+	CurElect               *[]common.Elect1        `json:"curElect"    gencodec:"required"`
 }
 
 func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
@@ -104,7 +111,15 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setBlockSuperAccountsToState(state, num); err != nil {
 		return err
 	}
-
+	if err := ms.setTxsSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setMultiCoinSuperAccountsToState(state, num); err != nil {
+		return err
+	}
+	if err := ms.setSubChainSuperAccountsToState(state, num); err != nil {
+		return err
+	}
 	if err := ms.setBlkRewardCfgToState(state, num); err != nil {
 		return err
 	}
@@ -382,6 +397,42 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 		}
 	}
 	matrixstate.SetVersionSuperAccounts(state, *g.VersionSuperAccounts)
+	return nil
+}
+
+func (g *GenesisMState) setTxsSuperAccountsToState(state *state.StateDB, num uint64) error {
+	if g.TxsSuperAccounts == nil || len(*g.TxsSuperAccounts) == 0 {
+		if num == 0 {
+			return errors.Errorf("the txs superAccounts of genesis is empty")
+		} else {
+			return nil
+		}
+	}
+	matrixstate.SetTxsSuperAccounts(state, *g.TxsSuperAccounts)
+	return nil
+}
+
+func (g *GenesisMState) setMultiCoinSuperAccountsToState(state *state.StateDB, num uint64) error {
+	if g.MultiCoinSuperAccounts == nil || len(*g.MultiCoinSuperAccounts) == 0 {
+		if num == 0 {
+			return errors.Errorf("the multicoin superAccounts of genesis is empty")
+		} else {
+			return nil
+		}
+	}
+	matrixstate.SetMultiCoinSuperAccounts(state, *g.MultiCoinSuperAccounts)
+	return nil
+}
+
+func (g *GenesisMState) setSubChainSuperAccountsToState(state *state.StateDB, num uint64) error {
+	if g.SubChainSuperAccounts == nil || len(*g.SubChainSuperAccounts) == 0 {
+		if num == 0 {
+			return errors.Errorf("the subchain superAccounts of genesis is empty")
+		} else {
+			return nil
+		}
+	}
+	matrixstate.SetSubChainSuperAccounts(state, *g.SubChainSuperAccounts)
 	return nil
 }
 

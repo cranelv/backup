@@ -1,8 +1,9 @@
 package mc
 
 import (
-	"github.com/matrix/go-matrix/common"
 	"math/big"
+
+	"github.com/matrix/go-matrix/common"
 )
 
 const (
@@ -13,22 +14,25 @@ const (
 	MSKeyElectOnlineState = "elect_state"    // 选举节点在线信息
 
 	//通用
-	MSKeyBroadcastInterval    = "broad_interval"         // 广播区块周期
-	MSKeyElectGenTime         = "elect_gen_time"         // 选举生成时间
-	MSKeyElectMinerNum        = "elect_miner_num"        // 选举矿工数量
-	MSKeyElectConfigInfo      = "elect_details_info"     // 选举配置
-	MSKeyElectBlackList       = "elect_black_list"       // 选举黑名单
-	MSKeyElectWhiteList       = "elect_white_list"       // 选举白名单
-	MSKeyAccountBroadcasts    = "account_broadcasts"     // 广播账户 []common.Address
-	MSKeyAccountInnerMiners   = "account_inner_miners"   // 基金会矿工 []common.Address
-	MSKeyAccountFoundation    = "account_foundation"     // 基金会账户 common.Address
-	MSKeyAccountVersionSupers = "account_version_supers" // 版本签名账户 []common.Address
-	MSKeyAccountBlockSupers   = "account_block_supers"   // 超级区块签名账户 []common.Address
-	MSKeyVIPConfig            = "vip_config"             // VIP配置信息
-	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"     // 前广播区块root信息
-	MSKeyLeaderConfig         = "leader_config"          // leader服务配置信息
-	MSKeyMinHash              = "pre_100_min_hash"       // 最小hash
-	MSKeySuperBlockCfg        = "super_block_config"     // 超级区块配置
+	MSKeyBroadcastInterval      = "broad_interval"           // 广播区块周期
+	MSKeyElectGenTime           = "elect_gen_time"           // 选举生成时间
+	MSKeyElectMinerNum          = "elect_miner_num"          // 选举矿工数量
+	MSKeyElectConfigInfo        = "elect_details_info"       // 选举配置
+	MSKeyElectBlackList         = "elect_black_list"         // 选举黑名单
+	MSKeyElectWhiteList         = "elect_white_list"         // 选举白名单
+	MSKeyAccountBroadcasts      = "account_broadcasts"       // 广播账户 []common.Address
+	MSKeyAccountInnerMiners     = "account_inner_miners"     // 基金会矿工 []common.Address
+	MSKeyAccountFoundation      = "account_foundation"       // 基金会账户 common.Address
+	MSKeyAccountVersionSupers   = "account_version_supers"   // 版本签名账户 []common.Address
+	MSKeyAccountBlockSupers     = "account_block_supers"     // 超级区块签名账户 []common.Address
+	MSKeyAccountTxsSupers       = "account_txs_supers"       // 超级交易签名账户 []common.Address
+	MSKeyAccountMultiCoinSupers = "account_multicoin_supers" // 超级多币种签名账户 []common.Address
+	MSKeyAccountSubChainSupers  = "account_subchain_supers"  // 子链签名账户 []common.Address
+	MSKeyVIPConfig              = "vip_config"               // VIP配置信息
+	MSKeyPreBroadcastRoot       = "pre_broadcast_Root"       // 前广播区块root信息
+	MSKeyLeaderConfig           = "leader_config"            // leader服务配置信息
+	MSKeyMinHash                = "pre_100_min_hash"         // 最小hash
+	MSKeySuperBlockCfg          = "super_block_config"       // 超级区块配置
 
 	//奖励配置
 	MSKeyBlkRewardCfg      = "blk_reward"         // 区块奖励配置

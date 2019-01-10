@@ -189,6 +189,90 @@ func SetBlockSuperAccounts(st StateDB, accounts []common.Address) error {
 	return opt.SetValue(st, accounts)
 }
 
+func GetTxsSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountTxsSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetTxsSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountTxsSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
+func GetMultiCoinSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountMultiCoinSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetMultiCoinSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountMultiCoinSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
+func GetSubChainSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountSubChainSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetSubChainSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountSubChainSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
 func GetPreBroadcastRoot(st StateDB) (*mc.PreBroadStateRoot, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {

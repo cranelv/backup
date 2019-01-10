@@ -21,6 +21,7 @@ import (
 	"github.com/matrix/go-matrix/man/wizard"
 
 	"encoding/base64"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
