@@ -217,6 +217,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		return  nil, 0, err
 	}
 	for _, tx := range stxs {
+		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
@@ -242,6 +243,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		tmpl = append(tmpl, allLogs...)
 		allLogs = tmpl
 		ftxs = append(ftxs,tmptx)
+		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 	}
 	tmpMapre[params.MAN_COIN] = receipts
 	ftxs = append(ftxs,tmpMaptx[params.MAN_COIN]...)
@@ -249,16 +251,20 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 
 	//todo:
 	for i,bc := range block.Currencies(){
-		if !isvadter{
-			for _,cs := range coinShard{
-				if bc.CurrencyName == cs.CoinType{
-					block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],cs.Shardings)
-					block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],cs.Shardings)
+		if !isvadter {
+			if len(coinShard)>0{
+				for _, cs := range coinShard {
+					if bc.CurrencyName == cs.CoinType {
+						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], cs.Shardings)
+						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName], cs.Shardings)
+					}
 				}
+			}else {
+				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
 			}
-		}else {
-			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],nil)
-			block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],nil)
+
+		}else{
+			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

@@ -33,7 +33,7 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 // bodyPack is a batch of block bodies returned by a peer.
 type bodyPack struct {
 	peerId       string
-	transactions [][]types.CoinSelfTransaction
+	transactions [][]types.CurrencyBlock
 	uncles       [][]*types.Header
 }
 

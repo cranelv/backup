@@ -1639,28 +1639,28 @@ func (d *Downloader) SynOrignDownload(out interface{}, flag int, blockNum uint64
 	switch flag {
 	case 0:
 		obj := out.(*types.BlockAllSt)
-		txs := make(types.SelfTransactions,0)
+		/*txs := make(types.CurrencyBlock,0)//make(types.SelfTransactions,0)
 		res := make(types.Receipts,0)
 		for _,cub := range obj.Sblock.Currencies(){
 			txs = append(txs,cub.Transactions.GetTransactions()...)
 			res = append(res,cub.Receipts.GetReceipts()...)
 		}
-		cointxs,coinres := types.GetCoinTXRS(txs,res)
+		cointxs,coinres := types.GetCoinTXRS(txs,res)*/
 		tmp.Headeripfs = obj.Sblock.Header()
-		tmp.Transactionsipfs = cointxs
+		tmp.Transactionsipfs = obj.Sblock.Currencies()
 		tmp.Unclesipfs = obj.Sblock.Uncles()
-		tmp.Receipt = coinres
+		//tmp.Receipt = coinres
 		tmp.BlockNum = tmp.Headeripfs.Number.Uint64() //blockNum
 		log.Debug(" ipfs send new block to syn BlockAllSt ", "flag", flag, "blockNum", tmp.Headeripfs.Number.Uint64())
 	case 1:
 	case 2:
 		obj := out.(*types.Body)
-		txs := make(types.SelfTransactions,0)
+		/*txs := make(types.SelfTransactions,0)
 		for _,cub := range obj.CurrencyBody{
 			txs = append(txs,cub.Transactions.GetTransactions()...)
 		}
-		cointxs:= types.GetCoinTX(txs)
-		tmp.Transactionsipfs = cointxs
+		cointxs:= types.GetCoinTX(txs)*/
+		tmp.Transactionsipfs = obj.CurrencyBody
 		tmp.Unclesipfs = obj.Uncles
 		log.Debug(" ipfs send new block to syn Body", "flag", flag, "blockNum", blockNum)
 	case 3:

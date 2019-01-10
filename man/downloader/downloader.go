@@ -155,7 +155,7 @@ type BlockIpfs struct {
 	BlockNum         uint64
 	Headeripfs       *types.Header
 	Unclesipfs       []*types.Header
-	Transactionsipfs []types.CoinSelfTransaction //Transactions//SelfTransaction?????
+	Transactionsipfs []types.CurrencyBlock//CoinSelfTransaction //Transactions//SelfTransaction?????
 	Receipt          []types.CoinReceipts
 }
 type BlockIpfsReq struct {
@@ -1606,8 +1606,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	)
 	blocks := make([]*types.Block, len(results))
 	for i, result := range results {
-		cb:=types.MakeCurencyBlock(result.Transactions,result.Receipts,nil)
-		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cb, result.Uncles)
+		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles)
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
@@ -1759,7 +1758,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 					TxHash:      coinRoot.TxHash,
 					ReceiptHash: coinRoot.ReceiptHash}
 			}
-			cbs = append(cbs, types.CurrencyBlock{ct.CoinType, ch, types.SetTransactions(ct.Txser, nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
+			cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(), nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
 		}
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 		//receipts[i] = result.Receipts
@@ -1782,7 +1781,7 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 				TxHash:      coinRoot.TxHash,
 				ReceiptHash: coinRoot.ReceiptHash}
 		}
-		cbs = append(cbs, types.CurrencyBlock{ct.CoinType, ch, types.SetTransactions(ct.Txser, nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
+		cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(), nil), types.SetReceipts(result.Receipts[i].Receiptlist, nil)})
 	}
 	block := types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
@@ -1803,7 +1802,7 @@ func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) (err err
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions [][]types.CoinSelfTransaction, uncles [][]*types.Header) (err error) {
+func (d *Downloader) DeliverBodies(id string, transactions [][]types.CurrencyBlock, uncles [][]*types.Header) (err error) {
 	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, uncles}, bodyInMeter, bodyDropMeter)
 }
 

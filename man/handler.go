@@ -565,26 +565,29 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver them all to the downloader for queuing
 		//transactions := make([][]types.SelfTransaction, len(request))
-		transactions := make([][]types.CoinSelfTransaction, len(request))
+		//transactions := make([][]types.CoinSelfTransaction, len(request))
+		transCrBlock := make([][]types.CurrencyBlock, len(request))
 		uncles := make([][]*types.Header, len(request))
 
 		for i, body := range request {
+			/*
 			cointx := make([]types.CoinSelfTransaction,0)
 			for _,curr := range body.Transactions{
 				cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
 			}
-			transactions[i] = cointx//.GetTransactions()
+			transactions[i] = cointx//.GetTransactions()*/
+			transCrBlock[i] = body.Transactions
 			uncles[i] = body.Uncles
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0 || len(uncles) > 0
+		filter := len(transCrBlock) > 0 || len(uncles) > 0
 		if filter {
-			transactions, uncles = pm.fetcher.FilterBodies(p.id, transactions, uncles, time.Now())
+			transCrBlock, uncles = pm.fetcher.FilterBodies(p.id, transCrBlock, uncles, time.Now())
 		}
 
-		p.Log().Trace("download handleMsg BlockBodiesMsg after filter", "len transaction", len(transactions), "!filter", !filter)
-		if len(transactions) > 0 || len(uncles) > 0 || !filter {
-			err := pm.downloader.DeliverBodies(p.id, transactions, uncles)
+		p.Log().Trace("download handleMsg BlockBodiesMsg after filter", "len transaction", len(transCrBlock), "!filter", !filter)
+		if len(transCrBlock) > 0 || len(uncles) > 0 || !filter {
+			err := pm.downloader.DeliverBodies(p.id, transCrBlock, uncles)
 			if err != nil {
 				log.Debug("Failed to deliver bodies", "err", err)
 			}

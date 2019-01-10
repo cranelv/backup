@@ -48,7 +48,7 @@ type fetchResult struct {
 
 	Header       *types.Header
 	Uncles       []*types.Header
-	Transactions []types.CoinSelfTransaction
+	Transactions []types.CurrencyBlock//CoinSelfTransaction
 	Receipts     []types.CoinReceipts
 }
 type ipfsRequest struct {
@@ -429,9 +429,9 @@ func (q *queue) Results(block bool) []*fetchResult {
 					size += r.Size()
 				}
 			}
-			for _, tx := range result.Transactions {
-				for _,t:=range tx.Txser {
-					size += t.Size()
+			for _, currblk := range result.Transactions {
+				for _,tx := range currblk.Transactions.GetTransactions(){
+					size += tx.Size()
 				}
 			}
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
@@ -985,15 +985,15 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]types.CoinSelfTransaction, uncleLists [][]*types.Header) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]types.CurrencyBlock, uncleLists [][]*types.Header) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
 		for _,cointx := range txLists[index]{
 			for _,hr := range header.Roots{
-				if hr.Cointyp == cointx.CoinType{
-					if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+				if hr.Cointyp == cointx.CurrencyName{
+					if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
 						return errInvalidBody
 					}
 					break
@@ -1201,8 +1201,8 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		if q.resultCache[index].Pending == 1 { //[]*types.Transaction
 			for _,cointx := range bodyBlock.Transactionsipfs{
 				for _,hr := range q.resultCache[index].Header.Roots{
-					if hr.Cointyp == cointx.CoinType{
-						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+					if hr.Cointyp == cointx.CurrencyName{
+						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 0error")
 							return
 						}
@@ -1215,8 +1215,8 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		} else if q.resultCache[index].Pending == 2 {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
-					if hr.Cointyp == cointx.CoinType {
-						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+					if hr.Cointyp == cointx.CurrencyName {
+						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 02error")
 							return
 						}
@@ -1245,8 +1245,8 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		if q.resultCache[index].Pending >= 1 {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
-					if hr.Cointyp == cointx.CoinType {
-						if types.DeriveSha(types.SelfTransactions(cointx.Txser)) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+					if hr.Cointyp == cointx.CurrencyName {
+						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 2error")
 							return
 						}

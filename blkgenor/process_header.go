@@ -193,9 +193,9 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 			log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
 			return nil, nil, nil, nil, nil, err
 		}
-		txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
+		txsCode, originalTxs, _ := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
 		//txsCode, Txs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(),nil,nil)
-		block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs),work.Receipts,nil), nil)
+		block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(),work.Receipts,nil), nil)
 		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash","")
 		return block, txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), nil
 	}
