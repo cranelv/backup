@@ -118,8 +118,15 @@ func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
 		log.INFO(self.logInfo, "询问请求处理", "当前状态为idle，忽略消息", "from", req.From.Hex(), "高度", self.dc.number)
 		return
 	}
-	if req.Master != req.From {
-		log.INFO(self.logInfo, "询问请求处理", "消息master与from不匹配", "master", req.Master.Hex(), "from", req.From.Hex(), "高度", self.dc.number)
+
+	fromMaster, _, err := self.dc.GetA0AccountFromAnyAccount(req.From, self.dc.leaderCal.preHash)
+	if err != nil {
+		log.Info(self.logInfo, "询问请求处理", "根据from获取master的A0账户失败!", "from", req.From.Hex(), "err", err)
+		return
+	}
+
+	if req.Master != fromMaster {
+		log.INFO(self.logInfo, "询问请求处理", "消息master与from不匹配", "master", req.Master.Hex(), "from", fromMaster.Hex(), "高度", self.dc.number)
 		return
 	}
 	log.INFO(self.logInfo, "询问消息处理", "开始", "高度", req.Number, "共识轮次", req.ConsensusTurn.String(), "重选轮次", req.ReelectTurn, "本地轮次信息", self.curTurnInfo(), "from", req.From.Hex())
