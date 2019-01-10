@@ -357,8 +357,8 @@ func (p *Process) canGenHeader() bool {
 			return false
 		}
 
-		if p.curLeader != ca.GetAddress() {
-			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetAddress().Hex(), "leader", p.curLeader.Hex())
+		if p.curLeader != ca.GetDepositAddress() {
+			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetDepositAddress().Hex(), "leader", p.curLeader.Hex())
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false

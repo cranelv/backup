@@ -696,3 +696,16 @@ func (md *MatrixDeposit) AddDeposit(contract *Contract, stateDB StateDB, address
 	stateDB.SetState(contract.Address(), common.BytesToHash(depositKey), common.BigToHash(dep))
 	return md.ResetInterest(contract, stateDB, address)
 }
+
+func (md *MatrixDeposit) GetDepositAccount(contract *Contract, stateDB StateDB, authAccount common.Address) common.Address {
+	signAddrKey := append(authAccount[:], 'N', 'Y')
+	signAddr := stateDB.GetState(contract.Address(), common.BytesToHash(signAddrKey))
+	if signAddr == emptyHash {
+		return common.Address{}
+	}
+	return common.BytesToAddress(signAddr.Bytes())
+}
+
+func (md *MatrixDeposit) GetAuthAccount(contract *Contract, stateDB StateDB, depositAccount common.Address) common.Address {
+	return md.getAddress(contract, stateDB, depositAccount)
+}

@@ -341,8 +341,8 @@ func (p *Process) canGenBlock() bool {
 			return false
 		}
 
-		if p.nextLeader != ca.GetAddress() {
-			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
+		if p.nextLeader != ca.GetDepositAddress() {
+			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetDepositAddress().Hex())
 			return false
 		}
 	}

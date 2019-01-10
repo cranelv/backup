@@ -607,7 +607,7 @@ func (p *Process) sendVote(validate bool) {
 	//将自己的投票加入票池 todo 股权
 	p.curProcessReq.addVote(&common.VerifiedSign{
 		Sign:     sign,
-		Account:  ca.GetAddress(),
+		Account:  ca.GetDepositAddress(),
 		Validate: true,
 		Stock:    0,
 	})
@@ -741,7 +741,7 @@ func (p *Process) changeState(targetState State) {
 }
 
 func (p *Process) verifyVote(signHash common.Hash, vote common.Signature, from common.Address, blkHash common.Hash, verifyFrom bool) (*common.VerifiedSign, error) {
-	signAccount, validate, err := p.signHelper().VerifySignWithValidateDependHash(signHash.Bytes(), vote.Bytes(), blkHash)
+	depositAccount, signAccount, validate, err := p.signHelper().VerifySignWithValidateDependHash(signHash.Bytes(), vote.Bytes(), blkHash)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +753,7 @@ func (p *Process) verifyVote(signHash common.Hash, vote common.Signature, from c
 	//todo 股权消息
 	return &common.VerifiedSign{
 		Sign:     vote,
-		Account:  signAccount,
+		Account:  depositAccount,
 		Validate: validate,
 		Stock:    0,
 	}, nil

@@ -221,7 +221,7 @@ func initCurrentTopology() {
 	ide.lock.Lock()
 	// change default role
 	ide.currentRole = common.RoleDefault
-
+	log.Info("测试测试测试", "ide.addr", ide.addr.String())
 	for _, t := range ide.topology.NodeList {
 		if t.Account == ide.addr {
 			log.INFO("initCurrentTopology", "account", t.Account.String(), "type", t.Type)
@@ -459,12 +459,33 @@ func GetDropNode() (result []common.Address) {
 	return
 }
 
-// GetAddress
-func GetAddress() common.Address {
+// GetSelfAddress
+func GetSignAddress() common.Address {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
 
 	return ide.addr
+}
+
+// GetSelfDepositAddress
+func GetDepositAddress() common.Address {
+	ide.lock.RLock()
+	defer ide.lock.RUnlock()
+
+	if ide.addr == (common.Address{}) {
+		return ide.addr
+	}
+
+	if ide.addr == ide.broadcastAccount {
+		return ide.addr
+	}
+
+	depositAccount, err := ConvertSignToDepositAddress(ide.addr)
+	if err != nil {
+		log.Error("ca", "获取自己的抵押账户失败", err)
+		return common.Address{}
+	}
+	return depositAccount
 }
 
 // GetSelfLevel
@@ -569,31 +590,6 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 			return node.Address, nil
 		}
 	}
-	hash := ide.topologyReader.GetCurrentHash()
-	if (hash == common.Hash{}) {
-		return common.Address{0}, errors.New("get current hash err")
-	}
-
-	broadcast, err := ide.topologyReader.GetBroadcastAccount(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get broadcast account err")
-	}
-
-	if broadcast == address {
-		return broadcast, nil
-	}
-
-	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get inner miner accounts err")
-	}
-	if len(innerMiners) > 0 {
-		for _, im := range innerMiners {
-			if im == address {
-				return im, nil
-			}
-		}
-	}
 
 	return addr, errors.New("not found")
 }
@@ -603,32 +599,6 @@ func ConvertDepositToSignAddress(address common.Address) (addr common.Address, e
 	for _, node := range ide.deposit {
 		if node.Address == address {
 			return node.SignAddress, nil
-		}
-	}
-
-	hash := ide.topologyReader.GetCurrentHash()
-	if (hash == common.Hash{}) {
-		return addr, errors.New("get current hash err")
-	}
-
-	broadcast, err := ide.topologyReader.GetBroadcastAccount(hash)
-	if nil != err {
-		return addr, errors.New("get broadcast account err")
-	}
-
-	if broadcast == address {
-		return broadcast, nil
-	}
-
-	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get inner miner accounts err")
-	}
-	if len(innerMiners) > 0 {
-		for _, im := range innerMiners {
-			if im == address {
-				return im, nil
-			}
 		}
 	}
 

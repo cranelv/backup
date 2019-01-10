@@ -328,30 +328,30 @@ func (md *MtxDPOS) verifySigns(reader consensus.StateReader, signHash common.Has
 			continue
 		}
 
-		authAddr, err := reader.GetAuthAccount(signAccount, blockHash)
+		accountA0, _, err := reader.GetA0AccountFromAnyAccount(signAccount, blockHash)
 		if err != nil {
 			log.ERROR("共识引擎", "get auth account err", err)
 			continue
 		}
 
-		stock, findStock := stocks[authAddr]
+		stock, findStock := stocks[accountA0]
 		if findStock == false {
 			// can't find in stock, discard
-			log.ERROR("共识引擎", "验证签名 股权未找到 node", authAddr.Hex(), "签名：", signHash)
+			log.ERROR("共识引擎", "验证签名 股权未找到 node", accountA0.Hex(), "签名：", signHash)
 			continue
 		}
 
-		if existData, exist := verifiedSign[authAddr]; exist {
-			log.ERROR("共识引擎", "验证签名 重复签名 node", authAddr.Hex())
+		if existData, exist := verifiedSign[accountA0]; exist {
+			log.ERROR("共识引擎", "验证签名 重复签名 node", accountA0.Hex())
 			//already exist, replace "disagree" sign with "agree" sign
 			if existData.Validate == false && signValidate == true {
 				existData.Sign = sign
-				existData.Account = authAddr
+				existData.Account = accountA0
 				existData.Validate = signValidate
 				existData.Stock = stock
 			}
 		} else {
-			verifiedSign[authAddr] = &common.VerifiedSign{Sign: sign, Account: authAddr, Validate: signValidate, Stock: stock}
+			verifiedSign[accountA0] = &common.VerifiedSign{Sign: sign, Account: accountA0, Validate: signValidate, Stock: stock}
 		}
 	}
 
@@ -426,6 +426,8 @@ func (md *MtxDPOS) getValidatorStocks(reader consensus.StateReader, hash common.
 
 func (md *MtxDPOS) graph2ValidatorStocks(topologyInfo *mc.TopologyGraph, electInfo *mc.ElectGraph) map[common.Address]uint16 {
 	stocks := make(map[common.Address]uint16)
+	log.Info("测试测试测试","拓扑图",topologyInfo.NodeList)
+	log.Info("测试测试测试","选举",electInfo.ElectList)
 	for _, node := range topologyInfo.NodeList {
 		if node.Type != common.RoleValidator {
 			continue

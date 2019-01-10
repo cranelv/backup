@@ -254,10 +254,9 @@ func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDeta
 	}
 }
 func Trans(data []vm.DepositDetail) []vm.DepositDetail {
-	if common.TopAccountType == common.TopAccountA1 {
-		for k, _ := range data {
-			data[k].Address = data[k].SignAddress
-		}
+	for k, _ := range data {
+		data[k].Address = data[k].SignAddress
 	}
+
 	return data
 }

@@ -77,7 +77,7 @@ func (self *TopNodeInstance) SignWithValidate(hash []byte, validate bool, blkhas
 }
 
 func (self *TopNodeInstance) IsSelfAddress(addr common.Address) bool {
-	return ca.GetAddress() == addr
+	return ca.GetDepositAddress() == addr
 }
 
 func (self *TopNodeInstance) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.RoleType, address []common.Address) {

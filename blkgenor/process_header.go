@@ -165,7 +165,8 @@ func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.Re
 		TxsCode:                txsCode,
 		ConsensusTurn:          p.consensusTurn,
 		OnlineConsensusResults: onlineConsensusResults,
-		From: ca.GetAddress()}
+		From: ca.GetSignAddress(),
+	}
 	//send to local block verify module
 	localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
 	if len(originalTxs) > 0 {
@@ -185,7 +186,7 @@ func (p *Process) sendBroadcastMiningReq(header *types.Header, finalTxs []types.
 func (p *Process) setSignatures(header *types.Header) error {
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
+		sign, err := p.signHelper().SignHashWithValidateByAccount(signHash.Bytes(), true, ca.GetSignAddress())
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -261,7 +262,7 @@ func (p *Process) setNumber(header *types.Header) {
 }
 
 func (p *Process) setLeader(header *types.Header) {
-	header.Leader = ca.GetAddress()
+	header.Leader = ca.GetDepositAddress()
 }
 
 func (p *Process) setElect(stateDB *state.StateDB, header *types.Header) error {

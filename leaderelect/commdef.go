@@ -9,9 +9,9 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 )
@@ -40,9 +40,7 @@ type Matrix interface {
 }
 
 type StateReader interface {
-	matrixstate.StateDB
-	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	vm.StateDB
 }
 
 const defaultBeginTime = int64(0)

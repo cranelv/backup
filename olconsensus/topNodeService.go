@@ -223,7 +223,7 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 					vote := mc.HD_ConsensusVote{}
 					vote.SignHash.Set(reqHash)
 					vote.Sign.Set(sign)
-					vote.From.Set(ca.GetAddress())
+					vote.From.Set(ca.GetSignAddress())
 					//将该共识投票结果加入共识投票列表
 					var msg mc.HD_OnlineConsensusVotes
 					msg.Votes = append(msg.Votes, vote)
@@ -248,7 +248,7 @@ func (serv *TopNodeService) getTopNodeState(leader common.Address) (online, offl
 }
 
 func (serv *TopNodeService) sendRequest(online, offline []common.Address) {
-	leader := ca.GetAddress()
+	leader := ca.GetDepositAddress()
 	reqMsg := mc.HD_OnlineConsensusReqs{
 		From: leader,
 	}
@@ -309,7 +309,7 @@ func (serv *TopNodeService) consensusReqMsgHandler(msg *mc.HD_OnlineConsensusReq
 					vote := mc.HD_ConsensusVote{}
 					vote.SignHash.Set(reqHash)
 					vote.Sign.Set(sign)
-					vote.From.Set(ca.GetAddress())
+					vote.From.Set(ca.GetSignAddress())
 					votes.Votes = append(votes.Votes, vote)
 					log.Debug(serv.extraInfo, "处理共识请求", "处理成功", "req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
 					ds, have := serv.dposRing.findProposal(reqHash)
@@ -396,7 +396,7 @@ func (serv *TopNodeService) consensusVotes(proposal interface{}, votes []voteInf
 	result := mc.HD_OnlineConsensusVoteResultMsg{
 		Req:      prop,
 		SignList: rightSigns,
-		From:     ca.GetAddress(),
+		From:     ca.GetSignAddress(),
 	}
 
 	serv.msgSender.SendNodeMsg(mc.HD_TopNodeConsensusVoteResult, &result, common.RoleValidator, nil)

@@ -66,7 +66,10 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		return
 	}
 
-	self.SetSelfAddress(ca.GetAddress())
+	//self.SetSelfAddress(ca.GetAddress())
+	a0Address := ca.GetDepositAddress()
+	self.SetSelfAddress(a0Address)
+	log.Info("测试测试测试", "selfDepositAddress", a0Address.String())
 
 	log.INFO(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "isSupper", msg.parentIsSupper, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
 	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentIsSupper, msg.parentStateDB); err != nil {

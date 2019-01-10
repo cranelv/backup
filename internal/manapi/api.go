@@ -346,32 +346,33 @@ func GetPassword() (string, error) {
 	return password, nil
 }
 
-func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, times int64) bool {
+func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, times int64) string {
+	log.Info("修改需求测试", "进入api.go", "SetEntrustSignAccount")
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("文件失败", err, "path", path)
-		return false
+		return "error1" + err.Error()
 	}
 
 	b, err := ioutil.ReadAll(f)
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
 		fmt.Println("解密失败", err)
-		return false
+		return "error2" + err.Error()
 	}
 	h := sha256.New()
 	h.Write([]byte(password))
 	tpass, err := aes.AesDecrypt(bytesPass, h.Sum(nil))
 	if err != nil {
 		fmt.Println("AedDecrypt失败", bytesPass, password)
-		return false
+		return "error3" + err.Error()
 	}
 
 	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
 		fmt.Println("加密文件解码失败 密码不正确")
-		return false
+		return "error4" + err.Error()
 	}
 	entrustValue := make(map[common.Address]string, 0)
 
@@ -380,7 +381,7 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, 
 	}
 	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
 	go manparams.SetTimer(times)
-	return true
+	return "successful"
 }
 
 // UnlockAccount will unlock the account associated with the given address with

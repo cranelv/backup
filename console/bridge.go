@@ -133,6 +133,8 @@ func (b *bridge) GetUserPassword(call otto.FunctionCall) otto.Value {
 }
 
 func (b *bridge) SetEntrustSignAccount(call otto.FunctionCall) (response otto.Value) {
+	log.Info("修改需求测试", "bridge.go", "SetEntrustSignAccount")
+
 	path := call.Argument(0)
 	passwd := b.GetUserPassword(call)
 	duration := otto.NullValue()

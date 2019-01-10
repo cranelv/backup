@@ -26,8 +26,8 @@ type MatrixEth interface {
 
 type AuthReader interface {
 	GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error)
-	GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error)
-	GetAuthAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
+	GetA2AccountsFromA0Account(a0Account common.Address, blockHash common.Hash) ([]common.Address, error)
+	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error)
 }
 
 var (
@@ -108,6 +108,28 @@ func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash c
 	return sh.SignHashWithValidateByReader(sh.authReader, hash, validate, blkHash)
 }
 
+func (sh *SignHelper) SignHashWithValidateByAccount(hash []byte, validate bool, account common.Address) (common.Signature, error) {
+	signAccount, password, err := sh.authReader.GetSignAccountPassword([]common.Address{account})
+	if err != nil {
+		log.Error(ModeLog, "SignHashWithValidateByAccount", "获取密码失败", "err", err, "account", account.Hex())
+		return common.Signature{}, errors.New("get sign account password err!")
+	}
+
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+	if nil == sh.keyStore {
+		return common.Signature{}, ErrNilKeyStore
+	}
+
+	ac := accounts.Account{Address: signAccount}
+	sign, err := sh.keyStore.SignHashValidateWithPass(ac, password, hash, validate)
+	if err != nil {
+		return common.Signature{}, err
+	}
+	return common.BytesToSignature(sign), nil
+
+}
+
 func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash) (types.SelfTransaction, error) {
 	// Sign the requested hash with the wallet
 	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
@@ -145,7 +167,7 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 
 func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {
 	account := accounts.Account{}
-	addrs, err := reader.GetSignAccounts(ca.GetAddress(), blkHash)
+	addrs, err := reader.GetA2AccountsFromA0Account(ca.GetDepositAddress(), blkHash)
 	if err != nil {
 		return account, "", err
 	}
@@ -155,21 +177,21 @@ func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash commo
 	return account, password, err
 }
 
-func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
+func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []byte, blkHash common.Hash) (common.Address, common.Address, bool, error) {
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
-	authAddr, err := sh.authReader.GetAuthAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
-	return authAddr, flag, err
+	accountA0, _, err := sh.authReader.GetA0AccountFromAnyAccount(addr, blkHash)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
+	return accountA0, addr, flag, err
 }
 
-func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash []byte, sig []byte, blkHash common.Hash) (common.Address, bool, error) {
+func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash []byte, sig []byte, blkHash common.Hash) (common.Address, common.Address, bool, error) {
 	if reader == nil {
-		return common.Address{}, false, ErrReader
+		return common.Address{}, common.Address{}, false, ErrReader
 	}
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
-	authAddr, err := reader.GetAuthAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "authAddr", authAddr)
-	return authAddr, flag, err
+	accountA0, _, err := reader.GetA0AccountFromAnyAccount(addr, blkHash)
+	log.ERROR(ModeLog, "addr", addr, "height", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
+	return accountA0, addr, flag, err
 }

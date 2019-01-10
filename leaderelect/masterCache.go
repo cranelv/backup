@@ -63,7 +63,7 @@ func (pp *posPool) saveVoteMsg(reqHash common.Hash, sign common.Signature, from 
 	if _, exist := pp.voteCache[from]; exist {
 		return errors.Errorf("响应已存在, from[%v]", from)
 	}
-	signAccount, validate, err := signHelper.VerifySignWithValidateByReader(cdc, reqHash.Bytes(), sign.Bytes(), cdc.leaderCal.preHash)
+	depositAccount, signAccount, validate, err := signHelper.VerifySignWithValidateByReader(cdc, reqHash.Bytes(), sign.Bytes(), cdc.leaderCal.preHash)
 	if err != nil {
 		return errors.Errorf("签名解析错误(%v)", err)
 	}
@@ -73,7 +73,7 @@ func (pp *posPool) saveVoteMsg(reqHash common.Hash, sign common.Signature, from 
 	if !validate {
 		return errors.New("签名为不同意签名")
 	}
-	pp.voteCache[signAccount] = &common.VerifiedSign{Sign: sign, Account: signAccount, Validate: validate, Stock: 0}
+	pp.voteCache[signAccount] = &common.VerifiedSign{Sign: sign, Account: depositAccount, Validate: validate, Stock: 0}
 	return nil
 }
 
