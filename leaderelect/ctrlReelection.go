@@ -172,8 +172,9 @@ func (self *controller) handleInquiryReq(req *mc.HD_ReelectInquiryReqMsg) {
 			log.Info(self.logInfo, "询问请求处理", "验证消息合法性", "本地计算master失败", err)
 			return
 		}
-		if master != req.From {
-			log.Info(self.logInfo, "询问请求处理", "验证消息合法性失败，master不匹配", "from", req.From.Hex(), "local master", master.Hex())
+
+		if master != req.Master {
+			log.Info(self.logInfo, "询问请求处理", "验证消息合法性失败，master不匹配", "master", req.Master.Hex(), "local master", master.Hex())
 			return
 		}
 		switch self.State() {
@@ -576,9 +577,6 @@ func (self *controller) checkRLReqMsg(req *mc.HD_ReelectLeaderReqMsg) error {
 	}
 	if req.InquiryReq.ReelectTurn != self.dc.curReelectTurn {
 		return errors.Errorf("重选轮次不匹配, 消息(%d) != 本地(%d)", req.InquiryReq.ReelectTurn, self.dc.curReelectTurn)
-	}
-	if req.InquiryReq.Master != req.InquiryReq.From {
-		return errors.Errorf("master(%s)和from(%s)不匹配", req.InquiryReq.Master.Hex(), req.InquiryReq.From.Hex())
 	}
 	if req.InquiryReq.Master != self.dc.GetReelectMaster() {
 		return errors.Errorf("master不匹配, master(%s) != 本地master(%s)", req.InquiryReq.Master.Hex(), self.dc.GetReelectMaster().Hex())
