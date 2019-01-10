@@ -18,7 +18,8 @@ import (
 type cdc struct {
 	state            stateDef
 	number           uint64
-	selfAddr         common.Address
+	selfAddr         common.Address // 自己的抵押账户A0
+	selfNodeAddr     common.Address // 自己的实际node账户
 	role             common.RoleType
 	curConsensusTurn mc.ConsensusTurnInfo
 	consensusLeader  common.Address
@@ -38,6 +39,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		state:            stIdle,
 		number:           number,
 		selfAddr:         common.Address{},
+		selfNodeAddr:     common.Address{},
 		role:             common.RoleNil,
 		curConsensusTurn: mc.ConsensusTurnInfo{},
 		consensusLeader:  common.Address{},
@@ -53,10 +55,6 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 
 	dc.leaderCal = newLeaderCalculator(chain, dc.number, dc.logInfo)
 	return dc
-}
-
-func (dc *cdc) SetSelfAddress(addr common.Address) {
-	dc.selfAddr = addr
 }
 
 func (dc *cdc) AnalysisState(parentHeader *types.Header, preIsSupper bool, parentState StateReader) error {

@@ -4,11 +4,12 @@
 package leaderelect
 
 import (
+	"time"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"time"
 )
 
 func (self *controller) handleMsg(data interface{}) {
@@ -55,9 +56,11 @@ func (self *controller) handleMsg(data interface{}) {
 	}
 }
 
-func (self *controller) SetSelfAddress(addr common.Address) {
+func (self *controller) SetSelfAddress(addr common.Address, nodeAddr common.Address) {
 	self.dc.selfAddr = addr
+	self.dc.selfNodeAddr = nodeAddr
 	self.selfCache.selfAddr = addr
+	self.selfCache.selfNodeAddr = nodeAddr
 }
 
 func (self *controller) handleStartMsg(msg *startControllerMsg) {

@@ -5,13 +5,14 @@
 package leaderelect
 
 import (
+	"time"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"time"
 )
 
 func (self *controller) startReelect(reelectTurn uint32) {
@@ -384,7 +385,7 @@ func (self *controller) sendInquiryReq() {
 		ReelectTurn:   self.dc.curReelectTurn,
 		TimeStamp:     uint64(time.Now().Unix()),
 		Master:        self.dc.selfAddr,
-		From:          self.dc.selfAddr,
+		From:          self.dc.selfNodeAddr,
 	}
 	reqHash := self.selfCache.SaveInquiryReq(req)
 	selfSign, err := self.matrix.SignHelper().SignHashWithValidateByReader(self.dc, reqHash.Bytes(), true, self.ParentHash())
@@ -392,7 +393,7 @@ func (self *controller) sendInquiryReq() {
 		log.Error(self.logInfo, "send<重选询问请求>", "自己的同意签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
 	}
-	if err := self.selfCache.SaveInquiryVote(reqHash, selfSign, self.dc.selfAddr, self.dc, self.matrix.SignHelper()); err != nil {
+	if err := self.selfCache.SaveInquiryVote(reqHash, selfSign, self.dc.selfNodeAddr, self.dc, self.matrix.SignHelper()); err != nil {
 		log.Error(self.logInfo, "send<重选询问请求>", "保存自己的同意签名错误", "err", err)
 		return
 	}
@@ -414,7 +415,7 @@ func (self *controller) sendInquiryReqToSingle(target common.Address) {
 		ReelectTurn:   self.dc.curReelectTurn,
 		TimeStamp:     uint64(curTime),
 		Master:        self.dc.selfAddr,
-		From:          self.dc.selfAddr,
+		From:          self.dc.selfNodeAddr,
 	}
 	reqHash := self.selfCache.SaveInquiryReq(req)
 	log.INFO(self.logInfo, "send<重选询问请求>single", "成功", "轮次", self.curTurnInfo(), "高度", self.Number(), "reqHash", reqHash.TerminalString())
@@ -516,7 +517,7 @@ func (self *controller) sendRLReq() {
 		log.Error(self.logInfo, "send<leader重选请求>", "自己的签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
 	}
-	if err := self.selfCache.SaveRLVote(reqHash, selfSign, self.dc.selfAddr, self.dc, self.matrix.SignHelper()); err != nil {
+	if err := self.selfCache.SaveRLVote(reqHash, selfSign, self.dc.selfNodeAddr, self.dc, self.matrix.SignHelper()); err != nil {
 		log.Error(self.logInfo, "send<leader重选请求>", "保存自己签名错误", "err", err)
 		return
 	}
@@ -536,7 +537,7 @@ func (self *controller) sendResultBroadcastMsg() {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "自己的响应签名失败", "err", err, "高度", self.Number(), "轮次", self.curTurnInfo())
 		return
 	}
-	if err := self.selfCache.SaveBroadcastVote(msgHash, selfSign, self.dc.selfAddr, self.dc, self.matrix.SignHelper()); err != nil {
+	if err := self.selfCache.SaveBroadcastVote(msgHash, selfSign, self.dc.selfNodeAddr, self.dc, self.matrix.SignHelper()); err != nil {
 		log.ERROR(self.logInfo, "send<重选结果广播>", "保存自己的响应失败", "err", err)
 		return
 	}

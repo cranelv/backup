@@ -7,11 +7,12 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 
+	"time"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type posPool struct {
@@ -89,6 +90,7 @@ func (pp *posPool) getVotes() []*common.VerifiedSign {
 type masterCache struct {
 	number                uint64
 	selfAddr              common.Address
+	selfNodeAddr          common.Address
 	lastSignalInquiryTime int64
 	inquiryResult         mc.ReelectRSPType
 	inquiryPool           *posPool
@@ -100,6 +102,7 @@ func newMasterCache(number uint64) *masterCache {
 	return &masterCache{
 		number:                number,
 		selfAddr:              common.Address{},
+		selfNodeAddr:          common.Address{},
 		lastSignalInquiryTime: 0,
 		inquiryResult:         mc.ReelectRSPTypeNone,
 		inquiryPool:           newPosPool(),
@@ -199,7 +202,7 @@ func (self *masterCache) GenBroadcastMsgWithInquiryResult(result mc.ReelectRSPTy
 		Type:      result,
 		POSResult: rsp.POSResult,
 		RLResult:  rsp.RLResult,
-		From:      self.selfAddr,
+		From:      self.selfNodeAddr,
 	}
 	self.broadcastPool.saveReqMsg(broadcastMsg)
 	return nil
@@ -226,7 +229,7 @@ func (self *masterCache) GenBroadcastMsgWithRLSuccess(rlAgreeVotes []common.Sign
 		Type:      mc.ReelectRSPTypeAgree,
 		POSResult: nil,
 		RLResult:  rlResult,
-		From:      self.selfAddr,
+		From:      self.selfNodeAddr,
 	}
 	self.broadcastPool.saveReqMsg(broadcastMsg)
 	self.rlReqPool.clear()
