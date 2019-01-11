@@ -331,6 +331,11 @@ func (b *TxsRewardCfg) Check(k, v interface{}) bool {
 
 }
 
+func (b *TxsRewardCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
 type BlkRewardCalc struct {
 }
 
