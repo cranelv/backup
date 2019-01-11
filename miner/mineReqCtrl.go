@@ -209,7 +209,7 @@ func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header) (*mineReqData, er
 	req.mineDiff = result.Difficulty
 
 	if req.isBroadcastReq {
-		req.header.Coinbase = ca.GetAddress()
+		req.header.Coinbase = ca.GetDepositAddress()
 	} else {
 		req.header.Nonce = result.Nonce
 		req.header.Coinbase = result.Coinbase

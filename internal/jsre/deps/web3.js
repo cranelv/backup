@@ -5718,15 +5718,6 @@ var methods = function () {
         params: 0
     });
 
-    //
-    var getTopology = new Method({
-        name: 'getTopology',
-        call: 'eth_getTopology',
-        params: 2,
-        inputFormatter: [utils.toDecimal, utils.toDecimal],
-        //outputFormatter: formatters.outputBigNumberFormatter
-    });
-
     var getSelfLevel = new Method({
         name: 'getSelfLevel',
         call: 'eth_getSelfLevel',
@@ -5737,6 +5728,13 @@ var methods = function () {
         name: 'importSuperBlock',
         call: 'eth_importSuperBlock',
         params: 1
+    });
+
+    var getTopologyStatus = new Method({
+        name: 'getTopologyStatus',
+        call: 'eth_getTopologyStatusByNumber',
+        params: 1,
+        inputFormatter: [formatters.inputBlockNumberFormatter]
     });
 
     return [
@@ -5770,9 +5768,9 @@ var methods = function () {
         compileSerpent,
         submitWork,
         getWork,
-        getTopology,
         getSelfLevel,
-        importSuperBlock
+        importSuperBlock,
+        getTopologyStatus
     ];
 };
 

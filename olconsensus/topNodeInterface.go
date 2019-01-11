@@ -61,13 +61,18 @@ func (self *TopNodeInstance) GetTopNodeOnlineState() []NodeOnLineInfo {
 	//调用p2p的接口获取节点在线状态
 	result := p2p.GetTopNodeAliveInfo(common.RoleValidator | common.RoleBackupValidator)
 	for _, value := range result {
+		account, err := ca.ConvertSignToDepositAddress(value.Account)
+		if err != nil {
+			log.Debug("共识节点状态", "node转换A0账户失败", value.Account.Hex(), "err", err)
+			continue
+		}
 		state := NodeOnLineInfo{
-			Address:     value.Account,
+			Address:     account,
 			Role:        value.Type,
 			OnlineState: value.Heartbeats,
 		}
 		onlineStat = append(onlineStat, state)
-		log.Debug("共识节点状态", "获取在线状态, node", value.Account, "心跳", value.Heartbeats)
+		log.Debug("共识节点状态", "获取在线状态, node", account.Hex(), "心跳", value.Heartbeats)
 	}
 
 	return onlineStat
@@ -78,7 +83,7 @@ func (self *TopNodeInstance) SignWithValidate(hash []byte, validate bool, blkhas
 }
 
 func (self *TopNodeInstance) IsSelfAddress(addr common.Address) bool {
-	return ca.GetAddress() == addr
+	return ca.GetDepositAddress() == addr
 }
 
 func (self *TopNodeInstance) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.RoleType, address []common.Address) {

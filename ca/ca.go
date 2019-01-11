@@ -136,8 +136,6 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 
 			// init current height deposit
 			ide.deposit, _ = GetElectedByHeightWithdraw(header.Number)
-			// get self address from deposit
-			ide.addr = GetAddress()
 
 			// get broadcast interval
 			bcInterval, err := manparams.GetBCIntervalInfoByHash(hash)
@@ -152,20 +150,30 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 				ide.log.Error("get topology", "error", err)
 				continue
 			}
-			ide.topology = tg
+			newTg := &mc.TopologyGraph{}
+			for _, value := range tg.NodeList {
+				sAddr, err := ConvertDepositToSignAddress(value.Account)
+				if err != nil {
+					log.Error("convert address failed", "error", err)
+					continue
+				}
+				newTg.NodeList = append(newTg.NodeList, mc.TopologyNodeInfo{sAddr, value.Position, value.Type, value.NodeNumber})
+			}
+			newTg.CurNodeNumber = tg.CurNodeNumber
+			ide.topology = newTg
 
 			// get special accounts
 			broadcastAccounts, err := ide.topologyReader.GetBroadcastAccounts(hash)
 			if err != nil {
 				log.Error("ca", "get broadcast accounts err", err)
-				return
+				continue
 			}
 			ide.broadcastAccounts = broadcastAccounts
 
 			innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
 			if err != nil {
 				log.Error("ca", "get inner miner accounts err", err)
-				return
+				continue
 			}
 			ide.innerMiners = innerMiners
 			// get elect
@@ -213,7 +221,7 @@ func initCurrentTopology() {
 	ide.lock.Lock()
 	// change default role
 	ide.currentRole = common.RoleDefault
-
+	log.Info("测试测试测试", "ide.addr", ide.addr.String())
 	for _, t := range ide.topology.NodeList {
 		if t.Account == ide.addr {
 			log.INFO("initCurrentTopology", "account", t.Account.String(), "type", t.Type)
@@ -453,18 +461,35 @@ func GetDropNode() (result []common.Address) {
 	return
 }
 
-// GetFrontNodes
-func GetFrontNodes() []common.Address {
+// GetSelfAddress
+func GetSignAddress() common.Address {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
-	return ide.frontNodes
+
+	return ide.addr
 }
 
-// GetAddress
-func GetAddress() common.Address {
+// GetSelfDepositAddress
+func GetDepositAddress() common.Address {
 	ide.lock.RLock()
 	defer ide.lock.RUnlock()
-	return ide.addr
+
+	if ide.addr == (common.Address{}) {
+		return ide.addr
+	}
+
+	for _, broadcast := range ide.broadcastAccounts {
+		if ide.addr == broadcast {
+			return ide.addr
+		}
+	}
+
+	depositAccount, err := ConvertSignToDepositAddress(ide.addr)
+	if err != nil {
+		log.Error("ca", "获取自己的抵押账户失败", err)
+		return common.Address{}
+	}
+	return depositAccount
 }
 
 // GetSelfLevel
@@ -571,34 +596,6 @@ func ConvertSignToDepositAddress(address common.Address) (addr common.Address, e
 			return node.Address, nil
 		}
 	}
-	hash := ide.topologyReader.GetCurrentHash()
-	if (hash == common.Hash{}) {
-		return common.Address{0}, errors.New("get current hash err")
-	}
-
-	broadcasts, err := ide.topologyReader.GetBroadcastAccounts(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get broadcast accounts err")
-	}
-	if len(broadcasts) >= 0 {
-		for _, bc := range broadcasts {
-			if bc == address {
-				return bc, nil
-			}
-		}
-	}
-
-	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get inner miner accounts err")
-	}
-	if len(innerMiners) > 0 {
-		for _, im := range innerMiners {
-			if im == address {
-				return im, nil
-			}
-		}
-	}
 
 	return addr, errors.New("not found")
 }
@@ -608,33 +605,6 @@ func ConvertDepositToSignAddress(address common.Address) (addr common.Address, e
 	for _, node := range ide.deposit {
 		if node.Address == address {
 			return node.SignAddress, nil
-		}
-	}
-
-	hash := ide.topologyReader.GetCurrentHash()
-	if (hash == common.Hash{}) {
-		return addr, errors.New("get current hash err")
-	}
-
-	broadcasts, err := ide.topologyReader.GetBroadcastAccounts(hash)
-	if nil != err {
-		return addr, errors.New("get broadcasts account err")
-	}
-	for _, bc := range broadcasts {
-		if bc == addr {
-			return bc, nil
-		}
-	}
-
-	innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
-	if err != nil {
-		return common.Address{0}, errors.New("get inner miner accounts err")
-	}
-	if len(innerMiners) > 0 {
-		for _, im := range innerMiners {
-			if im == address {
-				return im, nil
-			}
 		}
 	}
 

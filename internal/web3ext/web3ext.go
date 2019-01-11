@@ -460,11 +460,6 @@ web3._extend({
 			call: 'man_getEntrustFromByTime',
 			params: 2,
 		}),
-		new web3._extend.Method({
-			name: 'getTopology',
-			call: 'man_getTopology',
-			params: 2,
-		}),
         new web3._extend.Method({
 			name: 'getSelfLevel',
 			call: 'man_getSelfLevel',

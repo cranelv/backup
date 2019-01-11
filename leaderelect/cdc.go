@@ -8,6 +8,7 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
@@ -16,7 +17,8 @@ import (
 type cdc struct {
 	state            stateDef
 	number           uint64
-	selfAddr         common.Address
+	selfAddr         common.Address // 自己的抵押账户A0
+	selfNodeAddr     common.Address // 自己的实际node账户
 	role             common.RoleType
 	curConsensusTurn mc.ConsensusTurnInfo
 	consensusLeader  common.Address
@@ -36,6 +38,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 		state:            stIdle,
 		number:           number,
 		selfAddr:         common.Address{},
+		selfNodeAddr:     common.Address{},
 		role:             common.RoleNil,
 		curConsensusTurn: mc.ConsensusTurnInfo{},
 		consensusLeader:  common.Address{},
@@ -51,10 +54,6 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 
 	dc.leaderCal = newLeaderCalculator(chain, dc.number, dc.logInfo)
 	return dc
-}
-
-func (dc *cdc) SetSelfAddress(addr common.Address) {
-	dc.selfAddr = addr
 }
 
 func (dc *cdc) AnalysisState(parentHeader *types.Header, preIsSupper bool, parentState StateReader) error {
@@ -311,57 +310,79 @@ func (dc *cdc) GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCInterval
 func (dc *cdc) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
 	return dc.chain.GetSignAccountPassword(signAccounts)
 }
-func (dc *cdc) GetSignAccounts(authFrom common.Address, blockHash common.Hash) ([]common.Address, error) {
+func (dc *cdc) GetA2AccountsFromA0Account(a0Account common.Address, blockHash common.Hash) ([]common.Address, error) {
 	if blockHash.Equal(common.Hash{}) {
-		log.Error(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "输入数据err", "区块hash为空")
+		log.Error(common.SignLog, "cdc获取A2账户", "输入数据区块hash为空")
 		return nil, errors.New("cdc:输入hash为空")
 	}
 
 	if blockHash != dc.leaderCal.preHash {
-		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "调blockchain接口", "")
-		return dc.chain.GetSignAccounts(authFrom, blockHash)
-	}
-
-	if common.TopAccountType == common.TopAccountA0 {
-		//TODO 暂定根据ca提供的接口获取委托账户
+		log.Info(common.SignLog, "cdc获取A2账户", "调blockchain接口")
+		return dc.chain.GetA2AccountsFromA0Account(a0Account, blockHash)
 	}
 
 	if nil == dc.parentState {
-		log.Info(common.SignLog, "获取签名账户阶段", "cdc 最终结果", "err", "dc.parentState是空")
+		log.Info(common.SignLog, "cdc获取A2账户", "dc.parentState是空")
 		return nil, errors.New("cdc: parent stateDB is nil, can't reader data")
 	}
 
-	height := dc.number - 1
-	ans := dc.parentState.GetEntrustFrom(authFrom, height)
-	if len(ans) == 0 {
-		ans = append(ans, authFrom)
+	a1Account := depoistInfo.GetAuthAccount(dc.parentState, a0Account)
+	if a1Account == (common.Address{}) {
+		log.Error(common.SignLog, "cdc获取A2账户", " 不存在A1账户", " a0Account", a0Account.Hex())
+		return nil, errors.New("不存在A1账户")
 	}
-	return ans, nil
+
+	height := dc.number - 1
+	a2Accounts := dc.parentState.GetEntrustFrom(a1Account, height)
+	if len(a2Accounts) == 0 {
+		log.INFO(common.SignLog, "cdc获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
+	} else {
+		log.Info(common.SignLog, "cdc获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
+		for i, account := range a2Accounts {
+			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
+		}
+	}
+	a2Accounts = append(a2Accounts, a1Account)
+	return a2Accounts, nil
 }
 
-func (dc *cdc) GetAuthAccount(signAccount common.Address, hash common.Hash) (common.Address, error) {
-	if hash.Equal(common.Hash{}) {
-		log.ERROR(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "输入的hash err", "hash为空")
-		return common.Address{}, errors.New("cdc: 输入hash为空")
+func (dc *cdc) GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error) {
+	if blockHash == (common.Hash{}) {
+		log.ERROR(common.SignLog, "CDC获取A0账户", "输入的hash为空")
+		return common.Address{}, common.Address{}, errors.New("cdc: 输入hash为空")
 	}
-	if hash == dc.leaderCal.preHash {
-		if nil == dc.parentState {
-			log.ERROR(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "dc.parentState err", "preentState is nil")
-			return common.Address{}, errors.New("cdc: parent stateDB is nil, can't reader data")
-		}
-
-		preHeight := dc.number - 1
-		addr := dc.parentState.GetAuthFrom(signAccount, preHeight)
-		if addr.Equal(common.Address{}) {
-			addr = signAccount
-		}
-		if common.TopAccountType == common.TopAccountA0 {
-			//TODO 利用CA接口将A1转换为A0
-		}
-
-		log.Info(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "高度", preHeight, "签名账户", signAccount, "真实账户", addr)
-		return addr, nil
+	if blockHash != dc.leaderCal.preHash {
+		log.Warn(common.SignLog, "CDC获取A0账户", "采用blockchain的接口")
+		return dc.chain.GetA0AccountFromAnyAccount(account, blockHash)
 	}
-	log.Warn(common.SignLog, "获取委托账户阶段", "cdc 最终结果", "采用blockchain的接口 hash", hash.String())
-	return dc.chain.GetAuthAccount(signAccount, hash)
+
+	if nil == dc.parentState {
+		log.ERROR(common.SignLog, "CDC获取A0账户", "dc.parentState is nil")
+		return common.Address{}, common.Address{}, errors.New("cdc: parent stateDB is nil, can't reader data")
+	}
+
+	//假设传入的account为A1账户, 获取A1账户
+	a0Account := depoistInfo.GetDepositAccount(dc.parentState, account)
+	if a0Account != (common.Address{}) {
+		log.Debug(common.SignLog, "CDC获取A0账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		return a0Account, account, nil
+	}
+
+	//账户为A2账户，获取A1
+	preHeight := dc.number - 1
+	a1Account := dc.parentState.GetAuthFrom(account, preHeight)
+	if a1Account == (common.Address{}) {
+		log.Error(common.SignLog, "CDC获取A0账户", "账户不是A1也不是A2账户", "Account", account.Hex())
+		return common.Address{}, common.Address{}, errors.New("账户不是A1也不是A2账户")
+	}
+
+	// 根据A1获取A0
+	a0Account = depoistInfo.GetDepositAccount(dc.parentState, a1Account)
+	if a0Account != (common.Address{}) {
+		log.Debug(common.SignLog, "CDC获取A0账户", "成功", "输入A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+		return a0Account, a1Account, nil
+	} else {
+		log.Error(common.SignLog, "CDC获取A0账户", "A1账户获取A0账户失败", "A1Account", a1Account.Hex())
+		return common.Address{}, common.Address{}, errors.New("获取A0账户失败")
+	}
 }

@@ -240,24 +240,16 @@ func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDeta
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取矿工交易身份不对")
 		}
-		return Trans(ans), nil
+		return ans, nil
 	case common.RoleValidator:
 		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleValidator)
 		log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取验证者交易身份不对")
 		}
-		return Trans(ans), nil
+		return ans, nil
 
 	default:
 		return []vm.DepositDetail{}, errors.New("获取抵押交易身份不对")
 	}
-}
-func Trans(data []vm.DepositDetail) []vm.DepositDetail {
-	if common.TopAccountType == common.TopAccountA1 {
-		for k, _ := range data {
-			data[k].Address = data[k].SignAddress
-		}
-	}
-	return data
 }

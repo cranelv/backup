@@ -151,3 +151,19 @@ func SetDeposit(stateDB vm.StateDB, address common.Address) error {
 func AddDeposit(stateDB vm.StateDB, address common.Address) error {
 	return depositInfo.MatrixDeposit.AddDeposit(depositInfo.Contract, stateDB, address)
 }
+
+// 获取A0账户
+func GetDepositAccount(stateDB vm.StateDB, authAccount common.Address) common.Address {
+	if depositInfo.Contract == nil {
+		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0)
+	}
+	return depositInfo.MatrixDeposit.GetDepositAccount(depositInfo.Contract, stateDB, authAccount)
+}
+
+// 获取A1账户
+func GetAuthAccount(stateDB vm.StateDB, depositAccount common.Address) common.Address {
+	if depositInfo.Contract == nil {
+		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0)
+	}
+	return depositInfo.MatrixDeposit.GetAuthAccount(depositInfo.Contract, stateDB, depositAccount)
+}

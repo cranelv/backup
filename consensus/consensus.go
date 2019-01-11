@@ -102,7 +102,7 @@ type StateReader interface {
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
+	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash)(common.Address,common.Address, error)
 }
 
 type DPOSEngine interface {

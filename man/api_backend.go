@@ -350,3 +350,8 @@ func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 		b.man.protocolManager.fetcher.Notify(id.String(), hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
 	}
 }
+
+func (b *ManAPIBackend) GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
+	depositAccount, _, err := b.man.blockchain.GetA0AccountFromAnyAccount(signAccount, blockHash)
+	return depositAccount, err
+}

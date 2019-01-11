@@ -180,5 +180,14 @@ var (
 				"交易码判断错误bug修复",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.22",
+			Submitter: "huyuankai",
+			Commit: []string{
+				"二次秘钥功调整，拓扑图全部使用A0账户",
+				"web3接口 获取区块签名列表，返回A0账户",
+				"增加拓扑图状态web3接口",
+			},
+		},
 	}
 )

@@ -64,5 +64,5 @@ func GetDepositListByHeightAndRole(height *big.Int, role common.RoleType) ([]vm.
 }
 
 func GetSelfAddress() common.Address {
-	return ca.GetAddress()
+	return ca.GetDepositAddress()
 }

@@ -243,6 +243,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 			return
 		}
 		if sbs == pSbs {
+			//todo:fast模式
 			if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
 				return
 			}
