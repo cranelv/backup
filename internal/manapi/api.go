@@ -750,7 +750,7 @@ func (s *PublicBlockChainAPI) GetUncleCountByBlockHash(ctx context.Context, bloc
 }
 
 // GetCode returns the code stored at the given address in the state for the given block number.
-func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address,cointype string,  blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) getCode(ctx context.Context, address common.Address,cointype string,  blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -758,11 +758,15 @@ func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Addres
 	code := state.GetCode(cointype, address)
 	return code, state.Error()
 }
+func (s *PublicBlockChainAPI) GetCode(ctx context.Context, manAddress string,cointype string,  blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	addres := base58.Base58DecodeToAddress(manAddress)
+	return s.getCode(ctx,addres,cointype,blockNr)
+}
 
 // GetStorageAt returns the storage from the state at the given address, key and
 // block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta block
 // numbers are also allowed.
-func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.Address, key string,cointype string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) getStorageAt(ctx context.Context, address common.Address, key string,cointype string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -770,7 +774,10 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	res := state.GetState(cointype, address, common.HexToHash(key))
 	return res[:], state.Error()
 }
-
+func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, manAddress string, key string,cointype string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+	addres := base58.Base58DecodeToAddress(manAddress)
+	return s.getStorageAt(ctx,addres,key,cointype,blockNr)
+}
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     common.Address  `json:"from"`

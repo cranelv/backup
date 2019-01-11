@@ -143,6 +143,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		gp       = new(GasPool).AddGas(block.GasLimit())
 		retAllGas uint64= 0
 	)
+	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   Test
+	//su :=make([]uint,0)
+	//su = append(su,uint(1))
+	//su = append(su,uint(2))
+	//coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:su})
+	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+
 	// Iterate over and process the individual transactions
 	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
