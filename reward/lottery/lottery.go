@@ -53,7 +53,7 @@ type TxsLottery struct {
 	chain       ChainReader
 	seed        LotterySeed
 	state       util.StateDB
-	lotteryCfg  *mc.LotteryCfgStruct
+	lotteryCfg  *mc.LotteryCfg
 	bcInterval  *mc.BCIntervalInfo
 	accountList []common.Address
 }

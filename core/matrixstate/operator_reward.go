@@ -155,7 +155,7 @@ func (opt *operatorInterestCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.InterestCfgStruct)
+	value := new(mc.InterestCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "interestCfg unmarshal failed", err)
@@ -169,7 +169,7 @@ func (opt *operatorInterestCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.InterestCfgStruct)
+	cfg, OK := value.(*mc.InterestCfg)
 	if !OK {
 		log.Error(logInfo, "input param(interestCfg) err", "reflect failed")
 		return ErrParamReflect
@@ -214,7 +214,7 @@ func (opt *operatorLotteryCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.LotteryCfgStruct)
+	value := new(mc.LotteryCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "lotteryCfg unmarshal failed", err)
@@ -228,7 +228,7 @@ func (opt *operatorLotteryCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.LotteryCfgStruct)
+	cfg, OK := value.(*mc.LotteryCfg)
 	if !OK {
 		log.Error(logInfo, "input param(lotteryCfg) err", "reflect failed")
 		return ErrParamReflect
@@ -273,7 +273,7 @@ func (opt *operatorSlashCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.SlashCfgStruct)
+	value := new(mc.SlashCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "slashCfg unmarshal failed", err)
@@ -287,7 +287,7 @@ func (opt *operatorSlashCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.SlashCfgStruct)
+	cfg, OK := value.(*mc.SlashCfg)
 	if !OK {
 		log.Error(logInfo, "input param(slashCfg) err", "reflect failed")
 		return ErrParamReflect
@@ -722,7 +722,7 @@ type operatorBlkCalc struct {
 
 func newBlkCalcOpt() *operatorBlkCalc {
 	return &operatorBlkCalc{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyBlkCalcCfg),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyBlkCalc),
 	}
 }
 
@@ -774,7 +774,7 @@ type operatorTxsCalc struct {
 
 func newTxsCalcOpt() *operatorTxsCalc {
 	return &operatorTxsCalc{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyTxsCalcCfg),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyTxsCalc),
 	}
 }
 
@@ -826,7 +826,7 @@ type operatorInterestCalc struct {
 
 func newInterestCalcOpt() *operatorInterestCalc {
 	return &operatorInterestCalc{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcCfg),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalc),
 	}
 }
 
@@ -878,7 +878,7 @@ type operatorLotteryCalc struct {
 
 func newLotteryCalcOpt() *operatorLotteryCalc {
 	return &operatorLotteryCalc{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCalcCfg),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCalc),
 	}
 }
 
@@ -930,7 +930,7 @@ type operatorSlashCalc struct {
 
 func newSlashCalcOpt() *operatorSlashCalc {
 	return &operatorSlashCalc{
-		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashCalcCfg),
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashCalc),
 	}
 }
 

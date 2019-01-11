@@ -57,11 +57,11 @@ const (
 	MSKeyInterestPayNum    = "interest_pay_num"   // 利息支付状态
 	MSKeySlashNum          = "slash_num"          // 惩罚状态
 	//奖励算法配置
-	MSKeyBlkCalcCfg      = "blk_calc"
-	MSKeyTxsCalcCfg      = "txs_calc"
-	MSKeyInterestCalcCfg = "interest_calc"
-	MSKeyLotteryCalcCfg  = "lottery_calc"
-	MSKeySlashCalcCfg    = "slash_calc"
+	MSKeyBlkCalc      = "blk_calc"
+	MSKeyTxsCalc      = "txs_calc"
+	MSKeyInterestCalc = "interest_calc"
+	MSKeyLotteryCalc  = "lottery_calc"
+	MSKeySlashCalc    = "slash_calc"
 )
 
 type BCIntervalInfo struct {
@@ -331,7 +331,157 @@ func (b *TxsRewardCfg) Check(k, v interface{}) bool {
 
 }
 
-func (b *TxsRewardCfg) Output(k, v interface{}) (interface{}, interface{}) {
+type BlkRewardCalc struct {
+}
+
+func (b *BlkRewardCalc) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易区块算法配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易区块算法配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyBlkCalc {
+		log.ERROR("超级交易区块算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(string)
+	if !ok {
+		log.ERROR("超级交易区块算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *BlkRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type TxsRewardCalc struct {
+}
+
+func (b *TxsRewardCalc) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易交易费算法配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易交易费算法配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyTxsCalc {
+		log.ERROR("超级交易交易费算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(string)
+	if !ok {
+		log.ERROR("超级交易交易费算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *TxsRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type InterestRewardCalc struct {
+}
+
+func (b *InterestRewardCalc) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易利息算法配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易利息算法配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyInterestCalc {
+		log.ERROR("超级交易利息算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(string)
+	if !ok {
+		log.ERROR("超级交易利息算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *InterestRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type LotteryRewardCalc struct {
+}
+
+func (b *LotteryRewardCalc) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易彩票算法配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易彩票算法配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyLotteryCalc {
+		log.ERROR("超级交易彩票算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(string)
+	if !ok {
+		log.ERROR("超级交易彩票算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *LotteryRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type SlashCalc struct {
+}
+
+func (b *SlashCalc) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易惩罚算法配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易惩罚算法配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeySlashCalc {
+		log.ERROR("超级交易惩罚算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(string)
+	if !ok {
+		log.ERROR("超级交易惩罚算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *SlashCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
 	return k, v
 }
@@ -342,18 +492,118 @@ type LotteryInfo struct {
 	PrizeMoney uint64 //奖励金额 单位man
 }
 
-type LotteryCfgStruct struct {
+type LotteryCfg struct {
 	LotteryInfo []LotteryInfo
 }
 
-type InterestCfgStruct struct {
-	InterestCalc string
+func (b *LotteryCfg) Check(k, v interface{}) bool {
+
+	if v == nil || k == nil {
+		log.ERROR("超级交易彩票奖励配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易彩票奖励配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyLotteryCfg {
+		log.ERROR("超级交易彩票奖励配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.(LotteryCfg)
+	if !ok {
+		log.ERROR("超级交易彩票奖励配置", "value反射失败", "")
+		return false
+	}
+
+	log.Info("超级交易彩票奖励配置", "LotteryCfg", value)
+	return true
+}
+
+func (b *LotteryCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type InterestCfg struct {
 	CalcInterval uint64
 	PayInterval  uint64
 }
 
-type SlashCfgStruct struct {
+func (b *InterestCfg) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易利息奖励配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易利息奖励配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyInterestCfg {
+		log.ERROR("超级交易利息奖励配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	StateCfg, ok := v.(InterestCfg)
+	if !ok {
+		log.ERROR("超级交易利息奖励配置", "value反射失败", "")
+		return false
+	}
+
+	if StateCfg.PayInterval < StateCfg.CalcInterval {
+
+		log.ERROR("超级交易利息奖励配置", "配置的发放周期小于计息周期", "")
+		return false
+	}
+	log.Info("超级交易利息奖励配置", "InterestCfg", StateCfg)
+	return true
+}
+
+func (b *InterestCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type SlashCfg struct {
 	SlashRate uint64
+}
+
+func (b *SlashCfg) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易惩罚奖励配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易惩罚奖励配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeySlashCfg {
+		log.ERROR("超级交易惩罚奖励配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	SlashCfg, ok := v.(SlashCfg)
+	if !ok {
+		log.ERROR("超级交易惩罚奖励配置", "value反射失败", "")
+		return false
+	}
+
+	if SlashCfg.SlashRate > RewardFullRate {
+
+		log.ERROR("超级交易惩罚奖励配置", "配置的最大惩罚比例系数大于10000", SlashCfg.SlashRate)
+		return false
+	}
+	log.Info("超级交易惩罚奖励配置", "SlashCfg", SlashCfg)
+	return true
+}
+
+func (b *SlashCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
 }
 
 type SuperBlkCfg struct {

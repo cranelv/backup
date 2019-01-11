@@ -35,9 +35,9 @@ type GenesisMState struct {
 	SlashCalcCfg           *string                 `json:"SlashCalcCfg" gencodec:"required"`
 	BlkRewardCfg           *mc.BlkRewardCfg        `json:"BlkRewardCfg" gencodec:"required"`
 	TxsRewardCfg           *mc.TxsRewardCfg        `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg             *mc.LotteryCfgStruct    `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg            *mc.InterestCfgStruct   `json:"InterestCfg" gencodec:"required"`
-	SlashCfg               *mc.SlashCfgStruct      `json:"SlashCfg" gencodec:"required"`
+	LotteryCfg             *mc.LotteryCfg          `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg            *mc.InterestCfg         `json:"InterestCfg" gencodec:"required"`
+	SlashCfg               *mc.SlashCfg            `json:"SlashCfg" gencodec:"required"`
 	EleTimeCfg             *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
 	EleInfoCfg             *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
 	ElectMinerNumCfg       *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
@@ -64,9 +64,9 @@ type GenesisMState1 struct {
 	SlashCalcCfg           *string                 `json:"SlashCalcCfg,omitempty"`
 	BlkRewardCfg           *mc.BlkRewardCfg        `json:"BlkRewardCfg" ,omitempty"`
 	TxsRewardCfg           *mc.TxsRewardCfg        `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg             *mc.LotteryCfgStruct    `json:"LotteryCfg" ,omitempty"`
-	InterestCfg            *mc.InterestCfgStruct   `json:"InterestCfg" ,omitempty"`
-	SlashCfg               *mc.SlashCfgStruct      `json:"SlashCfg" ,omitempty"`
+	LotteryCfg             *mc.LotteryCfg          `json:"LotteryCfg" ,omitempty"`
+	InterestCfg            *mc.InterestCfg         `json:"InterestCfg" ,omitempty"`
+	SlashCfg               *mc.SlashCfg            `json:"SlashCfg" ,omitempty"`
 	EleTimeCfg             *mc.ElectGenTimeStruct  `json:"EleTime" ,omitempty"`
 	EleInfoCfg             *mc.ElectConfigInfo     `json:"EleInfo" ,omitempty"`
 	ElectMinerNumCfg       *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`

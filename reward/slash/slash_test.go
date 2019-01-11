@@ -2,12 +2,13 @@ package slash
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/params/manparams"
-	"math/big"
-	"testing"
 
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mandb"
@@ -261,16 +262,16 @@ func fakeFuntion() {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -282,7 +283,7 @@ func fakeFuntion() {
 
 		if key == mc.MSKeySlashCfg {
 
-			return &mc.SlashCfgStruct{SlashCalc: "1", SlashRate: 7500}, nil
+			return &mc.SlashCfg{SlashCalc: "1", SlashRate: 7500}, nil
 		}
 		return nil, nil
 	})
@@ -323,16 +324,16 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 			if key == mc.MSKeyLotteryCfg {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyLotteryNum {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyInterestCfg {
 
-				return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+				return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 			}
 			if key == mc.MSKeyVIPConfig {
 				vip := make([]mc.VIPConfig, 0)
@@ -344,7 +345,7 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 
 			if key == mc.MSKeySlashCfg {
 
-				return &mc.SlashCfgStruct{SlashCalc: "1", SlashRate: 7500}, nil
+				return &mc.SlashCfg{SlashCalc: "1", SlashRate: 7500}, nil
 			}
 			return nil, nil
 		})
@@ -402,16 +403,16 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 			if key == mc.MSKeyLotteryCfg {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyLotteryNum {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyInterestCfg {
 
-				return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+				return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 			}
 			if key == mc.MSKeyVIPConfig {
 				vip := make([]mc.VIPConfig, 0)
@@ -423,7 +424,7 @@ func TestBlockSlash_CalcSlash22(t *testing.T) {
 
 			if key == mc.MSKeySlashCfg {
 
-				return &mc.SlashCfgStruct{SlashCalc: "1", SlashRate: 7500}, nil
+				return &mc.SlashCfg{SlashCalc: "1", SlashRate: 7500}, nil
 			}
 			return nil, nil
 		})
@@ -486,16 +487,16 @@ func TestBlockSlash_CalcSlash44(t *testing.T) {
 			if key == mc.MSKeyLotteryCfg {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyLotteryNum {
 				info := make([]mc.LotteryInfo, 0)
 				info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-				return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+				return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 			}
 			if key == mc.MSKeyInterestCfg {
 
-				return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+				return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 			}
 			if key == mc.MSKeyVIPConfig {
 				vip := make([]mc.VIPConfig, 0)
@@ -507,7 +508,7 @@ func TestBlockSlash_CalcSlash44(t *testing.T) {
 
 			if key == mc.MSKeySlashCfg {
 
-				return &mc.SlashCfgStruct{SlashCalc: "1", SlashRate: 7500}, nil
+				return &mc.SlashCfg{SlashCalc: "1", SlashRate: 7500}, nil
 			}
 			return nil, nil
 		})
