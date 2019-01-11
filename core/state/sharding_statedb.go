@@ -101,7 +101,7 @@ func (shard *StateDBManage) addShardings(cointyp string) {
 			Roots, err := shard.mdb.Get(cr.Root[:])
 			if err != nil {
 				log.Error("file sharding_statedb", "func addShardings:Get", err)
-				return
+				//return
 			} else {
 				err = rlp.DecodeBytes(Roots, &hashs)
 				if err != nil {

@@ -608,8 +608,8 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	//st.RefundGas()
 	shardings = append(shardings, tmpshard...)
 	st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
-	//return ret, st.GasUsed(), vmerr != nil, shardings, err
-	return ret, st.GasUsed(), vmerr != nil, shardings, errors.New("bbb")
+	return ret, st.GasUsed(), vmerr != nil, shardings, err
+	//return ret, st.GasUsed(), vmerr != nil, shardings, errors.New("bbb")
 }
 
 //授权交易的from和to是同一个地址
