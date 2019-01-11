@@ -101,10 +101,12 @@ func (shard *StateDBManage) addShardings(cointyp string) {
 			Roots, err := shard.mdb.Get(cr.Root[:])
 			if err != nil {
 				log.Error("file sharding_statedb", "func addShardings:Get", err)
+				return
 			} else {
 				err = rlp.DecodeBytes(Roots, &hashs)
 				if err != nil {
 					log.Error("file sharding_statedb", "func addShardings:DecodeBytes", err)
+					return
 				}
 			}
 			if len(hashs) <= 0 {
@@ -115,7 +117,8 @@ func (shard *StateDBManage) addShardings(cointyp string) {
 			for i, hash := range hashs {
 				stdb, err := newStatedb(hash, shard.db)
 				if err != nil {
-					log.Info("file sharding_statedb", "func addShardings:newStatedb:err", err)
+					log.Error("file sharding_statedb", "func addShardings:newStatedb:err", err)
+					return
 				}
 				rms = append(rms, &RangeManage{Range: byte(i), State: stdb})
 			}
@@ -165,6 +168,7 @@ func (shard *StateDBManage) setError(cointype string, addr common.Address, err e
 	self,err := shard.GetStateDb(cointype, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_setError:",err)
+		return
 	}
 	if self.dbErr == nil {
 		self.dbErr = err
@@ -181,6 +185,7 @@ func (shard *StateDBManage) AddLog(cointyp string, address common.Address, logs 
 	self,err := shard.GetStateDb(cointyp, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_AddLog:",err)
+		return
 	}
 	self.journal.append(addLogChange{txhash: self.thash})
 
@@ -197,6 +202,7 @@ func (shard *StateDBManage) GetLogs(cointyp string, address common.Address, hash
 	sd ,err:= shard.GetStateDb(cointyp, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetLogs:",err)
+		return nil
 	}
 	return sd.logs[hash]
 
@@ -226,6 +232,7 @@ func (shard *StateDBManage) AddPreimage(cointype string, addr common.Address, ha
 	state,err := shard.GetStateDb(cointype, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_AddPreimage:",err)
+		return
 	}
 	state.AddPreimage(hash, preimage)
 }
@@ -247,6 +254,7 @@ func (shard *StateDBManage) AddRefund(cointyp string, address common.Address, ga
 	sd,err:=shard.GetStateDb(cointyp, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_AddRefund:",err)
+		return
 	}
 	sd.AddRefund(gas)
 }
@@ -255,6 +263,7 @@ func (self *StateDBManage) GetRefund(cointyp string, address common.Address) uin
 	sd,err := self.GetStateDb(cointyp, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetRefund:",err)
+		return 0
 	}
 	return sd.refund
 }
@@ -317,6 +326,7 @@ func (shard *StateDBManage) GetCode(cointyp string, addr common.Address) []byte 
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetCode:",err)
+		return nil
 	}
 	if stateObject != nil {
 		return stateObject.Code(sd.db)
@@ -336,6 +346,7 @@ func (shard *StateDBManage) GetCodeSize(cointyp string, addr common.Address) int
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetCodeSize:",err)
+		return 0
 	}
 	size, err := shard.db.ContractCodeSize(stateObject.addrHash, common.BytesToHash(stateObject.CodeHash()))
 	if err != nil {
@@ -359,6 +370,7 @@ func (shard *StateDBManage) GetState(cointyp string, addr common.Address, bhash 
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetState:",err)
+		return common.Hash{}
 	}
 	if stateObject != nil {
 		return stateObject.GetState(sd.db, bhash)
@@ -397,6 +409,7 @@ func (shard *StateDBManage) StorageTrie(cointyp string, addr common.Address) Tri
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_StorageTrie:",err)
+		return nil
 	}
 	cpy := stateObject.deepCopy(sd)
 	return cpy.updateTrie(shard.db)
@@ -483,6 +496,7 @@ func (shard *StateDBManage) Suicide(cointyp string, addr common.Address) bool {
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_Suicide:",err)
+		return false
 	}
 	return sd.Suicide(addr)
 
@@ -499,6 +513,7 @@ func (shard *StateDBManage) updateStateObject(cointyp string, addr common.Addres
 	self,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_updateStateObject:",err)
+		return
 	}
 	self.updateStateObject(stateObject)
 }
@@ -509,6 +524,7 @@ func (shard *StateDBManage) deleteStateObject(cointyp string, addr common.Addres
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_deleteStateObject:",err)
+		return
 	}
 	statedb.deleteStateObject(stateObject)
 }
@@ -529,6 +545,7 @@ func (shard *StateDBManage) setStateObject(cointyp string, addr common.Address, 
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_setStateObject:",err)
+		return
 	}
 	statedb.setStateObject(object)
 }
@@ -551,6 +568,7 @@ func (shard *StateDBManage) createObject(cointyp string, addr common.Address) (n
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_createObject:",err)
+		return nil,nil
 	}
 	return statedb.createObject(addr)
 }
@@ -570,6 +588,7 @@ func (shard *StateDBManage) CreateAccount(cointyp string, addr common.Address) {
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_CreateAccount:",err)
+		return
 	}
 	statedb.CreateAccount(addr)
 }
@@ -579,6 +598,7 @@ func (shard *StateDBManage) ForEachStorage(cointyp string, addr common.Address, 
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_ForEachStorage:",err)
+		return
 	}
 	statedb.ForEachStorage(addr,cb)
 }
@@ -815,6 +835,7 @@ func (self *StateDBManage) NewBTrie(cointyp string, addr common.Address, typ byt
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_NewBTrie:",err)
+		return
 	}
 	statedb.NewBTrie(typ)
 }
@@ -834,6 +855,7 @@ func (self *StateDBManage) SaveTx(cointyp string, addr common.Address, typ byte,
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_SaveTx:",err)
+		return
 	}
 	statedb.SaveTx(typ,key,data)
 }
