@@ -73,11 +73,11 @@ type ChainReader interface {
 type MANBLKPlUGS interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args ...interface{}) (*types.Header, interface{}, error)
-	ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
+	Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error)
+	ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
 	Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error)
-	VerifyHeader(support BlKSupport, header *types.Header, args ...interface{}) (interface{}, error)
-	VerifyTxsAndState(support BlKSupport, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (interface{}, error)
+	VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error)
+	VerifyTxsAndState(support BlKSupport, header *types.Header, Txs types.SelfTransactions, args interface{}) (interface{}, error)
 }
 
 type TopNodeService interface {
@@ -178,7 +178,7 @@ func (bd *ManBlkDeal) VerifyHeader(types string, version string, header *types.H
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
 		return nil, errors.New("获取插件失败")
 	}
-	return plug.VerifyHeader(bd.support, header)
+	return plug.VerifyHeader(bd.support, header, nil)
 }
 
 func (bd *ManBlkDeal) VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (interface{}, error) {

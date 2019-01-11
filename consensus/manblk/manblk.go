@@ -140,13 +140,14 @@ func (bd *ManBlkBasePlug) setElect(support BlKSupport, stateDB *state.StateDB, h
 	return nil
 }
 
-func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args ...interface{}) (*types.Header, interface{}, error) {
-	for _, v := range args {
+func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error) {
 
+	test, _ := args.([]interface{})
+	for _, v := range test {
 		switch v.(type) {
 
 		case common.Hash:
-			preBlockHash, ok := args[0].(common.Hash)
+			preBlockHash, ok := v.(common.Hash)
 			if !ok {
 				log.Error(ModuleManBlk, "反射失败,类型为", "")
 				return nil, nil, errors.New("反射失败")
@@ -183,7 +184,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInte
 	return originHeader, onlineConsensusResults, nil
 }
 
-func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
+func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, header)
 	upTimeMap, err := support.BlockChain().ProcessUpTime(work.State, header)
 	if err != nil {
@@ -217,14 +218,14 @@ func (bd *ManBlkBasePlug) Finalize(support BlKSupport, header *types.Header, sta
 	return block, nil, nil
 }
 
-func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header, args ...interface{}) (interface{}, error) {
+func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error) {
 	if err := support.BlockChain().VerifyHeader(header); err != nil {
 		log.ERROR(ModuleManBlk, "预验证头信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
 
 	// verify net topology info
-	onlineConsensusResults, ok := args[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
+	onlineConsensusResults, ok := args.([]interface{})[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
 	if !ok {
 		log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
 	}
@@ -248,7 +249,7 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 	return nil, nil
 }
 
-func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args ...interface{}) (interface{}, error) {
+func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args interface{}) (interface{}, error) {
 	log.INFO(ModuleManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
