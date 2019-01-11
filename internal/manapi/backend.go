@@ -64,6 +64,8 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	CurrentBlock() *types.Block
+
+	GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

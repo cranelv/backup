@@ -970,25 +970,30 @@ func (s *PublicBlockChainAPI) GetSelfLevel() int {
 }
 
 // GetSignAccounts get sign accounts form current block.
-func (s *PublicBlockChainAPI) getSignAccountsByNumber1(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, error) {
+func (s *PublicBlockChainAPI) getSignAccountsByNumber1(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, common.Hash, error) {
 	header, err := s.b.HeaderByNumber(ctx, blockNr)
 	if header != nil {
-		return header.SignAccounts(), nil
+		return header.SignAccounts(), header.Hash(), nil
 	}
-	return nil, err
+	return nil, common.Hash{}, err
 }
 
 func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign1, error) {
-	verSignList, err := s.getSignAccountsByNumber1(ctx, blockNr)
+	verSignList, blockHash, err := s.getSignAccountsByNumber1(ctx, blockNr)
 	if err != nil {
 		return nil, err
 	}
 
 	accounts := make([]common.VerifiedSign1, 0)
 	for _, tmpverSign := range verSignList {
+		depositAccount, err := s.b.GetDepositAccount(tmpverSign.Account, blockHash)
+		if err != nil || (depositAccount == common.Address{}) {
+			log.Debug("API", "GetSignAccountsByNumber", "get deposit account err", "sign account", tmpverSign.Account.Hex(), "err", err)
+			continue
+		}
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", tmpverSign.Account),
+			Account:  base58.Base58EncodeToString("MAN", depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -1010,9 +1015,15 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	}
 	accounts := make([]common.VerifiedSign1, 0)
 	for _, tmpverSign := range verSignList {
+		depositAccount, err := s.b.GetDepositAccount(tmpverSign.Account, hash)
+		if err != nil || (depositAccount == common.Address{}) {
+			log.Debug("API", "GetSignAccountsByHash", "get deposit account err", "sign account", tmpverSign.Account.Hex(), "err", err)
+			continue
+		}
+
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", tmpverSign.Account),
+			Account:  base58.Base58EncodeToString("MAN", depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
