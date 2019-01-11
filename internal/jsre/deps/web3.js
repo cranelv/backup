@@ -5736,6 +5736,12 @@ var methods = function () {
         params: 1
     });
 
+    var getTopologyStatus = new Method({
+        name: 'getTopologyStatus',
+        call: 'eth_getTopologyStatusByNumber',
+        params: 1
+    });
+
     return [
         getBalance,
         getUpTime,
@@ -5769,7 +5775,8 @@ var methods = function () {
         getWork,
         getTopology,
         getSelfLevel,
-        importSuperBlock
+        importSuperBlock,
+        getTopologyStatus
     ];
 };
 

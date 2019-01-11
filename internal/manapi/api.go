@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/matrix/go-matrix/core/matrixstate"
-
 	"github.com/matrix/go-matrix/depoistInfo"
 
 	"github.com/davecgh/go-spew/spew"
@@ -37,6 +35,7 @@ import (
 	"github.com/matrix/go-matrix/consensus/manash"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
@@ -625,23 +624,6 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	return read, state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetTopologyGraph(ctx context.Context, blockNr rpc.BlockNumber) (*mc.TopologyGraph, error) {
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-	if state == nil || err != nil {
-		return nil, err
-	}
-	topologyGraph, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, state)
-	if err != nil {
-		return nil, err
-	}
-	topology, ok := topologyGraph.(*mc.TopologyGraph)
-	if !ok {
-		return nil, errors.New("反射失败")
-	}
-
-	return topology, state.Error()
-}
-
 //钱包调用
 func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()
@@ -970,25 +952,30 @@ func (s *PublicBlockChainAPI) GetSelfLevel() int {
 }
 
 // GetSignAccounts get sign accounts form current block.
-func (s *PublicBlockChainAPI) getSignAccountsByNumber1(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, error) {
+func (s *PublicBlockChainAPI) getSignAccountsByNumber1(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign, common.Hash, error) {
 	header, err := s.b.HeaderByNumber(ctx, blockNr)
 	if header != nil {
-		return header.SignAccounts(), nil
+		return header.SignAccounts(), header.Hash(), nil
 	}
-	return nil, err
+	return nil, common.Hash{}, err
 }
 
 func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]common.VerifiedSign1, error) {
-	verSignList, err := s.getSignAccountsByNumber1(ctx, blockNr)
+	verSignList, blockHash, err := s.getSignAccountsByNumber1(ctx, blockNr)
 	if err != nil {
 		return nil, err
 	}
 
 	accounts := make([]common.VerifiedSign1, 0)
 	for _, tmpverSign := range verSignList {
+		depositAccount, err := s.b.GetDepositAccount(tmpverSign.Account, blockHash)
+		if err != nil || (depositAccount == common.Address{}) {
+			log.Debug("API", "GetSignAccountsByNumber", "get deposit account err", "sign account", tmpverSign.Account.Hex(), "err", err)
+			continue
+		}
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", tmpverSign.Account),
+			Account:  base58.Base58EncodeToString("MAN", depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -1010,17 +997,125 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 	}
 	accounts := make([]common.VerifiedSign1, 0)
 	for _, tmpverSign := range verSignList {
+		depositAccount, err := s.b.GetDepositAccount(tmpverSign.Account, hash)
+		if err != nil || (depositAccount == common.Address{}) {
+			log.Debug("API", "GetSignAccountsByHash", "get deposit account err", "sign account", tmpverSign.Account.Hex(), "err", err)
+			continue
+		}
+
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", tmpverSign.Account),
+			Account:  base58.Base58EncodeToString("MAN", depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
 	}
 	return accounts, nil
 }
+
 func (s *PublicBlockChainAPI) ImportSuperBlock(ctx context.Context, filePath string) (common.Hash, error) {
 	return s.b.ImportSuperBlock(ctx, filePath)
+}
+
+type NodeInfo struct {
+	Account  string `json:"account"`
+	Online   bool   `json:"online"`
+	Position uint16 `json:"position"`
+}
+
+type TopologyStatus struct {
+	LeaderReelect         bool       `json:"leader_reelect"`
+	Validators            []NodeInfo `json:"validators"`
+	BackupValidators      []NodeInfo `json:"backup_validators"`
+	Miners                []NodeInfo `json:"miners"`
+	ElectValidators       []NodeInfo `json:"elect_validators"`
+	ElectBackupValidators []NodeInfo `json:"elect_backup_validators"`
+}
+
+func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*TopologyStatus, error) {
+	if blockNr == 0 {
+		return nil, nil
+	}
+
+	curHeader, err := s.b.HeaderByNumber(ctx, blockNr)
+	if curHeader == nil || err != nil {
+		return nil, err
+	}
+	preState, preHeader, err := s.b.StateAndHeaderByNumber(ctx, blockNr-1)
+	if preState == nil || preHeader == nil || err != nil {
+		return nil, err
+	}
+	topologyData, err := matrixstate.GetDataByState(mc.MSKeyTopologyGraph, preState)
+	if err != nil {
+		return nil, err
+	}
+	topologyGraph, ok := topologyData.(*mc.TopologyGraph)
+	if !ok || nil == topologyGraph {
+		return nil, errors.New("topologyGraph 反射失败")
+	}
+
+	onlineData, err := matrixstate.GetDataByState(mc.MSKeyElectOnlineState, preState)
+	if err != nil {
+		return nil, err
+	}
+	onlineState, ok := onlineData.(*mc.ElectOnlineStatus)
+	if !ok || nil == onlineState {
+		return nil, errors.New("onlineState 反射失败")
+	}
+
+	result := &TopologyStatus{}
+
+	// 判断是否leader重选过
+	nextLeader := topologyGraph.FindNextValidator(preHeader.Leader)
+	result.LeaderReelect = nextLeader != curHeader.Leader
+
+	// 拓扑图信息写入
+	for _, node := range topologyGraph.NodeList {
+		switch node.Type {
+		case common.RoleValidator:
+			result.Validators = append(result.Validators, NodeInfo{
+				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Online:   true,
+				Position: node.Position,
+			})
+		case common.RoleBackupValidator:
+			result.BackupValidators = append(result.BackupValidators, NodeInfo{
+				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Online:   true,
+				Position: node.Position,
+			})
+		case common.RoleMiner:
+			result.Miners = append(result.Miners, NodeInfo{
+				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Online:   true,
+				Position: node.Position,
+			})
+		}
+	}
+
+	// 选举在线信息写入
+	for _, node := range onlineState.ElectOnline {
+		if topologyGraph.AccountIsInGraph(node.Account) {
+			continue // 拓扑图中已存在的节点，过滤
+		}
+
+		online := node.Position != common.PosOffline
+		switch node.Type {
+		case common.RoleValidator:
+			result.ElectValidators = append(result.ElectValidators, NodeInfo{
+				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Online:   online,
+				Position: node.Position,
+			})
+		case common.RoleBackupValidator:
+			result.ElectBackupValidators = append(result.ElectBackupValidators, NodeInfo{
+				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Online:   online,
+				Position: node.Position,
+			})
+		}
+	}
+	return result, nil
 }
 
 // ExecutionResult groups all structured logs emitted by the EVM
