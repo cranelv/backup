@@ -213,11 +213,11 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 		// make a copy, the state caches the logs and these logs get "upgraded" from pending to mined
 		// logs by filling in the block hash when the block was mined by the local miner. This can
 		// cause a race condition if a log was "upgraded" before the PendingLogsEvent is processed.
-		//cpy := make([]types.CoinLogs, len(coalescedLogs))
-		//for i, l := range coalescedLogs {
-		//	cpy[i] = new(types.CoinLogs)
-		//	*cpy[i] = *l
-		//}
+		cpy := make([]types.CoinLogs, len(coalescedLogs))
+		for i, l := range coalescedLogs {
+			cpy[i] = *new(types.CoinLogs)
+			cpy[i]=l
+		}
 		go func(logs []types.CoinLogs, tcount int) {
 			if len(logs) > 0 {
 				mux.Post(core.PendingLogsEvent{Logs: logs})
@@ -225,7 +225,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			if tcount > 0 {
 				mux.Post(core.PendingStateEvent{})
 			}
-		}(coalescedLogs, env.tcount)
+		}(cpy, env.tcount)
 	}
 	return listret, retTxs
 }
@@ -406,7 +406,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 			log.Error("file work", "func ProcessTransactions:::reward Tx call Error", err)
 		}
 	}
-	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
+	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)		
 	return
 }
 
@@ -432,7 +432,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			err, logs := env.commitTransaction(t, bc, common.Address{}, env.gasPool)
 			if err == nil {
 				env.tcount++
-				coalescedLogs = append(coalescedLogs,types.CoinLogs{tx.CoinType,logs})
+				coalescedLogs = append(coalescedLogs,types.CoinLogs{t.GetTxCurrency(),logs})
 			} else {
 				return err
 			}
