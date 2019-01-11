@@ -15,17 +15,17 @@ import (
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction
 // hash to allow retrieving the transaction or receipt by hash.
-func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) (common.Hash, uint64, uint64) {
+func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) (common.Hash, uint64, uint64,string) {
 	data, _ := db.Get(append(txLookupPrefix, hash.Bytes()...))
 	if len(data) == 0 {
-		return common.Hash{}, 0, 0
+		return common.Hash{}, 0, 0,""
 	}
 	var entry TxLookupEntry
 	if err := rlp.DecodeBytes(data, &entry); err != nil {
 		log.Error("Invalid transaction lookup entry RLP", "hash", hash, "err", err)
-		return common.Hash{}, 0, 0
+		return common.Hash{}, 0, 0,""
 	}
-	return entry.BlockHash, entry.BlockIndex, entry.Index
+	return entry.BlockHash, entry.BlockIndex, entry.Index,entry.Cointype
 }
 
 // WriteTxLookupEntries stores a positional metadata for every transaction from
@@ -38,6 +38,7 @@ func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
 					BlockHash:  block.Hash(),
 					BlockIndex: block.NumberU64(),
 					Index:      tx.Index,
+					Cointype:   tx.Tx.GetTxCurrency(),
 				}
 				data, err := rlp.EncodeToBytes(entry)
 				if err != nil {
@@ -54,6 +55,7 @@ func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
 					BlockHash:  block.Hash(),
 					BlockIndex: block.NumberU64(),
 					Index:      i,
+					Cointype:   tx.GetTxCurrency(),
 				}
 				data, err := rlp.EncodeToBytes(entry)
 				if err != nil {
@@ -76,7 +78,7 @@ func DeleteTxLookupEntry(db DatabaseDeleter, hash common.Hash) {
 // ReadTransaction retrieves a specific transaction from the database, along with
 // its added positional metadata.
 func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction, common.Hash, uint64, uint64) {
-	blockHash, blockNumber, txIndex := ReadTxLookupEntry(db, hash)
+	blockHash, blockNumber, txIndex,cointy := ReadTxLookupEntry(db, hash)
 	if blockHash == (common.Hash{}) {
 		return nil, common.Hash{}, 0, 0
 	}
@@ -84,7 +86,9 @@ func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction
 	body := ReadBody(db, blockHash, blockNumber)
 	var txs types.SelfTransactions
 	for _, currencyBlock := range body.CurrencyBody {
-		txs = append(txs, currencyBlock.Transactions.GetTransactions()...)
+		if currencyBlock.CurrencyName == cointy{
+			txs = append(txs, currencyBlock.Transactions.GetTransactions()...)
+		}
 	}
 	if len(txs) <= int(txIndex) {
 		log.Error("Transaction referenced missing", "number", blockNumber, "hash", blockHash, "index", txIndex)
@@ -97,14 +101,16 @@ func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction
 // ReadReceipt retrieves a specific transaction receipt from the database, along with
 // its added positional metadata.
 func ReadReceipt(db DatabaseReader, hash common.Hash) (*types.Receipt, common.Hash, uint64, uint64) {
-	blockHash, blockNumber, receiptIndex := ReadTxLookupEntry(db, hash)
+	blockHash, blockNumber, receiptIndex,cointy := ReadTxLookupEntry(db, hash)
 	if blockHash == (common.Hash{}) {
 		return nil, common.Hash{}, 0, 0
 	}
 	creceipts := ReadReceipts(db, blockHash, blockNumber)
 	receipts := make(types.Receipts,0)
 	for _,rcps := range creceipts{
-		receipts = append(receipts,rcps.Receiptlist...)
+		if rcps.CoinType == cointy{
+			receipts = append(receipts,rcps.Receiptlist...)
+		}
 	}
 	if len(receipts) <= int(receiptIndex) {
 		log.Error("Receipt refereced missing", "number", blockNumber, "hash", blockHash, "index", receiptIndex)
