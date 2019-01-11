@@ -2,11 +2,12 @@ package matrixstate
 
 import (
 	"encoding/json"
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"math/big"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -95,7 +96,7 @@ func (opt *operatorTxsRewardCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.TxsRewardCfgStruct)
+	value := new(mc.TxsRewardCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "txsRewardCfg unmarshal failed", err)
@@ -109,7 +110,7 @@ func (opt *operatorTxsRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.TxsRewardCfgStruct)
+	cfg, OK := value.(*mc.TxsRewardCfg)
 	if !OK {
 		log.Error(logInfo, "input param(txsRewardCfg) err", "reflect failed")
 		return ErrParamReflect
@@ -710,5 +711,265 @@ func (opt *operatorSlashNum) SetValue(st StateDB, value interface{}) error {
 		return ErrParamReflect
 	}
 	st.SetMatrixData(opt.key, encodeUint64(num))
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 固定区块算法配置
+type operatorBlkCalc struct {
+	key common.Hash
+}
+
+func newBlkCalcOpt() *operatorBlkCalc {
+	return &operatorBlkCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyBlkCalcCfg),
+	}
+}
+
+func (opt *operatorBlkCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorBlkCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "BlkCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorBlkCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(BlkCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "BlkCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 交易费算法配置
+type operatorTxsCalc struct {
+	key common.Hash
+}
+
+func newTxsCalcOpt() *operatorTxsCalc {
+	return &operatorTxsCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyTxsCalcCfg),
+	}
+}
+
+func (opt *operatorTxsCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorTxsCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "TxsCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorTxsCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(TxsCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "TxsCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 利息算法配置
+type operatorInterestCalc struct {
+	key common.Hash
+}
+
+func newInterestCalcOpt() *operatorInterestCalc {
+	return &operatorInterestCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalcCfg),
+	}
+}
+
+func (opt *operatorInterestCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorInterestCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "InterestCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorInterestCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(InterestCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "InterestCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 彩票算法配置
+type operatorLotteryCalc struct {
+	key common.Hash
+}
+
+func newLotteryCalcOpt() *operatorLotteryCalc {
+	return &operatorLotteryCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCalcCfg),
+	}
+}
+
+func (opt *operatorLotteryCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorLotteryCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "LotteryCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorLotteryCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(LotteryCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "LotteryCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 惩罚算法配置
+type operatorSlashCalc struct {
+	key common.Hash
+}
+
+func newSlashCalcOpt() *operatorSlashCalc {
+	return &operatorSlashCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashCalcCfg),
+	}
+}
+
+func (opt *operatorSlashCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorSlashCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "SlashCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorSlashCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(SlashCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "SlashCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
 	return nil
 }

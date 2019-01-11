@@ -1,6 +1,8 @@
 package slash
 
 import (
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
@@ -8,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reward/util"
-	"math/big"
 )
 
 const PackageName = "惩罚"
@@ -23,13 +24,21 @@ type BlockSlash struct {
 }
 
 func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
+
+	data, err := matrixstate.GetSlashCalc(st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误")
+		return nil
+	}
+
+	if data == util.Stop {
+		log.ERROR(PackageName, "停止发放区块奖励", "")
+		return nil
+	}
+
 	SC, err := matrixstate.GetSlashCfg(st)
 	if nil != err || nil == SC {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
-		return nil
-	}
-	if SC.SlashCalc == util.Stop {
-		log.ERROR(PackageName, "停止", PackageName)
 		return nil
 	}
 

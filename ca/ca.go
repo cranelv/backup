@@ -158,14 +158,14 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 			broadcastAccounts, err := ide.topologyReader.GetBroadcastAccounts(hash)
 			if err != nil {
 				log.Error("ca", "get broadcast accounts err", err)
-				return
+				continue
 			}
 			ide.broadcastAccounts = broadcastAccounts
 
 			innerMiners, err := ide.topologyReader.GetInnerMinersAccount(hash)
 			if err != nil {
 				log.Error("ca", "get inner miner accounts err", err)
-				return
+				continue
 			}
 			ide.innerMiners = innerMiners
 			// get elect

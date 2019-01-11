@@ -2,10 +2,18 @@ package mc
 
 import (
 	"math/big"
+	"sort"
+
+	"github.com/matrix/go-matrix/base58"
+
+	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/common"
 )
 
+const (
+	RewardFullRate = uint64(10000)
+)
 const (
 	MSKeyVersionInfo      = "version_info"   // 版本信息
 	MSKeyBroadcastTx      = "broad_txs"      // 广播交易
@@ -48,6 +56,12 @@ const (
 	MSKeyInterestCalcNum   = "interest_calc_num"  // 利息计算状态
 	MSKeyInterestPayNum    = "interest_pay_num"   // 利息支付状态
 	MSKeySlashNum          = "slash_num"          // 惩罚状态
+	//奖励算法配置
+	MSKeyBlkCalcCfg      = "blk_calc"
+	MSKeyTxsCalcCfg      = "txs_calc"
+	MSKeyInterestCalcCfg = "interest_calc"
+	MSKeyLotteryCalcCfg  = "lottery_calc"
+	MSKeySlashCalcCfg    = "slash_calc"
 )
 
 type BCIntervalInfo struct {
@@ -70,6 +84,39 @@ type ElectMinerNumStruct struct {
 	MinerNum uint16
 }
 
+func (b *ElectMinerNumStruct) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易配置", "随机选举矿工数目配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyElectMinerNum {
+		log.ERROR("超级交易配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.(uint64)
+	if !ok {
+		log.ERROR("超级交易配置", "value反射失败", "")
+		return false
+	}
+	if value == 0 {
+		log.ERROR("超级交易配置", "矿工数目配置为0", "")
+		return false
+	}
+	return true
+
+}
+
+func (b *ElectMinerNumStruct) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
 type ElectConfigInfo_All struct {
 	MinerNum      uint16
 	ValidatorNum  uint16
@@ -84,11 +131,67 @@ type ElectConfigInfo struct {
 	ElectPlug     string
 }
 
+type SortVIPConfig []VIPConfig
+
+func (self SortVIPConfig) Len() int {
+	return len(self)
+}
+func (self SortVIPConfig) Less(i, j int) bool {
+	return self[i].MinMoney < self[j].MinMoney
+}
+func (self SortVIPConfig) Swap(i, j int) {
+	temp := self[i]
+	self[i] = self[j]
+	self[j] = temp
+}
+
 type VIPConfig struct {
 	MinMoney     uint64
 	InterestRate uint64 //(分母待定为1000w)
 	ElectUserNum uint8
 	StockScale   uint16 //千分比
+}
+
+func (b *VIPConfig) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("VIP超级交易配置", "配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("VIP超级交易配置", "配置key值反射失败", "")
+		return false
+	}
+	if key != MSKeyVIPConfig {
+		log.ERROR("VIP超级交易配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.([]VIPConfig)
+	if !ok {
+		log.ERROR("VIP超级交易配置", "value反射失败", "")
+		return false
+	}
+	sort.Sort(SortVIPConfig(value))
+	if (value)[0].MinMoney != uint64(0) {
+		log.ERROR("VIP超级交易配置", "vip配置中需包含最小值为0的配置", "")
+		return false
+	}
+	for index := 0; index < len(value)-1; index++ {
+		if (value)[index].MinMoney == (value)[index+1].MinMoney {
+			log.ERROR("VIP超级交易配置", "vip配置中不能包含最小值相同的配置", "")
+			return false
+		}
+	}
+
+	log.Info("VIP超级交易配置", "VIPCfg", value)
+	return true
+
+}
+
+func (b *VIPConfig) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
 }
 
 type LeaderConfig struct {
@@ -117,7 +220,6 @@ type RewardRateCfg struct {
 }
 
 type BlkRewardCfg struct {
-	BlkRewardCalc  string
 	MinerMount     uint64 //矿工奖励单位man
 	MinerHalf      uint64 //矿工折半周期
 	ValidatorMount uint64 //验证者奖励 单位man
@@ -125,21 +227,122 @@ type BlkRewardCfg struct {
 	RewardRate     RewardRateCfg
 }
 
-type TxsRewardCfgStruct struct {
-	TxsRewardCalc  string
+func (b *BlkRewardCfg) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易固定区块奖励配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易固定区块奖励配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyBlkRewardCfg {
+		log.ERROR("超级交易固定区块奖励配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.(BlkRewardCfg)
+	if !ok {
+		log.ERROR("超级交易固定区块奖励配置", "value反射失败", "")
+		return false
+	}
+	rateCfg := value.RewardRate
+
+	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
+
+		log.ERROR("超级交易固定区块奖励配置", "矿工固定区块奖励比例配置错误", "")
+		return false
+	}
+	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
+
+		log.ERROR("超级交易固定区块奖励配置", "验证者固定区块奖励比例配置错误", "")
+		return false
+	}
+
+	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
+
+		log.ERROR("超级交易固定区块奖励配置", "替补固定区块奖励比例配置错误", "")
+		return false
+	}
+	log.Info("超级交易配置", "BlkRewardCfg", rateCfg)
+
+	return true
+
+}
+
+func (b *BlkRewardCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type TxsRewardCfg struct {
 	MinersRate     uint64 //矿工网络奖励
 	ValidatorsRate uint64 //验证者网络奖励
 	RewardRate     RewardRateCfg
 }
 
+func (b *TxsRewardCfg) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易交易费奖励配置", "奖励配置为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易交易费奖励配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyTxsRewardCfg {
+		log.ERROR("超级交易交易费奖励配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.(TxsRewardCfg)
+	if !ok {
+		log.ERROR("超级交易交易费奖励配置", "value反射失败", "")
+		return false
+	}
+	rateCfg := value.RewardRate
+
+	if RewardFullRate != value.ValidatorsRate+value.MinersRate {
+
+		log.ERROR("超级交易交易费奖励配置", "交易矿工验证者奖励比例配置错误", "")
+		return false
+	}
+	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
+
+		log.ERROR("超级交易交易费奖励配置", "矿工交易费奖励比例配置错误", "")
+		return false
+	}
+	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
+
+		log.ERROR("超级交易交易费奖励配置", "验证者交易费奖励比例配置错误", "")
+		return false
+	}
+
+	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
+
+		log.ERROR("超级交易交易费奖励配置", "替补交易费奖励比例配置错误", "")
+		return false
+	}
+	log.Info("超级交易配置", "TxsRewardCfg", rateCfg)
+
+	return true
+
+}
+
+func (b *TxsRewardCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
 type LotteryInfo struct {
 	PrizeLevel uint8  //奖励级别
-	PrizeNum   uint64 //奖励名额
+	PrizeNum   uint64 //奖励名额MSKeyElectBlackList
 	PrizeMoney uint64 //奖励金额 单位man
 }
 
 type LotteryCfgStruct struct {
-	LotteryCalc string
 	LotteryInfo []LotteryInfo
 }
 
@@ -150,7 +353,6 @@ type InterestCfgStruct struct {
 }
 
 type SlashCfgStruct struct {
-	SlashCalc string
 	SlashRate uint64
 }
 
@@ -170,4 +372,195 @@ type LotteryFrom struct {
 type RandomInfoStruct struct {
 	MinHash  common.Hash
 	MaxNonce uint64
+}
+
+type BroadcastAccounts struct {
+}
+
+func (b *BroadcastAccounts) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易配置", "广播节点为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyAccountBroadcasts {
+		log.ERROR("超级交易配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置", "value反射失败", "")
+		return false
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置", "设置的广播节点个数为0", value)
+		return false
+	}
+
+	return true
+
+}
+
+func (b *BroadcastAccounts) Output(k, v interface{}) (interface{}, interface{}) {
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置", "value值反射失败", "")
+		return nil, nil
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置", "设置的广播节点个数为0", value)
+		return nil, nil
+	}
+	base58Accounts := make([]string, 0)
+	for _, v := range value {
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+	}
+	return k, base58Accounts
+}
+
+type InnerMinersAccounts struct {
+}
+
+func (b *InnerMinersAccounts) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易配置", "广播节点为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyAccountInnerMiners {
+		log.ERROR("超级交易配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置", "value反射失败", "")
+		return false
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置", "设置的内部矿工节点个数为0", value)
+		return false
+	}
+
+	return true
+
+}
+
+func (b *InnerMinersAccounts) Output(k, v interface{}) (interface{}, interface{}) {
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置", "value值反射失败", "")
+		return nil, nil
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置", "设置的内部矿工节点个数为0", value)
+		return nil, nil
+	}
+	base58Accounts := make([]string, 0)
+	for _, v := range value {
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+	}
+	return k, base58Accounts
+}
+
+type ElectBlackList struct {
+}
+
+func (b *ElectBlackList) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易选举黑名单配置", "广播节点为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易选举黑名单配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyElectBlackList {
+		log.ERROR("超级交易选举黑名单配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易选举黑名单配置", "value反射失败", "")
+		return false
+	}
+	return true
+
+}
+
+func (b *ElectBlackList) Output(k, v interface{}) (interface{}, interface{}) {
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易选举黑名单配置", "value值反射失败", "")
+		return nil, nil
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易选举黑名单配置", "设置的选举黑名单个数为0", value)
+		return nil, nil
+	}
+	base58Accounts := make([]string, 0)
+	for _, v := range value {
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+	}
+	return k, base58Accounts
+}
+
+type ElectWhiteList struct {
+}
+
+func (b *ElectWhiteList) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易选举白名单配置", "广播节点为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易选举白名单配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyElectWhiteList {
+		log.ERROR("超级交易选举白名单配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易选举白名单配置", "value反射失败", "")
+		return false
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易选举白名单配置", "设置的内部矿工节点个数为0", value)
+		return false
+	}
+
+	return true
+
+}
+
+func (b *ElectWhiteList) Output(k, v interface{}) (interface{}, interface{}) {
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易选举白名单配置", "value值反射失败", "")
+		return nil, nil
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易选举白名单配置", "设置的内部矿工节点个数为0", value)
+		return nil, nil
+	}
+	base58Accounts := make([]string, 0)
+	for _, v := range value {
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+	}
+	return k, base58Accounts
 }

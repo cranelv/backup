@@ -95,6 +95,12 @@ func newManger(version string) *Manager {
 				mc.MSKeyInterestCalcNum:   newInterestCalcNumOpt(),
 				mc.MSKeyInterestPayNum:    newInterestPayNumOpt(),
 				mc.MSKeySlashNum:          newSlashNumOpt(),
+
+				mc.MSKeyBlkCalcCfg:      newBlkCalcOpt(),
+				mc.MSKeyTxsCalcCfg:      newTxsCalcOpt(),
+				mc.MSKeyInterestCalcCfg: newInterestCalcOpt(),
+				mc.MSKeyLotteryCalcCfg:  newLotteryCalcOpt(),
+				mc.MSKeySlashCalcCfg:    newSlashCalcOpt(),
 			},
 		}
 	default:

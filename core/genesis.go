@@ -213,6 +213,11 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			}
 			gensis.MState.InnerMiners = &whiteList
 		}
+		gensis.MState.BlkCalcCfg = gensis1.MState.BlkCalcCfg
+		gensis.MState.TxsCalcCfg = gensis1.MState.TxsCalcCfg
+		gensis.MState.InterestCalcCfg = gensis1.MState.InterestCalcCfg
+		gensis.MState.LotteryCalcCfg = gensis1.MState.LotteryCalcCfg
+		gensis.MState.SlashCalcCfg = gensis1.MState.SlashCalcCfg
 		gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg

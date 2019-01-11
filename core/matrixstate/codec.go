@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"encoding/binary"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
@@ -39,6 +40,24 @@ func decodeAccounts(data []byte) ([]common.Address, error) {
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+	//todo 测试 data为空切片时， msg返回什么
+	return msg, nil
+}
+
+func encodeString(str string) ([]byte, error) {
+	data, err := json.Marshal(str)
+	if err != nil {
+		return nil, errors.Errorf("json.Marshal failed: %s", err)
+	}
+	return data, nil
+}
+
+func decodeString(data []byte) (string, error) {
+	var msg string
+	err := json.Unmarshal(data, &msg)
+	if err != nil {
+		return msg, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
 	//todo 测试 data为空切片时， msg返回什么
 	return msg, nil
