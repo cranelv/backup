@@ -280,6 +280,7 @@ func (shard *StateDBManage) GetBalance(cointyp string, addr common.Address) comm
 	sd,err:=shard.GetStateDb(cointyp,addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetBalance:",err)
+		return nil
 	}
 	return sd.GetBalance(addr)
 }
