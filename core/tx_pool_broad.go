@@ -288,7 +288,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		}
 		for _, node := range nodelist {
 			if fromDepositAccount == node.Address {
-				currentAcc := from.Big()
+				currentAcc := fromDepositAccount.Big()
 				ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
 				broadcastBlock := blockHash.Big()
 				val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))

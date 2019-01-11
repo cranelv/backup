@@ -1658,7 +1658,7 @@ func (bc *BlockChain) sendBroadTx() {
 			return
 		}
 		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
-		currentAcc := ca.GetSignAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		currentAcc := ca.GetDepositAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
@@ -2291,7 +2291,12 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block
 	a2Accounts = st.GetEntrustFrom(a1Account, height)
 	if len(a2Accounts) == 0 {
 		a2Accounts = append(a2Accounts, a1Account)
-		log.INFO(common.SignLog, "从A1账户获取A2账户", "失败", "无委托交易,使用A1账户", a1Account.String())
+		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
+	} else {
+		log.Info(common.SignLog, "获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
+		for i, account := range a2Accounts {
+			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
+		}
 	}
 	//返回A2账户
 	return a2Accounts, nil
