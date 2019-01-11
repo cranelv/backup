@@ -1028,15 +1028,11 @@ type TopologyStatus struct {
 }
 
 func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*TopologyStatus, error) {
-	if blockNr == 0 {
-		return nil, nil
+	preBlockNr := blockNr
+	if blockNr > 0 {
+		preBlockNr -= 1
 	}
-
-	curHeader, err := s.b.HeaderByNumber(ctx, blockNr)
-	if curHeader == nil || err != nil {
-		return nil, err
-	}
-	preState, preHeader, err := s.b.StateAndHeaderByNumber(ctx, blockNr-1)
+	preState, preHeader, err := s.b.StateAndHeaderByNumber(ctx, preBlockNr)
 	if preState == nil || preHeader == nil || err != nil {
 		return nil, err
 	}
@@ -1059,10 +1055,17 @@ func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blo
 	}
 
 	result := &TopologyStatus{}
-
 	// 判断是否leader重选过
-	nextLeader := topologyGraph.FindNextValidator(preHeader.Leader)
-	result.LeaderReelect = nextLeader != curHeader.Leader
+	if blockNr <= 1 {
+		result.LeaderReelect = false
+	} else {
+		curHeader, err := s.b.HeaderByNumber(ctx, blockNr)
+		if curHeader == nil || err != nil {
+			return nil, err
+		}
+		nextLeader := topologyGraph.FindNextValidator(preHeader.Leader)
+		result.LeaderReelect = nextLeader != curHeader.Leader
+	}
 
 	// 拓扑图信息写入
 	for _, node := range topologyGraph.NodeList {
