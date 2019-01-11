@@ -192,7 +192,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 
 	man.signHelper.SetAuthReader(man.blockchain)
 
-	ca.SetTopologyReader(man.blockchain.GetGraphStore())
+	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
@@ -215,7 +215,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	man.blockchain.Processor().SetRandom(man.random)
 	man.reelection, err = reelection.New(man.blockchain, man.random)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,6 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
@@ -242,7 +241,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
 	man.olConsensus.SetValidatorReader(man.blockchain)
-	man.olConsensus.SetStateReaderInterface(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
 	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
 	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
 	man.olConsensus.SetMessageSendInterface(topNodeInstance)

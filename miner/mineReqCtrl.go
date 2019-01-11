@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 	"math/big"
@@ -57,7 +58,7 @@ type mineReqCtrl struct {
 	curNumber       uint64
 	currentMineReq  *mineReqData
 	role            common.RoleType
-	bcInterval      *manparams.BCInterval
+	bcInterval      *mc.BCIntervalInfo
 	posEngine       consensus.DPOSEngine
 	validatorReader consensus.StateReader
 	reqCache        map[common.Hash]*mineReqData
@@ -93,7 +94,7 @@ func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
 	}
 
 	ctrl.role = role
-	bcInterval, err := manparams.NewBCIntervalByNumber(number - 1)
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(number - 1)
 	if err != nil {
 		log.ERROR("miner ctrl", "获取广播周期失败", err)
 	} else {
@@ -228,6 +229,7 @@ func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
 	if header.Difficulty.Uint64() == 0 {
 		return difficultyIsZero
 	}
+
 	err := ctrl.posEngine.VerifyBlock(ctrl.validatorReader, header)
 	if err != nil {
 		return errors.Errorf("挖矿请求POS验证失败(%v)", err)

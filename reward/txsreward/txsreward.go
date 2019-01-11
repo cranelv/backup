@@ -21,14 +21,9 @@ type TxsReward struct {
 }
 
 func New(chain util.ChainReader, st util.StateDB) reward.Reward {
-	Rewardcfg, err := matrixstate.GetDataByState(mc.MSKeyTxsRewardCfg, st)
-	if nil != err {
-		log.ERROR(PackageName, "获取状态树配置错误")
-		return nil
-	}
-	TC, ok := Rewardcfg.(*mc.TxsRewardCfgStruct)
-	if !ok {
-		log.ERROR(PackageName, "反射失败", "")
+	TC, err := matrixstate.GetTxsRewardCfg(st)
+	if nil != err || nil == TC {
+		log.ERROR(PackageName, "获取状态树配置错误", err)
 		return nil
 	}
 	if TC.TxsRewardCalc == util.Stop {

@@ -15,6 +15,7 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 )
@@ -82,13 +83,18 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.St
 		}
 	}
 	var depositNum uint64
-	originInfo, err := chain.GetMatrixStateDataByNumber(mc.MSKeyElectGenTime, currentNum-1)
 
+	st, err := chain.StateAtNumber(currentNum - 1)
+	if err != nil {
+		log.Error(PackageName, "获取前一个块的状态树失败", err)
+		return nil, nil, nil, err
+	}
+	originInfo, err := matrixstate.GetElectGenTime(st)
 	if nil != err {
 		return nil, nil, nil, errors.New("获取选举信息的出错")
 	}
 
-	bcInterval, err := manparams.NewBCIntervalByNumber(currentNum - 1)
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(currentNum - 1)
 	if err != nil {
 		log.Error(PackageName, "获取广播周期失败", err)
 		return nil, nil, nil, errors.New("获取广播周期失败")
@@ -98,9 +104,9 @@ func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.St
 		depositNum = 0
 	} else {
 		if common.RoleValidator == common.RoleValidator&roleType {
-			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.(*mc.ElectGenTimeStruct).ValidatorGen)
+			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.ValidatorGen)
 		} else {
-			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.(*mc.ElectGenTimeStruct).MinerGen)
+			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.MinerGen)
 		}
 	}
 

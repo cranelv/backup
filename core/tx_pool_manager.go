@@ -285,6 +285,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 			nPool.ProcessMsg(m)
 		}
 	case types.BroadCastTxIndex:
+		log.Info("bcTxs", "收到广播交易, from", m.SendAddress.Hex())
 		if bPool, ok := pool.(*BroadCastTxPool); ok {
 			bPool.ProcessMsg(m)
 		}
@@ -315,6 +316,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
+			log.Info("bcTxs", "send bc tx to", bid.Hex())
 			pm.SendMsg(MsgStruct{Msgtype: BroadCast, SendAddr: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
 		}
 		return nil

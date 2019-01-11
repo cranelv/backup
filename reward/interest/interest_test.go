@@ -149,7 +149,7 @@ func Test_interest_Calc(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -171,9 +171,9 @@ func Test_interest_Calc(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -243,7 +243,7 @@ func Test_interest_pay(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -265,9 +265,9 @@ func Test_interest_pay(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -361,7 +361,7 @@ func Test_interest_number(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -383,9 +383,9 @@ func Test_interest_number(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -446,7 +446,7 @@ func Test_interest_number2(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -468,9 +468,9 @@ func Test_interest_number2(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -531,7 +531,7 @@ func Test_interest3(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -553,9 +553,9 @@ func Test_interest3(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -620,7 +620,7 @@ func Test_interest4(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -642,9 +642,9 @@ func Test_interest4(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -710,7 +710,7 @@ func Test_interest5(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -732,9 +732,9 @@ func Test_interest5(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -808,7 +808,7 @@ func Test_interest6(t *testing.T) {
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
 			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
@@ -830,9 +830,9 @@ func Test_interest6(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
