@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -73,15 +72,6 @@ func (mp *MatrixProcessor) ProcessMatrixState(block *types.Block, state *state.S
 			return nil, err
 		}
 		return opt.GetValue(state)
-	}
-
-	// 测试代码
-	if block.NumberU64() == 50 {
-		opt, _ := mgr.FindOperator(mc.MSKeyAccountBroadcasts)
-		err := opt.SetValue(state, []common.Address{common.HexToAddress("0x6a3217d128a76e4777403e092bde8362d4117773"), common.HexToAddress("0x0a3f28de9682df49f9f393931062c5204c2bc404")})
-		if err != nil {
-			log.Error("测试代码", "设置广播账户失败", err)
-		}
 	}
 
 	mp.mu.RLock()
