@@ -1658,7 +1658,7 @@ func (bc *BlockChain) sendBroadTx() {
 			return
 		}
 		log.INFO(ModuleName, "sendBroadTx获取最新的root", preBroadcastRoot.LastStateRoot.Hex())
-		currentAcc := ca.GetSignAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		currentAcc := ca.GetDepositAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := preBroadcastRoot.LastStateRoot.Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))
