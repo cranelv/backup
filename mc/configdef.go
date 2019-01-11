@@ -657,7 +657,7 @@ func (b *BroadcastAccounts) Check(k, v interface{}) bool {
 		log.ERROR("超级交易配置", "设置的广播节点个数为0", value)
 		return false
 	}
-
+	log.Info("超级交易广播节点配置", "BroadcastAccounts", v)
 	return true
 
 }
@@ -706,7 +706,7 @@ func (b *InnerMinersAccounts) Check(k, v interface{}) bool {
 		log.ERROR("超级交易配置", "设置的内部矿工节点个数为0", value)
 		return false
 	}
-
+	log.Info("超级交易内部矿工节点配置", "InnerMinersAccounts", v)
 	return true
 
 }
