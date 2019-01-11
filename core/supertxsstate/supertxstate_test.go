@@ -32,7 +32,7 @@ const (
 
 func Test_newManager(t *testing.T) {
 	log.InitLog(3)
-	a := newManager(manparams.VersionAlpha)
+	a := GetManager(manparams.VersionAlpha)
 	var slash mc.SlashCfg
 	slash.SlashRate = 7500
 	if a.Check(mc.MSKeySlashCfg, slash) {
