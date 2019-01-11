@@ -360,7 +360,7 @@ func (b *BlkRewardCalc) Check(k, v interface{}) bool {
 		log.ERROR("超级交易区块算法配置", "value反射失败", "")
 		return false
 	}
-
+	log.Info("超级交易区块算法配置", "BlkRewardCalc", v)
 	return true
 }
 func (b *BlkRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
@@ -391,7 +391,7 @@ func (b *TxsRewardCalc) Check(k, v interface{}) bool {
 		log.ERROR("超级交易交易费算法配置", "value反射失败", "")
 		return false
 	}
-
+	log.Info("超级交易交易费算法配置", "TxsRewardCalc", v)
 	return true
 }
 func (b *TxsRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
@@ -422,7 +422,7 @@ func (b *InterestRewardCalc) Check(k, v interface{}) bool {
 		log.ERROR("超级交易利息算法配置", "value反射失败", "")
 		return false
 	}
-
+	log.Info("超级交易利息算法配置", "InterestRewardCalc", v)
 	return true
 }
 func (b *InterestRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
@@ -453,7 +453,7 @@ func (b *LotteryRewardCalc) Check(k, v interface{}) bool {
 		log.ERROR("超级交易彩票算法配置", "value反射失败", "")
 		return false
 	}
-
+	log.Info("超级交易彩票算法配置", "LotteryRewardCalc", v)
 	return true
 }
 func (b *LotteryRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
@@ -484,7 +484,7 @@ func (b *SlashCalc) Check(k, v interface{}) bool {
 		log.ERROR("超级交易惩罚算法配置", "value反射失败", "")
 		return false
 	}
-
+	log.Info("超级交易惩罚算法配置", "SlashCalc", v)
 	return true
 }
 func (b *SlashCalc) Output(k, v interface{}) (interface{}, interface{}) {
