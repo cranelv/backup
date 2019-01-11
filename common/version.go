@@ -164,5 +164,21 @@ var (
 				"ipfs下载请求修正及偶然的崩溃问题",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.20",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"uptime一直累加",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.21",
+			Submitter: "huyuankai",
+			Commit: []string{
+				"增加广播节点热备",
+				"状态树版本兼容调整",
+				"交易码判断错误bug修复",
+			},
+		},
 	}
 )

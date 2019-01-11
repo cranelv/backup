@@ -51,7 +51,7 @@ func (pp *posPool) getReqMsg() interface{} {
 
 func (pp *posPool) saveVoteMsg(reqHash common.Hash, sign common.Signature, from common.Address, cdc *cdc, signHelper *signhelper.SignHelper) error {
 	if (pp.reqHash == common.Hash{} || pp.reqMsg == nil) {
-		return ErrParamsIsNil
+		return ErrSelfReqIsNil
 	}
 	if cdc == nil || cdc.leaderCal == nil || signHelper == nil {
 		return ErrCDCOrSignHelperisNil

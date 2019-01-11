@@ -144,9 +144,12 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 	}
 	if nil != gensis1.MState {
 		gensis.MState = new(GenesisMState)
-		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(common.Address)
-			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
+		if nil != gensis1.MState.Broadcasts {
+			broadcasts := make([]common.Address, 0)
+			for _, b := range *gensis1.MState.Broadcasts {
+				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
+			}
+			gensis.MState.Broadcasts = &broadcasts
 		}
 		if nil != gensis1.MState.Foundation {
 			gensis.MState.Foundation = new(common.Address)
@@ -403,7 +406,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
 		return nil, errors.New("MState of genesis is nil")
 	}
-	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.NextElect, g.Number); err != nil {
+	if err := g.MState.setMatrixState(statedb, g.NetTopology, g.NextElect, g.Version, g.Number); err != nil {
 		log.Error("genesis", "MState.setMatrixState err", err)
 		return nil, err
 	}
@@ -468,11 +471,10 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		}
 	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Version, g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
-
 	}
 	if err := g.MState.SetSuperBlkToState(stateDB, g.ExtraData, g.Number); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)
