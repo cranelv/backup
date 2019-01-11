@@ -60,6 +60,9 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeySlashCalc:         new(mc.SlashCfg),
 			},
 		}
+	default:
+		log.Error(logInfo, "创建管理类", "失败", "版本", version)
+		return nil
 	}
 }
 
