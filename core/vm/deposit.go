@@ -283,7 +283,7 @@ func (md *MatrixDeposit) setAddress(contract *Contract, stateDB StateDB, address
 	// set signature address : deposit address
 	nodeXKey := append(contract.CallerAddress[:], 'N', 'X')
 	addressA1 := stateDB.GetState(contract.Address(), common.BytesToHash(nodeXKey))
-	if addressA1 == address.Hash(){
+	if addressA1 == address.Hash() {
 		return nil
 	}
 
@@ -563,19 +563,19 @@ func (md *MatrixDeposit) modifyDepositState(contract *Contract, evm *EVM, addr c
 	}
 	/*set deposit Role*/
 	err = md.setDepositRole(contract, evm.StateDB, depositRole)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (md *MatrixDeposit) setDepositRole(contract *Contract, stateDB StateDB, depositRole *big.Int) error{
+func (md *MatrixDeposit) setDepositRole(contract *Contract, stateDB StateDB, depositRole *big.Int) error {
 	depositRoleKey := append(contract.CallerAddress[:], 'R')
 	stateDB.SetState(contract.Address(), common.BytesToHash(depositRoleKey), common.BigToHash(depositRole))
 	return nil
 }
 
-func (md *MatrixDeposit) getDepositRole(contract *Contract, stateDB StateDB, addr common.Address) *big.Int{
+func (md *MatrixDeposit) getDepositRole(contract *Contract, stateDB StateDB, addr common.Address) *big.Int {
 	depositRoleKey := append(addr[:], 'R')
 	role := stateDB.GetState(contract.Address(), common.BytesToHash(depositRoleKey))
 

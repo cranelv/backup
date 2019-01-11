@@ -67,7 +67,7 @@ func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail
 
 func GetDepositAndWithDrawList(tm *big.Int) ([]vm.DepositDetail, error) {
 	db, err := getDepositInfo(tm)
-	if err != nil || db == nil{
+	if err != nil || db == nil {
 		return nil, err
 	}
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000)

@@ -60,7 +60,7 @@ func (self *HD) SetBadMsg(types string, subcode uint32, arg2 uint32, arg3 uint32
 		eParams.badMsgCode = 0
 		eParams.arg2 = 0
 		eParams.arg3 = 0
-	}else{
+	} else {
 		eParams.badType = types
 		eParams.badMsgCode = int(subcode)
 		eParams.arg2 = arg2
