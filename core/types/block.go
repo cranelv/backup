@@ -98,7 +98,24 @@ type headerMarshaling struct {
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
-	return rlpHash(h)
+	//return rlpHash(h)
+	return rlpHash([]interface{}{
+		h.ParentHash,
+		h.UncleHash,
+		h.Leader,
+		h.Roots,
+		h.Difficulty,
+		h.Number,
+		h.GasLimit,
+		h.GasUsed,
+		h.Time,
+		h.Elect,
+		h.NetTopology,
+		h.Signatures,
+		h.Extra,
+		h.Version,
+		h.VersionSignatures,
+	})
 }
 
 // HashNoNonce returns the hash which is used as input for the proof-of-work search.

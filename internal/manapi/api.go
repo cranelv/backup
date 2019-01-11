@@ -578,7 +578,7 @@ type RPCBalanceType struct {
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetBalance(cointype string, ctx context.Context, strAddress string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
+func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string, cointype string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -605,7 +605,7 @@ func (s *PublicBlockChainAPI) GetBalance(cointype string, ctx context.Context, s
 }
 
 //钱包调用
-func (s *PublicBlockChainAPI) GetEntrustList(cointype string, strAuthFrom string) []common.EntrustType {
+func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string,cointype string) []common.EntrustType {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
@@ -613,7 +613,7 @@ func (s *PublicBlockChainAPI) GetEntrustList(cointype string, strAuthFrom string
 	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
 	return state.GetAllEntrustList(cointype, authFrom)
 }
-func (s *PublicBlockChainAPI) GetAuthFrom(cointype string, strEntrustFrom string, height uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string,cointype string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
@@ -625,7 +625,7 @@ func (s *PublicBlockChainAPI) GetAuthFrom(cointype string, strEntrustFrom string
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFrom(cointype string, strAuthFrom string, height uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,cointype string, height uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
@@ -641,7 +641,7 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(cointype string, strAuthFrom string
 	}
 	return strAddrList
 }
-func (s *PublicBlockChainAPI) GetAuthFromByTime(cointype string, strEntrustFrom string, time uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, cointype string, time uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return ""
@@ -653,7 +653,7 @@ func (s *PublicBlockChainAPI) GetAuthFromByTime(cointype string, strEntrustFrom 
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFromByTime(cointype string, strAuthFrom string, time uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,cointype string, time uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
 		return nil
@@ -750,7 +750,7 @@ func (s *PublicBlockChainAPI) GetUncleCountByBlockHash(ctx context.Context, bloc
 }
 
 // GetCode returns the code stored at the given address in the state for the given block number.
-func (s *PublicBlockChainAPI) GetCode(cointype string, ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address,cointype string,  blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -762,7 +762,7 @@ func (s *PublicBlockChainAPI) GetCode(cointype string, ctx context.Context, addr
 // GetStorageAt returns the storage from the state at the given address, key and
 // block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta block
 // numbers are also allowed.
-func (s *PublicBlockChainAPI) GetStorageAt(cointype string, ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
+func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.Address, key string,cointype string, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -1486,7 +1486,7 @@ func (s *PublicTransactionPoolAPI) GetRawTransactionByBlockHashAndIndex(ctx cont
 }
 
 // GetTransactionCount returns the number of transactions the given address has sent for the given block number
-func (s *PublicTransactionPoolAPI) GetTransactionCount(cointype string, ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
+func (s *PublicTransactionPoolAPI) GetTransactionCount( ctx context.Context, strAddress string, cointype string,blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err

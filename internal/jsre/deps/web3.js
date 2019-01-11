@@ -4159,7 +4159,11 @@ var inputAddressFormatter = function (address) {
     } else if (utils.isAddress(address)) {
         return address;
     }
-    throw new Error('invalid address 111');
+    throw new Error('invalid address');
+};
+
+var inputCurrencyFormatter = function (currency) {
+    return currency.toLocaleUpperCase();
 };
 
 
@@ -4186,6 +4190,7 @@ module.exports = {
     inputNewCallFormatter: inputNewCallFormatter,
     inputTransactionFormatter: inputTransactionFormatter,
     inputAddressFormatter: inputAddressFormatter,
+    inputCurrencyFormatter: inputCurrencyFormatter,
     inputPostFormatter: inputPostFormatter,
     outputBigNumberFormatter: outputBigNumberFormatter,
     outputNewBigNumberFormatter: outputNewBigNumberFormatter,
@@ -5509,64 +5514,64 @@ var methods = function () {
     var getBalance = new Method({
         name: 'getBalance',
         call: 'eth_getBalance',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
     });
     var getUpTime = new Method({
         name: 'getUpTime',
         call: 'eth_getUpTime',
         params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
     });
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
-        params: 1,
-        inputFormatter: [formatters.inputAddressFormatter],
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getAuthFrom = new Method({
         name: 'getAuthFrom',
         call: 'eth_getAuthFrom',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getEntrustFrom = new Method({
         name: 'getEntrustFrom',
         call: 'eth_getEntrustFrom',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getAuthFromByTime = new Method({
         name: 'getAuthFromByTime',
         call: 'eth_getAuthFromByTime',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getEntrustFromByTime = new Method({
         name: 'getEntrustFromByTime',
         call: 'eth_getEntrustFromByTime',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'eth_getStorageAt',
-        params: 3,
-        inputFormatter: [null, utils.toHex, formatters.inputDefaultBlockNumberFormatter]
+        params: 4,
+        inputFormatter: [null, utils.toHex, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter]
     });
 
     var getCode = new Method({
         name: 'getCode',
         call: 'eth_getCode',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+        params: 3,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter]
     });
 
     var getBlock = new Method({
@@ -5640,8 +5645,8 @@ var methods = function () {
     var getTransactionCount = new Method({
         name: 'getTransactionCount',
         call: 'eth_getTransactionCount',
-        params: 2,
-        inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
+        params: 3,
+        inputFormatter: [null, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: utils.toDecimal
     });
 
