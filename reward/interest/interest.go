@@ -38,6 +38,18 @@ func (p DepositInterestRateList) Len() int           { return len(p) }
 func (p DepositInterestRateList) Less(i, j int) bool { return p[i].Deposit.Cmp(p[j].Deposit) < 0 }
 
 func New(st util.StateDB) *interest {
+
+	data, err := matrixstate.GetInterestCalc(st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误")
+		return nil
+	}
+
+	if data == util.Stop {
+		log.ERROR(PackageName, "停止发放区块奖励", "")
+		return nil
+	}
+
 	IC, err := matrixstate.GetInterestCfg(st)
 	if nil != err {
 		log.ERROR(PackageName, "获取利息状态树配置错误", "")
@@ -47,10 +59,7 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利息配置", "配置为nil")
 		return nil
 	}
-	if IC.InterestCalc == util.Stop {
-		log.ERROR(PackageName, "停止发放", PackageName)
-		return nil
-	}
+
 	if IC.PayInterval == 0 || 0 == IC.CalcInterval {
 		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
 		return nil
