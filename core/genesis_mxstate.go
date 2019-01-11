@@ -44,6 +44,10 @@ type GenesisMState struct {
 	ElectBlackListCfg      *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
 	ElectWhiteListCfg      *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
 	CurElect               *[]common.Elect         `json:"CurElect"  gencodec:"required"`
+	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
+	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
+	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
+	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
 }
 type GenesisMState1 struct {
 	Broadcasts             *[]string               `json:"Broadcasts,omitempty"`
@@ -73,6 +77,10 @@ type GenesisMState1 struct {
 	ElectBlackListCfg      *[]string               `json:"ElectBlackList" gencodec:"required"`
 	ElectWhiteListCfg      *[]string               `json:"ElectWhiteList" gencodec:"required"`
 	CurElect               *[]common.Elect1        `json:"curElect"    gencodec:"required"`
+	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
+	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
+	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
+	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
 }
 
 func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
@@ -167,6 +175,22 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setBCIntervalToState(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashStatsStatus(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashBlkList(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceStats(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashCfg(state, num); err != nil {
 		return err
 	}
 	return nil
@@ -776,4 +800,60 @@ func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64) erro
 		return matrixstate.SetBroadcastInterval(st, interval)
 	}
 	return nil
+}
+func (g *GenesisMState) setBlockProduceSlashCfg(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashCfg == nil {
+			return errors.New("区块生产惩罚配置信息为nil")
+		}
+	} else {
+		if g.BlockProduceSlashCfg == nil {
+			log.INFO("Geneis", "未修改区块生产惩罚配置信息为", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceSlashCfg", g.BlockProduceSlashCfg)
+	return matrixstate.SetBlockProduceSlashCfg(state, g.BlockProduceSlashCfg)
+}
+func (g *GenesisMState) setBlockProduceStats(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceStats == nil {
+			return nil
+		}
+	} else {
+		if g.BlockProduceStats == nil {
+			log.INFO("Geneis", "未修改区块生产惩罚统计信息", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceStats", g.BlockProduceStats)
+	return matrixstate.SetBlockProduceStats(state, g.BlockProduceStats)
+}
+func (g *GenesisMState) setBlockProduceSlashBlkList(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashBlackList == nil {
+			return nil
+		}
+	} else {
+		if g.BlockProduceSlashBlackList == nil {
+			log.INFO("Geneis", "未修改区块生产惩黑名单", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceBlackList", g.BlockProduceSlashBlackList)
+	return matrixstate.SetBlockProduceBlackList(state, g.BlockProduceSlashBlackList)
+}
+func (g *GenesisMState) setBlockProduceSlashStatsStatus(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashStatsStatus == nil {
+			return errors.New("区块生产惩状态信息为nil")
+		}
+	} else {
+		if g.BlockProduceSlashStatsStatus == nil {
+			log.INFO("Geneis", "未修改区块生产状态信息", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceSlashStatsStatus", g.BlockProduceSlashStatsStatus)
+	return matrixstate.SetBlockProduceStatsStatus(state, g.BlockProduceSlashStatsStatus)
 }

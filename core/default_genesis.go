@@ -491,7 +491,21 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteList": null
+		"ElectWhiteList": null,
+		"BlkProduceSlashCfg": {
+			"Switcher" : true,
+			"LowTHR"   : 1,
+			"ProhibitCycleNum" : 2
+		},
+		"BlkProduceStatus": {
+			"Number" : 0
+		},
+		"BlkProduceStats": {
+			"StatsList": []
+		},
+       "BlkProduceBlackList" : {
+			"BlackList" : []
+		}
     },
   "config": {
 					"chainID": 1,
@@ -821,6 +835,18 @@ func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesi
 				sliceElect = append(sliceElect, *tmp)
 			}
 			OutGensis.MState.CurElect = &sliceElect
+		}
+		if nil != cfgGenesis.MState.BlockProduceSlashCfg {
+			OutGensis.MState.BlockProduceSlashCfg = cfgGenesis.MState.BlockProduceSlashCfg
+		}
+		if nil != cfgGenesis.MState.BlockProduceSlashBlackList {
+			OutGensis.MState.BlockProduceSlashBlackList = cfgGenesis.MState.BlockProduceSlashBlackList
+		}
+		if nil != cfgGenesis.MState.BlockProduceSlashStatsStatus {
+			OutGensis.MState.BlockProduceSlashStatsStatus = cfgGenesis.MState.BlockProduceSlashStatsStatus
+		}
+		if nil != cfgGenesis.MState.BlockProduceStats {
+			OutGensis.MState.BlockProduceStats = cfgGenesis.MState.BlockProduceStats
 		}
 	}
 	return OutGensis

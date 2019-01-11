@@ -98,7 +98,28 @@ type Genesis1 struct {
 }
 type GenesisAlloc1 map[string]GenesisAccount //
 func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
-	gensis.Config = gensis1.Config
+	//gensis.Config = gensis1.Config
+
+	if nil != gensis1.Config {
+		if nil != gensis1.Config.ChainId {
+			gensis.Config.ChainId = gensis1.Config.ChainId
+		}
+		if nil != gensis1.Config.ByzantiumBlock {
+			gensis.Config.ByzantiumBlock = gensis1.Config.ByzantiumBlock
+		}
+		if nil != gensis1.Config.HomesteadBlock {
+			gensis.Config.HomesteadBlock = gensis1.Config.HomesteadBlock
+		}
+		if nil != gensis1.Config.EIP150Block {
+			gensis.Config.EIP150Block = gensis1.Config.EIP150Block
+		}
+		if nil != gensis1.Config.EIP155Block {
+			gensis.Config.EIP155Block = gensis1.Config.EIP155Block
+		}
+		if nil != gensis1.Config.EIP158Block {
+			gensis.Config.EIP158Block = gensis1.Config.EIP158Block
+		}
+	}
 	gensis.Nonce = gensis1.Nonce
 	gensis.Timestamp = gensis1.Timestamp
 	gensis.ExtraData = gensis1.ExtraData
@@ -241,6 +262,18 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			}
 			gensis.MState.CurElect = &curElect
 		}
+	}
+	if nil != gensis1.MState.BlockProduceSlashCfg {
+		gensis.MState.BlockProduceSlashCfg = gensis1.MState.BlockProduceSlashCfg
+	}
+	if nil != gensis1.MState.BlockProduceSlashBlackList {
+		gensis.MState.BlockProduceSlashBlackList = gensis1.MState.BlockProduceSlashBlackList
+	}
+	if nil != gensis1.MState.BlockProduceSlashStatsStatus {
+		gensis.MState.BlockProduceSlashStatsStatus = gensis1.MState.BlockProduceSlashStatsStatus
+	}
+	if nil != gensis1.MState.BlockProduceStats {
+		gensis.MState.BlockProduceStats = gensis1.MState.BlockProduceStats
 	}
 
 }

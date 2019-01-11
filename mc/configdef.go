@@ -62,6 +62,12 @@ const (
 	MSKeyInterestCalc = "interest_calc"
 	MSKeyLotteryCalc  = "lottery_calc"
 	MSKeySlashCalc    = "slash_calc"
+
+	//未出块选举惩罚配置相关
+	MSKeyBlockProduceStatsStatus = "block_produce_stats_status" //
+	MSKeyBlockProduceSlashCfg    = "block_produce_slash_cfg"    //
+	MSKeyBlockProduceStats       = "block_produce_stats"        //
+	MSKeyBlockProduceBlackList   = "block_produce_blacklist"    //
 )
 
 type BCIntervalInfo struct {
@@ -820,4 +826,62 @@ func (b *ElectWhiteList) Output(k, v interface{}) (interface{}, interface{}) {
 		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
 	}
 	return k, base58Accounts
+}
+
+type BlockProduceSlashCfg struct {
+	Switcher         bool
+	LowTHR           uint16
+	ProhibitCycleNum uint16
+}
+
+func (b *BlockProduceSlashCfg) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易出块惩罚配置", "k v为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易出块惩罚配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSKeyBlockProduceSlashCfg {
+		log.ERROR("超级交易出块惩罚配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(BlockProduceSlashCfg)
+	if !ok {
+		log.ERROR("超级交易出块惩罚配置", "value反射失败", "")
+		return false
+	}
+	log.Info("超级交易出块惩罚配置", "BlockProduceSlashCfg", v)
+	return true
+
+}
+
+func (b *BlockProduceSlashCfg) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
+
+type UserBlockProduceNum struct {
+	Address    common.Address
+	ProduceNum uint16
+}
+
+type BlockProduceStats struct {
+	StatsList []UserBlockProduceNum
+}
+
+type UserBlockProduceSlash struct {
+	Address              common.Address
+	ProhibitCycleCounter uint16
+}
+
+type BlockProduceSlashBlackList struct {
+	BlackList []UserBlockProduceSlash
+}
+
+type BlockProduceSlashStatsStatus struct {
+	Number uint64
 }
