@@ -74,9 +74,8 @@ func UdpSend(data interface{}) {
 }
 
 func send(address common.Address, data []byte) {
-	node := ServerP2p.ntab.GetAllAddress()
-	n, ok := node[address]
-	if !ok {
+	n := ServerP2p.ntab.ResolveNode(address, EmptyNodeId)
+	if n == nil {
 		log.Error("can't send udp to", "addr", address)
 		return
 	}

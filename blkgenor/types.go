@@ -41,7 +41,7 @@ var (
 
 type Backend interface {
 	BlockChain() *core.BlockChain
-	TxPool() *core.TxPoolManager //YYY
+	TxPool() *core.TxPoolManager //Y
 	EventMux() *event.TypeMux
 	SignHelper() *signhelper.SignHelper
 	HD() *msgsend.HD

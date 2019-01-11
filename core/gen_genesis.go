@@ -179,7 +179,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-//hezi
+//
 
 func (g Genesis1) MarshalJSON() ([]byte, error) {
 	type Genesis struct {

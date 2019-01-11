@@ -303,7 +303,7 @@ func initGenesis(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	//hezi
+	//
 
 	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 

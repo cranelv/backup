@@ -5,6 +5,7 @@
 package core
 
 import (
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -32,4 +33,6 @@ type Validator interface {
 // failed.
 type Processor interface {
 	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error)
+	SetRandom(random *baseinterface.Random)
+	ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
 }

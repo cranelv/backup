@@ -11,6 +11,7 @@ import (
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 )
 
@@ -198,5 +199,8 @@ type PendingStateEventer interface {
 }
 
 type StateReader interface {
-	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+	State() (*state.StateDB, error)
+	StateAt(root common.Hash) (*state.StateDB, error)
+	StateAtNumber(number uint64) (*state.StateDB, error)
+	StateAtBlockHash(hash common.Hash) (*state.StateDB, error)
 }

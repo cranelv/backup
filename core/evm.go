@@ -23,7 +23,7 @@ type ChainContext interface {
 	GetHeader(common.Hash, uint64) *types.Header
 }
 
-//YYY =========================begin============================
+//Y =========================begin============================
 // NewEVMContext creates a new context for use in the EVM.
 //func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author *common.Address) vm.Context {
 //	// If we don't have an explicit author (i.e. not mining), extract from the header
@@ -69,7 +69,7 @@ func NewEVMContext(sender common.Address, gasprice *big.Int, header *types.Heade
 	}
 }
 
-//YYY ====================================end================================
+//Y ====================================end================================
 // GetHashFn returns a GetHashFunc which retrieves header hashes by number
 func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash {
 	var cache map[uint64]common.Hash

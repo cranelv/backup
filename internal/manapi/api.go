@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/matrix/go-matrix/depoistInfo"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -308,7 +310,7 @@ func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (a
 func (s *PrivateAccountAPI) NewAccount(password string) (string, error) {
 	acc, err := fetchKeystore(s.am).NewAccount(password)
 	if err == nil {
-		return acc.ManAddress, nil
+		return acc.ManAddress(), nil
 	}
 	return "", err
 }
@@ -320,13 +322,13 @@ func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
-func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (common.Address, error) {
+func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (string, error) {
 	key, err := crypto.HexToECDSA(privkey)
 	if err != nil {
-		return common.Address{}, err
+		return "", err
 	}
 	acc, err := fetchKeystore(s.am).ImportECDSA(key, password)
-	return acc.Address, err
+	return acc.ManAddress(), err
 }
 func GetPassword() (string, error) {
 	password, err := console.Stdin.PromptPassword("Passphrase: ")
@@ -602,6 +604,18 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 
 	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*big.Int, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address := base58.Base58DecodeToAddress(strAddress)
+
+	read, _ := depoistInfo.GetOnlineTime(state, address)
+
+	return read, state.Error()
 }
 
 //钱包调用
@@ -1198,7 +1212,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	return fields, nil
 }
 
-//hezi
+//
 type RPCTransaction1 struct {
 	BlockHash        common.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big   `json:"blockNumber"`
@@ -1476,7 +1490,7 @@ func (s *PublicTransactionPoolAPI) getTransactionByHash1(ctx context.Context, ha
 	return nil
 }
 
-//hezi
+//
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction1 {
 	rpcTrans := s.getTransactionByHash1(ctx, hash)
 	if rpcTrans != nil {
@@ -1534,7 +1548,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
 	}
-
+	fields["from"] = base58.Base58EncodeToString("MAN", from)
+	fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)
@@ -1570,7 +1585,7 @@ func (s *PublicTransactionPoolAPI) sign(strAddr string, tx types.SelfTransaction
 	return wallet.SignTx(account, tx, chainID)
 }
 
-//YY
+//
 type ExtraTo_Mx struct {
 	To2    *common.Address `json:"to"`
 	Value2 *hexutil.Big    `json:"value"`
@@ -1590,10 +1605,10 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	TxType      byte           `json:"txType"`     //YY
-	LockHeight  uint64         `json:"lockHeight"` //YY
+	TxType      byte           `json:"txType"`     //
+	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //YY
+	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //
 }
 
 type ExtraTo_Mx1 struct {
@@ -1614,19 +1629,19 @@ type SendTxArgs1 struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	TxType      byte           `json:"txType"`     //YY
-	LockHeight  uint64         `json:"lockHeight"` //YY
+	TxType      byte           `json:"txType"`     //
+	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //YY
+	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Gas == nil {
 		args.Gas = new(hexutil.Uint64)
-		//YY
+		//
 		if len(args.ExtraTo) > 0 && args.LockHeight > 0 && args.TxType > 0 {
-			*(*uint64)(args.Gas) = 21000 * uint64(len(args.ExtraTo))
+			*(*uint64)(args.Gas) = 21000*uint64(len(args.ExtraTo)) + 21000
 		} else {
 			*(*uint64)(args.Gas) = 21000
 		}
@@ -1679,10 +1694,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
 	}
-	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //YY
+	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //
 		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
 	}
-	//YY
+	//
 	txtr := make([]*types.ExtraTo_tr, 0)
 	if len(args.ExtraTo) > 0 {
 		for _, extra := range args.ExtraTo {
@@ -1825,7 +1840,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
-	} else { //YY add else
+	} else { // add else
 		nc1 := params.NonceAddOne
 		nc := uint64(*args.Nonce)
 		if nc < nc1 {
@@ -1833,7 +1848,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 			return common.Hash{}, err
 		}
 	}
-	//YY
+	//
 	if len(args.ExtraTo) > 0 { //扩展交易中的to和input属性不填写则删掉这个扩展交易
 		extra := make([]*ExtraTo_Mx, 0)
 		for _, ar := range args.ExtraTo {

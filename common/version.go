@@ -134,5 +134,58 @@ var (
 				"modify the way to create signature file.",
 			},
 		},
+		CommitContext{
+			Version:   "Gman_Alg_0.0.16",
+			Submitter: "sunyang",
+			Commit: []string{
+				"增加setVoted方法，标识节点已对某共识请求投过票",
+				"在相关投票操作完成之后调用该方法标识该共识请求投票完成",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.17",
+			Submitter: "Ryan",
+			Commit: []string{
+				"modify deposit: delete old signature address, reset account after withdraw and refund",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.18",
+			Submitter: "Ryan",
+			Commit: []string{
+				"fix peer bug after change identity, fix change nodeId bug",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.19",
+			Submitter: "liubo",
+			Commit: []string{
+				"更新linux下终端无法显示log问题",
+				"ipfs下载请求修正及偶然的崩溃问题",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.20",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"uptime一直累加",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.21",
+			Submitter: "huyuankai",
+			Commit: []string{
+				"增加广播节点热备",
+				"状态树版本兼容调整",
+				"交易码判断错误bug修复",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.22",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改抵押竞选方式为按角色竞选(勇哥修改)",
+			},
+		},
 	}
 )

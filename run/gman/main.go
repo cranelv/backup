@@ -73,15 +73,15 @@ var (
 		utils.ManashDatasetsInMemoryFlag,
 		utils.ManashDatasetsOnDiskFlag,
 		utils.TxPoolNoLocalsFlag,
-		//utils.TxPoolJournalFlag, //YYY
+		//utils.TxPoolJournalFlag, //Y
 		//utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,
-		//utils.TxPoolPriceBumpFlag,//YYY
+		//utils.TxPoolPriceBumpFlag,//Y
 		utils.TxPoolAccountSlotsFlag,
 		utils.TxPoolGlobalSlotsFlag,
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
-		//utils.TxPoolLifetimeFlag,//YYY
+		//utils.TxPoolLifetimeFlag,//Y
 		utils.FastSyncFlag,
 		utils.LightModeFlag,
 		utils.SyncModeFlag,
@@ -148,8 +148,6 @@ func init() {
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2013-2018 The go-matrix Authors"
 	app.Commands = []cli.Command{
-		// See signcmd.go
-		signatureCommand,
 		// See chaincmd.go:
 		initCommand,
 		importCommand,

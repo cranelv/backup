@@ -240,7 +240,7 @@ var (
 		Name:  "txpool.nolocals",
 		Usage: "Disables price exemptions for locally submitted transactions",
 	}
-	//TxPoolJournalFlag = cli.StringFlag{ //YYY
+	//TxPoolJournalFlag = cli.StringFlag{ //Y
 	//	Name:  "txpool.journal",
 	//	Usage: "Disk journal for local transaction to survive node restarts",
 	//	Value: core.DefaultTxPoolConfig.Journal,
@@ -255,7 +255,7 @@ var (
 		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
 		Value: man.DefaultConfig.TxPool.PriceLimit,
 	}
-	//TxPoolPriceBumpFlag = cli.Uint64Flag{ //YYY
+	//TxPoolPriceBumpFlag = cli.Uint64Flag{ //Y
 	//	Name:  "txpool.pricebump",
 	//	Usage: "Price bump percentage to replace an already existing transaction",
 	//	Value: eth.DefaultConfig.TxPool.PriceBump,
@@ -280,7 +280,7 @@ var (
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
 		Value: man.DefaultConfig.TxPool.GlobalQueue,
 	}
-	//TxPoolLifetimeFlag = cli.DurationFlag{ //YYY
+	//TxPoolLifetimeFlag = cli.DurationFlag{ //Y
 	//	Name:  "txpool.lifetime",
 	//	Usage: "Maximum amount of time non-executable transaction are queued",
 	//	Value: eth.DefaultConfig.TxPool.Lifetime,
@@ -883,7 +883,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
 		innerAddr := base58.Base58DecodeToAddress(manAddr)
 		cfg.ManAddress = innerAddr
-		cfg.ManAddrStr = manAddr
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery
@@ -953,7 +952,7 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 }
 
 func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
-	//if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) { //YYY
+	//if ctx.GlobalIsSet(TxPoolNoLocalsFlag.Name) { //Y
 	//	cfg.NoLocals = ctx.GlobalBool(TxPoolNoLocalsFlag.Name)
 	//}
 	//if ctx.GlobalIsSet(TxPoolJournalFlag.Name) {
@@ -965,7 +964,7 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolPriceLimitFlag.Name) {
 		cfg.PriceLimit = ctx.GlobalUint64(TxPoolPriceLimitFlag.Name)
 	}
-	//if ctx.GlobalIsSet(TxPoolPriceBumpFlag.Name) {//YYY
+	//if ctx.GlobalIsSet(TxPoolPriceBumpFlag.Name) {//Y
 	//	cfg.PriceBump = ctx.GlobalUint64(TxPoolPriceBumpFlag.Name)
 	//}
 	if ctx.GlobalIsSet(TxPoolAccountSlotsFlag.Name) {
@@ -980,7 +979,7 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolGlobalQueueFlag.Name) {
 		cfg.GlobalQueue = ctx.GlobalUint64(TxPoolGlobalQueueFlag.Name)
 	}
-	//if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {//YYY
+	//if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {//Y
 	//	cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
 	//}
 }
