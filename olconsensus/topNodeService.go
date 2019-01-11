@@ -250,7 +250,7 @@ func (serv *TopNodeService) getTopNodeState(leader common.Address) (online, offl
 func (serv *TopNodeService) sendRequest(online, offline []common.Address) {
 	leader := ca.GetDepositAddress()
 	reqMsg := mc.HD_OnlineConsensusReqs{
-		From: leader,
+		From: ca.GetSignAddress(),
 	}
 	number, turn := serv.msgCheck.GetRound()
 	for _, item := range online {
