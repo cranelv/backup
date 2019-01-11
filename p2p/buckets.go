@@ -106,6 +106,11 @@ func (b *Bucket) Start() {
 				break
 			}
 
+			// down to default, disconnect all peers first
+			if b.role != h.Role && h.Role == common.RoleDefault {
+				b.disconnectPeers()
+			}
+
 			if b.role != h.Role {
 				b.role = h.Role
 			}
@@ -200,10 +205,7 @@ func (b *Bucket) disconnectMiner() {
 }
 
 // disconnectPeers disconnect all peers
-func (b *Bucket) disconnectPeers(drops []common.Address) {
-	for _, peer := range drops {
-		ServerP2p.RemovePeerByAddress(peer)
-	}
+func (b *Bucket) disconnectPeers() {
 	for _, peer := range ServerP2p.Peers() {
 		ServerP2p.RemovePeer(discover.NewNode(peer.ID(), nil, 0, 0))
 	}
