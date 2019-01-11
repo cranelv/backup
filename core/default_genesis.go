@@ -587,7 +587,6 @@ var (
 
 func DefaultGenesisToEthGensis(genesis1 *Genesis1, gensis *Genesis) *Genesis {
 	if nil != genesis1.Config {
-		gensis.Config = genesis1.Config
 		if nil != gensis.Config.ChainId {
 			gensis.Config.ChainId = genesis1.Config.ChainId
 		}
