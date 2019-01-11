@@ -155,7 +155,7 @@ func (b *ManAPIBackend) SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) e
 	return b.man.BlockChain().SubscribeChainSideEvent(ch)
 }
 
-func (b *ManAPIBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
+func (b *ManAPIBackend) SubscribeLogsEvent(ch chan<- []types.CoinLogs) event.Subscription {
 	return b.man.BlockChain().SubscribeLogsEvent(ch)
 }
 

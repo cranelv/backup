@@ -306,6 +306,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
+		//fmt.Printf("验证者%s\n",env.State.Dump(tx.GetTxCurrency(),tx.From()))
 		err, _ := env.s_commitTransaction(tx, bc, common.Address{}, new(core.GasPool).AddGas(0))
 		if err != nil {
 			log.Error("file work", "func ProcessTransactions:::reward Tx call Error", err)
@@ -315,6 +316,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp *core.TxPoolManager,
 		tmptxs = append(tmptxs, tx)
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
+		//fmt.Printf("验证者%s\n",env.State.Dump(tx.GetTxCurrency(),tx.From()))
 	}
 	tmps = append(tmps, finalTxs...)
 	finalTxs = tmps
@@ -383,7 +385,6 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		tx.SetTxCurrency(rewart.CoinType)
 		txers = append(txers, tx)
 	}
-
 	return
 }
 

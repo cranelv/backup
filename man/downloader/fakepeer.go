@@ -111,16 +111,12 @@ func (p *FakePeer) RequestHeadersByNumber(number uint64, amount int, skip int, r
 // corresponding to the specified block hashes.
 func (p *FakePeer) RequestBodies(hashes []common.Hash) error {
 	var (
-		txs    [][]types.CoinSelfTransaction
+		txs    [][]types.CurrencyBlock
 		uncles [][]*types.Header
 	)
 	for _, hash := range hashes {
 		block := rawdb.ReadBlock(p.db, hash, *p.hc.GetBlockNumber(hash))
-		cointx := make([]types.CoinSelfTransaction,0)
-		for _,currencie := range block.Currencies(){
-			cointx = append(cointx,types.CoinSelfTransaction{currencie.CurrencyName,currencie.Transactions.Transactions})
-		}
-		txs = append(txs,cointx)
+		txs = append(txs,block.Currencies())
 		uncles = append(uncles, block.Uncles())
 	}
 	p.dl.DeliverBodies(p.id, txs, uncles)

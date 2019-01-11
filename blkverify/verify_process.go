@@ -546,7 +546,6 @@ func (p *Process) verifyTxsAndState() {
 		return
 	}
 	finalTxs := work.GetTxs()
-
 	currencyblock:=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
 	localBlock := types.NewBlock(localHeader, currencyblock, nil)
 	// process matrix state
@@ -558,7 +557,6 @@ func (p *Process) verifyTxsAndState() {
 	}
 
 	// 运行完matrix state后，生成root
-	currencyblock=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
 	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, nil,currencyblock)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)

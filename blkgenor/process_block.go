@@ -152,9 +152,6 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []typ
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
-	finalTxs := work.GetTxs()
-	//ctx,crs:=types.GetCoinTXRS(finalTxs,)
-	cb:=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
 
 	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
@@ -164,7 +161,8 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []typ
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
 	}
-
+	finalTxs := work.GetTxs()
+	cb:=types.MakeCurencyBlock(finalTxs,work.Receipts,nil)
 	localBlock := types.NewBlock(localHeader, cb, nil)
 
 	// process matrix state

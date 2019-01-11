@@ -141,6 +141,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		header   = block.Header()
 		allLogs  []types.CoinLogs
 		gp       = new(GasPool).AddGas(block.GasLimit())
+		retAllGas uint64= 0
 	)
 	// Iterate over and process the individual transactions
 	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
@@ -186,24 +187,25 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			continue
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+		receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, 0, err
 		}
+		retAllGas += gas
 		if isvadter {
-			receipts = append(receipts, receipt)
+			//receipts = append(receipts, receipt)
 			allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
 			tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
 			tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipt)
 		} else {
 			if p.isaddSharding(shard, coinShard, tx.GetTxCurrency()) {
-				receipts = append(receipts, receipt)
+				//receipts = append(receipts, receipt)
 				allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
 				tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
 				tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipt)
 			}else{
 				if _,ok:=tmpMaptx[tx.GetTxCurrency()];ok{
-					receipts = append(receipts, nil)
+					//receipts = append(receipts, nil)
 					tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],nil)
 					tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],nil)
 				}
@@ -212,11 +214,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		txcount = i
 		from = append(from, tx.From())
 	}
-	err := p.ProcessReward(statedb, block.Header(), upTime, from, *usedGas)
+	err := p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	if err != nil {
 		return  nil, 0, err
 	}
 	for _, tx := range stxs {
+		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
@@ -242,23 +245,29 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		tmpl = append(tmpl, allLogs...)
 		allLogs = tmpl
 		ftxs = append(ftxs,tmptx)
+		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 	}
+	receipts = append(receipts,tmpMapre[params.MAN_COIN]...)
 	tmpMapre[params.MAN_COIN] = receipts
 	ftxs = append(ftxs,tmpMaptx[params.MAN_COIN]...)
 	tmpMaptx[params.MAN_COIN] = ftxs
 
 	//todo:
 	for i,bc := range block.Currencies(){
-		if !isvadter{
-			for _,cs := range coinShard{
-				if bc.CurrencyName == cs.CoinType{
-					block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],cs.Shardings)
-					block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],cs.Shardings)
+		if !isvadter {
+			if len(coinShard)>0{
+				for _, cs := range coinShard {
+					if bc.CurrencyName == cs.CoinType {
+						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], cs.Shardings)
+						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName], cs.Shardings)
+					}
 				}
+			}else {
+				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
 			}
-		}else {
-			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],nil)
-			block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],nil)
+
+		}else{
+			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

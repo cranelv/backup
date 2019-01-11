@@ -27,7 +27,7 @@ type Backend interface {
 	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //YYY
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
-	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
+	SubscribeLogsEvent(ch chan<- []types.CoinLogs) event.Subscription
 
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)

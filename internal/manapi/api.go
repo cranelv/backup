@@ -415,12 +415,6 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 	if err != nil {
 		return nil, err
 	}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//if (txcountaaaaaaa % uint64(2)) == 0{
-	//	args.Currency = "BTC"
-	//	txcountaaaaaaa ++
-	//}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYY
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return nil, err
@@ -678,11 +672,11 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(cointype string, strAuthFrom 
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	block, err := s.b.BlockByNumber(ctx, blockNr)
 	if block != nil {
 		//response, err := s.rpcOutputBlock(block, true, fullTx)
-		response, err := s.rpcOutputBlock1(block, true, fullTx,cointy)
+		response, err := s.rpcOutputBlock1(block, true, fullTx)
 		if err == nil && blockNr == rpc.PendingBlockNumber {
 			// Pending blocks need to nil out a few fields
 			for _, field := range []string{"hash", "nonce", "miner"} {
@@ -696,18 +690,18 @@ func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.
 
 // GetBlockByHash returns the requested block. When fullTx is true all transactions in the block are returned in full
 // detail, otherwise only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error) {
 	block, err := s.b.GetBlock(ctx, blockHash)
 	if block != nil {
 		//return s.rpcOutputBlock(block, true, fullTx)
-		return s.rpcOutputBlock1(block, true, fullTx,cointy)
+		return s.rpcOutputBlock1(block, true, fullTx)
 	}
 	return nil, err
 }
 
 // GetUncleByBlockNumberAndIndex returns the uncle block for the given block hash and index. When fullTx is true
 // all transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetUncleByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetUncleByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) (map[string]interface{}, error) {
 	block, err := s.b.BlockByNumber(ctx, blockNr)
 	if block != nil {
 		uncles := block.Uncles()
@@ -716,14 +710,14 @@ func (s *PublicBlockChainAPI) GetUncleByBlockNumberAndIndex(ctx context.Context,
 			return nil, nil
 		}
 		block = types.NewBlockWithHeader(uncles[index])
-		return s.rpcOutputBlock(block, false, false,cointy)
+		return s.rpcOutputBlock(block, false, false)
 	}
 	return nil, err
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle block for the given block hash and index. When fullTx is true
 // all transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
-func (s *PublicBlockChainAPI) GetUncleByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index hexutil.Uint,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) GetUncleByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index hexutil.Uint) (map[string]interface{}, error) {
 	block, err := s.b.GetBlock(ctx, blockHash)
 	if block != nil {
 		uncles := block.Uncles()
@@ -732,7 +726,7 @@ func (s *PublicBlockChainAPI) GetUncleByBlockHashAndIndex(ctx context.Context, b
 			return nil, nil
 		}
 		block = types.NewBlockWithHeader(uncles[index])
-		return s.rpcOutputBlock(block, false, false,cointy)
+		return s.rpcOutputBlock(block, false, false)
 	}
 	return nil, err
 }
@@ -1054,7 +1048,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 // rpcOutputBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
-func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
 		"number":            (*hexutil.Big)(head.Number),
@@ -1085,12 +1079,12 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 	}
 
 	if inclTx {
-		formatTx := func(tx types.SelfTransaction) (interface{}, error) {
+		formatTx := func(tx types.SelfTransaction,cointy string) (interface{}, error) {
 			return tx.Hash(), nil
 		}
 
 		if fullTx {
-			formatTx = func(tx types.SelfTransaction) (interface{}, error) {
+			formatTx = func(tx types.SelfTransaction,cointy string) (interface{}, error) {
 				return newRPCTransactionFromBlockHash(b, tx.Hash(),cointy), nil
 			}
 		}
@@ -1102,7 +1096,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 			transactions := make([]interface{}, len(txs))
 			var err error
 			for i, tx := range txs {
-				if transactions[i], err = formatTx(tx); err != nil {
+				if transactions[i], err = formatTx(tx,curr.CurrencyName); err != nil {
 					return nil, err
 				}
 			}
@@ -1122,7 +1116,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 }
 
 /************************************************************/
-func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullTx bool,cointy string) (map[string]interface{}, error) {
+func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	Coinbase1 := base58.Base58EncodeToString("MAN", head.Coinbase)
 	Leader1 := base58.Base58EncodeToString("MAN", head.Leader)
@@ -1178,12 +1172,12 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	}
 
 	if inclTx {
-		formatTx := func(tx types.SelfTransaction) (interface{}, error) {
+		formatTx := func(tx types.SelfTransaction,cointy string) (interface{}, error) {
 			return tx.Hash(), nil
 		}
 
 		if fullTx {
-			formatTx = func(tx types.SelfTransaction) (interface{}, error) {
+			formatTx = func(tx types.SelfTransaction,cointy string) (interface{}, error) {
 				return newRPCTransactionFromBlockHash(b, tx.Hash(),cointy), nil
 			}
 		}
@@ -1195,7 +1189,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 			transactions := make([]interface{}, len(txs))
 			var err error
 			for i, tx := range txs {
-				if transactions[i], err = formatTx(tx); err != nil {
+				if transactions[i], err = formatTx(tx,curr.CurrencyName); err != nil {
 					return nil, err
 				}
 			}

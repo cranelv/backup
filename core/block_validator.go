@@ -80,10 +80,11 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	// Validate the received block's bloom with the one derived from the generated receipts.
 	// For valid blocks this should always validate to true.
 	for _, currencie := range block.Currencies() {
-		ct,rbloom := currencie.CurrencyName,types.CreateBloom(currencie.Receipts.GetReceipts())
-		receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
+		ct := currencie.CurrencyName
 		for _,cr:=range header.Roots{
 			if cr.Cointyp==ct {
+				rbloom := types.CreateBloom(currencie.Receipts.GetReceipts())
+				receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
 				if rbloom != cr.Bloom {
 					return fmt.Errorf("invalid bloom (remote: %x  local: %x)", cr.Bloom, rbloom)
 				}
@@ -98,15 +99,20 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	// Validate the state root against the received state root and throw
 	// an error if they don't match.
 	var root []common.CoinRoot
-	//var Coinbyte	[] common.Coinbyte
 	root, _ = statedb.IntermediateRoot(v.config.IsEIP158(header.Number))
-	if types.RlpHash(root) != types.RlpHash(header.Roots) { //ShardingYY
+	isok := false
+	for _,cr := range root{
+		for _,br := range block.Root(){
+			if cr.Cointyp == br.Cointyp{
+				if cr.Root != br.Root{
+					isok = true
+				}
+			}
+		}
+	}
+	if isok { //ShardingYY
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Roots, root)
 	}
-	//if types.RlpHash(Coinbyte)	!=types.RlpHash(header.Sharding){//ShardingBB
-	//	return fmt.Errorf("invalid merkle Coinbyte (remote: %x local: %x)", header.Sharding, Coinbyte)
-	//}
-
 	return nil
 }
 

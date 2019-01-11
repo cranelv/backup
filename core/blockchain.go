@@ -1064,25 +1064,26 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 	}
-
-	//log.Info("miss tree node debug", "入链时", "commit前state状态")
-	//state.MissTrieDebug()
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
 	intermediateRoot, intermediateSharding := state.IntermediateRoot(deleteEmptyObjects) //shardingBB
-	//fmt.Printf("===ZH1==:%s\n", state.Dump())
 	root, _, err := state.Commit(deleteEmptyObjects) //ShardingBB1
 	if err != nil {
 		return NonStatTy, err
 	}
 	roothash := types.RlpHash(root) //ShardingYY
 	blockroothash := types.RlpHash(block.Root())
-	if roothash != blockroothash { //ShardingYY
-		//fmt.Printf("===ZH2==:%s\n", state.Dump())
+	isok := false
+	for _,cr := range root{
+		for _,br := range block.Root(){
+			if cr.Cointyp == br.Cointyp{
+				if cr.Root != br.Root{
+					isok = true
+				}
+			}
+		}
+	}
+	if isok { //ShardingYY
 		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", types.RlpHash(intermediateRoot), "intermediateSharding", types.RlpHash(intermediateSharding), "deleteEmptyObjects", deleteEmptyObjects)
-
-		//log.Info("miss tree node debug", "入链时", "commit后state状态")
-		//state.MissTrieDebug()
-
 		return NonStatTy, errors.New("root not match")
 	}
 
@@ -1398,7 +1399,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			root, _ = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())) //shardingYY
 			intermediateroothash := types.RlpHash(root)
 			blockroothash := types.RlpHash(block.Root()) //shardingYY
-			if blockroothash != intermediateroothash {
+			isok := false
+			for _,cr := range root{
+				for _,br := range block.Root(){
+					if cr.Cointyp == br.Cointyp{
+						if cr.Root != br.Root{
+							isok = true
+						}
+					}
+				}
+			}
+			if isok {
 				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", blockroothash, intermediateroothash)
 			}
 			//if types.RlpHash(Coinbyte)!=types.RlpHash(block.Sharding()) {	//shardingBB
@@ -1684,7 +1695,12 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 func (bc *BlockChain) PostChainEvents(events []interface{}, logs []types.CoinLogs) {
 	// post event logs for further processing
 	if logs != nil || len(logs)>0{
-		bc.logsFeed.Send(logs)
+		for _,l:=range logs{
+			if l.Logs != nil || len(l.Logs)>0{
+				bc.logsFeed.Send(logs)
+				break
+			}
+		}
 	}
 	for _, event := range events {
 		switch ev := event.(type) {
@@ -1935,7 +1951,7 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 }
 
 // SubscribeLogsEvent registers a subscription of []*types.Log.
-func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
+func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []types.CoinLogs) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
 }
 

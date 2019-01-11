@@ -93,7 +93,7 @@ type EventSystem struct {
 	install   chan *subscription         // install filter for event notification
 	uninstall chan *subscription         // remove filter for event notification
 	txsCh     chan core.NewTxsEvent      // Channel to receive new transactions event
-	logsCh    chan []*types.Log          // Channel to receive new log event
+	logsCh    chan []types.CoinLogs          // Channel to receive new log event
 	rmLogsCh  chan core.RemovedLogsEvent // Channel to receive removed log event
 	chainCh   chan core.ChainEvent       // Channel to receive new chain event
 }
@@ -112,7 +112,7 @@ func NewEventSystem(mux *event.TypeMux, backend Backend, lightMode bool) *EventS
 		install:   make(chan *subscription),
 		uninstall: make(chan *subscription),
 		txsCh:     make(chan core.NewTxsEvent, txChanSize),
-		logsCh:    make(chan []*types.Log, logsChanSize),
+		logsCh:    make(chan []types.CoinLogs, logsChanSize),
 		rmLogsCh:  make(chan core.RemovedLogsEvent, rmLogsChanSize),
 		chainCh:   make(chan core.ChainEvent, chainEvChanSize),
 	}
