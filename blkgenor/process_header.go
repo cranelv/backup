@@ -168,7 +168,7 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		Txs := make([]types.SelfTransaction, 0)
 		for _, txs := range mapTxs {
 			for _, tx := range txs {
-				log.Trace(p.logExtraInfo(), "交易数据", tx)
+				log.Trace(p.logExtraInfo(), "txpool:add()", tx)
 			}
 			Txs = append(Txs, txs...)
 		}

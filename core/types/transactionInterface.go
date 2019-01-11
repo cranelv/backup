@@ -4,6 +4,8 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"math/big"
+	"sort"
+	"github.com/matrix/go-matrix/params"
 )
 
 const (
@@ -108,8 +110,17 @@ func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
 		mm[cointype] = append(mm[cointype], tx)
 	}
 	cs := []CoinSelfTransaction{}
-	for k, v := range mm {
-		cs = append(cs, CoinSelfTransaction{k, v})
+	sorted_keys := make([]string, 0)
+	for k, _ := range mm {
+		sorted_keys = append(sorted_keys, k)
+	}
+	sort.Strings(sorted_keys)
+	cs = append(cs, CoinSelfTransaction{params.MAN_COIN, mm[params.MAN_COIN]})
+	for _, k := range sorted_keys {
+		if k == params.MAN_COIN{
+			continue
+		}
+		cs = append(cs, CoinSelfTransaction{k, mm[k]})
 	}
 	return cs
 }
@@ -123,8 +134,18 @@ func GetCoinTXRS(txs []SelfTransaction,rxs []*Receipt) ([]CoinSelfTransaction,[]
 		tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
 		rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],rxs[i])
 	}
-	for k,v:=range tm  {
-		tx=append(tx,CoinSelfTransaction{k,v})
+	sorted_keys := make([]string, 0)
+	for k, _ := range tm {
+		sorted_keys = append(sorted_keys, k)
+	}
+	sort.Strings(sorted_keys)
+	tx=append(tx,CoinSelfTransaction{params.MAN_COIN,tm[params.MAN_COIN]})
+	rx=append(rx,CoinReceipts{params.MAN_COIN,rm[params.MAN_COIN]})
+	for _,k:=range sorted_keys  {
+		if k == params.MAN_COIN{
+			continue
+		}
+		tx=append(tx,CoinSelfTransaction{k,tm[k]})
 		rx=append(rx,CoinReceipts{k,rm[k]})
 	}
 	return tx,rx
