@@ -490,9 +490,9 @@ func (self *StateDB) GetSaveTx(typ byte, key uint32, hashlist []common.Hash, isd
 			log.Info("file statedb", "func GetSaveTx:ExtraRevocable", "item is nil")
 			return
 		}
-		self.revocablebtrie.Root().Printree(2)
+		//self.revocablebtrie.Root().Printree(2)
 		delitem := self.revocablebtrie.Delete(item)
-		self.revocablebtrie.Root().Printree(2)
+		//self.revocablebtrie.Root().Printree(2)
 
 		log.Info("file statedb", "revocablebtrie func GetSaveTx:del item key", delitem.(btrie.SpcialTxData).Key_Time, "len(delitem.(trie.SpcialTxData).Value_Tx)", len(delitem.(btrie.SpcialTxData).Value_Tx))
 		log.Info("file statedb", "revocablebtrie func GetSaveTx:del item key", std.Key_Time)
@@ -513,9 +513,9 @@ func (self *StateDB) GetSaveTx(typ byte, key uint32, hashlist []common.Hash, isd
 			log.Info("file statedb", "func GetSaveTx:ExtraTimeTxType", "item is nil")
 			return
 		}
-		self.timebtrie.Root().Printree(2)
+		//self.timebtrie.Root().Printree(2)
 		delitem := self.timebtrie.Delete(item)
-		self.timebtrie.Root().Printree(2)
+		//self.timebtrie.Root().Printree(2)
 
 		log.Info("file statedb", "timebtrie func GetSaveTx:del item key", delitem.(btrie.SpcialTxData).Key_Time, "len(delitem.(trie.SpcialTxData).Value_Tx)", len(delitem.(btrie.SpcialTxData).Value_Tx))
 		log.Info("file statedb", "timebtrie func GetSaveTx:del item key", std.Key_Time)
