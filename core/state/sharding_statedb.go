@@ -371,6 +371,7 @@ func (shard *StateDBManage) GetStateByteArray(cointyp string, addr common.Addres
 	sd,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetStateByteArray:",err)
+		return nil
 	}
 	if stateObject != nil {
 		return stateObject.GetStateByteArray(sd.db, b)
@@ -517,6 +518,7 @@ func (shard StateDBManage) getStateObject(cointyp string, addr common.Address) (
 	self,err := shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_getStateObject:",err)
+		return nil
 	}
 	return self.getStateObject(addr)
 }
@@ -536,6 +538,7 @@ func (shard *StateDBManage) GetOrNewStateObject(cointyp string, addr common.Addr
 	statedb,err:=shard.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetOrNewStateObject:",err)
+		return nil
 	}
 	return statedb.GetOrNewStateObject(addr)
 }
@@ -821,6 +824,7 @@ func (self *StateDBManage) GetSaveTx(cointyp string, addr common.Address, typ by
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetSaveTx:",err)
+		return
 	}
 	statedb.GetSaveTx(typ,key,hashlist,isdel)
 }
@@ -908,6 +912,7 @@ func (self *StateDBManage) GetGasAuthFrom(cointyp string, addr common.Address, h
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetGasAuthFrom:",err)
+		return common.Address{}
 	}
 	return statedb.GetGasAuthFrom(addr, height)
 }
@@ -916,6 +921,7 @@ func (self *StateDBManage) GetAuthFrom(cointyp string, addr common.Address, heig
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetAuthFrom:",err)
+		return common.Address{}
 	}
 	return statedb.GetAuthFrom(addr, height)
 }
@@ -926,6 +932,7 @@ func (self *StateDBManage) GetEntrustFrom(cointyp string, addr common.Address, h
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetEntrustFrom:",err)
+		return nil
 	}
 	return statedb.GetEntrustFrom(addr, height)
 }
@@ -936,6 +943,7 @@ func (self *StateDBManage) GetAllEntrustSignFrom(cointyp string, addr common.Add
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetAllEntrustSignFrom:",err)
+		return nil
 	}
 	return statedb.GetAllEntrustSignFrom(addr)
 }
@@ -945,6 +953,7 @@ func (self *StateDBManage) GetAllEntrustGasFrom(cointyp string, addr common.Addr
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetAllEntrustGasFrom:",err)
+		return nil
 	}
 	return statedb.GetAllEntrustGasFrom(addr)
 }
@@ -954,6 +963,7 @@ func (self *StateDBManage) GetEntrustFromByTime(cointyp string, addr common.Addr
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetEntrustFromByTime:",err)
+		return nil
 	}
 	return statedb.GetEntrustFromByTime(addr, time)
 }
@@ -964,6 +974,7 @@ func (self *StateDBManage) GetIsEntrustByTime(cointyp string, addr common.Addres
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetIsEntrustByTime:",err)
+		return false
 	}
 	return statedb.GetIsEntrustByTime(addr, time)
 }
@@ -974,6 +985,7 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string, addr common.Address
 	statedb,err:=self.GetStateDb(cointyp, addr)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_GetAllEntrustList:",err)
+		return nil
 	}
 	return statedb.GetAllEntrustList(addr)
 }
@@ -994,6 +1006,7 @@ func (self *StateDBManage) RawDump(cointype string, address common.Address) Dump
 	statedb,err:=self.GetStateDb(cointype, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_RawDump:",err)
+		return Dump{}
 	}
 	return statedb.RawDump()
 
@@ -1004,6 +1017,7 @@ func (self *StateDBManage) Dump(cointype string, address common.Address) []byte 
 	statedb,err:=self.GetStateDb(cointype, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_Dump:",err)
+		return nil
 	}
 	return statedb.Dump()
 	//json, err := json.MarshalIndent(self.RawDump(cointype, address), "", "    ")
@@ -1019,6 +1033,7 @@ func (self *StateDBManage) RawDumpAcccount(cointype string, address common.Addre
 	statedb,err:=self.GetStateDb(cointype, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_RawDumpAcccount:",err)
+		return Dump{}
 	}
 	return statedb.RawDumpAcccount(address)
 	//var dump Dump

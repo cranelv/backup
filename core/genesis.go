@@ -401,7 +401,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 			statedb.SetState(params.MAN_COIN, addr, key, value) //ShardingYY
 		}
 		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-		statedb.AddBalance(params.BTC_COIN, common.MainAccount, addr, account.Balance) //ShardingYY
+		statedb.AddBalance(params.BTC_COIN, common.MainAccount, addr, new(big.Int).Div(account.Balance,(new(big.Int).SetUint64(2)))) //ShardingYY
 		statedb.SetCode(params.BTC_COIN, addr, account.Code)                           //ShardingYY
 		statedb.SetNonce(params.BTC_COIN, addr, account.Nonce)                         //ShardingYY
 		for key, value := range account.Storage {
