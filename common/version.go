@@ -180,5 +180,12 @@ var (
 				"交易码判断错误bug修复",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.22",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改抵押竞选方式为按角色竞选(勇哥修改)",
+			},
+		},
 	}
 )
