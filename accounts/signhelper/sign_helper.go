@@ -196,9 +196,9 @@ func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash commo
 func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []byte, blkHash common.Hash) (common.Address, common.Address, bool, error) {
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
-	accountA0, _, err := sh.authReader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0)
-	return accountA0, addr, flag, err
+	accountA0, accountA1, err := sh.authReader.GetA0AccountFromAnyAccount(addr, blkHash)
+	log.ERROR(ModeLog, "addr", addr, "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0, "A1Account", accountA1.Hex())
+	return accountA0, accountA1, flag, err
 }
 
 func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash []byte, sig []byte, blkHash common.Hash) (common.Address, common.Address, bool, error) {
@@ -207,7 +207,7 @@ func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash
 	}
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
-	accountA0, _, err := reader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr.Hex(), "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0.Hex())
-	return accountA0, addr, flag, err
+	accountA0, accountA1, err := reader.GetA0AccountFromAnyAccount(addr, blkHash)
+	log.ERROR(ModeLog, "addr", addr.Hex(), "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0.Hex(), "A1Account", accountA1.Hex())
+	return accountA0, accountA1, flag, err
 }

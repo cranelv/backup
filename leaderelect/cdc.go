@@ -351,7 +351,6 @@ func (dc *cdc) GetA2AccountsFromA0Account(a0Account common.Address, blockHash co
 	height := dc.number - 1
 	a2Accounts := dc.parentState.GetEntrustFrom(a1Account, height)
 	if len(a2Accounts) == 0 {
-		a2Accounts = append(a2Accounts, a1Account)
 		log.INFO(common.SignLog, "cdc获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
 	} else {
 		log.Info(common.SignLog, "cdc获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
@@ -359,6 +358,7 @@ func (dc *cdc) GetA2AccountsFromA0Account(a0Account common.Address, blockHash co
 			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
 		}
 	}
+	a2Accounts = append(a2Accounts, a1Account)
 	return a2Accounts, nil
 }
 

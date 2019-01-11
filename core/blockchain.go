@@ -2290,7 +2290,6 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block
 	//根据区块高度、A1账户从区块链数据库中获取A2账户
 	a2Accounts = st.GetEntrustFrom(a1Account, height)
 	if len(a2Accounts) == 0 {
-		a2Accounts = append(a2Accounts, a1Account)
 		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
 	} else {
 		log.Info(common.SignLog, "获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
@@ -2298,6 +2297,7 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block
 			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
 		}
 	}
+	a2Accounts = append(a2Accounts, a1Account)
 	//返回A2账户
 	return a2Accounts, nil
 }
@@ -2409,7 +2409,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
 	if err == nil {
 		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户，输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
-		return a0Account, common.Address{0}, nil
+		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
 	a1Account, err := bc.GetA1AccountFromA2Account(account, blockHash)
