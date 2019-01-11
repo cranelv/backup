@@ -585,245 +585,245 @@ var (
 `
 )
 
-func DefaultGenesisToEthGensis(genesis1 *Genesis1, gensis *Genesis) *Genesis {
-	if nil != genesis1.Config {
-		if nil != gensis.Config.ChainId {
-			gensis.Config.ChainId = genesis1.Config.ChainId
+func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesis {
+	if nil != cfgGenesis.Config {
+		if nil != cfgGenesis.Config.ChainId {
+			OutGensis.Config.ChainId = cfgGenesis.Config.ChainId
 		}
-		if nil != gensis.Config.ByzantiumBlock {
-			gensis.Config.ByzantiumBlock = genesis1.Config.ByzantiumBlock
+		if nil != cfgGenesis.Config.ByzantiumBlock {
+			OutGensis.Config.ByzantiumBlock = cfgGenesis.Config.ByzantiumBlock
 		}
-		if nil != gensis.Config.HomesteadBlock {
-			gensis.Config.HomesteadBlock = genesis1.Config.HomesteadBlock
+		if nil != cfgGenesis.Config.HomesteadBlock {
+			OutGensis.Config.HomesteadBlock = cfgGenesis.Config.HomesteadBlock
 		}
-		if nil != gensis.Config.EIP150Block {
-			gensis.Config.EIP150Block = genesis1.Config.EIP150Block
+		if nil != cfgGenesis.Config.EIP150Block {
+			OutGensis.Config.EIP150Block = cfgGenesis.Config.EIP150Block
 		}
-		if nil != gensis.Config.EIP155Block {
-			gensis.Config.EIP155Block = genesis1.Config.EIP155Block
+		if nil != cfgGenesis.Config.EIP155Block {
+			OutGensis.Config.EIP155Block = cfgGenesis.Config.EIP155Block
 		}
-		if nil != gensis.Config.EIP158Block {
-			gensis.Config.EIP158Block = genesis1.Config.EIP158Block
+		if nil != cfgGenesis.Config.EIP158Block {
+			OutGensis.Config.EIP158Block = cfgGenesis.Config.EIP158Block
 		}
 	}
-	if genesis1.Nonce != 0 {
-		gensis.Nonce = genesis1.Nonce
+	if cfgGenesis.Nonce != 0 {
+		OutGensis.Nonce = cfgGenesis.Nonce
 	}
-	if genesis1.Timestamp != 0 {
-		gensis.Timestamp = genesis1.Timestamp
+	if cfgGenesis.Timestamp != 0 {
+		OutGensis.Timestamp = cfgGenesis.Timestamp
 	}
-	if len(genesis1.ExtraData) != 0 {
-		gensis.ExtraData = genesis1.ExtraData
+	if len(cfgGenesis.ExtraData) != 0 {
+		OutGensis.ExtraData = cfgGenesis.ExtraData
 	}
-	if genesis1.Version != "" {
-		gensis.Version = genesis1.Version
+	if cfgGenesis.Version != "" {
+		OutGensis.Version = cfgGenesis.Version
 	}
-	if len(genesis1.VersionSignatures) != 0 {
-		gensis.VersionSignatures = genesis1.VersionSignatures
+	if len(cfgGenesis.VersionSignatures) != 0 {
+		OutGensis.VersionSignatures = cfgGenesis.VersionSignatures
 	}
-	if len(genesis1.VrfValue) != 0 {
-		gensis.VrfValue = genesis1.VrfValue
+	if len(cfgGenesis.VrfValue) != 0 {
+		OutGensis.VrfValue = cfgGenesis.VrfValue
 	}
-	if len(genesis1.Signatures) != 0 {
-		gensis.Signatures = genesis1.Signatures
+	if len(cfgGenesis.Signatures) != 0 {
+		OutGensis.Signatures = cfgGenesis.Signatures
 	}
-	if nil != genesis1.Difficulty {
-		gensis.Difficulty = genesis1.Difficulty
+	if nil != cfgGenesis.Difficulty {
+		OutGensis.Difficulty = cfgGenesis.Difficulty
 	}
-	if genesis1.Mixhash.Equal(common.Hash{}) == false {
-		gensis.Mixhash = genesis1.Mixhash
+	if cfgGenesis.Mixhash.Equal(common.Hash{}) == false {
+		OutGensis.Mixhash = cfgGenesis.Mixhash
 	}
-	if genesis1.Number != 0 {
-		gensis.Number = genesis1.Number
+	if cfgGenesis.Number != 0 {
+		OutGensis.Number = cfgGenesis.Number
 	}
-	if genesis1.GasUsed != 0 {
-		gensis.GasUsed = genesis1.GasUsed
+	if cfgGenesis.GasUsed != 0 {
+		OutGensis.GasUsed = cfgGenesis.GasUsed
 	}
-	if genesis1.ParentHash.Equal(common.Hash{}) == false {
-		gensis.ParentHash = genesis1.ParentHash
+	if cfgGenesis.ParentHash.Equal(common.Hash{}) == false {
+		OutGensis.ParentHash = cfgGenesis.ParentHash
 	}
 
-	if genesis1.Leader != "" {
-		gensis.Leader = base58.Base58DecodeToAddress(genesis1.Leader)
+	if cfgGenesis.Leader != "" {
+		OutGensis.Leader = base58.Base58DecodeToAddress(cfgGenesis.Leader)
 	}
-	if genesis1.Coinbase != "" {
-		gensis.Coinbase = base58.Base58DecodeToAddress(genesis1.Coinbase)
+	if cfgGenesis.Coinbase != "" {
+		OutGensis.Coinbase = base58.Base58DecodeToAddress(cfgGenesis.Coinbase)
 	}
-	if genesis1.Root.Equal(common.Hash{}) == false {
-		gensis.Root = genesis1.Root
+	if cfgGenesis.Root.Equal(common.Hash{}) == false {
+		OutGensis.Root = cfgGenesis.Root
 	}
-	if genesis1.TxHash.Equal(common.Hash{}) == false {
-		gensis.TxHash = genesis1.TxHash
+	if cfgGenesis.TxHash.Equal(common.Hash{}) == false {
+		OutGensis.TxHash = cfgGenesis.TxHash
 	}
 	//nextElect
-	if nil != genesis1.NextElect {
+	if nil != cfgGenesis.NextElect {
 		sliceElect := make([]common.Elect, 0)
-		for _, elec := range genesis1.NextElect {
+		for _, elec := range cfgGenesis.NextElect {
 			tmp := new(common.Elect)
 			tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 			tmp.Stock = elec.Stock
 			tmp.Type = elec.Type
 			sliceElect = append(sliceElect, *tmp)
 		}
-		gensis.NextElect = sliceElect
+		OutGensis.NextElect = sliceElect
 	}
 
 	//NetTopology
-	if len(genesis1.NetTopology.NetTopologyData) != 0 {
+	if len(cfgGenesis.NetTopology.NetTopologyData) != 0 {
 		sliceNetTopologyData := make([]common.NetTopologyData, 0)
-		for _, netTopology := range genesis1.NetTopology.NetTopologyData {
+		for _, netTopology := range cfgGenesis.NetTopology.NetTopologyData {
 			tmp := new(common.NetTopologyData)
 			tmp.Account = base58.Base58DecodeToAddress(netTopology.Account)
 			tmp.Position = netTopology.Position
 			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
 		}
-		gensis.NetTopology.NetTopologyData = sliceNetTopologyData
-		gensis.NetTopology.Type = genesis1.NetTopology.Type
+		OutGensis.NetTopology.NetTopologyData = sliceNetTopologyData
+		OutGensis.NetTopology.Type = cfgGenesis.NetTopology.Type
 	}
 
 	//Alloc
-	if nil != genesis1.Alloc {
-		gensis.Alloc = make(GenesisAlloc)
-		for kString, vGenesisAccount := range genesis1.Alloc {
+	if nil != cfgGenesis.Alloc {
+		OutGensis.Alloc = make(GenesisAlloc)
+		for kString, vGenesisAccount := range cfgGenesis.Alloc {
 			tmpk := base58.Base58DecodeToAddress(kString)
-			gensis.Alloc[tmpk] = vGenesisAccount
+			OutGensis.Alloc[tmpk] = vGenesisAccount
 		}
 	}
 
-	if nil != genesis1.MState {
-		if gensis.MState == nil {
-			gensis.MState = new(GenesisMState)
+	if nil != cfgGenesis.MState {
+		if OutGensis.MState == nil {
+			OutGensis.MState = new(GenesisMState)
 		}
-		if nil != genesis1.MState.Broadcasts {
+		if nil != cfgGenesis.MState.Broadcasts {
 			broadcasts := make([]common.Address, 0)
-			for _, b := range *genesis1.MState.Broadcasts {
+			for _, b := range *cfgGenesis.MState.Broadcasts {
 				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
 			}
-			gensis.MState.Broadcasts = &broadcasts
+			OutGensis.MState.Broadcasts = &broadcasts
 		}
-		if nil != genesis1.MState.Foundation {
-			gensis.MState.Foundation = new(common.Address)
-			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*genesis1.MState.Foundation)
+		if nil != cfgGenesis.MState.Foundation {
+			OutGensis.MState.Foundation = new(common.Address)
+			*OutGensis.MState.Foundation = base58.Base58DecodeToAddress(*cfgGenesis.MState.Foundation)
 		}
-		if nil != genesis1.MState.VersionSuperAccounts {
+		if nil != cfgGenesis.MState.VersionSuperAccounts {
 			versionSuperAccounts := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.VersionSuperAccounts {
+			for _, v := range *cfgGenesis.MState.VersionSuperAccounts {
 				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
+			OutGensis.MState.VersionSuperAccounts = &versionSuperAccounts
 		}
-		if nil != genesis1.MState.BlockSuperAccounts {
+		if nil != cfgGenesis.MState.BlockSuperAccounts {
 			blockSuperAccounts := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.BlockSuperAccounts {
+			for _, v := range *cfgGenesis.MState.BlockSuperAccounts {
 				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
+			OutGensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
-		if nil != genesis1.MState.TxsSuperAccounts {
+		if nil != cfgGenesis.MState.TxsSuperAccounts {
 			TxsSuperAccounts := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.TxsSuperAccounts {
+			for _, v := range *cfgGenesis.MState.TxsSuperAccounts {
 				TxsSuperAccounts = append(TxsSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.TxsSuperAccounts = &TxsSuperAccounts
+			OutGensis.MState.TxsSuperAccounts = &TxsSuperAccounts
 		}
-		if nil != genesis1.MState.MultiCoinSuperAccounts {
+		if nil != cfgGenesis.MState.MultiCoinSuperAccounts {
 			MultiCoinSuperAccounts := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.MultiCoinSuperAccounts {
+			for _, v := range *cfgGenesis.MState.MultiCoinSuperAccounts {
 				MultiCoinSuperAccounts = append(MultiCoinSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
+			OutGensis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
 		}
 
-		if nil != genesis1.MState.SubChainSuperAccounts {
+		if nil != cfgGenesis.MState.SubChainSuperAccounts {
 			SubChainSuperAccounts := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.SubChainSuperAccounts {
+			for _, v := range *cfgGenesis.MState.SubChainSuperAccounts {
 				SubChainSuperAccounts = append(SubChainSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
+			OutGensis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
 		}
-		if nil != genesis1.MState.InnerMiners {
+		if nil != cfgGenesis.MState.InnerMiners {
 			innerMiners := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.InnerMiners {
+			for _, v := range *cfgGenesis.MState.InnerMiners {
 				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.InnerMiners = &innerMiners
+			OutGensis.MState.InnerMiners = &innerMiners
 		}
-		if nil != genesis1.MState.ElectBlackListCfg {
+		if nil != cfgGenesis.MState.ElectBlackListCfg {
 			blackList := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.ElectBlackListCfg {
+			for _, v := range *cfgGenesis.MState.ElectBlackListCfg {
 				blackList = append(blackList, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.ElectBlackListCfg = &blackList
+			OutGensis.MState.ElectBlackListCfg = &blackList
 		}
-		if nil != genesis1.MState.ElectWhiteListCfg {
+		if nil != cfgGenesis.MState.ElectWhiteListCfg {
 			whiteList := make([]common.Address, 0)
-			for _, v := range *genesis1.MState.ElectWhiteListCfg {
+			for _, v := range *cfgGenesis.MState.ElectWhiteListCfg {
 				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.ElectBlackListCfg = &whiteList
+			OutGensis.MState.ElectBlackListCfg = &whiteList
 		}
-		if nil != genesis1.MState.ElectMinerNumCfg {
-			gensis.MState.ElectMinerNumCfg = genesis1.MState.ElectMinerNumCfg
+		if nil != cfgGenesis.MState.ElectMinerNumCfg {
+			OutGensis.MState.ElectMinerNumCfg = cfgGenesis.MState.ElectMinerNumCfg
 		}
-		if nil != genesis1.MState.BlkCalcCfg {
-			gensis.MState.BlkCalcCfg = genesis1.MState.BlkCalcCfg
+		if nil != cfgGenesis.MState.BlkCalcCfg {
+			OutGensis.MState.BlkCalcCfg = cfgGenesis.MState.BlkCalcCfg
 		}
-		if nil != genesis1.MState.TxsCalcCfg {
-			gensis.MState.TxsCalcCfg = genesis1.MState.TxsCalcCfg
+		if nil != cfgGenesis.MState.TxsCalcCfg {
+			OutGensis.MState.TxsCalcCfg = cfgGenesis.MState.TxsCalcCfg
 		}
-		if nil != genesis1.MState.InterestCalcCfg {
-			gensis.MState.InterestCalcCfg = genesis1.MState.InterestCalcCfg
+		if nil != cfgGenesis.MState.InterestCalcCfg {
+			OutGensis.MState.InterestCalcCfg = cfgGenesis.MState.InterestCalcCfg
 		}
-		if nil != genesis1.MState.LotteryCalcCfg {
-			gensis.MState.LotteryCalcCfg = genesis1.MState.LotteryCalcCfg
+		if nil != cfgGenesis.MState.LotteryCalcCfg {
+			OutGensis.MState.LotteryCalcCfg = cfgGenesis.MState.LotteryCalcCfg
 		}
-		if nil != genesis1.MState.SlashCalcCfg {
-			gensis.MState.SlashCalcCfg = genesis1.MState.SlashCalcCfg
+		if nil != cfgGenesis.MState.SlashCalcCfg {
+			OutGensis.MState.SlashCalcCfg = cfgGenesis.MState.SlashCalcCfg
 		}
-		if nil != genesis1.MState.BlkRewardCfg {
-			gensis.MState.BlkRewardCfg = genesis1.MState.BlkRewardCfg
+		if nil != cfgGenesis.MState.BlkRewardCfg {
+			OutGensis.MState.BlkRewardCfg = cfgGenesis.MState.BlkRewardCfg
 		}
-		if nil != genesis1.MState.TxsRewardCfg {
-			gensis.MState.TxsRewardCfg = genesis1.MState.TxsRewardCfg
+		if nil != cfgGenesis.MState.TxsRewardCfg {
+			OutGensis.MState.TxsRewardCfg = cfgGenesis.MState.TxsRewardCfg
 		}
-		if nil != genesis1.MState.InterestCfg {
-			gensis.MState.InterestCfg = genesis1.MState.InterestCfg
+		if nil != cfgGenesis.MState.InterestCfg {
+			OutGensis.MState.InterestCfg = cfgGenesis.MState.InterestCfg
 		}
-		if nil != genesis1.MState.LotteryCfg {
-			gensis.MState.LotteryCfg = genesis1.MState.LotteryCfg
+		if nil != cfgGenesis.MState.LotteryCfg {
+			OutGensis.MState.LotteryCfg = cfgGenesis.MState.LotteryCfg
 		}
-		if nil != genesis1.MState.SlashCfg {
-			gensis.MState.SlashCfg = genesis1.MState.SlashCfg
+		if nil != cfgGenesis.MState.SlashCfg {
+			OutGensis.MState.SlashCfg = cfgGenesis.MState.SlashCfg
 		}
-		if nil != genesis1.MState.BCICfg {
-			gensis.MState.BCICfg = genesis1.MState.BCICfg
+		if nil != cfgGenesis.MState.BCICfg {
+			OutGensis.MState.BCICfg = cfgGenesis.MState.BCICfg
 		}
-		if nil != genesis1.MState.VIPCfg {
-			gensis.MState.VIPCfg = genesis1.MState.VIPCfg
+		if nil != cfgGenesis.MState.VIPCfg {
+			OutGensis.MState.VIPCfg = cfgGenesis.MState.VIPCfg
 		}
-		if nil != genesis1.MState.LeaderCfg {
-			gensis.MState.LeaderCfg = genesis1.MState.LeaderCfg
+		if nil != cfgGenesis.MState.LeaderCfg {
+			OutGensis.MState.LeaderCfg = cfgGenesis.MState.LeaderCfg
 		}
-		if nil != genesis1.MState.EleTimeCfg {
-			gensis.MState.EleTimeCfg = genesis1.MState.EleTimeCfg
+		if nil != cfgGenesis.MState.EleTimeCfg {
+			OutGensis.MState.EleTimeCfg = cfgGenesis.MState.EleTimeCfg
 		}
-		if nil != genesis1.MState.EleInfoCfg {
-			gensis.MState.EleInfoCfg = genesis1.MState.EleInfoCfg
+		if nil != cfgGenesis.MState.EleInfoCfg {
+			OutGensis.MState.EleInfoCfg = cfgGenesis.MState.EleInfoCfg
 		}
 		//curElect
-		if nil != genesis1.MState.CurElect {
+		if nil != cfgGenesis.MState.CurElect {
 			sliceElect := make([]common.Elect, 0)
-			for _, elec := range *genesis1.MState.CurElect {
+			for _, elec := range *cfgGenesis.MState.CurElect {
 				tmp := new(common.Elect)
 				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
 				tmp.Stock = elec.Stock
 				tmp.Type = elec.Type
 				sliceElect = append(sliceElect, *tmp)
 			}
-			gensis.MState.CurElect = &sliceElect
+			OutGensis.MState.CurElect = &sliceElect
 		}
 	}
-	return gensis
+	return OutGensis
 }
 
 func GetDefaultGeneis() (*Genesis, error) {
