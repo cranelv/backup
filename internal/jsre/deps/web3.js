@@ -5731,7 +5731,7 @@ var methods = function () {
         name: 'getTopologyStatus',
         call: 'eth_getTopologyStatusByNumber',
         params: 1,
-        inputFormatter: [utils.toDecimal]
+        inputFormatter: [formatters.inputBlockNumberFormatter]
     });
 
     return [

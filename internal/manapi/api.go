@@ -941,11 +941,6 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 	return hexutil.Uint64(hi), nil
 }
 
-// GetTopology get topology from ca by block number.
-func (s *PublicBlockChainAPI) GetTopology(reqTypes common.RoleType, number uint64) (*mc.TopologyGraph, error) {
-	return ca.GetTopologyByNumber(reqTypes, number)
-}
-
 // GetSelfLevel get self level from ca, including top node, buckets number and default.
 func (s *PublicBlockChainAPI) GetSelfLevel() int {
 	return ca.GetSelfLevel()
