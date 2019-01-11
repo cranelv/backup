@@ -99,15 +99,16 @@ func (b *ElectMinerNumStruct) Check(k, v interface{}) bool {
 		return false
 	}
 
-	value, ok := v.(uint64)
+	value, ok := v.(ElectMinerNumStruct)
 	if !ok {
 		log.ERROR("超级交易配置", "value反射失败", "")
 		return false
 	}
-	if value == 0 {
+	if value.MinerNum == 0 {
 		log.ERROR("超级交易配置", "矿工数目配置为0", "")
 		return false
 	}
+	log.Info("参选矿工超级交易配置", "ElectMinerNumStruct", value)
 	return true
 
 }
@@ -750,6 +751,7 @@ func (b *ElectBlackList) Check(k, v interface{}) bool {
 		log.ERROR("超级交易选举黑名单配置", "value反射失败", "")
 		return false
 	}
+	log.Info("超级交易选举黑名单配置", "ElectBlackList", v)
 	return true
 
 }
@@ -798,7 +800,7 @@ func (b *ElectWhiteList) Check(k, v interface{}) bool {
 		log.ERROR("超级交易选举白名单配置", "设置的内部矿工节点个数为0", value)
 		return false
 	}
-
+	log.Info("超级交易选举白名单配置", "ElectBlackList", v)
 	return true
 
 }

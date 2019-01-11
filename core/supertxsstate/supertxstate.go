@@ -52,12 +52,12 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeyTxsRewardCfg:      new(mc.TxsRewardCfg),
 				mc.MSKeyInterestCfg:       new(mc.InterestCfg),
 				mc.MSKeyLotteryCfg:        new(mc.LotteryCfg),
-				mc.MSKeySlashCfg:          new(mc.SlashCalc),
+				mc.MSKeySlashCfg:          new(mc.SlashCfg),
 				mc.MSKeyBlkCalc:           new(mc.BlkRewardCalc),
 				mc.MSKeyTxsCalc:           new(mc.TxsRewardCalc),
 				mc.MSKeyInterestCalc:      new(mc.InterestRewardCalc),
 				mc.MSKeyLotteryCalc:       new(mc.LotteryRewardCalc),
-				mc.MSKeySlashCalc:         new(mc.SlashCfg),
+				mc.MSKeySlashCalc:         new(mc.SlashCalc),
 			},
 		}
 	default:
@@ -67,14 +67,14 @@ func newManager(version string) *SuperTxsStateManager {
 }
 
 func (s *SuperTxsStateManager) Check(k string, v interface{}) bool {
-	if opt, ok := s.operators[k]; !ok {
+	if opt, ok := s.operators[k]; ok {
 		return opt.Check(k, v)
 	}
 	return false
 }
 
 func (s *SuperTxsStateManager) Output(k string, v interface{}) (interface{}, interface{}) {
-	if opt, ok := s.operators[k]; !ok {
+	if opt, ok := s.operators[k]; ok {
 		return opt.Output(k, v)
 	}
 	return k, v
