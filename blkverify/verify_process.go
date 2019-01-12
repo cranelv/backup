@@ -628,7 +628,9 @@ func (p *Process) sendVote(validate bool) {
 		Validate: true,
 		Stock:    0,
 	})
+}
 
+func (p *Process) notifyVerifiedBlock() {
 	// notify block genor server the result
 	result := mc.BlockLocalVerifyOK{
 		Header:      p.curProcessReq.req.Header,
@@ -657,6 +659,7 @@ func (p *Process) startDPOSVerify(lvResult verifyResult) {
 
 	if lvResult == localVerifyResultSuccess {
 		p.sendVote(true)
+		p.notifyVerifiedBlock()
 		// 验证成功的请求，做持久化缓存
 		log.Info(p.logExtraInfo(), "区块持久化", "开始缓存")
 		if err := saveVerifiedBlockToDB(p.ChainDb(), p.curProcessReq.hash, p.curProcessReq.req, p.curProcessReq.originalTxs); err != nil {
