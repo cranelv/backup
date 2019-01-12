@@ -928,8 +928,8 @@ var SolidityParam = require('./param');
  * @returns {SolidityParam}
  */
 
-var formatInputInt = function (value) {
-    if (value.indexOf('.') > -1) {
+var formatInputInt = function (value,name) {
+    if (name == "address" &&  value.indexOf('.') > -1){
         value = '0x' + Bytes2HexString(decode(value.split('.')[1].substring(0, value.split('.')[1].length-1)))
     }
     BigNumber.config(c.ETH_BIGNUMBER_ROUNDING_MODE);
@@ -5555,6 +5555,12 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
+    var getCfgDataByState = new Method({
+        name: 'getCfgDataByState',
+        call: 'eth_getCfgDataByState',
+        params: 1,
+        // outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'eth_getStorageAt',
@@ -5745,6 +5751,7 @@ var methods = function () {
         getEntrustFrom,
         getAuthFromByTime,
         getEntrustFromByTime,
+        getCfgDataByState,
         getStorageAt,
         getCode,
         getBlock,

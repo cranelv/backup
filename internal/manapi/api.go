@@ -1426,8 +1426,11 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		data.Currency = "MAN"
 	}
 	result.From = base58.Base58EncodeToString(data.Currency, data.From)
-	result.To = new(string)
-	*result.To = base58.Base58EncodeToString(data.Currency, *data.To)
+	if data.To != nil{
+		result.To = new(string)
+		*result.To = base58.Base58EncodeToString(data.Currency, *data.To)
+	}
+
 
 	if len(data.ExtraTo) > 0 {
 		extra := make([]*ExtraTo_Mx1, 0)
@@ -1714,7 +1717,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logsBloom":         receipt.Bloom,
 	}
 	fields["from"] = base58.Base58EncodeToString("MAN", from)
-	fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
+	if tx.To() != nil{
+		fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
+	}
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)
@@ -1726,7 +1731,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
 	if receipt.ContractAddress != (common.Address{}) {
-		fields["contractAddress"] = receipt.ContractAddress
+		fields["contractAddress"] =  base58.Base58EncodeToString("MAN", receipt.ContractAddress)
 	}
 	return fields, nil
 }
