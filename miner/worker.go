@@ -381,7 +381,7 @@ func (self *worker) makeCurrent(header *types.Header, isBroadcastNode bool) erro
 		isBroadcastNode: isBroadcastNode,
 	}
 
-	work.header.Coinbase = ca.GetAddress()
+	work.header.Coinbase = ca.GetDepositAddress()
 
 	self.current = work
 	return nil

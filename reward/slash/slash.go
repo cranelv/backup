@@ -59,7 +59,6 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 }
 
 func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64, interestCalcMap map[common.Address]*big.Int) {
-	var eleNum uint64
 
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
@@ -89,13 +88,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 	//计算选举的拓扑图的高度
-	if num < bp.bcInterval.GetReElectionInterval()+2 {
-		eleNum = 1
-	} else {
-		// 下一个选举+1
-		eleNum = num - bp.bcInterval.GetBroadcastInterval()
-	}
-
+	eleNum := bp.bcInterval.GetLastBroadcastNumber() - 2
 	st, err := bp.chain.StateAtNumber(eleNum)
 	if err != nil {
 		log.Error(PackageName, "获取选举高度的状态树失败", err, "eleNum", eleNum)

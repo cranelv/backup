@@ -187,5 +187,21 @@ var (
 				"修改抵押竞选方式为按角色竞选(勇哥修改)",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.23",
+			Submitter: "huyuankai",
+			Commit: []string{
+				"二次秘钥功调整，拓扑图全部使用A0账户",
+				"web3接口 获取区块签名列表，返回A0账户",
+				"增加拓扑图状态web3接口",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.24",
+			Submitter: "hemao",
+			Commit: []string{
+				"未出块惩罚代功能添加",
+			},
+		},
 	}
 )

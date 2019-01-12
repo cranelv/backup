@@ -281,14 +281,20 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		log.Error("unknown broadcast Address. error (func filter()  BroadCastTxPool) ")
 		return false
 	case mc.Heartbeat:
+		fromDepositAccount, err := ca.ConvertSignToDepositAddress(from)
+		if err != nil {
+			log.Error("BroadCastTxPool", "convert from account to deposit account err", err, "from", from.Hex())
+			return false
+		}
+
 		nodelist, err := ca.GetElectedByHeight(height)
 		if err != nil {
 			log.Error("getElected error (func filter()   BroadCastTxPool)", "error", err)
 			return false
 		}
 		for _, node := range nodelist {
-			if from == node.Address {
-				currentAcc := from.Big()
+			if fromDepositAccount == node.Address {
+				currentAcc := fromDepositAccount.Big()
 				ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
 				broadcastBlock := blockHash.Big()
 				val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.GetBroadcastInterval())-1))
@@ -300,13 +306,18 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		log.WARN("Unknown account information (func filter()   BroadCastTxPool),mc.Heartbeat")
 		return false
 	case mc.Privatekey, mc.Publickey:
+		fromDepositAccount, err := ca.ConvertSignToDepositAddress(from)
+		if err != nil {
+			log.Error("BroadCastTxPool", "convert from account to deposit account err", err, "from", from.Hex())
+			return false
+		}
 		nodelist, err := ca.GetElectedByHeightAndRole(height, common.RoleValidator)
 		if err != nil {
 			log.Error("getElected error (func filter()   BroadCastTxPool)", "error", err)
 			return false
 		}
 		for _, node := range nodelist {
-			if from == node.Address {
+			if fromDepositAccount == node.Address {
 				return true
 			}
 		}

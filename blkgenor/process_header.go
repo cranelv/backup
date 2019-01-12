@@ -43,7 +43,7 @@ func (p *Process) processBcHeaderGen() error {
 	p.setGasLimit(originHeader, parent)
 	p.setExtra(originHeader)
 	p.setTopology(parentHash, originHeader)
-	err = p.setVrf(err, parent, originHeader)
+	err = p.setBCVrf(err, parent, originHeader)
 	if nil != err {
 		return err
 	}
@@ -165,7 +165,8 @@ func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.Re
 		TxsCode:                txsCode,
 		ConsensusTurn:          p.consensusTurn,
 		OnlineConsensusResults: onlineConsensusResults,
-		From: ca.GetAddress()}
+		From: ca.GetSignAddress(),
+	}
 	//send to local block verify module
 	localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
 	if len(originalTxs) > 0 {
@@ -185,7 +186,7 @@ func (p *Process) sendBroadcastMiningReq(header *types.Header, finalTxs []types.
 func (p *Process) setSignatures(header *types.Header) error {
 	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
+		sign, err := p.signHelper().SignHashWithValidateByAccount(signHash.Bytes(), true, ca.GetSignAddress())
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 			return err
@@ -202,6 +203,16 @@ func (p *Process) setSignatures(header *types.Header) error {
 func (p *Process) setVersion(header *types.Header, parent *types.Block) {
 	header.Version = parent.Header().Version
 	header.VersionSignatures = parent.Header().VersionSignatures
+}
+
+func (p *Process) setBCVrf(err error, parent *types.Block, header *types.Header) error {
+	account, vrfValue, vrfProof, err := p.getBCVrfValue(parent)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "广播区块生成阶段 获取vrfValue失败 错误", err)
+		return err
+	}
+	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
+	return nil
 }
 
 func (p *Process) setVrf(err error, parent *types.Block, header *types.Header) error {
@@ -275,7 +286,7 @@ func (p *Process) setNumber(header *types.Header) {
 }
 
 func (p *Process) setLeader(header *types.Header) {
-	header.Leader = ca.GetAddress()
+	header.Leader = ca.GetDepositAddress()
 }
 
 func (p *Process) setElect(stateDB *state.StateDB, header *types.Header) error {
@@ -313,6 +324,12 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
 		return nil, nil, nil, nil, nil, err
 	}
+	err = p.blockChain().ProcessBlockGProduceSlash(work.State, header)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "执行区块惩罚处理错误", err, "高度", p.number)
+		return nil, nil, nil, nil, nil, err
+	}
+
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, upTimeMap)
 	block := types.NewBlock(header, finalTxs, nil, work.Receipts)
 	log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
@@ -387,6 +404,21 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	}
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", req.TxsCodeCount(), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
+}
+
+func (p *Process) getBCVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	parentMsg := VrfMsg{
+		VrfProof: preVrfProof,
+		VrfValue: preVrfValue,
+		Hash:     parent.Hash(),
+	}
+	vrfmsg, err := json.Marshal(parentMsg)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "生成vrfmsg出错", err, "parentMsg", parentMsg)
+		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
+	}
+	return p.signHelper().SignVrfByAccount(vrfmsg, ca.GetDepositAddress())
 }
 
 func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {

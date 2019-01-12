@@ -105,6 +105,11 @@ func newManger(version string) *Manager {
 				mc.MSTxpoolGasLimitCfg:   newTxpoolGasLimitOpt(),
 				mc.MSCurrencyPack:   newCurrencyPackOpt(),
 				mc.MSAccountBlackList:   newAccountBlackListOpt(),
+				
+				mc.MSKeyBlockProduceStatsStatus: newBlockProduceStatsStatusOpt(),
+				mc.MSKeyBlockProduceSlashCfg:    newBlockProduceSlashCfgOpt(),
+				mc.MSKeyBlockProduceStats:       newBlockProduceStatsOpt(),
+				mc.MSKeyBlockProduceBlackList:   newBlockProduceBlackListOpt(),
 			},
 		}
 	default:

@@ -121,7 +121,7 @@ func newReqCache() *reqCache {
 	}
 }
 
-func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) (*reqData, error) {
+func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, fromLeader common.Address, isDBRecovery bool) (*reqData, error) {
 	if nil == req {
 		return nil, paramErr
 	}
@@ -133,13 +133,13 @@ func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) (*r
 		return nil, errors.Errorf("区块请求消息的轮次高低,消息轮次(%s) < 本地轮次(%s)", req.ConsensusTurn.String(), rc.curTurn.String())
 	}
 
-	if req.Header.Leader == req.From {
-		oldReq, exit := rc.leaderReqCache[req.From]
+	if req.Header.Leader == fromLeader {
+		oldReq, exit := rc.leaderReqCache[fromLeader]
 		if exit && oldReq.req.ConsensusTurn.Cmp(req.ConsensusTurn) >= 0 {
 			return nil, leaderReqExistErr
 		}
 		reqData := newReqData(req, isDBRecovery)
-		rc.leaderReqCache[req.From] = reqData
+		rc.leaderReqCache[fromLeader] = reqData
 		return reqData, nil
 	}
 

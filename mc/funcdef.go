@@ -48,6 +48,28 @@ func (self *TopologyGraph) AccountIsInGraph(account common.Address) bool {
 	return false
 }
 
+func (self *TopologyGraph) FindNextValidator(account common.Address) common.Address {
+	validators := make([]common.Address, 0)
+	for _, node := range self.NodeList {
+		if node.Type == common.RoleValidator {
+			validators = append(validators, node.Account)
+		}
+	}
+
+	pos := -1
+	size := len(validators)
+	for i := 0; i < size; i++ {
+		if account == validators[i] {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return common.Address{}
+	}
+	return validators[(pos+1)%size]
+}
+
 func (self *TopologyGraph) Transfer2NextGraph(number uint64, blockTopology *common.NetTopology) (*TopologyGraph, error) {
 
 	newGraph := &TopologyGraph{

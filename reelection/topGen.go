@@ -9,6 +9,7 @@ import (
 
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -173,6 +174,32 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	return TopRsp.MasterMiner, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, nil
 }
 
+func (self *ReElection) addBlockProduceBlackList(hash common.Hash) (*mc.BlockProduceSlashBlackList, error) {
+	state, err := self.bc.StateAtBlockHash(hash)
+	if err != nil {
+		log.ERROR(Module, "获取state 错误", err)
+		return &mc.BlockProduceSlashBlackList{}, err
+	}
+
+	slashCfg, err := matrixstate.GetBlockProduceSlashCfg(state)
+	if err != nil {
+		log.ERROR(Module, "slashCfg 错误", err)
+		return &mc.BlockProduceSlashBlackList{}, err
+	}
+
+	if !slashCfg.Switcher {
+		log.Debug(Module, "slashCfg 状态关闭", nil)
+		return &mc.BlockProduceSlashBlackList{}, nil
+	}
+
+	produceBlackList, err := matrixstate.GetBlockProduceBlackList(state)
+	if err != nil {
+		log.ERROR(Module, "获取produce blackList 错误", err)
+		return &mc.BlockProduceSlashBlackList{}, err
+	}
+
+	return produceBlackList, nil
+}
 func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
 	log.INFO(Module, "准备生成验证者拓扑图", "start", "hash", hash.String())
 	defer log.INFO(Module, "生成验证者拓扑图结束", "end", "hash", hash.String())
@@ -223,7 +250,13 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "获取viplist为空 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	TopRsp := elect.ValidatorTopGen(&mc.MasterValidatorReElectionReqMsg{SeqNum: height, RandSeed: seed, ValidatorList: validatoeDeposit, FoundationValidatorList: foundDeposit, ElectConfig: *electConf, VIPList: vipList})
+	produceBlackList, err := self.addBlockProduceBlackList(hash)
+	if err != nil {
+		log.ERROR(Module, "获取区块生产惩罚错误", err, "高度", height)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+
+	TopRsp := elect.ValidatorTopGen(&mc.MasterValidatorReElectionReqMsg{SeqNum: height, RandSeed: seed, ValidatorList: validatoeDeposit, FoundationValidatorList: foundDeposit, ElectConfig: *electConf, VIPList: vipList, BlockProduceBlackList: *produceBlackList})
 
 	return TopRsp.MasterValidator, TopRsp.BackUpValidator, TopRsp.CandidateValidator, nil
 
@@ -240,24 +273,16 @@ func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDeta
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取矿工交易身份不对")
 		}
-		return Trans(ans), nil
+		return ans, nil
 	case common.RoleValidator:
 		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleValidator)
 		log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取验证者交易身份不对")
 		}
-		return Trans(ans), nil
+		return ans, nil
 
 	default:
 		return []vm.DepositDetail{}, errors.New("获取抵押交易身份不对")
 	}
-}
-func Trans(data []vm.DepositDetail) []vm.DepositDetail {
-	if common.TopAccountType == common.TopAccountA1 {
-		for k, _ := range data {
-			data[k].Address = data[k].SignAddress
-		}
-	}
-	return data
 }
