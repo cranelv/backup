@@ -174,14 +174,14 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	return TopRsp.MasterMiner, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, nil
 }
 
-func (self *ReElection) addBlockProduceBlackList(hash common.Hash) (*mc.BlockProduceSlashBlackList, error) {
-	state, err := self.bc.StateAtBlockHash(hash)
+func (self *ReElection) addBlockProduceBlackList(height uint64) (*mc.BlockProduceSlashBlackList, error) {
+	st, err := self.bc.StateAtNumber(height)
 	if err != nil {
-		log.ERROR(Module, "获取state 错误", err)
+		log.Error(Module, "获取state 错误", err, "number", height)
 		return &mc.BlockProduceSlashBlackList{}, err
 	}
 
-	slashCfg, err := matrixstate.GetBlockProduceSlashCfg(state)
+	slashCfg, err := matrixstate.GetBlockProduceSlashCfg(st)
 	if err != nil {
 		log.ERROR(Module, "slashCfg 错误", err)
 		return &mc.BlockProduceSlashBlackList{}, err
@@ -192,7 +192,7 @@ func (self *ReElection) addBlockProduceBlackList(hash common.Hash) (*mc.BlockPro
 		return &mc.BlockProduceSlashBlackList{}, nil
 	}
 
-	produceBlackList, err := matrixstate.GetBlockProduceBlackList(state)
+	produceBlackList, err := matrixstate.GetBlockProduceBlackList(st)
 	if err != nil {
 		log.ERROR(Module, "获取produce blackList 错误", err)
 		return &mc.BlockProduceSlashBlackList{}, err
@@ -250,7 +250,7 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "获取viplist为空 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	produceBlackList, err := self.addBlockProduceBlackList(hash)
+	produceBlackList, err := self.addBlockProduceBlackList(height)
 	if err != nil {
 		log.ERROR(Module, "获取区块生产惩罚错误", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err

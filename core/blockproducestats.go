@@ -255,7 +255,7 @@ func isNextBlockValidatorGenTimming(state *state.StateDB, currNum uint64, parent
 		return false
 	}
 
-	return bcInterval.IsReElectionNumber(currNum + 2 + uint64(electTiming.ValidatorNetChange))
+	return bcInterval.IsReElectionNumber(currNum + 1 + uint64(electTiming.ValidatorGen))
 }
 
 func (bc *BlockChain) GetBlackList(state *state.StateDB) *mc.BlockProduceSlashBlackList {
@@ -275,7 +275,7 @@ func NewBlackListMaintain(list []mc.UserBlockProduceSlash) *blacklistMaintain {
 	var bl = new(blacklistMaintain)
 
 	for _, v := range list {
-		if v.ProhibitCycleCounter > 0{
+		if v.ProhibitCycleCounter > 0 {
 			bl.blacklist = append(bl.blacklist, v)
 		}
 	}
@@ -321,8 +321,8 @@ func (bl *blacklistMaintain) AddBlackList(statsList []mc.UserBlockProduceNum, sl
 		return
 	}
 
-	if 0 == slashCfg.ProhibitCycleNum{
-		log.Warn(ModuleName, "禁止周期为", "0","不加入黑名单")
+	if 0 == slashCfg.ProhibitCycleNum {
+		log.Warn(ModuleName, "禁止周期为", "0", "不加入黑名单")
 		return
 	}
 	for _, v := range statsList {
@@ -332,7 +332,7 @@ func (bl *blacklistMaintain) AddBlackList(statsList []mc.UserBlockProduceNum, sl
 		if position, exist := searchExistAddress(bl.blacklist, v.Address); exist {
 			bl.blacklist[position].ProhibitCycleCounter = slashCfg.ProhibitCycleNum - 1
 		} else {
-			bl.blacklist = append(bl.blacklist, mc.UserBlockProduceSlash{Address: v.Address, ProhibitCycleCounter: slashCfg.ProhibitCycleNum-1})
+			bl.blacklist = append(bl.blacklist, mc.UserBlockProduceSlash{Address: v.Address, ProhibitCycleCounter: slashCfg.ProhibitCycleNum - 1})
 		}
 	}
 }
