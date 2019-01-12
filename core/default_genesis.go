@@ -5,6 +5,7 @@ import (
 
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/params"
 )
 
 var (
@@ -601,6 +602,7 @@ var (
 
 func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesis {
 	if nil != cfgGenesis.Config {
+		OutGensis.Config = new(params.ChainConfig)
 		if nil != cfgGenesis.Config.ChainId {
 			OutGensis.Config.ChainId = cfgGenesis.Config.ChainId
 		}

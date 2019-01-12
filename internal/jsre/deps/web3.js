@@ -5517,8 +5517,15 @@ var methods = function () {
         name: 'getUpTime',
         call: 'eth_getUpTime',
         params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
+    });
+    var getFutureRewards = new Method({
+        name: 'getFutureRewards',
+        call: 'eth_getFutureRewards',
+        params: 1,
+        inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputNewBigNumberFormatter
     });
     var getEntrustList = new Method({
         name: 'getEntrustList',
@@ -5740,6 +5747,7 @@ var methods = function () {
     return [
         getBalance,
         getUpTime,
+        getFutureRewards,
         getEntrustList,
         getAuthFrom,
         getEntrustFrom,

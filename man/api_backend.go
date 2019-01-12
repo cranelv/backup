@@ -423,7 +423,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 	var allReward AllReward
 	allReward.Time.Start = latestElectNum
 	allReward.Time.Stop = latestElectNum + bcInterval.GetReElectionInterval()
-	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(latestElectNum - 1))
+	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(latestElectNum))
 	if nil != err {
 		return nil, err
 	}
@@ -444,7 +444,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		return nil, err
 	}
 
-	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum, bcInterval, common.RoleMiner)
+	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner)
 	if nil != err {
 		return nil, err
 	}
@@ -460,7 +460,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		minerRewardList = append(minerRewardList, obj)
 	}
 	allReward.Miner = minerRewardList
-	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum, bcInterval, common.RoleMiner)
+	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleValidator)
 	if nil != err {
 		return nil, err
 	}
@@ -475,18 +475,18 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		}
 		ValidatorRewardList = append(ValidatorRewardList, obj)
 	}
-
+	allReward.Validator = ValidatorRewardList
 	interestReward := interest.New(state)
 	if nil == interestReward {
 		return nil, err
 	}
 	interestCalcMap := interestReward.GetInterest(state, latestElectNum)
-	interestNum := interestReward.CalcInterval / bcInterval.GetBroadcastInterval()
+	interestNum := bcInterval.GetReElectionInterval() / interestReward.CalcInterval
 	interestRewardList := make([]InterestReward, 0)
 	for k, v := range interestCalcMap {
 		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
 		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: allInterest}
-		interestRewardList = append(interestRewardList, obj)
+
 		for _, d := range depositNodes {
 			if d.Address.Equal(k) {
 				obj.Deposit = d.Deposit
@@ -498,8 +498,9 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 				obj.Stock = d.Stock
 			}
 		}
+		interestRewardList = append(interestRewardList, obj)
 	}
-
+	allReward.Interest = interestRewardList
 	return allReward, nil
 }
 
@@ -520,7 +521,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 	} else {
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
-	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(num); num++ {
+	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
 
 		if bcInterval.IsBroadcastNumber(num) {
 			continue

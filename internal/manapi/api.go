@@ -640,7 +640,7 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	return read, state.Error()
 }
 
-func (api *PublicBlockChainAPI) GetFutureReward(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
 
 	return api.b.GetFutureRewards(ctx, number)
 }
