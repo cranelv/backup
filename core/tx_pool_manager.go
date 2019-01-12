@@ -259,6 +259,7 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 			for _,blkAccount := range blklist{
 				if txer.From().Equal(blkAccount){
 					isBlkAccount = true
+					break
 				}
 			}
 			if isBlkAccount{
@@ -286,8 +287,10 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 		}
 
 		//黑账户过滤
-		if SelfBlackList.FindBlackAddress(*txer.To()) {
-			continue
+		if txer.To() != nil{
+			if SelfBlackList.FindBlackAddress(*txer.To()) {
+				continue
+			}
 		}
 		txerlist = append(txerlist, txer)
 	}
