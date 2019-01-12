@@ -15,16 +15,22 @@ import (
 const (
 	RewardFullRate = uint64(10000)
 )
-
+func CopyAddressSlice(Src *[]GenesisAddress,)[]common.Address{
+	dest := make([]common.Address,len(*Src))
+	for i,item := range *Src {
+		dest[i] = common.Address(item)
+	}
+	return dest
+}
 type GenesisMState struct {
-	Broadcasts             *[]common.Address       `json:"Broadcasts"`
-	InnerMiners            *[]common.Address       `json:"InnerMiners"`
-	Foundation             *common.Address         `json:"Foundation"`
-	VersionSuperAccounts   *[]common.Address       `json:"VersionSuperAccounts"`
-	BlockSuperAccounts     *[]common.Address       `json:"BlockSuperAccounts"`
-	TxsSuperAccounts       *[]common.Address       `json:"TxsSuperAccounts"`
-	MultiCoinSuperAccounts *[]common.Address       `json:"MultiCoinSuperAccounts"`
-	SubChainSuperAccounts  *[]common.Address       `json:"SubChainSuperAccounts"`
+	Broadcasts             *[]GenesisAddress       `json:"Broadcasts"`
+	InnerMiners            *[]GenesisAddress       `json:"InnerMiners"`
+	Foundation             *GenesisAddress         `json:"Foundation"`
+	VersionSuperAccounts   *[]GenesisAddress       `json:"VersionSuperAccounts"`
+	BlockSuperAccounts     *[]GenesisAddress       `json:"BlockSuperAccounts"`
+	TxsSuperAccounts       *[]GenesisAddress       `json:"TxsSuperAccounts"`
+	MultiCoinSuperAccounts *[]GenesisAddress       `json:"MultiCoinSuperAccounts"`
+	SubChainSuperAccounts  *[]GenesisAddress       `json:"SubChainSuperAccounts"`
 	VIPCfg                 *[]mc.VIPConfig         `json:"VIPCfg" gencodec:"required"`
 	BCICfg                 *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
 	LeaderCfg              *mc.LeaderConfig        `json:"LeaderCfg" gencodec:"required"`
@@ -41,9 +47,9 @@ type GenesisMState struct {
 	EleTimeCfg             *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
 	EleInfoCfg             *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
 	ElectMinerNumCfg       *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg      *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg      *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
-	CurElect               *[]common.Elect         `json:"CurElect"  gencodec:"required"`
+	ElectBlackListCfg      *[]GenesisAddress       `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg      *[]GenesisAddress       `json:"ElectWhiteList" gencodec:"required"`
+	CurElect               *[]GenesisElect         `json:"CurElect"  gencodec:"required"`
 }
 type GenesisMState1 struct {
 	Broadcasts             *[]string               `json:"Broadcasts,omitempty"`
@@ -235,7 +241,8 @@ func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) 
 		log.Info("Geneis", "没有配置ElectWhiteListCfg信息", "")
 		return nil
 	} else {
-		whiteList = *g.ElectWhiteListCfg
+//		CopyAddressSlice(g.ElectWhiteListCfg,&whiteList)
+		whiteList = CopyAddressSlice(g.ElectWhiteListCfg)
 	}
 
 	log.Info("Geneis", "ElectWhiteListCfg", whiteList)
@@ -248,7 +255,8 @@ func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) 
 		log.Info("Geneis", "没有配置ElectBlackListCfg信息", "")
 		return nil
 	} else {
-		blackList = *g.ElectBlackListCfg
+//		CopyAddressSlice(g.ElectBlackListCfg,&blackList)
+		blackList = CopyAddressSlice(g.ElectBlackListCfg)
 	}
 
 	log.Info("Geneis", "ElectBlackListCfg", blackList)
@@ -293,7 +301,13 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common.Elect, num uint64) error {
 	var curElect []common.Elect = nil
 	if g.CurElect != nil {
-		curElect = *g.CurElect
+		curElect = make([]common.Elect,len(*g.CurElect))
+		for i,item := range *g.CurElect {
+			curElect[i].Account = common.Address(item.Account)
+			curElect[i].Stock = item.Stock
+			curElect[i].Account = common.Address(item.Account)
+			curElect[i].Account = common.Address(item.Account)
+		}
 	}
 
 	if len(nextElect) == 0 && len(curElect) == 0 {
@@ -379,7 +393,7 @@ func (g *GenesisMState) setBroadcastAccountToState(state *state.StateDB, num uin
 			return nil
 		}
 	}
-	return matrixstate.SetBroadcastAccounts(state, *g.Broadcasts)
+	return matrixstate.SetBroadcastAccounts(state, CopyAddressSlice(g.Broadcasts))
 }
 
 func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num uint64) error {
@@ -391,7 +405,8 @@ func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num u
 			return nil
 		}
 	} else {
-		innerMiners = *g.InnerMiners
+//		CopyAddressSlice(g.InnerMiners,&innerMiners)
+		innerMiners = CopyAddressSlice(g.InnerMiners)
 	}
 
 	matrixstate.SetInnerMinerAccounts(state, innerMiners)
@@ -400,14 +415,14 @@ func (g *GenesisMState) setInnerMinerAccountsToState(state *state.StateDB, num u
 
 func (g *GenesisMState) setFoundationAccountToState(state *state.StateDB, num uint64) error {
 	var foundation common.Address
-	if g.Foundation == nil || *g.Foundation == (common.Address{}) {
+	if g.Foundation == nil || *g.Foundation == (GenesisAddress{}) {
 		if num == 0 {
 			foundation = common.Address{}
 		} else {
 			return nil
 		}
 	} else {
-		foundation = *g.Foundation
+		foundation = common.Address(*g.Foundation)
 	}
 	matrixstate.SetFoundationAccount(state, foundation)
 	return nil
@@ -421,7 +436,7 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 			return nil
 		}
 	}
-	matrixstate.SetVersionSuperAccounts(state, *g.VersionSuperAccounts)
+	matrixstate.SetVersionSuperAccounts(state, CopyAddressSlice(g.VersionSuperAccounts))
 	return nil
 }
 
@@ -433,7 +448,7 @@ func (g *GenesisMState) setTxsSuperAccountsToState(state *state.StateDB, num uin
 			return nil
 		}
 	}
-	matrixstate.SetTxsSuperAccounts(state, *g.TxsSuperAccounts)
+	matrixstate.SetTxsSuperAccounts(state, CopyAddressSlice(g.TxsSuperAccounts))
 	return nil
 }
 
@@ -445,7 +460,7 @@ func (g *GenesisMState) setMultiCoinSuperAccountsToState(state *state.StateDB, n
 			return nil
 		}
 	}
-	matrixstate.SetMultiCoinSuperAccounts(state, *g.MultiCoinSuperAccounts)
+	matrixstate.SetMultiCoinSuperAccounts(state, CopyAddressSlice(g.MultiCoinSuperAccounts))
 	return nil
 }
 
@@ -457,7 +472,7 @@ func (g *GenesisMState) setSubChainSuperAccountsToState(state *state.StateDB, nu
 			return nil
 		}
 	}
-	matrixstate.SetSubChainSuperAccounts(state, *g.SubChainSuperAccounts)
+	matrixstate.SetSubChainSuperAccounts(state, CopyAddressSlice(g.SubChainSuperAccounts))
 	return nil
 }
 
@@ -468,7 +483,7 @@ func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num u
 	if g.BlockSuperAccounts == nil || len(*g.BlockSuperAccounts) == 0 {
 		return errors.Errorf("the block superAccounts of genesis is empty")
 	}
-	matrixstate.SetBlockSuperAccounts(state, *g.BlockSuperAccounts)
+	matrixstate.SetBlockSuperAccounts(state, CopyAddressSlice(g.BlockSuperAccounts))
 	return nil
 }
 
