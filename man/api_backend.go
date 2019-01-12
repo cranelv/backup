@@ -11,6 +11,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/matrix/go-matrix/internal/manapi"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
@@ -42,8 +44,20 @@ func (b *ManAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.man.chainConfig
 }
 
+func (b *ManAPIBackend) NetRPCService() *manapi.PublicNetAPI {
+	return b.man.netRPCService
+}
+
+func (b *ManAPIBackend) Config() *Config {
+	return b.man.config
+}
+
 func (b *ManAPIBackend) CurrentBlock() *types.Block {
 	return b.man.blockchain.CurrentBlock()
+}
+
+func (b *ManAPIBackend) Genesis() *types.Block {
+	return b.man.blockchain.Genesis()
 }
 
 func (b *ManAPIBackend) SetHead(number uint64) {

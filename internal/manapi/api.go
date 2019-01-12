@@ -22,6 +22,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"os"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/base58"
@@ -45,8 +48,6 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
-	"io/ioutil"
-	"os"
 )
 
 const (
@@ -188,6 +189,21 @@ type PublicAccountAPI struct {
 // NewPublicAccountAPI creates a new PublicAccountAPI.
 func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
 	return &PublicAccountAPI{am: am}
+}
+
+func (api *PublicDebugAPI) GetAllChainInfo() map[string]interface{} {
+	result := make(map[string]interface{})
+	result["chainId"] = api.b.ChainConfig().ChainId
+	result["ByzantiumBlock"] = api.b.ChainConfig().ByzantiumBlock
+	result["EIP155Block"] = api.b.ChainConfig().EIP155Block
+	result["EIP158Block"] = api.b.ChainConfig().EIP158Block
+	//result["NetworkId"] = api.b.Config().NetworkId
+	//result["SyncMode"] = api.b.Config().SyncMode
+	result["Genesis"] = api.b.Genesis().Hash()
+	result["PeerCount"] = api.b.NetRPCService().PeerCount()
+	result["LastBlockNumber"] = api.b.CurrentBlock().NumberU64()
+	result["LastBlockHash"] = api.b.CurrentBlock().Hash()
+	return result
 }
 
 // Accounts returns the collection of accounts this node manages

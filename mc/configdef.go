@@ -672,11 +672,11 @@ func (b *BroadcastAccounts) Output(k, v interface{}) (interface{}, interface{}) 
 	value, ok := v.([]common.Address)
 	if !ok {
 		log.ERROR("超级交易配置", "value值反射失败", "")
-		return nil, nil
+		return k, v
 	}
 	if len(value) == 0 {
 		log.ERROR("超级交易配置", "设置的广播节点个数为0", value)
-		return nil, nil
+		return k, v
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
@@ -703,15 +703,12 @@ func (b *InnerMinersAccounts) Check(k, v interface{}) bool {
 		return false
 	}
 
-	value, ok := v.([]common.Address)
+	_, ok = v.([]common.Address)
 	if !ok {
 		log.ERROR("超级交易配置", "value反射失败", "")
 		return false
 	}
-	if len(value) == 0 {
-		log.ERROR("超级交易配置", "设置的内部矿工节点个数为0", value)
-		return false
-	}
+
 	log.Info("超级交易内部矿工节点配置", "InnerMinersAccounts", v)
 	return true
 
@@ -721,11 +718,11 @@ func (b *InnerMinersAccounts) Output(k, v interface{}) (interface{}, interface{}
 	value, ok := v.([]common.Address)
 	if !ok {
 		log.ERROR("超级交易配置", "value值反射失败", "")
-		return nil, nil
+		return k, v
 	}
 	if len(value) == 0 {
-		log.ERROR("超级交易配置", "设置的内部矿工节点个数为0", value)
-		return nil, nil
+		log.Info("超级交易配置", "设置的内部矿工节点个数为0", value)
+		return k, v
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
@@ -766,11 +763,11 @@ func (b *ElectBlackList) Output(k, v interface{}) (interface{}, interface{}) {
 	value, ok := v.([]common.Address)
 	if !ok {
 		log.ERROR("超级交易选举黑名单配置", "value值反射失败", "")
-		return nil, nil
+		return k, v
 	}
 	if len(value) == 0 {
-		log.ERROR("超级交易选举黑名单配置", "设置的选举黑名单个数为0", value)
-		return nil, nil
+		log.INFO("超级交易选举黑名单配置", "设置的选举黑名单个数为0", value)
+		return k, v
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
@@ -803,8 +800,8 @@ func (b *ElectWhiteList) Check(k, v interface{}) bool {
 		return false
 	}
 	if len(value) == 0 {
-		log.ERROR("超级交易选举白名单配置", "设置的内部矿工节点个数为0", value)
-		return false
+		log.ERROR("超级交易选举白名单配置", "设置的选举白名单个数为空", value)
+		return true
 	}
 	log.Info("超级交易选举白名单配置", "ElectBlackList", v)
 	return true
@@ -815,11 +812,11 @@ func (b *ElectWhiteList) Output(k, v interface{}) (interface{}, interface{}) {
 	value, ok := v.([]common.Address)
 	if !ok {
 		log.ERROR("超级交易选举白名单配置", "value值反射失败", "")
-		return nil, nil
+		return k, v
 	}
 	if len(value) == 0 {
-		log.ERROR("超级交易选举白名单配置", "设置的内部矿工节点个数为0", value)
-		return nil, nil
+		log.INFO("超级交易选举白名单配置", "设置的白名单为nil", value)
+		return k, v
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {

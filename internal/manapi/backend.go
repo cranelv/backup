@@ -63,7 +63,12 @@ type Backend interface {
 	FetcherNotify(hash common.Hash, number uint64)                                          //
 
 	ChainConfig() *params.ChainConfig
+	//Config() *man.Config
+
+	NetRPCService() *PublicNetAPI
+
 	CurrentBlock() *types.Block
+	Genesis() *types.Block
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
