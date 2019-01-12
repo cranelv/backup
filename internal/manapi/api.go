@@ -35,7 +35,9 @@ import (
 	"github.com/matrix/go-matrix/consensus/manash"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
+	"github.com/matrix/go-matrix/core/supertxsstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crc8"
@@ -699,6 +701,42 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 		}
 	}
 	return strAddrList
+}
+
+func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
+	if len(keys) == 0 {
+		return nil
+	}
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+
+	version := matrixstate.GetVersionInfo(state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil
+	}
+	supMager := supertxsstate.GetManager(version)
+	mapdata := make(map[string]interface{})
+	for _, k := range keys {
+		opt, err := mgr.FindOperator(k)
+		if err != nil {
+			log.Error("GetCfgDataByState:FindOperator failed", "key", k, "err", err)
+			continue
+		}
+		dataval, err := opt.GetValue(state)
+		if err != nil {
+			log.Error("GetCfgDataByState:SetValue failed", "err", err)
+			continue
+		}
+		keystr, val := supMager.Output(k, dataval)
+		if keystr == mc.MSTxpoolGasLimitCfg && val == "0" {
+			val = params.TxGasPrice
+		}
+		mapdata[keystr.(string)] = val
+	}
+	return mapdata
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all

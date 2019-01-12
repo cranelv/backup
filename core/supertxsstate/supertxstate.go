@@ -59,6 +59,10 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeyLotteryCalc:          new(mc.LotteryRewardCalc),
 				mc.MSKeySlashCalc:            new(mc.SlashCalc),
 				mc.MSKeyBlockProduceSlashCfg: new(mc.BlockProduceSlashCfg),
+
+				mc.MSTxpoolGasLimitCfg:		new(mc.TxpoolGasLimit),
+				mc.MSCurrencyPack:  		new(mc.CurrencyPackLimt),
+				mc.MSAccountBlackList:		new(mc.AccountBlackList),
 			},
 		}
 	default:

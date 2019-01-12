@@ -68,6 +68,11 @@ const (
 	MSKeyBlockProduceSlashCfg    = "block_produce_slash_cfg"    //
 	MSKeyBlockProduceStats       = "block_produce_stats"        //
 	MSKeyBlockProduceBlackList   = "block_produce_blacklist"    //
+
+	//交易配置
+	MSTxpoolGasLimitCfg = "man_TxpoolGasLimitCfg" //入池gas配置
+	MSCurrencyPack      = "man_CurrencyPack"      //币种打包限制
+	MSAccountBlackList  = "man_AccountBlackList"  //账户黑名单设置
 )
 
 type BCIntervalInfo struct {
@@ -881,4 +886,113 @@ type BlockProduceSlashBlackList struct {
 
 type BlockProduceSlashStatsStatus struct {
 	Number uint64
+}
+
+
+type TxpoolGasLimit struct {
+}
+
+func (b *TxpoolGasLimit) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易入池gas配置为空")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易入池gas配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSTxpoolGasLimitCfg {
+		log.ERROR("超级交易区块算法配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	_, ok = v.(big.Int)
+	if !ok {
+		log.ERROR("超级交易区块算法配置", "value反射失败", "")
+		return false
+	}
+
+	return true
+}
+func (b *TxpoolGasLimit) Output(k, v interface{}) (interface{}, interface{}) {
+	return k, v
+}
+
+type CurrencyPackLimt struct {
+}
+func (b *CurrencyPackLimt) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易区块配置", "币种打包限制输入为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易币种打包限制配置", "key值反射失败", "")
+		return false
+	}
+	if key != MSCurrencyPack {
+		log.ERROR("超级交易币种打包限制配置", "key值非法，非法值为", key)
+		return false
+	}
+
+	currency, ok := v.(string)
+	if !ok {
+		log.ERROR("超级交易币种打包限制配置", "value反射失败", "")
+		return false
+	}
+
+	return common.IsValidityCurrency(currency)
+}
+func (b *CurrencyPackLimt) Output(k, v interface{}) (interface{}, interface{}) {
+	return k, v
+}
+
+type AccountBlackList struct {
+}
+
+func (b *AccountBlackList) Check(k, v interface{}) bool {
+	if v == nil || k == nil {
+		log.ERROR("超级交易配置", "账户黑名单为空", "")
+		return false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易配置账户黑名单", "key值反射失败", "")
+		return false
+	}
+	if key != MSAccountBlackList {
+		log.ERROR("超级交易配置账户黑名单", "key值非法，非法值为", key)
+		return false
+	}
+
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置账户黑名单", "value反射失败", "")
+		return false
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置账户黑名单", "设置的账户黑名单个数为0", value)
+		return false
+	}
+
+	return true
+
+}
+
+func (b *AccountBlackList) Output(k, v interface{}) (interface{}, interface{}) {
+	value, ok := v.([]common.Address)
+	if !ok {
+		log.ERROR("超级交易配置账户黑名单", "value值反射失败", "")
+		return nil, nil
+	}
+	if len(value) == 0 {
+		log.ERROR("超级交易配置账户黑名单", "设置的账户黑名单个数为0", value)
+		return nil, nil
+	}
+	base58Accounts := make([]string, 0)
+	for _, v := range value {
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+	}
+	return k, base58Accounts
 }
