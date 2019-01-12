@@ -324,6 +324,12 @@ func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.Re
 		log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
 		return nil, nil, nil, nil, nil, err
 	}
+	err = p.blockChain().ProcessBlockGProduceSlash(work.State, header)
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "执行区块惩罚处理错误", err, "高度", p.number)
+		return nil, nil, nil, nil, nil, err
+	}
+
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, upTimeMap)
 	block := types.NewBlock(header, finalTxs, nil, work.Receipts)
 	log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())

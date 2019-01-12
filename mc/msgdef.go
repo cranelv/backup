@@ -113,6 +113,7 @@ type MasterValidatorReElectionReqMsg struct {
 	FoundationValidatorList []vm.DepositDetail
 	ElectConfig             ElectConfigInfo_All
 	VIPList                 []VIPConfig
+	BlockProduceBlackList   BlockProduceSlashBlackList
 }
 
 //矿工主节点生成响应

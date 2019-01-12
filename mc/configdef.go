@@ -44,6 +44,12 @@ const (
 	MSKeyInterestCalcNum   = "interest_calc_num"  // 利息计算状态
 	MSKeyInterestPayNum    = "interest_pay_num"   // 利息支付状态
 	MSKeySlashNum          = "slash_num"          // 惩罚状态
+
+	//未出块选举惩罚配置相关
+	MSKeyBlockProduceStatsStatus = "block_produce_stats_status" //
+	MSKeyBlockProduceSlashCfg    = "block_produce_slash_cfg"    //
+	MSKeyBlockProduceStats       = "block_produce_stats"        //
+	MSKeyBlockProduceBlackList   = "block_produce_blacklist"    //
 )
 
 type BCIntervalInfo struct {
@@ -166,4 +172,32 @@ type LotteryFrom struct {
 type RandomInfoStruct struct {
 	MinHash  common.Hash
 	MaxNonce uint64
+}
+
+type BlockProduceSlashCfg struct {
+	Switcher         bool
+	LowTHR           uint16
+	ProhibitCycleNum uint16
+}
+
+type UserBlockProduceNum struct {
+	Address    common.Address
+	ProduceNum uint16
+}
+
+type BlockProduceStats struct {
+	StatsList []UserBlockProduceNum
+}
+
+type UserBlockProduceSlash struct {
+	Address              common.Address
+	ProhibitCycleCounter uint16
+}
+
+type BlockProduceSlashBlackList struct {
+	BlackList []UserBlockProduceSlash
+}
+
+type BlockProduceSlashStatsStatus struct {
+	Number uint64
 }

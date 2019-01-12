@@ -189,5 +189,12 @@ var (
 				"增加拓扑图状态web3接口",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.23",
+			Submitter: "hemao",
+			Commit: []string{
+				"未出块惩罚代功能添加",
+			},
+		},
 	}
 )

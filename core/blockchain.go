@@ -1338,7 +1338,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-
+			err = bc.ProcessBlockGProduceSlash(state, block.Header())
+			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err6")
+				bc.reportBlock(block, nil, err)
+				return i, events, coalescedLogs, err
+			}
 			// Process block using the parent state as reference point.
 			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap)
 			if err != nil {

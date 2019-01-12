@@ -221,7 +221,7 @@ func initCurrentTopology() {
 	ide.lock.Lock()
 	// change default role
 	ide.currentRole = common.RoleDefault
-	log.Info("测试测试测试", "ide.addr", ide.addr.String())
+
 	for _, t := range ide.topology.NodeList {
 		if t.Account == ide.addr {
 			log.INFO("initCurrentTopology", "account", t.Account.String(), "type", t.Type)

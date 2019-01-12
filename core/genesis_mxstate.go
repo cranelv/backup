@@ -16,46 +16,54 @@ const (
 )
 
 type GenesisMState struct {
-	Broadcasts           *[]common.Address       `json:"Broadcasts"`
-	InnerMiners          *[]common.Address       `json:"InnerMiners"`
-	Foundation           *common.Address         `json:"Foundation"`
-	VersionSuperAccounts *[]common.Address       `json:"VersionSuperAccounts"`
-	BlockSuperAccounts   *[]common.Address       `json:"BlockSuperAccounts"`
-	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" gencodec:"required"`
-	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
-	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" gencodec:"required"`
-	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" gencodec:"required"`
-	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" gencodec:"required"`
-	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" gencodec:"required"`
-	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg    *[]common.Address       `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg    *[]common.Address       `json:"ElectWhiteList" gencodec:"required"`
-	CurElect             *[]common.Elect         `json:"CurElect"  gencodec:"required"`
+	Broadcasts                   *[]common.Address                `json:"Broadcasts"`
+	InnerMiners                  *[]common.Address                `json:"InnerMiners"`
+	Foundation                   *common.Address                  `json:"Foundation"`
+	VersionSuperAccounts         *[]common.Address                `json:"VersionSuperAccounts"`
+	BlockSuperAccounts           *[]common.Address                `json:"BlockSuperAccounts"`
+	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg" gencodec:"required"`
+	BCICfg                       *mc.BCIntervalInfo               `json:"BroadcastInterval" gencodec:"required"`
+	LeaderCfg                    *mc.LeaderConfig                 `json:"LeaderCfg" gencodec:"required"`
+	BlkRewardCfg                 *mc.BlkRewardCfg                 `json:"BlkRewardCfg" gencodec:"required"`
+	TxsRewardCfg                 *mc.TxsRewardCfgStruct           `json:"TxsRewardCfg" gencodec:"required"`
+	LotteryCfg                   *mc.LotteryCfgStruct             `json:"LotteryCfg" gencodec:"required"`
+	InterestCfg                  *mc.InterestCfgStruct            `json:"InterestCfg" gencodec:"required"`
+	SlashCfg                     *mc.SlashCfgStruct               `json:"SlashCfg" gencodec:"required"`
+	EleTimeCfg                   *mc.ElectGenTimeStruct           `json:"EleTime" gencodec:"required"`
+	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo" gencodec:"required"`
+	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg            *[]common.Address                `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg            *[]common.Address                `json:"ElectWhiteList" gencodec:"required"`
+	CurElect                     *[]common.Elect                  `json:"CurElect"  gencodec:"required"`
+	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
+	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
+	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
+	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
 }
 type GenesisMState1 struct {
-	Broadcasts           *[]string               `json:"Broadcasts,omitempty"`
-	InnerMiners          *[]string               `json:"InnerMiners,omitempty"`
-	Foundation           *string                 `json:"Foundation,omitempty"`
-	VersionSuperAccounts *[]string               `json:"VersionSuperAccounts,omitempty"`
-	BlockSuperAccounts   *[]string               `json:"BlockSuperAccounts,omitempty"`
-	BCICfg               *mc.BCIntervalInfo      `json:"BroadcastInterval" gencodec:"required"`
-	VIPCfg               *[]mc.VIPConfig         `json:"VIPCfg" ,omitempty"`
-	LeaderCfg            *mc.LeaderConfig        `json:"LeaderCfg" ,omitempty"`
-	BlkRewardCfg         *mc.BlkRewardCfg        `json:"BlkRewardCfg" ,omitempty"`
-	TxsRewardCfg         *mc.TxsRewardCfgStruct  `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg           *mc.LotteryCfgStruct    `json:"LotteryCfg" ,omitempty"`
-	InterestCfg          *mc.InterestCfgStruct   `json:"InterestCfg" ,omitempty"`
-	SlashCfg             *mc.SlashCfgStruct      `json:"SlashCfg" ,omitempty"`
-	EleTimeCfg           *mc.ElectGenTimeStruct  `json:"EleTime" ,omitempty"`
-	EleInfoCfg           *mc.ElectConfigInfo     `json:"EleInfo" ,omitempty"`
-	ElectMinerNumCfg     *mc.ElectMinerNumStruct `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg    *[]string               `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg    *[]string               `json:"ElectWhiteList" gencodec:"required"`
-	CurElect             *[]common.Elect1        `json:"curElect"    gencodec:"required"`
+	Broadcasts                   *[]string                        `json:"Broadcasts,omitempty"`
+	InnerMiners                  *[]string                        `json:"InnerMiners,omitempty"`
+	Foundation                   *string                          `json:"Foundation,omitempty"`
+	VersionSuperAccounts         *[]string                        `json:"VersionSuperAccounts,omitempty"`
+	BlockSuperAccounts           *[]string                        `json:"BlockSuperAccounts,omitempty"`
+	BCICfg                       *mc.BCIntervalInfo               `json:"BroadcastInterval" gencodec:"required"`
+	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg" ,omitempty"`
+	LeaderCfg                    *mc.LeaderConfig                 `json:"LeaderCfg" ,omitempty"`
+	BlkRewardCfg                 *mc.BlkRewardCfg                 `json:"BlkRewardCfg" ,omitempty"`
+	TxsRewardCfg                 *mc.TxsRewardCfgStruct           `json:"TxsRewardCfg" ,omitempty"`
+	LotteryCfg                   *mc.LotteryCfgStruct             `json:"LotteryCfg" ,omitempty"`
+	InterestCfg                  *mc.InterestCfgStruct            `json:"InterestCfg" ,omitempty"`
+	SlashCfg                     *mc.SlashCfgStruct               `json:"SlashCfg" ,omitempty"`
+	EleTimeCfg                   *mc.ElectGenTimeStruct           `json:"EleTime" ,omitempty"`
+	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo" ,omitempty"`
+	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum" gencodec:"required"`
+	ElectBlackListCfg            *[]string                        `json:"ElectBlackList" gencodec:"required"`
+	ElectWhiteListCfg            *[]string                        `json:"ElectWhiteList" gencodec:"required"`
+	CurElect                     *[]common.Elect1                 `json:"curElect"    gencodec:"required"`
+	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
+	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
+	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
+	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
 }
 
 func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
@@ -127,6 +135,22 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setBCIntervalToState(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashStatsStatus(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashBlkList(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceStats(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashCfg(state, num); err != nil {
 		return err
 	}
 	return nil
@@ -650,4 +674,61 @@ func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64) erro
 		return matrixstate.SetBroadcastInterval(st, interval)
 	}
 	return nil
+}
+
+func (g *GenesisMState) setBlockProduceSlashCfg(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashCfg == nil {
+			return errors.New("区块生产惩罚配置信息为nil")
+		}
+	} else {
+		if g.BlockProduceSlashCfg == nil {
+			log.INFO("Geneis", "未修改区块生产惩罚配置信息为", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceSlashCfg", g.BlockProduceSlashCfg)
+	return matrixstate.SetBlockProduceSlashCfg(state, g.BlockProduceSlashCfg)
+}
+func (g *GenesisMState) setBlockProduceStats(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceStats == nil {
+			return nil
+		}
+	} else {
+		if g.BlockProduceStats == nil {
+			log.INFO("Geneis", "未修改区块生产惩罚统计信息", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceStats", g.BlockProduceStats)
+	return matrixstate.SetBlockProduceStats(state, g.BlockProduceStats)
+}
+func (g *GenesisMState) setBlockProduceSlashBlkList(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashBlackList == nil {
+			return nil
+		}
+	} else {
+		if g.BlockProduceSlashBlackList == nil {
+			log.INFO("Geneis", "未修改区块生产惩黑名单", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceBlackList", g.BlockProduceSlashBlackList)
+	return matrixstate.SetBlockProduceBlackList(state, g.BlockProduceSlashBlackList)
+}
+func (g *GenesisMState) setBlockProduceSlashStatsStatus(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.BlockProduceSlashStatsStatus == nil {
+			return errors.New("区块生产惩状态信息为nil")
+		}
+	} else {
+		if g.BlockProduceSlashStatsStatus == nil {
+			log.INFO("Geneis", "未修改区块生产状态信息", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "BlockProduceSlashStatsStatus", g.BlockProduceSlashStatsStatus)
+	return matrixstate.SetBlockProduceStatsStatus(state, g.BlockProduceSlashStatsStatus)
 }

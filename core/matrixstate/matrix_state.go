@@ -92,6 +92,11 @@ func newManger(version string) *Manager {
 				mc.MSKeyInterestCalcNum:   newInterestCalcNumOpt(),
 				mc.MSKeyInterestPayNum:    newInterestPayNumOpt(),
 				mc.MSKeySlashNum:          newSlashNumOpt(),
+
+				mc.MSKeyBlockProduceStatsStatus: newBlockProduceStatsStatusOpt(),
+				mc.MSKeyBlockProduceSlashCfg:    newBlockProduceSlashCfgOpt(),
+				mc.MSKeyBlockProduceStats:       newBlockProduceStatsOpt(),
+				mc.MSKeyBlockProduceBlackList:   newBlockProduceBlackListOpt(),
 			},
 		}
 	default:
