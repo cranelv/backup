@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 
 	"github.com/matrix/go-matrix/params/manparams"
+	"math/big"
 )
 
 const (
@@ -178,4 +179,29 @@ func Test_newManager(t *testing.T) {
 		return
 	}
 
+	s1 := "DDDDAA"
+	if a.Check(mc.MSCurrencyPack,s1){
+		fmt.Println(a.Output(mc.MSCurrencyPack,s1))
+	}else{
+		t.Error("执行失败")
+		//return
+	}
+
+	gas := *big.NewInt(int64(1800000))
+	if a.Check(mc.MSTxpoolGasLimitCfg,gas){
+		fmt.Println(a.Output(mc.MSTxpoolGasLimitCfg,gas))
+	}else{
+		t.Error("执行失败")
+		//return
+	}
+
+	var accountblklist []common.Address
+	accountblklist = append(accountblklist, common.HexToAddress("0x12345"))
+	if a.Check(mc.MSAccountBlackList, accountblklist) {
+		fmt.Println(a.Output(mc.MSAccountBlackList, accountblklist))
+	} else {
+		t.Error("执行失败")
+		//return
+	}
+	return
 }

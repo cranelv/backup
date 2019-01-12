@@ -29,7 +29,8 @@ func (opt *operatorBroadcastTx) GetValue(st StateDB) (interface{}, error) {
 		return nil, err
 	}
 
-	value := make(map[string]map[common.Address][]byte)
+	//value := make(map[string]map[common.Address][]byte)
+	value := make(common.BroadTxSlice,0)
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
 		return value, nil
@@ -46,7 +47,8 @@ func (opt *operatorBroadcastTx) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	txs, OK := value.(map[string]map[common.Address][]byte)
+	//txs, OK := value.(map[string]map[common.Address][]byte)
+	txs, OK := value.(common.BroadTxSlice)
 	if !OK {
 		log.Error(logInfo, "input param(broadcastTx) err", "reflect failed")
 		return ErrParamReflect

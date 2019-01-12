@@ -345,7 +345,8 @@ func SetSuperBlockCfg(st StateDB, cfg *mc.SuperBlkCfg) error {
 	return opt.SetValue(st, cfg)
 }
 
-func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
+//func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error)
+func GetBroadcastTxs(st StateDB) (common.BroadTxSlice, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -358,10 +359,10 @@ func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(map[string]map[common.Address][]byte), nil
+	return value.(common.BroadTxSlice), nil
 }
 
-func SetBroadcastTxs(st StateDB, txs map[string]map[common.Address][]byte) error {
+func SetBroadcastTxs(st StateDB, txs common.BroadTxSlice) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager

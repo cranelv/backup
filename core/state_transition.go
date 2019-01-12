@@ -17,6 +17,8 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/supertxsstate"
 )
 
 var (
@@ -159,15 +161,16 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return st.CallUnGasNormalTx()
 		case common.ExtraTimeTxType:
 			return st.CallTimeNormalTx()
-		//case common.ExtraEntrustTx:
-		//todo
-		//tx.Data()
 		case common.ExtraAuthTx:
 			log.INFO("====ZH: 授权交易", "txtype", txtype)
 			return st.CallAuthTx()
 		case common.ExtraCancelEntrust:
 			log.INFO("====ZH: 取消委托", "txtype", txtype)
 			return st.CallCancelAuthTx()
+		case common.ExtraSuperTxType:
+			return st.CallSuperTx()
+		//case common.ExtraCreatCurrency:
+		//	return st.CallCreatCurrencyTx()
 		default:
 			log.Info("File state_transition", "func Transitiondb", "Unknown extra txtype")
 			return nil, 0, false, ErrTXUnknownType
@@ -848,6 +851,84 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	}
 	st.gas = 0
 	if toaddr == nil { //
+		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
+		return nil, 0, false, ErrTXToNil
+	} else {
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(tx.From(), st.state.GetNonce(sender.Address())+1)
+		ret, st.gas, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
+	}
+	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		for _, ex := range tmpExtra[0].ExtraTo {
+			if toaddr == nil {
+				log.Error("file state_transition", "func CallAuthTx()", "Extro to is nil")
+				return nil, 0, false, ErrTXToNil
+			} else {
+				// Increment the nonce for the next transaction
+				ret, st.gas, vmerr = evm.Call(sender, *ex.Recipient, ex.Payload, st.gas, ex.Amount)
+			}
+			if vmerr != nil {
+				break
+			}
+		}
+	}
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, vmerr
+		}
+	}
+	return ret, 0, vmerr != nil, err
+}
+func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed bool, err error) {
+	if err = st.PreCheck(); err != nil {
+		return
+	}
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
+	sender := vm.AccountRef(tx.From())
+	var (
+		evm   = st.evm
+		vmerr error
+	)
+
+	configData := make(map[string]interface{})
+	err = json.Unmarshal(tx.Data(),&configData)
+	if err != nil {
+		log.Error("CallSuperTx Unmarshal err")
+		return nil, 0, false, err
+	}
+
+
+	version := matrixstate.GetVersionInfo(st.state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil, 0, false, errors.New("find manger err")
+	}
+
+	supMager := supertxsstate.GetManager(version)
+	for k,v := range configData{
+		if supMager.Check(k,v){
+			opt, err := mgr.FindOperator(k)
+			if err != nil{
+				log.Error("CallSuperTx:FindOperator failed","key",k,"value",v,"err",err)
+			}
+			err = opt.SetValue(st.state,v)
+			if err != nil{
+				log.Error("CallSuperTx:SetValue failed","key",k,"value",v,"err",err)
+			}
+		}
+	}
+
+	//YY
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, ErrTXCountOverflow
+		}
+	}
+	st.gas = 0
+	if toaddr == nil { //YY
 		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {

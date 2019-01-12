@@ -101,6 +101,10 @@ func newManger(version string) *Manager {
 				mc.MSKeyInterestCalc: newInterestCalcOpt(),
 				mc.MSKeyLotteryCalc:  newLotteryCalcOpt(),
 				mc.MSKeySlashCalc:    newSlashCalcOpt(),
+
+				mc.MSTxpoolGasLimitCfg:   newTxpoolGasLimitOpt(),
+				mc.MSCurrencyPack:   newCurrencyPackOpt(),
+				mc.MSAccountBlackList:   newAccountBlackListOpt(),
 			},
 		}
 	default:

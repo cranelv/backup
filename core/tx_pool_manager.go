@@ -13,6 +13,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"sync"
 	"time"
+	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
 var (
@@ -96,6 +97,7 @@ type TxPoolManager struct {
 	sendTxCh     chan NewTxsEvent
 	txFeed       event.Feed
 	scope        event.SubscriptionScope
+	chain 		 blockChain
 }
 
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
@@ -107,6 +109,7 @@ func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chai
 		addPool:      make(chan TxPool),
 		delPool:      make(chan TxPool),
 		sendTxCh:     make(chan NewTxsEvent),
+		chain:        chain,
 	}
 	SelfBlackList = NewInitblacklist()
 	go txPoolManager.loop(config, chainconfig, chain, path)
@@ -233,11 +236,37 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 }
 func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
+	state,err := pm.chain.State()
+	if err != nil{
+		log.Error("TxPoolManager:filter","get state failed",err)
+		return nil
+	}
+
 	for _, txer := range txser {
 		ct := txer.GetTxCurrency()
 		if ct == "" {
 
 		}
+
+		//超级交易账户不匹配
+		if txer.GetMatrixType() == common.ExtraSuperTxType{
+			mansuperTxAddreslist,err := matrixstate.GetTxsSuperAccounts(state)
+			if err != nil{
+				log.Error("TxPoolManager:filter","get super tx account failed",err)
+				continue
+			}
+			isOK := false
+			for _,superAddress := range mansuperTxAddreslist{
+				if txer.From().Equal(superAddress){
+					isOK = true
+				}
+			}
+			if !isOK{
+				log.Error("超级账户不匹配")
+				//continue
+			}
+		}
+
 		//黑账户过滤
 		if SelfBlackList.FindBlackAddress(*txer.To()) {
 			continue

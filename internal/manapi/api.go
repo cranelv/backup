@@ -47,6 +47,8 @@ import (
 	"github.com/matrix/go-matrix/rpc"
 	"io/ioutil"
 	"os"
+	"github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/supertxsstate"
 )
 
 const (
@@ -685,6 +687,41 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 	return strAddrList
 }
 
+func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
+	if len(keys)==0 {
+		return nil
+	}
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+
+	version := matrixstate.GetVersionInfo(state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil
+	}
+	supMager := supertxsstate.GetManager(version)
+	mapdata := make(map[string]interface{})
+	for _,k := range keys{
+		opt, err := mgr.FindOperator(k)
+		if err != nil{
+			log.Error("GetCfgDataByState:FindOperator failed","key",k,"err",err)
+			continue
+		}
+		dataval,err := opt.GetValue(state)
+		if err != nil{
+			log.Error("GetCfgDataByState:SetValue failed","err",err)
+			continue
+		}
+		keystr,val := supMager.Output(k,dataval)
+		if keystr == mc.MSTxpoolGasLimitCfg && val == "0"{
+			val = params.TxGasPrice
+		}
+		mapdata[keystr.(string)] = val
+	}
+	return mapdata
+}
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
