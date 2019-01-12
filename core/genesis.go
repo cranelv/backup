@@ -213,6 +213,18 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			}
 			gensis.MState.CurElect = &curElect
 		}
+		if nil != gensis1.MState.BlockProduceSlashCfg {
+			gensis.MState.BlockProduceSlashCfg = gensis1.MState.BlockProduceSlashCfg
+		}
+		if nil != gensis1.MState.BlockProduceSlashBlackList {
+			gensis.MState.BlockProduceSlashBlackList = gensis1.MState.BlockProduceSlashBlackList
+		}
+		if nil != gensis1.MState.BlockProduceSlashStatsStatus {
+			gensis.MState.BlockProduceSlashStatsStatus = gensis1.MState.BlockProduceSlashStatsStatus
+		}
+		if nil != gensis1.MState.BlockProduceStats {
+			gensis.MState.BlockProduceStats = gensis1.MState.BlockProduceStats
+		}
 	}
 
 }
