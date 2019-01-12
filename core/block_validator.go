@@ -88,10 +88,9 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 				if rbloom != cr.Bloom {
 					return fmt.Errorf("invalid bloom (remote: %x  local: %x)", cr.Bloom, rbloom)
 				}
-		// Tre receipt Trie's root (R = (Tr [[H1, R1], ... [Hn, R1]]))
 				if receiptSha != cr.ReceiptHash {
 					return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", cr.ReceiptHash, receiptSha)
-					}
+				}
 				break
 			}
 		}

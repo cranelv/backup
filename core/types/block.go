@@ -309,7 +309,7 @@ func SetReceipts(Receiptser []*Receipt, shadings []uint) BodyReceipts {
 
 func (br *BodyReceipts) setSetReceiptInfo(Receiptser Receipts) []ReceiptsInfo {
 	for i, receipter := range Receiptser {
-		if &receipter == nil {
+		if receipter == nil {
 			continue
 		}
 		br.ReceiptsInfos = append(br.ReceiptsInfos, ReceiptsInfo{uint64(i), *receipter})

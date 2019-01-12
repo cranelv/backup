@@ -145,8 +145,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	)
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   Test
 	//su :=make([]uint,0)
-	//su = append(su,uint(1))
-	//su = append(su,uint(2))
+	//su = append(su,uint(0))
+	//su = append(su,uint(14))
 	//coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:su})
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 
@@ -247,10 +247,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		tmpr[0] = receipt
 		copy(tmpr[1:],receipts)
 		receipts = tmpr
-		tmpl := make([]types.CoinLogs, 0)
-		tmpl = append(tmpl, types.CoinLogs{CoinType:params.MAN_COIN,Logs:receipt.Logs})
-		tmpl = append(tmpl, allLogs...)
-		allLogs = tmpl
+		if receipt != nil{
+			tmpl := make([]types.CoinLogs, 0)
+			tmpl = append(tmpl, types.CoinLogs{CoinType:params.MAN_COIN,Logs:receipt.Logs})
+			tmpl = append(tmpl, allLogs...)
+			allLogs = tmpl
+		}
 		ftxs = append(ftxs,tmptx)
 		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 	}
@@ -288,6 +290,9 @@ func (p *StateProcessor) isValidater(h *big.Int) bool {
 		if role.SignAddress == ca.GetAddress() {
 			return true
 		}
+	}
+	if ca.GetRole() == common.RoleBroadcast{
+		return true
 	}
 	return false
 }

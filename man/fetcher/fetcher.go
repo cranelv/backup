@@ -186,6 +186,7 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 	}
 	select {
 	case f.notify <- block:
+		log.Debug("fetcher notify ", "number", number, "hash", hash.Str(),"hash2",hash.Hex(),"peer",peer)
 		return nil
 	case <-f.quit:
 		return errTerminated
@@ -416,6 +417,7 @@ func (f *Fetcher) loop() {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
+
 				go f.completing[hashes[0]].fetchBodies(hashes)
 			}
 			// Schedule the next fetch if blocks are still pending
@@ -524,6 +526,7 @@ func (f *Fetcher) loop() {
 				for _,txer := range task.transactions[i]{
 					for _,tx := range txer.Transactions.GetTransactions(){
 						tmpmap[tx.GetTxCurrency()] = append(tmpmap[tx.GetTxCurrency()],tx)
+						log.Trace("download fetch bodyFilter for1", "tx.GetTxCurrency()", tx.GetTxCurrency(), "task.peer", task.peer)
 					}
 				}
 				for hash, announce := range f.completing {
@@ -533,7 +536,7 @@ func (f *Fetcher) loop() {
 						for _,coinHeader := range announce.header.Roots{
 							txnHash := types.DeriveSha(types.SelfTransactions(tmpmap[coinHeader.Cointyp]))
 							uncleHash := types.CalcUncleHash(task.uncles[i])
-							log.Trace("download fetch bodyFilter map", "hash", hash, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin)
+							log.Trace("download fetch bodyFilter map", "hash", hash,"Cointyp",coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin,"blockNum",announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
 								isok = false
 							}
