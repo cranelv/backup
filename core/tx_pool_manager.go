@@ -242,10 +242,29 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 		return nil
 	}
 
+	blklist,err := matrixstate.GetAccountBlackList(state)
+	if err != nil{
+		//不做处理
+	}
+
 	for _, txer := range txser {
 		ct := txer.GetTxCurrency()
 		if ct == "" {
 
+		}
+
+		//黑账户过滤
+		if len(blklist) > 0{
+			isBlkAccount := false
+			for _,blkAccount := range blklist{
+				if txer.From().Equal(blkAccount){
+					isBlkAccount = true
+					break
+				}
+			}
+			if isBlkAccount{
+				continue
+			}
 		}
 
 		//超级交易账户不匹配
@@ -263,13 +282,15 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 			}
 			if !isOK{
 				log.Error("超级账户不匹配")
-				//continue
+				continue
 			}
 		}
 
 		//黑账户过滤
-		if SelfBlackList.FindBlackAddress(*txer.To()) {
-			continue
+		if txer.To() != nil{
+			if SelfBlackList.FindBlackAddress(*txer.To()) {
+				continue
+			}
 		}
 		txerlist = append(txerlist, txer)
 	}

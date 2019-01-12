@@ -16,7 +16,7 @@ func init() {
 }
 
 type SuperTxsStateChecker interface {
-	Check(k, v interface{}) bool
+	Check(k, v interface{}) (interface{},bool)
 	Output(k, v interface{}) (interface{}, interface{})
 }
 
@@ -71,11 +71,11 @@ func newManager(version string) *SuperTxsStateManager {
 	}
 }
 
-func (s *SuperTxsStateManager) Check(k string, v interface{}) bool {
+func (s *SuperTxsStateManager) Check(k string, v interface{}) (interface{},bool) {
 	if opt, ok := s.operators[k]; ok {
 		return opt.Check(k, v)
 	}
-	return false
+	return nil,false
 }
 
 func (s *SuperTxsStateManager) Output(k string, v interface{}) (interface{}, interface{}) {

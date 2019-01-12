@@ -602,7 +602,9 @@ var (
 
 func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesis {
 	if nil != cfgGenesis.Config {
-		OutGensis.Config = new(params.ChainConfig)
+		if OutGensis.Config == nil{
+			OutGensis.Config = new(params.ChainConfig)
+		}
 		if nil != cfgGenesis.Config.ChainId {
 			OutGensis.Config.ChainId = cfgGenesis.Config.ChainId
 		}

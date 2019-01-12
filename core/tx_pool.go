@@ -22,6 +22,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"runtime"
+	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
 //
@@ -1237,6 +1238,10 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrTXWrongful
 	//}
 	// Drop non-local transactions under our own minimal accepted gas price
+	gasprice,err := matrixstate.GetTxpoolGasLimit(nPool.currentState)
+	if err == nil && (&gasprice).Cmp(big.NewInt(int64(0)))>0{
+		nPool.gasPrice = &gasprice
+	}
 	if nPool.gasPrice.Cmp(tx.GasPrice()) > 0 {
 		return ErrUnderpriced
 	}
