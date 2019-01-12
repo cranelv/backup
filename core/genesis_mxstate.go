@@ -411,7 +411,8 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 
 func (g *GenesisMState) setBlockSuperAccountsToState(state *state.StateDB, num uint64) error {
 	if num != 0 {
-		return errors.New("the block superAccounts can't modify")
+		// 超级区块签名账户不可修改
+		return nil
 	}
 	if g.BlockSuperAccounts == nil || len(*g.BlockSuperAccounts) == 0 {
 		return errors.Errorf("the block superAccounts of genesis is empty")

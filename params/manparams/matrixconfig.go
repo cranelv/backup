@@ -7,11 +7,10 @@ package manparams
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"io/ioutil"
+	"os"
 )
 
 const (
