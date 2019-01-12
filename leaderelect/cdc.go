@@ -310,6 +310,7 @@ func (dc *cdc) GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCInterval
 func (dc *cdc) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
 	return dc.chain.GetSignAccountPassword(signAccounts)
 }
+
 func (dc *cdc) GetA2AccountsFromA0Account(a0Account common.Address, blockHash common.Hash) ([]common.Address, error) {
 	if blockHash.Equal(common.Hash{}) {
 		log.Error(common.SignLog, "cdc获取A2账户", "输入数据区块hash为空")
@@ -321,29 +322,7 @@ func (dc *cdc) GetA2AccountsFromA0Account(a0Account common.Address, blockHash co
 		return dc.chain.GetA2AccountsFromA0Account(a0Account, blockHash)
 	}
 
-	if nil == dc.parentState {
-		log.Info(common.SignLog, "cdc获取A2账户", "dc.parentState是空")
-		return nil, errors.New("cdc: parent stateDB is nil, can't reader data")
-	}
-
-	a1Account := depoistInfo.GetAuthAccount(dc.parentState, a0Account)
-	if a1Account == (common.Address{}) {
-		log.Error(common.SignLog, "cdc获取A2账户", " 不存在A1账户", " a0Account", a0Account.Hex())
-		return nil, errors.New("不存在A1账户")
-	}
-
-	height := dc.number - 1
-	a2Accounts := dc.parentState.GetEntrustFrom(a1Account, height)
-	if len(a2Accounts) == 0 {
-		log.INFO(common.SignLog, "cdc获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
-	} else {
-		log.Info(common.SignLog, "cdc获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
-		for i, account := range a2Accounts {
-			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
-		}
-	}
-	a2Accounts = append(a2Accounts, a1Account)
-	return a2Accounts, nil
+	return dc.getA2Accounts(a0Account, blockHash, dc.number-1)
 }
 
 func (dc *cdc) GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error) {
@@ -356,6 +335,61 @@ func (dc *cdc) GetA0AccountFromAnyAccount(account common.Address, blockHash comm
 		return dc.chain.GetA0AccountFromAnyAccount(account, blockHash)
 	}
 
+	return dc.getA0Account(account, blockHash, dc.number-1)
+}
+
+func (dc *cdc) GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Address, blockHash common.Hash, signHeight uint64) ([]common.Address, error) {
+	if blockHash.Equal(common.Hash{}) {
+		log.Error(common.SignLog, "cdc获取A2账户", "输入数据区块hash为空")
+		return nil, errors.New("cdc:输入hash为空")
+	}
+
+	if blockHash != dc.leaderCal.preHash {
+		log.Info(common.SignLog, "cdc获取A2账户", "调blockchain接口")
+		return dc.chain.GetA2AccountsFromA0AccountAtSignHeight(a0Account, blockHash, signHeight)
+	}
+
+	return dc.getA2Accounts(a0Account, blockHash, signHeight)
+}
+
+func (dc *cdc) GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error) {
+	if blockHash == (common.Hash{}) {
+		log.ERROR(common.SignLog, "CDC获取A0账户", "输入的hash为空")
+		return common.Address{}, common.Address{}, errors.New("cdc: 输入hash为空")
+	}
+	if blockHash != dc.leaderCal.preHash {
+		log.Warn(common.SignLog, "CDC获取A0账户", "采用blockchain的接口")
+		return dc.chain.GetA0AccountFromAnyAccountAtSignHeight(account, blockHash, signHeight)
+	}
+	return dc.getA0Account(account, blockHash, signHeight)
+}
+
+func (dc *cdc) getA2Accounts(a0Account common.Address, blockHash common.Hash, signHeight uint64) ([]common.Address, error) {
+	if nil == dc.parentState {
+		log.Info(common.SignLog, "cdc获取A2账户", "dc.parentState是空")
+		return nil, errors.New("cdc: parent stateDB is nil, can't reader data")
+	}
+
+	a1Account := depoistInfo.GetAuthAccount(dc.parentState, a0Account)
+	if a1Account == (common.Address{}) {
+		log.Error(common.SignLog, "cdc获取A2账户", " 不存在A1账户", " a0Account", a0Account.Hex())
+		return nil, errors.New("不存在A1账户")
+	}
+
+	a2Accounts := dc.parentState.GetEntrustFrom(a1Account, signHeight)
+	if len(a2Accounts) == 0 {
+		log.INFO(common.SignLog, "cdc获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "签名高度", signHeight)
+	} else {
+		log.Info(common.SignLog, "cdc获得A2账户", "成功", "账户数量", len(a2Accounts), "签名高度", signHeight)
+		for i, account := range a2Accounts {
+			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "签名高度", signHeight)
+		}
+	}
+	a2Accounts = append(a2Accounts, a1Account)
+	return a2Accounts, nil
+}
+
+func (dc *cdc) getA0Account(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error) {
 	if nil == dc.parentState {
 		log.ERROR(common.SignLog, "CDC获取A0账户", "dc.parentState is nil")
 		return common.Address{}, common.Address{}, errors.New("cdc: parent stateDB is nil, can't reader data")
@@ -369,8 +403,7 @@ func (dc *cdc) GetA0AccountFromAnyAccount(account common.Address, blockHash comm
 	}
 
 	//账户为A2账户，获取A1
-	preHeight := dc.number - 1
-	a1Account := dc.parentState.GetAuthFrom(account, preHeight)
+	a1Account := dc.parentState.GetAuthFrom(account, signHeight)
 	if a1Account == (common.Address{}) {
 		log.Error(common.SignLog, "CDC获取A0账户", "账户不是A1也不是A2账户", "Account", account.Hex())
 		return common.Address{}, common.Address{}, errors.New("账户不是A1也不是A2账户")

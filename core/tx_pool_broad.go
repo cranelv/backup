@@ -32,6 +32,7 @@ type blockChainBroadCast interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
+	GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error)
 }
 
 func NewBroadTxPool(chainconfig *params.ChainConfig, chain blockChainBroadCast, path string) *BroadCastTxPool {
@@ -274,7 +275,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		log.Error("unknown broadcast Address. error (func filter()  BroadCastTxPool) ")
 		return false
 	case mc.Heartbeat:
-		fromDepositAccount, err := ca.ConvertSignToDepositAddress(from)
+		fromDepositAccount, _, err := bPool.chain.GetA0AccountFromAnyAccountAtSignHeight(from, blockHash, bcInterval.GetNextBroadcastNumber(height.Uint64()))
 		if err != nil {
 			log.Error("BroadCastTxPool", "convert from account to deposit account err", err, "from", from.Hex())
 			return false
@@ -299,7 +300,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		log.WARN("Unknown account information (func filter()   BroadCastTxPool),mc.Heartbeat")
 		return false
 	case mc.Privatekey, mc.Publickey:
-		fromDepositAccount, err := ca.ConvertSignToDepositAddress(from)
+		fromDepositAccount, _, err := bPool.chain.GetA0AccountFromAnyAccountAtSignHeight(from, blockHash, bcInterval.GetNextBroadcastNumber(height.Uint64()))
 		if err != nil {
 			log.Error("BroadCastTxPool", "convert from account to deposit account err", err, "from", from.Hex())
 			return false

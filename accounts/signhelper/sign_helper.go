@@ -29,6 +29,8 @@ type AuthReader interface {
 	GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error)
 	GetA2AccountsFromA0Account(a0Account common.Address, blockHash common.Hash) ([]common.Address, error)
 	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error)
+	GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Address, blockHash common.Hash, signHeight uint64) ([]common.Address, error)
+	GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error)
 }
 
 var (
@@ -163,9 +165,9 @@ func (sh *SignHelper) SignHashWithValidateByAccount(hash []byte, validate bool, 
 
 }
 
-func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash) (types.SelfTransaction, error) {
+func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64) (types.SelfTransaction, error) {
 	// Sign the requested hash with the wallet
-	signAccount, signPassword, err := sh.getSignAccountAndPassword(sh.authReader, blkHash)
+	signAccount, signPassword, err := sh.getSignAccountAndPasswordAtSignHeight(sh.authReader, blkHash, signHeight)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
 	}
@@ -212,6 +214,18 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 		return []byte{}, []byte{}, []byte{}, ErrNilKeyStore
 	}
 	return sh.keyStore.SignVrfWithPass(signAccount, signPassword, msg)
+}
+
+func (sh *SignHelper) getSignAccountAndPasswordAtSignHeight(reader AuthReader, blkHash common.Hash, signHeight uint64) (accounts.Account, string, error) {
+	account := accounts.Account{}
+	addrs, err := reader.GetA2AccountsFromA0AccountAtSignHeight(ca.GetDepositAddress(), blkHash, signHeight)
+	if err != nil {
+		return account, "", err
+	}
+
+	addr, password, err := reader.GetSignAccountPassword(addrs)
+	account.Address = addr
+	return account, password, err
 }
 
 func (sh *SignHelper) getSignAccountAndPassword(reader AuthReader, blkHash common.Hash) (accounts.Account, string, error) {

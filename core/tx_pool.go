@@ -145,6 +145,7 @@ type blockChain interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
+	GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error)
 }
 
 type ConsensusNTx struct {

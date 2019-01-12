@@ -2180,3 +2180,95 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	log.Info(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
 	return a0Account, a1Account, err
 }
+
+//根据A0账户得到A2账户集合
+func (bc *BlockChain) GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Address, blockHash common.Hash, signHeight uint64) ([]common.Address, error) {
+	a1Account, err := bc.GetA1AccountFromA0Account(a0Account, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	a2Accounts, err := bc.GetA2AccountsFromA1AccountAtSignHeight(a1Account, blockHash, signHeight)
+	if err != nil {
+		return nil, err
+	}
+	return a2Accounts, nil
+}
+
+func (bc *BlockChain) GetA2AccountsFromA1AccountAtSignHeight(a1Account common.Address, blockHash common.Hash, signHeight uint64) ([]common.Address, error) {
+	//根据区块哈希得到区块
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "从A1账户获取A2账户", "失败", "根据区块hash获取区块失败 hash", blockHash)
+		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	//根据区块根得到区块链数据库
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "从A1账户获取A2账户", "失败", "根据区块root获取statedb失败 err", err)
+		return nil, errors.New("获取stateDB失败")
+	}
+
+	a2Accounts := []common.Address{}
+	//根据区块高度、A1账户从区块链数据库中获取A2账户
+	a2Accounts = st.GetEntrustFrom(a1Account, signHeight)
+	if len(a2Accounts) == 0 {
+		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "签名高度", signHeight)
+	} else {
+		log.Info(common.SignLog, "获得A2账户", "成功", "账户数量", len(a2Accounts), "签名高度", signHeight)
+		for i, account := range a2Accounts {
+			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "签名高度", signHeight)
+		}
+	}
+	a2Accounts = append(a2Accounts, a1Account)
+	//返回A2账户
+	return a2Accounts, nil
+}
+
+//根据任意账户得到A0和A1账户
+func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error) {
+	//假设传入的account为A1账户
+	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
+	if err == nil {
+		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户，输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		return a0Account, account, nil
+	}
+	//走到这，说明是输入账户不是A1账户
+	a1Account, err := bc.GetA1AccountFromA2AccountAtSignHeight(account, blockHash, signHeight)
+	if err != nil {
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为非法账户", "输入非法", account.Hex())
+		return common.Address{0}, common.Address{0}, err
+	}
+	//走到这，说明是A2账户
+	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, blockHash)
+	if err != nil {
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
+	}
+	log.Info(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+	return a0Account, a1Account, err
+}
+
+//根据A2账户得到A1账户
+func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, error) {
+	//根据区块哈希得到区块
+	block := bc.GetBlockByHash(blockHash)
+	if block == nil {
+		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块hash算区块失败", "err")
+		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+	}
+	//根据区块根得到区块链数据库
+	st, err := bc.StateAt(block.Root())
+	if err != nil {
+		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
+		return common.Address{}, errors.New("获取stateDB失败")
+	}
+
+	//根据区块高度、A2账户从区块链数据库中获取A1账户
+	a1Account := st.GetAuthFrom(a2Account, signHeight)
+	if a1Account.Equal(common.Address{}) {
+		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "签名高度", signHeight)
+		return common.Address{}, errors.New("获取的A1账户为空")
+	}
+	log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "签名高度", signHeight, "a2Account", a2Account, "a1Account", a1Account)
+
+	return a1Account, nil
+}

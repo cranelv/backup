@@ -328,8 +328,8 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 }
 
 //
-func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	return b.man.signHelper.SignTx(signedTx, chainID, b.man.blockchain.CurrentBlock().ParentHash())
+func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64) (types.SelfTransaction, error) {
+	return b.man.signHelper.SignTx(signedTx, chainID, blkHash, signHeight)
 }
 
 //

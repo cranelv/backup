@@ -66,7 +66,8 @@ func (bc *BroadCast) loop() {
 
 // 广播交易的接口
 func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte) error {
-	currBlockHeight := bc.manBackend.CurrentBlock().Number()
+	currBlock := bc.manBackend.CurrentBlock()
+	currBlockHeight := currBlock.Number()
 	//TODO sunchunfeng test
 	if h.Cmp(currBlockHeight) < 0 {
 		log.Info("===Send BroadCastTx===", "block height less than 100")
@@ -94,7 +95,7 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		chainID = config.ChainId
 	}
 	t1 := time.Now()
-	signed, err := bc.manBackend.SignTx(tx, chainID)
+	signed, err := bc.manBackend.SignTx(tx, chainID, currBlock.ParentHash(), bcInterval.GetNextBroadcastNumber(currBlockHeight.Uint64()))
 	if err != nil {
 		log.Info("file broadcast", "sendBroadCastTransaction:SignTx=", err)
 		return err
