@@ -4,6 +4,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"math/big"
 )
 
 func GetVersionInfo(st StateDB) string {
@@ -372,4 +373,37 @@ func SetBroadcastTxs(st StateDB, txs common.BroadTxSlice) error {
 		return err
 	}
 	return opt.SetValue(st, txs)
+}
+
+func GetTxpoolGasLimit(st StateDB) (big.Int, error) {
+	version := GetVersionInfo(st)
+	mgr := GetManager(version)
+	if mgr == nil {
+		return *big.NewInt(int64(0)), ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSTxpoolGasLimitCfg)
+	if err != nil {
+		return *big.NewInt(int64(0)), err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return *big.NewInt(int64(0)), err
+	}
+	return value.(big.Int), nil
+}
+func GetAccountBlackList(st StateDB) ([]common.Address, error) {
+	version := GetVersionInfo(st)
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSAccountBlackList)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
 }
