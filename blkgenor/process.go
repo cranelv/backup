@@ -239,7 +239,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
 	}
 
-	if _, err := p.insertAndBcBlock(false, header.Leader, header); err != nil {
+	if _, err := p.InsertAndBcBlock(false, header.Leader, header); err != nil {
 		log.WARN(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString(), "source", blkInsertMsg.From.Hex())
 		p.backend().FetcherNotify(blockHash, p.number, blkInsertMsg.From)
 	}

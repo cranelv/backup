@@ -150,3 +150,10 @@ func GetCoinTXRS(txs []SelfTransaction,rxs []*Receipt) ([]CoinSelfTransaction,[]
 	}
 	return tx,rx
 }
+
+func TxHashList(txs SelfTransactions)(list []common.Hash){
+	for _,tx := range txs{
+		list = append(list,tx.Hash())
+	}
+	return
+}

@@ -993,7 +993,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]types.CurrencyBlock, uncleL
 		for _,cointx := range txLists[index]{
 			for _,hr := range header.Roots{
 				if hr.Cointyp == cointx.CurrencyName{
-					if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+					if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
 						return errInvalidBody
 					}
 					break
@@ -1002,11 +1002,6 @@ func (q *queue) DeliverBodies(id string, txLists [][]types.CurrencyBlock, uncleL
 		}
 		result.Transactions = txLists[index]
 		result.Uncles = uncleLists[index]
-		//if types.DeriveSha(types.SelfTransactions(txLists[index])) != header.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
-		//	return errInvalidBody
-		//}
-		//result.Transactions = txLists[index]
-		//result.Uncles = uncleLists[index]
 		return nil
 	}
 	log.Info("download queue DeliverBodies  ", "id=%s", id, "len", len(txLists))
@@ -1024,16 +1019,13 @@ func (q *queue) DeliverReceipts(id string, receiptList [][]types.CoinReceipts) (
 		for _,cointx := range receiptList[index]{
 			for _,hr := range header.Roots{
 				if hr.Cointyp == cointx.CoinType{
-					if types.DeriveSha(types.Receipts(cointx.Receiptlist)) != hr.ReceiptHash {
+					if types.DeriveShaHash(cointx.Receiptlist.HashList()) != hr.ReceiptHash {
 						return errInvalidReceipt
 					}
 					break
 				}
 			}
 		}
-		//if types.DeriveSha(types.Receipts(receiptList[index])) != header.ReceiptHash {
-		//	return errInvalidReceipt
-		//}
 		result.Receipts = receiptList[index]
 		return nil
 	}
@@ -1202,7 +1194,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs{
 				for _,hr := range q.resultCache[index].Header.Roots{
 					if hr.Cointyp == cointx.CurrencyName{
-						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 0error")
 							return
 						}
@@ -1216,7 +1208,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == cointx.CurrencyName {
-						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 02error")
 							return
 						}
@@ -1226,7 +1218,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,coinre := range bodyBlock.Receipt {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == coinre.CoinType {
-						if types.DeriveSha(types.Receipts(coinre.Receiptlist)) != hr.ReceiptHash {
+						if types.DeriveShaHash(coinre.Receiptlist.HashList()) != hr.ReceiptHash {
 							log.Warn("recvIpfsBody deal receipt hash 02error")
 							return
 						}
@@ -1246,7 +1238,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == cointx.CurrencyName {
-						if types.DeriveSha(types.SelfTransactions(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 2error")
 							return
 						}
@@ -1263,7 +1255,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,coinre := range bodyBlock.Receipt {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == coinre.CoinType {
-						if types.DeriveSha(types.Receipts(coinre.Receiptlist)) != hr.ReceiptHash {
+						if types.DeriveShaHash(coinre.Receiptlist.HashList()) != hr.ReceiptHash {
 							log.Warn("recvIpfsBody deal receipt hash 3error")
 							return
 						}

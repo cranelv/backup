@@ -267,16 +267,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 			if len(coinShard)>0{
 				for _, cs := range coinShard {
 					if bc.CurrencyName == cs.CoinType {
-						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], cs.Shardings)
-						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName], cs.Shardings)
+						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],types.TxHashList(txs), cs.Shardings)
+						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],types.TxHashList(txs), cs.Shardings)
 					}
 				}
 			}else {
-				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
+				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],types.TxHashList(txs), nil)
 			}
 
 		}else{
-			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], nil)
+			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],types.TxHashList(txs), nil)
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

@@ -457,7 +457,7 @@ func (f *Fetcher) loop() {
 						isok := false
 						// If the block is empty (header only), short circuit into the final import queue
 						for _,coinRoot:=range header.Roots  {
-							if coinRoot.TxHash != types.DeriveSha(types.SelfTransactions{}){
+							if coinRoot.TxHash != types.DeriveShaHash([]common.Hash{}){
 								isok = true
 							}
 						}
@@ -522,10 +522,12 @@ func (f *Fetcher) loop() {
 			for i := 0; i < len(task.transactions) && i < len(task.uncles); i++ {
 				// Match up a body to any possible completion request
 				matched := false
-				tmpmap := make(map[string]types.SelfTransactions)
+				tmpmap := make(map[string][]common.Hash)
+				tmpmaptx := make(map[string]types.SelfTransactions)
 				for _,txer := range task.transactions[i]{
 					for _,tx := range txer.Transactions.GetTransactions(){
-						tmpmap[tx.GetTxCurrency()] = append(tmpmap[tx.GetTxCurrency()],tx)
+						tmpmap[tx.GetTxCurrency()] = append(tmpmap[tx.GetTxCurrency()],tx.Hash())
+						tmpmaptx[tx.GetTxCurrency()] = append(tmpmaptx[tx.GetTxCurrency()],tx)
 						log.Trace("download fetch bodyFilter for1", "tx.GetTxCurrency()", tx.GetTxCurrency(), "task.peer", task.peer)
 					}
 				}
@@ -534,13 +536,13 @@ func (f *Fetcher) loop() {
 						isok := true
 						cointx := make([]types.CoinSelfTransaction,0)
 						for _,coinHeader := range announce.header.Roots{
-							txnHash := types.DeriveSha(types.SelfTransactions(tmpmap[coinHeader.Cointyp]))
+							txnHash := types.DeriveShaHash(tmpmap[coinHeader.Cointyp])
 							uncleHash := types.CalcUncleHash(task.uncles[i])
 							log.Trace("download fetch bodyFilter map", "hash", hash,"Cointyp",coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin,"blockNum",announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
 								isok = false
 							}
-							cointx = append(cointx,types.CoinSelfTransaction{CoinType:coinHeader.Cointyp,Txser:tmpmap[coinHeader.Cointyp]})
+							cointx = append(cointx,types.CoinSelfTransaction{CoinType:coinHeader.Cointyp,Txser:tmpmaptx[coinHeader.Cointyp]})
 						}
 						if isok {
 							// Mark the body matched, reassemble if still unknown

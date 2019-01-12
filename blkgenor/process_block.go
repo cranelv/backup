@@ -335,7 +335,7 @@ func (p *Process) processBlockInsert(blockLeader common.Address) {
 	}
 
 	log.INFO(p.logExtraInfo(), "区块插入", "开始", "高度", p.number)
-	hash, err := p.insertAndBcBlock(true, blockLeader, nil)
+	hash, err := p.InsertAndBcBlock(true, blockLeader, nil)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块插入，错误", err)
 		return
@@ -398,7 +398,7 @@ func (p *Process) copyHeader(header *types.Header, minerResult *mc.HD_MiningRspM
 	return newHeader
 }
 
-func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *types.Header) (common.Hash, error) {
+func (p *Process) InsertAndBcBlock(isSelf bool, leader common.Address, header *types.Header) (common.Hash, error) {
 	var blockData *blockCacheData = nil
 	if p.role == common.RoleBroadcast {
 		blockData = p.blockCache.GetLastBlockData()

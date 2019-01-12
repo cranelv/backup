@@ -135,7 +135,9 @@ func (r *Receipt) Size() common.StorageSize {
 	}
 	return size
 }
-
+func (r *Receipt)Hash() common.Hash{
+	return rlpHash(r)
+}
 type CurrencyReceipts struct {
 	Currency string
 	StorageReceipts []*ReceiptForStorage
@@ -195,9 +197,16 @@ func (r Receipts) Len() int { return len(r) }
 
 // GetRlp returns the RLP encoding of one receipt from the list.
 func (r Receipts) GetRlp(i int) []byte {
+//	return rlpHash(r[i])[:]
 	bytes, err := rlp.EncodeToBytes(r[i])
 	if err != nil {
 		panic(err)
 	}
 	return bytes
+}
+func (r Receipts)HashList()(list []common.Hash)  {
+	for _,re := range r {
+		list = append(list,re.Hash())
+	}
+	return
 }

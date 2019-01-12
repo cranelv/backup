@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	EmptyRootHash  = DeriveSha(SelfTransactions{})
+	EmptyRootHash  = DeriveShaHash([]common.Hash{})
 	EmptyUncleHash = CalcUncleHash(nil)
 )
 
@@ -252,9 +252,26 @@ func RlpHash(x interface{}) (h common.Hash) {
 type BodyTransactions struct {
 	Sharding         []uint            // if complete block sharding = []
 	Transactions     []SelfTransaction //complete transactions
+	TxHashs 		 []common.Hash		//所有交易的hash
 	TransactionInfos []TransactionInfo //sharding transactions
 }
-
+func (bt *BodyTransactions)CheckHashs() bool{
+	if len(bt.Sharding) == 0 {
+		for i:=0;i<len(bt.Transactions);i++{
+			if bt.Transactions[i].Hash() != bt.TxHashs[i]{
+				return false
+			}
+		}
+		return true
+	} else {
+		for i:=0;i<len(bt.TransactionInfos);i++{
+			if bt.TransactionInfos[i].Tx.Hash() != bt.TxHashs[bt.TransactionInfos[i].Index]{
+				return false
+			}
+		}
+		return true
+	}
+}
 func (bt *BodyTransactions) GetTransactions() []SelfTransaction {
 	if len(bt.Sharding) == 0 {
 		return bt.Transactions
@@ -284,9 +301,27 @@ func (br *BodyReceipts) GetReceipts() Receipts {
 		return Receiptser
 	}
 }
-
-func SetTransactions(txser SelfTransactions, shadings []uint) BodyTransactions {
+func (bt *BodyReceipts)CheckRecptHashs() bool{
+	if len(bt.Sharding) == 0 {
+		for i:=0;i<len(bt.Rs);i++{
+			if bt.Rs[i].Hash() != bt.RsHashs[i]{
+				return false
+			}
+		}
+		return true
+	} else {
+		for i:=0;i<len(bt.ReceiptsInfos);i++{
+			if bt.ReceiptsInfos[i].Receipt.Hash() != bt.RsHashs[bt.ReceiptsInfos[i].Index]{
+				return false
+			}
+		}
+		return true
+	}
+}
+func SetTransactions(txser SelfTransactions,hashlist []common.Hash, shadings []uint) BodyTransactions {
 	bt := BodyTransactions{}
+	bt.TxHashs = make([]common.Hash,len(hashlist))
+	copy(bt.TxHashs,hashlist)
 	if len(shadings) == 0 {
 		bt.Transactions = txser
 	} else {
@@ -296,8 +331,10 @@ func SetTransactions(txser SelfTransactions, shadings []uint) BodyTransactions {
 	return bt
 }
 
-func SetReceipts(Receiptser []*Receipt, shadings []uint) BodyReceipts {
+func SetReceipts(Receiptser []*Receipt,hashlist []common.Hash, shadings []uint) BodyReceipts {
 	br := BodyReceipts{}
+	br.RsHashs = make([]common.Hash,len(hashlist))
+	copy(br.RsHashs,hashlist)
 	if len(shadings) == 0 {
 		br.Rs = Receiptser
 	} else {
@@ -372,9 +409,9 @@ func MakeCurencyBlock(txser []CoinSelfTransaction, rece []CoinReceipts, sharding
 	for i, txer := range txser {
 		var br BodyReceipts = BodyReceipts{}
 		if len(rece) >0 {
-			br = SetReceipts(rece[i].Receiptlist, shardings)
+			br = SetReceipts(rece[i].Receiptlist,rece[i].Receiptlist.HashList(), shardings)
 		}
-		cb = append(cb, CurrencyBlock{CurrencyName: txer.CoinType, Transactions: SetTransactions(txer.Txser, shardings), Receipts:br})
+		cb = append(cb, CurrencyBlock{CurrencyName: txer.CoinType, Transactions: SetTransactions(txer.Txser,TxHashList(txer.Txser), shardings), Receipts:br})
 	}
 	return
 }
@@ -394,6 +431,7 @@ type CurrencyBlock struct {
 type BodyReceipts struct {
 	Sharding      []uint         // if complete block sharding = []
 	Rs            Receipts       //complete transactions
+	RsHashs		  []common.Hash
 	ReceiptsInfos []ReceiptsInfo //complete transactions
 }
 
@@ -483,8 +521,8 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 			if ischeck{
 				for i, coinRoot := range b.header.Roots {
 					if coinRoot.Cointyp == currencyBlock.CurrencyName {
-						b.header.Roots[i].TxHash = DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions()))
-						b.header.Roots[i].ReceiptHash = DeriveSha(Receipts(currencyBlock.Receipts.GetReceipts()))
+						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlock.Transactions.TxHashs)
+						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlock.Receipts.RsHashs)
 						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
 						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
 						b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:currencyBlock.CurrencyName,Transactions:currencyBlock.Transactions,
@@ -492,8 +530,8 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 					}
 				}
 			}else {
-				b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:DeriveSha(SelfTransactions(currencyBlock.Transactions.GetTransactions())),
-					ReceiptHash:DeriveSha(Receipts(currencyBlock.Receipts.GetReceipts())),Bloom: CreateBloom(currencyBlock.Receipts.GetReceipts())})
+				b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:DeriveShaHash(currencyBlock.Transactions.TxHashs),
+					ReceiptHash:DeriveShaHash(currencyBlock.Receipts.GetReceipts().HashList()),Bloom: CreateBloom(currencyBlock.Receipts.GetReceipts())})
 				b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:currencyBlock.CurrencyName,Transactions:currencyBlock.Transactions,
 					Receipts:currencyBlock.Receipts})
 			}
@@ -536,7 +574,7 @@ func NewBlockWithTxs(header *Header, currencyBlocks []CurrencyBlock) *Block {
 		} else {
 			for i, coinRoot := range b.header.Roots {
 				if coinRoot.Cointyp == Block.CurrencyName {
-					b.header.Roots[i].TxHash = DeriveSha(SelfTransactions(Block.Transactions.GetTransactions()))
+					b.header.Roots[i].TxHash = DeriveShaHash(Block.Transactions.TxHashs)
 					b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:coinRoot.Cointyp,Transactions:Block.Transactions,
 					Receipts:Block.Receipts})
 				}

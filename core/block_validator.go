@@ -59,7 +59,7 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	for _, currencie := range block.Currencies() {
 		for _, head := range header.Roots {
 			if head.Cointyp == currencie.CurrencyName {
-				if hash := types.DeriveSha(types.SelfTransactions(currencie.Transactions.GetTransactions())); hash != head.TxHash {
+				if hash := types.DeriveShaHash(currencie.Transactions.TxHashs); hash != head.TxHash {
 					return fmt.Errorf("transaction root hash mismatch: have %x, want %x", hash, head.TxHash)
 				}
 			}
@@ -84,7 +84,7 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 		for _,cr:=range header.Roots{
 			if cr.Cointyp==ct {
 				rbloom := types.CreateBloom(currencie.Receipts.GetReceipts())
-				receiptSha := types.DeriveSha(currencie.Receipts.GetReceipts())
+				receiptSha := types.DeriveShaHash(currencie.Receipts.RsHashs)
 				if rbloom != cr.Bloom {
 					return fmt.Errorf("invalid bloom (remote: %x  local: %x)", cr.Bloom, rbloom)
 				}
