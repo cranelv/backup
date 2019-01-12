@@ -68,6 +68,7 @@ type Backend interface {
 	NetRPCService() *PublicNetAPI
 	CurrentBlock() *types.Block
 	GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
+	GetFutureRewards(ctx context.Context, blockNr rpc.BlockNumber) (interface{}, error)
 	Genesis() *types.Block
 }
 

@@ -640,6 +640,11 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	return read, state.Error()
 }
 
+func (api *PublicBlockChainAPI) GetFutureReward(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+
+	return api.b.GetFutureRewards(ctx, number)
+}
+
 //钱包调用
 func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()

@@ -164,6 +164,18 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 		return nil
 	}
 
+	InterestMap := ic.GetInterest(state, num)
+	ic.SetInterest(InterestMap, state)
+	return InterestMap
+}
+
+func (ic *interest) SetInterest(InterestMap map[common.Address]*big.Int, state vm.StateDB) {
+	for k, v := range InterestMap {
+		depoistInfo.AddInterest(state, k, v)
+	}
+}
+
+func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address]*big.Int {
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
 		if v.MinMoney < 0 {
@@ -188,7 +200,7 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 	originElectNodes, err := matrixstate.GetElectGraph(state)
 	if err != nil {
 		log.Error(PackageName, "获取初选拓扑图错误", err)
-		return nil
+		//return nil
 	}
 	if originElectNodes == nil {
 		log.Error(PackageName, "获取初选拓扑图", "结构为nil")
@@ -215,7 +227,6 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 			log.ERROR(PackageName, "计算的利息非法", result)
 			continue
 		}
-		depoistInfo.AddInterest(state, dv.Address, result)
 		InterestMap[dv.Address] = result
 		log.Debug(PackageName, "账户", dv.Address.String(), "deposit", dv.Deposit.String(), "利息", result.String())
 	}

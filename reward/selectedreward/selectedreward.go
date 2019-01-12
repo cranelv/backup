@@ -2,8 +2,9 @@ package selectedreward
 
 import (
 	"errors"
-	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
+
+	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/matrix/go-matrix/core/vm"
 
@@ -51,7 +52,7 @@ type ChainReader interface {
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
-func (sr *SelectedReward) getTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, []vm.DepositDetail, error) {
+func (sr *SelectedReward) GetTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, []vm.DepositDetail, error) {
 
 	currentTop, originElectNodes, err := chain.GetGraphByState(state)
 	if err != nil {
@@ -131,12 +132,12 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 	}
 	log.Debug(PackageName, "参与奖励大家共发放", reward)
 
-	currentTop, originElectNodes, depositNodes, err := sr.getTopAndDeposit(chain, state, currentNum, roleType)
+	currentTop, originElectNodes, depositNodes, err := sr.GetTopAndDeposit(chain, state, currentNum, roleType)
 	if nil != err {
 		return nil
 	}
 
-	selectedNodesDeposit := sr.caclSelectedDeposit(currentTop, originElectNodes, depositNodes, rate)
+	selectedNodesDeposit := sr.CaclSelectedDeposit(currentTop, originElectNodes, depositNodes, rate)
 	if 0 == len(selectedNodesDeposit) {
 		log.Error(PackageName, "获取参与的抵押列表错误", "")
 		return nil
@@ -146,7 +147,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 
 }
 
-func (sr *SelectedReward) caclSelectedDeposit(newGraph []common.Address, originElectNodes map[common.Address]uint16, depositNodes []vm.DepositDetail, rewardRate uint64) map[common.Address]util.DepositInfo {
+func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originElectNodes map[common.Address]uint16, depositNodes []vm.DepositDetail, rewardRate uint64) map[common.Address]util.DepositInfo {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph {
 		NodesRewardMap[nodelist] = rewardRate

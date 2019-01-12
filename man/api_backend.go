@@ -11,7 +11,20 @@ import (
 	"os"
 	"time"
 
+	"github.com/matrix/go-matrix/core/matrixstate"
+
+	"github.com/matrix/go-matrix/base58"
+
+	"github.com/matrix/go-matrix/mc"
+
+	"github.com/matrix/go-matrix/reward/interest"
+	"github.com/matrix/go-matrix/reward/util"
+
+	"github.com/matrix/go-matrix/reward/blkreward"
+
 	"github.com/matrix/go-matrix/internal/manapi"
+	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/reward/selectedreward"
 
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/ca"
@@ -368,4 +381,169 @@ func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 func (b *ManAPIBackend) GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
 	depositAccount, _, err := b.man.blockchain.GetA0AccountFromAnyAccount(signAccount, blockHash)
 	return depositAccount, err
+}
+
+type TimeZone struct {
+	Start uint64
+	Stop  uint64
+}
+
+type RewardMount struct {
+	Account  string
+	Reward   *big.Int
+	VipLevel common.VIPRoleType
+	Stock    uint16
+}
+type InterestReward struct {
+	Account  string
+	Reward   *big.Int
+	VipLevel common.VIPRoleType
+	Stock    uint16
+	Deposit  *big.Int
+}
+
+type AllReward struct {
+	Time      TimeZone
+	Miner     []RewardMount
+	Validator []RewardMount
+	Interest  []InterestReward
+}
+
+func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+
+	state, _, err := b.StateAndHeaderByNumber(ctx, number)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number))
+	if nil != err {
+		return nil, err
+	}
+	latestElectNum := bcInterval.GetLastReElectionNumber()
+	var allReward AllReward
+	allReward.Time.Start = latestElectNum
+	allReward.Time.Stop = latestElectNum + bcInterval.GetReElectionInterval()
+	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(latestElectNum - 1))
+	if nil != err {
+		return nil, err
+	}
+	if 0 == len(depositNodes) {
+		return nil, err
+	}
+	originElectNodes, err := matrixstate.GetElectGraph(state)
+	if err != nil {
+		return nil, err
+	}
+
+	if originElectNodes == nil {
+		errors.New("获取初选拓扑图结构为nil")
+		return nil, err
+	}
+	if 0 == len(originElectNodes.ElectList) {
+		errors.New("get获取初选列表为空")
+		return nil, err
+	}
+
+	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum, bcInterval, common.RoleMiner)
+	if nil != err {
+		return nil, err
+	}
+	minerRewardList := make([]RewardMount, 0)
+	for k, v := range RewardMap {
+		obj := RewardMount{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
+		for _, d := range originElectNodes.ElectList {
+			if d.Account.Equal(k) {
+				obj.VipLevel = d.VIPLevel
+				obj.Stock = d.Stock
+			}
+		}
+		minerRewardList = append(minerRewardList, obj)
+	}
+	allReward.Miner = minerRewardList
+	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum, bcInterval, common.RoleMiner)
+	if nil != err {
+		return nil, err
+	}
+	ValidatorRewardList := make([]RewardMount, 0)
+	for k, v := range validatorMap {
+		obj := RewardMount{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
+		for _, d := range originElectNodes.ElectList {
+			if d.Account.Equal(k) {
+				obj.VipLevel = d.VIPLevel
+				obj.Stock = d.Stock
+			}
+		}
+		ValidatorRewardList = append(ValidatorRewardList, obj)
+	}
+
+	interestReward := interest.New(state)
+	if nil == interestReward {
+		return nil, err
+	}
+	interestCalcMap := interestReward.GetInterest(state, latestElectNum)
+	interestNum := interestReward.CalcInterval / bcInterval.GetBroadcastInterval()
+	interestRewardList := make([]InterestReward, 0)
+	for k, v := range interestCalcMap {
+		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
+		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: allInterest}
+		interestRewardList = append(interestRewardList, obj)
+		for _, d := range depositNodes {
+			if d.Address.Equal(k) {
+				obj.Deposit = d.Deposit
+			}
+		}
+		for _, d := range originElectNodes.ElectList {
+			if d.Account.Equal(k) {
+				obj.VipLevel = d.VIPLevel
+				obj.Stock = d.Stock
+			}
+		}
+	}
+
+	return allReward, nil
+}
+
+func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType) (map[common.Address]*big.Int, error) {
+	selected := selectedreward.SelectedReward{}
+	currentTop, originElectNodes, depositNodes, err := selected.GetTopAndDeposit(b.man.BlockChain(), state, latestElectNum, roleType)
+	if nil != err {
+		return nil, err
+	}
+	br := blkreward.New(b.man.BlockChain(), state)
+	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
+	halfNum := br.GetRewardCfg().RewardMount.MinerHalf
+	RewardMap := make(map[common.Address]*big.Int)
+
+	var rewardAddr common.Address
+	if roleType == common.RoleMiner {
+		rewardAddr = common.BlkMinerRewardAddress
+	} else {
+		rewardAddr = common.BlkValidatorRewardAddress
+	}
+	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(num); num++ {
+
+		if bcInterval.IsBroadcastNumber(num) {
+			continue
+		}
+		validatorReward := br.CalcRewardMountByNumber(RewardMan, uint64(num), halfNum, rewardAddr)
+		minerOutAmount, electedMount, _ := br.CalcMinerRateMount(validatorReward)
+
+		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, depositNodes, 0)
+		if 0 == len(selectedNodesDeposit) {
+			return nil, errors.New("获取参与的抵押列表错误")
+		}
+
+		electRewards := util.CalcStockRate(electedMount, selectedNodesDeposit)
+		if 0 == len(electRewards) {
+			return nil, errors.New("计算的参与奖励为nil")
+		}
+		for k := range electRewards {
+			tmp := new(big.Int).SetUint64(uint64(len(electRewards)))
+			util.SetAccountRewards(electRewards, k, new(big.Int).Div(minerOutAmount, tmp))
+		}
+		util.MergeReward(RewardMap, electRewards)
+
+	}
+
+	return RewardMap, nil
 }
