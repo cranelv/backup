@@ -905,7 +905,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		return nil, 0, false, errors.New("find manger err")
 	}
 
-	supMager := supertxsstate.GetManager("1.0.0-stable")
+	supMager := supertxsstate.GetManager(version)
 	for k,v := range configData{
 		val,OK := supMager.Check(k,v)
 		if OK{

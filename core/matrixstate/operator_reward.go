@@ -1003,7 +1003,7 @@ func (opt *operatorTxpoolGasLimit) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	msg := new(big.Int)
-	err := json.Unmarshal(data, msg)
+	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
@@ -1016,7 +1016,7 @@ func (opt *operatorTxpoolGasLimit) SetValue(st StateDB, value interface{}) error
 		return err
 	}
 
-	data, OK := value.(big.Int)
+	data, OK := value.(*big.Int)
 	if !OK {
 		log.Error(logInfo, "input param(TxpoolGasLimit) err", "reflect failed")
 		return ErrParamReflect

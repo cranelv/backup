@@ -1239,8 +1239,8 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	// Drop non-local transactions under our own minimal accepted gas price
 	gasprice,err := matrixstate.GetTxpoolGasLimit(nPool.currentState)
-	if err == nil && (&gasprice).Cmp(big.NewInt(int64(0)))>0{
-		nPool.gasPrice = &gasprice
+	if err == nil && gasprice.Cmp(big.NewInt(int64(0)))>0{
+		nPool.gasPrice = gasprice
 	}
 	if nPool.gasPrice.Cmp(tx.GasPrice()) > 0 {
 		return ErrUnderpriced

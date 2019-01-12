@@ -736,13 +736,15 @@ func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interf
 		}
 		dataval, err := opt.GetValue(state)
 		if err != nil {
+			if k == mc.MSTxpoolGasLimitCfg {
+				val := params.TxGasPrice
+				mapdata[k] = val
+				continue
+			}
 			log.Error("GetCfgDataByState:SetValue failed", "err", err)
 			continue
 		}
 		keystr, val := supMager.Output(k, dataval)
-		if keystr == mc.MSTxpoolGasLimitCfg && val == "0" {
-			val = params.TxGasPrice
-		}
 		mapdata[keystr.(string)] = val
 	}
 	return mapdata
