@@ -627,7 +627,7 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 	}
 	return dirty, nil
 }
-func (api *PrivateDebugAPI) EvilFunc(types string, arg1, arg2, arg3 uint32)  error{
+func (api *PrivateDebugAPI) EvilFunc(types string, arg1, arg2, arg3 uint32) error {
 	var err error = nil
 	switch {
 	case types == "dropMsg":
@@ -657,7 +657,7 @@ func (api *PrivateDebugAPI) EvilFunc(types string, arg1, arg2, arg3 uint32)  err
 		api.man.signHelper.SetBadMsg(types, arg1, arg2, arg3)
 	default:
 		err = errors.New("不支持的操作模式")
-		log.INFO("不支持的操作模式","","")
+		log.INFO("不支持的操作模式", "", "")
 	}
 	return err
 }

@@ -182,6 +182,13 @@ var (
 		},
 		{
 			Version:   "Gman_Alg_0.0.22",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改抵押竞选方式为按角色竞选(勇哥修改)",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.23",
 			Submitter: "huyuankai",
 			Commit: []string{
 				"二次秘钥功调整，拓扑图全部使用A0账户",
@@ -190,7 +197,7 @@ var (
 			},
 		},
 		{
-			Version:   "Gman_Alg_0.0.23",
+			Version:   "Gman_Alg_0.0.24",
 			Submitter: "hemao",
 			Commit: []string{
 				"未出块惩罚代功能添加",

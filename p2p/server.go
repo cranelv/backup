@@ -36,8 +36,6 @@ const (
 
 	// Maximum amount of time allowed for writing a complete message.
 	frameWriteTimeout = 20 * time.Second
-
-	defaultPort uint16 = 50505
 )
 
 var errServerStopped = errors.New("server stopped")
@@ -320,6 +318,7 @@ func (srv *Server) AddPeerByAddress(addr common.Address) {
 	srv.log.Info("add peer by address into task", "addr", addr.Hex())
 	node := srv.ntab.GetNodeByAddress(addr)
 	if node == nil {
+		srv.CouTask(addr)
 		srv.log.Error("add peer by address failed, node info not found", "addr", addr.Hex())
 		return
 	}
@@ -1074,5 +1073,14 @@ func (srv *Server) AddTasks(addr common.Address) {
 func (srv *Server) DelTasks(addr common.Address) {
 	srv.taskLock.Lock()
 	delete(srv.tasks, addr)
+	srv.taskLock.Unlock()
+}
+
+func (srv *Server) CouTask(addr common.Address) {
+	srv.taskLock.Lock()
+	srv.tasks[addr] = srv.tasks[addr] + 1
+	if srv.tasks[addr] > 30 {
+		delete(srv.tasks, addr)
+	}
 	srv.taskLock.Unlock()
 }
