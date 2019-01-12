@@ -272,6 +272,21 @@ func (bt *BodyTransactions)CheckHashs() bool{
 		return true
 	}
 }
+func (bt *BodyTransactions) GetTransactionByIndex(index uint64) SelfTransaction {
+	if len(bt.Sharding) == 0 {
+		if index >= uint64(len(bt.Transactions)){
+			return nil
+		}
+		return bt.Transactions[index]
+	} else {
+		for _, txer := range bt.TransactionInfos {
+			if txer.Index == index {
+				return txer.Tx
+			}
+		}
+		return nil
+	}
+}
 func (bt *BodyTransactions) GetTransactions() []SelfTransaction {
 	if len(bt.Sharding) == 0 {
 		return bt.Transactions
@@ -683,7 +698,10 @@ func (b *Block) IsSuperBlock() bool {
 
 func (b *Block) Uncles() []*Header           { return b.uncles }
 func (b *Block) Currencies() []CurrencyBlock { return b.currencies }
-
+func (b *Block) SetCurrencies(currbl []CurrencyBlock) {
+	b.currencies = make([]CurrencyBlock,len(currbl))
+	copy(b.currencies,currbl)
+}
 func (b *Block) Transaction(hash common.Hash) SelfTransaction {
 	for _, currencyblock := range b.currencies {
 		txser := currencyblock.Transactions.GetTransactions()

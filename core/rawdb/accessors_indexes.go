@@ -84,18 +84,18 @@ func ReadTransaction(db DatabaseReader, hash common.Hash) (types.SelfTransaction
 	}
 
 	body := ReadBody(db, blockHash, blockNumber)
-	var txs types.SelfTransactions
+	var tx types.SelfTransaction
 	for _, currencyBlock := range body.CurrencyBody {
 		if currencyBlock.CurrencyName == cointy{
-			txs = append(txs, currencyBlock.Transactions.GetTransactions()...)
+			tx = currencyBlock.Transactions.GetTransactionByIndex(txIndex)
 		}
 	}
-	if len(txs) <= int(txIndex) {
+	if tx == nil {
 		log.Error("Transaction referenced missing", "number", blockNumber, "hash", blockHash, "index", txIndex)
 		return nil, common.Hash{}, 0, 0
 	}
 	//currencyBlock.Transactions.GetTransactions()[txIndex]
-	return txs[txIndex], blockHash, blockNumber, txIndex
+	return tx, blockHash, blockNumber, txIndex
 }
 
 // ReadReceipt retrieves a specific transaction receipt from the database, along with

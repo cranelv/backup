@@ -993,7 +993,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]types.CurrencyBlock, uncleL
 		for _,cointx := range txLists[index]{
 			for _,hr := range header.Roots{
 				if hr.Cointyp == cointx.CurrencyName{
-					if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+					if types.DeriveShaHash(types.TxHashList(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
 						return errInvalidBody
 					}
 					break
