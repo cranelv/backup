@@ -29,6 +29,7 @@ const (
 var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
+	signatureT = reflect.TypeOf(Signature{})
 )
 
 const (
@@ -326,7 +327,12 @@ func (ma *MixedcaseAddress) Original() string {
 
 /////////// Signature
 type Signature [SignatureLength]byte
-
+func (a *Signature) UnmarshalJSON(input []byte) error {
+	return hexutil.UnmarshalFixedJSON(signatureT, input, a[:])
+}
+func (a *Signature) MarshalJSON() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
+}
 func BytesToSignature(b []byte) Signature {
 	var s Signature
 	s.SetBytes(b)

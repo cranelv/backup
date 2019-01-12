@@ -3,12 +3,18 @@ package core
 import (
 	"encoding/json"
 
+	"github.com/matrix/go-matrix/params"
+
+	"os"
+	"reflect"
+
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/log"
 )
 
 var (
-	DefaultJson = `{
+	AllGenesisJson = `{
     "nettopology":{
         "Type":0,
         "NetTopologyData":[
@@ -491,21 +497,7 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteList": null,
-		"BlkProduceSlashCfg": {
-			"Switcher" : true,
-			"LowTHR"   : 1,
-			"ProhibitCycleNum" : 2
-		},
-		"BlkProduceStatus": {
-			"Number" : 0
-		},
-		"BlkProduceStats": {
-			"StatsList": []
-		},
-       "BlkProduceBlackList" : {
-			"BlackList" : []
-		}
+		"ElectWhiteList": null
     },
   "config": {
 					"chainID": 1,
@@ -514,75 +506,128 @@ var (
 					"eip155Block": 0,
 			"eip158Block": 0                        				             
 	},
-  "versionSignatures": [
-    [
-      181,
-      8,
-      246,
-      28,
-      118,
-      103,
-      127,
-      70,
-      144,
-      31,
-      187,
-      28,
-      71,
-      14,
-      164,
-      113,
-      133,
-      96,
-      141,
-      160,
-      117,
-      234,
-      127,
-      5,
-      254,
-      240,
-      146,
-      127,
-      39,
-      247,
-      161,
-      150,
-      75,
-      243,
-      248,
-      192,
-      32,
-      110,
-      149,
-      242,
-      151,
-      195,
-      226,
-      167,
-      74,
-      223,
-      135,
-      250,
-      233,
-      174,
-      109,
-      239,
-      101,
-      177,
-      155,
-      129,
-      68,
-      92,
-      218,
-      222,
-      45,
-      207,
-      165,
-      112,
-      0
-    ]
-  ],
+  "versionSignatures": [ "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],
+      "difficulty":"0x100",
+    "timestamp":"0x5c26f140",
+		"version": "1.0.0-stable",
+  
+	"signatures": [	],
+      "coinbase": "MAN.1111111111111111111cs",
+      "leader":"MAN.CrsnQSJJfGxpb2taGhChLuyZwZJo", 
+       "gasLimit": "0x2FEFD8",   
+       "nonce": "0x0000000000000050",
+       "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+       "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+	     "extraData": "0x0000000000000000"
+}
+`
+	DefaultGenesisJson = `{
+    "nettopology":{
+    },
+    "alloc":{},
+    "mstate":{
+		"VIPCfg": [
+					{
+				"MinMoney": 0,
+				"InterestRate": 5,
+				"ElectUserNum": 0,
+				"StockScale": 1000
+			},
+			{
+				"MinMoney": 1000000,
+				"InterestRate": 10,
+				"ElectUserNum": 3,
+				"StockScale": 1600
+			},
+		{
+				"MinMoney": 10000000,
+				"InterestRate": 15,
+				"ElectUserNum": 5,
+				"StockScale": 2000
+			}
+		],
+        "BlkCalcCfg":"1",
+        "TxsCalcCfg":"1",
+        "InterestCalcCfg":"1",
+        "LotteryCalcCfg":"1",
+        "SlashCalcCfg":"1",
+		"BlkRewardCfg": {
+			"MinerMount": 3,
+			"MinerHalf": 5000000,
+			"ValidatorMount": 7,
+			"ValidatorHalf": 5000000,
+			"RewardRate": {
+				"MinerOutRate": 4000,
+				"ElectedMinerRate": 5000,
+				"FoundationMinerRate": 1000,
+				"LeaderRate": 4000,
+				"ElectedValidatorsRate": 5000,
+				"FoundationValidatorRate": 1000,
+				"OriginElectOfflineRate": 5000,
+				"BackupRewardRate": 5000
+			}
+		},
+		"TxsRewardCfg": {
+			"MinersRate": 0,
+			"ValidatorsRate": 10000,
+			"RewardRate": {
+				"MinerOutRate": 4000,
+				"ElectedMinerRate": 6000,
+				"FoundationMinerRate":0,
+				"LeaderRate": 4000,
+				"ElectedValidatorsRate": 6000,
+				"FoundationValidatorRate": 0,
+				"OriginElectOfflineRate": 5000,
+				"BackupRewardRate": 5000
+			}
+		},
+		"LotteryCfg": {
+			"LotteryCalc": "1",
+			"LotteryInfo": [{
+				"PrizeLevel": 0,
+				"PrizeNum": 1,
+				"PrizeMoney": 6
+			}]
+		},
+		"InterestCfg": {
+			"CalcInterval": 100,
+			"PayInterval": 3600
+		},
+		"LeaderCfg": {
+			"ParentMiningTime": 20,
+			"PosOutTime": 20,
+			"ReelectOutTime": 40,
+			"ReelectHandleInterval": 3
+		},
+		"SlashCfg": {
+			"SlashRate": 7500
+		},
+		"EleTime": {
+			"MinerGen": 9,
+			"MinerNetChange": 5,
+			"ValidatorGen": 9,
+			"ValidatorNetChange": 3,
+			"VoteBeforeTime": 7
+		},
+		"EleInfo": {
+			"ValidatorNum": 19,
+			"BackValidator": 5,
+			"ElectPlug": "layerd"
+		},
+		"ElectMinerNum": {
+			"MinerNum": 21
+		},
+		"ElectBlackList": null,
+		"ElectWhiteList": null
+    },
+  "config": {
+					"chainID": 1,
+					"byzantiumBlock": 0,
+					"homesteadBlock": 0,
+					"eip155Block": 0,
+			"eip158Block": 0                        				             
+	},
+  "versionSignatures": [],
       "difficulty":"0x100",
     "timestamp":"0x5c26f140",
 		"version": "1.0.0-stable",
@@ -599,75 +644,125 @@ var (
 `
 )
 
-func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesis {
+func DefaultGenesis(genesisFile string) (*Genesis, error) {
+	defGenesis := make(map[string]interface{})
+	err := json.Unmarshal([]byte(DefaultGenesisJson), &defGenesis)
+	if err != nil {
+		return nil, err
+	}
+	if len(genesisFile) > 0 {
+		file, err := os.Open(genesisFile)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		fileGenesis := make(map[string]interface{})
+		if err := json.NewDecoder(file).Decode(&fileGenesis); err != nil {
+			return nil, err
+		}
+		defGenesis = mergeGenesis(defGenesis, fileGenesis)
+	}
+	val, err := json.Marshal(defGenesis)
+	if err != nil {
+		return nil, err
+	}
+	log.INFO(string(val))
+	genesis := new(Genesis)
+	err = json.Unmarshal(val, genesis)
+	if err != nil {
+		return nil, err
+	}
+	return genesis, nil
+}
+func mergeGenesis(src, merge map[string]interface{}) map[string]interface{} {
+	for key, value := range merge {
+		if value == nil {
+			src[key] = value
+			continue
+		}
+		srcValue, exist := src[key]
+		if exist {
+			if reflect.TypeOf(value).Kind() == reflect.Map {
+				src[key] = mergeGenesis(srcValue.(map[string]interface{}), value.(map[string]interface{}))
+			} else {
+				src[key] = value
+			}
+		} else {
+			src[key] = value
+		}
+	}
+	return src
+}
+func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, genesis *Genesis) *Genesis {
 	if nil != cfgGenesis.Config {
-		if nil != cfgGenesis.Config.ChainId {
-			OutGensis.Config.ChainId = cfgGenesis.Config.ChainId
+		genesis.Config = new(params.ChainConfig)
+		if nil != genesis.Config.ChainId {
+			genesis.Config.ChainId = cfgGenesis.Config.ChainId
 		}
-		if nil != cfgGenesis.Config.ByzantiumBlock {
-			OutGensis.Config.ByzantiumBlock = cfgGenesis.Config.ByzantiumBlock
+		if nil != genesis.Config.ByzantiumBlock {
+			genesis.Config.ByzantiumBlock = cfgGenesis.Config.ByzantiumBlock
 		}
-		if nil != cfgGenesis.Config.HomesteadBlock {
-			OutGensis.Config.HomesteadBlock = cfgGenesis.Config.HomesteadBlock
+		if nil != genesis.Config.HomesteadBlock {
+			genesis.Config.HomesteadBlock = cfgGenesis.Config.HomesteadBlock
 		}
-		if nil != cfgGenesis.Config.EIP150Block {
-			OutGensis.Config.EIP150Block = cfgGenesis.Config.EIP150Block
+		if nil != genesis.Config.EIP150Block {
+			genesis.Config.EIP150Block = cfgGenesis.Config.EIP150Block
 		}
-		if nil != cfgGenesis.Config.EIP155Block {
-			OutGensis.Config.EIP155Block = cfgGenesis.Config.EIP155Block
+		if nil != genesis.Config.EIP155Block {
+			genesis.Config.EIP155Block = cfgGenesis.Config.EIP155Block
 		}
-		if nil != cfgGenesis.Config.EIP158Block {
-			OutGensis.Config.EIP158Block = cfgGenesis.Config.EIP158Block
+		if nil != genesis.Config.EIP158Block {
+			genesis.Config.EIP158Block = cfgGenesis.Config.EIP158Block
 		}
 	}
 	if cfgGenesis.Nonce != 0 {
-		OutGensis.Nonce = cfgGenesis.Nonce
+		genesis.Nonce = cfgGenesis.Nonce
 	}
 	if cfgGenesis.Timestamp != 0 {
-		OutGensis.Timestamp = cfgGenesis.Timestamp
+		genesis.Timestamp = cfgGenesis.Timestamp
 	}
 	if len(cfgGenesis.ExtraData) != 0 {
-		OutGensis.ExtraData = cfgGenesis.ExtraData
+		genesis.ExtraData = cfgGenesis.ExtraData
 	}
 	if cfgGenesis.Version != "" {
-		OutGensis.Version = cfgGenesis.Version
+		genesis.Version = cfgGenesis.Version
 	}
 	if len(cfgGenesis.VersionSignatures) != 0 {
-		OutGensis.VersionSignatures = cfgGenesis.VersionSignatures
+		genesis.VersionSignatures = cfgGenesis.VersionSignatures
 	}
 	if len(cfgGenesis.VrfValue) != 0 {
-		OutGensis.VrfValue = cfgGenesis.VrfValue
+		genesis.VrfValue = cfgGenesis.VrfValue
 	}
 	if len(cfgGenesis.Signatures) != 0 {
-		OutGensis.Signatures = cfgGenesis.Signatures
+		genesis.Signatures = cfgGenesis.Signatures
 	}
 	if nil != cfgGenesis.Difficulty {
-		OutGensis.Difficulty = cfgGenesis.Difficulty
+		genesis.Difficulty = cfgGenesis.Difficulty
 	}
 	if cfgGenesis.Mixhash.Equal(common.Hash{}) == false {
-		OutGensis.Mixhash = cfgGenesis.Mixhash
+		genesis.Mixhash = cfgGenesis.Mixhash
 	}
 	if cfgGenesis.Number != 0 {
-		OutGensis.Number = cfgGenesis.Number
+		genesis.Number = cfgGenesis.Number
 	}
 	if cfgGenesis.GasUsed != 0 {
-		OutGensis.GasUsed = cfgGenesis.GasUsed
+		genesis.GasUsed = cfgGenesis.GasUsed
 	}
 	if cfgGenesis.ParentHash.Equal(common.Hash{}) == false {
-		OutGensis.ParentHash = cfgGenesis.ParentHash
+		genesis.ParentHash = cfgGenesis.ParentHash
 	}
 
 	if cfgGenesis.Leader != "" {
-		OutGensis.Leader = base58.Base58DecodeToAddress(cfgGenesis.Leader)
+		genesis.Leader = base58.Base58DecodeToAddress(cfgGenesis.Leader)
 	}
 	if cfgGenesis.Coinbase != "" {
-		OutGensis.Coinbase = base58.Base58DecodeToAddress(cfgGenesis.Coinbase)
+		genesis.Coinbase = base58.Base58DecodeToAddress(cfgGenesis.Coinbase)
 	}
 	if cfgGenesis.Root.Equal(common.Hash{}) == false {
-		OutGensis.Root = cfgGenesis.Root
+		genesis.Root = cfgGenesis.Root
 	}
 	if cfgGenesis.TxHash.Equal(common.Hash{}) == false {
-		OutGensis.TxHash = cfgGenesis.TxHash
+		genesis.TxHash = cfgGenesis.TxHash
 	}
 	//nextElect
 	if nil != cfgGenesis.NextElect {
@@ -679,7 +774,7 @@ func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesi
 			tmp.Type = elec.Type
 			sliceElect = append(sliceElect, *tmp)
 		}
-		OutGensis.NextElect = sliceElect
+		genesis.NextElect = sliceElect
 	}
 
 	//NetTopology
@@ -691,61 +786,61 @@ func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesi
 			tmp.Position = netTopology.Position
 			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
 		}
-		OutGensis.NetTopology.NetTopologyData = sliceNetTopologyData
-		OutGensis.NetTopology.Type = cfgGenesis.NetTopology.Type
+		genesis.NetTopology.NetTopologyData = sliceNetTopologyData
+		genesis.NetTopology.Type = cfgGenesis.NetTopology.Type
 	}
 
 	//Alloc
 	if nil != cfgGenesis.Alloc {
-		OutGensis.Alloc = make(GenesisAlloc)
+		genesis.Alloc = make(GenesisAlloc)
 		for kString, vGenesisAccount := range cfgGenesis.Alloc {
 			tmpk := base58.Base58DecodeToAddress(kString)
-			OutGensis.Alloc[tmpk] = vGenesisAccount
+			genesis.Alloc[tmpk] = vGenesisAccount
 		}
 	}
 
 	if nil != cfgGenesis.MState {
-		if OutGensis.MState == nil {
-			OutGensis.MState = new(GenesisMState)
+		if genesis.MState == nil {
+			genesis.MState = new(GenesisMState)
 		}
 		if nil != cfgGenesis.MState.Broadcasts {
 			broadcasts := make([]common.Address, 0)
 			for _, b := range *cfgGenesis.MState.Broadcasts {
 				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
 			}
-			OutGensis.MState.Broadcasts = &broadcasts
+			//			genesis.MState.Broadcasts = &broadcasts
 		}
 		if nil != cfgGenesis.MState.Foundation {
-			OutGensis.MState.Foundation = new(common.Address)
-			*OutGensis.MState.Foundation = base58.Base58DecodeToAddress(*cfgGenesis.MState.Foundation)
+			//			genesis.MState.Foundation = new(common.Address)
+			//			*genesis.MState.Foundation = base58.Base58DecodeToAddress(*cfgGenesis.MState.Foundation)
 		}
 		if nil != cfgGenesis.MState.VersionSuperAccounts {
 			versionSuperAccounts := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.VersionSuperAccounts {
 				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.VersionSuperAccounts = &versionSuperAccounts
+			//			genesis.MState.VersionSuperAccounts = &versionSuperAccounts
 		}
 		if nil != cfgGenesis.MState.BlockSuperAccounts {
 			blockSuperAccounts := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.BlockSuperAccounts {
 				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.BlockSuperAccounts = &blockSuperAccounts
+			//			genesis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != cfgGenesis.MState.TxsSuperAccounts {
 			TxsSuperAccounts := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.TxsSuperAccounts {
 				TxsSuperAccounts = append(TxsSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.TxsSuperAccounts = &TxsSuperAccounts
+			//			genesis.MState.TxsSuperAccounts = &TxsSuperAccounts
 		}
 		if nil != cfgGenesis.MState.MultiCoinSuperAccounts {
 			MultiCoinSuperAccounts := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.MultiCoinSuperAccounts {
 				MultiCoinSuperAccounts = append(MultiCoinSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
+			//			genesis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
 		}
 
 		if nil != cfgGenesis.MState.SubChainSuperAccounts {
@@ -753,109 +848,109 @@ func DefaultGenesisToEthGensis(cfgGenesis *Genesis1, OutGensis *Genesis) *Genesi
 			for _, v := range *cfgGenesis.MState.SubChainSuperAccounts {
 				SubChainSuperAccounts = append(SubChainSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
+			//			genesis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
 		}
 		if nil != cfgGenesis.MState.InnerMiners {
 			innerMiners := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.InnerMiners {
 				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.InnerMiners = &innerMiners
+			//			genesis.MState.InnerMiners = &innerMiners
 		}
 		if nil != cfgGenesis.MState.ElectBlackListCfg {
 			blackList := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.ElectBlackListCfg {
 				blackList = append(blackList, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.ElectBlackListCfg = &blackList
+			//			genesis.MState.ElectBlackListCfg = &blackList
 		}
 		if nil != cfgGenesis.MState.ElectWhiteListCfg {
 			whiteList := make([]common.Address, 0)
 			for _, v := range *cfgGenesis.MState.ElectWhiteListCfg {
 				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
 			}
-			OutGensis.MState.ElectBlackListCfg = &whiteList
+			//			genesis.MState.ElectBlackListCfg = &whiteList
 		}
 		if nil != cfgGenesis.MState.ElectMinerNumCfg {
-			OutGensis.MState.ElectMinerNumCfg = cfgGenesis.MState.ElectMinerNumCfg
+			genesis.MState.ElectMinerNumCfg = cfgGenesis.MState.ElectMinerNumCfg
 		}
 		if nil != cfgGenesis.MState.BlkCalcCfg {
-			OutGensis.MState.BlkCalcCfg = cfgGenesis.MState.BlkCalcCfg
+			genesis.MState.BlkCalcCfg = cfgGenesis.MState.BlkCalcCfg
 		}
 		if nil != cfgGenesis.MState.TxsCalcCfg {
-			OutGensis.MState.TxsCalcCfg = cfgGenesis.MState.TxsCalcCfg
+			genesis.MState.TxsCalcCfg = cfgGenesis.MState.TxsCalcCfg
 		}
 		if nil != cfgGenesis.MState.InterestCalcCfg {
-			OutGensis.MState.InterestCalcCfg = cfgGenesis.MState.InterestCalcCfg
+			genesis.MState.InterestCalcCfg = cfgGenesis.MState.InterestCalcCfg
 		}
 		if nil != cfgGenesis.MState.LotteryCalcCfg {
-			OutGensis.MState.LotteryCalcCfg = cfgGenesis.MState.LotteryCalcCfg
+			genesis.MState.LotteryCalcCfg = cfgGenesis.MState.LotteryCalcCfg
 		}
 		if nil != cfgGenesis.MState.SlashCalcCfg {
-			OutGensis.MState.SlashCalcCfg = cfgGenesis.MState.SlashCalcCfg
+			genesis.MState.SlashCalcCfg = cfgGenesis.MState.SlashCalcCfg
 		}
 		if nil != cfgGenesis.MState.BlkRewardCfg {
-			OutGensis.MState.BlkRewardCfg = cfgGenesis.MState.BlkRewardCfg
+			genesis.MState.BlkRewardCfg = cfgGenesis.MState.BlkRewardCfg
 		}
 		if nil != cfgGenesis.MState.TxsRewardCfg {
-			OutGensis.MState.TxsRewardCfg = cfgGenesis.MState.TxsRewardCfg
+			genesis.MState.TxsRewardCfg = cfgGenesis.MState.TxsRewardCfg
 		}
 		if nil != cfgGenesis.MState.InterestCfg {
-			OutGensis.MState.InterestCfg = cfgGenesis.MState.InterestCfg
+			genesis.MState.InterestCfg = cfgGenesis.MState.InterestCfg
 		}
 		if nil != cfgGenesis.MState.LotteryCfg {
-			OutGensis.MState.LotteryCfg = cfgGenesis.MState.LotteryCfg
+			genesis.MState.LotteryCfg = cfgGenesis.MState.LotteryCfg
 		}
 		if nil != cfgGenesis.MState.SlashCfg {
-			OutGensis.MState.SlashCfg = cfgGenesis.MState.SlashCfg
+			genesis.MState.SlashCfg = cfgGenesis.MState.SlashCfg
 		}
 		if nil != cfgGenesis.MState.BCICfg {
-			OutGensis.MState.BCICfg = cfgGenesis.MState.BCICfg
+			genesis.MState.BCICfg = cfgGenesis.MState.BCICfg
 		}
 		if nil != cfgGenesis.MState.VIPCfg {
-			OutGensis.MState.VIPCfg = cfgGenesis.MState.VIPCfg
+			genesis.MState.VIPCfg = cfgGenesis.MState.VIPCfg
 		}
 		if nil != cfgGenesis.MState.LeaderCfg {
-			OutGensis.MState.LeaderCfg = cfgGenesis.MState.LeaderCfg
+			genesis.MState.LeaderCfg = cfgGenesis.MState.LeaderCfg
 		}
 		if nil != cfgGenesis.MState.EleTimeCfg {
-			OutGensis.MState.EleTimeCfg = cfgGenesis.MState.EleTimeCfg
+			genesis.MState.EleTimeCfg = cfgGenesis.MState.EleTimeCfg
 		}
 		if nil != cfgGenesis.MState.EleInfoCfg {
-			OutGensis.MState.EleInfoCfg = cfgGenesis.MState.EleInfoCfg
+			genesis.MState.EleInfoCfg = cfgGenesis.MState.EleInfoCfg
 		}
 		//curElect
 		if nil != cfgGenesis.MState.CurElect {
-			sliceElect := make([]common.Elect, 0)
+			sliceElect := make([]GenesisElect, 0)
 			for _, elec := range *cfgGenesis.MState.CurElect {
-				tmp := new(common.Elect)
-				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp := new(GenesisElect)
+				tmp.Account = GenesisAddress(base58.Base58DecodeToAddress(elec.Account))
 				tmp.Stock = elec.Stock
 				tmp.Type = elec.Type
 				sliceElect = append(sliceElect, *tmp)
 			}
-			OutGensis.MState.CurElect = &sliceElect
+			genesis.MState.CurElect = &sliceElect
 		}
 		if nil != cfgGenesis.MState.BlockProduceSlashCfg {
-			OutGensis.MState.BlockProduceSlashCfg = cfgGenesis.MState.BlockProduceSlashCfg
+			genesis.MState.BlockProduceSlashCfg = cfgGenesis.MState.BlockProduceSlashCfg
 		}
 		if nil != cfgGenesis.MState.BlockProduceSlashBlackList {
-			OutGensis.MState.BlockProduceSlashBlackList = cfgGenesis.MState.BlockProduceSlashBlackList
+			genesis.MState.BlockProduceSlashBlackList = cfgGenesis.MState.BlockProduceSlashBlackList
 		}
 		if nil != cfgGenesis.MState.BlockProduceSlashStatsStatus {
-			OutGensis.MState.BlockProduceSlashStatsStatus = cfgGenesis.MState.BlockProduceSlashStatsStatus
+			genesis.MState.BlockProduceSlashStatsStatus = cfgGenesis.MState.BlockProduceSlashStatsStatus
 		}
 		if nil != cfgGenesis.MState.BlockProduceStats {
-			OutGensis.MState.BlockProduceStats = cfgGenesis.MState.BlockProduceStats
+			genesis.MState.BlockProduceStats = cfgGenesis.MState.BlockProduceStats
 		}
 	}
-	return OutGensis
+	return genesis
 }
 
 func GetDefaultGeneis() (*Genesis, error) {
 	genesis := new(Genesis)
 	defaultGenesis1 := new(Genesis1)
-	err := json.Unmarshal([]byte(DefaultJson), defaultGenesis1)
+	err := json.Unmarshal([]byte(DefaultGenesisJson), defaultGenesis1)
 	if err != nil {
 		return nil, err
 	}
