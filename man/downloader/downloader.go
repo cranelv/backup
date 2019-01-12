@@ -51,7 +51,7 @@ var (
 
 	maxQueuedHeaders  = 800  //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
 	maxHeadersProcess = 1024 //2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 396  //576      //lb//2048      // Number of content download results to import at once into the chain
+	maxResultsProcess = 918  //396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected

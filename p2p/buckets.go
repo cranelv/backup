@@ -73,6 +73,8 @@ func (b *Bucket) Start() {
 
 	b.log.Info("buckets start!")
 
+	timeoutTimer := time.NewTimer(time.Second * 30)
+
 	defer func() {
 		b.log.Info("buckets stop!")
 		b.sub.Unsubscribe()
@@ -86,11 +88,27 @@ func (b *Bucket) Start() {
 
 	for {
 		select {
+		case <-timeoutTimer.C:
+			b.maintainOuter()
+			if !timeoutTimer.Stop() {
+				<-timeoutTimer.C
+			}
+			timeoutTimer.Reset(time.Second * 30)
 		case h := <-b.blockChain:
+			if !timeoutTimer.Stop() {
+				<-timeoutTimer.C
+			}
+			timeoutTimer.Reset(time.Second * 30)
+
 			// only bottom nodes will into this buckets.
 			if h.Role > common.RoleBucket {
 				b.role = common.RoleNil
 				break
+			}
+
+			// down to default, disconnect all peers first
+			if b.role != h.Role && h.Role == common.RoleDefault {
+				b.disconnectPeers()
 			}
 
 			if b.role != h.Role {
@@ -187,10 +205,7 @@ func (b *Bucket) disconnectMiner() {
 }
 
 // disconnectPeers disconnect all peers
-func (b *Bucket) disconnectPeers(drops []common.Address) {
-	for _, peer := range drops {
-		ServerP2p.RemovePeerByAddress(peer)
-	}
+func (b *Bucket) disconnectPeers() {
 	for _, peer := range ServerP2p.Peers() {
 		ServerP2p.RemovePeer(discover.NewNode(peer.ID(), nil, 0, 0))
 	}

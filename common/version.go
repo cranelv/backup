@@ -158,18 +158,33 @@ var (
 		},
 		{
 			Version:   "Gman_Alg_0.0.19",
+			Submitter: "liubo",
+			Commit: []string{
+				"更新linux下终端无法显示log问题",
+				"ipfs下载请求修正及偶然的崩溃问题",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.20",
 			Submitter: "zhangwen",
 			Commit: []string{
 				"uptime一直累加",
 			},
 		},
 		{
-			Version:   "Gman_Alg_0.0.20",
+			Version:   "Gman_Alg_0.0.21",
 			Submitter: "huyuankai",
 			Commit: []string{
 				"增加广播节点热备",
 				"状态树版本兼容调整",
 				"交易码判断错误bug修复",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.22",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改抵押竞选方式为按角色竞选(勇哥修改)",
 			},
 		},
 	}
