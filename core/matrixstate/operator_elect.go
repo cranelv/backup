@@ -6,6 +6,7 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"reflect"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -387,7 +388,12 @@ func (opt *operatorElectBlackList) SetValue(st StateDB, value interface{}) error
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 	accounts, OK := value.([]common.Address)
 	if !OK {
 		log.Error(logInfo, "input param(electBlackList) err", "reflect failed")
@@ -439,7 +445,12 @@ func (opt *operatorElectWhiteList) SetValue(st StateDB, value interface{}) error
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 	accounts, OK := value.([]common.Address)
 	if !OK {
 		log.Error(logInfo, "input param(electWhiteList) err", "reflect failed")

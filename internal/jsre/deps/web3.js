@@ -928,8 +928,8 @@ var SolidityParam = require('./param');
  * @returns {SolidityParam}
  */
 
-var formatInputInt = function (value) {
-    if (value.indexOf('.') > -1) {
+var formatInputInt = function (value,name) {
+    if (name == "address" &&  value.indexOf('.') > -1){
         value = '0x' + Bytes2HexString(decode(value.split('.')[1].substring(0, value.split('.')[1].length-1)))
     }
     BigNumber.config(c.ETH_BIGNUMBER_ROUNDING_MODE);

@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"reflect"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1068,18 +1069,19 @@ func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
+	//取消
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 	data, OK := value.([]string)
 	if !OK {
 		log.Error(logInfo, "input param(CurrencyPack) err", "reflect failed")
 		return ErrParamReflect
 	}
-	//取消
-	if len(data)==0{
-		nilSlice := make([]byte,0)
-		st.SetMatrixData(opt.key, nilSlice)
-		return nil
-	}
+
 	encodeData, err := json.Marshal(data)
 	if err != nil {
 		log.Error(logInfo, "operatorCurrencyPack Marshal failed", err)
@@ -1126,18 +1128,20 @@ func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) err
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
+	//取消
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 
 	accounts, OK := value.([]common.Address)
 	if !OK {
 		log.Error(logInfo, "input param(AccountBlackList) err", "reflect failed")
 		return ErrParamReflect
 	}
-	//取消
-	if len(accounts) == 0 {
-		nilSlice := make([]byte,0)
-		st.SetMatrixData(opt.key, nilSlice)
-		return nil
-	}
+
 	data, err := encodeAccounts(accounts)
 	if err != nil {
 		log.Error(logInfo, "AccountBlackList encode failed", err)

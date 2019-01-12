@@ -282,7 +282,7 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 			}
 			if !isOK{
 				log.Error("超级账户不匹配")
-				continue
+				//continue
 			}
 		}
 

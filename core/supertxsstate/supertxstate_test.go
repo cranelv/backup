@@ -46,8 +46,19 @@ func Test_newManager(t *testing.T) {
 		fmt.Println(a.Output(mc.MSKeyElectMinerNum, electMiner))
 	}
 
+	var accountblklist1 []common.Address
+	accountblklist1 = make([]common.Address,0)
+	//accountblklist = append(accountblklist, common.HexToAddress("0x12345"))
+	if a.Check(mc.MSAccountBlackList, accountblklist1) {
+		fmt.Println(a.Output(mc.MSAccountBlackList, accountblklist1))
+	} else {
+		t.Error("执行失败")
+		//return
+	}
+
 	var black []common.Address
-	black = append(black, common.HexToAddress("0x01"))
+	black = make([]common.Address,0)
+	//black = append(black, common.HexToAddress("0x01"))
 	if a.Check(mc.MSKeyElectBlackList, black) {
 		fmt.Println(a.Output(mc.MSKeyElectBlackList, black))
 	}

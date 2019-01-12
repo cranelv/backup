@@ -899,23 +899,23 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		return nil, 0, false, err
 	}
 
-
 	version := matrixstate.GetVersionInfo(st.state)
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
 		return nil, 0, false, errors.New("find manger err")
 	}
 
-	supMager := supertxsstate.GetManager(version)
+	supMager := supertxsstate.GetManager("1.0.0-stable")
 	for k,v := range configData{
-		if supMager.Check(k,v){
+		val,OK := supMager.Check(k,v)
+		if OK{
 			opt, err := mgr.FindOperator(k)
 			if err != nil{
-				log.Error("CallSuperTx:FindOperator failed","key",k,"value",v,"err",err)
+				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
 			}
-			err = opt.SetValue(st.state,v)
+			err = opt.SetValue(st.state,val)
 			if err != nil{
-				log.Error("CallSuperTx:SetValue failed","key",k,"value",v,"err",err)
+				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
 			}
 		}
 	}
