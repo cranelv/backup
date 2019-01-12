@@ -118,8 +118,8 @@ func (self *ReElection) LastMinerGenTimeStamp(height uint64, types common.RoleTy
 		log.ERROR(Module, "获取配置文件失败 err", err)
 		return 0, err
 	}
-	minerGenTime := uint64(data.MinerGen)
-	validatorGenTime := uint64(data.ValidatorGen)
+	minerGenTime := uint64(data.MinerNetChange)
+	validatorGenTime := uint64(data.ValidatorNetChange)
 
 	bcInterval, err := self.GetBroadcastIntervalByHash(hash)
 	if err != nil {
