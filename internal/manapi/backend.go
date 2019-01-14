@@ -58,9 +58,9 @@ type Backend interface {
 	TxPoolContent() (map[common.Address]types.SelfTransactions, map[common.Address]types.SelfTransactions)
 	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription //Y
 
-	SignTx(signedTx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64) (types.SelfTransaction, error) //
-	SendBroadTx(ctx context.Context, signedTx types.SelfTransaction, bType bool) error                                              //
-	FetcherNotify(hash common.Hash, number uint64)                                                                                  //
+	SignTx(signedTx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64, usingEntrust bool) (types.SelfTransaction, error) //
+	SendBroadTx(ctx context.Context, signedTx types.SelfTransaction, bType bool) error                                                                 //
+	FetcherNotify(hash common.Hash, number uint64)                                                                                                     //
 
 	ChainConfig() *params.ChainConfig
 	CurrentBlock() *types.Block

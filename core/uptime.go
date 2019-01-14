@@ -68,8 +68,7 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64, parentHash com
 	}
 	headerBeatMap := make(map[common.Address][]byte, 0)
 	for k, v := range heatBeatOriginMap {
-
-		log.INFO(ModuleName, "主动心跳交易A1", k.Hex())
+		log.INFO(ModuleName, "主动心跳交易A1/A2", k.Hex())
 		account0, _, err := bc.GetA0AccountFromAnyAccount(k, parentHash)
 		log.INFO(ModuleName, "主动心跳交易A0", account0.Hex())
 		if nil != err {
@@ -93,7 +92,7 @@ func (bc *BlockChain) getUpTimeData(root common.Hash, num uint64, parentHash com
 			return nil, nil, error
 		}
 		for k, v := range temp {
-			log.INFO(ModuleName, "参选验证节点uptime高度", k)
+			log.INFO(ModuleName, "点名心跳交易A1/A2", k)
 			account0, _, err := bc.GetA0AccountFromAnyAccount(common.HexToAddress(k), parentHash)
 			log.INFO(ModuleName, "点名心跳交易A0", account0.Hex())
 			if nil != err {

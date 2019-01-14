@@ -165,9 +165,9 @@ func (sh *SignHelper) SignHashWithValidateByAccount(hash []byte, validate bool, 
 
 }
 
-func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64) (types.SelfTransaction, error) {
+func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64, usingEntrust bool) (types.SelfTransaction, error) {
 	// Sign the requested hash with the wallet
-	signAccount, signPassword, err := sh.getSignAccountAndPasswordAtSignHeight(sh.authReader, blkHash, signHeight)
+	signAccount, signPassword, err := sh.getSignAccountAndPasswordAtSignHeight(sh.authReader, blkHash, signHeight, usingEntrust)
 	if err != nil {
 		return nil, ErrGetAccountAndPassword
 	}
@@ -216,11 +216,18 @@ func (sh *SignHelper) SignVrf(msg []byte, blkHash common.Hash) ([]byte, []byte, 
 	return sh.keyStore.SignVrfWithPass(signAccount, signPassword, msg)
 }
 
-func (sh *SignHelper) getSignAccountAndPasswordAtSignHeight(reader AuthReader, blkHash common.Hash, signHeight uint64) (accounts.Account, string, error) {
+func (sh *SignHelper) getSignAccountAndPasswordAtSignHeight(reader AuthReader, blkHash common.Hash, signHeight uint64, usingEntrust bool) (accounts.Account, string, error) {
 	account := accounts.Account{}
-	addrs, err := reader.GetA2AccountsFromA0AccountAtSignHeight(ca.GetDepositAddress(), blkHash, signHeight)
-	if err != nil {
-		return account, "", err
+
+	var addrs []common.Address
+	var err error
+	if usingEntrust {
+		addrs, err = reader.GetA2AccountsFromA0AccountAtSignHeight(ca.GetDepositAddress(), blkHash, signHeight)
+		if err != nil {
+			return account, "", err
+		}
+	} else {
+		addrs = []common.Address{ca.GetSignAddress()}
 	}
 
 	addr, password, err := reader.GetSignAccountPassword(addrs)
