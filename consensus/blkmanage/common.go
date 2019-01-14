@@ -121,7 +121,7 @@ type VrfMsg struct {
 }
 
 var (
-	ModuleManBlk = "区块生成验证"
+	LogManBlk    = "区块生成验证引擎"
 	CommonBlk    = "common"
 	BroadcastBlk = "broadcast"
 
@@ -165,7 +165,7 @@ func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug M
 func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args ...interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(ModuleManBlk, "获取插件失败", "")
+		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, nil, errors.New("获取插件失败")
 	}
 	return plug.Prepare(bd.support, interval, num, args)
@@ -174,7 +174,7 @@ func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interv
 func (bd *ManBlkManage) ProcessState(types string, version string, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(ModuleManBlk, "获取插件失败", "")
+		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, nil, nil, nil, nil, nil, errors.New("获取插件失败")
 	}
 	return plug.ProcessState(bd.support, header, args)
@@ -183,7 +183,7 @@ func (bd *ManBlkManage) ProcessState(types string, version string, header *types
 func (bd *ManBlkManage) Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(ModuleManBlk, "获取插件失败", "")
+		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, nil, errors.New("获取插件失败")
 	}
 	return plug.Finalize(bd.support, header, state, txs, uncles, receipts, args)
@@ -192,7 +192,7 @@ func (bd *ManBlkManage) Finalize(types string, version string, header *types.Hea
 func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types.Header, args ...interface{}) (interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(ModuleManBlk, "获取插件失败", "")
+		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, errors.New("获取插件失败")
 	}
 	return plug.VerifyHeader(bd.support, header, nil)
@@ -201,7 +201,7 @@ func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types
 func (bd *ManBlkManage) VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(ModuleManBlk, "获取插件失败", "")
+		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, nil, nil, nil, errors.New("获取插件失败")
 	}
 	return plug.VerifyTxsAndState(bd.support, header, Txs, args)
