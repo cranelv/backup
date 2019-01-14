@@ -98,7 +98,6 @@ type Process struct {
 	voteMsgSender    *common.ResendMsgCtrl
 	mineReqMsgSender *common.ResendMsgCtrl
 	posedReqSender   *common.ResendMsgCtrl
-	bcRetryTimes     int // 作恶
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -124,7 +123,6 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		voteMsgSender:    nil,
 		mineReqMsgSender: nil,
 		posedReqSender:   nil,
-		bcRetryTimes:     0,
 	}
 
 	return p
