@@ -3,6 +3,7 @@ package blkmanage
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
@@ -46,8 +47,15 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		Txs = append(Txs, txs...)
 	}
 	work.ProcessBroadcastTransactions(support.EventMux(), Txs)
+	log.Info(ModuleManBlk, "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", header.Number.Uint64())
+	block := types.NewBlock(header, work.GetTxs(), nil, work.Receipts)
+	err = support.BlockChain().ProcessMatrixState(block, work.State)
+	if err != nil {
+		log.Error(ModuleManBlk, "运行matrix状态树失败", err)
+		return nil, nil, nil, nil, nil, nil, err
+	}
 
-	return nil, work.State, work.Receipts, Txs, Txs, nil, nil
+	return nil, work.State, work.Receipts, Txs, work.GetTxs(), nil, nil
 }
 
 func (bd *ManBCBlkPlug) Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error) {

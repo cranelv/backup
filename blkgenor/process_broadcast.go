@@ -58,9 +58,10 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			log.WARN(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
 			continue
 		}
-
+		log.Info(p.logExtraInfo(), "++++状态树00", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
 		//执行交易
 		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs)
+		log.Info(p.logExtraInfo(), "++++状态树01", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
 		retTxs := work.GetTxs()
 		// 运行matrix状态树
 		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts)
@@ -68,7 +69,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, matrix 状态树运行错误", err)
 			continue
 		}
-
+		log.Info(p.logExtraInfo(), "++++状态树02", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
 		localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
