@@ -146,13 +146,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 	)
 
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   Test
-	rol := ca.GetRole()
-	if rol == common.RoleMiner || rol == common.RoleInnerMiner || rol == common.RoleBackupMiner{
-		su :=make([]uint,0)
-		su = append(su,uint(0))
-		su = append(su,uint(14))
-		coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:su})
-	}
+	//rol := ca.GetRole()
+	//if rol == common.RoleMiner || rol == common.RoleInnerMiner || rol == common.RoleBackupMiner{
+	//	su :=make([]uint,0)
+	//	su = append(su,uint(0))
+	//	su = append(su,uint(14))
+	//	coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:su})
+	//}
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 
 	// Iterate over and process the individual transactions
