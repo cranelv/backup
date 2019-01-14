@@ -14,9 +14,32 @@ import (
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
 	"github.com/matrix/go-matrix/params"
+	"github.com/matrix/go-matrix/base58"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
+type GenesisAddress common.Address
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (a *GenesisAddress) UnmarshalJSON(input []byte) error {
+	*a = GenesisAddress(base58.Base58DecodeToAddress(string(input[1:len(input)-1])))
+	return nil
+}
+func (a *GenesisAddress) MarshalJSON() ([]byte, error) {
+	buff := base58.Base58EncodeToString("MAN", common.Address(*a))
+	return []byte(buff),nil
+}
+// MarshalText returns the hex representation of a.
+func (a GenesisAddress) MarshalText() ([]byte, error) {
+	buff := base58.Base58EncodeToString("MAN", common.Address(a))
+	return []byte(buff),nil
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (a *GenesisAddress) UnmarshalText(input []byte) error {
+	err := hexutil.UnmarshalFixedText("GenesisAddress", input, a[:])
+	return err
+}
 
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
@@ -27,15 +50,15 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Version           string                            `json:"version"`
 		VersionSignatures []common.Signature                `json:"versionSignatures"`
 		VrfValue          hexutil.Bytes                     `json:"vrfvalue"`
-		Leader            common.Address                    `json:"leader"`
-		NextElect         []common.Elect                    `json:"nextElect"        gencodec:"required"`
+		Leader            GenesisAddress                    `json:"leader"`
+		NextElect         []GenesisElect                    `json:"nextElect"        gencodec:"required"`
 		NetTopology       common.NetTopology                `json:"nettopology"        gencodec:"required"`
 		Signatures        []common.Signature                `json:"signatures" gencodec:"required"`
 		GasLimit          math.HexOrDecimal64               `json:"gasLimit"   gencodec:"required"`
 		Difficulty        *math.HexOrDecimal256             `json:"difficulty" gencodec:"required"`
 		Mixhash           common.Hash                       `json:"mixHash"`
-		Coinbase          common.Address                    `json:"coinbase"`
-		Alloc             map[common.Address]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Coinbase          GenesisAddress                    `json:"coinbase"`
+		Alloc             map[GenesisAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
 		MState            *GenesisMState                    `json:"mstate"`
 		Number            math.HexOrDecimal64               `json:"number"`
 		GasUsed           math.HexOrDecimal64               `json:"gasUsed"`
@@ -51,18 +74,21 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Version = g.Version
 	enc.VersionSignatures = g.VersionSignatures
 	enc.VrfValue = g.VrfValue
-	enc.Leader = g.Leader
-	enc.NextElect = g.NextElect
+	enc.Leader = GenesisAddress(g.Leader)
+	enc.NextElect = make([]GenesisElect, len(g.NextElect))
+	for i, elec := range g.NextElect {
+		enc.NextElect[i] = TransToGenesisElect(elec)
+	}
 	enc.NetTopology = g.NetTopology
 	enc.Signatures = g.Signatures
 	enc.GasLimit = math.HexOrDecimal64(g.GasLimit)
 	enc.Difficulty = (*math.HexOrDecimal256)(g.Difficulty)
 	enc.Mixhash = g.Mixhash
-	enc.Coinbase = g.Coinbase
+	enc.Coinbase = GenesisAddress(g.Coinbase)
 	if g.Alloc != nil {
-		enc.Alloc = make(map[common.Address]GenesisAccount, len(g.Alloc))
+		enc.Alloc = make(map[GenesisAddress]GenesisAccount, len(g.Alloc))
 		for k, v := range g.Alloc {
-			enc.Alloc[common.Address(k)] = v
+			enc.Alloc[GenesisAddress(k)] = v
 		}
 	}
 	enc.MState = g.MState
@@ -72,6 +98,58 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Root = g.Root
 	enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
+}
+type GenesisElect struct {
+	Account GenesisAddress
+	Stock   uint16
+	Type    common.ElectRoleType
+	VIP     common.VIPRoleType
+}
+func TransToGenesisElect(elect common.Elect)GenesisElect{
+	return GenesisElect{
+		GenesisAddress(elect.Account),
+		elect.Stock,
+		elect.Type,
+		elect.VIP,
+	}
+}
+func TransToCommonElect(elect GenesisElect)common.Elect{
+	return common.Elect{
+		common.Address(elect.Account),
+		elect.Stock,
+		elect.Type,
+		elect.VIP,
+	}
+}
+type GenesisNetTopologyData struct {
+	Account  GenesisAddress
+	Position uint16
+}
+type GenesisNetTopology struct {
+	Type            uint8
+	NetTopologyData []GenesisNetTopologyData
+}
+func TransToGenesisNetTopology(topology common.NetTopology)GenesisNetTopology{
+	gtopology :=  GenesisNetTopology{
+		topology.Type,
+		make([]GenesisNetTopologyData,len(topology.NetTopologyData)),
+	}
+	for i,item := range topology.NetTopologyData{
+		gtopology.NetTopologyData[i].Account = GenesisAddress(item.Account)
+		gtopology.NetTopologyData[i].Position = item.Position
+	}
+	return gtopology
+}
+func TransToCommonNetTopology(gtopology GenesisNetTopology)common.NetTopology{
+	topology :=  common.NetTopology{
+		gtopology.Type,
+		make([]common.NetTopologyData,len(gtopology.NetTopologyData)),
+	}
+	for i,item := range gtopology.NetTopologyData{
+		topology.NetTopologyData[i].Account = common.Address(item.Account)
+		topology.NetTopologyData[i].Position = item.Position
+	}
+	return topology
 }
 
 func (g *Genesis) UnmarshalJSON(input []byte) error {
@@ -83,15 +161,15 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Version           *string                                     `json:"version"`
 		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
 		VrfValue          *hexutil.Bytes                              `json:"vrfvalue"`
-		Leader            *common.Address                             `json:"leader"`
-		NextElect         *[]common.Elect                             `json:"nextElect" gencodec:"required"`
-		NetTopology       *common.NetTopology                         `json:"nettopology"        gencodec:"required"`
+		Leader            *GenesisAddress                             `json:"leader"`
+		NextElect         *[]GenesisElect                             `json:"nextElect" gencodec:"required"`
+		NetTopology       *GenesisNetTopology                         `json:"nettopology"        gencodec:"required"`
 		Signatures        *[]common.Signature                         `json:"signatures" gencodec:"required"`
 		GasLimit          *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
 		Difficulty        *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
 		Mixhash           *common.Hash                                `json:"mixHash"`
-		Coinbase          *common.Address                             `json:"coinbase"`
-		Alloc             map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Coinbase          *GenesisAddress                            `json:"coinbase"`
+		Alloc             map[GenesisAddress]GenesisAccount 		  `json:"alloc"      gencodec:"required"`
 		MState            *GenesisMState                              `json:"mstate"`
 		Number            *math.HexOrDecimal64                        `json:"number"`
 		GasUsed           *math.HexOrDecimal64                        `json:"gasUsed"`
@@ -126,13 +204,16 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 
 	if dec.Leader != nil {
-		g.Leader = *dec.Leader
+		g.Leader = common.Address(*dec.Leader)
 	}
 	if dec.NextElect != nil {
-		g.NextElect = *dec.NextElect
+		g.NextElect = make([]common.Elect,len(*dec.NextElect))
+		for i,item := range *dec.NextElect {
+			g.NextElect[i] = TransToCommonElect(item)
+		}
 	}
 	if dec.NetTopology != nil {
-		g.NetTopology = *dec.NetTopology
+		g.NetTopology = TransToCommonNetTopology(*dec.NetTopology)
 	}
 	if dec.Signatures != nil {
 		g.Signatures = *dec.Signatures
@@ -149,7 +230,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.Mixhash = *dec.Mixhash
 	}
 	if dec.Coinbase != nil {
-		g.Coinbase = *dec.Coinbase
+		g.Coinbase = common.Address(*dec.Coinbase)
 	}
 	if dec.Alloc == nil {
 		return errors.New("missing required field 'alloc' for Genesis")
