@@ -917,6 +917,8 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 			if err != nil{
 				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
 			}
+		}else{
+			return nil, 0, false, errors.New("Super tx write config data failed")
 		}
 	}
 
