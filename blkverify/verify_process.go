@@ -18,6 +18,7 @@ import (
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
+	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
 )
 
@@ -97,6 +98,7 @@ type Process struct {
 	voteMsgSender    *common.ResendMsgCtrl
 	mineReqMsgSender *common.ResendMsgCtrl
 	posedReqSender   *common.ResendMsgCtrl
+	bcRetryTimes     int // 作恶
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -122,6 +124,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		voteMsgSender:    nil,
 		mineReqMsgSender: nil,
 		posedReqSender:   nil,
+		bcRetryTimes:     0,
 	}
 
 	return p
@@ -258,13 +261,13 @@ func (p *Process) AddReq(reqMsg *mc.HD_BlkConsensusReqMsg) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	fromLeader, _, err := p.blockChain().GetA0AccountFromAnyAccount(reqMsg.From, reqMsg.Header.ParentHash)
+	fromA0Account, _, err := p.blockChain().GetA0AccountFromAnyAccount(reqMsg.From, reqMsg.Header.ParentHash)
 	if err != nil {
 		log.Debug(p.logExtraInfo(), "区块共识请求处理", "获取from的抵押账户失败", "from", reqMsg.From.Hex(), "err", err)
 		return
 	}
 
-	reqData, err := p.reqCache.AddReq(reqMsg, fromLeader, false)
+	reqData, err := p.reqCache.AddReq(reqMsg, fromA0Account, false)
 	if err != nil {
 		//log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
 		return
@@ -450,10 +453,10 @@ func (p *Process) startTxsVerify() {
 	} else {
 		// 开启交易获
 		p.txsAcquireSeq++
-		leader := p.curProcessReq.req.Header.Leader
-		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", p.curProcessReq.req.TxsCodeCount(), "leader", leader.Hex(), "高度", p.number)
+		target := p.curProcessReq.req.From
+		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", p.curProcessReq.req.TxsCodeCount(), "target", target.Hex(), "高度", p.number)
 		txAcquireCh := make(chan *core.RetChan, 1)
-		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, leader, txAcquireCh)
+		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, target, txAcquireCh)
 		go p.processTxsAcquire(txAcquireCh, p.txsAcquireSeq)
 	}
 }
@@ -664,6 +667,10 @@ func (p *Process) startDPOSVerify(lvResult verifyResult) {
 		log.Info(p.logExtraInfo(), "区块持久化", "开始缓存")
 		if err := saveVerifiedBlockToDB(p.ChainDb(), p.curProcessReq.hash, p.curProcessReq.req, p.curProcessReq.originalTxs); err != nil {
 			log.Error(p.logExtraInfo(), "验证成功的区块持久化缓存失败", err)
+		}
+
+		if len(p.curProcessReq.originalTxs) > 0 {
+			txpoolCache.MakeStruck(p.curProcessReq.originalTxs, p.curProcessReq.hash, p.number)
 		}
 	}
 	p.curProcessReq.localVerifyResult = lvResult

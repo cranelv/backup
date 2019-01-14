@@ -785,7 +785,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
-
+		if addr == p2p.EmptyAddress {
+			log.Error("algorithm message", "addr","is empty address", "node id", p.ID().TerminalString())
+		}
 		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: addr, Data: m})
 
 	case msg.Code == common.BroadcastReqMsg:

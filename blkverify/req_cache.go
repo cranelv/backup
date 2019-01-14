@@ -10,11 +10,13 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 
+	"github.com/matrix/go-matrix/log"
 	"sort"
 	"sync"
 )
 
 const otherReqCountMax = 20
+const otherFromLimit = 2
 
 var (
 	paramErr          = errors.New("param error")
@@ -110,6 +112,7 @@ type reqCache struct {
 	leaderReqCache map[common.Address]*reqData //from = leader 的req
 	otherReqCache  []*reqData                  //from != leader 的req
 	otherReqLimit  int
+	otherFromLimit int
 }
 
 func newReqCache() *reqCache {
@@ -118,11 +121,17 @@ func newReqCache() *reqCache {
 		leaderReqCache: make(map[common.Address]*reqData),
 		otherReqCache:  make([]*reqData, 0),
 		otherReqLimit:  otherReqCountMax,
+		otherFromLimit: otherFromLimit,
 	}
 }
 
-func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, fromLeader common.Address, isDBRecovery bool) (*reqData, error) {
+func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, fromA0Account common.Address, isDBRecovery bool) (*reqData, error) {
 	if nil == req {
+		return nil, paramErr
+	}
+
+	if fromA0Account == (common.Address{}) {
+		log.Error("blk consensus req cache", "req from A0 account  err", "is empty address")
 		return nil, paramErr
 	}
 
@@ -133,19 +142,29 @@ func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, fromLeader common.Addr
 		return nil, errors.Errorf("区块请求消息的轮次高低,消息轮次(%s) < 本地轮次(%s)", req.ConsensusTurn.String(), rc.curTurn.String())
 	}
 
-	if req.Header.Leader == fromLeader {
-		oldReq, exit := rc.leaderReqCache[fromLeader]
+	if req.Header.Leader == fromA0Account {
+		oldReq, exit := rc.leaderReqCache[fromA0Account]
 		if exit && oldReq.req.ConsensusTurn.Cmp(req.ConsensusTurn) >= 0 {
 			return nil, leaderReqExistErr
 		}
 		reqData := newReqData(req, isDBRecovery)
-		rc.leaderReqCache[fromLeader] = reqData
+		rc.leaderReqCache[fromA0Account] = reqData
 		return reqData, nil
 	}
 
 	//other req
-	reqData := newReqData(req, isDBRecovery)
 	count := len(rc.otherReqCache)
+	fromSize := 0
+	for i := 0; i < count; i++ {
+		if rc.otherReqCache[i].req.From == req.From {
+			fromSize++
+		}
+	}
+	if fromSize >= rc.otherFromLimit {
+		return nil, errors.Errorf("req from[%s, A0:%s] is too many(%d)", req.From.Hex(), fromA0Account.Hex(), fromSize)
+	}
+
+	reqData := newReqData(req, isDBRecovery)
 	if count >= rc.otherReqLimit {
 		rc.otherReqCache = append(rc.otherReqCache[1:], reqData)
 	} else {
