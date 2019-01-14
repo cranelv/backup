@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/internal/manapi"
@@ -95,7 +97,8 @@ func (bc *BroadCast) sendBroadCastTransaction(t string, h *big.Int, data []byte)
 		chainID = config.ChainId
 	}
 	t1 := time.Now()
-	signed, err := bc.manBackend.SignTx(tx, chainID, currBlock.ParentHash(), bcInterval.GetNextBroadcastNumber(currBlockHeight.Uint64()))
+	usingEntrust := ca.GetRole() != common.RoleBroadcast
+	signed, err := bc.manBackend.SignTx(tx, chainID, currBlock.ParentHash(), bcInterval.GetNextBroadcastNumber(currBlockHeight.Uint64()), usingEntrust)
 	if err != nil {
 		log.Info("file broadcast", "sendBroadCastTransaction:SignTx=", err)
 		return err
