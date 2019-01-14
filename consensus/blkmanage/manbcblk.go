@@ -1,6 +1,9 @@
-package manblk
+package blkmanage
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -21,12 +24,12 @@ func NewBCBlkPlug() (*ManBCBlkPlug, error) {
 	return obj, nil
 }
 
-func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args ...interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error) {
 
 	return bd.baseInterface.Prepare(support, interval, num, args)
 }
 
-func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
+func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
 
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, header)
 	if err != nil {
@@ -57,17 +60,35 @@ func (bd *ManBCBlkPlug) Finalize(support BlKSupport, header *types.Header, state
 	return block, nil, nil
 }
 
-func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, args ...interface{}) (interface{}, error) {
+func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error) {
 	if err := support.BlockChain().VerifyHeader(header); err != nil {
 		log.ERROR(ModuleManBlk, "预验证头信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
 
-	// verify net topology info
-	onlineConsensusResults, ok := args[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
-	if !ok {
-		log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
+	onlineConsensusResults := make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
+	test, _ := args.([]interface{})
+	for _, v := range test {
+		switch v.(type) {
+
+		case []*mc.HD_OnlineConsensusVoteResultMsg:
+			data, ok := v.([]*mc.HD_OnlineConsensusVoteResultMsg)
+			if !ok {
+				log.Error(ModuleManBlk, "反射顶点配置失败", "")
+				return nil, errors.New("反射失败")
+			}
+			onlineConsensusResults = data
+		default:
+			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+		}
+
 	}
+
+	// verify net topology info
+	//onlineConsensusResults, ok := args[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
+	//if !ok {
+	//	log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
+	//}
 	if err := support.ReElection().VerifyNetTopology(header, onlineConsensusResults); err != nil {
 		log.ERROR(ModuleManBlk, "验证拓扑信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
@@ -88,7 +109,7 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 	return nil, nil
 }
 
-func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args ...interface{}) (interface{}, error) {
+func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
 	log.INFO(ModuleManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
@@ -98,18 +119,18 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, localHeader)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		log.Error(ModuleManBlk, "uptime处理错误", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 	finalTxs := work.GetTxs()
 	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
@@ -117,14 +138,14 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	err = support.BlockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// 运行完matrix state后，生成root
 	localBlock, err = support.BlockChain().Engine().Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	log.Info(ModuleManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
@@ -133,7 +154,7 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	// verify election info
 	if err := support.ReElection().VerifyElection(verifyHeader, work.State); err != nil {
 		log.ERROR(ModuleManBlk, "验证选举信息失败", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	//localBlock check
@@ -149,7 +170,7 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", verifyHeader.Bloom.Big(),
 			"local GasLimit", localHeader.GasLimit, "remote GasLimit", verifyHeader.GasLimit,
 			"local GasUsed", localHeader.GasUsed, "remote GasUsed", verifyHeader.GasUsed)
-		return nil, errors.New("hash 不一致")
+		return nil, nil, nil, nil, errors.New("hash 不一致")
 	}
-	return nil, nil
+	return work.State, finalTxs, work.Receipts, nil, nil
 }

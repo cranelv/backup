@@ -12,8 +12,6 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/matrix/go-matrix/consensus/manblk"
-
 	"github.com/matrix/go-matrix/ca"
 
 	"github.com/matrix/go-matrix/mc"
@@ -27,6 +25,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/consensus"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/consensus/clique"
 	"github.com/matrix/go-matrix/consensus/manash"
 	"github.com/matrix/go-matrix/core"
@@ -123,7 +122,7 @@ type Matrix struct {
 	random       *baseinterface.Random
 	olConsensus  *olconsensus.TopNodeService
 	blockGen     *blkgenor.BlockGenor
-	manBlockDeal *manblk.ManBlkDeal
+	manBlkManage *blkmanage.ManBlkManage
 	blockVerify  *blkverify.BlockVerify
 	leaderServer *leaderelect.LeaderIdentity
 
@@ -262,15 +261,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //YY
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
-	man.manBlockDeal, err = manblk.New(man)
-	if err != nil {
-		return nil, err
-	}
-	manCommonplug, err := manblk.NewBlkBasePlug()
-	if err != nil {
-		return nil, err
-	}
-	man.manBlockDeal.RegisterManBLkPlugs(manblk.CommonBlk, manblk.AVERSION, manCommonplug)
+	man.manBlkManage, err = blkmanage.New(man)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +491,7 @@ func (s *Matrix) ReElection() *reelection.ReElection       { return s.reelection
 func (s *Matrix) HD() *msgsend.HD                          { return s.hd }
 func (s *Matrix) OLConsensus() *olconsensus.TopNodeService { return s.olConsensus }
 func (s *Matrix) Random() *baseinterface.Random            { return s.random }
-func (s *Matrix) ManBlkDeal() *manblk.ManBlkDeal           { return s.manBlockDeal }
+func (s *Matrix) ManBlkDeal() *blkmanage.ManBlkManage      { return s.manBlkManage }
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.

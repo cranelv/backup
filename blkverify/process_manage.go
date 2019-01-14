@@ -6,6 +6,8 @@ package blkverify
 import (
 	"sync"
 
+	"github.com/matrix/go-matrix/consensus/blkmanage"
+
 	"github.com/matrix/go-matrix/baseinterface"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
@@ -32,6 +34,7 @@ type ProcessManage struct {
 	random         *baseinterface.Random
 	chainDB        mandb.Database
 	verifiedBlocks map[common.Hash]*verifiedBlock
+	manblk         *blkmanage.ManBlkManage
 }
 
 func NewProcessManage(matrix Matrix) *ProcessManage {
@@ -47,6 +50,7 @@ func NewProcessManage(matrix Matrix) *ProcessManage {
 		random:         matrix.Random(),
 		chainDB:        matrix.ChainDb(),
 		verifiedBlocks: make(map[common.Hash]*verifiedBlock),
+		manblk:         matrix.ManBlkDeal(),
 	}
 }
 

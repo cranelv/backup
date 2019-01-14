@@ -4,10 +4,9 @@
 package blkgenor
 
 import (
-	"github.com/matrix/go-matrix/consensus/manblk"
-
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -24,20 +23,20 @@ func (p *Process) processBcHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
 	}
-	originHeader, _, err := p.pm.manblk.Prepare(manblk.CommonBlk, manblk.AVERSION, p.number, p.bcInterval, p.preBlockHash)
+	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, blkmanage.AVERSION, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备去看失败", err)
 		return err
 	}
 
-	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(manblk.CommonBlk, manblk.AVERSION, originHeader, nil)
+	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, blkmanage.AVERSION, originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(manblk.CommonBlk, manblk.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, blkmanage.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
@@ -58,7 +57,7 @@ func (p *Process) processHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
 	}
-	originHeader, extraData, err := p.pm.manblk.Prepare(manblk.CommonBlk, manblk.AVERSION, p.number, p.bcInterval, p.preBlockHash)
+	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, blkmanage.AVERSION, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备阶段失败", err)
 		return err
@@ -71,14 +70,14 @@ func (p *Process) processHeaderGen() error {
 		return errors.New("反射在线状态失败")
 	}
 
-	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(manblk.CommonBlk, manblk.AVERSION, originHeader, nil)
+	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, blkmanage.AVERSION, originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(manblk.CommonBlk, manblk.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, blkmanage.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err

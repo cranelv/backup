@@ -6,11 +6,10 @@ package blkgenor
 import (
 	"sync"
 
-	"github.com/matrix/go-matrix/consensus/manblk"
-
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/consensus"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/msgsend"
@@ -33,7 +32,7 @@ type ProcessManage struct {
 	dposEngine  consensus.DPOSEngine
 	olConsensus *olconsensus.TopNodeService
 	random      *baseinterface.Random
-	manblk      *manblk.ManBlkDeal
+	manblk      *blkmanage.ManBlkManage
 }
 
 func NewProcessManage(matrix Backend) *ProcessManage {

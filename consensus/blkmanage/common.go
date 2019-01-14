@@ -1,4 +1,4 @@
-package manblk
+package blkmanage
 
 import (
 	"errors"
@@ -21,11 +21,11 @@ import (
 type MANBLK interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args ...interface{}) (*types.Header, interface{}, error)
-	ProcessState(types string, version string, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
-	Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, interface{}, error)
-	VerifyHeader(types string, version string, header *types.Header, args ...interface{}) (interface{}, error)
-	VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (interface{}, error)
+	Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args interface{}) (*types.Header, interface{}, error)
+	ProcessState(types string, version string, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
+	Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error)
+	VerifyHeader(types string, version string, header *types.Header, args interface{}) (interface{}, error)
+	VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error)
 }
 
 type ChainReader interface {
@@ -77,7 +77,7 @@ type MANBLKPlUGS interface {
 	ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
 	Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error)
 	VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error)
-	VerifyTxsAndState(support BlKSupport, header *types.Header, Txs types.SelfTransactions, args interface{}) (interface{}, error)
+	VerifyTxsAndState(support BlKSupport, header *types.Header, Txs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error)
 }
 
 type TopNodeService interface {
@@ -128,24 +128,41 @@ var (
 	AVERSION = "1.0.0-stable"
 )
 
-type ManBlkDeal struct {
+type ManBlkManage struct {
 	support        BlKSupport
 	mapManBlkPlugs map[string]MANBLKPlUGS
 }
 
-func New(support BlKSupport) (*ManBlkDeal, error) {
-	obj := new(ManBlkDeal)
+func New(support BlKSupport) (*ManBlkManage, error) {
+	obj := new(ManBlkManage)
 	obj.support = support
 
 	obj.mapManBlkPlugs = make(map[string]MANBLKPlUGS)
+	manCommonplug, err := NewBlkBasePlug()
+	if err != nil {
+		return nil, err
+	}
+	obj.RegisterManBLkPlugs(CommonBlk, AVERSION, manCommonplug)
+	if err != nil {
+		return nil, err
+	}
+
+	manBcplug, err := NewBCBlkPlug()
+	if err != nil {
+		return nil, err
+	}
+	obj.RegisterManBLkPlugs(BroadcastBlk, AVERSION, manBcplug)
+	if err != nil {
+		return nil, err
+	}
 	return obj, nil
 }
 
-func (bd *ManBlkDeal) RegisterManBLkPlugs(types string, version string, plug MANBLKPlUGS) {
+func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug MANBLKPlUGS) {
 	bd.mapManBlkPlugs[types+version] = plug
 }
 
-func (bd *ManBlkDeal) Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args ...interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
@@ -154,7 +171,7 @@ func (bd *ManBlkDeal) Prepare(types string, version string, num uint64, interval
 	return plug.Prepare(bd.support, interval, num, args)
 }
 
-func (bd *ManBlkDeal) ProcessState(types string, version string, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
+func (bd *ManBlkManage) ProcessState(types string, version string, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
@@ -163,7 +180,7 @@ func (bd *ManBlkDeal) ProcessState(types string, version string, header *types.H
 	return plug.ProcessState(bd.support, header, args)
 }
 
-func (bd *ManBlkDeal) Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args ...interface{}) (*types.Block, interface{}, error) {
+func (bd *ManBlkManage) Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
@@ -172,7 +189,7 @@ func (bd *ManBlkDeal) Finalize(types string, version string, header *types.Heade
 	return plug.Finalize(bd.support, header, state, txs, uncles, receipts, args)
 }
 
-func (bd *ManBlkDeal) VerifyHeader(types string, version string, header *types.Header, args ...interface{}) (interface{}, error) {
+func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types.Header, args interface{}) (interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
@@ -181,11 +198,11 @@ func (bd *ManBlkDeal) VerifyHeader(types string, version string, header *types.H
 	return plug.VerifyHeader(bd.support, header, nil)
 }
 
-func (bd *ManBlkDeal) VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (interface{}, error) {
+func (bd *ManBlkManage) VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(ModuleManBlk, "获取插件失败", "")
-		return nil, errors.New("获取插件失败")
+		return nil, nil, nil, nil, errors.New("获取插件失败")
 	}
 	return plug.VerifyTxsAndState(bd.support, header, Txs, args)
 }

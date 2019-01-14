@@ -7,6 +7,7 @@ import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -25,6 +26,7 @@ type Matrix interface {
 	EventMux() *event.TypeMux
 	Random() *baseinterface.Random
 	ChainDb() mandb.Database
+	ManBlkDeal() *blkmanage.ManBlkManage
 }
 
 type BlockVerify struct {

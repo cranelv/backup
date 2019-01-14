@@ -7,15 +7,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/matrix/go-matrix/consensus/blkmanage"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/pkg/errors"
@@ -396,34 +396,37 @@ func (p *Process) processReqOnce() {
 		}
 	}
 
-	// verify header
-	if err := p.blockChain().VerifyHeader(p.curProcessReq.req.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "预验证头信息失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
+	/*	// verify header
+		if err := p.blockChain().VerifyHeader(p.curProcessReq.req.Header); err != nil {
+			log.ERROR(p.logExtraInfo(), "预验证头信息失败", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
 
-	// verify net topology info
-	if err := p.verifyNetTopology(p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证拓扑信息失败", err, "高度", p.number)
+		// verify net topology info
+		if err := p.verifyNetTopology(p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
+			log.ERROR(p.logExtraInfo(), "验证拓扑信息失败", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+			return
+		}
+
+		if err := p.blockChain().DPOSEngine().VerifyVersion(p.blockChain(), p.curProcessReq.req.Header); err != nil {
+			log.ERROR(p.logExtraInfo(), "验证版本号失败", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+			return
+		}
+
+		//verify vrf
+		if err := p.verifyVrf(p.curProcessReq.req.Header); err != nil {
+			log.Error(p.logExtraInfo(), "验证vrf失败", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+			return
+		}
+		log.INFO(p.logExtraInfo(), "验证vrf成功 高度", p.number)*/
+	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, blkmanage.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
-
-	if err := p.blockChain().DPOSEngine().VerifyVersion(p.blockChain(), p.curProcessReq.req.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证版本号失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
-		return
-	}
-
-	//verify vrf
-	if err := p.verifyVrf(p.curProcessReq.req.Header); err != nil {
-		log.Error(p.logExtraInfo(), "验证vrf失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
-		return
-	}
-	log.INFO(p.logExtraInfo(), "验证vrf成功 高度", p.number)
-
 	p.startTxsVerify()
 }
 
@@ -517,76 +520,78 @@ func (p *Process) verifyTxsAndState() {
 	log.INFO(p.logExtraInfo(), "开始交易验证, 数量", len(p.curProcessReq.originalTxs), "高度", p.number)
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
-	remoteHeader := p.curProcessReq.req.Header
-	localHeader := types.CopyHeader(remoteHeader)
-	localHeader.GasUsed = 0
+	/*	remoteHeader := p.curProcessReq.req.Header
+		localHeader := types.CopyHeader(remoteHeader)
+		localHeader.GasUsed = 0
 
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "交易验证，创建work失败!", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
-		return
-	}
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "交易验证，创建work失败!", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultFailedButCanRecover)
+			return
+		}
 
-	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "uptime处理错误", err)
-		return
-	}
-	err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, uptimeMap)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
+		uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
+		if err != nil {
+			log.Error(p.logExtraInfo(), "uptime处理错误", err)
+			return
+		}
+		err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, uptimeMap)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "交易验证，共识执行交易出错!", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
+		finalTxs := work.GetTxs()
+		localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
+		// process matrix state
+		err = p.blockChain().ProcessMatrixState(localBlock, work.State)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "运行matrix状态出错", "err", err)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
+
+		// 运行完matrix state后，生成root
+		localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
+
+		log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
+		log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
+
+		// verify election info
+		if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
+			log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
+
+		//localBlock check
+		localHeader = localBlock.Header()
+		localHash := localHeader.HashNoSignsAndNonce()
+
+		if localHash != p.curProcessReq.hash {
+			log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
+				"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
+				"local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(),
+				"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),
+				"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", remoteHeader.ReceiptHash.TerminalString(),
+				"local Bloom", localHeader.Bloom.Big(), "remote Bloom", remoteHeader.Bloom.Big(),
+				"local GasLimit", localHeader.GasLimit, "remote GasLimit", remoteHeader.GasLimit,
+				"local GasUsed", localHeader.GasUsed, "remote GasUsed", remoteHeader.GasUsed)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}*/
+	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, blkmanage.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
+	if nil != err {
 		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
-	// process matrix state
-	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "运行matrix状态出错", "err", err)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
 	}
 
-	// 运行完matrix state后，生成root
-	localBlock, err = p.blockChain().Engine().Finalize(p.blockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
-	log.Info(p.logExtraInfo(), "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", remoteHeader.TxHash)
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", remoteHeader.Root.Hex())
-
-	// verify election info
-	if err := p.verifyElection(p.curProcessReq.req.Header, work.State); err != nil {
-		log.ERROR(p.logExtraInfo(), "验证选举信息失败", err, "高度", p.number)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
-	//localBlock check
-	localHeader = localBlock.Header()
-	localHash := localHeader.HashNoSignsAndNonce()
-
-	if localHash != p.curProcessReq.hash {
-		log.ERROR(p.logExtraInfo(), "交易验证及状态，错误", "block hash不匹配",
-			"local hash", localHash.TerminalString(), "remote hash", p.curProcessReq.hash.TerminalString(),
-			"local root", localHeader.Root.TerminalString(), "remote root", remoteHeader.Root.TerminalString(),
-			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", remoteHeader.TxHash.TerminalString(),
-			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", remoteHeader.ReceiptHash.TerminalString(),
-			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", remoteHeader.Bloom.Big(),
-			"local GasLimit", localHeader.GasLimit, "remote GasLimit", remoteHeader.GasLimit,
-			"local GasUsed", localHeader.GasUsed, "remote GasUsed", remoteHeader.GasUsed)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
-	p.curProcessReq.receipts = work.Receipts
-	p.curProcessReq.stateDB = work.State
-	p.curProcessReq.finalTxs = finalTxs
+	p.curProcessReq.stateDB, p.curProcessReq.finalTxs, p.curProcessReq.receipts = stateDB, finalTxs, receipts
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }

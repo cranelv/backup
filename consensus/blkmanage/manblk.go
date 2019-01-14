@@ -1,4 +1,4 @@
-package manblk
+package blkmanage
 
 import (
 	"encoding/json"
@@ -45,7 +45,7 @@ func (p *ManBlkBasePlug) getVrfValue(support BlKSupport, parent *types.Block) ([
 		log.Error(ModuleManBlk, "生成vrfmsg出错", err, "parentMsg", parentMsg)
 		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
 	}
-	return support.SignHelper().SignVrf(vrfmsg, p.preBlockHash)
+	return support.SignHelper().SignVrf(vrfmsg, parent.Hash())
 }
 
 func (p *ManBlkBasePlug) setVrf(support BlKSupport, parent *types.Block, header *types.Header) error {
@@ -56,6 +56,11 @@ func (p *ManBlkBasePlug) setVrf(support BlKSupport, parent *types.Block, header 
 	}
 	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
 	return nil
+}
+
+func (p *ManBlkBasePlug) setVersion(header *types.Header, parent *types.Block) {
+	header.Version = parent.Header().Version
+	header.VersionSignatures = parent.Header().VersionSignatures
 }
 
 func (p *ManBlkBasePlug) setSignatures(header *types.Header) {
@@ -110,7 +115,7 @@ func (bd *ManBlkBasePlug) setTimeStamp(parent *types.Block, header *types.Header
 	bd.setTime(header, tstamp)
 }
 
-func (bd *ManBlkBasePlug) setParentHash(chain ChainReader, header *types.Header, num uint64) (*types.Block, error) {
+func (bd *ManBlkBasePlug) getParentBlock(chain ChainReader, num uint64) (*types.Block, error) {
 	if num == 1 { // 第一个块直接返回创世区块作为父区块
 		return chain.Genesis(), nil
 	}
@@ -124,8 +129,16 @@ func (bd *ManBlkBasePlug) setParentHash(chain ChainReader, header *types.Header,
 		return nil, errors.Errorf("未知的父区块[%s]", bd.preBlockHash.TerminalString())
 	}
 
-	parentHash := parent.Hash()
-	header.ParentHash = parentHash
+	return parent, nil
+}
+
+func (bd *ManBlkBasePlug) setParentHash(chain ChainReader, header *types.Header, num uint64) (*types.Block, error) {
+	parent, err := bd.getParentBlock(chain, num)
+	if err != nil {
+		return nil, err
+	}
+
+	header.ParentHash = parent.Hash()
 	return parent, nil
 }
 
@@ -177,6 +190,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInte
 	if nil != err {
 		return nil, nil, err
 	}
+	bd.setVersion(originHeader, parent)
 	if err := support.BlockChain().Engine().Prepare(support.BlockChain(), originHeader); err != nil {
 		log.ERROR(ModuleManBlk, "Failed to prepare header for mining", err)
 		return nil, nil, err
@@ -225,9 +239,22 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 	}
 
 	// verify net topology info
-	onlineConsensusResults, ok := args.([]interface{})[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
-	if !ok {
-		log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
+	onlineConsensusResults := make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
+	test, _ := args.([]interface{})
+	for _, v := range test {
+		switch v.(type) {
+
+		case []*mc.HD_OnlineConsensusVoteResultMsg:
+			data, ok := v.([]*mc.HD_OnlineConsensusVoteResultMsg)
+			if !ok {
+				log.Error(ModuleManBlk, "反射顶点配置失败", "")
+				return nil, errors.New("反射失败")
+			}
+			onlineConsensusResults = data
+		default:
+			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+		}
+
 	}
 	if err := support.ReElection().VerifyNetTopology(header, onlineConsensusResults); err != nil {
 		log.ERROR(ModuleManBlk, "验证拓扑信息失败", err, "高度", header.Number.Uint64())
@@ -249,7 +276,7 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 	return nil, nil
 }
 
-func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args interface{}) (interface{}, error) {
+func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
 	log.INFO(ModuleManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
@@ -259,18 +286,18 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, localHeader)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		log.Error(ModuleManBlk, "uptime处理错误", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 	finalTxs := work.GetTxs()
 	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
@@ -278,14 +305,14 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	err = support.BlockChain().ProcessMatrixState(localBlock, work.State)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// 运行完matrix state后，生成root
 	localBlock, err = support.BlockChain().Engine().Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	log.Info(ModuleManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
@@ -294,7 +321,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	// verify election info
 	if err := support.ReElection().VerifyElection(verifyHeader, work.State); err != nil {
 		log.ERROR(ModuleManBlk, "验证选举信息失败", err, "高度", verifyHeader.Number.Uint64())
-		return nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	//localBlock check
@@ -310,7 +337,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", verifyHeader.Bloom.Big(),
 			"local GasLimit", localHeader.GasLimit, "remote GasLimit", verifyHeader.GasLimit,
 			"local GasUsed", localHeader.GasUsed, "remote GasUsed", verifyHeader.GasUsed)
-		return nil, errors.New("hash 不一致")
+		return nil, nil, nil, nil, errors.New("hash 不一致")
 	}
-	return nil, nil
+	return work.State, finalTxs, work.Receipts, nil, nil
 }
