@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"reflect"
+	"github.com/matrix/go-matrix/params"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -999,7 +1000,7 @@ func (opt *operatorTxpoolGasLimit) GetValue(st StateDB) (interface{}, error) {
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return "0", nil
+		return big.NewInt(int64(params.TxGasPrice)), nil
 	}
 
 	msg := new(big.Int)
