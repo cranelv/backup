@@ -1813,16 +1813,27 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 			*(*uint64)(args.Gas) = 21000
 		}
 	}
-	if args.GasPrice == nil {
-		price, err := b.SuggestPrice(ctx)
-		if err != nil {
-			return err
-		}
-		if price.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) < 0 {
-			price.Set(new(big.Int).SetUint64(params.TxGasPrice))
-		}
-		args.GasPrice = (*hexutil.Big)(price)
+	//if args.GasPrice == nil {
+	//	price, err := b.SuggestPrice(ctx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if price.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) < 0 {
+	//		price.Set(new(big.Int).SetUint64(params.TxGasPrice))
+	//	}
+	//	args.GasPrice = (*hexutil.Big)(price)
+	//}
+	state,err := b.GetState()
+	if err != nil{
+		return err
 	}
+	price,err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil{
+		return err
+	}
+
+	args.GasPrice = (*hexutil.Big)(price)
+
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
 	}

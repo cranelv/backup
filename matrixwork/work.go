@@ -80,16 +80,14 @@ func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gasAll := new(big.Int).SetUint64(gasuse)
-	priceAll := new(big.Int).SetUint64(params.TxGasPrice) //txer.GasPrice()
+	priceAll := txer.GasPrice()
 	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
 	cu.mapcoin[txer.GetTxCurrency()] = gasAll
 
 	if _, ok := cu.mapprice[txer.GetTxCurrency()]; !ok {
-		if priceAll.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) >= 0 {
-			cu.mapprice[txer.GetTxCurrency()] = priceAll
-		}
+		cu.mapprice[txer.GetTxCurrency()] = priceAll
 	}
 }
 func (cu *coingasUse) getCoinGasPrice(typ string) *big.Int {

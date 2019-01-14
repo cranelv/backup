@@ -101,16 +101,8 @@ func (opt *operatorBroadcastInterval) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	interval, OK := value.(*mc.BCIntervalInfo)
-	if !OK {
-		log.Error(logInfo, "input param(broadcastInterval) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if interval == nil {
-		log.Error(logInfo, "input param(broadcastInterval) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(interval)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "broadcastInterval marshal failed", err)
 		return err
@@ -221,12 +213,8 @@ func (opt *operatorPreBroadcastRoot) SetValue(st StateDB, value interface{}) err
 		return err
 	}
 
-	roots, OK := value.(*mc.PreBroadStateRoot)
-	if !OK {
-		log.Error(logInfo, "input param(preBroadcastRoot) err", "reflect failed")
-		return ErrParamReflect
-	}
-	data, err := json.Marshal(roots)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
 		return err

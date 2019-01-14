@@ -69,11 +69,15 @@ func IntrinsicGas(data []byte) (uint64, error) {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *StateTransition {
+	gasprice,err := matrixstate.GetTxpoolGasLimit(evm.StateDB)
+	if err != nil{
+		//return errors.New("get txpool gasPrice err")
+	}
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
-		gasPrice: big.NewInt(int64(params.TxGasPrice)),
+		gasPrice: gasprice,
 		value:    msg.Value(),
 		data:     msg.Data(),
 		state:    evm.StateDB,
@@ -898,30 +902,15 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		log.Error("CallSuperTx Unmarshal err")
 		return nil, 0, false, err
 	}
-	
-	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data)
-	if err != nil {
-		return nil, 0, false, err
-	}
+
 	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
 			return nil, 0, false, ErrTXCountOverflow
 		}
-		for _, ex := range tmpExtra[0].ExtraTo {
-			tmpgas, tmperr := IntrinsicGas(ex.Payload)
-			if tmperr != nil {
-				return nil, 0, false, err
-			}
-			//0.7+0.3*pow(0.9,(num-1))
-			gas += tmpgas
-		}
 	}
-	if err = st.UseGas(gas); err != nil {
-		return nil, 0, false, err
-	}
+	st.gas = 0
 	if toaddr == nil { //
 		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
@@ -951,7 +940,6 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		}
 	}
 
-	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	version := matrixstate.GetVersionInfo(st.state)
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
@@ -965,16 +953,18 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 			opt, err := mgr.FindOperator(k)
 			if err != nil{
 				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
+				return nil, 0, true, nil
 			}
 			err = opt.SetValue(st.state,val)
 			if err != nil{
 				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
+				return nil, 0, true, nil
 			}
 		}else{
-			return nil, st.GasUsed(), true, nil
+			return nil, 0, true, nil
 		}
 	}
-	return ret, st.GasUsed(), vmerr != nil, err
+	return ret, 0, vmerr != nil, err
 }
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.

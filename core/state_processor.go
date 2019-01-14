@@ -53,8 +53,11 @@ func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
 func (p *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
-
-	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
+	gasprice,err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil{
+		return big.NewInt(0)
+	}
+	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
 	balance := state.GetBalance(common.TxGasRewardAddress)
 

@@ -473,12 +473,8 @@ func (opt *operatorLeaderConfig) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	roots, OK := value.(*mc.LeaderConfig)
-	if !OK {
-		log.Error(logInfo, "input param(preBroadcastRoot) err", "reflect failed")
-		return ErrParamReflect
-	}
-	data, err := json.Marshal(roots)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
 		return err
@@ -527,12 +523,8 @@ func (opt *operatorMinHash) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	info, OK := value.(*mc.RandomInfoStruct)
-	if !OK {
-		log.Error(logInfo, "input param(minHash) err", "reflect failed")
-		return ErrParamReflect
-	}
-	data, err := json.Marshal(info)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "minHash marshal failed", err)
 		return err
@@ -581,12 +573,7 @@ func (opt *operatorSuperBlockCfg) SetValue(st StateDB, value interface{}) error 
 		return err
 	}
 
-	cfg, OK := value.(*mc.SuperBlkCfg)
-	if !OK {
-		log.Error(logInfo, "input param(superBlkCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "superBlkCfg marshal failed", err)
 		return err

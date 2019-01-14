@@ -54,16 +54,7 @@ func (opt *operatorBlkRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.BlkRewardCfg)
-	if !OK {
-		log.Error(logInfo, "input param(blkRewardCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(blkRewardCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "blkRewardCfg marshal failed", err)
 		return err
@@ -113,16 +104,7 @@ func (opt *operatorTxsRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.TxsRewardCfg)
-	if !OK {
-		log.Error(logInfo, "input param(txsRewardCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(txsRewardCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "txsRewardCfg marshal failed", err)
 		return err
@@ -172,16 +154,7 @@ func (opt *operatorInterestCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.InterestCfg)
-	if !OK {
-		log.Error(logInfo, "input param(interestCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(interestCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "interestCfg marshal failed", err)
 		return err
@@ -231,16 +204,7 @@ func (opt *operatorLotteryCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.LotteryCfg)
-	if !OK {
-		log.Error(logInfo, "input param(lotteryCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(lotteryCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "lotteryCfg marshal failed", err)
 		return err
@@ -290,16 +254,7 @@ func (opt *operatorSlashCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.SlashCfg)
-	if !OK {
-		log.Error(logInfo, "input param(slashCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(slashCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "slashCfg marshal failed", err)
 		return err
@@ -348,16 +303,7 @@ func (opt *operatorPreMinerBlkReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	reward, OK := value.(*mc.MinerOutReward)
-	if !OK {
-		log.Error(logInfo, "input param(preMinerBlkReward) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if reward == nil {
-		log.Error(logInfo, "input param(preMinerBlkReward) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(reward)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preMinerBlkReward marshal failed", err)
 		return err
@@ -406,16 +352,7 @@ func (opt *operatorPreMinerTxsReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	reward, OK := value.(*mc.MinerOutReward)
-	if !OK {
-		log.Error(logInfo, "input param(preMinerTxsReward) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if reward == nil {
-		log.Error(logInfo, "input param(preMinerTxsReward) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(reward)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preMinerTxsReward marshal failed", err)
 		return err
@@ -1125,6 +1062,14 @@ func (opt *operatorAccountBlackList) GetValue(st StateDB) (interface{}, error) {
 	return accounts, nil
 }
 
+func IsInBlackList(addr common.Address,blacklist []common.Address)bool {
+	for _,blackaddr := range blacklist{
+		if addr.Equal(blackaddr){
+			return true
+		}
+	}
+	return false
+}
 func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) error {
 	if err := checkStateDB(st); err != nil {
 		return err
@@ -1141,6 +1086,15 @@ func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) err
 	if !OK {
 		log.Error(logInfo, "input param(AccountBlackList) err", "reflect failed")
 		return ErrParamReflect
+	}
+
+	mansuperTxAddreslist,err := GetTxsSuperAccounts(st)
+	if err == nil{
+		for _,superAddress := range mansuperTxAddreslist{
+			if IsInBlackList(superAddress,accounts){
+				return errors.New("the blacklist is invalid")
+			}
+		}
 	}
 
 	data, err := encodeAccounts(accounts)
