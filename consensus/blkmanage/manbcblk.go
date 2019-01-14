@@ -1,8 +1,7 @@
 package blkmanage
 
 import (
-	"fmt"
-	"reflect"
+	"errors"
 	"time"
 
 	"github.com/matrix/go-matrix/common"
@@ -12,7 +11,6 @@ import (
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/pkg/errors"
 )
 
 type ManBCBlkPlug struct {
@@ -74,29 +72,12 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 		return nil, err
 	}
 
-	onlineConsensusResults := make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
-	test, _ := args.([]interface{})
-	for _, v := range test {
-		switch v.(type) {
-
-		case []*mc.HD_OnlineConsensusVoteResultMsg:
-			data, ok := v.([]*mc.HD_OnlineConsensusVoteResultMsg)
-			if !ok {
-				log.Error(ModuleManBlk, "反射顶点配置失败", "")
-				return nil, errors.New("反射失败")
-			}
-			onlineConsensusResults = data
-		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
-		}
-
+	if err := support.BlockChain().DPOSEngine().VerifyBlock(support.BlockChain(), header); err != nil {
+		log.WARN(ModuleManBlk, "验证广播挖矿结果", "结果异常", "err", err)
+		return nil, err
 	}
+	onlineConsensusResults := make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 
-	// verify net topology info
-	//onlineConsensusResults, ok := args[0].([]*mc.HD_OnlineConsensusVoteResultMsg)
-	//if !ok {
-	//	log.ERROR(ModuleManBlk, "反射顶点配置失败", "")
-	//}
 	if err := support.ReElection().VerifyNetTopology(header, onlineConsensusResults); err != nil {
 		log.ERROR(ModuleManBlk, "验证拓扑信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
@@ -118,67 +99,38 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 }
 
 func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs types.SelfTransactions, args interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
-	log.INFO(ModuleManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
+	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
+	if parent == nil {
+		log.WARN(ModuleManBlk, "广播挖矿结果验证", "获取父区块错误!")
+		return nil, nil, nil, nil, errors.New("广播挖矿结果验证,获取父区块错误!")
+	}
 
-	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
-	localHeader := types.CopyHeader(verifyHeader)
-	localHeader.GasUsed = 0
-	verifyHeaderHash := verifyHeader.HashNoSignsAndNonce()
-	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, localHeader)
+	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, verifyHeader)
 	if err != nil {
-		log.ERROR(ModuleManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
+		log.WARN(ModuleManBlk, "广播挖矿结果验证, 创建worker错误", err)
+		return nil, nil, nil, nil, err
+	}
+	//执行交易
+	work.ProcessBroadcastTransactions(support.EventMux(), verifyTxs)
+
+	retTxs := work.GetTxs()
+	// 运行matrix状态树
+	block := types.NewBlock(verifyHeader, retTxs, nil, work.Receipts)
+	if err := support.BlockChain().ProcessMatrixState(block, work.State); err != nil {
+		log.ERROR(ModuleManBlk, "广播挖矿结果验证, matrix 状态树运行错误", err)
 		return nil, nil, nil, nil, err
 	}
 
-	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
+	localBlock, err := support.BlockChain().Engine().Finalize(support.BlockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
 	if err != nil {
-		log.Error(ModuleManBlk, "uptime处理错误", err)
-		return nil, nil, nil, nil, err
-	}
-	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
-	if err != nil {
-		log.ERROR(ModuleManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
-		return nil, nil, nil, nil, err
-	}
-	finalTxs := work.GetTxs()
-	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
-	// process matrix state
-	err = support.BlockChain().ProcessMatrixState(localBlock, work.State)
-	if err != nil {
-		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
+		log.ERROR(ModuleManBlk, "Failed to finalize block for sealing", err)
 		return nil, nil, nil, nil, err
 	}
 
-	// 运行完matrix state后，生成root
-	localBlock, err = support.BlockChain().Engine().Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
-	if err != nil {
-		log.ERROR(ModuleManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
-		return nil, nil, nil, nil, err
+	if localBlock.Root() != verifyHeader.Root {
+		log.ERROR(ModuleManBlk, "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", localBlock.Root().TerminalString(), "remote root", verifyHeader.Root.TerminalString())
+		return nil, nil, nil, nil, errors.New("root不一致")
 	}
 
-	log.Info(ModuleManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", verifyHeader.Root.Hex())
-
-	// verify election info
-	if err := support.ReElection().VerifyElection(verifyHeader, work.State); err != nil {
-		log.ERROR(ModuleManBlk, "验证选举信息失败", err, "高度", verifyHeader.Number.Uint64())
-		return nil, nil, nil, nil, err
-	}
-
-	//localBlock check
-	localHeader = localBlock.Header()
-	localHash := localHeader.HashNoSignsAndNonce()
-
-	if localHash != verifyHeaderHash {
-		log.ERROR(ModuleManBlk, "交易验证及状态，错误", "block hash不匹配",
-			"local hash", localHash.TerminalString(), "remote hash", verifyHeaderHash.TerminalString(),
-			"local root", localHeader.Root.TerminalString(), "remote root", verifyHeader.Root.TerminalString(),
-			"local txHash", localHeader.TxHash.TerminalString(), "remote txHash", verifyHeader.TxHash.TerminalString(),
-			"local ReceiptHash", localHeader.ReceiptHash.TerminalString(), "remote ReceiptHash", verifyHeader.ReceiptHash.TerminalString(),
-			"local Bloom", localHeader.Bloom.Big(), "remote Bloom", verifyHeader.Bloom.Big(),
-			"local GasLimit", localHeader.GasLimit, "remote GasLimit", verifyHeader.GasLimit,
-			"local GasUsed", localHeader.GasUsed, "remote GasUsed", verifyHeader.GasUsed)
-		return nil, nil, nil, nil, errors.New("hash 不一致")
-	}
-	return work.State, finalTxs, work.Receipts, nil, nil
+	return work.State, retTxs, work.Receipts, nil, nil
 }

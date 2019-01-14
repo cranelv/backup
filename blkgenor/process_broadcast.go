@@ -5,9 +5,8 @@ package blkgenor
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 )
 
@@ -46,53 +45,22 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 func (p *Process) dealMinerResultVerifyBroadcast() {
 	log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 	for _, result := range p.broadcastRstCache {
-		// 运行广播区块交易
-		parent := p.blockChain().GetBlockByHash(result.Header.ParentHash)
-		if parent == nil {
-			log.WARN(p.logExtraInfo(), "广播挖矿结果验证", "获取父区块错误!")
+		state, retTxs, receipsts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.BroadcastBlk, blkmanage.AVERSION, result.Header, result.Txs)
+		if nil != err {
 			continue
 		}
-
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, result.Header)
-		if err != nil {
-			log.WARN(p.logExtraInfo(), "广播挖矿结果验证, 创建worker错误", err)
-			continue
-		}
-		log.Info(p.logExtraInfo(), "++++状态树00", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
-		//执行交易
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), result.Txs)
-		log.Info(p.logExtraInfo(), "++++状态树01", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
-		retTxs := work.GetTxs()
-		// 运行matrix状态树
-		block := types.NewBlock(result.Header, retTxs, nil, work.Receipts)
-		if err := p.blockChain().ProcessMatrixState(block, work.State); err != nil {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证, matrix 状态树运行错误", err)
-			continue
-		}
-		log.Info(p.logExtraInfo(), "++++状态树02", work.State.IntermediateRoot(p.pm.bc.Config().IsEIP158(result.Header.Number)).String())
-		localBlock, err := p.blockChain().Engine().Finalize(p.blockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "Failed to finalize block for sealing", err)
-			continue
-		}
-
-		if localBlock.Root() != result.Header.Root {
-			log.ERROR(p.logExtraInfo(), "广播挖矿结果验证", "root验证错误, 不匹配", "localRoot", localBlock.Root().TerminalString(), "remote root", result.Header.Root.TerminalString())
-			continue
-		}
-
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 			Header:      result.Header,
 			BlockHash:   common.Hash{},
 			OriginalTxs: retTxs,
 			FinalTxs:    retTxs,
-			Receipts:    work.Receipts,
-			State:       work.State,
+			Receipts:    receipsts,
+			State:       state,
 		})
 
 		readyMsg := &mc.NewBlockReadyMsg{
 			Header: result.Header,
-			State:  work.State.Copy(),
+			State:  state.Copy(),
 		}
 		log.INFO(p.logExtraInfo(), "广播区块验证完成", "发送新区块准备完毕消息", "高度", p.number)
 		mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
