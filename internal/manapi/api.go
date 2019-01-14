@@ -740,9 +740,6 @@ func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interf
 			continue
 		}
 		keystr, val := supMager.Output(k, dataval)
-		if keystr == mc.MSTxpoolGasLimitCfg && val == "0" {
-			val = params.TxGasPrice
-		}
 		mapdata[keystr.(string)] = val
 	}
 	return mapdata

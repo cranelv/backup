@@ -957,26 +957,26 @@ type TxpoolGasLimit struct {
 func (b *TxpoolGasLimit) Check(k, v interface{}) (interface{},bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易入池gas配置为空")
-		return *big.NewInt(int64(0)),false
+		return nil,false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易入池gas配置", "key值反射失败", "")
-		return *big.NewInt(int64(0)),false
+		return nil,false
 	}
 	if key != MSTxpoolGasLimitCfg {
 		log.ERROR("超级交易区块算法配置", "key值非法，非法值为", key)
-		return *big.NewInt(int64(0)), false
+		return nil, false
 	}
 
 	codedata,err := json.Marshal(v)
 	if err != nil{
-		return *big.NewInt(int64(0)),false
+		return nil,false
 	}
-	var value big.Int
+	value := new(big.Int)
 	err = json.Unmarshal(codedata,&value)
 	if err != nil{
-		return *big.NewInt(int64(0)),false
+		return nil,false
 	}
 
 	return value,true

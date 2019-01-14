@@ -375,21 +375,21 @@ func SetBroadcastTxs(st StateDB, txs common.BroadTxSlice) error {
 	return opt.SetValue(st, txs)
 }
 
-func GetTxpoolGasLimit(st StateDB) (big.Int, error) {
+func GetTxpoolGasLimit(st StateDB) (*big.Int, error) {
 	version := GetVersionInfo(st)
 	mgr := GetManager(version)
 	if mgr == nil {
-		return *big.NewInt(int64(0)), ErrFindManager
+		return nil, ErrFindManager
 	}
 	opt, err := mgr.FindOperator(mc.MSTxpoolGasLimitCfg)
 	if err != nil {
-		return *big.NewInt(int64(0)), err
+		return nil, err
 	}
 	value, err := opt.GetValue(st)
 	if err != nil || value == "0"{
-		return *big.NewInt(int64(0)), err
+		return nil, err
 	}
-	return value.(big.Int), nil
+	return value.(*big.Int), nil
 }
 func GetAccountBlackList(st StateDB) ([]common.Address, error) {
 	version := GetVersionInfo(st)

@@ -10,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
 	"reflect"
+	"github.com/matrix/go-matrix/params"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -999,11 +1000,11 @@ func (opt *operatorTxpoolGasLimit) GetValue(st StateDB) (interface{}, error) {
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return "0", nil
+		return big.NewInt(int64(params.TxGasPrice)), nil
 	}
 
 	msg := new(big.Int)
-	err := json.Unmarshal(data, msg)
+	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
 	}
@@ -1016,7 +1017,7 @@ func (opt *operatorTxpoolGasLimit) SetValue(st StateDB, value interface{}) error
 		return err
 	}
 
-	data, OK := value.(big.Int)
+	data, OK := value.(*big.Int)
 	if !OK {
 		log.Error(logInfo, "input param(TxpoolGasLimit) err", "reflect failed")
 		return ErrParamReflect
