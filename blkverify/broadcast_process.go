@@ -60,7 +60,7 @@ func (p *Process) bcFinishedProcess(lvResult verifyResult) {
 	}
 
 	if lvResult != localVerifyResultSuccess || p.bcRetryTimes <= 3 {
-		log.Error(p.logExtraInfo(), "广播节点验证请求失败", lvResult.String(), "req hash", p.curProcessReq.hash.Hex(), "req from", p.curProcessReq.req.From.Hex())
+		log.Error(p.logExtraInfo(), "广播节点验证请求失败", lvResult.String(), "高度", p.number, "次数", p.bcRetryTimes, "req hash", p.curProcessReq.hash.Hex(), "req from", p.curProcessReq.req.From.Hex())
 		log.Info(p.logExtraInfo(), "广播节点", "重启process流程")
 		p.curProcessReq = nil
 		p.state = StateStart
