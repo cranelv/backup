@@ -333,6 +333,21 @@ func (bt *BodyReceipts)CheckRecptHashs() bool{
 		return true
 	}
 }
+func (bt *BodyReceipts) GetAReceiptsByIndex(index uint64) *Receipt {
+	if len(bt.Sharding) == 0 {
+		if index >= uint64(len(bt.Rs)){
+			return nil
+		}
+		return bt.Rs[index]
+	} else {
+		for _, re := range bt.ReceiptsInfos {
+			if re.Index == index {
+				return &re.Receipt
+			}
+		}
+		return nil
+	}
+}
 func SetTransactions(txser SelfTransactions,hashlist []common.Hash, shadings []uint) BodyTransactions {
 	bt := BodyTransactions{}
 	bt.TxHashs = make([]common.Hash,len(hashlist))
