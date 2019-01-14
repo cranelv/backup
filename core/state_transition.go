@@ -17,7 +17,7 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/core/matrixstate"
+	matrixstate "github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/supertxsstate"
 )
 
@@ -898,39 +898,31 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		log.Error("CallSuperTx Unmarshal err")
 		return nil, 0, false, err
 	}
-
-	version := matrixstate.GetVersionInfo(st.state)
-	mgr := matrixstate.GetManager(version)
-	if mgr == nil {
-		return nil, 0, false, errors.New("find manger err")
+	
+	// Pay intrinsic gas
+	gas, err := IntrinsicGas(st.data)
+	if err != nil {
+		return nil, 0, false, err
 	}
-
-	supMager := supertxsstate.GetManager(version)
-	for k,v := range configData{
-		val,OK := supMager.Check(k,v)
-		if OK{
-			opt, err := mgr.FindOperator(k)
-			if err != nil{
-				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
-			}
-			err = opt.SetValue(st.state,val)
-			if err != nil{
-				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
-			}
-		}else{
-			return nil, 0, false, errors.New("Super tx write config data failed")
-		}
-	}
-
-	//YY
+	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
 			return nil, 0, false, ErrTXCountOverflow
 		}
+		for _, ex := range tmpExtra[0].ExtraTo {
+			tmpgas, tmperr := IntrinsicGas(ex.Payload)
+			if tmperr != nil {
+				return nil, 0, false, err
+			}
+			//0.7+0.3*pow(0.9,(num-1))
+			gas += tmpgas
+		}
 	}
-	st.gas = 0
-	if toaddr == nil { //YY
+	if err = st.UseGas(gas); err != nil {
+		return nil, 0, false, err
+	}
+	if toaddr == nil { //
 		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
@@ -958,7 +950,31 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 			return nil, 0, false, vmerr
 		}
 	}
-	return ret, 0, vmerr != nil, err
+
+	st.state.AddBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	version := matrixstate.GetVersionInfo(st.state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil, 0, false, errors.New("find manger err")
+	}
+
+	supMager := supertxsstate.GetManager(version)
+	for k,v := range configData{
+		val,OK := supMager.Check(k,v)
+		if OK{
+			opt, err := mgr.FindOperator(k)
+			if err != nil{
+				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
+			}
+			err = opt.SetValue(st.state,val)
+			if err != nil{
+				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
+			}
+		}else{
+			return nil, st.GasUsed(), true, nil
+		}
+	}
+	return ret, st.GasUsed(), vmerr != nil, err
 }
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.

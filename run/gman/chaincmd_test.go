@@ -12,7 +12,111 @@ import (
 	"reflect"
 	"os"
 )
-
+type TestStruct1 struct {
+	T1 common.Signature
+	T2 []common.Signature
+	T3 []*common.Signature
+	T4 *common.Signature
+}
+func TestSignatureMarshal(t *testing.T){
+	testa :=  TestStruct1{
+		T1 : common.Signature{12,13,14},
+		T2 : []common.Signature{
+			common.Signature{12,13,15},
+			common.Signature{12,13,16},
+			common.Signature{12,13,17},
+	    },
+	    T3 : []*common.Signature{
+			&common.Signature   {
+			181,
+			8,
+			246,
+			28,
+			118,
+			103,
+			127,
+			70,
+			144,
+			31,
+			187,
+			28,
+			71,
+			14,
+			164,
+			113,
+			133,
+			96,
+			141,
+			160,
+			117,
+			234,
+			127,
+			5,
+			254,
+			240,
+			146,
+			127,
+			39,
+			247,
+			161,
+			150,
+			75,
+			243,
+			248,
+			192,
+			32,
+			110,
+			149,
+			242,
+			151,
+			195,
+			226,
+			167,
+			74,
+			223,
+			135,
+			250,
+			233,
+			174,
+			109,
+			239,
+			101,
+			177,
+			155,
+			129,
+			68,
+			92,
+			218,
+			222,
+			45,
+			207,
+			165,
+			112,
+			0,
+		},
+			&common.Signature{12,13,26},
+			&common.Signature{12,13,27},
+		},
+		T4: &common.Signature{12,13,35},
+	}
+	buff,err := json.Marshal(testa)
+	if err!= nil {
+		t.Error(err)
+	}
+	stringA := string(buff)
+	t.Log(string(buff))
+	testb := & TestStruct1{}
+	err = json.Unmarshal(buff,testb)
+	if err!= nil {
+		t.Error(err)
+	}
+	buff,err = json.Marshal(testb)
+	stringB := string(buff)
+	t.Log(string(buff))
+	if stringA != stringB {
+		t.Error("json Marshal and unmarshal error")
+	}
+}
 func TestInitGenesis(t *testing.T){
 	log.InitLog(3)
 	genesisPath := filepath.Join(".","MANGenesis.json")
@@ -85,9 +189,9 @@ func TestUnMarshalGenesisAccount(t *testing.T) {
 	alloc := AllocAccount{
 		make(map[core.GenesisAddress]core.GenesisAccount),
 	}
-	temp := common.Signature{}
-	mar,_:=temp.MarshalJSON()
-	t.Log(string(mar))
+//	temp := common.Signature{}
+//	mar,_:=temp.MarshalJSON()
+//	t.Log(string(mar))
 	alloc.Alloc[core.GenesisAddress{12, 13, 14, 15, 16, 17}] = core.GenesisAccount{Balance: big.NewInt(200)}
 	alloc.Alloc[core.GenesisAddress{22, 23, 24, 25, 26, 27}] = core.GenesisAccount{Balance: big.NewInt(300)}
 	alloc.Alloc[core.GenesisAddress{32, 33, 24, 35, 26, 27}] = core.GenesisAccount{Balance: big.NewInt(400)}

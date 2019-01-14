@@ -330,9 +330,15 @@ type Signature [SignatureLength]byte
 func (a *Signature) UnmarshalJSON(input []byte) error {
 	return hexutil.UnmarshalFixedJSON(signatureT, input, a[:])
 }
+/*
 func (a *Signature) MarshalJSON() ([]byte, error) {
 	return hexutil.Bytes(a[:]).MarshalText()
 }
+*/
+func (a Signature) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
+}
+
 func BytesToSignature(b []byte) Signature {
 	var s Signature
 	s.SetBytes(b)
