@@ -64,18 +64,25 @@ func (p *ReElection) VerifyVrf(header *types.Header) error {
 		return errors.New("区块头为空")
 	}
 
-	SignAddr, err := p.bc.GetSignAccounts(header.Leader, header.ParentHash)
+	vrfSignAccount, err := baseinterface.NewVrf().DecodeVrf(header, preBlock.Header())
 	if err != nil {
-		log.Error(Module, "验证vrf失败", "获取真实签名账户失败")
-		return errors.New("获取真实签名账户失败")
+		log.Error(Module, "DecodeVrf err", err)
+		return err
 	}
 
-	if len(SignAddr) <= 0 {
-		log.Error(Module, "验证vrf失败", "真实签名账户数量为空")
-		return errors.New("获取真实签名账户失败")
+	accountA0, _, err := p.bc.GetA0AccountFromAnyAccount(vrfSignAccount, header.ParentHash)
+	if err != nil {
+		log.Error(Module, "vrf 获取A0账户失败", err, "signAccount", vrfSignAccount.Hex())
+		return err
 	}
 
-	return baseinterface.NewVrf().VerifyVrf(header, preBlock.Header(), SignAddr[0])
+	if accountA0 != header.Leader {
+		log.Error(Module, "vrf验证", "与leader不匹配", "accountA0", accountA0.Hex(), "leader", header.Leader.Hex())
+		return errors.New("公钥与leader账户不匹配")
+	}
+
+	return nil
+
 }
 
 func (p *ReElection) verifyAllNetTopology(header *types.Header) error {

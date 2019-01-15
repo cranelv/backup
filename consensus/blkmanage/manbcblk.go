@@ -1,20 +1,26 @@
 package blkmanage
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/matrix/go-matrix/ca"
+
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type ManBCBlkPlug struct {
 	baseInterface *ManBlkBasePlug
+	preBlockHash  common.Hash
 }
 
 func NewBCBlkPlug() (*ManBCBlkPlug, error) {
@@ -23,9 +29,87 @@ func NewBCBlkPlug() (*ManBCBlkPlug, error) {
 	return obj, nil
 }
 
-func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
 
-	return bd.baseInterface.Prepare(support, interval, num, args)
+	test, _ := args.([]interface{})
+	for _, v := range test {
+		switch v.(type) {
+
+		case common.Hash:
+			preBlockHash, ok := v.(common.Hash)
+			if !ok {
+				log.Error(LogManBlk, "反射失败,类型为", "")
+				return nil, nil, errors.New("反射失败")
+			}
+			bd.preBlockHash = preBlockHash
+		default:
+			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+		}
+
+	}
+
+	originHeader := new(types.Header)
+	parent, err := bd.baseInterface.setParentHash(support.BlockChain(), originHeader, num)
+	if nil != err {
+		log.ERROR(LogManBlk, "区块生成阶段", "获取父区块失败")
+		return nil, nil, err
+	}
+
+	bd.setBCTimeStamp(parent, originHeader)
+	bd.baseInterface.setLeader(originHeader)
+	bd.baseInterface.setNumber(originHeader, num)
+	bd.baseInterface.setGasLimit(originHeader, parent)
+	bd.baseInterface.setExtra(originHeader)
+	onlineConsensusResults, _ := bd.baseInterface.setTopology(support, parent.Hash(), originHeader, interval, num)
+	bd.baseInterface.setSignatures(originHeader)
+	err = bd.setBCVrf(support, parent, originHeader)
+	if nil != err {
+		return nil, nil, err
+	}
+	bd.baseInterface.setVersion(originHeader, parent)
+	if err := support.BlockChain().Engine(originHeader.Version).Prepare(support.BlockChain(), originHeader); err != nil {
+		log.ERROR(LogManBlk, "Failed to prepare header for mining", err)
+		return nil, nil, err
+	}
+	return originHeader, onlineConsensusResults, nil
+}
+func (p *ManBCBlkPlug) getBCVrfValue(support BlKSupport, parent *types.Block) ([]byte, []byte, []byte, error) {
+	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
+	parentMsg := VrfMsg{
+		VrfProof: preVrfProof,
+		VrfValue: preVrfValue,
+		Hash:     parent.Hash(),
+	}
+	vrfmsg, err := json.Marshal(parentMsg)
+	if err != nil {
+		log.Error(LogManBlk, "生成vrfmsg出错", err, "parentMsg", parentMsg)
+		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
+	}
+	return support.SignHelper().SignVrfByAccount(vrfmsg, ca.GetDepositAddress())
+}
+
+func (p *ManBCBlkPlug) setBCVrf(support BlKSupport, parent *types.Block, header *types.Header) error {
+	account, vrfValue, vrfProof, err := p.getBCVrfValue(support, parent)
+	if err != nil {
+		log.Error(LogManBlk, "广播区块生成阶段 获取vrfValue失败 错误", err)
+		return err
+	}
+	header.VrfValue = baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof)
+	return nil
+}
+
+func (p *ManBCBlkPlug) setBCTimeStamp(parent *types.Block, header *types.Header) {
+	nowTime := time.Now()
+	// 广播区块时间戳默认为父区块+1s， 保证所有广播节点出块的时间戳一致
+	tsTamp := parent.Time().Int64() + 1
+	log.Info(LogManBlk, "关键时间点", "广播区块头开始生成", "cur time", nowTime, "header time", tsTamp, "块高", header.Number.Uint64())
+	// this will ensure we're not going off too far in the future
+	if now := time.Now().Unix(); tsTamp > now+1 {
+		wait := time.Duration(tsTamp-now) * time.Second
+		log.Info(LogManBlk, "等待时间同步", common.PrettyDuration(wait))
+		time.Sleep(wait)
+	}
+	p.baseInterface.setTime(header, tsTamp)
 }
 
 func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
@@ -35,7 +119,11 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.ERROR(LogManBlk, "NewWork!", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, nil, err
 	}
-
+	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
+	if err != nil {
+		log.ERROR(LogManBlk, "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
+		return nil, nil, nil, nil, nil, nil, err
+	}
 	mapTxs := support.TxPool().GetAllSpecialTxs()
 	Txs := make([]types.SelfTransaction, 0)
 	for _, txs := range mapTxs {
@@ -108,6 +196,11 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, verifyHeader)
 	if err != nil {
 		log.WARN(LogManBlk, "广播挖矿结果验证, 创建worker错误", err)
+		return nil, nil, nil, nil, err
+	}
+	// 运行版本更新检查
+	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "广播挖矿结果验证, 版本更新检查失败", err)
 		return nil, nil, nil, nil, err
 	}
 	//执行交易

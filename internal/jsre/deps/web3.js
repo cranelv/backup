@@ -5306,6 +5306,9 @@ Method.prototype.buildCall = function() {
     var method = this;
     var send = function () {
         var payload = method.toPayload(Array.prototype.slice.call(arguments));
+        if(payload.method == 'debug_dumpBlock') {
+            payload.params[0] = '0x' + Number(payload.params[0]).toString(16)
+        }
         if (payload.callback) {
             return method.requestManager.sendAsync(payload, function (err, result) {
                 payload.callback(err, method.formatOutput(result));
@@ -5510,7 +5513,13 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
     });
-
+    var getUpTime = new Method({
+        name: 'getUpTime',
+        call: 'eth_getUpTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+        outputFormatter: formatters.outputNewBigNumberFormatter
+    });
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
@@ -5709,15 +5718,6 @@ var methods = function () {
         params: 0
     });
 
-    //hezi
-    var getTopology = new Method({
-        name: 'getTopology',
-        call: 'eth_getTopology',
-        params: 2,
-        inputFormatter: [utils.toDecimal, utils.toDecimal],
-        //outputFormatter: formatters.outputBigNumberFormatter
-    });
-
     var getSelfLevel = new Method({
         name: 'getSelfLevel',
         call: 'eth_getSelfLevel',
@@ -5730,8 +5730,16 @@ var methods = function () {
         params: 1
     });
 
+    var getTopologyStatus = new Method({
+        name: 'getTopologyStatus',
+        call: 'eth_getTopologyStatusByNumber',
+        params: 1,
+        inputFormatter: [formatters.inputBlockNumberFormatter]
+    });
+
     return [
         getBalance,
+        getUpTime,
         getEntrustList,
         getAuthFrom,
         getEntrustFrom,
@@ -5760,9 +5768,9 @@ var methods = function () {
         compileSerpent,
         submitWork,
         getWork,
-        getTopology,
         getSelfLevel,
-        importSuperBlock
+        importSuperBlock,
+        getTopologyStatus
     ];
 };
 

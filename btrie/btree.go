@@ -560,7 +560,7 @@ func (n *bnode) Printree(level int) {
 	if n == nil {
 		return
 	}
-	fmt.Println("%sNODE:%v\n", strings.Repeat("  ", level), n.items)
+	//fmt.Println("%sNODE:%v\n", strings.Repeat("  ", level), n.items)
 	for _, c := range n.children {
 		c.Printree(level + 1)
 	}

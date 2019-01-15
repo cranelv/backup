@@ -20,7 +20,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/olconsensus"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reelection"
 )
 
@@ -65,13 +64,13 @@ type Process struct {
 	state              State
 	pm                 *ProcessManage
 	powPool            *PowPool
-	broadcastRstCache  []*mc.BlockData
+	broadcastRstCache  map[common.Address]*mc.BlockData
 	blockCache         *blockCache
 	insertBlockHash    []common.Hash
 	FullBlockReqCache  *common.ReuseMsgController
 	consensusReqSender *common.ResendMsgCtrl
 	minerPickTimer     *time.Timer
-	bcInterval         *manparams.BCInterval
+	bcInterval         *mc.BCIntervalInfo
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -86,7 +85,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		state:              StateIdle,
 		pm:                 pm,
 		powPool:            NewPowPool("矿工结果池(高度)" + strconv.Itoa(int(number))),
-		broadcastRstCache:  make([]*mc.BlockData, 0),
+		broadcastRstCache:  make(map[common.Address]*mc.BlockData),
 		blockCache:         newBlockCache(),
 		FullBlockReqCache:  common.NewReuseMsgController(3),
 		consensusReqSender: nil,
@@ -96,7 +95,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	return p
 }
 
-func (p *Process) StartRunning(role common.RoleType, bcInterval *manparams.BCInterval) {
+func (p *Process) StartRunning(role common.RoleType, bcInterval *mc.BCIntervalInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.role = role
@@ -169,9 +168,6 @@ func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address)
 	}
 	p.nextLeader = leader
 	log.Debug(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
-	if p.state < StateBlockInsert {
-		return
-	}
 	p.processBlockInsert(preLeader)
 }
 
@@ -203,7 +199,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		return
 	}
 
-	bcInterval, err := manparams.NewBCIntervalByHash(blkInsertMsg.Header.ParentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(blkInsertMsg.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期错误", "err", err)
 		return
@@ -222,7 +218,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	p.saveInsertedBlockHash(blockHash)
 }
 
-func (p *Process) canInsertBlock(bcInterval *manparams.BCInterval, header *types.Header) bool {
+func (p *Process) canInsertBlock(bcInterval *mc.BCIntervalInfo, header *types.Header) bool {
 	if bcInterval.IsBroadcastNumber(p.number) {
 		signAccount, _, err := crypto.VerifySignWithValidate(header.HashNoSignsAndNonce().Bytes(), header.Signatures[0].Bytes())
 		if err != nil {
@@ -246,14 +242,11 @@ func (p *Process) canInsertBlock(bcInterval *manparams.BCInterval, header *types
 			return false
 		}
 
-		//if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
-		//	log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
-		//	return false
-		//}
 		if err := p.blockChain().Engine(header.Version).VerifySeal(p.blockChain(), header); err != nil {
 			log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
 			return false
 		}
+
 		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
 	}
 	return true
@@ -272,7 +265,7 @@ func (p *Process) startBcBlock() {
 	parentHeader := p.blockChain().GetHeaderByNumber(p.number - 1)
 	parentHash := parentHeader.Hash()
 
-	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(parentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块广播阶段", "获取广播周期错误", "err", err)
 		return
@@ -324,13 +317,13 @@ func (p *Process) startHeaderGen() {
 	if p.bcInterval.IsBroadcastNumber(p.number) {
 		err := p.processBcHeaderGen()
 		if err != nil {
-			log.ERROR(p.logExtraInfo(), "生成广播区块验证请求错误", err, "高度", p.number)
+			log.ERROR(p.logExtraInfo(), "生成普通区块验证请求错误", err, "高度", p.number)
 			return
 		}
 	} else {
 		err := p.processHeaderGen()
 		if err != nil {
-			log.ERROR(p.logExtraInfo(), "生成普通区块验证请求错误", err, "高度", p.number)
+			log.ERROR(p.logExtraInfo(), "生成广播区块验证请求错误", err, "高度", p.number)
 			return
 		}
 	}
@@ -360,8 +353,8 @@ func (p *Process) canGenHeader() bool {
 			return false
 		}
 
-		if p.curLeader != ca.GetAddress() {
-			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetAddress().Hex(), "leader", p.curLeader.Hex())
+		if p.curLeader != ca.GetDepositAddress() {
+			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetDepositAddress().Hex(), "leader", p.curLeader.Hex())
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
@@ -422,7 +415,7 @@ func (p *Process) logExtraInfo() string {
 
 func (p *Process) blockChain() *core.BlockChain { return p.pm.bc }
 
-func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //YYY
+func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //Y
 
 func (p *Process) signHelper() *signhelper.SignHelper { return p.pm.signHelper }
 

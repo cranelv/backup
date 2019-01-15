@@ -69,13 +69,6 @@ type LesServer interface {
 	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
 }
 
-//type BlKSupport struct {
-//	bc *core.BlockChain
-//	re *reelection.ReElection
-//	sg *signhelper.SignHelper
-//	txPool
-//	Mux
-//}
 // Matrix implements the Matrix full node service.
 type Matrix struct {
 	config      *Config
@@ -110,7 +103,7 @@ type Matrix struct {
 	networkId     uint64
 	netRPCService *manapi.PublicNetAPI
 
-	broadTx *broadcastTx.BroadCast //YY
+	broadTx *broadcastTx.BroadCast //
 
 	//algorithm
 	ca         *ca.Identity //node传进来的
@@ -201,7 +194,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 
 	man.signHelper.SetAuthReader(man.blockchain)
 
-	ca.SetTopologyReader(man.blockchain.GetGraphStore())
+	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
@@ -225,11 +218,10 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		return nil, err
 	}
 	man.blockchain.Processor([]byte(common.AVERSION)).SetRandom(man.random)
-
 	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
 	man.olConsensus.SetValidatorReader(man.blockchain)
-	man.olConsensus.SetStateReaderInterface(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
 	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
 	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
 	man.olConsensus.SetMessageSendInterface(topNodeInstance)
@@ -238,7 +230,6 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err = man.olConsensus.Start(); err != nil {
 		return nil, err
 	}
-
 	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
 	if err != nil {
 		return nil, err
@@ -248,7 +239,6 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPerAllTop, man.reelection.ProducePreAllTopData)
 	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
 	man.APIBackend = &ManAPIBackend{man, nil}
@@ -258,14 +248,14 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
 	depoistInfo.NewDepositInfo(man.APIBackend)
-	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //YY
+	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
 
 	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
+
 	man.manBlkManage, err = blkmanage.New(man)
 	if err != nil {
 		return nil, err
 	}
-
 	man.blockGen, err = blkgenor.New(man)
 	if err != nil {
 		return nil, err
@@ -277,6 +267,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 
 	return man, nil
+
 }
 
 func makeExtraData(extra []byte) []byte {
@@ -475,7 +466,7 @@ func (s *Matrix) Miner() *miner.Miner { return s.miner }
 
 func (s *Matrix) AccountManager() *accounts.Manager { return s.accountManager }
 func (s *Matrix) BlockChain() *core.BlockChain      { return s.blockchain }
-func (s *Matrix) TxPool() *core.TxPoolManager       { return s.txPool } //YYY
+func (s *Matrix) TxPool() *core.TxPoolManager       { return s.txPool } //Y
 func (s *Matrix) EventMux() *event.TypeMux          { return s.eventMux }
 func (s *Matrix) Engine() consensus.Engine          { return s.engine }
 func (s *Matrix) DPOSEngine() consensus.DPOSEngine {
@@ -528,7 +519,7 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
-	//s.broadTx.Start()//YY
+	//s.broadTx.Start()//
 	return nil
 }
 
@@ -600,7 +591,7 @@ func (s *Matrix) Stop() error {
 	s.eventMux.Stop()
 
 	s.chainDb.Close()
-	s.broadTx.Stop() //YY
+	s.broadTx.Stop() //
 	close(s.shutdownChan)
 
 	return nil

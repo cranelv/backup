@@ -51,7 +51,7 @@ var (
 
 	maxQueuedHeaders  = 800  //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
 	maxHeadersProcess = 1024 //2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 396  //576      //lb//2048      // Number of content download results to import at once into the chain
+	maxResultsProcess = 918  //396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
@@ -225,11 +225,11 @@ type BlockChain interface {
 	Genesis() *types.Block
 
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
-	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
-	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
+	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash)(common.Address,common.Address, error)
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -1889,7 +1889,8 @@ func (d *Downloader) requestTTL() time.Duration {
 	if ttl > ttlLimit {
 		ttl = ttlLimit
 	}
-	return ttl
+	//return ttl //lb
+	return ttl * 3
 }
 func (d *Downloader) SetbStoreSendIpfsFlg(flg bool) {
 	if flg {

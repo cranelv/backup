@@ -9,9 +9,9 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/msgsend"
 )
@@ -19,12 +19,11 @@ import (
 var (
 	ErrMsgAccountIsNull     = errors.New("不合法的账户：空账户")
 	ErrValidatorsIsNil      = errors.New("验证者列表为空")
-	ErrSepcialsIsNil        = errors.New("特殊账户为空")
 	ErrValidatorNotFound    = errors.New("验证者未找到")
 	ErrMsgExistInCache      = errors.New("缓存中已存在消息")
 	ErrNoMsgInCache         = errors.New("缓存中没有目标消息")
 	ErrParamsIsNil          = errors.New("参数为nil")
-	ErrSelfReqIsNil         = errors.New("self请求不在缓存中")
+	ErrSelfReqIsNil         = errors.New("缓存中没有self请求")
 	ErrPOSResultIsNil       = errors.New("POS结果为nil/header为nil")
 	ErrLeaderResultIsNil    = errors.New("leader共识结果为nil")
 	ErrCDCOrSignHelperisNil = errors.New("cdc or signHelper is nil")
@@ -40,9 +39,7 @@ type Matrix interface {
 }
 
 type StateReader interface {
-	matrixstate.StateDB
-	GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
+	vm.StateDB
 }
 
 const defaultBeginTime = int64(0)
@@ -110,7 +107,7 @@ func calcNextConsensusTurn(curConsensusTurn mc.ConsensusTurnInfo, curReelectTurn
 }
 
 type specialAccounts struct {
-	broadcast     common.Address
+	broadcasts    []common.Address
 	versionSupers []common.Address
 	blockSupers   []common.Address
 }

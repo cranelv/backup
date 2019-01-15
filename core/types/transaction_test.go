@@ -200,7 +200,7 @@ func TestTransactionJSON(t *testing.T) {
 		case 1:
 			tx = NewContractCreation(i, common.Big0, 1, common.Big2, []byte("abcdef"))
 		}
-		//YY add test==========
+		// add test==========
 		//aa := make(map[*big.Int]*Transaction)
 		//if _,ok:=aa[tx.GetTxS()];!ok{
 		//	tt:=new(Transaction)

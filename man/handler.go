@@ -328,7 +328,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
-	//pm.syncTransactions(p) //YY 2018-08-29 新节点连接时不去要其他的交易
+	//pm.syncTransactions(p) // 2018-08-29 新节点连接时不去要其他的交易
 
 	// If we're DAO hard-fork aware, validate any remote peer with regard to the hard-fork
 	if daoBlock := pm.chainconfig.DAOForkBlock; daoBlock != nil {
@@ -785,7 +785,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
-
+		if addr == p2p.EmptyAddress {
+			log.Error("algorithm message", "addr","is empty address", "node id", p.ID().TerminalString())
+		}
 		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: addr, Data: m})
 
 	case msg.Code == common.BroadcastReqMsg:

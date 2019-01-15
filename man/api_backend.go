@@ -327,17 +327,17 @@ func (b *ManAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.Ma
 	}
 }
 
-//YY
-func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int) (types.SelfTransaction, error) {
-	return b.man.signHelper.SignTx(signedTx, chainID, b.man.blockchain.CurrentBlock().ParentHash())
+//
+func (b *ManAPIBackend) SignTx(signedTx types.SelfTransaction, chainID *big.Int, blkHash common.Hash, signHeight uint64, usingEntrust bool) (types.SelfTransaction, error) {
+	return b.man.signHelper.SignTx(signedTx, chainID, blkHash, signHeight, usingEntrust)
 }
 
-//YY
+//
 func (b *ManAPIBackend) SendBroadTx(ctx context.Context, signedTx types.SelfTransaction, bType bool) error {
 	return b.man.txPool.AddBroadTx(signedTx, bType)
 }
 
-//YY
+//
 func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 
 	/*
@@ -349,4 +349,9 @@ func (b *ManAPIBackend) FetcherNotify(hash common.Hash, number uint64) {
 		peer := b.man.protocolManager.Peers.Peer(id.String())
 		b.man.protocolManager.fetcher.Notify(id.String(), hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
 	}
+}
+
+func (b *ManAPIBackend) GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error) {
+	depositAccount, _, err := b.man.blockchain.GetA0AccountFromAnyAccount(signAccount, blockHash)
+	return depositAccount, err
 }

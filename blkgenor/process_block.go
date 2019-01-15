@@ -153,9 +153,18 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
 
+	err = p.blockChain().ProcessStateVersion(header.Version, work.State)
+	if err != nil {
+		return nil, nil, nil, errors.Errorf("ProcessStateVersion err(%v)", err)
+	}
+
 	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
+	}
+	err = p.blockChain().ProcessBlockGProduceSlash(work.State, localHeader)
+	if err != nil {
+		return nil, nil, nil, errors.Errorf("执行区块生产惩罚错误(%v)", err)
 	}
 	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, uptimeMap)
 	if err != nil {
@@ -289,6 +298,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		//}
 	}
 	p.stopMinerPikerTimer()
+	p.closeConsensusReqSender()
 	readyMsg := &mc.NewBlockReadyMsg{
 		Header: blockData.block.Header,
 		State:  blockData.block.State.Copy(),
@@ -341,8 +351,8 @@ func (p *Process) canGenBlock() bool {
 			return false
 		}
 
-		if p.nextLeader != ca.GetAddress() {
-			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetAddress())
+		if p.nextLeader != ca.GetDepositAddress() {
+			log.Debug(p.logExtraInfo(), "准备进行区块广播,自己不是下个区块leader,高度", p.number, "next leader", p.nextLeader.Hex(), "self", ca.GetDepositAddress().Hex())
 			return false
 		}
 	}

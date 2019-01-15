@@ -162,6 +162,10 @@ web3._extend({
 			name: 'datadir',
 			getter: 'admin_datadir'
 		}),
+		new web3._extend.Property({
+			name: 'addressTable',
+			getter: 'admin_addressTable'
+		}),
 	]
 });
 `
@@ -379,6 +383,11 @@ web3._extend({
 			params: 2,
 			inputFormatter:[null, null],
 		}),
+		new web3._extend.Method({
+			name:'evilFunc',
+			call:'debug_evilFunc',
+			params:4
+		}),
 	],
 	properties: []
 });
@@ -425,7 +434,7 @@ web3._extend({
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
 		}),
-		//hezi
+		// 
 		new web3._extend.Method({
 			name: 'getEntrustList',
 			call: 'man_getEntrustList',
@@ -449,11 +458,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'getEntrustFromByTime',
 			call: 'man_getEntrustFromByTime',
-			params: 2,
-		}),
-		new web3._extend.Method({
-			name: 'getTopology',
-			call: 'man_getTopology',
 			params: 2,
 		}),
         new web3._extend.Method({

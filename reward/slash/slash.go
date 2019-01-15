@@ -1,20 +1,14 @@
 package slash
 
 import (
-	"math/big"
-
-	"github.com/matrix/go-matrix/depoistInfo"
-
-	"github.com/matrix/go-matrix/params/manparams"
-
-	"github.com/matrix/go-matrix/reward/util"
-
+	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
+	"github.com/matrix/go-matrix/depoistInfo"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-
-	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/reward/util"
+	"math/big"
 )
 
 const PackageName = "惩罚"
@@ -23,20 +17,15 @@ type BlockSlash struct {
 	chain            util.ChainReader
 	eleMaxOnlineTime uint64
 	SlashRate        uint64
-	bcInterval       *manparams.BCInterval
+	bcInterval       *mc.BCIntervalInfo
 	preElectRoot     common.Hash
 	preElectList     []mc.ElectNodeInfo
 }
 
 func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
-	StateCfg, err := matrixstate.GetDataByState(mc.MSKeySlashCfg, st)
-	if nil != err {
+	SC, err := matrixstate.GetSlashCfg(st)
+	if nil != err || nil == SC {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
-		return nil
-	}
-	SC, ok := StateCfg.(*mc.SlashCfgStruct)
-	if !ok {
-		log.ERROR(PackageName, "反射失败", "")
 		return nil
 	}
 	if SC.SlashCalc == util.Stop {
@@ -52,14 +41,9 @@ func New(chain util.ChainReader, st util.StateDB) *BlockSlash {
 		SlashRate = SC.SlashRate
 	}
 
-	intervalData, err := matrixstate.GetDataByState(mc.MSKeyBroadcastInterval, st)
+	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
-		log.ERROR(PackageName, "获取广播周期失败", err)
-		return nil
-	}
-	bcInterval, err := manparams.NewBCIntervalWithInterval(intervalData)
-	if err != nil {
-		log.ERROR(PackageName, "创建广播周期数据结构失败", err)
+		log.ERROR(PackageName, "获取广播周期数据结构失败", err)
 		return nil
 	}
 	return &BlockSlash{chain: chain, eleMaxOnlineTime: bcInterval.GetBroadcastInterval() - 3, SlashRate: SlashRate, bcInterval: bcInterval} //todo 周期固定3倍关系
@@ -72,7 +56,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 	//选举周期的开始分配
-	latestNum, err := matrixstate.GetNumByState(mc.MSKeySlashNum, currentState)
+	latestNum, err := matrixstate.GetSlashNum(currentState)
 	if nil != err {
 		log.ERROR(PackageName, "状态树获取前一发放惩罚高度错误", err)
 		return
@@ -82,7 +66,9 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 
-	matrixstate.SetNumByState(mc.MSKeySlashNum, currentState, num)
+	if err := matrixstate.SetSlashNum(currentState, num); err != nil {
+		log.Error(PackageName, "设置惩罚状态失败", err)
+	}
 
 	if 0 == len(interestCalcMap) {
 		log.WARN(PackageName, "获取到利息为空", "")
@@ -94,23 +80,26 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 	}
 	//计算选举的拓扑图的高度
 	eleNum := bp.bcInterval.GetLastBroadcastNumber() - 2
-	electGraph, err := bp.chain.GetMatrixStateDataByNumber(mc.MSKeyElectGraph, eleNum)
+	st, err := bp.chain.StateAtNumber(eleNum)
+	if err != nil {
+		log.Error(PackageName, "获取选举高度的状态树失败", err, "eleNum", eleNum)
+		return
+	}
+	electGraph, err := matrixstate.GetElectGraph(st)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
 		return
 	}
 	if electGraph == nil {
-		log.Error(PackageName, "获取拓扑图反射错误")
+		log.Error(PackageName, "获取拓扑图错误", "is nil")
 		return
 	}
-	originElectNodes := electGraph.(*mc.ElectGraph)
-	if 0 == len(originElectNodes.ElectList) {
+	if 0 == len(electGraph.ElectList) {
 		log.Error(PackageName, "get获取初选列表为空", "")
 		return
 	}
 
-	for _, v := range originElectNodes.ElectList {
-
+	for _, v := range electGraph.ElectList {
 		if v.Type == common.RoleValidator || v.Type == common.RoleBackupValidator {
 			interest, ok := interestCalcMap[v.Account]
 			if !ok {

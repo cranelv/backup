@@ -242,7 +242,7 @@ var (
         }
     },
     "mstate":{
-        "Broadcast":"MAN.2y5fqzGDWVznvkd49qqWpXiqjcmJF",
+        "Broadcasts":["MAN.2y5fqzGDWVznvkd49qqWpXiqjcmJF"],
         "curElect":[
             {
                 "Account":"MAN.44EuST4f2vLeEMw2bsMWmBYqLMBhi",
@@ -485,7 +485,21 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteList": null
+		"ElectWhiteList": null,
+		"BlkProduceSlashCfg": {
+			"Switcher" : true,
+			"LowTHR"   : 1,
+			"ProhibitCycleNum" : 2
+		},
+		"BlkProduceStatus": {
+			"Number" : 0
+		},
+		"BlkProduceStats": {
+			"StatsList": []
+		},
+		"BlkProduceBlackList" : {
+			"BlackList" : []
+		}
     },
   "config": {
 					"chainID": 1,
@@ -671,9 +685,12 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 		if gensis.MState == nil {
 			gensis.MState = new(GenesisMState)
 		}
-		if nil != gensis1.MState.Broadcast {
-			gensis.MState.Broadcast = new(common.Address)
-			*gensis.MState.Broadcast = base58.Base58DecodeToAddress(*gensis1.MState.Broadcast)
+		if nil != gensis1.MState.Broadcasts {
+			broadcasts := make([]common.Address, 0)
+			for _, b := range *gensis1.MState.Broadcasts {
+				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
+			}
+			gensis.MState.Broadcasts = &broadcasts
 		}
 		if nil != gensis1.MState.Foundation {
 			gensis.MState.Foundation = new(common.Address)
@@ -758,6 +775,19 @@ func DefaultGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) *Genesis {
 				sliceElect = append(sliceElect, *tmp)
 			}
 			gensis.MState.CurElect = &sliceElect
+		}
+
+		if nil != gensis1.MState.BlockProduceSlashCfg {
+			gensis.MState.BlockProduceSlashCfg = gensis1.MState.BlockProduceSlashCfg
+		}
+		if nil != gensis1.MState.BlockProduceSlashBlackList {
+			gensis.MState.BlockProduceSlashBlackList = gensis1.MState.BlockProduceSlashBlackList
+		}
+		if nil != gensis1.MState.BlockProduceSlashStatsStatus {
+			gensis.MState.BlockProduceSlashStatsStatus = gensis1.MState.BlockProduceSlashStatsStatus
+		}
+		if nil != gensis1.MState.BlockProduceStats {
+			gensis.MState.BlockProduceStats = gensis1.MState.BlockProduceStats
 		}
 	}
 	return gensis

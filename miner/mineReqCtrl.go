@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/matrix/go-matrix/mc"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
@@ -58,7 +60,7 @@ type mineReqCtrl struct {
 	curNumber       uint64
 	currentMineReq  *mineReqData
 	role            common.RoleType
-	bcInterval      *manparams.BCInterval
+	bcInterval      *mc.BCIntervalInfo
 	bc              ChainReader
 	validatorReader consensus.StateReader
 	reqCache        map[common.Hash]*mineReqData
@@ -94,7 +96,7 @@ func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
 	}
 
 	ctrl.role = role
-	bcInterval, err := manparams.NewBCIntervalByNumber(number - 1)
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(number - 1)
 	if err != nil {
 		log.ERROR("miner ctrl", "获取广播周期失败", err)
 	} else {
@@ -209,7 +211,7 @@ func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header) (*mineReqData, er
 	req.mineDiff = result.Difficulty
 
 	if req.isBroadcastReq {
-		req.header.Coinbase = ca.GetAddress()
+		req.header.Coinbase = ca.GetDepositAddress()
 	} else {
 		req.header.Nonce = result.Nonce
 		req.header.Coinbase = result.Coinbase
@@ -229,6 +231,7 @@ func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
 	if header.Difficulty.Uint64() == 0 {
 		return difficultyIsZero
 	}
+
 	err := ctrl.bc.DPOSEngine(header.Version).VerifyBlock(ctrl.validatorReader, header)
 	if err != nil {
 		return errors.Errorf("挖矿请求POS验证失败(%v)", err)

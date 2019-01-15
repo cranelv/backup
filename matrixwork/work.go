@@ -27,7 +27,6 @@ import (
 type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetBlockByHash(hash common.Hash) *types.Block
-	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	Engine(version []byte) consensus.Engine
 	GetHeader(common.Hash, uint64) *types.Header
 	Processor(version []byte) core.Processor

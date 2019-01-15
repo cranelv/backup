@@ -10,24 +10,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/misc"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reward/blkreward"
 	"github.com/matrix/go-matrix/reward/interest"
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
+	"github.com/pkg/errors"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -76,8 +75,9 @@ func (env *StateProcessor) reverse(s []common.RewarTx) []common.RewarTx {
 	}
 	return s
 }
-func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
-	bcInterval, err := manparams.NewBCIntervalByHash(header.ParentHash)
+
+func (p *StateProcessor) ProcessReward(st *state.StateDB, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
+	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
 		log.Error("work", "获取广播周期失败", err)
 		return nil
@@ -85,7 +85,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	if bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		return nil
 	}
-	blkReward := blkreward.New(p.bc, state)
+	blkReward := blkreward.New(p.bc, st)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
@@ -100,15 +100,15 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 		}
 	}
 
-	allGas := p.getGas(state, new(big.Int).SetUint64(usedGas))
-	txsReward := txsreward.New(p.bc, state)
+	allGas := p.getGas(st, new(big.Int).SetUint64(usedGas))
+	txsReward := txsreward.New(p.bc, st)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
 		}
 	}
-	lottery := lottery.New(p.bc, state, p.random)
+	lottery := lottery.New(p.bc, st, p.random)
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
@@ -118,18 +118,19 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	}
 
 	////todo 利息
-	interestReward := interest.New(state)
+	interestReward := interest.New(st)
 	if nil == interestReward {
 		return p.reverse(rewardList)
 	}
-	interestCalcMap, interestPayMap := interestReward.InterestCalc(state, header.Number.Uint64())
+	interestCalcMap := interestReward.CalcInterest(st, header.Number.Uint64())
+
+	slash := slash.New(p.bc, st)
+	if nil != slash {
+		slash.CalcSlash(st, header.Number.Uint64(), upTime, interestCalcMap)
+	}
+	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
 		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
-	}
-
-	slash := slash.New(p.bc, state)
-	if nil != slash {
-		slash.CalcSlash(state, header.Number.Uint64(), upTime, interestCalcMap)
 	}
 	return p.reverse(rewardList)
 }
@@ -285,7 +286,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	}
 
 	// Process matrix state
-	err = p.bc.matrixState.ProcessMatrixState(block, statedb)
+	err = p.bc.matrixProcessor.ProcessMatrixState(block, statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err3")
 		return err

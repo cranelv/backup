@@ -7,17 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/matrix/go-matrix/consensus/blkmanage"
-
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reelection"
+	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
 )
 
@@ -115,7 +115,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		role:             common.RoleNil,
 		state:            StateIdle,
 		curProcessReq:    nil,
-		reqCache:         newReqCache(),
+		reqCache:         newReqCache(pm.bc),
 		unverifiedVotes:  newUnverifiedVotePool(pm.logExtraInfo()),
 		pm:               pm,
 		txsAcquireSeq:    0,
@@ -132,6 +132,7 @@ func (p *Process) StartRunning(role common.RoleType) {
 	defer p.mu.Unlock()
 	p.role = role
 	p.changeState(StateStart)
+	p.reqCache.CheckUnknownReq()
 
 	if p.role == common.RoleBroadcast {
 		p.startReqVerifyBC()
@@ -260,7 +261,9 @@ func (p *Process) AddReq(reqMsg *mc.HD_BlkConsensusReqMsg) {
 
 	reqData, err := p.reqCache.AddReq(reqMsg, false)
 	if err != nil {
-		//log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
+		if err != reqExistErr {
+			log.Trace(p.logExtraInfo(), "请求添加缓存失败", err, "from", reqMsg.From, "高度", p.number)
+		}
 		return
 	}
 	log.INFO(p.logExtraInfo(), "区块共识请求处理", "请求添加缓存成功", "from", reqMsg.From.Hex(), "高度", p.number, "reqHash", reqData.hash.TerminalString())
@@ -372,7 +375,7 @@ func (p *Process) processReqOnce() {
 	}
 
 	// if is local req, skip local verify step
-	if p.curProcessReq.localReq {
+	if p.curProcessReq.reqType == reqTypeLocalReq {
 		log.INFO(p.logExtraInfo(), "共识请求验证", "", "请求为本地请求", "跳过验证阶段", "高度", p.number)
 		p.startDPOSVerify(localVerifyResultSuccess)
 		return
@@ -438,7 +441,7 @@ func (p *Process) startTxsVerify() {
 
 	p.changeState(StateTxsVerify)
 
-	txsCodeSize := len(p.curProcessReq.req.TxsCode)
+	txsCodeSize := p.curProcessReq.req.TxsCodeCount()
 	if txsCodeSize == 0 || txsCodeSize == len(p.curProcessReq.originalTxs) {
 		// 交易为空，或者已经得到全交易，跳过交易获取
 		log.Info(p.logExtraInfo(), "无需获取交易", "直接进入交易及状态验证", "txsCode size", txsCodeSize, "txs size", len(p.curProcessReq.originalTxs))
@@ -446,10 +449,10 @@ func (p *Process) startTxsVerify() {
 	} else {
 		// 开启交易获
 		p.txsAcquireSeq++
-		leader := p.curProcessReq.req.Header.Leader
-		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", len(p.curProcessReq.req.TxsCode), "leader", leader.Hex(), "高度", p.number)
+		target := p.curProcessReq.req.From
+		log.INFO(p.logExtraInfo(), "开始交易获取,seq", p.txsAcquireSeq, "数量", p.curProcessReq.req.TxsCodeCount(), "target", target.Hex(), "高度", p.number)
 		txAcquireCh := make(chan *core.RetChan, 1)
-		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, leader, txAcquireCh)
+		go p.txPool().ReturnAllTxsByN(p.curProcessReq.req.TxsCode, p.txsAcquireSeq, target, txAcquireCh)
 		go p.processTxsAcquire(txAcquireCh, p.txsAcquireSeq)
 	}
 }
@@ -524,16 +527,29 @@ func (p *Process) verifyTxsAndState() {
 		localHeader := types.CopyHeader(remoteHeader)
 		localHeader.GasUsed = 0
 
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
+		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader, p.pm.random)
 		if err != nil {
 			log.ERROR(p.logExtraInfo(), "交易验证，创建work失败!", err, "高度", p.number)
 			p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 			return
 		}
 
+		// process state version
+		err = p.blockChain().ProcessStateVersion(p.curProcessReq.req.Header.Version, work.State)
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "状态树验证,错误", "运行状态树版本更新失败", "err", err)
+			p.startDPOSVerify(localVerifyResultStateFailed)
+			return
+		}
+
 		uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 		if err != nil {
 			log.Error(p.logExtraInfo(), "uptime处理错误", err)
+			return
+		}
+		err = p.blockChain().ProcessBlockGProduceSlash(work.State, localHeader)
+		if err != nil {
+			log.Error(p.logExtraInfo(), "区块生产惩罚处理错误", err)
 			return
 		}
 		err = work.ConsensusTransactions(p.pm.event, p.curProcessReq.originalTxs, uptimeMap)
@@ -585,13 +601,14 @@ func (p *Process) verifyTxsAndState() {
 				"local GasUsed", localHeader.GasUsed, "remote GasUsed", remoteHeader.GasUsed)
 			p.startDPOSVerify(localVerifyResultStateFailed)
 			return
-		}*/
+			}*/
 	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, common.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
 	if nil != err {
 		p.startDPOSVerify(localVerifyResultStateFailed)
 	}
 
 	p.curProcessReq.stateDB, p.curProcessReq.finalTxs, p.curProcessReq.receipts = stateDB, finalTxs, receipts
+
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }
@@ -609,11 +626,13 @@ func (p *Process) sendVote(validate bool) {
 	//将自己的投票加入票池 todo 股权
 	p.curProcessReq.addVote(&common.VerifiedSign{
 		Sign:     sign,
-		Account:  ca.GetAddress(),
+		Account:  ca.GetDepositAddress(),
 		Validate: true,
 		Stock:    0,
 	})
+}
 
+func (p *Process) notifyVerifiedBlock() {
 	// notify block genor server the result
 	result := mc.BlockLocalVerifyOK{
 		Header:      p.curProcessReq.req.Header,
@@ -642,10 +661,15 @@ func (p *Process) startDPOSVerify(lvResult verifyResult) {
 
 	if lvResult == localVerifyResultSuccess {
 		p.sendVote(true)
+		p.notifyVerifiedBlock()
 		// 验证成功的请求，做持久化缓存
 		log.Info(p.logExtraInfo(), "区块持久化", "开始缓存")
 		if err := saveVerifiedBlockToDB(p.ChainDb(), p.curProcessReq.hash, p.curProcessReq.req, p.curProcessReq.originalTxs); err != nil {
 			log.Error(p.logExtraInfo(), "验证成功的区块持久化缓存失败", err)
+		}
+
+		if len(p.curProcessReq.originalTxs) > 0 {
+			txpoolCache.MakeStruck(p.curProcessReq.originalTxs, p.curProcessReq.hash, p.number)
 		}
 	}
 	p.curProcessReq.localVerifyResult = lvResult
@@ -743,7 +767,7 @@ func (p *Process) changeState(targetState State) {
 }
 
 func (p *Process) verifyVote(signHash common.Hash, vote common.Signature, from common.Address, blkHash common.Hash, verifyFrom bool) (*common.VerifiedSign, error) {
-	signAccount, validate, err := p.signHelper().VerifySignWithValidateDependHash(signHash.Bytes(), vote.Bytes(), blkHash)
+	depositAccount, signAccount, validate, err := p.signHelper().VerifySignWithValidateDependHash(signHash.Bytes(), vote.Bytes(), blkHash)
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +779,7 @@ func (p *Process) verifyVote(signHash common.Hash, vote common.Signature, from c
 	//todo 股权消息
 	return &common.VerifiedSign{
 		Sign:     vote,
-		Account:  signAccount,
+		Account:  depositAccount,
 		Validate: validate,
 		Stock:    0,
 	}, nil
@@ -765,7 +789,7 @@ func (p *Process) signHelper() *signhelper.SignHelper { return p.pm.signHelper }
 
 func (p *Process) blockChain() *core.BlockChain { return p.pm.bc }
 
-func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //YYY
+func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //Y
 
 func (p *Process) reElection() *reelection.ReElection { return p.pm.reElection }
 

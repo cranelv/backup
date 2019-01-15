@@ -10,7 +10,6 @@ import (
 	"github.com/matrix/go-matrix/matrixwork"
 
 	"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/params/manparams"
 
 	"github.com/pkg/errors"
 
@@ -66,7 +65,7 @@ func (p *ManBlkBasePlug) setVersion(header *types.Header, parent *types.Block) {
 func (p *ManBlkBasePlug) setSignatures(header *types.Header) {
 	header.Signatures = make([]common.Signature, 0)
 }
-func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *manparams.BCInterval, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
+func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *mc.BCIntervalInfo, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
 	NetTopology, onlineConsensusResults := support.ReElection().GetNetTopology(num, parentHash, interval)
 	if nil == NetTopology {
 		log.Error(LogManBlk, "获取网络拓扑图错误 ", "")
@@ -97,7 +96,7 @@ func (bd *ManBlkBasePlug) setNumber(header *types.Header, num uint64) {
 }
 
 func (bd *ManBlkBasePlug) setLeader(header *types.Header) {
-	header.Leader = ca.GetAddress()
+	header.Leader = ca.GetDepositAddress()
 }
 func (bd *ManBlkBasePlug) setTimeStamp(parent *types.Block, header *types.Header, num uint64) {
 	tstart := time.Now()
@@ -153,7 +152,7 @@ func (bd *ManBlkBasePlug) setElect(support BlKSupport, stateDB *state.StateDB, h
 	return nil
 }
 
-func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
 
 	test, _ := args.([]interface{})
 	for _, v := range test {
@@ -200,9 +199,19 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInte
 
 func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error) {
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, header)
+	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
+	if err != nil {
+		log.ERROR(LogManBlk, "区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
+		return nil, nil, nil, nil, nil, nil, err
+	}
 	upTimeMap, err := support.BlockChain().ProcessUpTime(work.State, header)
 	if err != nil {
 		log.ERROR(LogManBlk, "执行uptime错误", err, "高度", header.Number)
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	err = support.BlockChain().ProcessBlockGProduceSlash(work.State, header)
+	if err != nil {
+		log.ERROR(LogManBlk, "执行区块惩罚处理错误", err, "高度", header.Number)
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
@@ -288,10 +297,20 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
-
+	// process state version
+	err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State)
+	if err != nil {
+		log.ERROR(LogManBlk, "状态树验证,错误", "运行状态树版本更新失败", "err", err)
+		return nil, nil, nil, nil, err
+	}
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		log.Error(LogManBlk, "uptime处理错误", err)
+		return nil, nil, nil, nil, err
+	}
+	err = support.BlockChain().ProcessBlockGProduceSlash(work.State, localHeader)
+	if err != nil {
+		log.Error(LogManBlk, "区块生产惩罚处理错误", err)
 		return nil, nil, nil, nil, err
 	}
 	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)

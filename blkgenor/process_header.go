@@ -4,9 +4,10 @@
 package blkgenor
 
 import (
+	"github.com/matrix/go-matrix/consensus/blkmanage"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -17,8 +18,8 @@ import (
 )
 
 func (p *Process) processBcHeaderGen() error {
-	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
-	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
+	log.INFO(p.logExtraInfo(), "processBCHeaderGen", "start")
+	defer log.INFO(p.logExtraInfo(), "processBCHeaderGen", "end")
 	if p.bcInterval == nil {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
@@ -92,7 +93,8 @@ func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.Re
 		TxsCode:                txsCode,
 		ConsensusTurn:          p.consensusTurn,
 		OnlineConsensusResults: onlineConsensusResults,
-		From: ca.GetAddress()}
+		From: ca.GetSignAddress(),
+	}
 	//send to local block verify module
 	localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
 	if len(originalTxs) > 0 {
@@ -148,6 +150,6 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 		log.ERROR(p.logExtraInfo(), "发出区块共识req", "反射消息失败", "次数", times)
 		return
 	}
-	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", len(req.TxsCode), "次数", times)
+	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", req.TxsCodeCount(), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
 }

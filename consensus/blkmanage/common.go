@@ -15,13 +15,12 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 type MANBLK interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args ...interface{}) (*types.Header, interface{}, error)
+	Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error)
 	ProcessState(types string, version string, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
 	Finalize(types string, version string, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error)
 	VerifyHeader(types string, version string, header *types.Header, args ...interface{}) (interface{}, error)
@@ -53,16 +52,12 @@ type ChainReader interface {
 
 	GetCurrentHash() common.Hash
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
-	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
-	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
-	GetStateByHash(hash common.Hash) (*state.StateDB, error)
+	GetBroadcastInterval() (*mc.BCIntervalInfo, error)
 
 	ProcessUpTime(state *state.StateDB, header *types.Header) (map[common.Address]uint64, error)
 	StateAt(root common.Hash) (*state.StateDB, error)
-	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	ProcessMatrixState(block *types.Block, state *state.StateDB) error
 	Engine(version []byte) consensus.Engine
 	DPOSEngine(version []byte) consensus.DPOSEngine
@@ -73,7 +68,7 @@ type ChainReader interface {
 type MANBLKPlUGS interface {
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(support BlKSupport, interval *manparams.BCInterval, num uint64, args interface{}) (*types.Header, interface{}, error)
+	Prepare(support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error)
 	ProcessState(support BlKSupport, header *types.Header, args interface{}) ([]*common.RetCallTxN, *state.StateDB, []*types.Receipt, []types.SelfTransaction, []types.SelfTransaction, interface{}, error)
 	Finalize(support BlKSupport, header *types.Header, state *state.StateDB, txs []types.SelfTransaction, uncles []*types.Header, receipts []*types.Receipt, args interface{}) (*types.Block, interface{}, error)
 	VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error)
@@ -87,7 +82,7 @@ type TopNodeService interface {
 type Reelection interface {
 	VerifyNetTopology(header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error
 	VerifyElection(header *types.Header, state *state.StateDB) error
-	GetNetTopology(num uint64, parentHash common.Hash, bcInterval *manparams.BCInterval) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg)
+	GetNetTopology(num uint64, parentHash common.Hash, bcInterval *mc.BCIntervalInfo) (*common.NetTopology, []*mc.HD_OnlineConsensusVoteResultMsg)
 	GenElection(state *state.StateDB, preBlockHash common.Hash) []common.Elect
 	VerifyVrf(header *types.Header) error
 }
@@ -160,7 +155,7 @@ func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug M
 	bd.mapManBlkPlugs[types+version] = plug
 }
 
-func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *manparams.BCInterval, args ...interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
 		log.ERROR(LogManBlk, "获取插件失败", "")

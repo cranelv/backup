@@ -6,51 +6,50 @@ import (
 )
 
 const (
+	MSKeyVersionInfo      = "version_info"   // 版本信息
 	MSKeyBroadcastTx      = "broad_txs"      // 广播交易
 	MSKeyTopologyGraph    = "topology_graph" // 拓扑图
 	MSKeyElectGraph       = "elect_graph"    // 选举图
-	MSKeyElectOnlineState = "elect_state"    // 选举节点在线消息
+	MSKeyElectOnlineState = "elect_state"    // 选举节点在线信息
 
 	//通用
-	MSKeyBroadcastInterval    = "broad_interval" // 广播区块周期
-	MSKeyElectGenTime         = "elect_gen_time"
-	MSKeyAccountBroadcast     = "account_broadcast"      //广播账户  			common.Address
-	MSKeyAccountInnerMiners   = "account_inner_miners"   //基金会矿工 		[]common.Address
-	MSKeyAccountFoundation    = "account_foundation"     //基金会账户			common.Address
-	MSKeyAccountVersionSupers = "account_version_supers" //版本签名账户		[]common.Address
-	MSKeyAccountBlockSupers   = "account_block_supers"   //超级区块签名账户	[]common.Address
-	MSKeyElectConfigInfo      = "elect_details_info"
-	MSKeyElectMinerNum        = "elect_miner_num"
-	MSKeyElectBlackList       = "elect_black_list"
-	MSKeyElectWhiteList       = "elect_white_list"
-	MSKeyVIPConfig            = "vip_config"
-	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"
-	MSKeyLeaderConfig         = "leader_config"
-	MSKeyMinHash              = "pre_100_min_hash"
-	MSKeyPerAllTop            = "pre_all_top_timing"
-	MSKeyPreMiner             = "pre_miner"
-	MSKeySuperBlockCfg        = "super_block_config"
+	MSKeyBroadcastInterval    = "broad_interval"         // 广播区块周期
+	MSKeyElectGenTime         = "elect_gen_time"         // 选举生成时间
+	MSKeyElectMinerNum        = "elect_miner_num"        // 选举矿工数量
+	MSKeyElectConfigInfo      = "elect_details_info"     // 选举配置
+	MSKeyElectBlackList       = "elect_black_list"       // 选举黑名单
+	MSKeyElectWhiteList       = "elect_white_list"       // 选举白名单
+	MSKeyAccountBroadcasts    = "account_broadcasts"     // 广播账户 []common.Address
+	MSKeyAccountInnerMiners   = "account_inner_miners"   // 基金会矿工 []common.Address
+	MSKeyAccountFoundation    = "account_foundation"     // 基金会账户 common.Address
+	MSKeyAccountVersionSupers = "account_version_supers" // 版本签名账户 []common.Address
+	MSKeyAccountBlockSupers   = "account_block_supers"   // 超级区块签名账户 []common.Address
+	MSKeyVIPConfig            = "vip_config"             // VIP配置信息
+	MSKeyPreBroadcastRoot     = "pre_broadcast_Root"     // 前广播区块root信息
+	MSKeyLeaderConfig         = "leader_config"          // leader服务配置信息
+	MSKeyMinHash              = "pre_100_min_hash"       // 最小hash
+	MSKeySuperBlockCfg        = "super_block_config"     // 超级区块配置
+
 	//奖励配置
-	MSKeyBlkRewardCfg = "blk_reward"
-	MSKeyTxsRewardCfg = "txs_reward"
-	MSKeyInterestCfg  = "interest_reward" //利息状态
-	MSKeyLotteryCfg   = "lottery_reward"
-	MSKeySlashCfg     = "slash_reward"
-	MSKeyMultiCoin    = "coin_reward"
-	//上一矿工奖励金额
-	MSKeyPreMinerBlkReward = "preMiner_blkreward"
-	//上一矿工交易奖励金额
-	MSKeyPreMinerTxsReward = "preMiner_txsreward"
-	//upTime状态
-	MSKeyUpTimeNum = "upTime_num"
-	//彩票状态
-	MSKEYLotteryNum     = "lottery_num"
-	MSKEYLotteryAccount = "lottery_from"
-	//利息状态
-	MSInterestCalcNum = "interest_calc_num"
-	MSInterestPayNum  = "interest_pay_num"
-	//惩罚状态
-	MSKeySlashNum = "slash_num"
+	MSKeyBlkRewardCfg      = "blk_reward"         // 区块奖励配置
+	MSKeyTxsRewardCfg      = "txs_reward"         // 交易奖励配置
+	MSKeyInterestCfg       = "interest_reward"    // 利息配置
+	MSKeyLotteryCfg        = "lottery_reward"     // 彩票配置
+	MSKeySlashCfg          = "slash_reward"       // 惩罚配置
+	MSKeyPreMinerBlkReward = "preMiner_blkreward" // 上一矿工区块奖励金额
+	MSKeyPreMinerTxsReward = "preMiner_txsreward" // 上一矿工交易奖励金额
+	MSKeyUpTimeNum         = "upTime_num"         // upTime状态
+	MSKeyLotteryNum        = "lottery_num"        // 彩票状态
+	MSKeyLotteryAccount    = "lottery_from"       // 彩票候选账户
+	MSKeyInterestCalcNum   = "interest_calc_num"  // 利息计算状态
+	MSKeyInterestPayNum    = "interest_pay_num"   // 利息支付状态
+	MSKeySlashNum          = "slash_num"          // 惩罚状态
+
+	//未出块选举惩罚配置相关
+	MSKeyBlockProduceStatsStatus = "block_produce_stats_status" //
+	MSKeyBlockProduceSlashCfg    = "block_produce_slash_cfg"    //
+	MSKeyBlockProduceStats       = "block_produce_stats"        //
+	MSKeyBlockProduceBlackList   = "block_produce_blacklist"    //
 )
 
 type BCIntervalInfo struct {
@@ -67,6 +66,10 @@ type ElectGenTimeStruct struct {
 	ValidatorGen       uint16
 	ValidatorNetChange uint16
 	VoteBeforeTime     uint16
+}
+
+type ElectMinerNumStruct struct {
+	MinerNum uint16
 }
 
 type ElectConfigInfo_All struct {
@@ -170,9 +173,31 @@ type RandomInfoStruct struct {
 	MinHash  common.Hash
 	MaxNonce uint64
 }
-type PreAllTopStruct struct {
-	PreAllTopRoot common.Hash
+
+type BlockProduceSlashCfg struct {
+	Switcher         bool
+	LowTHR           uint16
+	ProhibitCycleNum uint16
 }
-type ElectMinerNumStruct struct {
-	MinerNum uint16
+
+type UserBlockProduceNum struct {
+	Address    common.Address
+	ProduceNum uint16
+}
+
+type BlockProduceStats struct {
+	StatsList []UserBlockProduceNum
+}
+
+type UserBlockProduceSlash struct {
+	Address              common.Address
+	ProhibitCycleCounter uint16
+}
+
+type BlockProduceSlashBlackList struct {
+	BlackList []UserBlockProduceSlash
+}
+
+type BlockProduceSlashStatsStatus struct {
+	Number uint64
 }

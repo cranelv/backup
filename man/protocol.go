@@ -95,7 +95,7 @@ type txPool interface {
 	// NewTxsEvent and send events to the given channel.
 	SubscribeNewTxsEvent(chan core.NewTxsEvent) event.Subscription
 
-	//hezi
+	//
 	ProcessMsg(m core.NetworkMsgData)
 }
 
