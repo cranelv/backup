@@ -12,6 +12,8 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"math/big"
 	"errors"
+	"github.com/matrix/go-matrix/btrie"
+	"time"
 )
 
 type RangeManage struct {
@@ -893,10 +895,48 @@ func (self *StateDBManage) DeleteMxData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDBManage) UpdateTxForBtree(key uint32) {
-
 	for _, cm := range self.shardings {
 		for _, rm := range cm.Rmanage {
-			rm.State.UpdateTxForBtree(key)
+			out := rm.State.GetBtreeItem(key,common.ExtraRevocable)
+			for _, it := range out {
+				item, ok := it.(btrie.SpcialTxData)
+				if !ok {
+					continue
+				}
+				log.Info("file statedb", "func UpdateTxForBtree:item.key", item.Key_Time, "item.Value", len(item.Value_Tx))
+				delhashs := make([]common.Hash, 0)
+				for hash, tm := range item.Value_Tx {
+					var rt common.RecorbleTx
+					errRT := json.Unmarshal(tm, &rt)
+					if errRT != nil {
+						log.Error("file statedb", "func UpdateTxForBtree,Unmarshal err", errRT)
+						continue
+					}
+					if rt.Typ != common.ExtraRevocable {
+						log.Info("file statedb", "func UpdateTxForBtree,Type is", rt.Typ, "type should ", common.ExtraRevocable)
+						continue
+					}
+					log.Info("file statedb", "func UpdateTxForBtree111,Type is", rt.Typ)
+					for _, vv := range rt.Adam { //一对多交易
+						log.Info("file statedb", "func UpdateTxForBtree:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
+						log.Info("file statedb", "func UpdateTxForBtree:from", rt.From, "vv.Amont", vv.Amont)
+						if self.GetBalanceByType(cm.Cointyp,rt.From, common.WithdrawAccount).Cmp(vv.Amont) >= 0 {
+							self.SubBalance(cm.Cointyp,common.WithdrawAccount, rt.From, vv.Amont)
+							aa := self.GetBalanceByType(cm.Cointyp,vv.Addr, common.MainAccount)
+							log.Info("file statedb", "func UpdateTxForBtree:to", vv.Addr, "Balance:befor", aa)
+							self.AddBalance(cm.Cointyp,common.MainAccount, vv.Addr, vv.Amont)
+							bb := self.GetBalanceByType(cm.Cointyp,vv.Addr, common.MainAccount)
+							log.Info("file statedb", "func UpdateTxForBtree:to", vv.Addr, "Balance:after", bb, "call time ", time.Now().Unix())
+						} else {
+							log.Info("file statedb", "func UpdateTxForBtree", "amont is not enough")
+						}
+					}
+					log.Info("file statedb", "func UpdateTxForBtree:txHash", hash)
+					delhashs = append(delhashs, hash)
+					rm.State.deleteMatrixData(hash, nil)
+				}
+				rm.State.GetSaveTx(common.ExtraRevocable, item.Key_Time, delhashs, true)
+			}
 		}
 	}
 }
@@ -904,7 +944,45 @@ func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32) {
 
 	for _, cm := range self.shardings {
 		for _, rm := range cm.Rmanage {
-			rm.State.UpdateTxForBtreeBytime(key)
+			out := rm.State.GetBtreeItem(key,common.ExtraTimeTxType)
+			for _, it := range out {
+				item, ok := it.(btrie.SpcialTxData)
+				if !ok {
+					continue
+				}
+				log.Info("file statedb", "func UpdateTxForBtreeBytime:item.key", item.Key_Time, "item.Value", item.Value_Tx)
+				delhashs := make([]common.Hash, 0)
+				for hash, tm := range item.Value_Tx {
+					var rt common.RecorbleTx
+					errRT := json.Unmarshal(tm, &rt)
+					if errRT != nil {
+						log.Error("file statedb", "func UpdateTxForBtreeBytime,Unmarshal err", errRT)
+						continue
+					}
+					if rt.Typ != common.ExtraTimeTxType {
+						log.Info("file statedb", "func UpdateTxForBtreeBytime,Type is", rt.Typ, "type should ", common.ExtraTimeTxType)
+						continue
+					}
+					log.Info("file statedb", "func UpdateTxForBtreeBytime111,Type is", rt.Typ)
+					for _, vv := range rt.Adam { //一对多交易
+						log.Info("file statedb", "func UpdateTxForBtreeBytime:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
+						log.Info("file statedb", "func UpdateTxForBtreeBytime:from", rt.From, "vv.Amont", vv.Amont)
+						if self.GetBalanceByType(cm.Cointyp,rt.From, common.WithdrawAccount).Cmp(vv.Amont) >= 0 {
+							self.SubBalance(cm.Cointyp,common.WithdrawAccount, rt.From, vv.Amont)
+							aa := self.GetBalanceByType(cm.Cointyp,vv.Addr, common.MainAccount)
+							log.Info("file statedb", "func UpdateTxForBtreeBytime:to", vv.Addr, "Balance:befor", aa)
+							self.AddBalance(cm.Cointyp,common.MainAccount, vv.Addr, vv.Amont)
+							bb := self.GetBalanceByType(cm.Cointyp,vv.Addr, common.MainAccount)
+							log.Info("file statedb", "func UpdateTxForBtreeBytime:to", vv.Addr, "Balance:after", bb, "call time ", time.Now().Unix())
+						} else {
+							log.Info("file statedb", "func UpdateTxForBtreeBytime", "amont is not enough")
+						}
+					}
+					log.Info("file statedb", "func UpdateTxForBtreeBytime:txHash", hash)
+					delhashs = append(delhashs, hash)
+				}
+				rm.State.GetSaveTx(common.ExtraTimeTxType, item.Key_Time, delhashs, true)
+			}
 		}
 	}
 }

@@ -481,7 +481,23 @@ func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Pri
 func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
 func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool   { return true }
-
+func (tx *Transaction) GetMakeHashfield(chid *big.Int) []interface{}{
+	var data1 txdata1
+	TxdataAddresToString(tx.Currency, &tx.data, &data1)
+	return []interface{}{
+		data1.AccountNonce,
+		data1.Price,
+		data1.GasLimit,
+		data1.Recipient,
+		data1.Amount,
+		data1.Payload,
+		chid, uint(0), uint(0),
+		data1.TxEnterType,
+		data1.IsEntrustTx,
+		data1.CommitTime,
+		data1.Extra,
+	}
+}
 func (tx *Transaction) GetTxHashStruct() {
 
 }
