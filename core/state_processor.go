@@ -215,7 +215,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
@@ -228,7 +228,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, nil, 0, err
 		}
 		tmpr := make(types.Receipts, 0)
@@ -270,7 +270,7 @@ func ApplyTransaction(config *params.ChainConfig, bc *BlockChain, author *common
 		}
 	} else {
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, 0, err
 		}
 	}
