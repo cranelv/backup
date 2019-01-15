@@ -52,7 +52,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 func (p *Process) dealMinerResultVerifyBroadcast() {
 	log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 	for _, result := range p.broadcastRstCache {
-		state, retTxs, receipsts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.BroadcastBlk, common.AVERSION, result.Header, result.Txs)
+		state, retTxs, receipsts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.BroadcastBlk, string(result.Header.Version), result.Header, result.Txs)
 		if nil != err {
 			continue
 		}

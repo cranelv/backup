@@ -24,20 +24,24 @@ func (p *Process) processBcHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
 	}
-	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, common.AVERSION, p.number, p.bcInterval, p.preBlockHash)
+	parent, err := p.getParentBlock(p.number)
+	if err != nil {
+		return err
+	}
+	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备去看失败", err)
 		return err
 	}
 
-	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, common.AVERSION, originHeader, nil)
+	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, common.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
@@ -58,7 +62,11 @@ func (p *Process) processHeaderGen() error {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
 	}
-	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, common.AVERSION, p.number, p.bcInterval, p.preBlockHash)
+	parent, err := p.getParentBlock(p.number)
+	if err != nil {
+		return err
+	}
+	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备阶段失败", err)
 		return err
@@ -71,14 +79,14 @@ func (p *Process) processHeaderGen() error {
 		return errors.New("反射在线状态失败")
 	}
 
-	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, common.AVERSION, originHeader, nil)
+	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, string(originHeader.Version), originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, common.AVERSION, originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
@@ -152,4 +160,21 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 	}
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", req.TxsCodeCount(), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
+}
+
+func (p *Process) getParentBlock(num uint64) (*types.Block, error) {
+	if num == 1 { // 第一个块直接返回创世区块作为父区块
+		return p.blockChain().Genesis(), nil
+	}
+
+	if (p.preBlockHash == common.Hash{}) {
+		return nil, errors.Errorf("未知父区块hash[%s]", p.preBlockHash.TerminalString())
+	}
+
+	parent := p.blockChain().GetBlockByHash(p.preBlockHash)
+	if nil == parent {
+		return nil, errors.Errorf("未知的父区块[%s]", p.preBlockHash.TerminalString())
+	}
+
+	return parent, nil
 }

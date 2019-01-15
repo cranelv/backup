@@ -22,6 +22,7 @@ var (
 
 type ChainReader interface {
 	DPOSEngine(version []byte) consensus.DPOSEngine
+	CurrentBlock() *types.Block
 }
 type TopNodeService struct {
 	stateMap *topNodeState
@@ -358,7 +359,7 @@ func (serv *TopNodeService) OnlineConsensusVoteResultMsgHandler(msg *mc.HD_Onlin
 		return
 	}
 	//todo:从状态树获取版本号
-	tempSigns, err := serv.cr.DPOSEngine([]byte(common.AVERSION)).VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
+	tempSigns, err := serv.cr.DPOSEngine([]byte(serv.cr.CurrentBlock().Version())).VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
 	if err != nil {
 		log.Error(serv.extraInfo, "处理共识结果消息", "POS验证失败", "err", err)
 	} else {
@@ -390,7 +391,7 @@ func (serv *TopNodeService) consensusVotes(proposal interface{}, votes []voteInf
 		signList = append(signList, value.data.Sign)
 	}
 	//todo:从状态树获取版本号
-	rightSigns, err := serv.cr.DPOSEngine([]byte(common.AVERSION)).VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
+	rightSigns, err := serv.cr.DPOSEngine(serv.cr.CurrentBlock().Version()).VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
 	if err != nil {
 		log.Debug(serv.extraInfo, "处理共识投票", "POS失败", "节点", prop.Node.Hex(), "状态", prop.OnlineState.String(), "投票数", len(signList), "err", err)
 		return

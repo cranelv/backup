@@ -185,11 +185,11 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 
 	validator := NewBlockValidator(chainConfig, bc, engine)
 	processor := NewStateProcessor(chainConfig, bc, engine)
-	bc.SetValidator(common.AVERSION, validator)
-	bc.SetProcessor(common.AVERSION, processor)
-	bc.engine[common.AVERSION] = engine
+	bc.SetValidator(manparams.VersionAlpha, validator)
+	bc.SetProcessor(manparams.VersionAlpha, processor)
+	bc.engine[manparams.VersionAlpha] = engine
 	dpos := mtxdpos.NewMtxDPOS()
-	bc.dposEngine[common.AVERSION] = dpos
+	bc.dposEngine[manparams.VersionAlpha] = dpos
 
 	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
 
@@ -201,8 +201,8 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if err != nil {
 		return nil, err
 	}
-	bc.hc.SetEngine(common.AVERSION, engine)
-	bc.hc.SetDposEngine(common.AVERSION, dpos)
+	bc.hc.SetEngine(manparams.VersionAlpha, engine)
+	bc.hc.SetDposEngine(manparams.VersionAlpha, dpos)
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
@@ -1854,7 +1854,7 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 }
 
 func (bc *BlockChain) VerifyHeader(header *types.Header) error {
-	return bc.engine[string(header.Version)].VerifyHeader(bc, header, false)
+	return bc.Engine(header.Version).VerifyHeader(bc, header, false)
 }
 
 func (bc *BlockChain) SetDposEngine(version string, dposEngine consensus.DPOSEngine) {

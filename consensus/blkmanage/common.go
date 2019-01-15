@@ -3,6 +3,8 @@ package blkmanage
 import (
 	"errors"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/reelection"
 
@@ -135,7 +137,7 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj.RegisterManBLkPlugs(CommonBlk, common.AVERSION, manCommonplug)
+	obj.RegisterManBLkPlugs(CommonBlk, manparams.VersionAlpha, manCommonplug)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +146,7 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj.RegisterManBLkPlugs(BroadcastBlk, common.AVERSION, manBcplug)
+	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionAlpha, manBcplug)
 	if err != nil {
 		return nil, err
 	}

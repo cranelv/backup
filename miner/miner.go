@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
@@ -103,7 +105,7 @@ func (self *Miner) Mining() bool {
 }
 
 func (self *Miner) HashRate() (tot int64) {
-	if pow, ok := self.bc.Engine([]byte(common.AVERSION)).(consensus.PoW); ok {
+	if pow, ok := self.bc.Engine([]byte(manparams.VersionAlpha)).(consensus.PoW); ok {
 		tot += int64(pow.Hashrate())
 	}
 	// do we care this might race? is it worth we're rewriting some

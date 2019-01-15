@@ -3,11 +3,12 @@ package entrust
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
-	"sync"
 )
 
 type EntrustValue struct {
@@ -67,7 +68,7 @@ func VerifyA2AccountAndPassword(data map[common.Address]string) (map[common.Addr
 		if err != nil {
 			noEntrustAccounts += fmt.Sprintf("%s\n", base58.Base58EncodeToString("MAN", address))
 			log.Warn("验证A2账户密码", "验证未通过的账户", base58.Base58EncodeToString("MAN", address), "password", password)
-			flag = false
+			//flag = false
 			continue
 		}
 		log.Debug("验证A2账户密码", "验证通过的账户", base58.Base58EncodeToString("MAN", address))
