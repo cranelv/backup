@@ -165,7 +165,7 @@ func (p *ReElection) checkConsensusResult(node common.Address, state mc.OnlineSt
 		log.Error(Module, "检查拓扑变化消息", "online共识结果验证区块hash获取失败", "err", err, "node", node.Hex())
 		return errors.New("online共识结果验证区块hash获取失败")
 	}
-	_, err = p.bc.DPOSEngine().VerifyHashWithBlock(p.bc, reqHash, conResult.SignList, blockHash)
+	_, err = p.bc.DPOSEngine(header.Version).VerifyHashWithBlock(p.bc, reqHash, conResult.SignList, blockHash)
 	if err != nil {
 		log.Error(Module, "检查拓扑变化消息", "online共识结果POS失败", "node", node.Hex(), "err", err)
 		return err

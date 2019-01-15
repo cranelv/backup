@@ -96,3 +96,5 @@ func GetVIPLevel(index int) VIPRoleType {
 		return VIP_Nil
 	}
 }
+
+var AVERSION = "1.0.0-stable"

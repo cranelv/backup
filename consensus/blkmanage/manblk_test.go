@@ -9,7 +9,7 @@ import (
 func TestManBlkBasePlug_Prepare(t *testing.T) {
 	test, _ := New(nil)
 	base, _ := NewBlkBasePlug()
-	test.RegisterManBLkPlugs("common", AVERSION, base)
+	test.RegisterManBLkPlugs("common", common.AVERSION, base)
 
-	test.Prepare("common", AVERSION, 0, nil, common.Hash{1})
+	test.Prepare("common", common.AVERSION, 0, nil, common.Hash{1})
 }

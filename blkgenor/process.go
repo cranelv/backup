@@ -14,7 +14,6 @@ import (
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/event"
@@ -242,12 +241,16 @@ func (p *Process) canInsertBlock(bcInterval *manparams.BCInterval, header *types
 		}
 		log.Info(p.logExtraInfo(), "开始插入", "广播区块")
 	} else {
-		if err := p.dposEngine().VerifyBlock(p.blockChain(), header); err != nil {
+		if err := p.blockChain().DPOSEngine(header.Version).VerifyBlock(p.blockChain(), header); err != nil {
 			log.ERROR(p.logExtraInfo(), "区块插入消息DPOS共识失败", err)
 			return false
 		}
 
-		if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
+		//if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
+		//	log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
+		//	return false
+		//}
+		if err := p.blockChain().Engine(header.Version).VerifySeal(p.blockChain(), header); err != nil {
 			log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
 			return false
 		}
@@ -418,10 +421,6 @@ func (p *Process) logExtraInfo() string {
 }
 
 func (p *Process) blockChain() *core.BlockChain { return p.pm.bc }
-
-func (p *Process) engine() consensus.Engine { return p.pm.engine }
-
-func (p *Process) dposEngine() consensus.DPOSEngine { return p.pm.dposEngine }
 
 func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //YYY
 

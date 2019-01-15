@@ -72,7 +72,7 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 		return nil, err
 	}
 
-	if err := support.BlockChain().DPOSEngine().VerifyBlock(support.BlockChain(), header); err != nil {
+	if err := support.BlockChain().DPOSEngine(header.Version).VerifyBlock(support.BlockChain(), header); err != nil {
 		log.WARN(LogManBlk, "验证广播挖矿结果", "结果异常", "err", err)
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 		return nil, err
 	}
 
-	if err := support.BlockChain().DPOSEngine().VerifyVersion(support.BlockChain(), header); err != nil {
+	if err := support.BlockChain().DPOSEngine(header.Version).VerifyVersion(support.BlockChain(), header); err != nil {
 		log.ERROR(LogManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 		return nil, nil, nil, nil, err
 	}
 
-	localBlock, err := support.BlockChain().Engine().Finalize(support.BlockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
+	localBlock, err := support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), block.Header(), work.State, retTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(LogManBlk, "Failed to finalize block for sealing", err)
 		return nil, nil, nil, nil, err

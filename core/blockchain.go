@@ -124,11 +124,16 @@ type BlockChain struct {
 	procInterrupt int32          // interrupt signaler for block processing
 	wg            sync.WaitGroup // chain processing wait group for shutting down
 
-	engine     consensus.Engine
-	dposEngine consensus.DPOSEngine
-	processor  Processor // block processor interface
-	validator  Validator // block and state validator interface
-	vmConfig   vm.Config
+	engine     map[string]consensus.Engine
+	dposEngine map[string]consensus.DPOSEngine
+	processor  map[string]Processor // block processor interface
+	validator  map[string]Validator // block and state validator interface
+
+	defaultEngine     consensus.Engine
+	defaultDposEngine consensus.DPOSEngine
+	defaultProcessor  Processor
+	defaultValidator  Validator
+	vmConfig          vm.Config
 
 	badBlocks *lru.Cache // Bad block cache
 	msgceter  *mc.Center
@@ -168,18 +173,26 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		bodyRLPCache: bodyRLPCache,
 		blockCache:   blockCache,
 		futureBlocks: futureBlocks,
-		engine:       engine,
-		vmConfig:     vmConfig,
-		badBlocks:    badBlocks,
-		matrixState:  matrixstate.NewMatrixState(),
+		engine:       make(map[string]consensus.Engine),
+		dposEngine:   make(map[string]consensus.DPOSEngine),
+		processor:    make(map[string]Processor),
+		validator:    make(map[string]Validator),
+		//engine:       engine,
+		vmConfig:    vmConfig,
+		badBlocks:   badBlocks,
+		matrixState: matrixstate.NewMatrixState(),
 	}
 	bc.graphStore = matrixstate.NewGraphStore(bc)
 
-	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
-	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
+	validator := NewBlockValidator(chainConfig, bc, engine)
+	processor := NewStateProcessor(chainConfig, bc, engine)
+	bc.SetValidator(common.AVERSION, validator)
+	bc.SetProcessor(common.AVERSION, processor)
+	bc.engine[common.AVERSION] = engine
+	dpos := mtxdpos.NewMtxDPOS()
+	bc.dposEngine[common.AVERSION] = dpos
 
-	bc.dposEngine = mtxdpos.NewMtxDPOS()
-
+	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
 	var err error
 	err = bc.RegisterMatrixStateDataProducer(mc.MSKeyTopologyGraph, bc.graphStore.ProduceTopologyStateData)
 	if err != nil {
@@ -190,15 +203,18 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, err
 	}
 
-	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.dposEngine, bc.getProcInterrupt)
+	bc.hc, err = NewHeaderChain(db, chainConfig, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
+
+	bc.hc.SetEngine(common.AVERSION, engine)
+	bc.hc.SetDposEngine(common.AVERSION, dpos)
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
-	err = bc.DPOSEngine().VerifyVersion(bc, bc.genesisBlock.Header())
+	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersion(bc, bc.genesisBlock.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -409,31 +425,40 @@ func (bc *BlockChain) CurrentFastBlock() *types.Block {
 }
 
 // SetProcessor sets the processor required for making state modifications.
-func (bc *BlockChain) SetProcessor(processor Processor) {
+func (bc *BlockChain) SetProcessor(version string, processor Processor) {
 	bc.procmu.Lock()
 	defer bc.procmu.Unlock()
-	bc.processor = processor
+	bc.processor[version] = processor
 }
 
 // SetValidator sets the validator which is used to validate incoming blocks.
-func (bc *BlockChain) SetValidator(validator Validator) {
+func (bc *BlockChain) SetValidator(version string, validator Validator) {
 	bc.procmu.Lock()
 	defer bc.procmu.Unlock()
-	bc.validator = validator
+	bc.validator[version] = validator
 }
 
 // Validator returns the current validator.
-func (bc *BlockChain) Validator() Validator {
+func (bc *BlockChain) Validator(version []byte) Validator {
 	bc.procmu.RLock()
 	defer bc.procmu.RUnlock()
-	return bc.validator
+	if validator, ok := bc.validator[string(version)]; ok {
+		return validator
+	}
+
+	return bc.defaultValidator
 }
 
 // Processor returns the current processor.
-func (bc *BlockChain) Processor() Processor {
+func (bc *BlockChain) Processor(version []byte) Processor {
 	bc.procmu.RLock()
 	defer bc.procmu.RUnlock()
-	return bc.processor
+
+	if processor, ok := bc.processor[string(version)]; ok {
+		return processor
+	}
+
+	return bc.defaultProcessor
 }
 
 // State returns a new mutable state based on the current HEAD block.
@@ -1232,9 +1257,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
 			seal = false
 		}
-		err := bc.engine.VerifyHeader(bc, header, seal)
+		err := bc.Engine(header.Version).VerifyHeader(bc, header, seal)
 		if err == nil {
-			err = bc.Validator().ValidateBody(block)
+			err = bc.Validator(header.Version).ValidateBody(block)
 		}
 		switch {
 		case err == ErrKnownBlock:
@@ -1305,7 +1330,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		// verify pos
-		err = bc.dposEngine.VerifyBlock(bc, header)
+		err = bc.dposEngine[string(header.Version)].VerifyBlock(bc, header)
 		if err != nil {
 			log.Error("block chain", "insertChain DPOS共识错误", err)
 			return 0, nil, nil, fmt.Errorf("insert block dpos error")
@@ -1331,56 +1356,52 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			usedGas  uint64         = 0
 		)
 		if block.IsSuperBlock() {
-			log.Trace("BlockChain insertChain in3 IsSuperBlock")
-			sbs, err := bc.GetSuperBlockSeq()
-			if nil != err {
-				return i, events, coalescedLogs, errors.Errorf("get super seq error")
-			}
-			if block.Header().SuperBlockSeq() <= sbs {
-				return i, events, coalescedLogs, errors.Errorf("invalid super block seq (remote: %x local: %x)", block.Header().SuperBlockSeq(), sbs)
-			}
-			log.Trace("BlockChain insertChain in3 IsSuperBlock processSuperBlockState")
-			err = bc.processSuperBlockState(block, state)
-			if err != nil {
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
+			if p, ok := bc.processor[string(header.Version)]; ok {
+				err := p.ProcessSuperBlk(block, state)
+				if nil != err {
+					return i, events, coalescedLogs, err
+				}
+			} else {
+				return i, events, coalescedLogs, errors.Errorf("获取超级区块版本号%v对应的处理错误", string(header.Version))
 			}
 
-			root := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
-			if root != block.Root() {
-				return i, events, coalescedLogs, errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
-			}
 		} else {
-			log.Trace("BlockChain insertChain in3 Process Block")
-			uptimeMap, err := bc.ProcessUpTime(state, block.Header())
-			if err != nil {
-				log.Trace("BlockChain insertChain in3 Process Block err1")
-				bc.reportBlock(block, nil, err)
+			//log.Trace("BlockChain insertChain in3 Process Block")
+			//uptimeMap, err := bc.ProcessUpTime(state, block.Header())
+			//if err != nil {
+			//	log.Trace("BlockChain insertChain in3 Process Block err1")
+			//	bc.reportBlock(block, nil, err)
+			//	return i, events, coalescedLogs, err
+			//}
+			//
+			//// Process block using the parent state as reference point.
+			//receipts, logs, usedGas, err = bc.processor[string(header.Version)].Process(block, state, bc.vmConfig, uptimeMap)
+			//if err != nil {
+			//	log.Trace("BlockChain insertChain in3 Process Block err2")
+			//	bc.reportBlock(block, receipts, err)
+			//	return i, events, coalescedLogs, err
+			//}
+			//
+			//// Process matrix state
+			//err = bc.matrixState.ProcessMatrixState(block, state)
+			//if err != nil {
+			//	log.Trace("BlockChain insertChain in3 Process Block err3")
+			//	return i, events, coalescedLogs, err
+			//}
+			//
+			//// Validate the state using the default validator
+			//err = bc.Validator(string(header.Version)).ValidateState(block, parent, state, receipts, usedGas)
+			//if err != nil {
+			//	log.Trace("BlockChain insertChain in3 Process Block err4")
+			//	bc.reportBlock(block, receipts, err)
+			//	return i, events, coalescedLogs, err
+			//}
+
+			err := bc.Processor(block.Header().Version).Process(block, parent, state, bc.vmConfig)
+			if nil != err {
 				return i, events, coalescedLogs, err
 			}
 
-			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, err = bc.processor.Process(block, state, bc.vmConfig, uptimeMap)
-			if err != nil {
-				log.Trace("BlockChain insertChain in3 Process Block err2")
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
-			}
-
-			// Process matrix state
-			err = bc.matrixState.ProcessMatrixState(block, state)
-			if err != nil {
-				log.Trace("BlockChain insertChain in3 Process Block err3")
-				return i, events, coalescedLogs, err
-			}
-
-			// Validate the state using the default validator
-			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
-			if err != nil {
-				log.Trace("BlockChain insertChain in3 Process Block err4")
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
-			}
 		}
 
 		proctime := time.Since(bstart)
@@ -1837,9 +1858,19 @@ func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 func (bc *BlockChain) Config() *params.ChainConfig { return bc.chainConfig }
 
 // Engine retrieves the blockchain's consensus engine.
-func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
+func (bc *BlockChain) Engine(version []byte) consensus.Engine {
+	if engine, ok := bc.engine[string(version)]; ok {
+		return engine
+	}
+	return bc.defaultEngine
+}
 
-func (bc *BlockChain) DPOSEngine() consensus.DPOSEngine { return bc.dposEngine }
+func (bc *BlockChain) DPOSEngine(version []byte) consensus.DPOSEngine {
+	if dposEngine, ok := bc.dposEngine[string(version)]; ok {
+		return dposEngine
+	}
+	return bc.defaultDposEngine
+}
 
 // SubscribeRemovedLogsEvent registers a subscription of RemovedLogsEvent.
 func (bc *BlockChain) SubscribeRemovedLogsEvent(ch chan<- RemovedLogsEvent) event.Subscription {
@@ -1867,11 +1898,11 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 }
 
 func (bc *BlockChain) VerifyHeader(header *types.Header) error {
-	return bc.engine.VerifyHeader(bc, header, false)
+	return bc.engine[string(header.Version)].VerifyHeader(bc, header, false)
 }
 
-func (bc *BlockChain) SetDposEngine(dposEngine consensus.DPOSEngine) {
-	bc.dposEngine = dposEngine
+func (bc *BlockChain) SetDposEngine(version string, dposEngine consensus.DPOSEngine) {
+	bc.dposEngine[version] = dposEngine
 }
 
 func (bc *BlockChain) GetHashByNumber(number uint64) common.Hash {
@@ -2134,7 +2165,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 		return nil, errors.Errorf("SuperBlockSeq not match, current seq(%v) < genesis block(%v)", sbs, block.Header().SuperBlockSeq())
 	}
 
-	if err := bc.DPOSEngine().VerifyBlock(bc, block.Header()); err != nil {
+	if err := bc.DPOSEngine(block.Header().Version).VerifyBlock(bc, block.Header()); err != nil {
 		return nil, errors.Errorf("verify super block err(%v)", err)
 	}
 	//todo 应该在InsertChain时确定权威链，从而进行回滚

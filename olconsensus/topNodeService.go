@@ -20,6 +20,9 @@ var (
 	voteFailed = errors.New("Vote error")
 )
 
+type ChainReader interface {
+	DPOSEngine(version []byte) consensus.DPOSEngine
+}
 type TopNodeService struct {
 	stateMap *topNodeState
 	msgCheck *messageCheck
@@ -31,7 +34,7 @@ type TopNodeService struct {
 	msgSender       MessageSendInterface
 	msgCenter       MessageCenterInterface
 	stateReader     StateReaderInterface
-	cd              consensus.DPOSEngine
+	cr              ChainReader
 
 	roleUpdateCh       chan *mc.RoleUpdatedMsg
 	roleUpdateSub      event.Subscription
@@ -49,11 +52,11 @@ type TopNodeService struct {
 	recvLeader         bool
 }
 
-func NewTopNodeService(cd consensus.DPOSEngine) *TopNodeService {
+func NewTopNodeService(cr ChainReader) *TopNodeService {
 	t := &TopNodeService{
 		msgCheck:          newMessageCheck(3),
 		dposRing:          NewDPosVoteRing(64),
-		cd:                cd,
+		cr:                cr,
 		roleUpdateCh:      make(chan *mc.RoleUpdatedMsg, 5),
 		leaderChangeCh:    make(chan *mc.LeaderChangeNotify, 5),
 		consensusReqCh:    make(chan *mc.HD_OnlineConsensusReqs, 5),
@@ -354,8 +357,8 @@ func (serv *TopNodeService) OnlineConsensusVoteResultMsgHandler(msg *mc.HD_Onlin
 		log.Error(serv.extraInfo, "处理共识结果消息", "共识消息已过期")
 		return
 	}
-
-	tempSigns, err := serv.cd.VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
+	//todo:从状态树获取版本号
+	tempSigns, err := serv.cr.DPOSEngine([]byte(common.AVERSION)).VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
 	if err != nil {
 		log.Error(serv.extraInfo, "处理共识结果消息", "POS验证失败", "err", err)
 	} else {
@@ -386,7 +389,8 @@ func (serv *TopNodeService) consensusVotes(proposal interface{}, votes []voteInf
 	for _, value := range votes {
 		signList = append(signList, value.data.Sign)
 	}
-	rightSigns, err := serv.cd.VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
+	//todo:从状态树获取版本号
+	rightSigns, err := serv.cr.DPOSEngine([]byte(common.AVERSION)).VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
 	if err != nil {
 		log.Debug(serv.extraInfo, "处理共识投票", "POS失败", "节点", prop.Node.Hex(), "状态", prop.OnlineState.String(), "投票数", len(signList), "err", err)
 		return

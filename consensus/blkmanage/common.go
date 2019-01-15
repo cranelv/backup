@@ -64,9 +64,9 @@ type ChainReader interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
 	ProcessMatrixState(block *types.Block, state *state.StateDB) error
-	Engine() consensus.Engine
-	DPOSEngine() consensus.DPOSEngine
-	Processor() core.Processor
+	Engine(version []byte) consensus.Engine
+	DPOSEngine(version []byte) consensus.DPOSEngine
+	Processor(version []byte) core.Processor
 	VerifyHeader(header *types.Header) error
 }
 
@@ -124,8 +124,6 @@ var (
 	LogManBlk    = "区块生成验证引擎"
 	CommonBlk    = "common"
 	BroadcastBlk = "broadcast"
-
-	AVERSION = "1.0.0-stable"
 )
 
 type ManBlkManage struct {
@@ -142,7 +140,7 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj.RegisterManBLkPlugs(CommonBlk, AVERSION, manCommonplug)
+	obj.RegisterManBLkPlugs(CommonBlk, common.AVERSION, manCommonplug)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +149,7 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj.RegisterManBLkPlugs(BroadcastBlk, AVERSION, manBcplug)
+	obj.RegisterManBLkPlugs(BroadcastBlk, common.AVERSION, manBcplug)
 	if err != nil {
 		return nil, err
 	}

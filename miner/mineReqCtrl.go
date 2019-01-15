@@ -5,6 +5,9 @@
 package miner
 
 import (
+	"math/big"
+	"sync"
+
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
@@ -12,8 +15,6 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
-	"math/big"
-	"sync"
 )
 
 type mineReqData struct {
@@ -58,20 +59,20 @@ type mineReqCtrl struct {
 	currentMineReq  *mineReqData
 	role            common.RoleType
 	bcInterval      *manparams.BCInterval
-	posEngine       consensus.DPOSEngine
+	bc              ChainReader
 	validatorReader consensus.StateReader
 	reqCache        map[common.Hash]*mineReqData
 	futureReq       map[uint64][]*mineReqData //todo 考虑作恶，可以加入限长
 }
 
-func newMinReqCtrl(posEngine consensus.DPOSEngine, validatorReader consensus.StateReader) *mineReqCtrl {
+func newMinReqCtrl(bc ChainReader) *mineReqCtrl {
 	return &mineReqCtrl{
 		curNumber:       0,
 		currentMineReq:  nil,
 		role:            common.RoleNil,
 		bcInterval:      nil,
-		validatorReader: validatorReader,
-		posEngine:       posEngine,
+		validatorReader: bc,
+		bc:              bc,
 		reqCache:        make(map[common.Hash]*mineReqData),
 		futureReq:       make(map[uint64][]*mineReqData),
 	}
@@ -228,7 +229,7 @@ func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
 	if header.Difficulty.Uint64() == 0 {
 		return difficultyIsZero
 	}
-	err := ctrl.posEngine.VerifyBlock(ctrl.validatorReader, header)
+	err := ctrl.bc.DPOSEngine(header.Version).VerifyBlock(ctrl.validatorReader, header)
 	if err != nil {
 		return errors.Errorf("挖矿请求POS验证失败(%v)", err)
 	}

@@ -218,7 +218,7 @@ type BlockChain interface {
 	GetSuperBlockSeq() (uint64, error)
 	GetSuperBlockNum() (uint64, error)
 	GetSuperBlockInfo() (*mc.SuperBlkCfg, error)
-	DPOSEngine() consensus.DPOSEngine
+	DPOSEngine(version []byte) consensus.DPOSEngine
 
 	GetCurrentHash() common.Hash
 
@@ -495,7 +495,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 			log.Error("不是超级区块", "err", err)
 			return errBadPeer
 		}
-		if err := d.blockchain.DPOSEngine().CheckSuperBlock(d.blockchain, superBLock); nil != err {
+		if err := d.blockchain.DPOSEngine(superBLock.Version).CheckSuperBlock(d.blockchain, superBLock); nil != err {
 			log.Error("验证超级区块签名", "err", err)
 			return errBadPeer
 		}

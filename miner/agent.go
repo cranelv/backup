@@ -7,6 +7,8 @@ package miner
 import (
 	"sync"
 
+	"github.com/matrix/go-matrix/common"
+
 	"sync/atomic"
 
 	"github.com/matrix/go-matrix/consensus"
@@ -23,16 +25,14 @@ type CpuAgent struct {
 	quitCurrentOp chan struct{}
 	returnCh      chan<- *types.Header
 
-	chain  consensus.ChainReader
-	engine consensus.Engine
+	chain ChainReader
 
 	isMining int32 // isMining indicates whether the agent is currently mining
 }
 
-func NewCpuAgent(chain consensus.ChainReader, engine consensus.Engine) *CpuAgent {
+func NewCpuAgent(chain ChainReader) *CpuAgent {
 	miner := &CpuAgent{
 		chain:  chain,
-		engine: engine,
 		stop:   make(chan struct{}, 1),
 		workCh: make(chan *Work, 1),
 	}
@@ -92,7 +92,7 @@ out:
 }
 
 func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
-	if result, err := self.engine.Seal(self.chain, work.header, stop, work.isBroadcastNode); result != nil {
+	if result, err := self.chain.Engine(work.header.Version).Seal(self.chain, work.header, stop, work.isBroadcastNode); result != nil {
 		log.Info("Successfully sealed new block", "number", result.Number, "hash", result.Hash())
 		self.returnCh <- result
 	} else {
@@ -104,7 +104,8 @@ func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
 }
 
 func (self *CpuAgent) GetHashRate() int64 {
-	if pow, ok := self.engine.(consensus.PoW); ok {
+	//todo：从状态树获取
+	if pow, ok := self.chain.Engine([]byte(common.AVERSION)).(consensus.PoW); ok {
 		return int64(pow.Hashrate())
 	}
 	return 0

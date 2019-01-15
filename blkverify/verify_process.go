@@ -423,7 +423,7 @@ func (p *Process) processReqOnce() {
 			return
 		}
 		log.INFO(p.logExtraInfo(), "验证vrf成功 高度", p.number)*/
-	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, blkmanage.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
+	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, common.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
@@ -586,7 +586,7 @@ func (p *Process) verifyTxsAndState() {
 			p.startDPOSVerify(localVerifyResultStateFailed)
 			return
 		}*/
-	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, blkmanage.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
+	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, common.AVERSION, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
 	if nil != err {
 		p.startDPOSVerify(localVerifyResultStateFailed)
 	}
@@ -686,7 +686,7 @@ func (p *Process) processDPOSOnce() {
 
 	signs := p.curProcessReq.getVotes()
 	log.INFO(p.logExtraInfo(), "POS验证处理", "执行POS", "投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
-	rightSigns, err := p.blockChain().DPOSEngine().VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
+	rightSigns, err := p.blockChain().DPOSEngine(p.curProcessReq.req.Header.Version).VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.Trace(p.logExtraInfo(), "POS验证处理", "POS未通过", "err", err, "高度", p.number)
 		return

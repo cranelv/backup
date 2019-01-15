@@ -5,11 +5,12 @@
 package core
 
 import (
-	"errors"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
@@ -133,6 +134,29 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 	return p.reverse(rewardList)
 }
 
+func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.StateDB) error {
+	log.Trace("BlockChain insertChain in3 IsSuperBlock")
+	sbs, err := p.bc.GetSuperBlockSeq()
+	if nil != err {
+		return errors.New("get super seq error")
+	}
+	if block.Header().SuperBlockSeq() <= sbs {
+		return errors.Errorf("invalid super block seq (remote: %x local: %x)", block.Header().SuperBlockSeq(), sbs)
+	}
+	log.Trace("BlockChain insertChain in3 IsSuperBlock processSuperBlockState")
+	err = p.bc.processSuperBlockState(block, statedb)
+	if err != nil {
+		p.bc.reportBlock(block, nil, err)
+		return err
+	}
+
+	root := statedb.IntermediateRoot(p.bc.chainConfig.IsEIP158(block.Number()))
+	if root != block.Root() {
+		return errors.Errorf("invalid super block root (remote: %x local: %x)", block.Root, root)
+	}
+	return nil
+}
+
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -140,7 +164,7 @@ func (p *StateProcessor) ProcessReward(state *state.StateDB, header *types.Heade
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -241,6 +265,41 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
 	return receipts, allLogs, *usedGas, nil
+}
+
+func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) error {
+
+	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err1")
+		p.bc.reportBlock(block, nil, err)
+		return err
+	}
+
+	// Process block using the parent state as reference point.
+	receipts, _, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err2")
+		p.bc.reportBlock(block, receipts, err)
+		return err
+	}
+
+	// Process matrix state
+	err = p.bc.matrixState.ProcessMatrixState(block, statedb)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err3")
+		return err
+	}
+
+	// Validate the state using the default validator
+	err = p.bc.Validator(block.Header().Version).ValidateState(block, parent, statedb, receipts, usedGas)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err4")
+		p.bc.reportBlock(block, receipts, err)
+		return err
+	}
+
+	return nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database

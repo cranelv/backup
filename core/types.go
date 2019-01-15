@@ -19,7 +19,8 @@ import (
 type Validator interface {
 	// ValidateBody validates the given block's content.
 	ValidateBody(block *types.Block) error
-
+	// ValidateBody validates the given block's content.
+	ValidateHeader(header *types.Header) error
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
 	ValidateState(block, parent *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
@@ -32,7 +33,9 @@ type Validator interface {
 // of gas used in the process and return an error if any of the internal rules
 // failed.
 type Processor interface {
-	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error)
+	ProcessSuperBlk(block *types.Block, statedb *state.StateDB) error
+	ProcessTxs(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error)
+	Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) error
 	SetRandom(random *baseinterface.Random)
 	ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
 }

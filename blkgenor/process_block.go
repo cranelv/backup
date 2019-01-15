@@ -103,12 +103,12 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		return
 	}
 
-	if err := p.pm.engine.VerifyHeader(p.pm.bc, rsp.Header, true); err != nil {
+	if err := p.pm.bc.Engine(rsp.Header.Version).VerifyHeader(p.pm.bc, rsp.Header, true); err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "POW验证未通过", "err", err, "高度", p.number)
 		return
 	}
 
-	if err := p.pm.dposEngine.VerifyBlock(p.pm.bc, rsp.Header); err != nil {
+	if err := p.pm.bc.DPOSEngine(rsp.Header.Version).VerifyBlock(p.pm.bc, rsp.Header); err != nil {
 		log.ERROR(p.logExtraInfo(), "处理完整区块响应", "POS验证未通过", "err", err, "高度", p.number)
 		return
 	}
@@ -171,7 +171,7 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs types
 	}
 
 	// 运行完matrix state后，生成root
-	block, err := p.blockChain().Engine().Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts)
+	block, err := p.blockChain().Engine(localBlock.Header().Version).Finalize(p.blockChain(), localBlock.Header(), work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
 	}
@@ -378,13 +378,13 @@ func (p *Process) verifyOneResult(rawHeader *types.Header, result *mc.HD_MiningR
 		return MinerResultError
 	}
 
-	if err := p.dposEngine().VerifyBlock(p.blockChain(), header); err != nil {
+	if err := p.blockChain().DPOSEngine(header.Version).VerifyBlock(p.blockChain(), header); err != nil {
 		log.WARN(p.logExtraInfo(), "挖矿结果DPOS共识失败", err)
 		return err
 	}
 
 	//todo 不是原始难度的结果，需要修改POW seal验证过程
-	if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
+	if err := p.blockChain().Engine(header.Version).VerifySeal(p.blockChain(), header); err != nil {
 		log.WARN(p.logExtraInfo(), "挖矿结果POW验证失败", err)
 		return err
 	}

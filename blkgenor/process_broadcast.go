@@ -35,7 +35,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 		log.WARN(p.logExtraInfo(), "验证广播挖矿结果", "高度不是广播区块高度", "高度", result.Header.Number.Uint64())
 		return false
 	}
-	if err := p.dposEngine().VerifyBlock(p.blockChain(), result.Header); err != nil {
+	if err := p.blockChain().DPOSEngine(result.Header.Version).VerifyBlock(p.blockChain(), result.Header); err != nil {
 		log.WARN(p.logExtraInfo(), "验证广播挖矿结果", "结果异常", "err", err)
 		return false
 	}
@@ -45,7 +45,7 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 func (p *Process) dealMinerResultVerifyBroadcast() {
 	log.INFO(p.logExtraInfo(), "当前高度为广播区块, 进行广播挖矿结果验证, 高度", p.number)
 	for _, result := range p.broadcastRstCache {
-		state, retTxs, receipsts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.BroadcastBlk, blkmanage.AVERSION, result.Header, result.Txs)
+		state, retTxs, receipsts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.BroadcastBlk, common.AVERSION, result.Header, result.Txs)
 		if nil != err {
 			continue
 		}

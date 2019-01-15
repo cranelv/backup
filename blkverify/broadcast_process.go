@@ -21,7 +21,7 @@ func (p *Process) startReqVerifyBC() {
 			continue
 		}
 		//verify dpos
-		if err := p.blockChain().DPOSEngine().VerifyBlock(p.blockChain(), req.req.Header); err != nil {
+		if err := p.blockChain().DPOSEngine(req.req.Header.Version).VerifyBlock(p.blockChain(), req.req.Header); err != nil {
 			log.WARN(p.logExtraInfo(), "广播身份，启动阶段, DPOS共识失败", err, "req leader", req.req.Header.Leader.Hex(), "高度", p.number)
 			req.localVerifyResult = localVerifyResultStateFailed
 			continue

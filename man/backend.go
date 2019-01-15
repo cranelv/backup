@@ -213,7 +213,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	}
 	//man.protocolManager.Msgcenter = ctx.MsgCenter
 	MsgCenter = ctx.MsgCenter
-	man.miner, err = miner.New(man.blockchain, man.chainConfig, man.EventMux(), man.engine, man.blockchain.DPOSEngine(), man.hd)
+	man.miner, err = miner.New(man.blockchain, man.chainConfig, man.EventMux(), man.hd)
 	if err != nil {
 		return nil, err
 	}
@@ -224,9 +224,9 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	man.blockchain.Processor().SetRandom(man.random)
+	man.blockchain.Processor([]byte(common.AVERSION)).SetRandom(man.random)
 
-	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain.DPOSEngine())
+	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
 	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
 	man.olConsensus.SetValidatorReader(man.blockchain)
 	man.olConsensus.SetStateReaderInterface(man.blockchain)
@@ -473,12 +473,15 @@ func (s *Matrix) StopMining()         { s.miner.Stop() }
 func (s *Matrix) IsMining() bool      { return s.miner.Mining() }
 func (s *Matrix) Miner() *miner.Miner { return s.miner }
 
-func (s *Matrix) AccountManager() *accounts.Manager        { return s.accountManager }
-func (s *Matrix) BlockChain() *core.BlockChain             { return s.blockchain }
-func (s *Matrix) TxPool() *core.TxPoolManager              { return s.txPool } //YYY
-func (s *Matrix) EventMux() *event.TypeMux                 { return s.eventMux }
-func (s *Matrix) Engine() consensus.Engine                 { return s.engine }
-func (s *Matrix) DPOSEngine() consensus.DPOSEngine         { return s.blockchain.DPOSEngine() }
+func (s *Matrix) AccountManager() *accounts.Manager { return s.accountManager }
+func (s *Matrix) BlockChain() *core.BlockChain      { return s.blockchain }
+func (s *Matrix) TxPool() *core.TxPoolManager       { return s.txPool } //YYY
+func (s *Matrix) EventMux() *event.TypeMux          { return s.eventMux }
+func (s *Matrix) Engine() consensus.Engine          { return s.engine }
+func (s *Matrix) DPOSEngine() consensus.DPOSEngine {
+	//todo: 使用当前版本号
+	return s.blockchain.DPOSEngine([]byte(common.AVERSION))
+}
 func (s *Matrix) ChainDb() mandb.Database                  { return s.chainDb }
 func (s *Matrix) IsListening() bool                        { return true } // Always listening
 func (s *Matrix) ManVersion() int                          { return int(s.protocolManager.SubProtocols[0].Version) }

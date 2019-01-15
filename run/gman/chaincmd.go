@@ -21,8 +21,8 @@ import (
 	"github.com/matrix/go-matrix/man/wizard"
 
 	"encoding/base64"
+
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
@@ -498,8 +498,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	dposEngine := mtxdpos.NewMtxDPOS()
-	hc, err := core.NewHeaderChain(db, chain.Config(), chain.Engine(), dposEngine, func() bool { return false })
+	hc, err := core.NewHeaderChain(db, chain.Config(), func() bool { return false })
 	if err != nil {
 		return err
 	}

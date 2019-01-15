@@ -191,7 +191,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *manparams.BCInte
 		return nil, nil, err
 	}
 	bd.setVersion(originHeader, parent)
-	if err := support.BlockChain().Engine().Prepare(support.BlockChain(), originHeader); err != nil {
+	if err := support.BlockChain().Engine(originHeader.Version).Prepare(support.BlockChain(), originHeader); err != nil {
 		log.ERROR(LogManBlk, "Failed to prepare header for mining", err)
 		return nil, nil, err
 	}
@@ -224,7 +224,7 @@ func (bd *ManBlkBasePlug) Finalize(support BlKSupport, header *types.Header, sta
 		log.Error(LogManBlk, "设置选举信息失败", err)
 		return nil, nil, err
 	}
-	block, err := support.BlockChain().Engine().Finalize(support.BlockChain(), header, state, txs, uncles, receipts)
+	block, err := support.BlockChain().Engine(header.Version).Finalize(support.BlockChain(), header, state, txs, uncles, receipts)
 	if err != nil {
 		log.Error(LogManBlk, "最终finalize错误", err)
 		return nil, nil, err
@@ -261,7 +261,7 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 		return nil, err
 	}
 
-	if err := support.BlockChain().DPOSEngine().VerifyVersion(support.BlockChain(), header); err != nil {
+	if err := support.BlockChain().DPOSEngine(header.Version).VerifyVersion(support.BlockChain(), header); err != nil {
 		log.ERROR(LogManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	}
 
 	// 运行完matrix state后，生成root
-	localBlock, err = support.BlockChain().Engine().Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
+	localBlock, err = support.BlockChain().Engine(localHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err

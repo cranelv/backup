@@ -70,7 +70,7 @@ type Result struct {
 // worker is the main object which takes care of applying messages to the new state
 type worker struct {
 	config *params.ChainConfig
-	engine consensus.Engine
+	bc     ChainReader
 
 	mu sync.Mutex
 
@@ -100,10 +100,34 @@ type worker struct {
 	mineResultSender      *common.ResendMsgCtrl
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.StateReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
+type ChainReader interface {
+	Config() *params.ChainConfig
+	Engine(version []byte) consensus.Engine
+	DPOSEngine(version []byte) consensus.DPOSEngine
+	VerifyHeader(header *types.Header) error
+	GetCurrentHash() common.Hash
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetBroadcastAccount(blockHash common.Hash) (common.Address, error)
+	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBroadcastInterval(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetAuthAccount(addr common.Address, hash common.Hash) (common.Address, error)
+	CurrentHeader() *types.Header
+	// GetBlock retrieves a block from the database by hash and number.
+	GetBlock(hash common.Hash, number uint64) *types.Block
+	GetHeader(hash common.Hash, number uint64) *types.Header
+
+	// GetHeaderByNumber retrieves a block header from the database by number.
+	GetHeaderByNumber(number uint64) *types.Header
+
+	// GetHeaderByHash retrieves a block header from the database by its hash.
+	GetHeaderByHash(hash common.Hash) *types.Header
+}
+
+func newWorker(config *params.ChainConfig, bc ChainReader, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
 	worker := &worker{
 		config: config,
-		engine: engine,
+		bc:     bc,
 		mux:    mux,
 
 		agents:               make(map[Agent]struct{}),
@@ -112,7 +136,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorRea
 		roleUpdateCh:         make(chan *mc.RoleUpdatedMsg, 100),
 		recv:                 make(chan *types.Header, resultQueueSize),
 		localMiningRequestCh: make(chan *mc.BlockGenor_BroadcastMiningReqMsg, 100),
-		mineReqCtrl:          newMinReqCtrl(dposEngine, validatorReader),
+		mineReqCtrl:          newMinReqCtrl(bc),
 		hd:                   hd,
 		mineResultSender:     nil,
 	}
