@@ -241,9 +241,16 @@ func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) 
 }
 
 func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt common.NetTopology, num uint64) error {
-	if genesisNt.Type != common.NetTopoTypeAll {
-		return nil
+	if num == 0 {
+		if genesisNt.Type != common.NetTopoTypeAll {
+			return errors.New("genesis net topology type is not all graph type！")
+		}
+	} else {
+		if genesisNt.Type != common.NetTopoTypeAll {
+			return nil
+		}
 	}
+
 	if len(genesisNt.NetTopologyData) == 0 {
 		return errors.New("genesis net topology is empty！")
 	}
@@ -276,6 +283,12 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 }
 
 func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common.Elect, num uint64) error {
+	if num == 0 {
+		if g.CurElect == nil || len(*g.CurElect) == 0 {
+			return errors.New("genesis cur elect is empty！")
+		}
+	}
+
 	var curElect []common.Elect = nil
 	if g.CurElect != nil {
 		curElect = make([]common.Elect, len(*g.CurElect))

@@ -130,6 +130,7 @@ var (
 		utils.SaveSnapStartFlg,
 		utils.SaveSnapPeriodFlg,
 		utils.SnapModeFlg,
+		utils.GetGenesisFlag,
 	}
 
 	rpcFlags = []cli.Flag{

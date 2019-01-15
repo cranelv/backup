@@ -48,6 +48,7 @@ var (
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.LightModeFlag,
+			utils.GetGenesisFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -307,6 +308,13 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
+	mergeOutputPath := ctx.GlobalString(utils.GetGenesisFlag.Name)
+	if len(genesisPath) != 0 {
+		out, _ := json.MarshalIndent(genesis, "", "  ")
+		if err := ioutil.WriteFile(mergeOutputPath, out, 0644); err != nil {
+			fmt.Errorf("Failed to save genesis file", "err=%v", err)
+		}
+	}
 
 	//genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 

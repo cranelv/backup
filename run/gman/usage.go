@@ -76,6 +76,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.SaveSnapStartFlg,
 			utils.SaveSnapPeriodFlg,
 			utils.SnapModeFlg,
+			utils.GetGenesisFlag,
 		},
 	},
 	/*	{Name: "DEVELOPER CHAIN",

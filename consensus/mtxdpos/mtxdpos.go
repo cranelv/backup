@@ -6,12 +6,14 @@ package mtxdpos
 import (
 	"math"
 
+	"bytes"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -76,9 +78,9 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Hea
 	var blockHash common.Hash
 	number := header.Number.Uint64()
 	// 验证版本号
-	//if bytes.Equal(header.Version, []byte(manparams.VersionAlpha)) == false {
-	//	return errVersionErr
-	//}
+	if bytes.Equal(header.Version, []byte(manparams.VersionAlpha)) == false {
+		return errVersionErr
+	}
 
 	if 0 == number {
 		blockHash = header.Hash()
