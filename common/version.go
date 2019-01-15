@@ -203,5 +203,13 @@ var (
 				"未出块惩罚代功能添加",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.25",
+			Submitter: "zhenghe,liubo",
+			Commit: []string{
+				"超级交易功能",
+				"快照功能合入",
+			},
+		},
 	}
 )

@@ -426,7 +426,11 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 			return err
 		}
 		TxdataStringToAddres(&data1, &tx.data)
-		tx.Currency = strings.Split(*data1.Recipient, ".")[0] //币种
+		if data1.Recipient == nil{
+			tx.Currency = "MAN"
+		}else{
+			tx.Currency = strings.Split(*data1.Recipient, ".")[0] //币种
+		}
 		tx.Mtype = true
 	} else {
 		var extData extTransaction
