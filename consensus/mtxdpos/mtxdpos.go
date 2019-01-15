@@ -6,7 +6,6 @@ package mtxdpos
 import (
 	"math"
 
-	"bytes"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core/types"
@@ -78,7 +77,7 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Hea
 	var blockHash common.Hash
 	number := header.Number.Uint64()
 	// 验证版本号
-	if bytes.Equal(header.Version, []byte(manparams.VersionAlpha)) == false {
+	if manparams.IsCorrectVersion(header.Version) == false {
 		return errVersionErr
 	}
 
