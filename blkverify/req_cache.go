@@ -272,11 +272,14 @@ func (rc *reqCache) GetLeaderReq(leader common.Address, consensusTurn mc.Consens
 	defer rc.mu.RUnlock()
 	count := len(rc.reqCache)
 	for i := 0; i < count; i++ {
-		req := rc.reqCache[i].req
-		if req.Header.Leader == leader &&
-			req.From == leader &&
-			req.ConsensusTurn == consensusTurn {
-			return rc.reqCache[i], nil
+		req := rc.reqCache[i]
+		if req.reqType != reqTypeLeaderReq && req.reqType != reqTypeLocalReq {
+			// 请求不是leader的请求,忽略
+			continue
+		}
+		if req.req.Header.Leader == leader &&
+			req.req.ConsensusTurn == consensusTurn {
+			return req, nil
 		}
 	}
 	return nil, cantFindErr

@@ -398,7 +398,7 @@ func (dc *cdc) getA0Account(account common.Address, blockHash common.Hash, signH
 	//假设传入的account为A1账户, 获取A1账户
 	a0Account := depoistInfo.GetDepositAccount(dc.parentState, account)
 	if a0Account != (common.Address{}) {
-		log.Debug(common.SignLog, "CDC获取A0账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		log.Debug(common.SignLog, "CDC获取A0账户", "成功", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
 		return a0Account, account, nil
 	}
 
