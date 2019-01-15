@@ -138,18 +138,11 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 		return nil, err
 	}
 	obj.RegisterManBLkPlugs(CommonBlk, manparams.VersionAlpha, manCommonplug)
-	if err != nil {
-		return nil, err
-	}
 
 	manBcplug, err := NewBCBlkPlug()
-	if err != nil {
-		return nil, err
-	}
+
 	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionAlpha, manBcplug)
-	if err != nil {
-		return nil, err
-	}
+
 	return obj, nil
 }
 
