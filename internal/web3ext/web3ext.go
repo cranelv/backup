@@ -563,7 +563,7 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'setEntrustSignAccount',
 			call: 'personal_setEntrustSignAccount',
-			params: 3
+			params: 2
 		}),
 		new web3._extend.Method({
 			name: 'sign',

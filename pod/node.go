@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"github.com/matrix/go-matrix/params/manparams"
 	"io"
 	"io/ioutil"
 	"net"
@@ -32,6 +31,7 @@ import (
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/msgsend"
 	"github.com/matrix/go-matrix/p2p"
+	"github.com/matrix/go-matrix/params/enstrust"
 	"github.com/matrix/go-matrix/rpc"
 	"github.com/prometheus/prometheus/util/flock"
 )
@@ -209,7 +209,7 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 			return common.Signature{}, common.Address{}, time.Now()
 		}
 
-		address := manparams.EntrustAccountValue.GetEntrustValue()
+		address := entrust.EntrustAccountValue.GetEntrustValue()
 		val, ok := address[n.config.P2P.ManAddress]
 		if !ok {
 			n.log.Error("get account password error")

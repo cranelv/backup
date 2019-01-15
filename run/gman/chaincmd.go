@@ -238,7 +238,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.PasswordFileFlag,
+			utils.TestEntrustFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -256,7 +256,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.PasswordFileFlag,
+			utils.TestEntrustFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -718,7 +718,11 @@ func signBlock(ctx *cli.Context) error {
 	// get block hash
 	blockHash := superBlock.HashNoSigns()
 	//todo 优化 签名账户可否不适用全节点，单启指定钱包
-	passPhrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
+	passwordList,err := utils.GetSignPassword(ctx)
+	if err != nil{
+		utils.Fatalf(err.Error())
+	}
+	passPhrase := getPassPhrase("", false, 0, passwordList)
 	if len(stack.AccountManager().Wallets()) <= 0 {
 		utils.Fatalf("can't find wallet")
 	}
@@ -765,8 +769,13 @@ func signVersion(ctx *cli.Context) error {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
+	passwordList,err := utils.GetSignPassword(ctx)
+	if err != nil{
+		utils.Fatalf(err.Error())
+	}
+	passphrase := getPassPhrase("", false, 0, passwordList)
+
 	stack, _ := makeConfigNode(ctx)
-	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
 	wallet := stack.AccountManager().Wallets()[0]
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -808,7 +817,7 @@ func aesEncrypt(ctx *cli.Context) error {
 	if err != nil {
 		return errors.New("对文本内容进行Marshal失败")
 	}
-	entrustPassword, err := ReadDecryptPassword(ctx)
+	entrustPassword, err := ReadDecryptPassword(utils.Twice, ctx)
 	if err != nil {
 		return err
 	}
@@ -828,63 +837,6 @@ func aesEncrypt(ctx *cli.Context) error {
 	}
 
 	return nil
-}
-
-func IsValidChar(aim byte) bool {
-	if aim >= 33 && aim <= 126 {
-		return true
-	}
-	return false
-}
-func CheckPassword(password string) bool {
-	flagLowerChar := false
-	flagUpperChar := false
-	flagNum := false
-	flagSpecialChar := false
-	for _, v := range password {
-		if IsValidChar(byte(v)) == false {
-			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
-			return false
-		}
-		switch {
-		case v >= 'a' && v <= 'z':
-			flagLowerChar = true
-		case v >= 'A' && v <= 'Z':
-			flagUpperChar = true
-		case v >= '0' && v <= '9':
-			flagNum = true
-		default:
-			flagSpecialChar = true
-		}
-
-	}
-
-	if flagSpecialChar == false {
-		fmt.Println("你的密码不包含特殊字符 请重新输入")
-		return false
-	}
-	if flagNum == false {
-		fmt.Println("你的密码不包含数字 请重新输入")
-		return false
-	}
-	if flagUpperChar == false {
-		fmt.Println("你的密码不包含大写字母 请重新输入")
-		return false
-	}
-	if flagLowerChar == false {
-		fmt.Println("你的密码不包含小写字符 请重新输入")
-		return false
-	}
-
-	if len(password) > 16 {
-		fmt.Println("你的密码大于16位 请重新输入")
-		return false
-	}
-	if len(password) < 8 {
-		fmt.Println("你的密码小于8位 请重新输入")
-		return false
-	}
-	return true
 }
 
 type JsonStruct struct {

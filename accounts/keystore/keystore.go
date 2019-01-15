@@ -580,6 +580,15 @@ func (ks *KeyStore) ImportPreSaleKey(keyJSON []byte, passphrase string) (account
 	return a, nil
 }
 
+func (ks *KeyStore) CheckAccountAndPassword(a accounts.Account, passphrase string)  error {
+	_, key, err := ks.getDecryptedKey(a, passphrase)
+	if err != nil {
+		return err
+	}
+	zeroKey(key.PrivateKey)
+	return nil
+}
+
 // zeroKey zeroes a private key in memory.
 func zeroKey(k *ecdsa.PrivateKey) {
 	b := k.D.Bits()

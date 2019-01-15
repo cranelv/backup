@@ -18,13 +18,12 @@ import (
 	"encoding/json"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/dashboard"
 	"github.com/matrix/go-matrix/man"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/params/enstrust"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/naoina/toml"
@@ -171,35 +170,36 @@ func dumpConfig(ctx *cli.Context) error {
 	os.Stdout.Write(out)
 	return nil
 }
+
 func CheckEntrust(ctx *cli.Context) error {
 	path := ctx.GlobalString(utils.AccountPasswordFileFlag.Name)
 	if path == "" {
 		return nil
 	}
 
-	password, err := ReadDecryptPassword(ctx)
+	password, err := ReadDecryptPassword(utils.Once, ctx)
 	f, err := os.Open(path)
 	if err != nil {
-		fmt.Println("文件失败", err, "path", path)
+		fmt.Println("文件打开失败", err, "path", path)
 		return err
 	}
 
 	b, err := ioutil.ReadAll(f)
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
-		fmt.Println("解密失败", err)
+		fmt.Println("文件内容错误", err)
 		return err
 	}
 	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
 	if err != nil {
-		fmt.Println("AedDecrypt失败")
+		fmt.Println(err)
 		return err
 	}
 
 	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
-		fmt.Println("加密文件解码失败 密码不正确")
+		fmt.Println("解密失败，密码不正确", err)
 		return err
 	}
 
@@ -207,11 +207,15 @@ func CheckEntrust(ctx *cli.Context) error {
 	for _, v := range anss {
 		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
-	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
+	err = entrust.EntrustAccountValue.SetEntrustValue(entrustValue)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	return nil
 }
 
-func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
+func ReadDecryptPassword(inputTimes int, ctx *cli.Context) ([]byte, error) {
 	if password := ctx.GlobalString(utils.TestEntrustFlag.Name); password != "" {
 		h := sha256.New()
 		h.Write([]byte(password))
@@ -227,31 +231,16 @@ func ReadDecryptPassword(ctx *cli.Context) ([]byte, error) {
 			return []byte{}, errors.New("多次输入密码错误")
 		}
 		fmt.Printf("第 %d次密码输入 \n", InputCount)
-		passphrase, err = GetPassword()
+		passphrase, err = utils.GetPassword(inputTimes)
 		if err != nil {
 			fmt.Println("获取密码错误", err)
 			continue
 		}
-		if CheckPassword(passphrase) {
+		if utils.CheckPassword(passphrase) {
 			break
 		}
 	}
 	h := sha256.New()
 	h.Write([]byte(passphrase))
 	return h.Sum(nil), nil
-}
-
-func GetPassword() (string, error) {
-	password, err := console.Stdin.PromptPassword("Passphrase: ")
-	if err != nil {
-		return "", fmt.Errorf("Failed to read passphrase: %v", err)
-	}
-	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
-	if err != nil {
-		return "", fmt.Errorf("Failed to read passphrase confirmation: %v", err)
-	}
-	if password != confirm {
-		return "", fmt.Errorf("Passphrases do not match")
-	}
-	return password, nil
 }

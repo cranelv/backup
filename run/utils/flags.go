@@ -20,12 +20,12 @@ import (
 
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
-	//"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/fdlimit"
 	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/consensus/clique"
 	"github.com/matrix/go-matrix/consensus/manash"
+	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/vm"
@@ -836,6 +836,100 @@ func MakePasswordList(ctx *cli.Context) []string {
 		lines[i] = strings.TrimRight(lines[i], "\r")
 	}
 	return lines
+}
+
+// GetSignPassword returns password specified by the global --testmode flag.
+func GetSignPassword(ctx *cli.Context) ([]string, error) {
+	var password string
+	if password = ctx.GlobalString(TestEntrustFlag.Name); password != "" {
+		return []string{password}, nil
+	}
+	var err error
+	password, err = GetPassword(Once)
+	if err != nil {
+		return nil, err
+	}
+	return []string{password}, nil
+}
+
+const (
+	Once = iota
+	Twice
+)
+
+func GetPassword(inputTimes int) (string, error) {
+	password, err := console.Stdin.PromptPassword("Passphrase: ")
+	if err != nil {
+		return "", fmt.Errorf("Failed to read passphrase: %v", err)
+	}
+	if inputTimes == Once {
+		return password, nil
+	}
+	confirm, err := console.Stdin.PromptPassword("Repeat passphrase: ")
+	if err != nil {
+		return "", fmt.Errorf("Failed to read passphrase confirmation: %v", err)
+	}
+	if password != confirm {
+		return "", fmt.Errorf("Passphrases do not match")
+	}
+	return password, nil
+}
+
+func IsValidChar(aim byte) bool {
+	if aim >= 33 && aim <= 126 {
+		return true
+	}
+	return false
+}
+func CheckPassword(password string) bool {
+	flagLowerChar := false
+	flagUpperChar := false
+	flagNum := false
+	flagSpecialChar := false
+	for _, v := range password {
+		if IsValidChar(byte(v)) == false {
+			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
+			return false
+		}
+		switch {
+		case v >= 'a' && v <= 'z':
+			flagLowerChar = true
+		case v >= 'A' && v <= 'Z':
+			flagUpperChar = true
+		case v >= '0' && v <= '9':
+			flagNum = true
+		default:
+			flagSpecialChar = true
+		}
+
+	}
+
+	if flagSpecialChar == false {
+		fmt.Println("你的密码不包含特殊字符 请重新输入")
+		return false
+	}
+	if flagNum == false {
+		fmt.Println("你的密码不包含数字 请重新输入")
+		return false
+	}
+	if flagUpperChar == false {
+		fmt.Println("你的密码不包含大写字母 请重新输入")
+		return false
+	}
+	if flagLowerChar == false {
+		fmt.Println("你的密码不包含小写字符 请重新输入")
+		return false
+	}
+
+	if len(password) > 16 {
+		fmt.Println("你的密码大于16位 请重新输入")
+		return false
+	}
+	if len(password) < 8 {
+		fmt.Println("你的密码小于8位 请重新输入")
+		return false
+	}
+	return true
 }
 
 func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {

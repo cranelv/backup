@@ -19,6 +19,7 @@ import (
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params/enstrust"
 )
 
 type MatrixEth interface {
@@ -104,7 +105,7 @@ func (sh *SignHelper) SetAccountManager(am *accounts.Manager) error {
 		return ErrKeyStoreReflect
 	}
 	sh.keyStore = ks
-
+	entrust.SetAccountChecker(ks)
 	return nil
 }
 
