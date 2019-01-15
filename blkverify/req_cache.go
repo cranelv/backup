@@ -48,9 +48,9 @@ type reqData struct {
 	votes             []*common.VerifiedSign
 }
 
-func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) *reqData {
+func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool, reqType reqType) *reqData {
 	data := &reqData{
-		reqType:           reqTypeUnknownReq,
+		reqType:           reqType,
 		req:               req,
 		hash:              req.Header.HashNoSignsAndNonce(),
 		originalTxs:       nil,
@@ -65,6 +65,10 @@ func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) *reqData {
 		data.localVerifyResult = localVerifyResultDBRecovery
 		data.reqType = reqTypeLeaderReq
 	}
+
+	log.Info("hyk log", "newReqData", data.hash.Hex(),
+		"number", data.req.Header.Number, "reqType", reqType,
+		"leader", data.req.Header.Leader.Hex(), "from", data.req.From.Hex())
 	return data
 }
 
@@ -170,7 +174,20 @@ func (rc *reqCache) AddReq(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool) (*r
 		return nil, errors.Errorf("req from[%s] is too many(%d)", req.From.Hex(), fromSize)
 	}
 
-	reqData := newReqData(req, isDBRecovery)
+	reqType := reqTypeUnknownReq
+	if preBlk := rc.blkChain.GetBlockByHash(req.Header.ParentHash); preBlk != nil {
+		a0Account, _, err := rc.blkChain.GetA0AccountFromAnyAccount(req.From, req.Header.ParentHash)
+		if err != nil {
+			return nil, errors.Errorf("req from[%s] find a0 account err: %v", req.From.Hex(), err)
+		}
+		if a0Account == req.Header.Leader {
+			reqType = reqTypeLeaderReq
+		} else {
+			reqType = reqTypeOtherReq
+		}
+	}
+
+	reqData := newReqData(req, isDBRecovery, reqType)
 	if count >= rc.reqCountLimit {
 		rc.reqCache = append(rc.reqCache[:rc.reqCountLimit-1], reqData)
 	} else {
