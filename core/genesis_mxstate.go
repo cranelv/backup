@@ -25,70 +25,37 @@ func CopyAddressSlice(Src *[]GenesisAddress) []common.Address {
 }
 
 type GenesisMState struct {
-	Broadcasts                   *[]GenesisAddress                `json:"Broadcasts"`
-	InnerMiners                  *[]GenesisAddress                `json:"InnerMiners"`
-	Foundation                   *GenesisAddress                  `json:"Foundation"`
-	VersionSuperAccounts         *[]GenesisAddress                `json:"VersionSuperAccounts"`
-	BlockSuperAccounts           *[]GenesisAddress                `json:"BlockSuperAccounts"`
-	TxsSuperAccounts             *[]GenesisAddress                `json:"TxsSuperAccounts"`
-	MultiCoinSuperAccounts       *[]GenesisAddress                `json:"MultiCoinSuperAccounts"`
-	SubChainSuperAccounts        *[]GenesisAddress                `json:"SubChainSuperAccounts"`
-	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg" gencodec:"required"`
-	BCICfg                       *mc.BCIntervalInfo               `json:"BroadcastInterval" gencodec:"required"`
-	LeaderCfg                    *mc.LeaderConfig                 `json:"LeaderCfg" gencodec:"required"`
-	BlkCalcCfg                   *string                          `json:"BlkCalcCfg" gencodec:"required"`
-	TxsCalcCfg                   *string                          `json:"TxsCalcCfg" gencodec:"required"`
-	InterestCalcCfg              *string                          `json:"InterestCalcCfg" gencodec:"required"`
-	LotteryCalcCfg               *string                          `json:"LotteryCalcCfg" gencodec:"required"`
-	SlashCalcCfg                 *string                          `json:"SlashCalcCfg" gencodec:"required"`
-	BlkRewardCfg                 *mc.BlkRewardCfg                 `json:"BlkRewardCfg" gencodec:"required"`
-	TxsRewardCfg                 *mc.TxsRewardCfg                 `json:"TxsRewardCfg" gencodec:"required"`
-	LotteryCfg                   *mc.LotteryCfg                   `json:"LotteryCfg" gencodec:"required"`
-	InterestCfg                  *mc.InterestCfg                  `json:"InterestCfg" gencodec:"required"`
-	SlashCfg                     *mc.SlashCfg                     `json:"SlashCfg" gencodec:"required"`
-	EleTimeCfg                   *mc.ElectGenTimeStruct           `json:"EleTime" gencodec:"required"`
-	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo" gencodec:"required"`
-	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg            *[]GenesisAddress                `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg            *[]GenesisAddress                `json:"ElectWhiteList" gencodec:"required"`
-	CurElect                     *[]GenesisElect                  `json:"CurElect"  gencodec:"required"`
-	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
-	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
-	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
-	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
-}
-type GenesisMState1 struct {
-	Broadcasts                   *[]string                        `json:"Broadcasts,omitempty"`
-	InnerMiners                  *[]string                        `json:"InnerMiners,omitempty"`
-	Foundation                   *string                          `json:"Foundation,omitempty"`
-	VersionSuperAccounts         *[]string                        `json:"VersionSuperAccounts,omitempty"`
-	BlockSuperAccounts           *[]string                        `json:"BlockSuperAccounts,omitempty"`
-	TxsSuperAccounts             *[]string                        `json:"TxsSuperAccounts,omitempty"`
-	MultiCoinSuperAccounts       *[]string                        `json:"MultiCoinSuperAccounts,omitempty"`
-	SubChainSuperAccounts        *[]string                        `json:"SubChainSuperAccounts,omitempty"`
-	BCICfg                       *mc.BCIntervalInfo               `json:"BroadcastInterval" gencodec:"required"`
-	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg" ,omitempty"`
-	LeaderCfg                    *mc.LeaderConfig                 `json:"LeaderCfg" ,omitempty"`
-	BlkCalcCfg                   *string                          `json:"BlkCalcCfg,omitempty"`
-	TxsCalcCfg                   *string                          `json:"TxsCalcCfg,omitempty"`
-	InterestCalcCfg              *string                          `json:"InterestCalcCfg,omitempty"`
-	LotteryCalcCfg               *string                          `json:"LotteryCalcCfg,omitempty"`
-	SlashCalcCfg                 *string                          `json:"SlashCalcCfg,omitempty"`
-	BlkRewardCfg                 *mc.BlkRewardCfg                 `json:"BlkRewardCfg" ,omitempty"`
-	TxsRewardCfg                 *mc.TxsRewardCfg                 `json:"TxsRewardCfg" ,omitempty"`
-	LotteryCfg                   *mc.LotteryCfg                   `json:"LotteryCfg" ,omitempty"`
-	InterestCfg                  *mc.InterestCfg                  `json:"InterestCfg" ,omitempty"`
-	SlashCfg                     *mc.SlashCfg                     `json:"SlashCfg" ,omitempty"`
-	EleTimeCfg                   *mc.ElectGenTimeStruct           `json:"EleTime" ,omitempty"`
-	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo" ,omitempty"`
-	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum" gencodec:"required"`
-	ElectBlackListCfg            *[]string                        `json:"ElectBlackList" gencodec:"required"`
-	ElectWhiteListCfg            *[]string                        `json:"ElectWhiteList" gencodec:"required"`
-	CurElect                     *[]common.Elect1                 `json:"curElect"    gencodec:"required"`
-	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg" gencodec:"required"`
-	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats" gencodec:"required"`
-	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList" gencodec:"required"`
-	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus" gencodec:"required"`
+	Broadcasts                   *[]GenesisAddress                `json:"Broadcasts,omitempty"`
+	InnerMiners                  *[]GenesisAddress                `json:"InnerMiners,omitempty"`
+	Foundation                   *GenesisAddress                  `json:"Foundation,omitempty"`
+	VersionSuperAccounts         *[]GenesisAddress                `json:"VersionSuperAccounts,omitempty"`
+	BlockSuperAccounts           *[]GenesisAddress                `json:"BlockSuperAccounts,omitempty"`
+	TxsSuperAccounts             *[]GenesisAddress                `json:"TxsSuperAccounts,omitempty"`
+	MultiCoinSuperAccounts       *[]GenesisAddress                `json:"MultiCoinSuperAccounts,omitempty"`
+	SubChainSuperAccounts        *[]GenesisAddress                `json:"SubChainSuperAccounts,omitempty"`
+	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg,omitempty" gencodec:"required"`
+	BCICfg                       *mc.BCIntervalInfo               `json:"BroadcastInterval,omitempty" gencodec:"required"`
+	LeaderCfg                    *mc.LeaderConfig                 `json:"LeaderCfg,omitempty" gencodec:"required"`
+	BlkCalcCfg                   *string                          `json:"BlkCalcCfg,omitempty" gencodec:"required"`
+	TxsCalcCfg                   *string                          `json:"TxsCalcCfg,omitempty" gencodec:"required"`
+	InterestCalcCfg              *string                          `json:"InterestCalcCfg,omitempty" gencodec:"required"`
+	LotteryCalcCfg               *string                          `json:"LotteryCalcCfg,omitempty" gencodec:"required"`
+	SlashCalcCfg                 *string                          `json:"SlashCalcCfg,omitempty" gencodec:"required"`
+	BlkRewardCfg                 *mc.BlkRewardCfg                 `json:"BlkRewardCfg,omitempty" gencodec:"required"`
+	TxsRewardCfg                 *mc.TxsRewardCfg                 `json:"TxsRewardCfg,omitempty" gencodec:"required"`
+	LotteryCfg                   *mc.LotteryCfg                   `json:"LotteryCfg,omitempty" gencodec:"required"`
+	InterestCfg                  *mc.InterestCfg                  `json:"InterestCfg,omitempty" gencodec:"required"`
+	SlashCfg                     *mc.SlashCfg                     `json:"SlashCfg,omitempty" gencodec:"required"`
+	EleTimeCfg                   *mc.ElectGenTimeStruct           `json:"EleTime,omitempty" gencodec:"required"`
+	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo,omitempty" gencodec:"required"`
+	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum,omitempty" gencodec:"required"`
+	ElectBlackListCfg            *[]GenesisAddress                `json:"ElectBlackList,omitempty" gencodec:"required"`
+	ElectWhiteListCfg            *[]GenesisAddress                `json:"ElectWhiteList,omitempty" gencodec:"required"`
+	CurElect                     *[]GenesisElect                  `json:"CurElect,omitempty"  gencodec:"required"`
+	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg,omitempty" gencodec:"required"`
+	BlockProduceStats            *mc.BlockProduceStats            `json:"BlkProduceStats,omitempty" gencodec:"required"`
+	BlockProduceSlashBlackList   *mc.BlockProduceSlashBlackList   `json:"BlkProduceBlackList,omitempty" gencodec:"required"`
+	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus,omitempty" gencodec:"required"`
 }
 
 func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {

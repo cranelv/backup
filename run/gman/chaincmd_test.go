@@ -1,16 +1,17 @@
 package main
 
 import (
-	"testing"
-	"github.com/matrix/go-matrix/core"
 	"encoding/json"
-	"path/filepath"
-	"github.com/matrix/go-matrix/log"
-	"math/big"
+	"fmt"
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
-	"reflect"
+	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/log"
+	"math/big"
 	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
 )
 type TestStruct1 struct {
 	T1 common.Signature
@@ -224,6 +225,44 @@ func TestUnMarshalGenesisAlloc(t *testing.T){
 	}
 	checkAlloc(dec,genesis,t)
 
+}
+
+func TestMarshalGenesis(t *testing.T){
+	genesis := new(core.Genesis)
+	err := json.Unmarshal([]byte(allocGenesis),genesis)
+	if err != nil {
+		t.Log(err)
+	}
+	dec := make(map[string]interface{})
+	err = json.Unmarshal([]byte(allocGenesis),&dec)
+	if err != nil {
+		t.Log(err)
+	}
+	checkAlloc(dec,genesis,t)
+	if _,err := json.Marshal(genesis                   ); err != nil{fmt.Println( err)}
+/*	if out,err := json.Marshal(genesis                   ); err != nil{fmt.Println( out)}
+	if _,err := json.Marshal(genesis.Config            ); err != nil{fmt.Println( "  genesisConfig             ")}
+	if _,err := json.Marshal(genesis.Nonce             ); err != nil{fmt.Println( "  genesisNonce              ")}
+	if _,err := json.Marshal(genesis.Timestamp         ); err != nil{fmt.Println( "  genesisTimestamp          ")}
+	if _,err := json.Marshal(genesis.ExtraData         ); err != nil{fmt.Println( "  genesisExtraData          ")}
+	if _,err := json.Marshal(genesis.Version           ); err != nil{fmt.Println( "  genesisVersion            ")}
+	if data,err := json.Marshal(genesis.VersionSignatures ); err == nil{fmt.Println("%s", data)}
+	if _,err := json.Marshal(genesis.VrfValue          ); err != nil{fmt.Println( "  genesisVrfValue           ")}
+	if _,err := json.Marshal(genesis.Leader            ); err != nil{fmt.Println( "  genesisLeader             ")}
+	if _,err := json.Marshal(genesis.NextElect         ); err != nil{fmt.Println( "  genesisNextElect          ")}
+	if _,err := json.Marshal(genesis.NetTopology       ); err != nil{fmt.Println( "  genesisNetTopology        ")}
+	if _,err := json.Marshal(genesis.Signatures        ); err != nil{fmt.Println( "  genesisSignatures         ")}
+	if _,err := json.Marshal(genesis.GasLimit          ); err != nil{fmt.Println( "  genesisGasLimit           ")}
+	if _,err := json.Marshal(genesis.Difficulty        ); err != nil{fmt.Println( "  genesisDifficulty         ")}
+	if _,err := json.Marshal(genesis.Mixhash           ); err != nil{fmt.Println( "  genesisMixhash            ")}
+	if _,err := json.Marshal(genesis.Coinbase          ); err != nil{fmt.Println( "  genesisCoinbase           ")}
+	if _,err := json.Marshal(genesis.Alloc             ); err != nil{fmt.Println( "  genesisAlloc              ")}
+	if _,err := json.Marshal(genesis.MState            ); err != nil{fmt.Println( "  genesisMState             ")}
+	if _,err := json.Marshal(genesis.Number            ); err != nil{fmt.Println( "  genesisNumber             ")}
+	if _,err := json.Marshal(genesis.GasUsed           ); err != nil{fmt.Println( "  genesisGasUsed            ")}
+	if _,err := json.Marshal(genesis.ParentHash        ); err != nil{fmt.Println( "  genesisParentHash         ")}
+	if _,err := json.Marshal(genesis.Root              ); err != nil{fmt.Println( "  genesisRoot               ")}
+	if _,err := json.Marshal(genesis.TxHash            ); err != nil{fmt.Println( "  genesisTxHash             ")}*/
 }
 func TestDefaultGenesisAlloc(t *testing.T){
 	genesis := new(core.Genesis)

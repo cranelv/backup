@@ -25,8 +25,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/matrix/go-matrix/base58"
-
 	"github.com/matrix/go-matrix/mandb"
 
 	"github.com/matrix/go-matrix/core/types"
@@ -66,16 +64,16 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 		log.Error("get parent header err!")
 		return
 	}
-	genesis := &core.Genesis1{
+	genesis := &core.Genesis{
 		ParentHash:        parentHeader.Hash(),
-		Leader:            base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
+		Leader:            common.HexToAddress("8111111111111111111111111111111111111111"),
 		Mixhash:           parentHeader.MixDigest,
-		Coinbase:          base58.Base58EncodeToString("MAN", common.HexToAddress("8111111111111111111111111111111111111111")),
+		Coinbase:          common.HexToAddress("8111111111111111111111111111111111111111"),
 		Signatures:        make([]common.Signature, 0),
 		Timestamp:         uint64(time.Now().Unix()),
 		GasLimit:          parentHeader.GasLimit,
 		Difficulty:        parentHeader.Difficulty,
-		Alloc:             make(core.GenesisAlloc1),
+		Alloc:             make(core.GenesisAlloc),
 		ExtraData:         make([]byte, 8),
 		Version:           string(parentHeader.Version),
 		VersionSignatures: parentHeader.VersionSignatures,
@@ -94,30 +92,30 @@ func (w *wizard) MakeSuperGenesis(bc *core.BlockChain, db mandb.Database, num ui
 	binary.BigEndian.PutUint64(genesis.ExtraData, sbs)
 	fmt.Println("超级区块序号", sbs)
 	if curHeader != nil {
-		sliceElect := make([]common.Elect1, 0)
-		for _, elec := range curHeader.Elect {
-			tmp := new(common.Elect1)
-			tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
-			tmp.Stock = elec.Stock
-			tmp.Type = elec.Type
-			tmp.VIP = elec.VIP
-			sliceElect = append(sliceElect, *tmp)
-		}
-		genesis.NextElect = sliceElect
+		/*		sliceElect := make([]common.Elect, 0)
+				for _, elec := range curHeader.Elect {
+					tmp := new(common.Elect)
+					tmp.Account = base58.Base58EncodeToString("MAN", elec.Account)
+					tmp.Stock = elec.Stock
+					tmp.Type = elec.Type
+					tmp.VIP = elec.VIP
+					sliceElect = append(sliceElect, *tmp)
+				}*/
+		genesis.NextElect = curHeader.Elect
 		//NetTopology
-		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
-		for _, netTopology := range curHeader.NetTopology.NetTopologyData {
-			tmp := new(common.NetTopologyData1)
-			tmp.Account = base58.Base58EncodeToString("MAN", netTopology.Account)
-			tmp.Position = netTopology.Position
-			sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
-		}
-		genesis.NetTopology.NetTopologyData = sliceNetTopologyData
+		/*		sliceNetTopologyData := make([]common.NetTopologyData1, 0)
+				for _, netTopology := range curHeader.NetTopology.NetTopologyData {
+					tmp := new(common.NetTopologyData1)
+					tmp.Account = base58.Base58EncodeToString("MAN", netTopology.Account)
+					tmp.Position = netTopology.Position
+					sliceNetTopologyData = append(sliceNetTopologyData, *tmp)
+				}*/
+		genesis.NetTopology.NetTopologyData = curHeader.NetTopology.NetTopologyData
 		genesis.NetTopology.Type = curHeader.NetTopology.Type
 
 	} else {
-		genesis.NextElect = make([]common.Elect1, 0)
-		genesis.NetTopology = common.NetTopology1{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData1, 0)}
+		genesis.NextElect = make([]common.Elect, 0)
+		genesis.NetTopology = common.NetTopology{Type: common.NetTopoTypeChange, NetTopologyData: make([]common.NetTopologyData, 0)}
 	}
 
 	// Figure out which consensus engine to choose
