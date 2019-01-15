@@ -655,6 +655,23 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	return state.GetAllEntrustList(authFrom)
 }
 
+func (s *PublicBlockChainAPI) GetIPFSfirstcache() {
+	fmt.Println("ipfs get first cache list")
+	s.b.Downloader().DGetIPFSfirstcache()
+}
+func (s *PublicBlockChainAPI) GetIPFSsecondcache(strhash string) {
+	fmt.Println("ipfs get second cache list")
+	s.b.Downloader().DGetIPFSSecondcache(strhash)
+}
+
+func (s *PublicBlockChainAPI) GetIPFSblock(strhash string) {
+	fmt.Println("ipfs get block info")
+	s.b.Downloader().DGetIPFSBlock(strhash)
+}
+func (s *PublicBlockChainAPI) GetIPFSsnap(str string) {
+	fmt.Println("ipfs get snapshoot info") //getIPFScommon
+	s.b.Downloader().DGetIPFSsnap(str)
+}
 func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {

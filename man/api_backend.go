@@ -506,7 +506,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 
 func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
-	currentTop, originElectNodes, depositNodes, err := selected.GetTopAndDeposit(b.man.BlockChain(), state, latestElectNum, roleType)
+	currentTop, originElectNodes, err := selected.GetTopAndDeposit(b.man.BlockChain(), state, latestElectNum, roleType)
 	if nil != err {
 		return nil, err
 	}
@@ -529,7 +529,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		validatorReward := br.CalcRewardMountByNumber(RewardMan, uint64(num), halfNum, rewardAddr)
 		minerOutAmount, electedMount, _ := br.CalcMinerRateMount(validatorReward)
 
-		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, depositNodes, 0)
+		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, 0)
 		if 0 == len(selectedNodesDeposit) {
 			return nil, errors.New("获取参与的抵押列表错误")
 		}

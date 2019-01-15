@@ -441,6 +441,26 @@ web3._extend({
 			params: 1,
 		}),
 		new web3._extend.Method({
+			name: 'getIPFSsnap',
+			call: 'man_getIPFSsnap',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getIPFSfirstcache',
+			call: 'man_getIPFSfirstcache',
+			params: 0,
+		}),
+		new web3._extend.Method({
+			name: 'getIPFSsecondcache',
+			call: 'man_getIPFSsecondcache',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getIPFSblock',
+			call: 'man_getIPFSblock',
+			params: 1,
+		}),
+		new web3._extend.Method({
 			name: 'getAuthFrom',
 			call: 'man_getAuthFrom',
 			params: 2,

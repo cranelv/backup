@@ -247,6 +247,10 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	go pm.syncer()
 	go pm.txsyncLoop()
 	//	MyPm = pm
+
+	//saveSnapshotPeriod ,allowSnapshotPoint 现在先定死 300 and 0  广播节点才能调用ipfs 上传接口
+	//go pm.saveSnapshot(300, 0)
+
 }
 
 func (pm *ProtocolManager) Stop() {

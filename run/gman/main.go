@@ -125,6 +125,11 @@ var (
 		configFileFlag,
 		utils.GetCommitFlag,
 		utils.ManAddressFlag,
+		utils.SynSnapshootNumFlg,
+		utils.SynSnapshootHashFlg,
+		utils.SaveSnapStartFlg,
+		utils.SaveSnapPeriodFlg,
+		utils.SnapModeFlg,
 	}
 
 	rpcFlags = []cli.Flag{

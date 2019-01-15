@@ -4,19 +4,13 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/matrix/go-matrix/params/manparams"
-
-	"github.com/matrix/go-matrix/core/vm"
-
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/params"
 
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/reward/util"
 
-	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 )
@@ -52,22 +46,22 @@ type ChainReader interface {
 	NewTopologyGraph(header *types.Header) (*mc.TopologyGraph, error)
 }
 
-func (sr *SelectedReward) GetTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, []vm.DepositDetail, error) {
+func (sr *SelectedReward) GetTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, error) {
 
 	currentTop, originElectNodes, err := chain.GetGraphByState(state)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
-		return nil, nil, nil, errors.New("获取拓扑图错误")
+		return nil, nil, errors.New("获取拓扑图错误")
 	}
 
 	if originElectNodes == nil || 0 == len(originElectNodes.ElectList) {
 		log.Error(PackageName, "get获取初选列表为空", "")
-		return nil, nil, nil, errors.New("get获取初选列表为空")
+		return nil, nil, errors.New("get获取初选列表为空")
 	}
 
 	if currentTop == nil || 0 == len(currentTop.NodeList) {
 		log.Error(PackageName, "当前拓扑图是 空", "")
-		return nil, nil, nil, errors.New("当前拓扑图是 空")
+		return nil, nil, errors.New("当前拓扑图是 空")
 	}
 
 	topNodes := make([]common.Address, 0)
@@ -83,44 +77,8 @@ func (sr *SelectedReward) GetTopAndDeposit(chain util.ChainReader, state util.St
 			electNodes[node.Account] = node.Stock
 		}
 	}
-	var depositNum uint64
 
-	st, err := chain.StateAtNumber(currentNum - 1)
-	if err != nil {
-		log.Error(PackageName, "获取前一个块的状态树失败", err)
-		return nil, nil, nil, err
-	}
-	originInfo, err := matrixstate.GetElectGenTime(st)
-	if nil != err {
-		return nil, nil, nil, errors.New("获取选举信息的出错")
-	}
-
-	bcInterval, err := manparams.GetBCIntervalInfoByNumber(currentNum - 1)
-	if err != nil {
-		log.Error(PackageName, "获取广播周期失败", err)
-		return nil, nil, nil, errors.New("获取广播周期失败")
-	}
-
-	if currentNum < bcInterval.GetReElectionInterval() {
-		depositNum = 0
-	} else {
-		if common.RoleValidator == common.RoleValidator&roleType {
-			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.ValidatorGen)
-		} else {
-			depositNum = bcInterval.GetLastReElectionNumber() - uint64(originInfo.MinerGen)
-		}
-	}
-
-	depositNodes, err := ca.GetElectedByHeightAndRole(new(big.Int).SetUint64(depositNum), roleType)
-	if nil != err {
-		log.ERROR(PackageName, "获取抵押列表错误", err)
-		return nil, nil, nil, errors.New("获取抵押列表错误 ")
-	}
-	if 0 == len(depositNodes) {
-		log.ERROR(PackageName, "获取抵押列表为空", "")
-		return nil, nil, nil, errors.New("获取抵押列表为空 ")
-	}
-	return topNodes, electNodes, depositNodes, nil
+	return topNodes, electNodes, nil
 }
 
 func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB, chain util.ChainReader, roleType common.RoleType, currentNum uint64, rate uint64) map[common.Address]*big.Int {
@@ -132,12 +90,12 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 	}
 	log.Debug(PackageName, "参与奖励大家共发放", reward)
 
-	currentTop, originElectNodes, depositNodes, err := sr.GetTopAndDeposit(chain, state, currentNum, roleType)
+	currentTop, originElectNodes, err := sr.GetTopAndDeposit(chain, state, currentNum, roleType)
 	if nil != err {
 		return nil
 	}
 
-	selectedNodesDeposit := sr.CaclSelectedDeposit(currentTop, originElectNodes, depositNodes, rate)
+	selectedNodesDeposit := sr.CaclSelectedDeposit(currentTop, originElectNodes, rate)
 	if 0 == len(selectedNodesDeposit) {
 		log.Error(PackageName, "获取参与的抵押列表错误", "")
 		return nil
@@ -147,7 +105,7 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 
 }
 
-func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originElectNodes map[common.Address]uint16, depositNodes []vm.DepositDetail, rewardRate uint64) map[common.Address]util.DepositInfo {
+func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originElectNodes map[common.Address]uint16, rewardRate uint64) map[common.Address]util.DepositInfo {
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph {
 		NodesRewardMap[nodelist] = rewardRate
@@ -164,23 +122,16 @@ func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originE
 
 	selectedNodesDeposit := make(map[common.Address]util.DepositInfo, 0)
 
-	for _, v := range depositNodes {
-
-		if depositRate, ok := NodesRewardMap[v.Address]; ok {
-			if v.Deposit.Cmp(big.NewInt(0)) < 0 {
-				log.ERROR(PackageName, "获取抵押值错误，抵押", v.Deposit, "账户", v.Address.Hex())
-				return nil
-			}
-			deposit := util.CalcRateReward(v.Deposit, depositRate)
-			var finalStock uint64
-			if stock, ok := originElectNodes[v.Address]; ok {
-				finalStock = uint64(stock) * depositRate
-			} else {
-				finalStock = depositRate
-			}
-			selectedNodesDeposit[v.Address] = util.DepositInfo{Deposit: deposit, FixStock: finalStock}
-			log.Debug(PackageName, "计算抵押总额,账户", v.Address.Hex(), "抵押", deposit, "股权", finalStock)
+	for k, v := range NodesRewardMap {
+		var finalStock uint64
+		if stock, ok := originElectNodes[k]; ok {
+			finalStock = uint64(stock) * v
+		} else {
+			//二级节点股权默认值为1
+			finalStock = uint64(1) * v
 		}
+		selectedNodesDeposit[k] = util.DepositInfo{Deposit: big.NewInt(0), FixStock: finalStock}
+		log.Debug(PackageName, "计算抵押总额,账户", k.Hex(), "股权", finalStock)
 	}
 	return selectedNodesDeposit
 }
