@@ -247,6 +247,7 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
 	rt.Typ = tx.GetMatrixType()
+	rt.Cointyp = tx.GetTxCurrency()
 	rt.Adam = append(rt.Adam, mapTOAmonts...)
 	b, marshalerr := json.Marshal(rt)
 	if marshalerr != nil {
@@ -335,11 +336,15 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			log.Info("file state_transition", "func CallRevertNormalTx:err:type is ", rt.Typ, "Revert tx type should ", common.ExtraRevocable)
 			continue
 		}
+		if rt.Cointyp != st.msg.GetTxCurrency(){
+			log.Info("file state_transition", "func CallRevertNormalTx:err:tx coin type", st.msg.GetTxCurrency(), "statedb val coin type", rt.Cointyp)
+			continue
+		}
 		for _, vv := range rt.Adam { //一对多交易
 			log.Info("file state_transition", "func CallRevertNormalTx:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
 			log.Info("file state_transition", "func CallRevertNormalTx:from", rt.From, "vv.Amont", vv.Amont)
-			st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, rt.From, vv.Amont)
-			st.state.SubBalance(st.msg.GetTxCurrency(), common.WithdrawAccount, rt.From, vv.Amont)
+			st.state.AddBalance(rt.Cointyp, common.MainAccount, rt.From, vv.Amont)
+			st.state.SubBalance(rt.Cointyp, common.WithdrawAccount, rt.From, vv.Amont)
 			shardings = append(shardings, uint(vv.Addr[0]))
 		}
 		if val, ok := delval[rt.Tim]; ok {
@@ -429,6 +434,7 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	rt.From = tx.From()
 	rt.Tim = tx.GetCreateTime()
 	rt.Typ = tx.GetMatrixType()
+	rt.Cointyp = tx.GetTxCurrency()
 	rt.Adam = append(rt.Adam, mapTOAmonts...)
 	b, marshalerr := json.Marshal(&rt)
 	if marshalerr != nil {

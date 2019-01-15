@@ -464,6 +464,7 @@ type AddrAmont struct {
 
 type RecorbleTx struct {
 	From Address
+	Cointyp string
 	Adam []AddrAmont
 	Tim  uint32
 	Typ  byte
