@@ -27,6 +27,13 @@ var (
 	EmptyUncleHash = CalcUncleHash(nil)
 )
 
+type SnapSaveInfo struct {
+	Flg       int
+	BlockNum  uint64
+	BlockHash string
+	SnapPath  string
+}
+
 // A BlockNonce is a 64-bit hash which proves (combined with the
 // mix-hash) that a sufficient amount of computation has been carried
 // out on a block.
@@ -538,6 +545,11 @@ func (b *Block) Hash() common.Hash {
 	v := b.header.Hash()
 	b.hash.Store(v)
 	return v
+}
+
+//will change header num!!
+func (b *Block) SetHeadNum(num int64) {
+	b.header.Number.SetInt64(num)
 }
 
 type Blocks []*Block

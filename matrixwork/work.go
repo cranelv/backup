@@ -86,16 +86,14 @@ func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	gasAll := new(big.Int).SetUint64(gasuse)
-	priceAll := new(big.Int).SetUint64(params.TxGasPrice) //txer.GasPrice()
+	priceAll := txer.GasPrice()
 	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
 	cu.mapcoin[txer.GetTxCurrency()] = gasAll
 
 	if _, ok := cu.mapprice[txer.GetTxCurrency()]; !ok {
-		if priceAll.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) >= 0 {
-			cu.mapprice[txer.GetTxCurrency()] = priceAll
-		}
+		cu.mapprice[txer.GetTxCurrency()] = priceAll
 	}
 }
 func (cu *coingasUse) getCoinGasPrice(typ string) *big.Int {
@@ -226,7 +224,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot()
 	receipt, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
-	if err != nil {
+	if err != nil && err != core.ErrSpecialTxFailed{
 		log.Info("file work", "func commitTransaction", err)
 		env.State.RevertToSnapshot(snap)
 		return err, nil
@@ -240,7 +238,7 @@ func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.A
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 	snap := env.State.Snapshot()
 	receipt, _, err := core.ApplyTransaction(env.config, env.bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
-	if err != nil {
+	if err != nil && err != core.ErrSpecialTxFailed{
 		log.Info("file work", "func s_commitTransaction", err)
 		env.State.RevertToSnapshot(snap)
 		return err, nil

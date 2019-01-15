@@ -149,6 +149,7 @@ type Downloader struct {
 	dpIpfs        *IPfsDownloader
 	ipfsBodyCh    chan BlockIpfs //result
 	bIpfsDownload int            //1 broadcast, 2 download
+	WaitSnapshoot chan int
 }
 type BlockIpfs struct {
 	Flag             int
@@ -160,10 +161,17 @@ type BlockIpfs struct {
 }
 type BlockIpfsReq struct {
 	ReqPendflg  int
-	Flag        int //1 单个, 2 批量
-	coinstr     string
+	Flag        uint64 //int //1 单个, 2 批量 //快照时携带区块number
+	coinstr     string //快照时携带区块Hash
 	HeadReqipfs *types.Header
 }
+type SnapshootReq struct {
+	BlockNumber uint64
+	Hashstr     string
+	FilePath    string
+}
+
+var SnapshootNumber uint64
 
 // LightChain encapsulates functions required to synchronise a light chain.
 type LightChain interface {
@@ -230,6 +238,9 @@ type BlockChain interface {
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
 	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash)(common.Address,common.Address, error)
+	SynSnapshot(blockNum uint64, hash string, filePath string) bool
+	SetSnapshotParam(period uint64, start uint64)
+	PrintSnapshotAccountMsg(blockNum uint64, hash string, filePath string)
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -265,6 +276,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 		trackStateReq: make(chan *stateReq),
 		dpIpfs:        nil,
 		bIpfsDownload: 0,
+		WaitSnapshoot: make(chan int),
 	}
 	if dl.IpfsMode {
 		dl.dpIpfs = newIpfsDownload()
@@ -753,7 +765,17 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 		floor = int64(ceil - MaxForkAncestry)
 	}
 	p.log.Debug("Looking for common ancestor", "local", ceil, "remote", height)
+	if SnapshootNumber != 0 {
+		if ceil == SnapshootNumber {
+			p.log.Debug("Looking for common ancestor find SnapshootNumber", "local", ceil, "remote", height)
+			return ceil, nil
+		}
+	}
 
+	/*	if snapshot.SnapShotSync==true {
+		snapshot.SnapShotSync= false
+		return  ceil,nil
+	}*/
 	// Request the topmost blocks to short circuit binary ancestor lookup
 	head := ceil
 	if head > height {
@@ -1932,4 +1954,46 @@ func (d *Downloader) processIpfsContent() error {
 	}
 	log.Debug("Downloader WaitBlockInfoFromIpfs out")
 	return nil
+}
+func (d *Downloader) ProcessSnapshoot(number uint64, hash string) error {
+	if d.dpIpfs == nil {
+		return errors.New("Downloader ipfs is nill")
+	}
+	sendReq := make([]BlockIpfsReq, 0, 1)
+	stReq := BlockIpfsReq{
+		ReqPendflg:  4, //full同步,
+		Flag:        number,
+		coinstr:     hash, //借存状态hash
+		HeadReqipfs: nil,
+	}
+	sendReq = append(sendReq, stReq)
+	d.dpIpfs.HeaderIpfsCh <- sendReq
+
+	return nil
+
+}
+func (d *Downloader) SetSnapshootNum(number uint64) {
+	SnapshootNumber = number
+}
+func (d *Downloader) PrintSnapshotAccountMsg(blockNum uint64, hash string, filePath string) {
+	// Short circuit if no peers are available
+
+	//syn snapshots
+
+	// Make sure the peer's TD is higher than our own
+	filePath = "TrieData600"
+	d.blockchain.PrintSnapshotAccountMsg(blockNum, hash, filePath)
+
+}
+func (d *Downloader) DGetIPFSfirstcache() {
+	d.GetfirstcacheByIPFS()
+}
+func (d *Downloader) DGetIPFSSecondcache(strHash string) {
+	d.GetsecondcacheByIPFS(strHash)
+}
+func (d *Downloader) DGetIPFSBlock(strHash string) {
+	d.GetBlockByIPFS(strHash)
+}
+func (d *Downloader) DGetIPFSsnap(strHash string) {
+	d.GetsanpByIPFS(strHash)
 }

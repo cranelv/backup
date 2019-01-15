@@ -287,7 +287,7 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
-	}
+	}/*
 	file, err := os.Open(genesisPath)
 	if err != nil {
 		utils.Fatalf("Failed to read genesis file: %v", err)
@@ -300,12 +300,15 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("获取默认配置文件失败:%v", err)
 	}
 	genesis1 := new(core.Genesis1)
-	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
+	//
+	*/
+	genesis,err := core.DefaultGenesis(genesisPath)
+	if err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	//
 
-	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
+
+	//genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -611,7 +614,7 @@ func importSupBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	matrixGenesis := new(core.Genesis1)
+	matrixGenesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 		return err
@@ -623,9 +626,9 @@ func importSupBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 		return errors.New("make chain err")
 	}
-	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(matrixGenesis, genesis)
-	if _, err := chain.InsertSuperBlock(genesis, false); err != nil {
+
+	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	if _, err := chain.InsertSuperBlock(matrixGenesis, false); err != nil {
 		utils.Fatalf("insert super block err(%v)", err)
 		return err
 	}
@@ -692,7 +695,7 @@ func signBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	matrixGenesis := new(core.Genesis1)
+	matrixGenesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
@@ -708,7 +711,8 @@ func signBlock(ctx *cli.Context) error {
 		utils.Fatalf("get parent header err")
 	}
 	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	genesis = matrixGenesis
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
@@ -763,7 +767,8 @@ func signVersion(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis1)
+	//genesis := new(core.Genesis1)
+	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}

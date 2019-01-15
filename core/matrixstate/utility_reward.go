@@ -36,7 +36,7 @@ func SetBlkRewardCfg(st StateDB, cfg *mc.BlkRewardCfg) error {
 
 /////////////////////////////////////////////////////////////////////
 // 交易奖励相关
-func GetTxsRewardCfg(st StateDB) (*mc.TxsRewardCfgStruct, error) {
+func GetTxsRewardCfg(st StateDB) (*mc.TxsRewardCfg, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -49,10 +49,10 @@ func GetTxsRewardCfg(st StateDB) (*mc.TxsRewardCfgStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(*mc.TxsRewardCfgStruct), nil
+	return value.(*mc.TxsRewardCfg), nil
 }
 
-func SetTxsRewardCfg(st StateDB, cfg *mc.TxsRewardCfgStruct) error {
+func SetTxsRewardCfg(st StateDB, cfg *mc.TxsRewardCfg) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
@@ -66,7 +66,7 @@ func SetTxsRewardCfg(st StateDB, cfg *mc.TxsRewardCfgStruct) error {
 
 /////////////////////////////////////////////////////////////////////
 // 利息相关
-func GetInterestCfg(st StateDB) (*mc.InterestCfgStruct, error) {
+func GetInterestCfg(st StateDB) (*mc.InterestCfg, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -79,10 +79,10 @@ func GetInterestCfg(st StateDB) (*mc.InterestCfgStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(*mc.InterestCfgStruct), nil
+	return value.(*mc.InterestCfg), nil
 }
 
-func SetInterestCfg(st StateDB, cfg *mc.InterestCfgStruct) error {
+func SetInterestCfg(st StateDB, cfg *mc.InterestCfg) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
@@ -152,7 +152,7 @@ func SetInterestPayNum(st StateDB, num uint64) error {
 
 /////////////////////////////////////////////////////////////////////
 // 彩票相关
-func GetLotteryCfg(st StateDB) (*mc.LotteryCfgStruct, error) {
+func GetLotteryCfg(st StateDB) (*mc.LotteryCfg, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -165,10 +165,10 @@ func GetLotteryCfg(st StateDB) (*mc.LotteryCfgStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(*mc.LotteryCfgStruct), nil
+	return value.(*mc.LotteryCfg), nil
 }
 
-func SetLotteryCfg(st StateDB, cfg *mc.LotteryCfgStruct) error {
+func SetLotteryCfg(st StateDB, cfg *mc.LotteryCfg) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
@@ -238,7 +238,7 @@ func SetLotteryNum(st StateDB, num uint64) error {
 
 /////////////////////////////////////////////////////////////////////
 // 惩罚相关
-func GetSlashCfg(st StateDB) (*mc.SlashCfgStruct, error) {
+func GetSlashCfg(st StateDB) (*mc.SlashCfg, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -251,10 +251,10 @@ func GetSlashCfg(st StateDB) (*mc.SlashCfgStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(*mc.SlashCfgStruct), nil
+	return value.(*mc.SlashCfg), nil
 }
 
-func SetSlashCfg(st StateDB, cfg *mc.SlashCfgStruct) error {
+func SetSlashCfg(st StateDB, cfg *mc.SlashCfg) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
@@ -378,4 +378,144 @@ func SetPreMinerTxsReward(st StateDB, reward *mc.MinerOutReward) error {
 		return err
 	}
 	return opt.SetValue(st, reward)
+}
+
+func GetBlkCalc(st StateDB) (string, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return "0", ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyBlkCalc)
+	if err != nil {
+		return "0", err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return "0", err
+	}
+	return value.(string), nil
+}
+
+func SetBlkCalc(st StateDB, Calc string) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyBlkCalc)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, Calc)
+}
+
+func GetTxsCalc(st StateDB) (string, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return "0", ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyTxsCalc)
+	if err != nil {
+		return "0", err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return "0", err
+	}
+	return value.(string), nil
+}
+
+func SetTxsCalc(st StateDB, Calc string) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyTxsCalc)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, Calc)
+}
+
+func GetInterestCalc(st StateDB) (string, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return "0", ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyInterestCalc)
+	if err != nil {
+		return "0", err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return "0", err
+	}
+	return value.(string), nil
+}
+
+func SetInterestCalc(st StateDB, Calc string) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyInterestCalc)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, Calc)
+}
+
+func GetLotteryCalc(st StateDB) (string, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return "0", ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyLotteryCalc)
+	if err != nil {
+		return "0", err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return "0", err
+	}
+	return value.(string), nil
+}
+
+func SetLotteryCalc(st StateDB, Calc string) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyLotteryCalc)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, Calc)
+}
+
+func GetSlashCalc(st StateDB) (string, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return "0", ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeySlashCalc)
+	if err != nil {
+		return "0", err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return "0", err
+	}
+	return value.(string), nil
+}
+
+func SetSlashCalc(st StateDB, Calc string) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeySlashCalc)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, Calc)
 }

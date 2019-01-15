@@ -38,6 +38,18 @@ func (p DepositInterestRateList) Len() int           { return len(p) }
 func (p DepositInterestRateList) Less(i, j int) bool { return p[i].Deposit.Cmp(p[j].Deposit) < 0 }
 
 func New(st util.StateDB) *interest {
+
+	data, err := matrixstate.GetInterestCalc(st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误")
+		return nil
+	}
+
+	if data == util.Stop {
+		log.ERROR(PackageName, "停止发放区块奖励", "")
+		return nil
+	}
+
 	IC, err := matrixstate.GetInterestCfg(st)
 	if nil != err {
 		log.ERROR(PackageName, "获取利息状态树配置错误", "")
@@ -47,10 +59,7 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利息配置", "配置为nil")
 		return nil
 	}
-	if IC.InterestCalc == util.Stop {
-		log.ERROR(PackageName, "停止发放", PackageName)
-		return nil
-	}
+
 	if IC.PayInterval == 0 || 0 == IC.CalcInterval {
 		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
 		return nil
@@ -155,6 +164,18 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 		return nil
 	}
 
+	InterestMap := ic.GetInterest(state, num)
+	ic.SetInterest(InterestMap, state)
+	return InterestMap
+}
+
+func (ic *interest) SetInterest(InterestMap map[common.Address]*big.Int, state vm.StateDB) {
+	for k, v := range InterestMap {
+		depoistInfo.AddInterest(state, k, v)
+	}
+}
+
+func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address]*big.Int {
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
 		if v.MinMoney < 0 {
@@ -179,7 +200,7 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 	originElectNodes, err := matrixstate.GetElectGraph(state)
 	if err != nil {
 		log.Error(PackageName, "获取初选拓扑图错误", err)
-		return nil
+		//return nil
 	}
 	if originElectNodes == nil {
 		log.Error(PackageName, "获取初选拓扑图", "结构为nil")
@@ -206,7 +227,6 @@ func (ic *interest) CalcInterest(state vm.StateDB, num uint64) map[common.Addres
 			log.ERROR(PackageName, "计算的利息非法", result)
 			continue
 		}
-		depoistInfo.AddInterest(state, dv.Address, result)
 		InterestMap[dv.Address] = result
 		log.Debug(PackageName, "账户", dv.Address.String(), "deposit", dv.Deposit.String(), "利息", result.String())
 	}

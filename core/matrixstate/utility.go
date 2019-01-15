@@ -4,6 +4,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"math/big"
 )
 
 func GetVersionInfo(st StateDB) string {
@@ -189,6 +190,90 @@ func SetBlockSuperAccounts(st StateDB, accounts []common.Address) error {
 	return opt.SetValue(st, accounts)
 }
 
+func GetTxsSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountTxsSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetTxsSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountTxsSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
+func GetMultiCoinSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountMultiCoinSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetMultiCoinSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountMultiCoinSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
+func GetSubChainSuperAccounts(st StateDB) ([]common.Address, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountSubChainSupers)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
+}
+
+func SetSubChainSuperAccounts(st StateDB, accounts []common.Address) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyAccountSubChainSupers)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, accounts)
+}
+
 func GetPreBroadcastRoot(st StateDB) (*mc.PreBroadStateRoot, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
@@ -261,7 +346,8 @@ func SetSuperBlockCfg(st StateDB, cfg *mc.SuperBlkCfg) error {
 	return opt.SetValue(st, cfg)
 }
 
-func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
+//func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error)
+func GetBroadcastTxs(st StateDB) (common.BroadTxSlice, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return nil, ErrFindManager
@@ -274,10 +360,10 @@ func GetBroadcastTxs(st StateDB) (map[string]map[common.Address][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(map[string]map[common.Address][]byte), nil
+	return value.(common.BroadTxSlice), nil
 }
 
-func SetBroadcastTxs(st StateDB, txs map[string]map[common.Address][]byte) error {
+func SetBroadcastTxs(st StateDB, txs common.BroadTxSlice) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
 		return ErrFindManager
@@ -287,4 +373,37 @@ func SetBroadcastTxs(st StateDB, txs map[string]map[common.Address][]byte) error
 		return err
 	}
 	return opt.SetValue(st, txs)
+}
+
+func GetTxpoolGasLimit(st StateDB) (*big.Int, error) {
+	version := GetVersionInfo(st)
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSTxpoolGasLimitCfg)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil || value == "0"{
+		return nil, err
+	}
+	return value.(*big.Int), nil
+}
+func GetAccountBlackList(st StateDB) ([]common.Address, error) {
+	version := GetVersionInfo(st)
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSAccountBlackList)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]common.Address), nil
 }

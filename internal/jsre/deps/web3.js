@@ -928,8 +928,8 @@ var SolidityParam = require('./param');
  * @returns {SolidityParam}
  */
 
-var formatInputInt = function (value) {
-    if (value.indexOf('.') > -1) {
+var formatInputInt = function (value,name) {
+    if (name == "address" &&  value.indexOf('.') > -1){
         value = '0x' + Bytes2HexString(decode(value.split('.')[1].substring(0, value.split('.')[1].length-1)))
     }
     BigNumber.config(c.ETH_BIGNUMBER_ROUNDING_MODE);
@@ -5517,8 +5517,15 @@ var methods = function () {
         name: 'getUpTime',
         call: 'eth_getUpTime',
         params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
+    });
+    var getFutureRewards = new Method({
+        name: 'getFutureRewards',
+        call: 'eth_getFutureRewards',
+        params: 1,
+        inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputNewBigNumberFormatter
     });
     var getEntrustList = new Method({
         name: 'getEntrustList',
@@ -5554,6 +5561,12 @@ var methods = function () {
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter,formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getCfgDataByState = new Method({
+        name: 'getCfgDataByState',
+        call: 'eth_getCfgDataByState',
+        params: 1,
+        // outputFormatter: formatters.outputBigNumberFormatter
     });
     var getStorageAt = new Method({
         name: 'getStorageAt',
@@ -5740,11 +5753,13 @@ var methods = function () {
     return [
         getBalance,
         getUpTime,
+        getFutureRewards,
         getEntrustList,
         getAuthFrom,
         getEntrustFrom,
         getAuthFromByTime,
         getEntrustFromByTime,
+        getCfgDataByState,
         getStorageAt,
         getCode,
         getBlock,

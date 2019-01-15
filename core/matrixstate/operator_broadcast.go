@@ -29,7 +29,8 @@ func (opt *operatorBroadcastTx) GetValue(st StateDB) (interface{}, error) {
 		return nil, err
 	}
 
-	value := make(map[string]map[common.Address][]byte)
+	//value := make(map[string]map[common.Address][]byte)
+	value := make(common.BroadTxSlice,0)
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
 		return value, nil
@@ -46,7 +47,8 @@ func (opt *operatorBroadcastTx) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	txs, OK := value.(map[string]map[common.Address][]byte)
+	//txs, OK := value.(map[string]map[common.Address][]byte)
+	txs, OK := value.(common.BroadTxSlice)
 	if !OK {
 		log.Error(logInfo, "input param(broadcastTx) err", "reflect failed")
 		return ErrParamReflect
@@ -99,16 +101,8 @@ func (opt *operatorBroadcastInterval) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	interval, OK := value.(*mc.BCIntervalInfo)
-	if !OK {
-		log.Error(logInfo, "input param(broadcastInterval) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if interval == nil {
-		log.Error(logInfo, "input param(broadcastInterval) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(interval)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "broadcastInterval marshal failed", err)
 		return err
@@ -219,12 +213,8 @@ func (opt *operatorPreBroadcastRoot) SetValue(st StateDB, value interface{}) err
 		return err
 	}
 
-	roots, OK := value.(*mc.PreBroadStateRoot)
-	if !OK {
-		log.Error(logInfo, "input param(preBroadcastRoot) err", "reflect failed")
-		return ErrParamReflect
-	}
-	data, err := json.Marshal(roots)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
 		return err

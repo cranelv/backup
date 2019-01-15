@@ -2,10 +2,11 @@ package lottery
 
 import (
 	"errors"
+	"math/big"
+
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common/mt19937"
 	"github.com/matrix/go-matrix/params"
-	"math/big"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
@@ -52,7 +53,7 @@ type TxsLottery struct {
 	chain       ChainReader
 	seed        LotterySeed
 	state       util.StateDB
-	lotteryCfg  *mc.LotteryCfgStruct
+	lotteryCfg  *mc.LotteryCfg
 	bcInterval  *mc.BCIntervalInfo
 	accountList []common.Address
 }
@@ -68,16 +69,22 @@ func New(chain ChainReader, st util.StateDB, seed LotterySeed) *TxsLottery {
 		return nil
 	}
 
+	data, err := matrixstate.GetLotteryCalc(st)
+	if nil != err {
+		log.ERROR(PackageName, "获取状态树配置错误")
+		return nil
+	}
+
+	if data == util.Stop {
+		log.ERROR(PackageName, "停止发放区块奖励", "")
+		return nil
+	}
+
 	cfg, err := matrixstate.GetLotteryCfg(st)
 	if nil != err || nil == cfg {
 		log.ERROR(PackageName, "获取状态树配置错误", "")
 		return nil
 	}
-	if cfg.LotteryCalc == util.Stop {
-		log.ERROR(PackageName, "停止发放彩票奖励", "")
-		return nil
-	}
-
 	if len(cfg.LotteryInfo) == 0 {
 		log.ERROR(PackageName, "没有配置彩票名额", "")
 		return nil
