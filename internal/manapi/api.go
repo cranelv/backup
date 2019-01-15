@@ -43,7 +43,7 @@ import (
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/p2p"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
+	"github.com/matrix/go-matrix/params/enstrust"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
 	"io/ioutil"
@@ -346,45 +346,40 @@ func GetPassword() (string, error) {
 	return password, nil
 }
 
-func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string, times int64) string {
-	log.Info("修改需求测试", "进入api.go", "SetEntrustSignAccount")
+func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string) (string, error) {
+
 	f, err := os.Open(path)
 	if err != nil {
-		fmt.Println("文件失败", err, "path", path)
-		return err.Error()
+		return "", err
 	}
 
 	b, err := ioutil.ReadAll(f)
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
-		fmt.Println("解密失败", err)
-		return err.Error()
+		return "", errors.New("the contents of the file '" + path + "' are incorrect")
 	}
 	h := sha256.New()
 	h.Write([]byte(password))
 	tpass, err := aes.AesDecrypt(bytesPass, h.Sum(nil))
 	if err != nil {
-		fmt.Println("AedDecrypt失败", bytesPass, password)
-		return err.Error()
+		return "", err
 	}
 
 	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
-		fmt.Println("加密文件解码失败 密码不正确")
-		return err.Error()
+		return "", errors.New("incorrect password")
 	}
 	entrustValue := make(map[common.Address]string, 0)
 
 	for _, v := range anss {
 		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
 	}
-	manparams.EntrustAccountValue.SetEntrustValue(entrustValue)
+	err = entrust.EntrustAccountValue.SetEntrustValue(entrustValue)
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
-	go manparams.SetTimer(times)
-	return "successful"
+	return "successful", nil
 }
 
 // UnlockAccount will unlock the account associated with the given address with

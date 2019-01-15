@@ -43,6 +43,7 @@ import (
 	"github.com/pkg/errors"
 	//"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/depoistInfo"
+	"github.com/matrix/go-matrix/params/enstrust"
 )
 
 var (
@@ -1996,7 +1997,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 }
 
 func (bc *BlockChain) GetSignAccountPassword(signAccounts []common.Address) (common.Address, string, error) {
-	entrustValue := manparams.EntrustAccountValue.GetEntrustValue()
+	entrustValue := entrust.EntrustAccountValue.GetEntrustValue()
 	for _, signAccount := range signAccounts {
 		for account, password := range entrustValue {
 			if signAccount != account {

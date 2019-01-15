@@ -5955,7 +5955,7 @@ var methods = function () {
     var setEntrustSignAccount = new Method({
         name: 'setEntrustSignAccount',
         call: 'personal_setEntrustSignAccount',
-        params: 3
+        params: 2
     });
 
 
