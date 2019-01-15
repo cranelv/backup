@@ -206,6 +206,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
+
 	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersion(bc, bc.genesisBlock.Header())
 	if err != nil {
 		return nil, err
@@ -1339,36 +1340,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				return i, events, coalescedLogs, errors.Errorf("获取超级区块版本号%v对应的处理错误", string(header.Version))
 			}
 		} else {
-			//log.Trace("BlockChain insertChain in3 Process Block")
-			//uptimeMap, err := bc.ProcessUpTime(state, block.Header())
-			//if err != nil {
-			//	log.Trace("BlockChain insertChain in3 Process Block err1")
-			//	bc.reportBlock(block, nil, err)
-			//	return i, events, coalescedLogs, err
-			//}
-			//
-			//// Process block using the parent state as reference point.
-			//receipts, logs, usedGas, err = bc.processor[string(header.Version)].Process(block, state, bc.vmConfig, uptimeMap)
-			//if err != nil {
-			//	log.Trace("BlockChain insertChain in3 Process Block err2")
-			//	bc.reportBlock(block, receipts, err)
-			//	return i, events, coalescedLogs, err
-			//}
-			//
-			//// Process matrix state
-			//err = bc.matrixState.ProcessMatrixState(block, state)
-			//if err != nil {
-			//	log.Trace("BlockChain insertChain in3 Process Block err3")
-			//	return i, events, coalescedLogs, err
-			//}
-			//
-			//// Validate the state using the default validator
-			//err = bc.Validator(string(header.Version)).ValidateState(block, parent, state, receipts, usedGas)
-			//if err != nil {
-			//	log.Trace("BlockChain insertChain in3 Process Block err4")
-			//	bc.reportBlock(block, receipts, err)
-			//	return i, events, coalescedLogs, err
-			//}
 
 			err := bc.Processor(block.Header().Version).Process(block, parent, state, bc.vmConfig)
 			if nil != err {

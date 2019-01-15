@@ -41,7 +41,7 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo,
 				log.Error(LogManBlk, "反射失败,类型为", "")
 				return nil, nil, errors.New("反射失败")
 			}
-			bd.preBlockHash = preBlockHash
+			bd.baseInterface.preBlockHash = preBlockHash
 		default:
 			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
 		}
@@ -55,7 +55,7 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo,
 		return nil, nil, err
 	}
 
-	bd.setBCTimeStamp(parent, originHeader)
+	bd.setBCTimeStamp(parent, originHeader, num)
 	bd.baseInterface.setLeader(originHeader)
 	bd.baseInterface.setNumber(originHeader, num)
 	bd.baseInterface.setGasLimit(originHeader, parent)
@@ -98,11 +98,11 @@ func (p *ManBCBlkPlug) setBCVrf(support BlKSupport, parent *types.Block, header 
 	return nil
 }
 
-func (p *ManBCBlkPlug) setBCTimeStamp(parent *types.Block, header *types.Header) {
+func (p *ManBCBlkPlug) setBCTimeStamp(parent *types.Block, header *types.Header, num uint64) {
 	nowTime := time.Now()
 	// 广播区块时间戳默认为父区块+1s， 保证所有广播节点出块的时间戳一致
 	tsTamp := parent.Time().Int64() + 1
-	log.Info(LogManBlk, "关键时间点", "广播区块头开始生成", "cur time", nowTime, "header time", tsTamp, "块高", header.Number.Uint64())
+	log.Info(LogManBlk, "关键时间点", "广播区块头开始生成", "cur time", nowTime, "header time", tsTamp, "块高", num)
 	// this will ensure we're not going off too far in the future
 	if now := time.Now().Unix(); tsTamp > now+1 {
 		wait := time.Duration(tsTamp-now) * time.Second

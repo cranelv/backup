@@ -276,7 +276,12 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		p.bc.reportBlock(block, nil, err)
 		return err
 	}
-
+	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err6")
+		p.bc.reportBlock(block, nil, err)
+		return err
+	}
 	// Process block using the parent state as reference point.
 	receipts, _, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {

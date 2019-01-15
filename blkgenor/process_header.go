@@ -114,7 +114,7 @@ func (p *Process) sendBroadcastMiningReq(header *types.Header, finalTxs []types.
 func (p *Process) setSignatures(header *types.Header) error {
 
 	signHash := header.HashNoSignsAndNonce()
-	sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
+	sign, err := p.signHelper().SignHashWithValidateByAccount(signHash.Bytes(), true, ca.GetDepositAddress())
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
 		return err
