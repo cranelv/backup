@@ -9,9 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
+	"os"
+	"path"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,8 +41,8 @@ import (
 	"github.com/matrix/go-matrix/metrics"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/manparams"
-
 	"github.com/matrix/go-matrix/rlp"
+	"github.com/matrix/go-matrix/snapshot"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/pkg/errors"
 	//"github.com/matrix/go-matrix/baseinterface"
@@ -50,6 +54,9 @@ var (
 	blockInsertTimer = metrics.NewRegisteredTimer("chain/inserts", nil)
 
 	ErrNoGenesis = errors.New("Genesis not found in chain")
+
+	SaveSnapPeriod uint64 = 300
+	SaveSnapStart  uint64 = 0
 )
 
 const (
@@ -63,6 +70,7 @@ const (
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	BlockChainVersion = 3
 	ModuleName        = "blockchain"
+	numSnapshotPeriod = 300
 )
 
 // CacheConfig contains the configuration values for the trie caching/pruning
@@ -916,6 +924,13 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
+			if block.NumberU64()%numSnapshotPeriod == 5 {
+				bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+			}
+		} else {
+			if block.NumberU64()%SaveSnapPeriod == 5 {
+				bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+			}
 		}
 		stats.processed++
 
@@ -1023,8 +1038,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		tmpBlock.Pading = uint64(len(block.Body().Transactions))
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
+		if block.NumberU64()%300 == 5 {
+			bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+		}
+	} else {
+		if block.NumberU64()%SaveSnapPeriod == 5 {
+			bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+		}
 	}
-
 	//log.Info("miss tree node debug", "入链时", "commit前state状态")
 	//state.MissTrieDebug()
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
@@ -2257,4 +2278,338 @@ func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Add
 	log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "签名高度", signHeight, "a2Account", a2Account, "a1Account", a1Account)
 
 	return a1Account, nil
+}
+
+func (bc *BlockChain) GetStateCache() state.Database {
+	return bc.stateCache
+}
+func (bc *BlockChain) GetDB() mandb.Database {
+	return bc.db
+}
+func (bc *BlockChain) CurrentBlockStore(tbc *types.Block) {
+	bc.currentBlock.Store(tbc)
+}
+
+func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string) bool {
+	// Short circuit if no peers are available
+
+	//syn snapshots
+
+	// Make sure the peer's TD is higher than our own
+	currentBlock := bc.CurrentBlock()
+
+	if blockNum <= bc.CurrentBlock().NumberU64() {
+		log.DEBUG("BlockChain synSnapshot", "the blockNum is too low ,sblockNum", blockNum)
+		return false
+	}
+	rb, rerr := ioutil.ReadFile(filePath)
+	if rerr != nil {
+		log.Error("BlockChain synSnapshot", "Read TrieData err: ", rerr)
+		return false
+	}
+	var snapshotDatas snapshot.SnapshotDatas
+	rlperr := rlp.DecodeBytes(rb, &snapshotDatas)
+	if rlperr != nil {
+		log.Error("BlockChain synSnapshot", "Unmarshal TrieData err: ", rlperr)
+		return false
+	}
+	if blockNum != snapshotDatas.Datas[len(snapshotDatas.Datas)-1].Block.NumberU64() {
+		log.DEBUG("BlockChain synSnapshot", "the blockNum is not eq the real snapnumber ,sblockNum", blockNum)
+		return false
+	}
+
+	for _, otherTires := range snapshotDatas.OtherTries {
+		triedb := trie.NewDatabase(bc.GetDB())
+		mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
+		log.Info("BlockChain synSnapshot ", "otherTires root", mytrie)
+		for _, it := range otherTires.Matrix {
+			mytrie.Update(it.GetKey, it.Value)
+		}
+		for _, it := range otherTires.Account {
+			mytrie.Update(it.GetKey, it.Value)
+		}
+		root, err := mytrie.Commit(nil)
+		if err != nil {
+			log.Error("BlockChain synSnapshot", "commit err: ", err)
+			return false
+		}
+
+		if triedb.Commit(root, true) != nil {
+			log.Error("BlockChain synSnapshot", "commit err: ", err)
+			return false
+		}
+	}
+
+	for _, snapshotData := range snapshotDatas.Datas {
+		//state tire
+		triedb := trie.NewDatabase(bc.GetDB())
+
+		//code data
+		for _, itc := range snapshotData.TrieArry.CodeDatas {
+			log.Info("BlockChain synSnapshot", "codehash:-", common.Bytes2Hex(itc.CodeHash), "code:-", common.Bytes2Hex(itc.Code))
+			triedb.Insert(common.BytesToHash(itc.CodeHash), itc.Code)
+			triedb.Commit(common.BytesToHash(itc.CodeHash), false)
+		}
+		log.Info("BlockChain synSnapshot finished code data")
+		mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
+		//matrix data
+		for _, itm := range snapshotData.TrieArry.Matrix {
+			mytrie.Update(itm.GetKey, itm.Value)
+		}
+		log.Info("BlockChain synSnapshot finished matrix data")
+		//account data
+		for _, ita := range snapshotData.TrieArry.Account {
+			mytrie.Update(ita.GetKey, ita.Value)
+		}
+		log.Info("BlockChain synSnapshot finished account data")
+
+		root, err := mytrie.Commit(nil)
+		if err != nil {
+			log.Error("BlockChain synSnapshot", "commit err: ", err)
+			return false
+		}
+
+		if triedb.Commit(root, true) != nil {
+			log.Error("BlockChain synSnapshot", "commit err: ", err)
+			return false
+		}
+
+		log.Info("BlockChain synSnapshot root,", "root", root.String())
+
+		//storage data
+		for _, itas := range snapshotData.TrieArry.MapAccount {
+
+			storagetrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
+			fmt.Println()
+			for _, it := range itas.DumpData {
+				storagetrie.Update(it.GetKey, it.Value)
+			}
+
+			root4storage, err := storagetrie.Commit(nil)
+			if err != nil {
+				log.Error("BlockChain synSnapshot", "commit err: ", err)
+				return false
+			}
+
+			if triedb.Commit(root4storage, true) != nil {
+				log.Error("BlockChain synSnapshot", "commit err: ", err)
+				return false
+			}
+
+			log.Info("BlockChain synSnapshot root4storage,", "root4storage", root4storage.String())
+
+		}
+
+		//block
+		block := snapshotData.Block
+		currentBlock.SetHeadNum(block.Number().Int64())
+		err = bc.WriteBlockWithoutState(&block, snapshotData.Td)
+		if err != nil {
+			log.ERROR("BlockChain synSnapshot", " Failed writing block to chain", err)
+		}
+
+		rawdb.WriteHeadBlockHash(bc.GetDB(), block.Hash())
+		rawdb.WriteHeadFastBlockHash(bc.GetDB(), block.Hash())
+		rawdb.WriteCanonicalHash(bc.GetDB(), block.Hash(), block.NumberU64())
+		bc.CurrentBlockStore(&block)
+		log.INFO("BlockChain synSnapshot", "block insert ok, number", block.NumberU64())
+
+	}
+	return true
+
+}
+func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
+
+	log.Info("BlockChain savesnapshot enter", "blockNum", blockNum, "saveSnapPeriod", SaveSnapPeriod, "saveSnapStart", SaveSnapStart)
+	if SaveSnapStart < 4 || SaveSnapStart > blockNum {
+		return
+	}
+	var tmpSanpInfo types.SnapSaveInfo
+	times := blockNum / uint64(period)
+	NewBlocknum := uint64(period) * times
+
+	getSnapshotNums := func(num uint64, bc *BlockChain) (nums []uint64) {
+		nums = make([]uint64, 0)
+
+		haveSuperBlock := false
+		nums = append(nums, num)
+		nums = append(nums, num-1)
+		nums = append(nums, num-2)
+
+		for _, value := range nums {
+			if bc.GetBlockByNumber(value).IsSuperBlock() {
+				haveSuperBlock = true
+				break
+			}
+		}
+		if haveSuperBlock {
+			nums = append(nums, num-3)
+		}
+		for i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {
+			nums[i], nums[j] = nums[j], nums[i]
+		}
+		return nums
+	}
+	nums := getSnapshotNums(NewBlocknum, bc)
+
+	snapshotDatas := snapshot.SnapshotDatas{
+		Datas: make([]snapshot.SnapshotData, 0),
+	}
+
+	tmpstatedb, stateerr := bc.State()
+	if stateerr != nil {
+		log.Error("BlockChain savesnapshot ", "open state fialed,err ", stateerr)
+	}
+
+	preBCRoot, err := matrixstate.GetPreBroadcastRoot(tmpstatedb)
+	if err != nil {
+		log.Error(" BlockChain savesnapshot ", "get pre broadcast root err", err)
+		return
+	}
+
+	if !preBCRoot.BeforeLastStateRoot.Equal(common.Hash{}) {
+		dumpDB, stateerr := getDumpDB(preBCRoot.BeforeLastStateRoot, bc)
+		if stateerr != nil {
+			log.Error("BlockChain savesnapshot ", "get a dumpdb err", err)
+			return
+		}
+		snapshotDatas.OtherTries = append(snapshotDatas.OtherTries, dumpDB)
+	}
+
+	if !preBCRoot.LastStateRoot.Equal(common.Hash{}) {
+		dumpDB, stateerr := getDumpDB(preBCRoot.LastStateRoot, bc)
+		if stateerr != nil {
+			log.Error("BlockChain savesnapshot ", "get a dumpdb err", err)
+			return
+		}
+		snapshotDatas.OtherTries = append(snapshotDatas.OtherTries, dumpDB)
+	}
+
+	var filePath string
+	for _, correct := range nums {
+		log.Info("BlockChain savesnapshot ", "correct###############################: ", correct)
+
+		block := bc.GetBlockByNumber(uint64(correct))
+		td := bc.GetTd(block.Hash(), block.NumberU64())
+		header := block.Header()
+		root := header.Root
+
+		log.Info("BlockChain savesnapshot ", "root ###############################: ", root)
+
+		//					cachestate := state.Database(pm.blockchain.StateCache)
+
+		statedb, err := bc.StateAt(root)
+		if err != nil {
+			log.Error("BlockChain savesnapshot ", "open state fialed,err ", err)
+			return
+		}
+		dumpDB := statedb.RawDumpDB()
+		log.Info("dumpDB ______ info", "root", dumpDB.Root)
+		for _, v := range dumpDB.Account {
+			log.Info("dump0 info", "accout", common.Bytes2Hex(v.GetKey), "data", v)
+		}
+		for _, v := range dumpDB.Matrix {
+			log.Info("dump0 info", "MatrixData", common.Bytes2Hex(v.GetKey), "data", v)
+		}
+
+		dump0 := statedb.RawDump()
+		log.Info("dump info", "root", dump0.Root)
+		for k, v := range dump0.Accounts {
+			log.Info("dump0 info", "accout", k, "data", v)
+		}
+		for k, v := range dump0.MatrixData {
+			log.Info("dump0 info", "MatrixData", k, "data", v)
+		}
+
+		dump1 := statedb.RawDump1(&dumpDB)
+		log.Info("dump info", "root", dump1.Root)
+		for k, v := range dump1.Accounts {
+			log.Info("dump1 info", "accout", k, "data", v)
+		}
+		for k, v := range dump1.MatrixData {
+			log.Info("dump1 info", "MatrixData", k, "data", v)
+		}
+		if len(dump0.MatrixData) != len(dump1.MatrixData) {
+			panic("dump error")
+		}
+
+		snapshotData := snapshot.SnapshotData{dumpDB, td, *block}
+		fmt.Println("block,", *block)
+
+		snapshotDatas.Datas = append(snapshotDatas.Datas, snapshotData)
+	}
+
+	//log.Warn("BlockChain snapshotDatas", "snapshotDatas", snapshotDatas)
+	wb, err := rlp.EncodeToBytes(&snapshotDatas)
+	//log.Warn("BlockChain snapshotDatas byte", "snapshotDatas byte", wb)
+
+	//wb, err := msgpack.Marshal(TrieArry)
+	if err != nil {
+		log.ERROR("BlockChain savesnapshot ", "encode  err: ", err)
+	}
+	filePath = path.Join(snapshot.SNAPDIR, "/TrieData"+strconv.Itoa(int(nums[len(nums)-1])))
+	f, ferr := os.Create(filePath)
+	if ferr != nil {
+		log.ERROR("BlockChain Create TrieData", "ferr", ferr, "f", f)
+	}
+	count, err := f.Write(wb)
+	if err != nil {
+		log.ERROR("BlockChain savesnapshot ", "Write snapshot err: ", err)
+	} else {
+		log.Info("BlockChain savesnapshot ", "Write snapshot bytes : ", count)
+	}
+	f.Close()
+
+	tmpSanpInfo.BlockNum = nums[len(nums)-1]
+	tmpSanpInfo.BlockHash = bc.GetHeaderByNumber(tmpSanpInfo.BlockNum).Hash().String()
+	tmpSanpInfo.SnapPath = filePath
+	if bc.qBlockQueue != nil {
+		bc.qBlockQueue.Push(tmpSanpInfo, -float32(tmpSanpInfo.BlockNum))
+	}
+	//pm.downloader.SaveSnapshootStatus(blockNum, strHeadhas, filePath)
+
+}
+func (bc *BlockChain) SetSnapshotParam(period uint64, start uint64) {
+	SaveSnapPeriod = period
+	SaveSnapStart = start
+}
+func getDumpDB(root common.Hash, bc *BlockChain) (dumpdb state.DumpDB, err error) {
+	statedb, err := bc.StateAt(root)
+	if err != nil {
+		log.Error("savesnapshot ", "open state fialed,err ", err)
+		return dumpdb, err
+	}
+
+	return statedb.RawDumpDB(), nil
+}
+
+func (bc *BlockChain) PrintSnapshotAccountMsg(blockNum uint64, hash string, filePath string) {
+	// Short circuit if no peers are available
+
+	//syn snapshots
+
+	// Make sure the peer's TD is higher than our own
+	fmt.Println("BlockChain PrintSnapshotAccountMsg", filePath)
+	rb, rerr := ioutil.ReadFile(filePath)
+	if rerr != nil {
+		log.Error("BlockChain synSnapshot", "Read TrieData err: ", rerr)
+		return
+	}
+	var snapshotDatas snapshot.SnapshotDatas
+	rlperr := rlp.DecodeBytes(rb, &snapshotDatas)
+	if rlperr != nil {
+		log.Error("BlockChain synSnapshot", "Unmarshal TrieData err: ", rlperr)
+		return
+	}
+
+	/*if blockNum != snapshotDatas.Datas[len(snapshotDatas.Datas)-1].Block.NumberU64() {
+		log.DEBUG("BlockChain synSnapshot", "the blockNum is not eq the real snapnumber ,sblockNum", blockNum)
+		return
+	}*/
+	fmt.Println("BlockChain PrintSnapshotAccountMsg begin")
+	dumpDB := snapshotDatas.Datas[len(snapshotDatas.Datas)-1].TrieArry
+	dumpDB.PrintAccountMsg()
+
+	return
+
 }

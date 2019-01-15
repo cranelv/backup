@@ -6,6 +6,7 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"reflect"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -47,16 +48,8 @@ func (opt *operatorTopologyGraph) SetValue(st StateDB, value interface{}) error 
 		return err
 	}
 
-	graph, OK := value.(*mc.TopologyGraph)
-	if !OK {
-		log.Error(logInfo, "input param(topologyGraph) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if graph == nil {
-		log.Error(logInfo, "input param(topologyGraph) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(graph)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "topologyGraph marshal failed", err)
 		return err
@@ -104,16 +97,8 @@ func (opt *operatorElectGraph) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	graph, OK := value.(*mc.ElectGraph)
-	if !OK {
-		log.Error(logInfo, "input param(electGraph) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if graph == nil {
-		log.Error(logInfo, "input param(electGraph) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(graph)
+
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "electGraph marshal failed", err)
 		return err
@@ -160,17 +145,7 @@ func (opt *operatorElectOnlineState) SetValue(st StateDB, value interface{}) err
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
-	status, OK := value.(*mc.ElectOnlineStatus)
-	if !OK {
-		log.Error(logInfo, "input param(electOnlineStatus) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if status == nil {
-		log.Error(logInfo, "input param(electOnlineStatus) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(status)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "electOnlineStatus marshal failed", err)
 		return err
@@ -218,16 +193,7 @@ func (opt *operatorElectGenTime) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	genTime, OK := value.(*mc.ElectGenTimeStruct)
-	if !OK {
-		log.Error(logInfo, "input param(electGenTime) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if genTime == nil {
-		log.Error(logInfo, "input param(electGenTime) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(genTime)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "electGenTime marshal failed", err)
 		return err
@@ -275,16 +241,7 @@ func (opt *operatorElectMinerNum) SetValue(st StateDB, value interface{}) error 
 		return err
 	}
 
-	info, OK := value.(*mc.ElectMinerNumStruct)
-	if !OK {
-		log.Error(logInfo, "input param(electMinerNum) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if info == nil {
-		log.Error(logInfo, "input param(electMinerNum) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(info)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "electMinerNum marshal failed", err)
 		return err
@@ -387,7 +344,12 @@ func (opt *operatorElectBlackList) SetValue(st StateDB, value interface{}) error
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 	accounts, OK := value.([]common.Address)
 	if !OK {
 		log.Error(logInfo, "input param(electBlackList) err", "reflect failed")
@@ -439,7 +401,12 @@ func (opt *operatorElectWhiteList) SetValue(st StateDB, value interface{}) error
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
 	accounts, OK := value.([]common.Address)
 	if !OK {
 		log.Error(logInfo, "input param(electWhiteList) err", "reflect failed")

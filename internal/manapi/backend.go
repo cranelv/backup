@@ -63,9 +63,13 @@ type Backend interface {
 	FetcherNotify(hash common.Hash, number uint64)                                                                                                     //
 
 	ChainConfig() *params.ChainConfig
-	CurrentBlock() *types.Block
+	//Config() *man.Config
 
+	NetRPCService() *PublicNetAPI
+	CurrentBlock() *types.Block
 	GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
+	GetFutureRewards(ctx context.Context, blockNr rpc.BlockNumber) (interface{}, error)
+	Genesis() *types.Block
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

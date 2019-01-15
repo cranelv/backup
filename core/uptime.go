@@ -19,23 +19,13 @@ import (
 )
 
 func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInfo) ([]common.Address, error) {
-	prState, err := bc.StateAtNumber(num - 1)
-	if err != nil {
-		log.ERROR(ModuleName, "获取pre区块的state err", err)
-		return nil, err
-	}
 
-	electGenConf, err := matrixstate.GetElectGenTime(prState)
-	if err != nil || nil == electGenConf {
-		log.ERROR(ModuleName, "获取选举生成点配置失败 err", err)
-		return nil, err
-	}
 
 	log.INFO(ModuleName, "获取所有参与uptime点名高度", num)
 
 	upTimeAccounts := make([]common.Address, 0)
-
-	minerNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.MinerGen)
+//todo:和老吕讨论Uptime使用当前抵押值
+	minerNum := num-1
 	log.Debug(ModuleName, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
@@ -46,7 +36,7 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInf
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	validatorNum := num - (num % bcInterval.GetBroadcastInterval()) - uint64(electGenConf.ValidatorGen)
+	validatorNum := num-1
 	log.Debug(ModuleName, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {

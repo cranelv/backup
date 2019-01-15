@@ -8,13 +8,14 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/matrix/go-matrix/base58"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/matrix/go-matrix/base58"
 
 	"encoding/json"
 
@@ -544,6 +545,31 @@ var (
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: man.DefaultConfig.GPO.Percentile,
 	}
+	SynSnapshootNumFlg = cli.Uint64Flag{
+		Name:  "snapnumber",
+		Usage: "snapshoot sync block number",
+		Value: man.SnapshootNumber,
+	}
+	SynSnapshootHashFlg = cli.StringFlag{
+		Name:  "snaphash",
+		Usage: "snapshoot sync block hash",
+		Value: man.SnapshootHash,
+	}
+	SnapModeFlg = cli.IntFlag{
+		Name:  "snapFlag",
+		Usage: "snapFlag 0:from broadcast, 1:local",
+		Value: man.SnaploadFromLocal,
+	}
+	SaveSnapStartFlg = cli.Uint64Flag{
+		Name:  "snapstart",
+		Usage: "snapshoot start switch",
+		Value: man.SaveSnapStart,
+	}
+	SaveSnapPeriodFlg = cli.Uint64Flag{
+		Name:  "snapperiod",
+		Usage: "snapshoot save period,default 300",
+		Value: man.SaveSnapPeriod,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1034,6 +1060,12 @@ func SetNodeConfig(ctx *cli.Context, cfg *pod.Config) {
 	if ctx.GlobalIsSet(NoUSBFlag.Name) {
 		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
 	}
+
+	man.SnapshootNumber = ctx.GlobalUint64(SynSnapshootNumFlg.Name)
+	man.SnapshootHash = ctx.GlobalString(SynSnapshootHashFlg.Name)
+	man.SaveSnapStart = ctx.GlobalUint64(SaveSnapStartFlg.Name)
+	man.SaveSnapPeriod = ctx.GlobalUint64(SaveSnapPeriodFlg.Name)
+	man.SnaploadFromLocal = ctx.GlobalInt(SnapModeFlg.Name)
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {

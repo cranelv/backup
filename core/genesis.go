@@ -98,7 +98,28 @@ type Genesis1 struct {
 }
 type GenesisAlloc1 map[string]GenesisAccount //
 func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
-	gensis.Config = gensis1.Config
+	//gensis.Config = gensis1.Config
+
+	if nil != gensis1.Config {
+		if nil != gensis1.Config.ChainId {
+			gensis.Config.ChainId = gensis1.Config.ChainId
+		}
+		if nil != gensis1.Config.ByzantiumBlock {
+			gensis.Config.ByzantiumBlock = gensis1.Config.ByzantiumBlock
+		}
+		if nil != gensis1.Config.HomesteadBlock {
+			gensis.Config.HomesteadBlock = gensis1.Config.HomesteadBlock
+		}
+		if nil != gensis1.Config.EIP150Block {
+			gensis.Config.EIP150Block = gensis1.Config.EIP150Block
+		}
+		if nil != gensis1.Config.EIP155Block {
+			gensis.Config.EIP155Block = gensis1.Config.EIP155Block
+		}
+		if nil != gensis1.Config.EIP158Block {
+			gensis.Config.EIP158Block = gensis1.Config.EIP158Block
+		}
+	}
 	gensis.Nonce = gensis1.Nonce
 	gensis.Timestamp = gensis1.Timestamp
 	gensis.ExtraData = gensis1.ExtraData
@@ -149,47 +170,75 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 			for _, b := range *gensis1.MState.Broadcasts {
 				broadcasts = append(broadcasts, base58.Base58DecodeToAddress(b))
 			}
-			gensis.MState.Broadcasts = &broadcasts
+//			gensis.MState.Broadcasts = &broadcasts
 		}
 		if nil != gensis1.MState.Foundation {
-			gensis.MState.Foundation = new(common.Address)
-			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*gensis1.MState.Foundation)
+//			gensis.MState.Foundation = new(common.Address)
+//			*gensis.MState.Foundation = base58.Base58DecodeToAddress(*gensis1.MState.Foundation)
 		}
 		if nil != gensis1.MState.VersionSuperAccounts {
 			versionSuperAccounts := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.VersionSuperAccounts {
 				versionSuperAccounts = append(versionSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
+//			gensis.MState.VersionSuperAccounts = &versionSuperAccounts
 		}
+		if nil != gensis1.MState.TxsSuperAccounts {
+			TxsSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.TxsSuperAccounts {
+				TxsSuperAccounts = append(TxsSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+//			gensis.MState.TxsSuperAccounts = &TxsSuperAccounts
+		}
+		if nil != gensis1.MState.MultiCoinSuperAccounts {
+			MultiCoinSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.MultiCoinSuperAccounts {
+				MultiCoinSuperAccounts = append(MultiCoinSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+//			gensis.MState.MultiCoinSuperAccounts = &MultiCoinSuperAccounts
+		}
+
+		if nil != gensis1.MState.SubChainSuperAccounts {
+			SubChainSuperAccounts := make([]common.Address, 0)
+			for _, v := range *gensis1.MState.SubChainSuperAccounts {
+				SubChainSuperAccounts = append(SubChainSuperAccounts, base58.Base58DecodeToAddress(v))
+			}
+//			gensis.MState.SubChainSuperAccounts = &SubChainSuperAccounts
+		}
+
 		if nil != gensis1.MState.BlockSuperAccounts {
 			blockSuperAccounts := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.BlockSuperAccounts {
 				blockSuperAccounts = append(blockSuperAccounts, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
+//			gensis.MState.BlockSuperAccounts = &blockSuperAccounts
 		}
 		if nil != gensis1.MState.InnerMiners {
 			innerMiners := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.InnerMiners {
 				innerMiners = append(innerMiners, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.InnerMiners = &innerMiners
+//			gensis.MState.InnerMiners = &innerMiners
 		}
 		if nil != gensis1.MState.ElectBlackListCfg {
 			blackList := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.ElectBlackListCfg {
 				blackList = append(blackList, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.ElectBlackListCfg = &blackList
+//			gensis.MState.ElectBlackListCfg = &blackList
 		}
 		if nil != gensis1.MState.ElectWhiteListCfg {
 			whiteList := make([]common.Address, 0)
 			for _, v := range *gensis1.MState.ElectWhiteListCfg {
 				whiteList = append(whiteList, base58.Base58DecodeToAddress(v))
 			}
-			gensis.MState.InnerMiners = &whiteList
+//			gensis.MState.InnerMiners = &whiteList
 		}
+		gensis.MState.BlkCalcCfg = gensis1.MState.BlkCalcCfg
+		gensis.MState.TxsCalcCfg = gensis1.MState.TxsCalcCfg
+		gensis.MState.InterestCalcCfg = gensis1.MState.InterestCalcCfg
+		gensis.MState.LotteryCalcCfg = gensis1.MState.LotteryCalcCfg
+		gensis.MState.SlashCalcCfg = gensis1.MState.SlashCalcCfg
 		gensis.MState.ElectMinerNumCfg = gensis1.MState.ElectMinerNumCfg
 		gensis.MState.BlkRewardCfg = gensis1.MState.BlkRewardCfg
 		gensis.MState.TxsRewardCfg = gensis1.MState.TxsRewardCfg
@@ -203,10 +252,10 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		gensis.MState.EleInfoCfg = gensis1.MState.EleInfoCfg
 		if nil != gensis1.MState.CurElect {
 			//curElect
-			curElect := make([]common.Elect, 0)
+			curElect := make([]GenesisElect, 0)
 			for _, elec := range *gensis1.MState.CurElect {
-				tmp := new(common.Elect)
-				tmp.Account = base58.Base58DecodeToAddress(elec.Account)
+				tmp := new(GenesisElect)
+				tmp.Account = GenesisAddress(base58.Base58DecodeToAddress(elec.Account))
 				tmp.Stock = elec.Stock
 				tmp.Type = elec.Type
 				curElect = append(curElect, *tmp)
@@ -225,6 +274,18 @@ func ManGenesisToEthGensis(gensis1 *Genesis1, gensis *Genesis) {
 		if nil != gensis1.MState.BlockProduceStats {
 			gensis.MState.BlockProduceStats = gensis1.MState.BlockProduceStats
 		}
+	}
+	if nil != gensis1.MState.BlockProduceSlashCfg {
+		gensis.MState.BlockProduceSlashCfg = gensis1.MState.BlockProduceSlashCfg
+	}
+	if nil != gensis1.MState.BlockProduceSlashBlackList {
+		gensis.MState.BlockProduceSlashBlackList = gensis1.MState.BlockProduceSlashBlackList
+	}
+	if nil != gensis1.MState.BlockProduceSlashStatsStatus {
+		gensis.MState.BlockProduceSlashStatsStatus = gensis1.MState.BlockProduceSlashStatsStatus
+	}
+	if nil != gensis1.MState.BlockProduceStats {
+		gensis.MState.BlockProduceStats = gensis1.MState.BlockProduceStats
 	}
 
 }
@@ -331,6 +392,9 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 
 		log.Info("Writing custom genesis block")
 		block, err := genesis.Commit(db)
+		if err != nil {
+			return nil, common.Hash{}, errGenGenesisBlockNoConfig
+		}
 		return genesis.Config, block.Hash(), err
 	}
 

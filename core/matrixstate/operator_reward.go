@@ -2,11 +2,15 @@ package matrixstate
 
 import (
 	"encoding/json"
+	"math/big"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"math/big"
+	"github.com/pkg/errors"
+	"reflect"
+	"github.com/matrix/go-matrix/params"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -50,16 +54,7 @@ func (opt *operatorBlkRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.BlkRewardCfg)
-	if !OK {
-		log.Error(logInfo, "input param(blkRewardCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(blkRewardCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "blkRewardCfg marshal failed", err)
 		return err
@@ -95,7 +90,7 @@ func (opt *operatorTxsRewardCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.TxsRewardCfgStruct)
+	value := new(mc.TxsRewardCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "txsRewardCfg unmarshal failed", err)
@@ -109,16 +104,7 @@ func (opt *operatorTxsRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.TxsRewardCfgStruct)
-	if !OK {
-		log.Error(logInfo, "input param(txsRewardCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(txsRewardCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "txsRewardCfg marshal failed", err)
 		return err
@@ -154,7 +140,7 @@ func (opt *operatorInterestCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.InterestCfgStruct)
+	value := new(mc.InterestCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "interestCfg unmarshal failed", err)
@@ -168,16 +154,7 @@ func (opt *operatorInterestCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.InterestCfgStruct)
-	if !OK {
-		log.Error(logInfo, "input param(interestCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(interestCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "interestCfg marshal failed", err)
 		return err
@@ -213,7 +190,7 @@ func (opt *operatorLotteryCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.LotteryCfgStruct)
+	value := new(mc.LotteryCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "lotteryCfg unmarshal failed", err)
@@ -227,16 +204,7 @@ func (opt *operatorLotteryCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.LotteryCfgStruct)
-	if !OK {
-		log.Error(logInfo, "input param(lotteryCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(lotteryCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "lotteryCfg marshal failed", err)
 		return err
@@ -272,7 +240,7 @@ func (opt *operatorSlashCfg) GetValue(st StateDB) (interface{}, error) {
 		return nil, ErrDataEmpty
 	}
 
-	value := new(mc.SlashCfgStruct)
+	value := new(mc.SlashCfg)
 	err := json.Unmarshal(data, &value)
 	if err != nil {
 		log.Error(logInfo, "slashCfg unmarshal failed", err)
@@ -286,16 +254,7 @@ func (opt *operatorSlashCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	cfg, OK := value.(*mc.SlashCfgStruct)
-	if !OK {
-		log.Error(logInfo, "input param(slashCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if cfg == nil {
-		log.Error(logInfo, "input param(slashCfg) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(cfg)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "slashCfg marshal failed", err)
 		return err
@@ -344,16 +303,7 @@ func (opt *operatorPreMinerBlkReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	reward, OK := value.(*mc.MinerOutReward)
-	if !OK {
-		log.Error(logInfo, "input param(preMinerBlkReward) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if reward == nil {
-		log.Error(logInfo, "input param(preMinerBlkReward) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(reward)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preMinerBlkReward marshal failed", err)
 		return err
@@ -402,16 +352,7 @@ func (opt *operatorPreMinerTxsReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	reward, OK := value.(*mc.MinerOutReward)
-	if !OK {
-		log.Error(logInfo, "input param(preMinerTxsReward) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if reward == nil {
-		log.Error(logInfo, "input param(preMinerTxsReward) err", "cfg is nil")
-		return ErrParamNil
-	}
-	data, err := json.Marshal(reward)
+	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preMinerTxsReward marshal failed", err)
 		return err
@@ -710,5 +651,457 @@ func (opt *operatorSlashNum) SetValue(st StateDB, value interface{}) error {
 		return ErrParamReflect
 	}
 	st.SetMatrixData(opt.key, encodeUint64(num))
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 固定区块算法配置
+type operatorBlkCalc struct {
+	key common.Hash
+}
+
+func newBlkCalcOpt() *operatorBlkCalc {
+	return &operatorBlkCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyBlkCalc),
+	}
+}
+
+func (opt *operatorBlkCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorBlkCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "BlkCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorBlkCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(BlkCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "BlkCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 交易费算法配置
+type operatorTxsCalc struct {
+	key common.Hash
+}
+
+func newTxsCalcOpt() *operatorTxsCalc {
+	return &operatorTxsCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyTxsCalc),
+	}
+}
+
+func (opt *operatorTxsCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorTxsCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "TxsCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorTxsCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(TxsCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "TxsCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 利息算法配置
+type operatorInterestCalc struct {
+	key common.Hash
+}
+
+func newInterestCalcOpt() *operatorInterestCalc {
+	return &operatorInterestCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyInterestCalc),
+	}
+}
+
+func (opt *operatorInterestCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorInterestCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "InterestCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorInterestCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(InterestCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "InterestCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 彩票算法配置
+type operatorLotteryCalc struct {
+	key common.Hash
+}
+
+func newLotteryCalcOpt() *operatorLotteryCalc {
+	return &operatorLotteryCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyLotteryCalc),
+	}
+}
+
+func (opt *operatorLotteryCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorLotteryCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "LotteryCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorLotteryCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(LotteryCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "LotteryCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 惩罚算法配置
+type operatorSlashCalc struct {
+	key common.Hash
+}
+
+func newSlashCalcOpt() *operatorSlashCalc {
+	return &operatorSlashCalc{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeySlashCalc),
+	}
+}
+
+func (opt *operatorSlashCalc) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorSlashCalc) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return "0", nil
+	}
+	calc, err := decodeString(data)
+	if err != nil {
+		log.Error(logInfo, "SlashCalc decode failed", err)
+		return nil, err
+	}
+	return calc, nil
+}
+
+func (opt *operatorSlashCalc) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(string)
+	if !OK {
+		log.Error(logInfo, "input param(SlashCalc) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := encodeString(data)
+	if err != nil {
+		log.Error(logInfo, "SlashCalc encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//入池gas门限
+type operatorTxpoolGasLimit struct {
+	key common.Hash
+}
+
+func newTxpoolGasLimitOpt() *operatorTxpoolGasLimit {
+	return &operatorTxpoolGasLimit{
+		key: types.RlpHash(matrixStatePrefix + mc.MSTxpoolGasLimitCfg),
+	}
+}
+
+func (opt *operatorTxpoolGasLimit) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorTxpoolGasLimit) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return big.NewInt(int64(params.TxGasPrice)), nil
+	}
+
+	msg := new(big.Int)
+	err := json.Unmarshal(data, &msg)
+	if err != nil {
+		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+	}
+
+	return msg, nil
+}
+
+func (opt *operatorTxpoolGasLimit) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, OK := value.(*big.Int)
+	if !OK {
+		log.Error(logInfo, "input param(TxpoolGasLimit) err", "reflect failed")
+		return ErrParamReflect
+	}
+	encodeData, err := json.Marshal(data)
+	if err != nil {
+		log.Error(logInfo, "TxpoolGasLimit encode failed", err)
+		return err
+	}
+
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//币种打包限制
+type operatorCurrencyPack struct {
+	key common.Hash
+}
+
+func newCurrencyPackOpt() *operatorCurrencyPack {
+	return &operatorCurrencyPack{
+		key: types.RlpHash(matrixStatePrefix + mc.MSCurrencyPack),
+	}
+}
+
+func (opt *operatorCurrencyPack) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return uint64(0), err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return make([]common.Address, 0), nil
+	}
+	currencylist := make([]string,0)
+	err := json.Unmarshal(data, &currencylist)
+	if err != nil {
+		return nil, errors.Errorf("operatorCurrencyPack json.Unmarshal failed: %s", err)
+	}
+
+	return currencylist, nil
+}
+
+func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+	//取消
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
+	data, OK := value.([]string)
+	if !OK {
+		log.Error(logInfo, "input param(CurrencyPack) err", "reflect failed")
+		return ErrParamReflect
+	}
+
+	encodeData, err := json.Marshal(data)
+	if err != nil {
+		log.Error(logInfo, "operatorCurrencyPack Marshal failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, encodeData)
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// 账户黑名单
+type operatorAccountBlackList struct {
+	key common.Hash
+}
+
+func newAccountBlackListOpt() *operatorAccountBlackList {
+	return &operatorAccountBlackList{
+		key: types.RlpHash(matrixStatePrefix + mc.MSAccountBlackList),
+	}
+}
+
+func (opt *operatorAccountBlackList) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorAccountBlackList) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return nil, err
+	}
+
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return make([]common.Address, 0), nil
+	}
+	accounts, err := decodeAccounts(data)
+	if err != nil {
+		log.Error(logInfo, "AccountBlackList decode failed", err)
+		return nil, err
+	}
+	return accounts, nil
+}
+
+func IsInBlackList(addr common.Address,blacklist []common.Address)bool {
+	for _,blackaddr := range blacklist{
+		if addr.Equal(blackaddr){
+			return true
+		}
+	}
+	return false
+}
+func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+	//取消
+	v1 := reflect.ValueOf(value)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+		nilSlice := make([]byte,0)
+		st.SetMatrixData(opt.key, nilSlice)
+		return nil
+	}
+
+	accounts, OK := value.([]common.Address)
+	if !OK {
+		log.Error(logInfo, "input param(AccountBlackList) err", "reflect failed")
+		return ErrParamReflect
+	}
+
+	mansuperTxAddreslist,err := GetTxsSuperAccounts(st)
+	if err == nil{
+		for _,superAddress := range mansuperTxAddreslist{
+			if IsInBlackList(superAddress,accounts){
+				return errors.New("the blacklist is invalid")
+			}
+		}
+	}
+
+	data, err := encodeAccounts(accounts)
+	if err != nil {
+		log.Error(logInfo, "AccountBlackList encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, data)
 	return nil
 }

@@ -48,16 +48,8 @@ func (opt *operatorBlockProduceStatsStatus) SetValue(st StateDB, value interface
 		return err
 	}
 
-	status, OK := value.(*mc.BlockProduceSlashStatsStatus)
-	if !OK {
-		log.Error(logInfo, "input param(blockProduceStatsStatus) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if nil == status {
-		log.Error(logInfo, "input param(blockProduceStatsStatus) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := rlp.EncodeToBytes(status)
+
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceStatsStatus rlp encode failed", err)
 		return err
@@ -106,16 +98,7 @@ func (opt *operatorBlockProduceSlashCfg) SetValue(st StateDB, value interface{})
 		return err
 	}
 
-	cfg, OK := value.(*mc.BlockProduceSlashCfg)
-	if !OK {
-		log.Error(logInfo, "input param(blockProduceSlashCfg) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if nil == cfg {
-		log.Error(logInfo, "input param(blockProduceSlashCfg) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := rlp.EncodeToBytes(cfg)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceSlashCfg rlp encode failed", err)
 		return err
@@ -164,16 +147,8 @@ func (opt *operatorBlockProduceStats) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	stats, OK := value.(*mc.BlockProduceStats)
-	if !OK {
-		log.Error(logInfo, "input param(blockProduceStats) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if nil == stats {
-		log.Error(logInfo, "input param(blockProduceStats) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := rlp.EncodeToBytes(stats)
+
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceStats rlp encode failed", err)
 		return err
@@ -222,16 +197,8 @@ func (opt *operatorBlockProduceBlackList) SetValue(st StateDB, value interface{}
 		return err
 	}
 
-	stats, OK := value.(*mc.BlockProduceSlashBlackList)
-	if !OK {
-		log.Error(logInfo, "input param(blockProduceBlackList) err", "reflect failed")
-		return ErrParamReflect
-	}
-	if nil == stats {
-		log.Error(logInfo, "input param(blockProduceBlackList) err", "is nil")
-		return ErrParamNil
-	}
-	data, err := rlp.EncodeToBytes(stats)
+
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceBlackList rlp encode failed", err)
 		return err

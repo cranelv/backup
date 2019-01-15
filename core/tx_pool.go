@@ -22,6 +22,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"runtime"
+	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
 //
@@ -81,6 +82,7 @@ var (
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
 	ErrWithoutAuth     = errors.New("not be set entrust gas")
 	ErrinterestAmont   = errors.New("Incorrect total interest")
+	ErrSpecialTxFailed = errors.New("Run special tx failed")
 )
 
 var (
@@ -144,6 +146,7 @@ type blockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
+	State() (*state.StateDB, error)
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 	GetA0AccountFromAnyAccountAtSignHeight(account common.Address, blockHash common.Hash, signHeight uint64) (common.Address, common.Address, error)
 }
@@ -1237,6 +1240,11 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrTXWrongful
 	//}
 	// Drop non-local transactions under our own minimal accepted gas price
+	gasprice,err := matrixstate.GetTxpoolGasLimit(nPool.currentState)
+	if err != nil{
+		return errors.New("get txpool gasPrice err")
+	}
+	nPool.gasPrice.Set(gasprice)
 	if nPool.gasPrice.Cmp(tx.GasPrice()) > 0 {
 		return ErrUnderpriced
 	}

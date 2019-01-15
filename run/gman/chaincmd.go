@@ -287,7 +287,7 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
-	}
+	}/*
 	file, err := os.Open(genesisPath)
 	if err != nil {
 		utils.Fatalf("Failed to read genesis file: %v", err)
@@ -300,12 +300,15 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("获取默认配置文件失败:%v", err)
 	}
 	genesis1 := new(core.Genesis1)
-	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
+	//
+	*/
+	genesis,err := core.DefaultGenesis(genesisPath)
+	if err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	//
 
-	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
+
+	//genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)

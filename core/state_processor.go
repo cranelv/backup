@@ -53,8 +53,11 @@ func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
 func (p *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
-
-	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(params.TxGasPrice))
+	gasprice,err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil{
+		return big.NewInt(0)
+	}
+	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
 	log.INFO("奖励", "交易费奖励总额", allGas.String())
 	balance := state.GetBalance(common.TxGasRewardAddress)
 
@@ -236,7 +239,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
@@ -249,7 +252,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, nil, 0, err
 		}
 		tmpr := make(types.Receipts, 0)
@@ -331,7 +334,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		}
 	} else {
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
-		if err != nil {
+		if err != nil && err != ErrSpecialTxFailed{
 			return nil, 0, err
 		}
 	}

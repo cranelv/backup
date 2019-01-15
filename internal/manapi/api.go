@@ -22,6 +22,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"os"
+
 	"github.com/matrix/go-matrix/accounts"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/base58"
@@ -34,6 +37,7 @@ import (
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/rawdb"
+	"github.com/matrix/go-matrix/core/supertxsstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/crc8"
@@ -46,8 +50,6 @@ import (
 	"github.com/matrix/go-matrix/params/enstrust"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
-	"io/ioutil"
-	"os"
 )
 
 const (
@@ -189,6 +191,21 @@ type PublicAccountAPI struct {
 // NewPublicAccountAPI creates a new PublicAccountAPI.
 func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
 	return &PublicAccountAPI{am: am}
+}
+
+func (api *PublicDebugAPI) GetAllChainInfo() map[string]interface{} {
+	result := make(map[string]interface{})
+	result["chainId"] = api.b.ChainConfig().ChainId
+	result["ByzantiumBlock"] = api.b.ChainConfig().ByzantiumBlock
+	result["EIP155Block"] = api.b.ChainConfig().EIP155Block
+	result["EIP158Block"] = api.b.ChainConfig().EIP158Block
+	//result["NetworkId"] = api.b.Config().NetworkId
+	//result["SyncMode"] = api.b.Config().SyncMode
+	result["Genesis"] = api.b.Genesis().Hash()
+	result["PeerCount"] = api.b.NetRPCService().PeerCount()
+	result["LastBlockNumber"] = api.b.CurrentBlock().NumberU64()
+	result["LastBlockHash"] = api.b.CurrentBlock().Hash()
+	return result
 }
 
 // Accounts returns the collection of accounts this node manages
@@ -618,6 +635,11 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	return read, state.Error()
 }
 
+func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+
+	return api.b.GetFutureRewards(ctx, number)
+}
+
 //钱包调用
 func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()
@@ -628,6 +650,23 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	return state.GetAllEntrustList(authFrom)
 }
 
+func (s *PublicBlockChainAPI) GetIPFSfirstcache() {
+	fmt.Println("ipfs get first cache list")
+	s.b.Downloader().DGetIPFSfirstcache()
+}
+func (s *PublicBlockChainAPI) GetIPFSsecondcache(strhash string) {
+	fmt.Println("ipfs get second cache list")
+	s.b.Downloader().DGetIPFSSecondcache(strhash)
+}
+
+func (s *PublicBlockChainAPI) GetIPFSblock(strhash string) {
+	fmt.Println("ipfs get block info")
+	s.b.Downloader().DGetIPFSBlock(strhash)
+}
+func (s *PublicBlockChainAPI) GetIPFSsnap(str string) {
+	fmt.Println("ipfs get snapshoot info") //getIPFScommon
+	s.b.Downloader().DGetIPFSsnap(str)
+}
 func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
@@ -683,6 +722,39 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 		}
 	}
 	return strAddrList
+}
+
+func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
+	if len(keys) == 0 {
+		return nil
+	}
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+
+	version := matrixstate.GetVersionInfo(state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil
+	}
+	supMager := supertxsstate.GetManager(version)
+	mapdata := make(map[string]interface{})
+	for _, k := range keys {
+		opt, err := mgr.FindOperator(k)
+		if err != nil {
+			log.Error("GetCfgDataByState:FindOperator failed", "key", k, "err", err)
+			continue
+		}
+		dataval, err := opt.GetValue(state)
+		if err != nil {
+			log.Error("GetCfgDataByState:SetValue failed", "err", err)
+			continue
+		}
+		keystr, val := supMager.Output(k, dataval)
+		mapdata[keystr.(string)] = val
+	}
+	return mapdata
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
@@ -1363,8 +1435,11 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		data.Currency = "MAN"
 	}
 	result.From = base58.Base58EncodeToString(data.Currency, data.From)
-	result.To = new(string)
-	*result.To = base58.Base58EncodeToString(data.Currency, *data.To)
+	if data.To != nil{
+		result.To = new(string)
+		*result.To = base58.Base58EncodeToString(data.Currency, *data.To)
+	}
+
 
 	if len(data.ExtraTo) > 0 {
 		extra := make([]*ExtraTo_Mx1, 0)
@@ -1651,7 +1726,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logsBloom":         receipt.Bloom,
 	}
 	fields["from"] = base58.Base58EncodeToString("MAN", from)
-	fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
+	if tx.To() != nil{
+		fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
+	}
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)
@@ -1663,7 +1740,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
 	if receipt.ContractAddress != (common.Address{}) {
-		fields["contractAddress"] = receipt.ContractAddress
+		fields["contractAddress"] =  base58.Base58EncodeToString("MAN", receipt.ContractAddress)
 	}
 	return fields, nil
 }
@@ -1748,16 +1825,27 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 			*(*uint64)(args.Gas) = 21000
 		}
 	}
-	if args.GasPrice == nil {
-		price, err := b.SuggestPrice(ctx)
-		if err != nil {
-			return err
-		}
-		if price.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) < 0 {
-			price.Set(new(big.Int).SetUint64(params.TxGasPrice))
-		}
-		args.GasPrice = (*hexutil.Big)(price)
+	//if args.GasPrice == nil {
+	//	price, err := b.SuggestPrice(ctx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if price.Cmp(new(big.Int).SetUint64(params.TxGasPrice)) < 0 {
+	//		price.Set(new(big.Int).SetUint64(params.TxGasPrice))
+	//	}
+	//	args.GasPrice = (*hexutil.Big)(price)
+	//}
+	state,err := b.GetState()
+	if err != nil{
+		return err
 	}
+	price,err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil{
+		return err
+	}
+
+	args.GasPrice = (*hexutil.Big)(price)
+
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
 	}
