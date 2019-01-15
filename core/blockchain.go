@@ -2163,21 +2163,21 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	//假设传入的account为A1账户
 	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
 	if err == nil {
-		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户，输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
 		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
 	a1Account, err := bc.GetA1AccountFromA2Account(account, blockHash)
 	if err != nil {
-		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为非法账户", "输入非法", account.Hex())
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为非法账户", "输入账户", account.Hex())
 		return common.Address{0}, common.Address{0}, err
 	}
 	//走到这，说明是A2账户
 	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, blockHash)
 	if err != nil {
-		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
 	}
-	log.Info(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+	log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
 	return a0Account, a1Account, err
 }
 
@@ -2229,21 +2229,21 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 	//假设传入的account为A1账户
 	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
 	if err == nil {
-		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户，输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
 		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
 	a1Account, err := bc.GetA1AccountFromA2AccountAtSignHeight(account, blockHash, signHeight)
 	if err != nil {
-		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为非法账户", "输入非法", account.Hex())
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为非法账户", "输入账户", account.Hex(), "签名高度", signHeight)
 		return common.Address{0}, common.Address{0}, err
 	}
 	//走到这，说明是A2账户
 	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, blockHash)
 	if err != nil {
-		log.Error(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
+		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败", "签名高度", signHeight)
 	}
-	log.Info(common.SignLog, "根据任意账户得到A0和A1账户，输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+	log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
 	return a0Account, a1Account, err
 }
 

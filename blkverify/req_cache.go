@@ -32,7 +32,7 @@ const (
 	reqTypeLeaderReq                 // leader = from 的请求
 	reqTypeOtherReq                  // leader != from 的请求
 	reqTypeUnknownReq                // 尚未验证from的req
-	reqTypeBadReq                    // 无法获取A0账户的req
+	reqTypeFromBadReq                // 无法获取A0账户的req
 )
 
 type reqData struct {
@@ -66,9 +66,6 @@ func newReqData(req *mc.HD_BlkConsensusReqMsg, isDBRecovery bool, reqType reqTyp
 		data.reqType = reqTypeLeaderReq
 	}
 
-	log.Info("hyk log", "newReqData", data.hash.Hex(),
-		"number", data.req.Header.Number, "reqType", reqType,
-		"leader", data.req.Header.Leader.Hex(), "from", data.req.From.Hex())
 	return data
 }
 
@@ -251,7 +248,7 @@ func (rc *reqCache) CheckUnknownReq() {
 		a0Account, _, err := rc.blkChain.GetA0AccountFromAnyAccount(req.From, req.Header.ParentHash)
 		if err != nil {
 			log.Debug("blk consensus req cache", "获取from的抵押账户失败", err, "from", req.From.Hex())
-			rc.reqCache[i].reqType = reqTypeBadReq
+			rc.reqCache[i].reqType = reqTypeFromBadReq
 		} else {
 			if a0Account == req.Header.Leader {
 				rc.reqCache[i].reqType = reqTypeLeaderReq
@@ -323,14 +320,14 @@ func delBadReqAndSort(cache []*reqData, del bool) []*reqData {
 		return cache
 	}
 
-	if cache[0].reqType == reqTypeBadReq {
+	if cache[0].reqType == reqTypeFromBadReq {
 		return make([]*reqData, 0)
 	}
 
 	count := len(cache)
 	pos := count - 1
 	for ; pos > 0; pos-- {
-		if cache[pos].reqType != reqTypeBadReq {
+		if cache[pos].reqType != reqTypeFromBadReq {
 			break
 		}
 	}
