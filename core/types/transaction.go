@@ -151,8 +151,11 @@ func TxdataAddresToString(currency string, data *txdata, data1 *txdata1) {
 	data1.IsEntrustTx = data.IsEntrustTx
 	data1.CommitTime = data.CommitTime
 	data1.Recipient = new(string)
-	to := *data.Recipient
-	*data1.Recipient = base58.Base58EncodeToString(currency, to)
+	if data.Recipient != nil{
+		to := *data.Recipient
+		*data1.Recipient = base58.Base58EncodeToString(currency, to)
+	}
+
 	//data1.Extra1 = data.Extra
 	if len(data.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra1, 0)
@@ -192,8 +195,11 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 	data.TxEnterType = data1.TxEnterType
 	data.IsEntrustTx = data1.IsEntrustTx
 	data.CommitTime = data1.CommitTime
-	data.Recipient = new(common.Address)
-	*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+	if data1.Recipient != nil{
+		data.Recipient = new(common.Address)
+		*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+	}
+
 	if len(data1.Extra) > 0 {
 		tmpEx1 := make([]Matrix_Extra, 0)
 		for _, er := range data1.Extra {
@@ -475,7 +481,23 @@ func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Pri
 func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
 func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool   { return true }
-
+func (tx *Transaction) GetMakeHashfield(chid *big.Int) []interface{}{
+	var data1 txdata1
+	TxdataAddresToString(tx.Currency, &tx.data, &data1)
+	return []interface{}{
+		data1.AccountNonce,
+		data1.Price,
+		data1.GasLimit,
+		data1.Recipient,
+		data1.Amount,
+		data1.Payload,
+		chid, uint(0), uint(0),
+		data1.TxEnterType,
+		data1.IsEntrustTx,
+		data1.CommitTime,
+		data1.Extra,
+	}
+}
 func (tx *Transaction) GetTxHashStruct() {
 
 }

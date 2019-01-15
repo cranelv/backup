@@ -22,7 +22,6 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/trie"
-	"time"
 )
 
 type revision struct {
@@ -604,99 +603,23 @@ func (self *StateDB) CommitSaveTx() {
 	self.btreeMap = make([]BtreeDietyStruct, 0)
 	self.btreeMapDirty = make([]BtreeDietyStruct, 0)
 }
-func (self *StateDB) UpdateTxForBtree(key uint32) {
+func (self *StateDB) GetBtreeItem(key uint32,typ byte)[]btrie.Item{
 	out := make([]btrie.Item, 0)
-	self.revocablebtrie.DescendLessOrEqual(btrie.SpcialTxData{Key_Time: key}, func(a btrie.Item) bool {
-		out = append(out, a)
-		return true
-	})
-	//log.Info("file statedb", "func UpdateTxForBtree:len(out)", len(out), "time", key)
-	for _, it := range out {
-		item, ok := it.(btrie.SpcialTxData)
-		if !ok {
-			continue
-		}
-		log.Info("file statedb", "func UpdateTxForBtree:item.key", item.Key_Time, "item.Value", len(item.Value_Tx))
-		delhashs := make([]common.Hash, 0)
-		for hash, tm := range item.Value_Tx {
-			var rt common.RecorbleTx
-			errRT := json.Unmarshal(tm, &rt)
-			if errRT != nil {
-				log.Error("file statedb", "func UpdateTxForBtree,Unmarshal err", errRT)
-				continue
-			}
-			if rt.Typ != common.ExtraRevocable {
-				log.Info("file statedb", "func UpdateTxForBtree,Type is", rt.Typ, "type should ", common.ExtraRevocable)
-				continue
-			}
-			log.Info("file statedb", "func UpdateTxForBtree111,Type is", rt.Typ)
-			for _, vv := range rt.Adam { //一对多交易
-				log.Info("file statedb", "func UpdateTxForBtree:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
-				log.Info("file statedb", "func UpdateTxForBtree:from", rt.From, "vv.Amont", vv.Amont)
-				if self.GetBalanceByType(rt.From, common.WithdrawAccount).Cmp(vv.Amont) >= 0 {
-					self.SubBalance(common.WithdrawAccount, rt.From, vv.Amont)
-					aa := self.GetBalanceByType(vv.Addr, common.MainAccount)
-					log.Info("file statedb", "func UpdateTxForBtree:to", vv.Addr, "Balance:befor", aa)
-					self.AddBalance(common.MainAccount, vv.Addr, vv.Amont)
-					bb := self.GetBalanceByType(vv.Addr, common.MainAccount)
-					log.Info("file statedb", "func UpdateTxForBtree:to", vv.Addr, "Balance:after", bb, "call time ", time.Now().Unix())
-				} else {
-					log.Info("file statedb", "func UpdateTxForBtree", "amont is not enough")
-				}
-			}
-			log.Info("file statedb", "func UpdateTxForBtree:txHash", hash)
-			delhashs = append(delhashs, hash)
-			self.deleteMatrixData(hash, nil)
-		}
-		self.GetSaveTx(common.ExtraRevocable, item.Key_Time, delhashs, true)
+	switch typ {
+	case common.ExtraRevocable:
+		self.revocablebtrie.DescendLessOrEqual(btrie.SpcialTxData{Key_Time: key}, func(a btrie.Item) bool {
+			out = append(out, a)
+			return true
+		})
+	case common.ExtraTimeTxType:
+		self.timebtrie.DescendLessOrEqual(btrie.SpcialTxData{Key_Time: key}, func(a btrie.Item) bool {
+			out = append(out, a)
+			return true
+		})
 	}
+	return out
 }
-func (self *StateDB) UpdateTxForBtreeBytime(key uint32) {
-	out := make([]btrie.Item, 0)
-	self.timebtrie.DescendLessOrEqual(btrie.SpcialTxData{Key_Time: key}, func(a btrie.Item) bool {
-		out = append(out, a)
-		return true
-	})
-	//log.Info("file statedb", "func UpdateTxForBtreeBytime:len(out)", len(out), "time", key)
-	for _, it := range out {
-		item, ok := it.(btrie.SpcialTxData)
-		if !ok {
-			continue
-		}
-		log.Info("file statedb", "func UpdateTxForBtreeBytime:item.key", item.Key_Time, "item.Value", item.Value_Tx)
-		delhashs := make([]common.Hash, 0)
-		for hash, tm := range item.Value_Tx {
-			var rt common.RecorbleTx
-			errRT := json.Unmarshal(tm, &rt)
-			if errRT != nil {
-				log.Error("file statedb", "func UpdateTxForBtreeBytime,Unmarshal err", errRT)
-				continue
-			}
-			if rt.Typ != common.ExtraTimeTxType {
-				log.Info("file statedb", "func UpdateTxForBtreeBytime,Type is", rt.Typ, "type should ", common.ExtraTimeTxType)
-				continue
-			}
-			log.Info("file statedb", "func UpdateTxForBtreeBytime111,Type is", rt.Typ)
-			for _, vv := range rt.Adam { //一对多交易
-				log.Info("file statedb", "func UpdateTxForBtreeBytime:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
-				log.Info("file statedb", "func UpdateTxForBtreeBytime:from", rt.From, "vv.Amont", vv.Amont)
-				if self.GetBalanceByType(rt.From, common.WithdrawAccount).Cmp(vv.Amont) >= 0 {
-					self.SubBalance(common.WithdrawAccount, rt.From, vv.Amont)
-					aa := self.GetBalanceByType(vv.Addr, common.MainAccount)
-					log.Info("file statedb", "func UpdateTxForBtreeBytime:to", vv.Addr, "Balance:befor", aa)
-					self.AddBalance(common.MainAccount, vv.Addr, vv.Amont)
-					bb := self.GetBalanceByType(vv.Addr, common.MainAccount)
-					log.Info("file statedb", "func UpdateTxForBtreeBytime:to", vv.Addr, "Balance:after", bb, "call time ", time.Now().Unix())
-				} else {
-					log.Info("file statedb", "func UpdateTxForBtreeBytime", "amont is not enough")
-				}
-			}
-			log.Info("file statedb", "func UpdateTxForBtreeBytime:txHash", hash)
-			delhashs = append(delhashs, hash)
-		}
-		self.GetSaveTx(common.ExtraTimeTxType, item.Key_Time, delhashs, true)
-	}
-}
+
 func (self *StateDB) NewBTrie(typ byte) {
 	switch typ {
 	case common.ExtraRevocable:

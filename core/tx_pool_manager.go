@@ -238,9 +238,11 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 		if ct == "" {
 
 		}
-		//黑账户过滤
-		if SelfBlackList.FindBlackAddress(*txer.To()) {
-			continue
+		if txer.To() != nil{
+			//黑账户过滤
+			if SelfBlackList.FindBlackAddress(*txer.To()) {
+				continue
+			}
 		}
 		txerlist = append(txerlist, txer)
 	}

@@ -182,45 +182,9 @@ func (s EIP155Signer) SignatureValues(tx SelfTransaction, sig []byte) (R, S, V *
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
 func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
-	switch txer.TxType() {
-	case NormalTxIndex:
-		tx, ok := txer.(*Transaction)
-		if !ok {
-			return common.Hash{}
-		}
-		var data1 txdata1
-		TxdataAddresToString(tx.Currency, &tx.data, &data1)
-		return rlpHash([]interface{}{
-			data1.AccountNonce,
-			data1.Price,
-			data1.GasLimit,
-			data1.Recipient,
-			data1.Amount,
-			data1.Payload,
-			s.chainId, uint(0), uint(0),
-			data1.TxEnterType,
-			data1.IsEntrustTx,
-			data1.CommitTime,
-			data1.Extra,
-		})
-	case BroadCastTxIndex:
-		tx, ok := txer.(*TransactionBroad)
-		if !ok {
-			return common.Hash{}
-		}
-		return rlpHash([]interface{}{
-			tx.data.AccountNonce,
-			tx.data.Price,
-			tx.data.GasLimit,
-			tx.data.Recipient,
-			tx.data.Amount,
-			tx.data.Payload,
-			tx.data.Extra,
-			s.chainId, uint(0), uint(0),
-		})
-	default:
-		return common.Hash{}
-	}
+	chid := s.chainId
+	fmt.Println("YYYYYYYYYYYYYYchin",chid)
+	return rlpHash(txer.GetMakeHashfield(s.chainId))
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {

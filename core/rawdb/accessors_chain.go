@@ -221,10 +221,15 @@ func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 
 // WriteBody storea a block body into the database.
 func WriteBody(db DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
-	for i,_ := range body.CurrencyBody{
-		body.CurrencyBody[i].Receipts = types.BodyReceipts{}
+	var tempBody types.Body
+	tempBody.CurrencyBody = make([]types.CurrencyBlock,len(body.CurrencyBody))
+	tempBody.Uncles = make([]*types.Header,len(body.Uncles))
+	copy(tempBody.CurrencyBody,body.CurrencyBody)
+	copy(tempBody.Uncles,body.Uncles)
+	for i,_ := range tempBody.CurrencyBody{
+		tempBody.CurrencyBody[i].Receipts = types.BodyReceipts{}
 	}
-	data, err := rlp.EncodeToBytes(body)
+	data, err := rlp.EncodeToBytes(tempBody)
 	if err != nil {
 		log.Crit("Failed to RLP encode body", "err", err)
 	}

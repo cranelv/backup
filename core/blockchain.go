@@ -1053,13 +1053,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	// Write other block data using a batch.
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, block)
+	txcount := uint64(0)
+	for _, cb := range block.Currencies() {
+		txcount += uint64(len(cb.Transactions.GetTransactions()))
+		receipts = append(receipts, types.CoinReceipts{CoinType:cb.CurrencyName,Receiptlist:cb.Receipts.GetReceipts()})
+	}
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
 		tmpBlock := &types.BlockAllSt{Sblock: block}
-		txcount := uint64(0)
-		for _, cb := range block.Currencies() {
-			txcount += uint64(len(cb.Transactions.GetTransactions()))
-			receipts = append(receipts, types.CoinReceipts{CoinType:cb.CurrencyName,Receiptlist:cb.Receipts.GetReceipts()})
-		}
 		tmpBlock.Pading = txcount
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
