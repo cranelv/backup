@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"math/big"
 	"errors"
+	"fmt"
 )
 
 type RangeManage struct {
@@ -48,6 +49,10 @@ func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database, db Database) 
 	copy(stm.retcoinRoot, roots)
 	stm.MakeStatedb(params.MAN_COIN)
 	stm.MakeStatedb(params.BTC_COIN) //YYYYYYYYYYYYYYYYYYYYYYYY
+	dump:=stm.Dump(params.MAN_COIN,common.HexToAddress("0x0ead6cdb8d214389909a535d4ccc21a393dddba9"))
+	fmt.Printf("dump:	%s",dump)
+
+
 	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string) {
@@ -900,6 +905,7 @@ func (self *StateDBManage) UpdateTxForBtree(key uint32) {
 		}
 	}
 }
+
 func (self *StateDBManage) UpdateTxForBtreeBytime(key uint32) {
 
 	for _, cm := range self.shardings {
