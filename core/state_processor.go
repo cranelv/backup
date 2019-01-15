@@ -53,8 +53,8 @@ func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
 func (p *StateProcessor) getGas(state *state.StateDB, gas *big.Int) *big.Int {
-	gasprice,err := matrixstate.GetTxpoolGasLimit(state)
-	if err != nil{
+	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil {
 		return big.NewInt(0)
 	}
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
@@ -239,7 +239,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed{
+		if err != nil && err != ErrSpecialTxFailed {
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
@@ -252,7 +252,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed{
+		if err != nil && err != ErrSpecialTxFailed {
 			return nil, nil, 0, err
 		}
 		tmpr := make(types.Receipts, 0)
@@ -272,6 +272,12 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 }
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) error {
+
+	err := p.bc.ProcessStateVersion(block.Header().Version, statedb)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err0")
+		return err
+	}
 
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
@@ -334,7 +340,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		}
 	} else {
 		_, gas, failed, err = ApplyMessage(vmenv, tx, gp)
-		if err != nil && err != ErrSpecialTxFailed{
+		if err != nil && err != ErrSpecialTxFailed {
 			return nil, 0, err
 		}
 	}
