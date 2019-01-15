@@ -2268,9 +2268,9 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 
 		//code data
 		for _, itc := range snapshotData.TrieArry.CodeDatas {
-				log.Info("BlockChain synSnapshot","codehash:-",common.Bytes2Hex(itc.CodeHash),"code:-",common.Bytes2Hex(itc.Code))
-				triedb.Insert(common.BytesToHash(itc.CodeHash),itc.Code)
-				triedb.Commit(common.BytesToHash(itc.CodeHash),false)
+			log.Info("BlockChain synSnapshot", "codehash:-", common.Bytes2Hex(itc.CodeHash), "code:-", common.Bytes2Hex(itc.Code))
+			triedb.Insert(common.BytesToHash(itc.CodeHash), itc.Code)
+			triedb.Commit(common.BytesToHash(itc.CodeHash), false)
 		}
 		log.Info("BlockChain synSnapshot finished code data")
 		mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
@@ -2426,37 +2426,37 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 			return
 		}
 		dumpDB := statedb.RawDumpDB()
-		log.Info("dumpDB ______ info", "root", dumpDB.Root)
-		for _, v := range dumpDB.Account {
-			log.Info("dump0 info", "accout", common.Bytes2Hex(v.GetKey), "data", v)
-		}
-		for _, v := range dumpDB.Matrix {
-			log.Info("dump0 info", "MatrixData", common.Bytes2Hex(v.GetKey), "data", v)
-		}
+		//log.Info("dumpDB ______ info", "root", dumpDB.Root)
+		//for _, v := range dumpDB.Account {
+		//	log.Info("dump0 info", "accout", common.Bytes2Hex(v.GetKey), "data", v)
+		//}
+		//for _, v := range dumpDB.Matrix {
+		//	log.Info("dump0 info", "MatrixData", common.Bytes2Hex(v.GetKey), "data", v)
+		//}
 
 		dump0 := statedb.RawDump()
-		log.Info("dump info", "root", dump0.Root)
+		log.Info("BlockChain savesnapshot dump info", "root", dump0.Root)
 		for k, v := range dump0.Accounts {
-			log.Info("dump0 info", "accout", k, "data", v)
+			log.Info("BlockChain savesnapshot dump info", "accout", k, "data", v)
 		}
 		for k, v := range dump0.MatrixData {
-			log.Info("dump0 info", "MatrixData", k, "data", v)
+			log.Info("BlockChain savesnapshot dump info", "MatrixData", k, "data", v)
 		}
 
-		dump1 := statedb.RawDump1(&dumpDB)
-		log.Info("dump info", "root", dump1.Root)
-		for k, v := range dump1.Accounts {
-			log.Info("dump1 info", "accout", k, "data", v)
-		}
-		for k, v := range dump1.MatrixData {
-			log.Info("dump1 info", "MatrixData", k, "data", v)
-		}
-		if len(dump0.MatrixData) != len(dump1.MatrixData) {
-			panic("dump error")
-		}
+		//dump1 := statedb.RawDump1(&dumpDB)
+		//log.Info("dump info", "root", dump1.Root)
+		//for k, v := range dump1.Accounts {
+		//	log.Info("dump1 info", "accout", k, "data", v)
+		//}
+		//for k, v := range dump1.MatrixData {
+		//	log.Info("dump1 info", "MatrixData", k, "data", v)
+		//}
+		//if len(dump0.MatrixData) != len(dump1.MatrixData) {
+		//	panic("dump error")
+		//}
 
 		snapshotData := snapshot.SnapshotData{dumpDB, td, *block}
-		fmt.Println("block,", *block)
+		//fmt.Println("block,", *block)
 
 		snapshotDatas.Datas = append(snapshotDatas.Datas, snapshotData)
 	}
