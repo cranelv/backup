@@ -717,8 +717,8 @@ func signBlock(ctx *cli.Context) error {
 	// get block hash
 	blockHash := superBlock.HashNoSigns()
 	//todo 优化 签名账户可否不适用全节点，单启指定钱包
-	passwordList,err := utils.GetSignPassword(ctx)
-	if err != nil{
+	passwordList, err := utils.GetSignPassword(ctx)
+	if err != nil {
 		utils.Fatalf(err.Error())
 	}
 	passPhrase := getPassPhrase("", false, 0, passwordList)
@@ -768,14 +768,25 @@ func signVersion(ctx *cli.Context) error {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
-	passwordList,err := utils.GetSignPassword(ctx)
-	if err != nil{
+	passwordList, err := utils.GetSignPassword(ctx)
+	if err != nil {
 		utils.Fatalf(err.Error())
 	}
 	passphrase := getPassPhrase("", false, 0, passwordList)
 
 	stack, _ := makeConfigNode(ctx)
-	wallet := stack.AccountManager().Wallets()[0]
+	accounts := stack.AccountManager()
+	if nil == accounts {
+		utils.Fatalf("no accounts")
+		return nil
+	}
+
+	wallets := accounts.Wallets()
+	if 0 == len(wallets) {
+		utils.Fatalf("no wallet ")
+		return nil
+	}
+	wallet := wallets[0]
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	err = ks.Unlock(wallet.Accounts()[0], passphrase)

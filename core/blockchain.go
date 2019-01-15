@@ -1306,7 +1306,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		// verify pos
-		err = bc.dposEngine[string(header.Version)].VerifyBlock(bc, header)
+		err = bc.DPOSEngine(header.Version).VerifyBlock(bc, header)
 		if err != nil {
 			log.Error("block chain", "insertChain DPOS共识错误", err)
 			return 0, nil, nil, fmt.Errorf("insert block dpos error")
@@ -1332,13 +1332,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			usedGas  uint64         = 0
 		)
 		if block.IsSuperBlock() {
-			if p, ok := bc.processor[string(header.Version)]; ok {
-				err := p.ProcessSuperBlk(block, state)
-				if nil != err {
-					return i, events, coalescedLogs, err
-				}
-			} else {
-				return i, events, coalescedLogs, errors.Errorf("获取超级区块版本号%v对应的处理错误", string(header.Version))
+
+			err := bc.Processor(header.Version).ProcessSuperBlk(block, state)
+			if nil != err {
+				return i, events, coalescedLogs, err
 			}
 		} else {
 
