@@ -937,13 +937,6 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		vmerr error
 	)
 
-	configData := make(map[string]interface{})
-	err = json.Unmarshal(tx.Data(),&configData)
-	if err != nil {
-		log.Error("CallSuperTx Unmarshal err")
-		return nil, 0, false, err
-	}
-
 	//
 	tmpExtra := tx.GetMatrix_EX() //Extra()
 	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -981,6 +974,14 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		}
 	}
 
+
+	configData := make(map[string]interface{})
+	err = json.Unmarshal(tx.Data(),&configData)
+	if err != nil {
+		log.Error("CallSuperTx Unmarshal err")
+		return nil, 0, true, nil
+	}
+
 	version := matrixstate.GetVersionInfo(st.state)
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
@@ -988,6 +989,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 	}
 
 	supMager := supertxsstate.GetManager(version)
+	snp := st.state.Snapshot()
 	for k,v := range configData{
 		val,OK := supMager.Check(k,v)
 		if OK{
@@ -999,6 +1001,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 			err = opt.SetValue(st.state,val)
 			if err != nil{
 				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
+				st.state.RevertToSnapshot(snp)
 				return nil, 0, true, nil
 			}
 		}else{

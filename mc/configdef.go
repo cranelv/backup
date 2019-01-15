@@ -984,7 +984,6 @@ func (b *TxpoolGasLimit) Check(k, v interface{}) (interface{},bool) {
 func (b *TxpoolGasLimit) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, v
 }
-
 type CurrencyPackLimt struct {
 }
 func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{},bool){
@@ -1003,7 +1002,11 @@ func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{},bool){
 	}
 
 	v1 := reflect.ValueOf(v)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
+		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
+		return make([]string,0),true
+	}
+	if reflect.ValueOf(v.([]interface{})[0]).Kind() == reflect.String{
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
 		return make([]string,0),true
 	}
