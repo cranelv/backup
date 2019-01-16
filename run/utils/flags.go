@@ -154,7 +154,7 @@ var (
 		Usage: "Enable light client mode (replaced by --syncmode)",
 	}
 	GetGenesisFlag = cli.StringFlag{
-		Name: "getGenesis",
+		Name:  "getGenesis",
 		Usage: "Output the actual configuration used",
 	}
 	defaultSyncMode = man.DefaultConfig.SyncMode
@@ -379,7 +379,7 @@ var (
 	}
 	TestEntrustFlag = cli.StringFlag{
 		Name:  "testmode",
-		Usage: "默认使用2222222222222222解密",
+		Usage: "",
 		Value: "",
 	}
 	VMEnableDebugFlag = cli.BoolFlag{
