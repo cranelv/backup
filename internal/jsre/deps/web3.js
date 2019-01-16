@@ -5522,7 +5522,7 @@ var methods = function () {
     });
     var getFutureRewards = new Method({
         name: 'getFutureRewards',
-        call: 'eth_getFutureRewards',
+        call: 'man_getFutureRewards',
         params: 1,
         inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
         // outputFormatter: formatters.outputNewBigNumberFormatter
