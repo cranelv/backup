@@ -221,5 +221,12 @@ var (
 				"共识流程版本兼容",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.27",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"download过程按时间委托交易和区块头时间比较",
+			},
+		},
 	}
 )
