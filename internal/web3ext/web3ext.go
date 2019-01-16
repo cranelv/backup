@@ -179,6 +179,11 @@ web3._extend({
 			call: 'debug_printBlock',
 			params: 1
 		}),
+        new web3._extend.Method({
+			name: 'getAllChainInfo',
+			call: 'debug_getAllChainInfo',
+			params: 0,
+		}),
 		new web3._extend.Method({
 			name: 'getBlockRlp',
 			call: 'debug_getBlockRlp',
@@ -479,11 +484,6 @@ web3._extend({
 			name: 'getEntrustFromByTime',
 			call: 'man_getEntrustFromByTime',
 			params: 2,
-		}),
-        new web3._extend.Method({
-			name: 'getAllChainInfo',
-			call: 'man_getAllChainInfo',
-			params: 0,
 		}),
         new web3._extend.Method({
 			name: 'getSelfLevel',
