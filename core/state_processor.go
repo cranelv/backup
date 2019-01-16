@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
-	"time"
-
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
@@ -224,7 +222,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 				//tx.IsEntrustGas = true
 				tx.SetIsEntrustGas(true)
 			} else {
-				entrustFrom := statedb.GetGasAuthFromByTime(from, uint64(time.Now().Unix()))
+				entrustFrom := statedb.GetGasAuthFromByTime(from, uint64(block.Time().Uint64()))
 				if !entrustFrom.Equal(common.Address{}) {
 					tx.Setentrustfrom(entrustFrom)
 					//tx.IsEntrustGas = true
@@ -232,7 +230,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 					tx.SetIsEntrustGas(true)
 					tx.SetIsEntrustByTime(true)
 				} else {
-					log.Error("该用户没有被授权过委托Gas")
+					log.Error("下载过程:该用户没有被授权过委托Gas")
 					return nil, nil, 0, ErrWithoutAuth
 				}
 			}
@@ -330,6 +328,15 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
+
+	//如果是委托gas并且是按时间委托
+	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
+		if !statedb.GetIsEntrustByTime(from, header.Time.Uint64()) {
+			log.Error("按时间委托gas的交易失效")
+			return nil, 0, errors.New("entrustTx is invalid")
+		}
+	}
+
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64
 	var failed bool
@@ -344,14 +351,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 			return nil, 0, err
 		}
 	}
-	//如果是委托gas并且是按时间委托
-	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
-		//from = base58.Base58DecodeToAddress("MAN.3oW6eUV7MmQcHiD4WGQcRnsN8ho1aFTWPaYADwnqu2wW3WcJzbEfZNw2") //******测试用，要删除
-		if !statedb.GetIsEntrustByTime(from, header.Time.Uint64()) {
-			log.Error("按时间委托gas的交易失效")
-			return nil, 0, errors.New("entrustTx is invalid")
-		}
-	}
+
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
