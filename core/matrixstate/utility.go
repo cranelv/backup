@@ -386,7 +386,7 @@ func GetTxpoolGasLimit(st StateDB) (*big.Int, error) {
 		return nil, err
 	}
 	value, err := opt.GetValue(st)
-	if err != nil || value == "0"{
+	if err != nil || value == "0" {
 		return nil, err
 	}
 	return value.(*big.Int), nil

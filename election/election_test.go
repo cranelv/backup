@@ -300,7 +300,7 @@ func Test4(t *testing.T) {
 		common.BigToAddress(big.NewInt(1)),
 	}
 	black := []common.Address{
-	//	common.BigToAddress(big.NewInt(2)),
+		//	common.BigToAddress(big.NewInt(2)),
 	}
 	GOTestM(0, 0, white, black, "layerd", true)
 

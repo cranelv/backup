@@ -48,7 +48,6 @@ func (opt *operatorTopologyGraph) SetValue(st StateDB, value interface{}) error 
 		return err
 	}
 
-
 	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "topologyGraph marshal failed", err)
@@ -96,7 +95,6 @@ func (opt *operatorElectGraph) SetValue(st StateDB, value interface{}) error {
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
 
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -345,8 +343,8 @@ func (opt *operatorElectBlackList) SetValue(st StateDB, value interface{}) error
 		return err
 	}
 	v1 := reflect.ValueOf(value)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
-		nilSlice := make([]byte,0)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
+		nilSlice := make([]byte, 0)
 		st.SetMatrixData(opt.key, nilSlice)
 		return nil
 	}
@@ -402,8 +400,8 @@ func (opt *operatorElectWhiteList) SetValue(st StateDB, value interface{}) error
 		return err
 	}
 	v1 := reflect.ValueOf(value)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
-		nilSlice := make([]byte,0)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
+		nilSlice := make([]byte, 0)
 		st.SetMatrixData(opt.key, nilSlice)
 		return nil
 	}

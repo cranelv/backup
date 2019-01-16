@@ -154,7 +154,7 @@ var (
 		Usage: "Enable light client mode (replaced by --syncmode)",
 	}
 	GetGenesisFlag = cli.StringFlag{
-		Name: "getGenesis",
+		Name:  "getGenesis",
 		Usage: "Output the actual configuration used",
 	}
 	defaultSyncMode = man.DefaultConfig.SyncMode

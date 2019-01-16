@@ -82,8 +82,8 @@ func (md *MatrixDeposit) RequiredGas(input []byte) uint64 {
 }
 
 func (md *MatrixDeposit) Run(in []byte, contract *Contract, evm *EVM) ([]byte, error) {
-	if in == nil || len(in)==0{
-		return nil,nil
+	if in == nil || len(in) == 0 {
+		return nil, nil
 	}
 	if len(in) < 4 {
 		return nil, errParameters

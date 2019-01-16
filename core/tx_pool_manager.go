@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -13,7 +14,6 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"sync"
 	"time"
-	"github.com/matrix/go-matrix/core/matrixstate"
 )
 
 var (
@@ -97,7 +97,7 @@ type TxPoolManager struct {
 	sendTxCh     chan NewTxsEvent
 	txFeed       event.Feed
 	scope        event.SubscriptionScope
-	chain 		 blockChain
+	chain        blockChain
 }
 
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
@@ -236,14 +236,14 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 }
 func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
-	state,err := pm.chain.State()
-	if err != nil{
-		log.Error("TxPoolManager:filter","get state failed",err)
+	state, err := pm.chain.State()
+	if err != nil {
+		log.Error("TxPoolManager:filter", "get state failed", err)
 		return nil
 	}
 
-	blklist,err := matrixstate.GetAccountBlackList(state)
-	if err != nil{
+	blklist, err := matrixstate.GetAccountBlackList(state)
+	if err != nil {
 		//不做处理
 	}
 
@@ -254,40 +254,40 @@ func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types
 		}
 
 		//黑账户过滤
-		if len(blklist) > 0{
+		if len(blklist) > 0 {
 			isBlkAccount := false
-			for _,blkAccount := range blklist{
-				if txer.From().Equal(blkAccount){
+			for _, blkAccount := range blklist {
+				if txer.From().Equal(blkAccount) {
 					isBlkAccount = true
 					break
 				}
 			}
-			if isBlkAccount{
+			if isBlkAccount {
 				continue
 			}
 		}
 
 		//超级交易账户不匹配
-		if txer.GetMatrixType() == common.ExtraSuperTxType{
-			mansuperTxAddreslist,err := matrixstate.GetTxsSuperAccounts(state)
-			if err != nil{
-				log.Error("TxPoolManager:filter","get super tx account failed",err)
+		if txer.GetMatrixType() == common.ExtraSuperTxType {
+			mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
+			if err != nil {
+				log.Error("TxPoolManager:filter", "get super tx account failed", err)
 				continue
 			}
 			isOK := false
-			for _,superAddress := range mansuperTxAddreslist{
-				if txer.From().Equal(superAddress){
+			for _, superAddress := range mansuperTxAddreslist {
+				if txer.From().Equal(superAddress) {
 					isOK = true
 				}
 			}
-			if !isOK{
+			if !isOK {
 				log.Error("超级账户不匹配")
 				continue
 			}
 		}
 
 		//黑账户过滤
-		if txer.To() != nil{
+		if txer.To() != nil {
 			if SelfBlackList.FindBlackAddress(*txer.To()) {
 				continue
 			}

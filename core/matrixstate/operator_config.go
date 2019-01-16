@@ -473,7 +473,6 @@ func (opt *operatorLeaderConfig) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-
 	data, err := json.Marshal(value)
 	if err != nil {
 		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
@@ -522,7 +521,6 @@ func (opt *operatorMinHash) SetValue(st StateDB, value interface{}) error {
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
 
 	data, err := json.Marshal(value)
 	if err != nil {

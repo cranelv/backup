@@ -10,21 +10,23 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/common/hexutil"
 	"github.com/matrix/go-matrix/common/math"
 	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/base58"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
+
 type GenesisAddress common.Address
 
 // UnmarshalJSON parses a hash in hex syntax.
 func (a *GenesisAddress) UnmarshalJSON(input []byte) error {
-	*a = GenesisAddress(base58.Base58DecodeToAddress(string(input[1:len(input)-1])))
+	*a = GenesisAddress(base58.Base58DecodeToAddress(string(input[1 : len(input)-1])))
 	return nil
 }
+
 //func (a *GenesisAddress) MarshalJSON() ([]byte, error) {
 //	buff := base58.Base58EncodeToString("MAN", common.Address(*a))
 //	return []byte(buff),nil
@@ -32,7 +34,7 @@ func (a *GenesisAddress) UnmarshalJSON(input []byte) error {
 // MarshalText returns the hex representation of a.
 func (a GenesisAddress) MarshalText() ([]byte, error) {
 	buff := base58.Base58EncodeToString("MAN", common.Address(a))
-	return []byte(buff),nil
+	return []byte(buff), nil
 }
 
 // UnmarshalText parses a hash in hex syntax.
@@ -99,13 +101,15 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.TxHash = g.TxHash
 	return json.Marshal(&enc)
 }
+
 type GenesisElect struct {
 	Account GenesisAddress
 	Stock   uint16
 	Type    common.ElectRoleType
 	VIP     common.VIPRoleType
 }
-func TransToGenesisElect(elect common.Elect)GenesisElect{
+
+func TransToGenesisElect(elect common.Elect) GenesisElect {
 	return GenesisElect{
 		GenesisAddress(elect.Account),
 		elect.Stock,
@@ -113,7 +117,7 @@ func TransToGenesisElect(elect common.Elect)GenesisElect{
 		elect.VIP,
 	}
 }
-func TransToCommonElect(elect GenesisElect)common.Elect{
+func TransToCommonElect(elect GenesisElect) common.Elect {
 	return common.Elect{
 		common.Address(elect.Account),
 		elect.Stock,
@@ -121,6 +125,7 @@ func TransToCommonElect(elect GenesisElect)common.Elect{
 		elect.VIP,
 	}
 }
+
 type GenesisNetTopologyData struct {
 	Account  GenesisAddress
 	Position uint16
@@ -129,23 +134,24 @@ type GenesisNetTopology struct {
 	Type            uint8
 	NetTopologyData []GenesisNetTopologyData
 }
-func TransToGenesisNetTopology(topology common.NetTopology)GenesisNetTopology{
-	gtopology :=  GenesisNetTopology{
+
+func TransToGenesisNetTopology(topology common.NetTopology) GenesisNetTopology {
+	gtopology := GenesisNetTopology{
 		topology.Type,
-		make([]GenesisNetTopologyData,len(topology.NetTopologyData)),
+		make([]GenesisNetTopologyData, len(topology.NetTopologyData)),
 	}
-	for i,item := range topology.NetTopologyData{
+	for i, item := range topology.NetTopologyData {
 		gtopology.NetTopologyData[i].Account = GenesisAddress(item.Account)
 		gtopology.NetTopologyData[i].Position = item.Position
 	}
 	return gtopology
 }
-func TransToCommonNetTopology(gtopology GenesisNetTopology)common.NetTopology{
-	topology :=  common.NetTopology{
+func TransToCommonNetTopology(gtopology GenesisNetTopology) common.NetTopology {
+	topology := common.NetTopology{
 		gtopology.Type,
-		make([]common.NetTopologyData,len(gtopology.NetTopologyData)),
+		make([]common.NetTopologyData, len(gtopology.NetTopologyData)),
 	}
-	for i,item := range gtopology.NetTopologyData{
+	for i, item := range gtopology.NetTopologyData {
 		topology.NetTopologyData[i].Account = common.Address(item.Account)
 		topology.NetTopologyData[i].Position = item.Position
 	}
@@ -154,28 +160,28 @@ func TransToCommonNetTopology(gtopology GenesisNetTopology)common.NetTopology{
 
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
-		Config            *params.ChainConfig                         `json:"config,omitempty"`
-		Nonce             *math.HexOrDecimal64                        `json:"nonce"`
-		Timestamp         *math.HexOrDecimal64                        `json:"timestamp"`
-		ExtraData         *hexutil.Bytes                              `json:"extraData"`
-		Version           *string                                     `json:"version"`
-		VersionSignatures *[]common.Signature                         `json:"versionSignatures"`
-		VrfValue          *hexutil.Bytes                              `json:"vrfvalue"`
-		Leader            *GenesisAddress                             `json:"leader"`
-		NextElect         *[]GenesisElect                             `json:"nextElect" gencodec:"required"`
-		NetTopology       *GenesisNetTopology                         `json:"nettopology"        gencodec:"required"`
-		Signatures        *[]common.Signature                         `json:"signatures" gencodec:"required"`
-		GasLimit          *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
-		Difficulty        *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
-		Mixhash           *common.Hash                                `json:"mixHash"`
-		Coinbase          *GenesisAddress                            `json:"coinbase"`
-		Alloc             map[GenesisAddress]GenesisAccount 		  `json:"alloc"      gencodec:"required"`
-		MState            *GenesisMState                              `json:"mstate"`
-		Number            *math.HexOrDecimal64                        `json:"number"`
-		GasUsed           *math.HexOrDecimal64                        `json:"gasUsed"`
-		ParentHash        *common.Hash                                `json:"parentHash"`
-		Root              *common.Hash                                `json:"stateRoot,omitempty"`
-		TxHash            *common.Hash                                `json:"transactionsRoot,omitempty"`
+		Config            *params.ChainConfig               `json:"config,omitempty"`
+		Nonce             *math.HexOrDecimal64              `json:"nonce"`
+		Timestamp         *math.HexOrDecimal64              `json:"timestamp"`
+		ExtraData         *hexutil.Bytes                    `json:"extraData"`
+		Version           *string                           `json:"version"`
+		VersionSignatures *[]common.Signature               `json:"versionSignatures"`
+		VrfValue          *hexutil.Bytes                    `json:"vrfvalue"`
+		Leader            *GenesisAddress                   `json:"leader"`
+		NextElect         *[]GenesisElect                   `json:"nextElect" gencodec:"required"`
+		NetTopology       *GenesisNetTopology               `json:"nettopology"        gencodec:"required"`
+		Signatures        *[]common.Signature               `json:"signatures" gencodec:"required"`
+		GasLimit          *math.HexOrDecimal64              `json:"gasLimit"   gencodec:"required"`
+		Difficulty        *math.HexOrDecimal256             `json:"difficulty" gencodec:"required"`
+		Mixhash           *common.Hash                      `json:"mixHash"`
+		Coinbase          *GenesisAddress                   `json:"coinbase"`
+		Alloc             map[GenesisAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
+		MState            *GenesisMState                    `json:"mstate"`
+		Number            *math.HexOrDecimal64              `json:"number"`
+		GasUsed           *math.HexOrDecimal64              `json:"gasUsed"`
+		ParentHash        *common.Hash                      `json:"parentHash"`
+		Root              *common.Hash                      `json:"stateRoot,omitempty"`
+		TxHash            *common.Hash                      `json:"transactionsRoot,omitempty"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -207,8 +213,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.Leader = common.Address(*dec.Leader)
 	}
 	if dec.NextElect != nil {
-		g.NextElect = make([]common.Elect,len(*dec.NextElect))
-		for i,item := range *dec.NextElect {
+		g.NextElect = make([]common.Elect, len(*dec.NextElect))
+		for i, item := range *dec.NextElect {
 			g.NextElect[i] = TransToCommonElect(item)
 		}
 	}
