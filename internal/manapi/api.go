@@ -753,7 +753,7 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 	if mgr == nil {
 		return nil, nil
 	}
-	supMager := supertxsstate.GetManager(version)
+	//supMager := supertxsstate.GetManager(version)
 
 	opt, err := mgr.FindOperator(key)
 	if err != nil {
@@ -765,9 +765,9 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 		log.Error("GetCfgDataByState:SetValue failed", "err", err)
 		return nil, err
 	}
-	_, val := supMager.Output(key, dataval)
+	//_, val := supMager.Output(key, dataval)
 
-	return val, nil
+	return dataval, nil
 }
 
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
