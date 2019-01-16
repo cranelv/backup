@@ -25,6 +25,11 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"os"
+	"bufio"
+	"io"
+	"strings"
+	"strconv"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -127,6 +132,66 @@ func (p *StateProcessor) ProcessReward(state *state.StateDBManage, header *types
 	return nil
 }
 
+func (p *StateProcessor)readShardConfig(filePth string) ([]common.CoinSharding,error) {
+	f, err := os.Open(filePth)
+	if err != nil {
+		return nil,err
+	}
+	defer f.Close()
+	bfRd := bufio.NewReader(f)
+	coinshard := make([]common.CoinSharding,0)
+	for {
+		ushards := make([]uint,0)
+		buf,_, err := bfRd.ReadLine()
+		if len(buf) <=0 {
+			if err != nil { //遇到任何错误立即返回，并忽略 EOF 错误信息
+				if err == io.EOF {
+					break
+				}
+				return nil,err
+			}
+		}
+		str := string(buf)
+		idx := strings.Index(str,"=")
+		coin:=str[0:idx]
+		shards := str[idx+1:]
+		strs := strings.Split(shards,",")
+		for _,str := range strs{
+			i,_:=strconv.Atoi(str)
+			ushards = append(ushards,uint(i))
+		}
+		coinshard = append(coinshard,common.CoinSharding{CoinType:coin,Shardings:ushards})
+	}
+	return coinshard,nil
+}
+func (p *StateProcessor) checkCoinShard(coinShard []common.CoinSharding)[]common.CoinSharding{
+	isexistCoin := false
+	isexistShard := false
+	for _,cs :=range coinShard{
+		if cs.CoinType == params.MAN_COIN{
+			isexistCoin = true
+			for _,s := range cs.Shardings{
+				if s == 0{
+					isexistShard = true
+				}
+			}
+			break
+		}
+	}
+	if !isexistCoin{
+		coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:[]uint{0}})
+	}else if isexistShard{
+		for i,cs :=range coinShard {
+			ui := make([]uint,0)
+			if cs.CoinType == params.MAN_COIN {
+				ui = append(ui,uint(0))
+				ui = append(ui,coinShard[i].Shardings...)
+				coinShard[i].Shardings = ui
+			}
+		}
+	}
+	return coinShard
+}
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -144,17 +209,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDBManag
 		gp       = new(GasPool).AddGas(block.GasLimit())
 		retAllGas uint64= 0
 	)
-
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY   Test
-	//rol := ca.GetRole()
-	//if rol == common.RoleMiner || rol == common.RoleInnerMiner || rol == common.RoleBackupMiner{
-	//	su :=make([]uint,0)
-	//	su = append(su,uint(0))
-	//	su = append(su,uint(14))
-	//	coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:su})
-	//}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-
+	cs,cserr:=p.readShardConfig("")
+	if cserr == nil{
+		coinShard = make([]common.CoinSharding,len(cs))
+		copy(coinShard,cs)
+		coinShard = p.checkCoinShard(coinShard)
+	}
 	// Iterate over and process the individual transactions
 	statedb.UpdateTxForBtree(uint32(block.Time().Uint64()))
 	statedb.UpdateTxForBtreeBytime(uint32(block.Time().Uint64()))
