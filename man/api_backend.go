@@ -57,6 +57,14 @@ func (b *ManAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.man.chainConfig
 }
 
+func (b *ManAPIBackend) NetWorkID() uint64 {
+	return b.man.config.NetworkId
+}
+
+func (b *ManAPIBackend) SyncMode() downloader.SyncMode {
+	return b.man.config.SyncMode
+}
+
 func (b *ManAPIBackend) NetRPCService() *manapi.PublicNetAPI {
 	return b.man.netRPCService
 }

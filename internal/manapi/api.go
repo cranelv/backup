@@ -193,21 +193,6 @@ func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
 	return &PublicAccountAPI{am: am}
 }
 
-func (api *PublicDebugAPI) GetAllChainInfo() map[string]interface{} {
-	result := make(map[string]interface{})
-	result["chainId"] = api.b.ChainConfig().ChainId
-	result["ByzantiumBlock"] = api.b.ChainConfig().ByzantiumBlock
-	result["EIP155Block"] = api.b.ChainConfig().EIP155Block
-	result["EIP158Block"] = api.b.ChainConfig().EIP158Block
-	//result["NetworkId"] = api.b.Config().NetworkId
-	//result["SyncMode"] = api.b.Config().SyncMode
-	result["Genesis"] = api.b.Genesis().Hash()
-	result["PeerCount"] = api.b.NetRPCService().PeerCount()
-	result["LastBlockNumber"] = api.b.CurrentBlock().NumberU64()
-	result["LastBlockHash"] = api.b.CurrentBlock().Hash()
-	return result
-}
-
 // Accounts returns the collection of accounts this node manages
 func (s *PublicAccountAPI) Accounts() []string {
 	//addresses := make([]common.Address, 0) // return [] instead of nil if empty
@@ -1435,11 +1420,10 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 		data.Currency = "MAN"
 	}
 	result.From = base58.Base58EncodeToString(data.Currency, data.From)
-	if data.To != nil{
+	if data.To != nil {
 		result.To = new(string)
 		*result.To = base58.Base58EncodeToString(data.Currency, *data.To)
 	}
-
 
 	if len(data.ExtraTo) > 0 {
 		extra := make([]*ExtraTo_Mx1, 0)
@@ -1726,7 +1710,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logsBloom":         receipt.Bloom,
 	}
 	fields["from"] = base58.Base58EncodeToString("MAN", from)
-	if tx.To() != nil{
+	if tx.To() != nil {
 		fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
 	}
 	// Assign receipt status or post state.
@@ -1740,7 +1724,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
 	if receipt.ContractAddress != (common.Address{}) {
-		fields["contractAddress"] =  base58.Base58EncodeToString("MAN", receipt.ContractAddress)
+		fields["contractAddress"] = base58.Base58EncodeToString("MAN", receipt.ContractAddress)
 	}
 	return fields, nil
 }
@@ -1835,12 +1819,12 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	//	}
 	//	args.GasPrice = (*hexutil.Big)(price)
 	//}
-	state,err := b.GetState()
-	if err != nil{
+	state, err := b.GetState()
+	if err != nil {
 		return err
 	}
-	price,err := matrixstate.GetTxpoolGasLimit(state)
-	if err != nil{
+	price, err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil {
 		return err
 	}
 
@@ -2226,6 +2210,21 @@ type PublicDebugAPI struct {
 // of the Matrix service.
 func NewPublicDebugAPI(b Backend) *PublicDebugAPI {
 	return &PublicDebugAPI{b: b}
+}
+
+func (api *PublicDebugAPI) GetAllChainInfo() map[string]interface{} {
+	result := make(map[string]interface{})
+	result["chainId"] = api.b.ChainConfig().ChainId
+	result["ByzantiumBlock"] = api.b.ChainConfig().ByzantiumBlock
+	result["EIP155Block"] = api.b.ChainConfig().EIP155Block
+	result["EIP158Block"] = api.b.ChainConfig().EIP158Block
+	result["NetworkId"] = api.b.NetWorkID()
+	result["SyncMode"] = api.b.SyncMode()
+	result["Genesis"] = api.b.Genesis().Hash()
+	result["PeerCount"] = api.b.NetRPCService().PeerCount()
+	result["LastBlockNumber"] = api.b.CurrentBlock().NumberU64()
+	result["LastBlockHash"] = api.b.CurrentBlock().Hash()
+	return result
 }
 
 // GetBlockRlp retrieves the RLP encoded for of a single block.

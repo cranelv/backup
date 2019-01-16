@@ -64,7 +64,8 @@ type Backend interface {
 
 	ChainConfig() *params.ChainConfig
 	//Config() *man.Config
-
+	NetWorkID() uint64
+	SyncMode() downloader.SyncMode
 	NetRPCService() *PublicNetAPI
 	CurrentBlock() *types.Block
 	GetDepositAccount(signAccount common.Address, blockHash common.Hash) (common.Address, error)
