@@ -1022,7 +1022,7 @@ func (st *StateTransition) RefundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(common.MainAccount, st.msg.From(), remaining)
+	st.state.AddBalance(common.MainAccount, st.msg.AmontFrom(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
