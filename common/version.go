@@ -203,5 +203,23 @@ var (
 				"未出块惩罚代功能添加",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.25",
+			Submitter: "zhenghe,liubo",
+			Commit: []string{
+				"超级交易功能",
+				"快照功能合入",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.26",
+			Submitter: "mehao,huuyankai,zhangwen",
+			Commit: []string{
+				"创世文件配置及默认创世文件优化",
+				"matrix state 改为RLP编码",
+				"entrust检查流程代码",
+				"共识流程版本兼容",
+			},
+		},
 	}
 )

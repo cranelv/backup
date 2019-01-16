@@ -996,6 +996,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 			opt, err := mgr.FindOperator(k)
 			if err != nil{
 				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
+				st.state.RevertToSnapshot(snp)
 				return nil, 0, true, nil
 			}
 			err = opt.SetValue(st.state,val)
@@ -1005,10 +1006,12 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 				return nil, 0, true, nil
 			}
 		}else{
+			log.Error("CallSuperTx:Check failed","key",k,"value",val,"err",err)
+			st.state.RevertToSnapshot(snp)
 			return nil, 0, true, nil
 		}
 	}
-	return ret, 0, vmerr != nil, err
+	return ret, 0, vmerr != nil, nil
 }
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.
