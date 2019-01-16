@@ -379,7 +379,7 @@ var (
 	}
 	TestEntrustFlag = cli.StringFlag{
 		Name:  "testmode",
-		Usage: "默认使用2222222222222222解密",
+		Usage: "",
 		Value: "",
 	}
 	VMEnableDebugFlag = cli.BoolFlag{

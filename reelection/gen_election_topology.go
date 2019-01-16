@@ -135,10 +135,10 @@ func (p *ReElection) getOnlineStatus(onlineResults []*mc.HD_OnlineConsensusVoteR
 		}
 	}
 	for i, value := range onlineNods {
-		log.Debug(Module, "下线节点地址", value.String(), "序号", i)
+		log.Debug(Module, "上线节点地址", value.String(), "序号", i)
 	}
 	for i, value := range offlineNodes {
-		log.Debug(Module, "上线节点地址", value.String(), "序号", i)
+		log.Debug(Module, "下线节点地址", value.String(), "序号", i)
 	}
 	return offlineNodes, onlineNods, consensusList
 }
