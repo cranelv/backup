@@ -102,10 +102,10 @@ func newManger(version string) *Manager {
 				mc.MSKeyLotteryCalc:  newLotteryCalcOpt(),
 				mc.MSKeySlashCalc:    newSlashCalcOpt(),
 
-				mc.MSTxpoolGasLimitCfg:   newTxpoolGasLimitOpt(),
-				mc.MSCurrencyPack:   newCurrencyPackOpt(),
-				mc.MSAccountBlackList:   newAccountBlackListOpt(),
-				
+				mc.MSTxpoolGasLimitCfg: newTxpoolGasLimitOpt(),
+				mc.MSCurrencyPack:      newCurrencyPackOpt(),
+				mc.MSAccountBlackList:  newAccountBlackListOpt(),
+
 				mc.MSKeyBlockProduceStatsStatus: newBlockProduceStatsStatusOpt(),
 				mc.MSKeyBlockProduceSlashCfg:    newBlockProduceSlashCfgOpt(),
 				mc.MSKeyBlockProduceStats:       newBlockProduceStatsOpt(),

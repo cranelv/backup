@@ -8,9 +8,9 @@ import (
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/params"
 	"github.com/pkg/errors"
 	"reflect"
-	"github.com/matrix/go-matrix/params"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -994,7 +994,7 @@ func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
 	if len(data) == 0 {
 		return make([]common.Address, 0), nil
 	}
-	currencylist := make([]string,0)
+	currencylist := make([]string, 0)
 	err := json.Unmarshal(data, &currencylist)
 	if err != nil {
 		return nil, errors.Errorf("operatorCurrencyPack json.Unmarshal failed: %s", err)
@@ -1009,8 +1009,8 @@ func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
 	}
 	//取消
 	v1 := reflect.ValueOf(value)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
-		nilSlice := make([]byte,0)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
+		nilSlice := make([]byte, 0)
 		st.SetMatrixData(opt.key, nilSlice)
 		return nil
 	}
@@ -1062,9 +1062,9 @@ func (opt *operatorAccountBlackList) GetValue(st StateDB) (interface{}, error) {
 	return accounts, nil
 }
 
-func IsInBlackList(addr common.Address,blacklist []common.Address)bool {
-	for _,blackaddr := range blacklist{
-		if addr.Equal(blackaddr){
+func IsInBlackList(addr common.Address, blacklist []common.Address) bool {
+	for _, blackaddr := range blacklist {
+		if addr.Equal(blackaddr) {
 			return true
 		}
 	}
@@ -1076,8 +1076,8 @@ func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) err
 	}
 	//取消
 	v1 := reflect.ValueOf(value)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
-		nilSlice := make([]byte,0)
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
+		nilSlice := make([]byte, 0)
 		st.SetMatrixData(opt.key, nilSlice)
 		return nil
 	}
@@ -1088,10 +1088,10 @@ func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) err
 		return ErrParamReflect
 	}
 
-	mansuperTxAddreslist,err := GetTxsSuperAccounts(st)
-	if err == nil{
-		for _,superAddress := range mansuperTxAddreslist{
-			if IsInBlackList(superAddress,accounts){
+	mansuperTxAddreslist, err := GetTxsSuperAccounts(st)
+	if err == nil {
+		for _, superAddress := range mansuperTxAddreslist {
+			if IsInBlackList(superAddress, accounts) {
 				return errors.New("the blacklist is invalid")
 			}
 		}

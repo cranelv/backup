@@ -16,7 +16,7 @@ func init() {
 }
 
 type SuperTxsStateChecker interface {
-	Check(k, v interface{}) (interface{},bool)
+	Check(k, v interface{}) (interface{}, bool)
 	Output(k, v interface{}) (interface{}, interface{})
 }
 
@@ -60,9 +60,9 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeySlashCalc:            new(mc.SlashCalc),
 				mc.MSKeyBlockProduceSlashCfg: new(mc.BlockProduceSlashCfg),
 
-				mc.MSTxpoolGasLimitCfg:		new(mc.TxpoolGasLimit),
-				mc.MSCurrencyPack:  		new(mc.CurrencyPackLimt),
-				mc.MSAccountBlackList:		new(mc.AccountBlackList),
+				mc.MSTxpoolGasLimitCfg: new(mc.TxpoolGasLimit),
+				mc.MSCurrencyPack:      new(mc.CurrencyPackLimt),
+				mc.MSAccountBlackList:  new(mc.AccountBlackList),
 			},
 		}
 	default:
@@ -71,11 +71,11 @@ func newManager(version string) *SuperTxsStateManager {
 	}
 }
 
-func (s *SuperTxsStateManager) Check(k string, v interface{}) (interface{},bool) {
+func (s *SuperTxsStateManager) Check(k string, v interface{}) (interface{}, bool) {
 	if opt, ok := s.operators[k]; ok {
 		return opt.Check(k, v)
 	}
-	return nil,false
+	return nil, false
 }
 
 func (s *SuperTxsStateManager) Output(k string, v interface{}) (interface{}, interface{}) {

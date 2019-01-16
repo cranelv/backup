@@ -41,7 +41,7 @@ type DumpValue struct {
 
 type CodeData struct {
 	CodeHash []byte
-	Code []byte
+	Code     []byte
 }
 
 //Root [Account ...] [Matrix...]
@@ -86,7 +86,7 @@ func (self *StateDB) RawDumpDB() DumpDB {
 
 		//code data
 		code := obj.Code(self.db)
-		if code!=nil && common.Bytes2Hex(code)!="" {
+		if code != nil && common.Bytes2Hex(code) != "" {
 			dump.CodeDatas = append(dump.CodeDatas, CodeData{
 				CodeHash: data.CodeHash,
 				Code:     code,

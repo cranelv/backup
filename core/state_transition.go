@@ -12,13 +12,13 @@ import (
 
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
+	matrixstate "github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/supertxsstate"
 	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
-	matrixstate "github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/core/supertxsstate"
 )
 
 var (
@@ -69,8 +69,8 @@ func IntrinsicGas(data []byte) (uint64, error) {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *StateTransition {
-	gasprice,err := matrixstate.GetTxpoolGasLimit(evm.StateDB)
-	if err != nil{
+	gasprice, err := matrixstate.GetTxpoolGasLimit(evm.StateDB)
+	if err != nil {
 		//return errors.New("get txpool gasPrice err")
 	}
 	return &StateTransition{
@@ -974,9 +974,8 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 		}
 	}
 
-
 	configData := make(map[string]interface{})
-	err = json.Unmarshal(tx.Data(),&configData)
+	err = json.Unmarshal(tx.Data(), &configData)
 	if err != nil {
 		log.Error("CallSuperTx Unmarshal err")
 		return nil, 0, true, nil
@@ -990,23 +989,23 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 
 	supMager := supertxsstate.GetManager(version)
 	snp := st.state.Snapshot()
-	for k,v := range configData{
-		val,OK := supMager.Check(k,v)
-		if OK{
+	for k, v := range configData {
+		val, OK := supMager.Check(k, v)
+		if OK {
 			opt, err := mgr.FindOperator(k)
-			if err != nil{
-				log.Error("CallSuperTx:FindOperator failed","key",k,"value",val,"err",err)
+			if err != nil {
+				log.Error("CallSuperTx:FindOperator failed", "key", k, "value", val, "err", err)
 				st.state.RevertToSnapshot(snp)
 				return nil, 0, true, nil
 			}
-			err = opt.SetValue(st.state,val)
-			if err != nil{
-				log.Error("CallSuperTx:SetValue failed","key",k,"value",val,"err",err)
+			err = opt.SetValue(st.state, val)
+			if err != nil {
+				log.Error("CallSuperTx:SetValue failed", "key", k, "value", val, "err", err)
 				st.state.RevertToSnapshot(snp)
 				return nil, 0, true, nil
 			}
-		}else{
-			log.Error("CallSuperTx:Check failed","key",k,"value",val,"err",err)
+		} else {
+			log.Error("CallSuperTx:Check failed", "key", k, "value", val, "err", err)
 			st.state.RevertToSnapshot(snp)
 			return nil, 0, true, nil
 		}

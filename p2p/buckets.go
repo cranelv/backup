@@ -90,8 +90,14 @@ func (b *Bucket) Start() {
 		select {
 		case <-timeoutTimer.C:
 			b.maintainOuter()
+			if !timeoutTimer.Stop() && len(timeoutTimer.C) > 0 {
+				<-timeoutTimer.C
+			}
 			timeoutTimer.Reset(time.Second * 60)
 		case h := <-b.blockChain:
+			if !timeoutTimer.Stop() && len(timeoutTimer.C) > 0 {
+				<-timeoutTimer.C
+			}
 			timeoutTimer.Reset(time.Second * 60)
 
 			// only bottom nodes will into this buckets.

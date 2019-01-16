@@ -30,7 +30,7 @@ func (opt *operatorBroadcastTx) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	//value := make(map[string]map[common.Address][]byte)
-	value := make(common.BroadTxSlice,0)
+	value := make(common.BroadTxSlice, 0)
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
 		return value, nil
@@ -100,7 +100,6 @@ func (opt *operatorBroadcastInterval) SetValue(st StateDB, value interface{}) er
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
 
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -212,7 +211,6 @@ func (opt *operatorPreBroadcastRoot) SetValue(st StateDB, value interface{}) err
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
 
 	data, err := json.Marshal(value)
 	if err != nil {

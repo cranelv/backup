@@ -237,7 +237,7 @@ type BlockChain interface {
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
-	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash)(common.Address,common.Address, error)
+	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error)
 	SynSnapshot(blockNum uint64, hash string, filePath string) bool
 	SetSnapshotParam(period uint64, start uint64)
 	PrintSnapshotAccountMsg(blockNum uint64, hash string, filePath string)

@@ -54,11 +54,11 @@ func TryFilterBlockProduceBlackList(vipElec *support.Electoion, blackList []mc.U
 	}
 	return availableNodeNum
 }
-func printVipBlackList(blackList []mc.UserBlockProduceSlash){
-	if len(blackList) == 0{
+func printVipBlackList(blackList []mc.UserBlockProduceSlash) {
+	if len(blackList) == 0 {
 		log.Trace("VIP选举黑名单处理", "无黑名单", nil)
-	}else{
-		for _, v := range blackList{
+	} else {
+		for _, v := range blackList {
 			log.Trace("VIP选举黑名单处理", "账户", v.Address.String(), "禁止周期", v.ProhibitCycleCounter)
 		}
 	}
@@ -77,9 +77,9 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		}
 
 		//普通选举之前过滤区块生成黑名单
-		if vipEleLoop == 0{
+		if vipEleLoop == 0 {
 			printVipBlackList(mvrerm.BlockProduceBlackList.BlackList)
-			if vipEle.NeedNum >= vipEle.ChosedNum{
+			if vipEle.NeedNum >= vipEle.ChosedNum {
 				TryFilterBlockProduceBlackList(vipEle, mvrerm.BlockProduceBlackList.BlackList, vipEle.NeedNum-vipEle.ChosedNum)
 			}
 		}

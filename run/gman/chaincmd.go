@@ -288,22 +288,22 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
-	}/*
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
-	}
-	defer file.Close()
+	} /*
+		file, err := os.Open(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to read genesis file: %v", err)
+		}
+		defer file.Close()
 
-	genesis, err := core.GetDefaultGeneis()
+		genesis, err := core.GetDefaultGeneis()
 
-	if err != nil {
-		utils.Fatalf("获取默认配置文件失败:%v", err)
-	}
-	genesis1 := new(core.Genesis1)
-	//
+		if err != nil {
+			utils.Fatalf("获取默认配置文件失败:%v", err)
+		}
+		genesis1 := new(core.Genesis1)
+		//
 	*/
-	genesis,err := core.DefaultGenesis(genesisPath)
+	genesis, err := core.DefaultGenesis(genesisPath)
 	if err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
