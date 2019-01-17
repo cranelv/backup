@@ -385,7 +385,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	st.state.MakeStatedb(makecoin.CoinName,false)
 	for str,amount:=range makecoin.AddrAmount{
 		addr := base58.Base58DecodeToAddress(str)
-		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,amount)
+		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,(*big.Int)(amount))
 	}
 	key := types.RlpHash(params.COIN_NAME)
 	coinlistbyte := st.state.GetMatrixData(key)

@@ -516,5 +516,5 @@ type CoinSharding struct {
 
 type SMakeCoin struct {
 	CoinName string
-	AddrAmount map[string]*big.Int
+	AddrAmount map[string]*hexutil.Big
 }
