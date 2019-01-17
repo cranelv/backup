@@ -272,21 +272,21 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, typ, isEntrustTx)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, typ, isEntrustTx,currency)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, typ, isEntrustTx)
-}
-
-//
-func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte) *Transaction {
-	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data, ex, localtime, txType, isEntrustTx)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, typ, isEntrustTx,currency)
 }
 
 //
-func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte) *Transaction {
+func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data, ex, localtime, txType, isEntrustTx,currency)
+}
+
+//
+func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -340,11 +340,11 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	matrixEx.LockHeight = localtime
 	matrixEx.ExtraTo = arrayTx
 	d.Extra = append(d.Extra, *matrixEx)
-	tx := &Transaction{data: d}
+	tx := &Transaction{Currency:currency,data: d}
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -376,7 +376,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	if gasPrice != nil {
 		d.Price.Set(gasPrice)
 	}
-	tx := &Transaction{data: d}
+	tx := &Transaction{Currency:currency,data: d}
 	return tx
 }
 
@@ -474,6 +474,29 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		return ErrInvalidSig
 	}
 	*tx = Transaction{data: dec}
+	return nil
+}
+type man_txdata struct {
+	currency string
+	data txdata1
+}
+func (tx *Transaction) ManTx_UnmarshalJSON(input []byte) error {
+	var dec man_txdata
+	if err := dec.UnmarshalJSON(input); err != nil {
+		return err
+	}
+	var V byte
+	if isProtectedV(dec.data.V) {
+		chainID := deriveChainId(dec.data.V).Uint64()
+		V = byte(dec.data.V.Uint64() - 35 - 2*chainID)
+	} else {
+		V = byte(dec.data.V.Uint64() - 27)
+	}
+	if !crypto.ValidateSignatureValues(V, dec.data.R, dec.data.S, false) {
+		return ErrInvalidSig
+	}
+	TxdataStringToAddres(&dec.data, &tx.data)
+	*tx = Transaction{Currency:dec.currency,data: tx.data}
 	return nil
 }
 func (tx *Transaction) GetConstructorType() uint16 {
@@ -810,7 +833,7 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (SelfTransaction
 	if err != nil {
 		return nil, err
 	}
-	cpy := &Transaction{data: tx.data}
+	cpy := &Transaction{Currency:tx.Currency,data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
 	////
 	//if len(cpy.data.Extra) > 0 {

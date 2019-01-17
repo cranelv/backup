@@ -467,8 +467,6 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args1 SendTxArg
 	if err != nil {
 		return common.Hash{}, err
 	}
-	Currency := args.Currency //币种
-	signed.SetTxCurrency(Currency)
 	return submitTransaction(ctx, s.b, signed)
 }
 
@@ -903,7 +901,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, 0, 0)}
+	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, 0, 0,"MAN")}
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1808,6 +1806,10 @@ type SendTxArgs1 struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
+	V 			*hexutil.Big	`json:"v"`
+	R 			*hexutil.Big 	`json:"r"`
+	S 			*hexutil.Big	`json:"s"`
+	Currency    *string 		`json:"currency"`
 	TxType      byte           `json:"txType"`     //
 	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
@@ -1882,10 +1884,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx,args.Currency)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx,args.Currency)
 	}
 	//
 	txtr := make([]*types.ExtraTo_tr, 0)
@@ -1902,7 +1904,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 			txtr = append(txtr, tmp)
 		}
 	}
-	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, txtr, args.LockHeight, args.TxType, args.IsEntrustTx)
+	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency)
 
 }
 
@@ -2063,14 +2065,34 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	if err != nil {
 		return common.Hash{}, err
 	}
-	Currency := args.Currency //币种
-	signed.SetTxCurrency(Currency)
+	//Currency := args.Currency //币种
+	//signed.SetTxCurrency(Currency)
 	return submitTransaction(ctx, s.b, signed)
 }
 
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
-func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
+	//tx := new(types.Transaction)
+	var args SendTxArgs
+	args,err := StrArgsToByteArgs(args1)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	// Set some sanity defaults and terminate on failure
+	if err := args.setDefaults(ctx, s.b); err != nil {
+		return common.Hash{}, err
+	}
+	tx := args.toTransaction()
+	//json.Unmarshal()
+	////================================//
+	//if err := tx.ManTx_UnmarshalJSON(encodedTx); err != nil{
+	//	return common.Hash{}, err
+	//}
+	//================================//
+	return submitTransaction(ctx, s.b, tx)
+}
+func (s *PublicTransactionPoolAPI) SendRawTransaction_old(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
 	tx := new(types.Transaction)
 	tx.Mtype = true
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {

@@ -290,10 +290,13 @@ func SetTransactionMx(tx_Mx *Transaction_Mx) *TransactionBroad {
 		TxEnterType: BroadCastTxIndex,
 		Extra:       tx_Mx.Data.Extra,
 	}
-	mx := Matrix_Extra{
-		TxType: tx_Mx.TxType_Mx,
+	if len(tx.Extra) == 0 {
+		mx := Matrix_Extra{
+			TxType: tx_Mx.TxType_Mx,
+		}
+		tx.Extra = append(tx.Extra, mx)
 	}
-	tx.Extra = append(tx.Extra, mx)
+
 	return &TransactionBroad{data: tx}
 }
 
