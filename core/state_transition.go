@@ -168,6 +168,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		case common.ExtraCancelEntrust:
 			log.INFO("====ZH: 取消委托", "txtype", txtype)
 			return st.CallCancelAuthTx()
+		case common.ExtraMakeCoinType:
+			return st.CallMakeCoinTx()
 		default:
 			log.Info("File state_transition", "func Transitiondb", "Unknown extra txtype")
 			return nil, 0, false, nil, ErrTXUnknownType
@@ -363,7 +365,51 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	}
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
-
+func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	var addr common.Address
+	from := tx.From()
+	if from == addr {
+		return nil, 0, false, shardings, errors.New("file state_transition,func CallUnGasNormalTx ,from is nil")
+	}
+	sender := vm.AccountRef(from)
+	by := tx.Data()
+	var makecoin common.SMakeCoin
+	makecerr:=json.Unmarshal(by,&makecoin)
+	if makecerr !=nil{
+		log.Trace("Make Coin","Unmarshal err",makecerr)
+		return nil, 0, false, shardings, makecerr
+	}
+	st.gas = 0
+	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
+	st.state.MakeStatedb(makecoin.CoinName,false)
+	for str,amount:=range makecoin.AddrAmount{
+		addr := base58.Base58DecodeToAddress(str)
+		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,amount)
+	}
+	key := types.RlpHash(params.COIN_NAME)
+	coinlistbyte := st.state.GetMatrixData(key)
+	var coinlist []string
+	if len(coinlistbyte) > 0{
+		err := json.Unmarshal(coinlistbyte,&coinlist)
+		if err != nil{
+			log.Trace("get coin list","unmarshal err",err)
+			return nil, 0, false, nil, err
+		}
+	}
+	clmap := make(map[string]bool)
+	coinlist = append(coinlist,makecoin.CoinName)
+	var clslice []string
+	for _,cl := range coinlist{
+		if _,ok :=clmap[cl]; !ok{
+			clmap[cl] = true
+			clslice = append(clslice,cl)
+		}
+	}
+	coinby,_:=json.Marshal(clslice)
+	st.state.SetMatrixData(key, coinby)
+	return ret, 0, false, shardings, err
+}
 func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
 	if err = st.PreCheck(); err != nil {
 		return

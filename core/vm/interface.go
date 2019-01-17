@@ -87,7 +87,7 @@ type CallContext interface {
 
 type StateDBManager interface {
 	CreateAccount(cointyp string, addr common.Address)
-
+	MakeStatedb(cointyp string,isCheck bool)
 	SetBalance(cointyp string, accountType uint32, addr common.Address, amount *big.Int)
 	SubBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)
 	AddBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)

@@ -603,7 +603,22 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
 }
-
+func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.BlockNumber) ([]string, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	bs := state.GetMatrixData(types.RlpHash(params.COIN_NAME))
+	var coinlist []string
+	if len(bs)>0{
+		err := json.Unmarshal(bs,&coinlist)
+		if err != nil{
+			log.Trace("get matrix coin","unmarshal err",err)
+			return nil, err
+		}
+	}
+	return coinlist , nil
+}
 //钱包调用
 func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string,cointype string) []common.EntrustType {
 	state, err := s.b.GetState()
@@ -1730,6 +1745,17 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
+	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
+	if args.TxType == 9{
+		var mcoin common.SMakeCoin
+		mcoin.CoinName = "EHC"
+		mcoin.AddrAmount = make(map[string]*big.Int)
+		mcoin.AddrAmount["EHC.CrsnQSJJfGxpb2taGhChLuyZwZJd"] = new(big.Int).SetUint64(5000000000000000000)
+		mcoin.AddrAmount["EHC.4717tmhWbuvX2yF4W7zFbfdbVxAm8"] = new(big.Int).SetUint64(3000000000000000000)
+		//mcoin.AddrAmount[common.HexToAddress("0xdec3b4dbf723154e6b4d21bf7bcff01420d6d272")] = new(big.Int).SetUint64(2000000000000000000)
+		input,_ = json.Marshal(mcoin)
+	}
+	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx)
 	}

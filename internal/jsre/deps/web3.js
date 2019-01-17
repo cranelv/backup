@@ -5743,7 +5743,12 @@ var methods = function () {
         call: 'eth_importSuperBlock',
         params: 1
     });
-
+    var getMatrixCoin = new Method({
+        name: 'getMatrixCoin',
+        call: 'eth_getMatrixCoin',
+        params: 1,
+        inputFormatter: [formatters.inputDefaultBlockNumberFormatter]
+    });
     return [
         getBalance,
         getUpTime,
@@ -5777,7 +5782,8 @@ var methods = function () {
         getWork,
         getTopology,
         getSelfLevel,
-        importSuperBlock
+        importSuperBlock,
+        getMatrixCoin
     ];
 };
 

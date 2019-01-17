@@ -442,6 +442,7 @@ const (
 	ExtraCancelEntrust byte = 6   //取消委托
 	ExtraTimeTxType    byte = 7   //定时交易
 	ExtraAItxType      byte = 8   //AI 交易
+	ExtraMakeCoinType  byte = 9   //创建币种交易
 	ExtraSuperBlockTx  byte = 120 //超级区块交易
 )
 
@@ -486,24 +487,6 @@ type EntrustType struct {
 	EndTime     uint64
 }
 
-//地址为0x地址
-//type EntrustType1 struct {
-//	//委托地址
-//	EntrustAddres Address	//被委托人from
-//	//委托权限
-//	IsEntrustGas    bool	//委托gas
-//	IsEntrustSign   bool	//委托签名
-//	EnstrustSetType byte    //0-按高度委托,1-按时间委托
-//	//委托限制
-//	//PeerMaxAmount   *big.Int //单笔金额(取消)
-//	//TotalAmount     *big.Int //总额(取消)
-//	StartHeight     uint64   //委托起始高度
-//	EndHeight       uint64   //委托结束高度
-//	//EntrustCount    uint32   //委托次数(取消)
-//	StartTime       uint64
-//	EndTime         uint64
-//}
-
 type AuthType struct {
 	AuthAddres      Address //授权人from
 	EnstrustSetType byte    //0-按高度委托,1-按时间委托
@@ -529,4 +512,9 @@ type Coinbyte struct {
 type CoinSharding struct {
 	CoinType string
 	Shardings []uint
+}
+
+type SMakeCoin struct {
+	CoinName string
+	AddrAmount map[string]*big.Int
 }

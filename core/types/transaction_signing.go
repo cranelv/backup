@@ -182,8 +182,6 @@ func (s EIP155Signer) SignatureValues(tx SelfTransaction, sig []byte) (R, S, V *
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
 func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
-	chid := s.chainId
-	fmt.Println("YYYYYYYYYYYYYYchin",chid)
 	return rlpHash(txer.GetMakeHashfield(s.chainId))
 }
 

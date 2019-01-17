@@ -49,15 +49,18 @@ func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database, db Database) 
 	}
 	copy(stm.coinRoot, roots)
 	copy(stm.retcoinRoot, roots)
-	stm.MakeStatedb(params.MAN_COIN)
-	stm.MakeStatedb(params.BTC_COIN) //YYYYYYYYYYYYYYYYYYYYYYYY
+	for _,cr := range roots{
+		stm.MakeStatedb(cr.Cointyp,true)
+		//stm.MakeStatedb(params.BTC_COIN) //YYYYYYYYYYYYYYYYYYYYYYYY
+	}
+
 	dump:=stm.Dump(params.MAN_COIN,common.HexToAddress("0x0ead6cdb8d214389909a535d4ccc21a393dddba9"))
 	fmt.Printf("dump:	%s",dump)
 
 
 	return stm, nil
 }
-func (shard *StateDBManage) MakeStatedb(cointyp string) {
+func (shard *StateDBManage) MakeStatedb(cointyp string,isCheck bool) {
 	//没有对应币种或byte分区的时候，才创建
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
@@ -70,18 +73,17 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 			isex = true
 		}
 	}
-	var types []string
+	var cointypes []string
 	if !isex && cointyp != params.MAN_COIN {
-
 		for _, cm := range shard.shardings {
 			if cm.Cointyp == params.MAN_COIN {
-				v := cm.Rmanage[0].State.trie.GetKey([]byte(params.COIN_NAME))
-				err := json.Unmarshal(v, &types)
+				v := cm.Rmanage[0].State.GetMatrixData(types.RlpHash((params.COIN_NAME)))
+				err := json.Unmarshal(v, &cointypes)
 				if err != nil {
 					log.Error("")
 				}
-				flag := true
-				for _, coinName := range types {
+				flag := isCheck
+				for _, coinName := range cointypes {
 					if coinName == cointyp {
 						flag = false
 						break
@@ -97,6 +99,8 @@ func (shard *StateDBManage) MakeStatedb(cointyp string) {
 		shard.coinRoot = append(shard.coinRoot, common.CoinRoot{Cointyp: cointyp, Root: common.Hash{}})
 		shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cointyp, Root: common.Hash{}})
 	}
+
+
 	shard.addShardings(cointyp)
 }
 func (shard *StateDBManage) addShardings(cointyp string) {
