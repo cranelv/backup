@@ -580,7 +580,7 @@ func (ks *KeyStore) ImportPreSaleKey(keyJSON []byte, passphrase string) (account
 	return a, nil
 }
 
-func (ks *KeyStore) CheckAccountAndPassword(a accounts.Account, passphrase string)  error {
+func (ks *KeyStore) CheckAccountAndPassword(a accounts.Account, passphrase string) error {
 	_, key, err := ks.getDecryptedKey(a, passphrase)
 	if err != nil {
 		return err

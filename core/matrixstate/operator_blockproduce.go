@@ -48,7 +48,6 @@ func (opt *operatorBlockProduceStatsStatus) SetValue(st StateDB, value interface
 		return err
 	}
 
-
 	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceStatsStatus rlp encode failed", err)
@@ -147,7 +146,6 @@ func (opt *operatorBlockProduceStats) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-
 	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		log.Error(logInfo, "blockProduceStats rlp encode failed", err)
@@ -196,7 +194,6 @@ func (opt *operatorBlockProduceBlackList) SetValue(st StateDB, value interface{}
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
-
 
 	data, err := rlp.EncodeToBytes(value)
 	if err != nil {

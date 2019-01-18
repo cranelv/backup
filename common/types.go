@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	hashT    = reflect.TypeOf(Hash{})
-	addressT = reflect.TypeOf(Address{})
+	hashT      = reflect.TypeOf(Hash{})
+	addressT   = reflect.TypeOf(Address{})
 	signatureT = reflect.TypeOf(Signature{})
 )
 
@@ -327,9 +327,11 @@ func (ma *MixedcaseAddress) Original() string {
 
 /////////// Signature
 type Signature [SignatureLength]byte
+
 func (a *Signature) UnmarshalJSON(input []byte) error {
 	return hexutil.UnmarshalFixedJSON(signatureT, input, a[:])
 }
+
 /*
 func (a *Signature) MarshalJSON() ([]byte, error) {
 	return hexutil.Bytes(a[:]).MarshalText()
@@ -535,24 +537,26 @@ func Less(a,b BroadTxkey) bool{
 	}
 	return false
 }
+
 type BroadTxSlice []BroadTxValue
 func (si *BroadTxSlice)Insert(key string,address Address,value[]byte){
 	insValue := BroadTxValue{BroadTxkey{key,address},value}
 	index, exist := find(insValue.Key, si)
 	if exist {
 		(*si)[index] = insValue
-	}else{
-		insert(si,index,insValue)
+	} else {
+		insert(si, index, insValue)
 	}
 }
+
 func (si *BroadTxSlice) FindKey(key string) map[Address][]byte{
 	firstKey := BroadTxkey{key,Address{}}
 	endKey := BroadTxkey{key,Address{}}
 	for i := 0; i < len(endKey.Address); i++ {
 		endKey.Address[i] = 0xff
 	}
-	first,exist := find(firstKey,si)
-	last,exist1 := find(endKey,si)
+	first, exist := find(firstKey, si)
+	last, exist1 := find(endKey, si)
 	if exist {
 		first--
 	}
@@ -565,8 +569,8 @@ func (si *BroadTxSlice) FindKey(key string) map[Address][]byte{
 	}
 	return valueMap
 }
-func (si *BroadTxSlice) FindValue(key string,address Address) ([]byte,bool){
-	index,exist := find(BroadTxkey{key,address},si)
+func (si *BroadTxSlice) FindValue(key string, address Address) ([]byte, bool) {
+	index, exist := find(BroadTxkey{key, address}, si)
 	if exist {
 		return (*si)[index].Value, true
 	}else{
@@ -593,6 +597,7 @@ func find(k BroadTxkey, info *BroadTxSlice) (int, bool) {
 	}
 	return mid, false
 }
+
 //binary insert
 func insert(info *BroadTxSlice, index int, value BroadTxValue) {
 	*info = append(*info, value)
@@ -604,20 +609,20 @@ func insert(info *BroadTxSlice, index int, value BroadTxValue) {
 
 //长度为3-8位,不能有小写字母，不能有特殊字符，不能有数字，不能有连续的"MAN"
 func IsValidityCurrency(s string) bool {
-	if len(s)<3 || len(s)>8{
+	if len(s) < 3 || len(s) > 8 {
 		return false
 	}
 
-	for i:=0; i<len(s); i++ {
+	for i := 0; i < len(s); i++ {
 		ch := s[i]
-		if !unicode.IsLetter(int32(ch)){
+		if !unicode.IsLetter(int32(ch)) {
 			return false
 		}
-		if !unicode.IsUpper(int32(ch)){
+		if !unicode.IsUpper(int32(ch)) {
 			return false
 		}
 	}
-	if strings.Contains(s,"MAN"){
+	if strings.Contains(s, "MAN") {
 		return false
 	}
 	return true

@@ -8,9 +8,9 @@ import (
 
 	"github.com/matrix/go-matrix/log"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/common"
 	"reflect"
-	"encoding/json"
 )
 
 const (
@@ -97,38 +97,37 @@ type ElectMinerNumStruct struct {
 	MinerNum uint16
 }
 
-func (b *ElectMinerNumStruct) Check(k, v interface{}) (interface{},bool) {
+func (b *ElectMinerNumStruct) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易配置", "随机选举矿工数目配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyElectMinerNum {
 		log.ERROR("超级交易配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	var value ElectMinerNumStruct
-	err = json.Unmarshal(codedata,&value)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
 	}
 
 	if value.MinerNum == 0 {
 		log.ERROR("超级交易配置", "矿工数目配置为0", "")
-		return nil,false
+		return nil, false
 	}
 	log.Info("参选矿工超级交易配置", "ElectMinerNumStruct", value)
-	return value,true
+	return value, true
 
 }
 
@@ -156,7 +155,7 @@ type SortVIPConfig []VIPConfig
 func (self SortVIPConfig) Len() int {
 	return len(self)
 }
-func (self SortVIPConfig) Less(i, j int) (bool) {
+func (self SortVIPConfig) Less(i, j int) bool {
 	return self[i].MinMoney < self[j].MinMoney
 }
 func (self SortVIPConfig) Swap(i, j int) {
@@ -172,45 +171,44 @@ type VIPConfig struct {
 	StockScale   uint16 //千分比
 }
 
-func (b *VIPConfig) Check(k, v interface{}) (interface{},bool) {
+func (b *VIPConfig) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("VIP超级交易配置", "配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("VIP超级交易配置", "配置key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyVIPConfig {
 		log.ERROR("VIP超级交易配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	value :=make([]VIPConfig,0)
-	err = json.Unmarshal(codedata,&value)
-	if err != nil{
-		return nil,false
+	value := make([]VIPConfig, 0)
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
 	}
 	sort.Sort(SortVIPConfig(value))
 	if (value)[0].MinMoney != uint64(0) {
 		log.ERROR("VIP超级交易配置", "vip配置中需包含最小值为0的配置", "")
-		return nil,false
+		return nil, false
 	}
 	for index := 0; index < len(value)-1; index++ {
 		if (value)[index].MinMoney == (value)[index+1].MinMoney {
 			log.ERROR("VIP超级交易配置", "vip配置中不能包含最小值相同的配置", "")
-			return nil,false
+			return nil, false
 		}
 	}
 
 	log.Info("VIP超级交易配置", "VIPCfg", value)
-	return value,true
+	return value, true
 
 }
 
@@ -252,51 +250,51 @@ type BlkRewardCfg struct {
 	RewardRate     RewardRateCfg
 }
 
-func (b *BlkRewardCfg) Check(k, v interface{}) (interface{},bool) {
+func (b *BlkRewardCfg) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易固定区块奖励配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易固定区块奖励配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyBlkRewardCfg {
 		log.ERROR("超级交易固定区块奖励配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var value  BlkRewardCfg
-	err = json.Unmarshal(codedata,&value)
-	if err != nil{
-		return nil,false
+	var value BlkRewardCfg
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
 	}
 	rateCfg := value.RewardRate
 
 	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
 
 		log.ERROR("超级交易固定区块奖励配置", "矿工固定区块奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
 
 		log.ERROR("超级交易固定区块奖励配置", "验证者固定区块奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 
 	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
 
 		log.ERROR("超级交易固定区块奖励配置", "替补固定区块奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 	log.Info("超级交易配置", "BlkRewardCfg", rateCfg)
 
-	return value,true
+	return value, true
 
 }
 
@@ -311,56 +309,56 @@ type TxsRewardCfg struct {
 	RewardRate     RewardRateCfg
 }
 
-func (b *TxsRewardCfg) Check(k, v interface{}) (interface{},bool) {
+func (b *TxsRewardCfg) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易交易费奖励配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易交易费奖励配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyTxsRewardCfg {
 		log.ERROR("超级交易交易费奖励配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var value  TxsRewardCfg
-	err = json.Unmarshal(codedata,&value)
-	if err != nil{
-		return nil,false
+	var value TxsRewardCfg
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
 	}
 	rateCfg := value.RewardRate
 
 	if RewardFullRate != value.ValidatorsRate+value.MinersRate {
 
 		log.ERROR("超级交易交易费奖励配置", "交易矿工验证者奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 	if RewardFullRate != rateCfg.MinerOutRate+rateCfg.ElectedMinerRate+rateCfg.FoundationMinerRate {
 
 		log.ERROR("超级交易交易费奖励配置", "矿工交易费奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 	if RewardFullRate != rateCfg.LeaderRate+rateCfg.ElectedValidatorsRate+rateCfg.FoundationValidatorRate {
 
 		log.ERROR("超级交易交易费奖励配置", "验证者交易费奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 
 	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
 
 		log.ERROR("超级交易交易费奖励配置", "替补交易费奖励比例配置错误", "")
-		return nil,false
+		return nil, false
 	}
 	log.Info("超级交易配置", "TxsRewardCfg", rateCfg)
 
-	return value,true
+	return value, true
 
 }
 
@@ -372,32 +370,32 @@ func (b *TxsRewardCfg) Output(k, v interface{}) (interface{}, interface{}) {
 type BlkRewardCalc struct {
 }
 
-func (b *BlkRewardCalc) Check(k, v interface{}) (interface{},bool) {
+func (b *BlkRewardCalc) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易区块算法配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易区块算法配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyBlkCalc {
 		log.ERROR("超级交易区块算法配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var values  string
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	var values string
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易区块算法配置", "BlkRewardCalc", v)
-	return values,true
+	return values, true
 }
 func (b *BlkRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
@@ -407,32 +405,32 @@ func (b *BlkRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 type TxsRewardCalc struct {
 }
 
-func (b *TxsRewardCalc) Check(k, v interface{}) (interface{},bool) {
+func (b *TxsRewardCalc) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易交易费算法配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易交易费算法配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyTxsCalc {
 		log.ERROR("超级交易交易费算法配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var values  string
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	var values string
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易交易费算法配置", "TxsRewardCalc", v)
-	return values,true
+	return values, true
 }
 func (b *TxsRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
@@ -442,32 +440,32 @@ func (b *TxsRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 type InterestRewardCalc struct {
 }
 
-func (b *InterestRewardCalc) Check(k, v interface{}) (interface{},bool) {
+func (b *InterestRewardCalc) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易利息算法配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易利息算法配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyInterestCalc {
 		log.ERROR("超级交易利息算法配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var values  string
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	var values string
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易利息算法配置", "InterestRewardCalc", v)
-	return values,true
+	return values, true
 }
 func (b *InterestRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
@@ -477,32 +475,32 @@ func (b *InterestRewardCalc) Output(k, v interface{}) (interface{}, interface{})
 type LotteryRewardCalc struct {
 }
 
-func (b *LotteryRewardCalc) Check(k, v interface{}) (interface{},bool) {
+func (b *LotteryRewardCalc) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易彩票算法配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易彩票算法配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyLotteryCalc {
 		log.ERROR("超级交易彩票算法配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var values  string
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	var values string
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易彩票算法配置", "LotteryRewardCalc", v)
-	return values,true
+	return values, true
 }
 func (b *LotteryRewardCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
@@ -512,32 +510,32 @@ func (b *LotteryRewardCalc) Output(k, v interface{}) (interface{}, interface{}) 
 type SlashCalc struct {
 }
 
-func (b *SlashCalc) Check(k, v interface{}) (interface{},bool) {
+func (b *SlashCalc) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易惩罚算法配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易惩罚算法配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeySlashCalc {
 		log.ERROR("超级交易惩罚算法配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	var values  string
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	var values string
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易惩罚算法配置", "SlashCalc", v)
-	return values,true
+	return values, true
 }
 func (b *SlashCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
@@ -554,34 +552,34 @@ type LotteryCfg struct {
 	LotteryInfo []LotteryInfo
 }
 
-func (b *LotteryCfg) Check(k, v interface{}) (interface{},bool) {
+func (b *LotteryCfg) Check(k, v interface{}) (interface{}, bool) {
 
 	if v == nil || k == nil {
 		log.ERROR("超级交易彩票奖励配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易彩票奖励配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyLotteryCfg {
 		log.ERROR("超级交易彩票奖励配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	values := LotteryCfg{}
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 
 	log.Info("超级交易彩票奖励配置", "LotteryCfg", values)
-	return values,true
+	return values, true
 }
 
 func (b *LotteryCfg) Output(k, v interface{}) (interface{}, interface{}) {
@@ -594,38 +592,38 @@ type InterestCfg struct {
 	PayInterval  uint64
 }
 
-func (b *InterestCfg) Check(k, v interface{}) (interface{},bool) {
+func (b *InterestCfg) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易利息奖励配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易利息奖励配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyInterestCfg {
 		log.ERROR("超级交易利息奖励配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	values := InterestCfg{}
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 
 	if values.PayInterval < values.CalcInterval {
 
 		log.ERROR("超级交易利息奖励配置", "配置的发放周期小于计息周期", "")
-		return nil,false
+		return nil, false
 	}
 	log.Info("超级交易利息奖励配置", "InterestCfg", values)
-	return values,true
+	return values, true
 }
 
 func (b *InterestCfg) Output(k, v interface{}) (interface{}, interface{}) {
@@ -637,38 +635,38 @@ type SlashCfg struct {
 	SlashRate uint64
 }
 
-func (b *SlashCfg) Check(k, v interface{}) (interface{},bool) {
+func (b *SlashCfg) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易惩罚奖励配置", "奖励配置为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易惩罚奖励配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeySlashCfg {
 		log.ERROR("超级交易惩罚奖励配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	values := SlashCfg{}
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 
 	if values.SlashRate > RewardFullRate {
 
 		log.ERROR("超级交易惩罚奖励配置", "配置的最大惩罚比例系数大于10000", values.SlashRate)
-		return nil,false
+		return nil, false
 	}
 	log.Info("超级交易惩罚奖励配置", "SlashCfg", values)
-	return values,true
+	return values, true
 }
 
 func (b *SlashCfg) Output(k, v interface{}) (interface{}, interface{}) {
@@ -697,32 +695,32 @@ type RandomInfoStruct struct {
 type BroadcastAccounts struct {
 }
 
-func (b *BroadcastAccounts) Check(k, v interface{}) (interface{},bool) {
+func (b *BroadcastAccounts) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易配置", "广播节点为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyAccountBroadcasts {
 		log.ERROR("超级交易配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]common.Address,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]common.Address, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易广播节点配置", "BroadcastAccounts", v)
-	return values,true
+	return values, true
 
 }
 
@@ -746,31 +744,31 @@ func (b *BroadcastAccounts) Output(k, v interface{}) (interface{}, interface{}) 
 type InnerMinersAccounts struct {
 }
 
-func (b *InnerMinersAccounts) Check(k, v interface{}) (interface{},bool) {
+func (b *InnerMinersAccounts) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易配置", "广播节点为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyAccountInnerMiners {
 		log.ERROR("超级交易配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]common.Address,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]common.Address, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易内部矿工节点配置", "InnerMinersAccounts", v)
-	return values,true
+	return values, true
 
 }
 
@@ -794,31 +792,31 @@ func (b *InnerMinersAccounts) Output(k, v interface{}) (interface{}, interface{}
 type ElectBlackList struct {
 }
 
-func (b *ElectBlackList) Check(k, v interface{}) (interface{},bool) {
+func (b *ElectBlackList) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易选举黑名单配置", "广播节点为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易选举黑名单配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyElectBlackList {
 		log.ERROR("超级交易选举黑名单配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]common.Address,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]common.Address, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易选举黑名单配置", "ElectBlackList", v)
-	return values,true
+	return values, true
 
 }
 
@@ -842,32 +840,32 @@ func (b *ElectBlackList) Output(k, v interface{}) (interface{}, interface{}) {
 type ElectWhiteList struct {
 }
 
-func (b *ElectWhiteList) Check(k, v interface{}) (interface{},bool) {
+func (b *ElectWhiteList) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易选举白名单配置", "广播节点为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易选举白名单配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyElectWhiteList {
 		log.ERROR("超级交易选举白名单配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]common.Address,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]common.Address, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 
 	log.Info("超级交易选举白名单配置", "ElectBlackList", v)
-	return values,true
+	return values, true
 
 }
 
@@ -894,33 +892,32 @@ type BlockProduceSlashCfg struct {
 	ProhibitCycleNum uint16
 }
 
-func (b *BlockProduceSlashCfg) Check(k, v interface{})(interface{}, bool) {
+func (b *BlockProduceSlashCfg) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易出块惩罚配置", "k v为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易出块惩罚配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSKeyBlockProduceSlashCfg {
 		log.ERROR("超级交易出块惩罚配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
-
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	values := BlockProduceSlashCfg{}
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 	log.Info("超级交易出块惩罚配置", "BlockProduceSlashCfg", v)
-	return values,true
+	return values, true
 }
 
 func (b *BlockProduceSlashCfg) Output(k, v interface{}) (interface{}, interface{}) {
@@ -950,85 +947,86 @@ type BlockProduceSlashStatsStatus struct {
 	Number uint64
 }
 
-
 type TxpoolGasLimit struct {
 }
 
-func (b *TxpoolGasLimit) Check(k, v interface{}) (interface{},bool) {
+func (b *TxpoolGasLimit) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易入池gas配置为空")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易入池gas配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSTxpoolGasLimitCfg {
 		log.ERROR("超级交易区块算法配置", "key值非法，非法值为", key)
 		return nil, false
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
 	value := new(big.Int)
-	err = json.Unmarshal(codedata,&value)
-	if err != nil{
-		return nil,false
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
 	}
 
-	return value,true
+	return value, true
 }
 func (b *TxpoolGasLimit) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, v
 }
+
 type CurrencyPackLimt struct {
 }
-func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{},bool){
+
+func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易区块配置", "币种打包限制输入为空", "")
-		return nil,false
+		return nil, false
 	}
 	key, ok := k.(string)
 	if !ok {
 		log.ERROR("超级交易币种打包限制配置", "key值反射失败", "")
-		return nil,false
+		return nil, false
 	}
 	if key != MSCurrencyPack {
 		log.ERROR("超级交易币种打包限制配置", "key值非法，非法值为", key)
-		return nil,false
+		return nil, false
 	}
 
 	v1 := reflect.ValueOf(v)
 	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
-		return make([]string,0),true
+		return make([]string, 0), true
 	}
 	v2 := v.([]interface{})
-	if reflect.ValueOf(v2[0]).Kind() == reflect.String && v2[0] == ""{
+	if reflect.ValueOf(v2[0]).Kind() == reflect.String && v2[0] == "" {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
-		return make([]string,0),true
+		return make([]string, 0), true
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]string,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]string, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
 
-	for _,currency := range values{
-		if !common.IsValidityCurrency(currency){
+	for _, currency := range values {
+		if !common.IsValidityCurrency(currency) {
 			log.ERROR("超级交易币种打包限制配置", "币种格式不正确", "")
-			return nil,false
+			return nil, false
 		}
 	}
-	return values,true
+	return values, true
 }
 func (b *CurrencyPackLimt) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, v
@@ -1036,7 +1034,8 @@ func (b *CurrencyPackLimt) Output(k, v interface{}) (interface{}, interface{}) {
 
 type AccountBlackList struct {
 }
-func (b *AccountBlackList) Check(k, v interface{}) (interface{},bool) {
+
+func (b *AccountBlackList) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易配置", "账户黑名单为空", "")
 		return nil, false
@@ -1051,21 +1050,21 @@ func (b *AccountBlackList) Check(k, v interface{}) (interface{},bool) {
 		return nil, false
 	}
 	v1 := reflect.ValueOf(v)
-	if v1.Kind() == reflect.Slice && v1.Len() == 0{
+	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
 		log.INFO("超级交易配置账户黑名单", "设置的账户黑名单个数为0", "")
-		return make([]common.Address,0),true
+		return make([]common.Address, 0), true
 	}
 
-	codedata,err := json.Marshal(v)
-	if err != nil{
-		return nil,false
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
 	}
-	values := make([]common.Address,0)
-	err = json.Unmarshal(codedata,&values)
-	if err != nil{
-		return nil,false
+	values := make([]common.Address, 0)
+	err = json.Unmarshal(codedata, &values)
+	if err != nil {
+		return nil, false
 	}
-	return values,true
+	return values, true
 }
 
 func (b *AccountBlackList) Output(k, v interface{}) (interface{}, interface{}) {

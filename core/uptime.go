@@ -20,12 +20,11 @@ import (
 
 func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInfo) ([]common.Address, error) {
 
-
 	log.INFO(ModuleName, "获取所有参与uptime点名高度", num)
 
 	upTimeAccounts := make([]common.Address, 0)
-//todo:和老吕讨论Uptime使用当前抵押值
-	minerNum := num-1
+	//todo:和老吕讨论Uptime使用当前抵押值
+	minerNum := num - 1
 	log.Debug(ModuleName, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
@@ -36,7 +35,7 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInf
 		upTimeAccounts = append(upTimeAccounts, v.Address)
 		log.INFO("v.Address", "v.Address", v.Address)
 	}
-	validatorNum := num-1
+	validatorNum := num - 1
 	log.Debug(ModuleName, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {

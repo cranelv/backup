@@ -107,9 +107,9 @@ func ProduceMatrixStateData(block *types.Block, readFn PreStateReadFn) (interfac
 		log.INFO("ProduceMatrixStateData", "tempMap", tempMap)
 		//这里需把map转成slice存储在状态树上
 		var broadtxSlice common.BroadTxSlice
-		for keystring,valmap := range tempMap{
-			for keyaddr,valbyte := range valmap{
-				broadtxSlice.Insert(keystring,keyaddr,valbyte)
+		for keystring, valmap := range tempMap {
+			for keyaddr, valbyte := range valmap {
+				broadtxSlice.Insert(keystring, keyaddr, valbyte)
 			}
 		}
 		return broadtxSlice, nil
@@ -135,8 +135,8 @@ func GetBroadcastTxMap(bc ChainReader, root common.Hash, txtype string) (reqVal 
 	}
 	//此处需将返回的common.BroadTxSlice转为map[]map[]
 	reqVal = mapdata.FindKey(txtype)
-	if reqVal != nil{
-		return reqVal,nil
+	if reqVal != nil {
+		return reqVal, nil
 	}
 	log.Error("GetBroadcastTxMap get broadcast map is nil")
 	return nil, errors.New("GetBroadcastTxMap is nil")

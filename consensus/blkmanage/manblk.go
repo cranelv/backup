@@ -74,7 +74,7 @@ func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash
 	if nil == onlineConsensusResults {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
-	log.Debug(LogManBlk, "获取拓扑结果 ", NetTopology, "高度", num)
+	log.Debug(LogManBlk, "获取拓扑结果 ", NetTopology, "在线共识信息", onlineConsensusResults, "高度", num)
 	header.NetTopology = *NetTopology
 	return onlineConsensusResults, nil
 }

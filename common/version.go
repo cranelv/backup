@@ -228,5 +228,12 @@ var (
 				"download过程按时间委托交易和区块头时间比较",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.28",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"解决通过收据获取不到交易的问题",
+			},
+		},
 	}
 )

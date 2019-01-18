@@ -35,7 +35,7 @@ type Validator interface {
 type Processor interface {
 	ProcessSuperBlk(block *types.Block, statedb *state.StateDB) error
 	ProcessTxs(block *types.Block, statedb *state.StateDB, cfg vm.Config, upTime map[common.Address]uint64) (types.Receipts, []*types.Log, uint64, error)
-	Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) error
+	Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error)
 	SetRandom(random *baseinterface.Random)
 	ProcessReward(state *state.StateDB, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
 }

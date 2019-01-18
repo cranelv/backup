@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus"
@@ -269,50 +270,42 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	return receipts, allLogs, *usedGas, nil
 }
 
-func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) error {
+func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 
 	err := p.bc.ProcessStateVersion(block.Header().Version, statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err0")
-		return err
+		return nil, nil, 0, err
 	}
 
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err1")
 		p.bc.reportBlock(block, nil, err)
-		return err
+		return nil, nil, 0, err
 	}
 	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err6")
 		p.bc.reportBlock(block, nil, err)
-		return err
+		return nil, nil, 0, err
 	}
 	// Process block using the parent state as reference point.
-	receipts, _, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
+	receipts, logs, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err2")
 		p.bc.reportBlock(block, receipts, err)
-		return err
+		return receipts, logs, usedGas, err
 	}
 
 	// Process matrix state
 	err = p.bc.matrixProcessor.ProcessMatrixState(block, statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err3")
-		return err
+		return receipts, logs, usedGas, err
 	}
 
-	// Validate the state using the default validator
-	err = p.bc.Validator(block.Header().Version).ValidateState(block, parent, statedb, receipts, usedGas)
-	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err4")
-		p.bc.reportBlock(block, receipts, err)
-		return err
-	}
-
-	return nil
+	return receipts, logs, usedGas, nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database

@@ -295,8 +295,8 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 		for i, item := range *g.CurElect {
 			curElect[i].Account = common.Address(item.Account)
 			curElect[i].Stock = item.Stock
-			curElect[i].Account = common.Address(item.Account)
-			curElect[i].Account = common.Address(item.Account)
+			curElect[i].Type = item.Type
+			curElect[i].VIP = item.VIP
 		}
 	}
 
@@ -314,9 +314,10 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 	minerIndex, validatorIndex, backUpValidatorIndex := uint16(0), uint16(0), uint16(0)
 	for _, item := range nextElect {
 		nodeInfo := mc.ElectNodeInfo{
-			Account: item.Account,
-			Stock:   item.Stock,
-			Type:    item.Type.Transfer2CommonRole(),
+			Account:  item.Account,
+			Stock:    item.Stock,
+			Type:     item.Type.Transfer2CommonRole(),
+			VIPLevel: item.VIP,
 		}
 		switch item.Type {
 		case common.ElectRoleMiner:
@@ -338,9 +339,10 @@ func (g *GenesisMState) setElectToState(state *state.StateDB, nextElect []common
 
 	for _, item := range curElect {
 		nodeInfo := mc.ElectNodeInfo{
-			Account: item.Account,
-			Stock:   item.Stock,
-			Type:    item.Type.Transfer2CommonRole(),
+			Account:  item.Account,
+			Stock:    item.Stock,
+			Type:     item.Type.Transfer2CommonRole(),
+			VIPLevel: item.VIP,
 		}
 		switch item.Type {
 		case common.ElectRoleMiner:

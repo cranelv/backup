@@ -47,7 +47,7 @@ func Test_newManager(t *testing.T) {
 	}
 
 	var accountblklist1 []common.Address
-	accountblklist1 = make([]common.Address,0)
+	accountblklist1 = make([]common.Address, 0)
 	//accountblklist = append(accountblklist, common.HexToAddress("0x12345"))
 	if a.Check(mc.MSAccountBlackList, accountblklist1) {
 		fmt.Println(a.Output(mc.MSAccountBlackList, accountblklist1))
@@ -57,7 +57,7 @@ func Test_newManager(t *testing.T) {
 	}
 
 	var black []common.Address
-	black = make([]common.Address,0)
+	black = make([]common.Address, 0)
 	//black = append(black, common.HexToAddress("0x01"))
 	if a.Check(mc.MSKeyElectBlackList, black) {
 		fmt.Println(a.Output(mc.MSKeyElectBlackList, black))
@@ -191,17 +191,17 @@ func Test_newManager(t *testing.T) {
 	}
 
 	s1 := "DDDDAA"
-	if a.Check(mc.MSCurrencyPack,s1){
-		fmt.Println(a.Output(mc.MSCurrencyPack,s1))
-	}else{
+	if a.Check(mc.MSCurrencyPack, s1) {
+		fmt.Println(a.Output(mc.MSCurrencyPack, s1))
+	} else {
 		t.Error("执行失败")
 		//return
 	}
 
 	gas := *big.NewInt(int64(1800000))
-	if a.Check(mc.MSTxpoolGasLimitCfg,gas){
-		fmt.Println(a.Output(mc.MSTxpoolGasLimitCfg,gas))
-	}else{
+	if a.Check(mc.MSTxpoolGasLimitCfg, gas) {
+		fmt.Println(a.Output(mc.MSTxpoolGasLimitCfg, gas))
+	} else {
 		t.Error("执行失败")
 		//return
 	}

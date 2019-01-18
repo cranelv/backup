@@ -183,7 +183,7 @@ func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types
 		log.ERROR(LogManBlk, "获取插件失败", "")
 		return nil, errors.New("获取插件失败")
 	}
-	return plug.VerifyHeader(bd.support, header, nil)
+	return plug.VerifyHeader(bd.support, header, args)
 }
 
 func (bd *ManBlkManage) VerifyTxsAndState(types string, version string, header *types.Header, Txs types.SelfTransactions, args ...interface{}) (*state.StateDB, types.SelfTransactions, []*types.Receipt, interface{}, error) {
