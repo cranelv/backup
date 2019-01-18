@@ -886,7 +886,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil,nil,nil,0, 0,"MAN")}
+	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil,nil,nil,0, 0,"MAN",0)}
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1873,11 +1873,9 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency,args.CommitTime)
 	}
-	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,(*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S), 0, args.IsEntrustTx,args.Currency)
-	}
+
 	//
 	txtr := make([]*types.ExtraTo_tr, 0)
 	if len(args.ExtraTo) > 0 {
@@ -1893,7 +1891,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 			txtr = append(txtr, tmp)
 		}
 	}
-	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency)
+	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency,args.CommitTime)
 
 }
 
@@ -2077,22 +2075,17 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
-	//tx := new(types.Transaction)
 	var args SendTxArgs
 	args,err := StrArgsToByteArgs(args1)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	// Set some sanity defaults and terminate on failure
-	//if err := args.setDefaults(ctx, s.b); err != nil {
-	//	return common.Hash{}, err
-	//}
 	tx := args.toTransaction()
 	return submitTransaction(ctx, s.b, tx)
 }
 func (s *PublicTransactionPoolAPI) SendRawTransaction_old(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
 	tx := new(types.Transaction)
-	tx.Mtype = true
+	//tx.Mtype = true
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}

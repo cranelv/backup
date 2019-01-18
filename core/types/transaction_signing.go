@@ -264,21 +264,6 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 			data1.CommitTime,
 			data1.Extra,
 		})
-		//}else{
-		//		return rlpHash([]interface{}{
-		//			tx.data.AccountNonce,
-		//			tx.data.Price,
-		//			tx.data.GasLimit,
-		//			tx.data.Recipient,
-		//			tx.data.Amount,
-		//			tx.data.Payload,
-		//			s.chainId, uint(0), uint(0),
-		//			tx.data.TxEnterType,
-		//			tx.data.IsEntrustTx,
-		//			tx.data.CommitTime,
-		//			tx.data.Extra,
-		//		})
-		//}
 	case BroadCastTxIndex:
 		tx, ok := txer.(*TransactionBroad)
 		if !ok {
@@ -297,7 +282,6 @@ func (s EIP155Signer) Hash(txer SelfTransaction) common.Hash {
 	default:
 		return common.Hash{}
 	}
-
 }
 
 // HomesteadTransaction implements TransactionInterface using the
