@@ -272,21 +272,21 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, typ, isEntrustTx,currency)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, V *big.Int,R *big.Int,S *big.Int,typ byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, V,R,S,typ, isEntrustTx,currency)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, typ, isEntrustTx,currency)
-}
-
-//
-func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
-	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data, ex, localtime, txType, isEntrustTx,currency)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,V *big.Int,R *big.Int,S *big.Int, typ byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, V,R,S,typ, isEntrustTx,currency)
 }
 
 //
-func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
+func NewTransactions(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,V *big.Int,R *big.Int,S *big.Int, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
+	return newTransactions(nonce, &to, amount, gasLimit, gasPrice, data,V,R,S, ex, localtime, txType, isEntrustTx,currency)
+}
+
+//
+func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,V *big.Int,R *big.Int,S *big.Int, ex []*ExtraTo_tr, localtime uint64, txType byte, isEntrustTx byte,currency string) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -309,6 +309,15 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	}
 	if gasPrice != nil {
 		d.Price.Set(gasPrice)
+	}
+	if V != nil{
+		d.V.Set(V)
+	}
+	if R != nil{
+		d.R.Set(R)
+	}
+	if S != nil{
+		d.S.Set(S)
 	}
 	//
 	matrixEx := new(Matrix_Extra)
@@ -344,7 +353,7 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 	return tx
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, typ byte, isEntrustTx byte,currency string) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte,V *big.Int,R *big.Int,S *big.Int, typ byte, isEntrustTx byte,currency string) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -375,6 +384,15 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	}
 	if gasPrice != nil {
 		d.Price.Set(gasPrice)
+	}
+	if V != nil{
+		d.V.Set(V)
+	}
+	if R != nil{
+		d.R.Set(R)
+	}
+	if S != nil{
+		d.S.Set(S)
 	}
 	tx := &Transaction{Currency:currency,data: d}
 	return tx

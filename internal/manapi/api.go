@@ -901,7 +901,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, 0, 0,"MAN")}
+	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil,nil,nil,0, 0,"MAN")}
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1782,9 +1782,13 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
+	V 			*hexutil.Big	`json:"v"`
+	R 			*hexutil.Big 	`json:"r"`
+	S 			*hexutil.Big	`json:"s"`
 	TxType      byte           `json:"txType"`     //
 	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
+	CommitTime  uint64 			`json:"commitTime"`
 	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //
 }
 
@@ -1813,6 +1817,7 @@ type SendTxArgs1 struct {
 	TxType      byte           `json:"txType"`     //
 	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
+	CommitTime  uint64 			`json:"commitTime"`
 	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //
 }
 
@@ -1821,7 +1826,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Gas == nil {
 		args.Gas = new(hexutil.Uint64)
 		//
-		if len(args.ExtraTo) > 0 && args.LockHeight > 0 && args.TxType > 0 {
+		if len(args.ExtraTo) > 0 {
 			*(*uint64)(args.Gas) = 21000*uint64(len(args.ExtraTo)) + 21000
 		} else {
 			*(*uint64)(args.Gas) = 21000
@@ -1884,10 +1889,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx,args.Currency)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency)
 	}
 	if args.TxType == 0 && args.LockHeight == 0 && args.ExtraTo == nil { //
-		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, 0, args.IsEntrustTx,args.Currency)
+		return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,(*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S), 0, args.IsEntrustTx,args.Currency)
 	}
 	//
 	txtr := make([]*types.ExtraTo_tr, 0)
@@ -1904,7 +1909,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 			txtr = append(txtr, tmp)
 		}
 	}
-	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency)
+	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency)
 
 }
 
@@ -1964,13 +1969,18 @@ func CheckParams(strData string) error {
 	return nil
 }
 func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
-	from := args1.From
-	err = CheckParams(from)
-	if err != nil {
-		return SendTxArgs{}, err
+	if args1.From != ""{
+		from := args1.From
+		err = CheckParams(from)
+		if err != nil {
+			return SendTxArgs{}, err
+		}
+		args.Currency = strings.Split(args1.From, ".")[0]
+		args.From = base58.Base58DecodeToAddress(from)
 	}
-	args.Currency = strings.Split(args1.From, ".")[0]
-	args.From = base58.Base58DecodeToAddress(from)
+	if args1.Currency != nil{
+		args.Currency = *args1.Currency
+	}
 	if args1.To != nil {
 		to := *args1.To
 		err = CheckParams(to)
@@ -1980,6 +1990,15 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 		args.To = new(common.Address)
 		*args.To = base58.Base58DecodeToAddress(to)
 	}
+	if args1.V != nil{
+		args.V = args1.V
+	}
+	if args1.R != nil{
+		args.R = args1.R
+	}
+	if args1.S != nil{
+		args.S = args1.S
+	}
 	args.Gas = args1.Gas
 	args.GasPrice = args1.GasPrice
 	args.Value = args1.Value
@@ -1988,6 +2007,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 	args.Input = args1.Input
 	args.TxType = args1.TxType
 	args.LockHeight = args1.LockHeight
+	args.CommitTime = args1.CommitTime
 	args.IsEntrustTx = args1.IsEntrustTx
 	if len(args1.ExtraTo) > 0 { //扩展交易中的to属性不填写则删掉这个扩展交易
 		extra := make([]*ExtraTo_Mx, 0)
@@ -2014,7 +2034,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 
 // SendTransaction creates a transaction for the given argument, sign it and submit it to the
 // transaction pool.
-func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
+func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
 	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
 	var args SendTxArgs
 	args, err := StrArgsToByteArgs(args1)
@@ -2060,8 +2080,8 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
 	}
-	tx.Currency = args.Currency
-	signed, err := wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
+	//tx.Currency = args.Currency
+	signed, err := wallet.SignTx(account, tx, chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -2080,16 +2100,10 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, args1
 		return common.Hash{}, err
 	}
 	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	tx := args.toTransaction()
-	//json.Unmarshal()
-	////================================//
-	//if err := tx.ManTx_UnmarshalJSON(encodedTx); err != nil{
+	//if err := args.setDefaults(ctx, s.b); err != nil {
 	//	return common.Hash{}, err
 	//}
-	//================================//
+	tx := args.toTransaction()
 	return submitTransaction(ctx, s.b, tx)
 }
 func (s *PublicTransactionPoolAPI) SendRawTransaction_old(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
