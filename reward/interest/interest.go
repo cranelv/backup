@@ -80,13 +80,26 @@ func New(st util.StateDB) *interest {
 	}
 	return &interest{VipCfg, IC.CalcInterval, IC.PayInterval}
 }
-func (tlr *interest) calcNodeInterest(deposit *big.Int, blockInterest uint64, denominator uint64) *big.Int {
+func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*DepositInterestRate, denominator uint64) *big.Int {
 
 	if deposit.Cmp(big.NewInt(0)) <= 0 {
 		log.ERROR(PackageName, "抵押获取错误", deposit)
 		return big.NewInt(0)
 	}
-
+	var blockInterest uint64
+	for i, depositInterest := range depositInterestRate {
+		if deposit.Cmp(big.NewInt(0)) <= 0 {
+			log.ERROR(PackageName, "抵押获取错误", deposit)
+			return big.NewInt(0)
+		}
+		if deposit.Cmp(depositInterest.Deposit) < 0 {
+			blockInterest = depositInterestRate[i-1].Interest
+			break
+		}
+	}
+	if blockInterest == 0 {
+		blockInterest = depositInterestRate[len(depositInterestRate)-1].Interest
+	}
 	originResult := new(big.Int).Mul(deposit, new(big.Int).SetUint64(blockInterest))
 	finalResult := new(big.Int).Div(originResult, new(big.Int).SetUint64(denominator))
 	return finalResult
@@ -183,7 +196,6 @@ func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address
 		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{deposit, v.InterestRate})
 	}
 	//sort.Sort(depositInterestRateList
-	nonVipInterestRate := ic.VIPConfig[0].InterestRate
 	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
 	if nil != err {
 		log.ERROR(PackageName, "获取的抵押列表错误", err)
@@ -193,32 +205,12 @@ func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address
 		log.ERROR(PackageName, "获取的抵押列表为空", "")
 		return nil
 	}
-	originElectNodes, err := matrixstate.GetElectGraph(state)
-	if err != nil {
-		log.Error(PackageName, "获取初选拓扑图错误", err)
-		//return nil
-	}
-	if originElectNodes == nil {
-		log.Error(PackageName, "获取初选拓扑图", "结构为nil")
-		return nil
-	}
-	if 0 == len(originElectNodes.ElectList) {
-		log.Error(PackageName, "get获取初选列表为空", "")
-		return nil
-	}
+
 	log.Debug(PackageName, "计算利息,高度", num)
 	InterestMap := make(map[common.Address]*big.Int)
 	for _, dv := range depositNodes {
-		interestRate := uint64(0)
-		for _, ev := range originElectNodes.ElectList {
-			if ev.Account.Equal(dv.Address) {
-				interestRate = depositInterestRateList[ev.VIPLevel].Interest
-			}
-		}
-		if 0 == interestRate {
-			interestRate = nonVipInterestRate
-		}
-		result := ic.calcNodeInterest(dv.Deposit, interestRate, Denominator)
+
+		result := ic.calcNodeInterest(dv.Deposit, depositInterestRateList, Denominator)
 		if result.Cmp(big.NewInt(0)) <= 0 {
 			log.ERROR(PackageName, "计算的利息非法", result)
 			continue
