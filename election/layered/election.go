@@ -24,7 +24,7 @@ func RegInit() baseinterface.ElectionInterface {
 }
 
 func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
-	log.INFO("分层方案", "矿工拓扑生成", mmrerm)
+	log.Trace("分层方案", "矿工拓扑生成", mmrerm)
 	vipEle := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 
 	vipEle.ProcessBlackNode()
@@ -64,7 +64,7 @@ func printVipBlackList(blackList []mc.UserBlockProduceSlash) {
 	}
 }
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	log.INFO("分层方案", "验证者拓扑生成", mvrerm)
+	log.Trace("分层方案", "验证者拓扑生成", mvrerm)
 
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
 	vipEle.ProcessBlackNode()
@@ -80,7 +80,8 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 		if vipEleLoop == 0 {
 			printVipBlackList(mvrerm.BlockProduceBlackList.BlackList)
 			if vipEle.NeedNum >= vipEle.ChosedNum {
-				TryFilterBlockProduceBlackList(vipEle, mvrerm.BlockProduceBlackList.BlackList, vipEle.NeedNum-vipEle.ChosedNum)
+				//TryFilterBlockProduceBlackList(vipEle, mvrerm.BlockProduceBlackList.BlackList, vipEle.NeedNum-vipEle.ChosedNum)
+				TryFilterBlockProduceBlackList(vipEle, mvrerm.BlockProduceBlackList.BlackList,0)
 			}
 		}
 		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
