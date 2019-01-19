@@ -36,15 +36,12 @@ func MakeValidatoeTopGenAns(seqnum uint64, master []Strallyint, backup []Strally
 
 	for _, v := range master {
 		ans.MasterValidator = append(ans.MasterValidator, MakeElectNode(v.Addr, len(ans.MasterValidator), v.Value, v.VIPLevel, common.RoleValidator))
-		log.Info(ModuleLogName, "Master", MakeElectNode(v.Addr, len(ans.MasterValidator), v.Value, v.VIPLevel, common.RoleValidator))
 	}
 	for _, v := range backup {
 		ans.BackUpValidator = append(ans.BackUpValidator, MakeElectNode(v.Addr, len(ans.BackUpValidator), v.Value, v.VIPLevel, common.RoleBackupValidator))
-		log.Info(ModuleLogName, "back", MakeElectNode(v.Addr, len(ans.BackUpValidator), v.Value, v.VIPLevel, common.RoleBackupValidator))
 	}
 	for _, v := range candiate {
 		ans.CandidateValidator = append(ans.CandidateValidator, MakeElectNode(v.Addr, len(ans.CandidateValidator), v.Value, v.VIPLevel, common.RoleCandidateValidator))
-		log.Info(ModuleLogName, "cand", MakeElectNode(v.Addr, len(ans.CandidateValidator), v.Value, v.VIPLevel, common.RoleCandidateValidator))
 	}
 	return ans
 }
