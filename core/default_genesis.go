@@ -523,7 +523,7 @@ var (
   "versionSignatures": [ "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],
       "difficulty":"0x100",
     "timestamp":"0x5c26f140",
-		"version": "1.0.0.0,
+		"version": "1.0.0.0",
   
 	"signatures": [	],
       "coinbase": "MAN.1111111111111111111cs",
@@ -665,8 +665,7 @@ var (
   "versionSignatures": [],
       "difficulty":"0x100",
     "timestamp":"0x5c26f140",
-	"version": "1.0.0.0",           
-  
+	"version": "1.0.0.0",
 	"signatures": [	],
       "coinbase": "MAN.1111111111111111111cs",
     "leader":"MAN.1111111111111111111cs",      
