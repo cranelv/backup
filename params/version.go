@@ -6,8 +6,6 @@ package params
 
 import (
 	"fmt"
-
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -31,5 +29,5 @@ func VersionWithCommit(gitCommit string) string {
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
 	}
-	return manparams.VersionAlpha
+	return vsn
 }
