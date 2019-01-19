@@ -23,6 +23,7 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/baseinterface"
+	"fmt"
 )
 
 type ChainReader interface {
@@ -91,15 +92,15 @@ func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
 	coin := txer.GetTxCurrency()
-	coin = params.MAN_COIN
+	//coin = params.MAN_COIN
 	gasAll := new(big.Int).SetUint64(gasuse)
 	priceAll := txer.GasPrice()
-	if gas, ok := cu.mapcoin[txer.GetTxCurrency()]; ok {
+	if gas, ok := cu.mapcoin[coin]; ok {
 		gasAll = new(big.Int).Add(gasAll, gas)
 	}
 	cu.mapcoin[coin] = gasAll
-	if _, ok := cu.mapprice[txer.GetTxCurrency()]; !ok {
-		cu.mapprice[txer.GetTxCurrency()] = priceAll
+	if _, ok := cu.mapprice[coin]; !ok {
+		cu.mapprice[coin] = priceAll
 	}
 }
 func (cu *coingasUse) getCoinGasPrice(typ string) *big.Int {
@@ -304,7 +305,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
-		//fmt.Printf("验证者%s\n",env.State.Dump(tx.GetTxCurrency(),tx.From()))
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 		if err != nil {
 			log.Error("file work", "func ProcessTransactions:::reward Tx call Error", err)
@@ -314,7 +314,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		tmptxs = append(tmptxs, tx)
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
-		//fmt.Printf("验证者%s\n",env.State.Dump(tx.GetTxCurrency(),tx.From()))
 	}
 	tmps = append(tmps, finalTxs...)
 	finalTxs = tmps
@@ -430,12 +429,15 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		for _, t := range tx.Txser {
 			env.State.Prepare(t.Hash(), common.Hash{}, env.tcount)
 			err, logs := env.commitTransaction(t, env.bc, common.Address{}, env.gasPool)
+			fmt.Printf("验证者ConsensusTransactions11111 hash\n",t.Hash().String())
+			fmt.Printf("验证者ConsensusTransactions11111%s\n",env.State.Dump(t.GetTxCurrency(),t.From()))
 			if err == nil {
 				env.tcount++
 				coalescedLogs = append(coalescedLogs,types.CoinLogs{t.GetTxCurrency(),logs})
 			} else {
 				return err
 			}
+			from = append(from,t.From())
 		}
 	}
 
