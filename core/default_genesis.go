@@ -5,8 +5,6 @@ import (
 
 	"os"
 	"reflect"
-
-	"github.com/matrix/go-matrix/log"
 )
 
 var (
@@ -700,7 +698,6 @@ func DefaultGenesis(genesisFile string) (*Genesis, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.INFO(string(val))
 	genesis := new(Genesis)
 	err = json.Unmarshal(val, genesis)
 	if err != nil {
