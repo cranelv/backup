@@ -34,10 +34,9 @@ type Validator interface {
 // of gas used in the process and return an error if any of the internal rules
 // failed.
 type Processor interface {
-	//Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64,coinShard []common.CoinSharding) ([]types.CoinLogs, uint64, error)
 	ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error
 	ProcessTxs(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64) ([]types.CoinLogs, uint64, error)
-	Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) error
+	Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts,[]types.CoinLogs, uint64, error)
 	SetRandom(random *baseinterface.Random)
 	ProcessReward(state *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
 }

@@ -1409,8 +1409,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 				return i, events, coalescedLogs, err
 			}
 		} else {
-			err := bc.Processor(block.Header().Version).Process(block, parent, state, bc.vmConfig)
+			_, logs, usedGas, err = bc.Processor(block.Header().Version).Process(block, parent, state, bc.vmConfig)
 			if nil != err {
+				return i, events, coalescedLogs, err
+			}
+			// Validate the state using the default validator
+			err = bc.Validator(block.Header().Version).ValidateState(block, parent, state, usedGas)
+			if err != nil {
+				log.Trace("BlockChain insertChain in3 Process Block err4")
+				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
 		}
