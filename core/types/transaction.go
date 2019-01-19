@@ -768,14 +768,14 @@ func ConvMxtotx(tx_Mx *Transaction_Mx) *Transaction {
 		CommitTime:  tx_Mx.Data.CommitTime,
 		Extra:       tx_Mx.Data.Extra,
 	}
-	mx := Matrix_Extra{
-		TxType:     tx_Mx.TxType_Mx,
-		LockHeight: tx_Mx.LockHeight,
-	}
-	if len(tx_Mx.ExtraTo) > 0 {
-		mx.ExtraTo = tx_Mx.ExtraTo
-	}
-	txd.Extra = append(txd.Extra, mx)
+	//mx := Matrix_Extra{
+	//	TxType:     tx_Mx.TxType_Mx,
+	//	LockHeight: tx_Mx.LockHeight,
+	//}
+	//if len(tx_Mx.ExtraTo) > 0 {
+	//	mx.ExtraTo = tx_Mx.ExtraTo
+	//}
+	//txd.Extra = append(txd.Extra, mx)
 	tx := &Transaction{Currency: tx_Mx.Currency, data: txd}
 	return tx
 }
@@ -809,6 +809,9 @@ func (tx *Transaction) To() *common.Address {
 func (tx *Transaction) Hash() common.Hash {
 	if hash := tx.hash.Load(); hash != nil {
 		return hash.(common.Hash)
+	}
+	if len(tx.data.Extra) != 1 {
+		panic("Transaction data Extra length must be 1")
 	}
 	v := rlpHash(tx)
 	tx.hash.Store(v)
