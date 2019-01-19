@@ -372,11 +372,13 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		IsEntrustTx:  isEntrustTx,
 		CommitTime:   committime,
 	}
+	/*
 	if typ > 0 {
 		mx := new(Matrix_Extra)
 		mx.TxType = typ
 		d.Extra = append(d.Extra, *mx)
 	}
+	*/
 	mx := new(Matrix_Extra)
 	mx.TxType = typ
 	d.Extra = append(d.Extra, *mx)
