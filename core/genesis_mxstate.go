@@ -113,6 +113,9 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setSubChainSuperAccountsToState(state, num); err != nil {
 		return err
 	}
+	if err := ms.setBCIntervalToState(state, num); err != nil {
+		return err
+	}
 	if err := ms.setBlkCalcToState(state, num); err != nil {
 		return err
 	}
@@ -147,9 +150,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setLeaderCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
 	return nil
