@@ -152,6 +152,25 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setLeaderCfgToState(state, num); err != nil {
 		return err
 	}
+	if err := ms.setBCIntervalToState(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashStatsStatus(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashBlkList(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceStats(state, num); err != nil {
+		return err
+	}
+
+	if err := ms.setBlockProduceSlashCfg(state, num); err != nil {
+		return err
+	}
 	return nil
 }
 
