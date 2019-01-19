@@ -639,7 +639,21 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteList": null
+		"ElectWhiteList": null,
+		"BlkProduceSlashCfg": {
+			"Switcher" : true,
+			"LowTHR"   : 1,
+			"ProhibitCycleNum" : 2
+		},
+		"BlkProduceStatus": {
+			"Number" : 0
+		},
+		"BlkProduceStats": {
+			"StatsList": []
+		},
+       "BlkProduceBlackList" : {
+			"BlackList" : []
+		}
     },
   "config": {
 					"chainID": 40,
