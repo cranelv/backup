@@ -212,6 +212,9 @@ func (h *Header) IsSuperHeader() bool {
 }
 
 func (h *Header) SuperBlockSeq() uint64 {
+	if h.Number.Uint64() == 0 {
+		return 0
+	}
 	if len(h.Extra) < 8 {
 		return 0
 	}
