@@ -743,6 +743,34 @@ func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interf
 	return mapdata
 }
 
+func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key string, blockNr rpc.BlockNumber) (interface{}, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+
+	version := matrixstate.GetVersionInfo(state)
+	mgr := matrixstate.GetManager(version)
+	if mgr == nil {
+		return nil, nil
+	}
+	//supMager := supertxsstate.GetManager(version)
+
+	opt, err := mgr.FindOperator(key)
+	if err != nil {
+		log.Error("GetCfgDataByState:FindOperator failed", "key", key, "err", err)
+		return nil, err
+	}
+	dataval, err := opt.GetValue(state)
+	if err != nil {
+		log.Error("GetCfgDataByState:SetValue failed", "err", err)
+		return nil, err
+	}
+	//_, val := supMager.Output(key, dataval)
+
+	return dataval, nil
+}
+
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {

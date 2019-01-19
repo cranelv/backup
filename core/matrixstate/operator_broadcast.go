@@ -2,6 +2,7 @@ package matrixstate
 
 import (
 	"encoding/json"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"

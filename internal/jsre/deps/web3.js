@@ -5527,6 +5527,13 @@ var methods = function () {
         inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
         // outputFormatter: formatters.outputNewBigNumberFormatter
     });
+    var getMatrixStateByNum = new Method({
+        name: 'getMatrixStateByNum',
+        call: 'eth_getMatrixStateByNum',
+        params: 2,
+        inputFormatter: [null,formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputNewBigNumberFormatter
+    });
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
@@ -5751,6 +5758,7 @@ var methods = function () {
     });
 
     return [
+        getMatrixStateByNum,
         getBalance,
         getUpTime,
         getFutureRewards,
