@@ -3873,7 +3873,9 @@ var isPredefinedBlockNumber = function (blockNumber) {
 };
 
 var inputDefaultBlockNumberFormatter = function (blockNumber) {
-    if (blockNumber === undefined) {
+  console.log("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+  console.log(blockNumber)
+  if (blockNumber === undefined) {
         return config.defaultBlock;
     }
     return inputBlockNumberFormatter(blockNumber);
