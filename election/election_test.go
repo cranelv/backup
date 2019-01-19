@@ -1,6 +1,8 @@
 package election
 
 import (
+	"github.com/matrix/go-matrix/election/layered"
+	"github.com/matrix/go-matrix/election/support"
 	"testing"
 
 	"fmt"
@@ -8,16 +10,14 @@ import (
 	"github.com/matrix/go-matrix/log"
 	"math/big"
 
+	"encoding/json"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/vm"
 	_ "github.com/matrix/go-matrix/election/layered"
 	_ "github.com/matrix/go-matrix/election/nochoice"
 	_ "github.com/matrix/go-matrix/election/stock"
-	"github.com/matrix/go-matrix/run/utils"
-
-	"encoding/json"
-	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/mc"
 	"io/ioutil"
 	"os"
@@ -376,7 +376,7 @@ func Savefile1(genesis1 *core.Genesis1, filename string) {
 
 }
 
-func TestDefaultGenesisCfg(t *testing.T) {
+/*func TestDefaultGenesisCfg(t *testing.T) {
 	genesisPath := "MANGenesis.json"
 	file, err := os.Open(genesisPath)
 	if err != nil {
@@ -395,7 +395,7 @@ func TestDefaultGenesisCfg(t *testing.T) {
 	Savefile(genesis, "end.json")
 	fmt.Println(genesis.MState.Broadcast)
 
-}
+}*/
 
 func TestNew(t *testing.T) {
 	fmt.Println("daas", 0xffff)
@@ -859,4 +859,129 @@ func TestV(t *testing.T) {
 		fmt.Println("Account:", v.Account.Big().Uint64(), "Stock:", v.Stock, "vip:", v.VIPLevel, "role:", v.Type)
 	}
 
+}
+func initElecCfg(usableList []bool) *support.Electoion {
+	elechandle := &support.Electoion{}
+	for i := 0; i < len(usableList); i++ {
+		node := support.Node{Address: common.BigToAddress(big.NewInt(int64(i))), Usable: usableList[i]}
+		elechandle.NodeList = append(elechandle.NodeList, node)
+	}
+	return elechandle
+}
+func filterCmp(electHandle *support.Electoion, expectedStatus []bool) bool {
+	if len(electHandle.NodeList) != len(expectedStatus) {
+		return false
+	}
+	for i := 0; i < len(electHandle.NodeList); i++ {
+		if electHandle.NodeList[i].Usable != expectedStatus[i] {
+			return false
+		}
+	}
+	return true
+}
+func TestTryFilterBlockProduceBlackListCase0(t *testing.T) {
+	//无黑名单下，不过滤
+	var nodeList []bool = make([]bool, 0)
+	for i := 0; i < 100; i++ {
+		nodeList = append(nodeList, true)
+	}
+	elec := initElecCfg(nodeList)
+	layered.TryFilterBlockProduceBlackList(elec, make([]mc.UserBlockProduceSlash, 0), 10)
+	if !filterCmp(elec, nodeList) {
+		t.Errorf("set usable err")
+	}
+}
+func genSlashList(addressList []int) []mc.UserBlockProduceSlash {
+	slashList := make([]mc.UserBlockProduceSlash, 0)
+	for i := 0; i < len(addressList); i++ {
+		slashNode := mc.UserBlockProduceSlash{}
+		slashNode.Address = common.BigToAddress(big.NewInt(int64(addressList[i])))
+		slashNode.ProhibitCycleCounter = 10
+		slashList = append(slashList, slashNode)
+	}
+	return slashList
+}
+
+//黑名单节点已经不可用情况
+func TestTryFilterBlockProduceBlackListCase1(t *testing.T) {
+	//已被过滤的情况下，不再过滤
+	var nodeList []bool = make([]bool, 0)
+	for i := 0; i < 15; i++ {
+		nodeList = append(nodeList, false)
+	}
+	for i := 15; i < 30; i++ {
+		nodeList = append(nodeList, true)
+	}
+	elec := initElecCfg(nodeList)
+	slashAdddrList := []int{1, 2, 3, 4, 5, 0}
+	slashNodeList := genSlashList(slashAdddrList)
+	layered.TryFilterBlockProduceBlackList(elec, slashNodeList, 10)
+	if !filterCmp(elec, nodeList) {
+		t.Errorf("set usable err")
+	}
+}
+
+//可用数目限制，部分过滤case
+func TestTryFilterBlockProduceBlackListCase2(t *testing.T) {
+	//已被过滤的情况下，不再过滤
+	var nodeList []bool = make([]bool, 0)
+	for i := 0; i < 15; i++ {
+		nodeList = append(nodeList, false)
+	}
+	for i := 15; i < 30; i++ {
+		nodeList = append(nodeList, true)
+	}
+	elec := initElecCfg(nodeList)
+	slashAdddrList := []int{15, 16, 17, 18, 19, 20, 21}
+	slashNodeList := genSlashList(slashAdddrList)
+	layered.TryFilterBlockProduceBlackList(elec, slashNodeList, 10)
+	//预期只修改前5个
+	for i := 15; i < 20; i++ {
+		nodeList[i] = false
+	}
+	if !filterCmp(elec, nodeList) {
+		t.Errorf("set usable err")
+	}
+}
+
+//黑名单节点不存在抵押列表情况
+func TestTryFilterBlockProduceBlackListCase3(t *testing.T) {
+	//已被过滤的情况下，不再过滤
+	var nodeList []bool = make([]bool, 0)
+	for i := 0; i < 15; i++ {
+		nodeList = append(nodeList, false)
+	}
+	for i := 15; i < 30; i++ {
+		nodeList = append(nodeList, true)
+	}
+	elec := initElecCfg(nodeList)
+	slashAdddrList := []int{45, 56, 67, 108, 219, 220, 231}
+	slashNodeList := genSlashList(slashAdddrList)
+	layered.TryFilterBlockProduceBlackList(elec, slashNodeList, 10)
+	//预期只修改前5个
+	if !filterCmp(elec, nodeList) {
+		t.Errorf("set usable err")
+	}
+}
+
+//可用节点充分，正常设置情况
+func TestTryFilterBlockProduceBlackListCase4(t *testing.T) {
+	//已被过滤的情况下，不再过滤
+	var nodeList []bool = make([]bool, 0)
+	for i := 0; i < 15; i++ {
+		nodeList = append(nodeList, false)
+	}
+	for i := 15; i < 30; i++ {
+		nodeList = append(nodeList, true)
+	}
+	elec := initElecCfg(nodeList)
+	slashAdddrList := []int{15, 16}
+	slashNodeList := genSlashList(slashAdddrList)
+	layered.TryFilterBlockProduceBlackList(elec, slashNodeList, 10)
+	nodeList[15] = false
+	nodeList[16] = false
+	//预期只修改前5个
+	if !filterCmp(elec, nodeList) {
+		t.Errorf("set usable err")
+	}
 }

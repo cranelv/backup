@@ -168,7 +168,7 @@ func (m *txSortedMap) Remove(nonce uint64) bool {
 //	//	return nil
 //	//}
 //
-//	//hezi ;交易洪泛时不用判断nonce连续
+//	//  ;交易洪泛时不用判断nonce连续
 //	if m.index.Len() == 0 {
 //		return nil
 //	}
@@ -180,7 +180,7 @@ func (m *txSortedMap) Remove(nonce uint64) bool {
 //			ready = append(ready, m.items[next])
 //			delete(m.items, next)
 //			heap.Pop(m.index)
-//		} else { //YY 给上面代码添加if 以及添加else
+//		} else { // 给上面代码添加if 以及添加else
 //			n := (*m.index)[0]
 //			ready = append(ready, m.items[n])
 //			delete(m.items, n)

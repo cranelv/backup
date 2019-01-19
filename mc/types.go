@@ -9,7 +9,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 )
 
-//by hezi //YY 2018-08-18由tx_pool.go转移到此
+//by   // 2018-08-18由tx_pool.go转移到此
 const (
 	Heartbeat   = "Heartbeat"   // 心跳交易（广播区块Hash对99取余）
 	Publickey   = "SeedProof"   // 公钥交易

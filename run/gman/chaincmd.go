@@ -21,8 +21,8 @@ import (
 	"github.com/matrix/go-matrix/man/wizard"
 
 	"encoding/base64"
+
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus/mtxdpos"
 	"github.com/matrix/go-matrix/console"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
@@ -49,6 +49,7 @@ var (
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.LightModeFlag,
+			utils.GetGenesisFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -239,7 +240,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.PasswordFileFlag,
+			utils.TestEntrustFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -257,7 +258,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.PasswordFileFlag,
+			utils.TestEntrustFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -288,25 +289,35 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
-	}
-	file, err := os.Open(genesisPath)
-	if err != nil {
-		utils.Fatalf("Failed to read genesis file: %v", err)
-	}
-	defer file.Close()
+	} /*
+		file, err := os.Open(genesisPath)
+		if err != nil {
+			utils.Fatalf("Failed to read genesis file: %v", err)
+		}
+		defer file.Close()
 
-	genesis, err := core.GetDefaultGeneis()
+		genesis, err := core.GetDefaultGeneis()
 
+		if err != nil {
+			utils.Fatalf("获取默认配置文件失败:%v", err)
+		}
+		genesis1 := new(core.Genesis1)
+		//
+	*/
+	genesis, err := core.DefaultGenesis(genesisPath)
 	if err != nil {
-		utils.Fatalf("获取默认配置文件失败:%v", err)
-	}
-	genesis1 := new(core.Genesis1)
-	if err := json.NewDecoder(file).Decode(genesis1); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	//hezi
 
-	genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
+	mergeOutputPath := ctx.GlobalString(utils.GetGenesisFlag.Name)
+	if len(genesisPath) != 0 {
+		out, _ := json.MarshalIndent(genesis, "", "  ")
+		if err := ioutil.WriteFile(mergeOutputPath, out, 0644); err != nil {
+			fmt.Errorf("Failed to save genesis file", "err=%v", err)
+		}
+	}
+
+	//genesis = core.DefaultGenesisToEthGensis(genesis1, genesis)
 
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
@@ -499,8 +510,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	dposEngine := mtxdpos.NewMtxDPOS()
-	hc, err := core.NewHeaderChain(db, chain.Config(), chain.Engine(), dposEngine, func() bool { return false })
+	hc, err := core.NewHeaderChain(db, chain.Config(), func() bool { return false })
 	if err != nil {
 		return err
 	}
@@ -613,7 +623,7 @@ func importSupBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	matrixGenesis := new(core.Genesis1)
+	matrixGenesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 		return err
@@ -625,9 +635,9 @@ func importSupBlock(ctx *cli.Context) error {
 		utils.Fatalf("make chain err")
 		return errors.New("make chain err")
 	}
-	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(matrixGenesis, genesis)
-	if _, err := chain.InsertSuperBlock(genesis, false); err != nil {
+
+	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	if _, err := chain.InsertSuperBlock(matrixGenesis, false); err != nil {
 		utils.Fatalf("insert super block err(%v)", err)
 		return err
 	}
@@ -694,7 +704,7 @@ func signBlock(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	matrixGenesis := new(core.Genesis1)
+	matrixGenesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
@@ -710,7 +720,8 @@ func signBlock(ctx *cli.Context) error {
 		utils.Fatalf("get parent header err")
 	}
 	genesis := new(core.Genesis)
-	core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	genesis = matrixGenesis
 	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, chainDB, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
@@ -719,7 +730,11 @@ func signBlock(ctx *cli.Context) error {
 	// get block hash
 	blockHash := superBlock.HashNoSigns()
 	//todo 优化 签名账户可否不适用全节点，单启指定钱包
-	passPhrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
+	passwordList, err := utils.GetSignPassword(ctx)
+	if err != nil {
+		utils.Fatalf(err.Error())
+	}
+	passPhrase := getPassPhrase("", false, 0, passwordList)
 	if len(stack.AccountManager().Wallets()) <= 0 {
 		utils.Fatalf("can't find wallet")
 	}
@@ -762,14 +777,31 @@ func signVersion(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
-	genesis := new(core.Genesis1)
+	//genesis := new(core.Genesis1)
+	genesis := new(core.Genesis)
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
 
+	passwordList, err := utils.GetSignPassword(ctx)
+	if err != nil {
+		utils.Fatalf(err.Error())
+	}
+	passphrase := getPassPhrase("", false, 0, passwordList)
+
 	stack, _ := makeConfigNode(ctx)
-	passphrase := getPassPhrase("", false, 0, utils.MakePasswordList(ctx))
-	wallet := stack.AccountManager().Wallets()[0]
+	accounts := stack.AccountManager()
+	if nil == accounts {
+		utils.Fatalf("no accounts")
+		return nil
+	}
+
+	wallets := accounts.Wallets()
+	if 0 == len(wallets) {
+		utils.Fatalf("no wallet ")
+		return nil
+	}
+	wallet := wallets[0]
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	err = ks.Unlock(wallet.Accounts()[0], passphrase)
@@ -810,7 +842,7 @@ func aesEncrypt(ctx *cli.Context) error {
 	if err != nil {
 		return errors.New("对文本内容进行Marshal失败")
 	}
-	entrustPassword, err := ReadDecryptPassword(ctx)
+	entrustPassword, err := ReadDecryptPassword(utils.Twice, ctx)
 	if err != nil {
 		return err
 	}
@@ -830,63 +862,6 @@ func aesEncrypt(ctx *cli.Context) error {
 	}
 
 	return nil
-}
-
-func IsValidChar(aim byte) bool {
-	if aim >= 33 && aim <= 126 {
-		return true
-	}
-	return false
-}
-func CheckPassword(password string) bool {
-	flagLowerChar := false
-	flagUpperChar := false
-	flagNum := false
-	flagSpecialChar := false
-	for _, v := range password {
-		if IsValidChar(byte(v)) == false {
-			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
-			return false
-		}
-		switch {
-		case v >= 'a' && v <= 'z':
-			flagLowerChar = true
-		case v >= 'A' && v <= 'Z':
-			flagUpperChar = true
-		case v >= '0' && v <= '9':
-			flagNum = true
-		default:
-			flagSpecialChar = true
-		}
-
-	}
-
-	if flagSpecialChar == false {
-		fmt.Println("你的密码不包含特殊字符 请重新输入")
-		return false
-	}
-	if flagNum == false {
-		fmt.Println("你的密码不包含数字 请重新输入")
-		return false
-	}
-	if flagUpperChar == false {
-		fmt.Println("你的密码不包含大写字母 请重新输入")
-		return false
-	}
-	if flagLowerChar == false {
-		fmt.Println("你的密码不包含小写字符 请重新输入")
-		return false
-	}
-
-	if len(password) > 16 {
-		fmt.Println("你的密码大于16位 请重新输入")
-		return false
-	}
-	if len(password) < 8 {
-		fmt.Println("你的密码小于8位 请重新输入")
-		return false
-	}
-	return true
 }
 
 type JsonStruct struct {

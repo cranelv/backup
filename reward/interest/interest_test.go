@@ -3,12 +3,13 @@ package interest
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reward/util"
-	"math/big"
-	"testing"
 
 	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
@@ -147,16 +148,16 @@ func Test_interest_Calc(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 300}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 300}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -171,9 +172,9 @@ func Test_interest_Calc(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -241,16 +242,16 @@ func Test_interest_pay(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -265,9 +266,9 @@ func Test_interest_pay(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -359,16 +360,16 @@ func Test_interest_number(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -383,9 +384,9 @@ func Test_interest_number(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -444,16 +445,16 @@ func Test_interest_number2(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -468,9 +469,9 @@ func Test_interest_number2(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -529,16 +530,16 @@ func Test_interest3(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -553,9 +554,9 @@ func Test_interest3(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -618,16 +619,16 @@ func Test_interest4(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -642,9 +643,9 @@ func Test_interest4(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -708,16 +709,16 @@ func Test_interest5(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -732,9 +733,9 @@ func Test_interest5(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 
@@ -806,16 +807,16 @@ func Test_interest6(t *testing.T) {
 		if key == mc.MSKeyLotteryCfg {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
-		if key == mc.MSKEYLotteryNum {
+		if key == mc.MSKeyLotteryNum {
 			info := make([]mc.LotteryInfo, 0)
 			info = append(info, mc.LotteryInfo{PrizeLevel: 0, PrizeNum: 1, PrizeMoney: 6})
-			return &mc.LotteryCfgStruct{LotteryCalc: "1", LotteryInfo: info}, nil
+			return &mc.LotteryCfg{LotteryCalc: "1", LotteryInfo: info}, nil
 		}
 		if key == mc.MSKeyInterestCfg {
 
-			return &mc.InterestCfgStruct{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
+			return &mc.InterestCfg{InterestCalc: "1", CalcInterval: 100, PayInterval: 3600}, nil
 		}
 		if key == mc.MSKeyVIPConfig {
 			vip := make([]mc.VIPConfig, 0)
@@ -830,9 +831,9 @@ func Test_interest6(t *testing.T) {
 	monkey.Patch(matrixstate.GetNumByState, func(key string, state matrixstate.StateDB) (uint64, error) {
 
 		switch key {
-		case mc.MSInterestCalcNum:
+		case mc.MSKeyInterestCalcNum:
 			return 1, nil
-		case mc.MSInterestPayNum:
+		case mc.MSKeyInterestPayNum:
 			return 1, nil
 		}
 

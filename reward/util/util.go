@@ -61,8 +61,7 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	State() (*state.StateDBManage, error)
-	GetMatrixStateData(key string) (interface{}, error)
-	GetMatrixStateDataByNumber(key string, number uint64) (interface{}, error)
+	StateAtNumber(number uint64) (*state.StateDBManage, error)
 	GetSuperBlockNum() (uint64, error)
 	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 }

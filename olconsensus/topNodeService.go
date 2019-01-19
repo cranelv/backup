@@ -20,6 +20,10 @@ var (
 	voteFailed = errors.New("Vote error")
 )
 
+type ChainReader interface {
+	DPOSEngine(version []byte) consensus.DPOSEngine
+	CurrentBlock() *types.Block
+}
 type TopNodeService struct {
 	stateMap *topNodeState
 	msgCheck *messageCheck
@@ -31,7 +35,7 @@ type TopNodeService struct {
 	msgSender       MessageSendInterface
 	msgCenter       MessageCenterInterface
 	stateReader     StateReaderInterface
-	cd              consensus.DPOSEngine
+	cr              ChainReader
 
 	roleUpdateCh       chan *mc.RoleUpdatedMsg
 	roleUpdateSub      event.Subscription
@@ -49,11 +53,11 @@ type TopNodeService struct {
 	recvLeader         bool
 }
 
-func NewTopNodeService(cd consensus.DPOSEngine) *TopNodeService {
+func NewTopNodeService(cr ChainReader) *TopNodeService {
 	t := &TopNodeService{
 		msgCheck:          newMessageCheck(3),
 		dposRing:          NewDPosVoteRing(64),
-		cd:                cd,
+		cr:                cr,
 		roleUpdateCh:      make(chan *mc.RoleUpdatedMsg, 5),
 		leaderChangeCh:    make(chan *mc.LeaderChangeNotify, 5),
 		consensusReqCh:    make(chan *mc.HD_OnlineConsensusReqs, 5),
@@ -153,19 +157,19 @@ func (serv *TopNodeService) update() {
 		select {
 		case data := <-serv.roleUpdateCh:
 			if serv.msgCheck.CheckRoleUpdateMsg(data) {
-				topology, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyTopologyGraph, data.BlockHash)
+				topology, err := serv.stateReader.GetTopologyGraphByHash(data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取拓扑图失败", "err", err)
 					continue
 				}
-				electOline, err := serv.stateReader.GetMatrixStateDataByHash(mc.MSKeyElectOnlineState, data.BlockHash)
+				electOnline, err := serv.stateReader.GetElectOnlineStateByHash(data.BlockHash)
 				if err != nil {
 					log.Error(serv.extraInfo, "处理CA通知消息", "状态树读取选举在线状态失败", "err", err)
 					continue
 				}
 
 				//log.Debug(serv.extraInfo, "处理CA通知消息", "", "块高", data.BlockNum)
-				serv.stateMap.SetCurStates(data.BlockNum+1, topology.(*mc.TopologyGraph), electOline.(*mc.ElectOnlineStatus))
+				serv.stateMap.SetCurStates(data.BlockNum+1, topology, electOnline)
 				go serv.LeaderChangeNotifyHandler(serv.msgCheck.GetCurLeader())
 			}
 		case data := <-serv.leaderChangeCh:
@@ -209,6 +213,13 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 				if OK == false || prop == nil || leader != prop.Leader {
 					continue
 				}
+
+				if serv.msgCheck.CheckRound(prop.Number, prop.LeaderTurn) != 0 {
+					// 轮次不匹配的请求，不处理
+					log.Debug(serv.extraInfo, "轮次不匹配的请求", "不予处理", "本地高度", serv.msgCheck.curNumber, "本地轮次", serv.msgCheck.curLeaderTurn, "请求高度", prop.Number, "请求轮次", prop.LeaderTurn)
+					continue
+				}
+
 				//开始对共识请求进行投票
 				sign, reqHash, err := serv.voteToReq(prop)
 				if err == nil { //完成投票操作
@@ -216,16 +227,17 @@ func (serv *TopNodeService) LeaderChangeNotifyHandler(leader common.Address) {
 					vote := mc.HD_ConsensusVote{}
 					vote.SignHash.Set(reqHash)
 					vote.Sign.Set(sign)
-					vote.From.Set(ca.GetAddress())
+					vote.From.Set(ca.GetSignAddress())
 					//将该共识投票结果加入共识投票列表
 					var msg mc.HD_OnlineConsensusVotes
 					msg.Votes = append(msg.Votes, vote)
-					log.Info(serv.extraInfo, "leader消息，处理缓存的共识请求", "发送投票消息")
+					log.Info(serv.extraInfo, "leader消息，处理缓存的共识请求", "发送投票消息", "发送投票消息时的高度", serv.msgCheck.curNumber, "轮次", serv.msgCheck.curLeaderTurn, "被投票的节点", prop.Node.Hex(), "被投票的状态", prop.OnlineState.String())
 					serv.msgSender.SendNodeMsg(mc.HD_TopNodeConsensusVote, &msg, common.RoleValidator, nil)
 					//将共识投票列表放入channel
 					go func() {
 						serv.consensusVoteCh <- &msg
 					}()
+					item.setVoted()
 
 				} else { //投票出错
 					log.Error(serv.extraInfo, "leader消息，处理缓存的共识请求", "签名失败", "error", err)
@@ -240,9 +252,9 @@ func (serv *TopNodeService) getTopNodeState(leader common.Address) (online, offl
 }
 
 func (serv *TopNodeService) sendRequest(online, offline []common.Address) {
-	leader := ca.GetAddress()
+	leader := ca.GetDepositAddress()
 	reqMsg := mc.HD_OnlineConsensusReqs{
-		From: leader,
+		From: ca.GetSignAddress(),
 	}
 	number, turn := serv.msgCheck.GetRound()
 	for _, item := range online {
@@ -266,7 +278,7 @@ func (serv *TopNodeService) sendRequest(online, offline []common.Address) {
 		reqMsg.ReqList = append(reqMsg.ReqList, &val)
 	}
 	if len(reqMsg.ReqList) > 0 {
-		log.Info(serv.extraInfo, "检查完成，开始发送共识投票请求", "start", "轮次", turn, "共识数量", len(reqMsg.ReqList))
+		log.Info(serv.extraInfo, "检查完成，开始发送共识投票请求", "start", "高度", serv.msgCheck.curNumber, "轮次", turn, "共识数量", len(reqMsg.ReqList))
 		serv.msgSender.SendNodeMsg(mc.HD_TopNodeConsensusReq, &reqMsg, common.RoleValidator, nil)
 		go func() {
 			serv.consensusReqCh <- &reqMsg
@@ -294,16 +306,20 @@ func (serv *TopNodeService) consensusReqMsgHandler(msg *mc.HD_OnlineConsensusReq
 			serv.dposRing.addProposal(reqHash, item, false)
 			continue
 		case 0: // localRound == reqRound
-			if serv.dposRing.addProposal(reqHash, item, true) {
+			if serv.dposRing.addProposal(reqHash, item, false) {
 				// todo 共识的节点判断，是否是顶层节点 或 elect节点
 				sign, reqHash, err := serv.voteToReq(item)
 				if err == nil {
 					vote := mc.HD_ConsensusVote{}
 					vote.SignHash.Set(reqHash)
 					vote.Sign.Set(sign)
-					vote.From.Set(ca.GetAddress())
+					vote.From.Set(ca.GetSignAddress())
 					votes.Votes = append(votes.Votes, vote)
 					log.Debug(serv.extraInfo, "处理共识请求", "处理成功", "req Number", item.Number, "req turn", item.LeaderTurn, "请求hash", reqHash.TerminalString())
+					ds, have := serv.dposRing.findProposal(reqHash)
+					if have {
+						ds.setVoted()
+					}
 				} else {
 					log.Error(serv.extraInfo, "处理共识请求", "签名失败", "请求hash", reqHash.TerminalString(), "error", err)
 				}
@@ -312,7 +328,7 @@ func (serv *TopNodeService) consensusReqMsgHandler(msg *mc.HD_OnlineConsensusReq
 	}
 
 	if len(votes.Votes) > 0 {
-		log.Info(serv.extraInfo, "处理共识请求完毕", "发送投票消息")
+		log.Info(serv.extraInfo, "处理共识请求完毕", "发送投票消息", "当前number", serv.msgCheck.curNumber, "当前turn", serv.msgCheck.curLeaderTurn)
 		serv.msgSender.SendNodeMsg(mc.HD_TopNodeConsensusVote, &votes, common.RoleValidator, nil)
 		go func() {
 			serv.consensusVoteCh <- &votes
@@ -342,8 +358,8 @@ func (serv *TopNodeService) OnlineConsensusVoteResultMsgHandler(msg *mc.HD_Onlin
 		log.Error(serv.extraInfo, "处理共识结果消息", "共识消息已过期")
 		return
 	}
-
-	tempSigns, err := serv.cd.VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
+	//todo:从状态树获取版本号
+	tempSigns, err := serv.cr.DPOSEngine([]byte(serv.cr.CurrentBlock().Version())).VerifyHash(serv.validatorReader, types.RlpHash(msg.Req), msg.SignList)
 	if err != nil {
 		log.Error(serv.extraInfo, "处理共识结果消息", "POS验证失败", "err", err)
 	} else {
@@ -374,17 +390,18 @@ func (serv *TopNodeService) consensusVotes(proposal interface{}, votes []voteInf
 	for _, value := range votes {
 		signList = append(signList, value.data.Sign)
 	}
-	rightSigns, err := serv.cd.VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
+	//todo:从状态树获取版本号
+	rightSigns, err := serv.cr.DPOSEngine(serv.cr.CurrentBlock().Version()).VerifyHash(serv.validatorReader, votes[0].data.SignHash, signList)
 	if err != nil {
-		log.Debug(serv.extraInfo, "处理共识投票", "POS失败", "投票数", len(signList), "err", err)
+		log.Debug(serv.extraInfo, "处理共识投票", "POS失败", "节点", prop.Node.Hex(), "状态", prop.OnlineState.String(), "投票数", len(signList), "err", err)
 		return
 	}
-	log.Info(serv.extraInfo, "处理共识投票", "POS通过，发送共识结果消息", "节点", prop.Node.String(), "状态", prop.OnlineState.String())
+	log.Info(serv.extraInfo, "处理共识投票", "POS通过，发送共识结果消息", "节点", prop.Node.Hex(), "状态", prop.OnlineState.String())
 	//send DPos Success message
 	result := mc.HD_OnlineConsensusVoteResultMsg{
 		Req:      prop,
 		SignList: rightSigns,
-		From:     ca.GetAddress(),
+		From:     ca.GetSignAddress(),
 	}
 
 	serv.msgSender.SendNodeMsg(mc.HD_TopNodeConsensusVoteResult, &result, common.RoleValidator, nil)

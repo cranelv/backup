@@ -5,12 +5,11 @@ package msgsend
 
 import (
 	"encoding/json"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/log"
 )
 
 func (self *HD) initCodec() {
@@ -161,7 +160,6 @@ func (*broadcastMiningRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	marshalMsg := fullBlockMsgForMarshal{}
 	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
 	for i := 0; i < size; i++ {
-		//tx := rsp.BlockMainData.Txs[i]
 		log.DEBUG("HD", "广播挖矿结果消息, Marshal前的tx", txs[i])
 		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(txs[i]))
 	}
@@ -194,7 +192,6 @@ func (*broadcastMiningRspCodec) DecodeFn(data []byte, from common.Address) (inte
 	var txs [] types.SelfTransaction
 	for i := 0; i < size; i++ {
 		tx := types.SetTransactionMx(msg.Txs[i])
-		log.DEBUG("HD", "广播挖矿结果消息, Unmarshal后的tx", tx)
 		txs=append(txs,tx)
 	}
 	ctxs:=types.GetCoinTX(txs)

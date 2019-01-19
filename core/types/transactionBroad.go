@@ -18,7 +18,7 @@ type TransactionBroad struct {
 	from atomic.Value
 }
 
-//YY
+//
 func NewBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	return newBroadCastTransaction(txType, data)
 }
@@ -41,7 +41,7 @@ func (tx *TransactionBroad) GetTxN(index int) uint32 {
 	return 0
 }
 
-//YY 广播交易
+// 广播交易
 func newBroadCastTransaction(txType byte, data []byte) *TransactionBroad {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
@@ -127,7 +127,7 @@ func (tx *TransactionBroad) GetLocalHeight() uint32 {
 func (tx *TransactionBroad) SetTxV(v *big.Int) { tx.data.V = v }
 func (tx *TransactionBroad) SetTxR(r *big.Int) { tx.data.R = r }
 
-//YY
+//
 func (tx *TransactionBroad) GetTxFrom() (common.Address, error) {
 	if tx.from.Load() == nil {
 		//如果交易没有做过验签则err不为空。
@@ -150,20 +150,20 @@ func (tx *TransactionBroad) GetTxCurrency() string {
 	return params.MAN_COIN
 }
 
-//YY
+//
 func (tx *TransactionBroad) GetMatrix_EX() []Matrix_Extra { return tx.data.Extra }
 
-//YY
+//
 func (tx *TransactionBroad) GetTxV() *big.Int { return tx.data.V }
 func (tx *TransactionBroad) GetTxR() *big.Int { return tx.data.R }
 
-//YY
+//
 func (tx *TransactionBroad) GetTxS() *big.Int { return tx.data.S }
 func (tx *TransactionBroad) GetTxNLen() int {
 	return 0
 }
 
-//YY 在传递交易时用来操作Nonce
+// 在传递交易时用来操作Nonce
 func (tx *TransactionBroad) SetNonce(nc uint64) {
 	tx.data.AccountNonce = nc
 }
@@ -175,8 +175,13 @@ func (tx *TransactionBroad) GetIsEntrustGas() bool {
 func (tx *TransactionBroad) GetIsEntrustByTime() bool {
 	return false
 }
+func (tx *TransactionBroad) SetIsEntrustGas(b bool) {
 
-//hezi
+}
+func (tx *TransactionBroad) SetIsEntrustByTime(b bool) {
+}
+
+//
 func (tx *TransactionBroad) SetTxS(S *big.Int) { tx.data.S = S }
 func (tx *TransactionBroad) To() *common.Address {
 	return tx.data.Recipient
@@ -196,7 +201,7 @@ func (tx *TransactionBroad) WithSignature(signer Signer, sig []byte) (SelfTransa
 	}
 	cpy := &TransactionBroad{data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	////YY
+	////
 	//if len(cpy.data.Extra) > 0 {
 	//	cpy.data.V.Add(cpy.data.V, big.NewInt(128))
 	//}
@@ -226,7 +231,7 @@ func (tx *TransactionBroad) Size() common.StorageSize {
 	return common.StorageSize(c)
 }
 
-////YY
+////
 //func (tx *TransactionBroad) SetTransactionMx(tx_Mx *Transaction_Mx)(txer SelfTransaction ){
 //	if tx_Mx == nil{
 //		return nil
@@ -254,7 +259,7 @@ func (tx *TransactionBroad) Size() common.StorageSize {
 //	return
 //}
 //
-////YY
+////
 //func (tx *TransactionBroad)GetTransactionMx(stx SelfTransaction) *Transaction_Mx {
 //	btx,ok:=stx.(*TransactionBroad)
 //	if !ok {
@@ -278,7 +283,7 @@ func (tx *TransactionBroad) Size() common.StorageSize {
 //	}
 //	return tx_Mx
 //}
-//YY
+//
 func SetTransactionMx(tx_Mx *Transaction_Mx) *TransactionBroad {
 	if tx_Mx == nil {
 		return nil
@@ -304,7 +309,7 @@ func SetTransactionMx(tx_Mx *Transaction_Mx) *TransactionBroad {
 	return &TransactionBroad{data: tx}
 }
 
-//YY
+//
 func GetTransactionMx(stx SelfTransaction) *Transaction_Mx {
 	tx, ok := stx.(*TransactionBroad)
 	if !ok {

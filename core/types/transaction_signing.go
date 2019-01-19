@@ -98,7 +98,7 @@ func Sender(signer Signer, tx SelfTransaction) (common.Address, error) {
 	return addr, nil
 }
 
-//YY
+//
 func Sender_self(signer Signer, tx SelfTransaction, waitg *sync.WaitGroup) (common.Address, error) {
 	defer waitg.Done()
 	if sc := tx.GetFromLoad(); sc != nil {
@@ -212,7 +212,7 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	return addr, nil
 }
 
-//YY 将原来的deriveChainId方法改为deriveChainId1，然后重写deriveChainId方法
+// 将原来的deriveChainId方法改为deriveChainId1，然后重写deriveChainId方法
 func deriveChainId(v *big.Int) *big.Int {
 	v1 := new(big.Int).Set(v)
 	return deriveChainId1(v1)

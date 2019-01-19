@@ -71,6 +71,12 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LightKDFFlag,
 			utils.AesInputFlag,
 			utils.AesOutputFlag,
+			utils.SynSnapshootNumFlg,
+			utils.SynSnapshootHashFlg,
+			utils.SaveSnapStartFlg,
+			utils.SaveSnapPeriodFlg,
+			utils.SnapModeFlg,
+			utils.GetGenesisFlag,
 		},
 	},
 	/*	{Name: "DEVELOPER CHAIN",
@@ -104,15 +110,15 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolNoLocalsFlag,
-			//utils.TxPoolJournalFlag,//YYY
+			//utils.TxPoolJournalFlag,//Y
 			//utils.TxPoolRejournalFlag,
 			utils.TxPoolPriceLimitFlag,
-			//utils.TxPoolPriceBumpFlag,//YYY
+			//utils.TxPoolPriceBumpFlag,//Y
 			utils.TxPoolAccountSlotsFlag,
 			utils.TxPoolGlobalSlotsFlag,
 			utils.TxPoolAccountQueueFlag,
 			utils.TxPoolGlobalQueueFlag,
-			//YYY utils.TxPoolLifetimeFlag,
+			//Y utils.TxPoolLifetimeFlag,
 		},
 	},
 	{

@@ -176,12 +176,12 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	h.Signatures = *dec.Signatures
 
 	if dec.VersionSignatures == nil {
-		return errors.New("missing required field 'version' for Header")
+		return errors.New("missing required field 'version Signatures' for Header")
 	}
 
 	h.VersionSignatures = *dec.VersionSignatures
-
 	h.Version = []byte(dec.Version)
+
 	if dec.VrfValue == nil {
 		return errors.New("missing required field 'vrfvalue' for Header")
 	}

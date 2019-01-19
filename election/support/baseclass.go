@@ -57,10 +57,11 @@ type Electoion struct {
 
 	EleCfg mc.ElectConfigInfo_All
 
-	ChosedNum     int
-	NeedNum       int
-	HasChosedNode [][]Strallyint
-	MapMoney      map[common.Address]uint64
+	ChosedNum                  int
+	NeedNum                    int
+	HasChosedNode              [][]Strallyint
+	MapMoney                   map[common.Address]uint64
+	BlockProduceSlashBlackList []common.Address
 }
 
 func (node *Node) SetUsable(status bool) {
@@ -134,7 +135,16 @@ func NewElelection(VipLevelCfg []mc.VIPConfig, vm []vm.DepositDetail, EleCfg mc.
 	}
 	return &vip
 }
+func (vip *Electoion) GetAvailableNodeNum() int {
+	var availableNodeNum = 0
 
+	for i := 0; i < len(vip.NodeList); i++ {
+		if vip.NodeList[i].Usable {
+			availableNodeNum++
+		}
+	}
+	return availableNodeNum
+}
 func FindAddress(addr common.Address, addrList []common.Address) bool {
 	for _, v := range addrList {
 		if v.Equal(addr) == true {
@@ -213,6 +223,14 @@ func (vip *Electoion) ProcessWhiteNode() {
 			}
 		}
 	*/
+}
+func (vip *Electoion) GetNodeByAccount(address common.Address) (int, bool) {
+	for k, v := range vip.NodeList {
+		if v.Address.Equal(address) {
+			return k, true
+		}
+	}
+	return 0, false
 }
 func (vip *Electoion) GetNodeByLevel(level common.VIPRoleType) []Node {
 	specialNode := make([]Node, 0)

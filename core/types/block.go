@@ -27,6 +27,13 @@ var (
 	EmptyUncleHash = CalcUncleHash(nil)
 )
 
+type SnapSaveInfo struct {
+	Flg       int
+	BlockNum  uint64
+	BlockHash string
+	SnapPath  string
+}
+
 // A BlockNonce is a 64-bit hash which proves (combined with the
 // mix-hash) that a sufficient amount of computation has been carried
 // out on a block.
@@ -64,9 +71,6 @@ type Header struct {
 	Coinbase   common.Address    `json:"miner"            gencodec:"required"`
 	Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
 	Sharding   []common.Coinbyte `json:"sharding"        gencodec:"required"`
-	//TxHash      common.Hash        `json:"transactionsRoot" gencodec:"required"`
-	//ReceiptHash common.Hash        `json:"receiptsRoot"     gencodec:"required"`
-	//Bloom       Bloom              `json:"logsBloom"        gencodec:"required"`
 	Difficulty  *big.Int           `json:"difficulty"       gencodec:"required"`
 	Number      *big.Int           `json:"number"           gencodec:"required"`
 	GasLimit    uint64             `json:"gasLimit"         gencodec:"required"`
@@ -426,7 +430,6 @@ type TransactionInfo struct {
 // a block's data contents (transactions and uncles) together.
 type Body struct {
 	CurrencyBody []CurrencyBlock
-	//	Transactions []SelfTransaction
 	Uncles []*Header
 }
 type CurrencyHeader struct {
@@ -480,9 +483,6 @@ type Block struct {
 	header     *Header
 	uncles     []*Header
 	currencies []CurrencyBlock
-	//	transactions []BodyTransactions
-	//	transactions []SelfTransaction
-
 	// caches
 	hash atomic.Value
 	size atomic.Value
@@ -500,7 +500,6 @@ type Block struct {
 
 type BlockAllSt struct {
 	Sblock *Block
-	//SReceipt CoinReceipts //`rlp:"sreceipt"`
 	Pading uint64
 }
 
@@ -726,12 +725,7 @@ func (b *Block) Transaction(hash common.Hash) SelfTransaction {
 			}
 		}
 	}
-	//txser := b.transactions.GetTransactions()
-	//for _, transaction := range txser {
-	//	if transaction.Hash() == hash {
-	//		return transaction
-	//	}
-	//}
+
 	return nil
 }
 
@@ -740,6 +734,7 @@ func (b *Block) GasLimit() uint64     { return b.header.GasLimit }
 func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
 func (b *Block) Difficulty() *big.Int { return new(big.Int).Set(b.header.Difficulty) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
+
 
 func (b *Block) NumberU64() uint64           { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash      { return b.header.MixDigest }
@@ -757,10 +752,10 @@ func (b *Block) Root() []common.CoinRoot     { return b.header.Roots }
 func (b *Block) Sharding() []common.Coinbyte { return b.header.Sharding }
 func (b *Block) ParentHash() common.Hash     { return b.header.ParentHash }
 
-//func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
-//func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash { return b.header.UncleHash }
 func (b *Block) Extra() []byte          { return common.CopyBytes(b.header.Extra) }
+func (b *Block) Version() []byte          { return b.header.Version }
+
 
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
@@ -833,6 +828,11 @@ func (b *Block) Hash() common.Hash {
 	v := b.header.Hash()
 	b.hash.Store(v)
 	return v
+}
+
+//will change header num!!
+func (b *Block) SetHeadNum(num int64) {
+	b.header.Number.SetInt64(num)
 }
 
 type Blocks []*Block

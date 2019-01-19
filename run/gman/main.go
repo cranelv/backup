@@ -73,15 +73,15 @@ var (
 		utils.ManashDatasetsInMemoryFlag,
 		utils.ManashDatasetsOnDiskFlag,
 		utils.TxPoolNoLocalsFlag,
-		//utils.TxPoolJournalFlag, //YYY
+		//utils.TxPoolJournalFlag, //Y
 		//utils.TxPoolRejournalFlag,
 		utils.TxPoolPriceLimitFlag,
-		//utils.TxPoolPriceBumpFlag,//YYY
+		//utils.TxPoolPriceBumpFlag,//Y
 		utils.TxPoolAccountSlotsFlag,
 		utils.TxPoolGlobalSlotsFlag,
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
-		//utils.TxPoolLifetimeFlag,//YYY
+		//utils.TxPoolLifetimeFlag,//Y
 		utils.FastSyncFlag,
 		utils.LightModeFlag,
 		utils.SyncModeFlag,
@@ -125,6 +125,12 @@ var (
 		configFileFlag,
 		utils.GetCommitFlag,
 		utils.ManAddressFlag,
+		utils.SynSnapshootNumFlg,
+		utils.SynSnapshootHashFlg,
+		utils.SaveSnapStartFlg,
+		utils.SaveSnapPeriodFlg,
+		utils.SnapModeFlg,
+		utils.GetGenesisFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -148,8 +154,6 @@ func init() {
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2013-2018 The go-matrix Authors"
 	app.Commands = []cli.Command{
-		// See signcmd.go
-		signatureCommand,
 		// See chaincmd.go:
 		initCommand,
 		importCommand,

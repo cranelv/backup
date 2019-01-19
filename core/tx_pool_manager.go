@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
@@ -21,7 +22,7 @@ var (
 	ErrTxPoolNonexistent  = errors.New("txpool nonexistent")
 )
 
-//YY
+//
 type RetChan struct {
 	//Rxs   []types.SelfTransaction
 	AllTxs []*RetCallTx
@@ -96,6 +97,7 @@ type TxPoolManager struct {
 	sendTxCh     chan NewTxsEvent
 	txFeed       event.Feed
 	scope        event.SubscriptionScope
+	chain        blockChain
 }
 
 func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, path string) *TxPoolManager {
@@ -107,6 +109,7 @@ func NewTxPoolManager(config TxPoolConfig, chainconfig *params.ChainConfig, chai
 		addPool:      make(chan TxPool),
 		delPool:      make(chan TxPool),
 		sendTxCh:     make(chan NewTxsEvent),
+		chain:        chain,
 	}
 	SelfBlackList = NewInitblacklist()
 	go txPoolManager.loop(config, chainconfig, chain, path)
@@ -233,13 +236,56 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 }
 func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
+	state, err := pm.chain.State()
+	if err != nil {
+		log.Error("TxPoolManager:filter", "get state failed", err)
+		return nil
+	}
+
+	blklist, err := matrixstate.GetAccountBlackList(state)
+	if err != nil {
+		//不做处理
+	}
+
 	for _, txer := range txser {
 		ct := txer.GetTxCurrency()
 		if ct == "" {
 
 		}
-		if txer.To() != nil{
-			//黑账户过滤
+		//黑账户过滤
+		if len(blklist) > 0 {
+			isBlkAccount := false
+			for _, blkAccount := range blklist {
+				if txer.From().Equal(blkAccount) {
+					isBlkAccount = true
+					break
+				}
+			}
+			if isBlkAccount {
+				continue
+			}
+		}
+
+		//超级交易账户不匹配
+		if txer.GetMatrixType() == common.ExtraSuperTxType {
+			mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
+			if err != nil {
+				log.Error("TxPoolManager:filter", "get super tx account failed", err)
+				continue
+			}
+			isOK := false
+			for _, superAddress := range mansuperTxAddreslist {
+				if txer.From().Equal(superAddress) {
+					isOK = true
+				}
+			}
+			if !isOK {
+				log.Error("超级账户不匹配")
+				continue
+			}
+		}
+		//黑账户过滤
+		if txer.To() != nil {
 			if SelfBlackList.FindBlackAddress(*txer.To()) {
 				continue
 			}
@@ -287,6 +333,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 			nPool.ProcessMsg(m)
 		}
 	case types.BroadCastTxIndex:
+		log.Info("bcTxs", "收到广播交易, from", m.SendAddress.Hex())
 		if bPool, ok := pool.(*BroadCastTxPool); ok {
 			bPool.ProcessMsg(m)
 		}
@@ -317,6 +364,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
+			log.Info("bcTxs", "send bc tx to", bid.Hex())
 			pm.SendMsg(MsgStruct{Msgtype: BroadCast, SendAddr: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
 		}
 		return nil

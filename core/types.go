@@ -5,6 +5,7 @@
 package core
 
 import (
+	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
@@ -18,7 +19,8 @@ import (
 type Validator interface {
 	// ValidateBody validates the given block's content.
 	ValidateBody(block *types.Block) error
-
+	// ValidateBody validates the given block's content.
+	ValidateHeader(header *types.Header) error
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
 	//ValidateState(block, parent *types.Block, state *state.StateDBManage, receipts types.Receipts, usedGas uint64) error
@@ -32,5 +34,10 @@ type Validator interface {
 // of gas used in the process and return an error if any of the internal rules
 // failed.
 type Processor interface {
-	Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64,coinShard []common.CoinSharding) ([]types.CoinLogs, uint64, error)
+	//Process(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64,coinShard []common.CoinSharding) ([]types.CoinLogs, uint64, error)
+	ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error
+	ProcessTxs(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64) ([]types.CoinLogs, uint64, error)
+	Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) error
+	SetRandom(random *baseinterface.Random)
+	ProcessReward(state *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
 }

@@ -70,7 +70,7 @@ type Result struct {
 // worker is the main object which takes care of applying messages to the new state
 type worker struct {
 	config *params.ChainConfig
-	engine consensus.Engine
+	bc     ChainReader
 
 	mu sync.Mutex
 
@@ -100,10 +100,34 @@ type worker struct {
 	mineResultSender      *common.ResendMsgCtrl
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorReader consensus.StateReader, dposEngine consensus.DPOSEngine, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
+type ChainReader interface {
+	Config() *params.ChainConfig
+	Engine(version []byte) consensus.Engine
+	DPOSEngine(version []byte) consensus.DPOSEngine
+	VerifyHeader(header *types.Header) error
+	GetCurrentHash() common.Hash
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
+	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error)
+	CurrentHeader() *types.Header
+	// GetBlock retrieves a block from the database by hash and number.
+	GetBlock(hash common.Hash, number uint64) *types.Block
+	GetHeader(hash common.Hash, number uint64) *types.Header
+
+	// GetHeaderByNumber retrieves a block header from the database by number.
+	GetHeaderByNumber(number uint64) *types.Header
+
+	// GetHeaderByHash retrieves a block header from the database by its hash.
+	GetHeaderByHash(hash common.Hash) *types.Header
+}
+
+func newWorker(config *params.ChainConfig, bc ChainReader, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
 	worker := &worker{
 		config: config,
-		engine: engine,
+		bc:     bc,
 		mux:    mux,
 
 		agents:               make(map[Agent]struct{}),
@@ -112,7 +136,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, validatorRea
 		roleUpdateCh:         make(chan *mc.RoleUpdatedMsg, 100),
 		recv:                 make(chan *types.Header, resultQueueSize),
 		localMiningRequestCh: make(chan *mc.BlockGenor_BroadcastMiningReqMsg, 100),
-		mineReqCtrl:          newMinReqCtrl(dposEngine, validatorReader),
+		mineReqCtrl:          newMinReqCtrl(bc),
 		hd:                   hd,
 		mineResultSender:     nil,
 	}
@@ -210,9 +234,11 @@ func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
 	if data.BlockNum+1 > self.mineReqCtrl.curNumber {
 		self.stopMineResultSender()
 	}
-	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, data.Role)
+
+	role := data.Role
+	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, role)
 	canMining := self.mineReqCtrl.CanMining()
-	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", data.Role, "是否可以挖矿", canMining)
+	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
 	if canMining {
 		self.StartAgent()
 		self.processMineReq()
@@ -396,7 +422,7 @@ func (self *worker) makeCurrent(header *types.Header, isBroadcastNode bool) erro
 		isBroadcastNode: isBroadcastNode,
 	}
 
-	work.header.Coinbase = ca.GetAddress()
+	work.header.Coinbase = ca.GetDepositAddress()
 
 	self.current = work
 	return nil

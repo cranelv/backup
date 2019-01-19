@@ -928,8 +928,8 @@ var SolidityParam = require('./param');
  * @returns {SolidityParam}
  */
 
-var formatInputInt = function (value) {
-    if (value.indexOf('.') > -1) {
+var formatInputInt = function (value,name) {
+    if (name == "address" &&  value.indexOf('.') > -1){
         value = '0x' + Bytes2HexString(decode(value.split('.')[1].substring(0, value.split('.')[1].length-1)))
     }
     BigNumber.config(c.ETH_BIGNUMBER_ROUNDING_MODE);
@@ -5525,6 +5525,20 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: formatters.outputNewBigNumberFormatter
     });
+    var getUpTime = new Method({
+        name: 'getUpTime',
+        call: 'eth_getUpTime',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputNewBigNumberFormatter
+    });
+    var getFutureRewards = new Method({
+        name: 'getFutureRewards',
+        call: 'man_getFutureRewards',
+        params: 1,
+        inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputNewBigNumberFormatter
+    });
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
@@ -5559,6 +5573,12 @@ var methods = function () {
         params: 3,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getCfgDataByState = new Method({
+        name: 'getCfgDataByState',
+        call: 'eth_getCfgDataByState',
+        params: 1,
+        // outputFormatter: formatters.outputBigNumberFormatter
     });
     var getStorageAt = new Method({
         name: 'getStorageAt',
@@ -5723,15 +5743,6 @@ var methods = function () {
         params: 0
     });
 
-    //
-    var getTopology = new Method({
-        name: 'getTopology',
-        call: 'eth_getTopology',
-        params: 2,
-        inputFormatter: [utils.toDecimal, utils.toDecimal],
-        //outputFormatter: formatters.outputBigNumberFormatter
-    });
-
     var getSelfLevel = new Method({
         name: 'getSelfLevel',
         call: 'eth_getSelfLevel',
@@ -5743,6 +5754,13 @@ var methods = function () {
         call: 'eth_importSuperBlock',
         params: 1
     });
+    var getTopologyStatus = new Method({
+        name: 'getTopologyStatus',
+        call: 'eth_getTopologyStatusByNumber',
+        params: 1,
+        inputFormatter: [formatters.inputBlockNumberFormatter]
+    });
+
     var getMatrixCoin = new Method({
         name: 'getMatrixCoin',
         call: 'eth_getMatrixCoin',
@@ -5752,11 +5770,13 @@ var methods = function () {
     return [
         getBalance,
         getUpTime,
+        getFutureRewards,
         getEntrustList,
         getAuthFrom,
         getEntrustFrom,
         getAuthFromByTime,
         getEntrustFromByTime,
+        getCfgDataByState,
         getStorageAt,
         getCode,
         getBlock,
@@ -5780,10 +5800,10 @@ var methods = function () {
         compileSerpent,
         submitWork,
         getWork,
-        getTopology,
         getSelfLevel,
         importSuperBlock,
-        getMatrixCoin
+        getMatrixCoin,
+        getTopologyStatus
     ];
 };
 
@@ -5968,7 +5988,7 @@ var methods = function () {
     var setEntrustSignAccount = new Method({
         name: 'setEntrustSignAccount',
         call: 'personal_setEntrustSignAccount',
-        params: 3
+        params: 2
     });
 
 

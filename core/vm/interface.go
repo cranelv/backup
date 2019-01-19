@@ -13,63 +13,8 @@ import (
 
 //StateDB is an EVM database for full state querying.
 type StateDB interface {
-	//CreateAccount(common.Address)
-	//
-	//SubBalance(uint32, common.Address, *big.Int)
-	//AddBalance(uint32, common.Address, *big.Int)
-	//GetBalance(common.Address) common.BalanceType
-	//GetBalanceByType(addr common.Address, accType uint32) *big.Int
-	//
-	//GetNonce(common.Address) uint64
-	//SetNonce(common.Address, uint64)
-	//
-	//GetCodeHash(common.Address) common.Hash
-	//GetCode(common.Address) []byte
-	//SetCode(common.Address, []byte)
-	//GetCodeSize(common.Address) int
-	//
-	//AddRefund(uint64)
-	//GetRefund() uint64
-	//
-	//GetState(common.Address, common.Hash) common.Hash
-	//SetState(common.Address, common.Hash, common.Hash)
-	//
-	//CommitSaveTx()
-	//GetSaveTx(typ byte, key uint32, hash []common.Hash, isdel bool)
-	//SaveTx(typ byte, key uint32, data map[common.Hash][]byte)
-	//NewBTrie(typ byte)
-	//
-	//GetStateByteArray(common.Address, common.Hash) []byte
-	//SetStateByteArray(common.Address, common.Hash, []byte)
-	//Suicide(common.Address) bool
-	//HasSuicided(common.Address) bool
-	//
-	//// Exist reports whether the given account exists in state.
-	//// Notably this should also return true for suicided accounts.
-	//Exist(common.Address) bool
-	//// Empty returns whether the given account is empty. Empty
-	//// is defined according to EIP161 (balance = nonce = code = 0).
-	//Empty(common.Address) bool
-	//
-	//RevertToSnapshot(int)
-	//Snapshot() int
-	//
-	//AddLog(*types.Log)
-	//GetLogs(hash common.Hash) []*types.Log
-	//AddPreimage(common.Hash, []byte)
-	//
-	//ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 	SetMatrixData(hash common.Hash, val []byte)
 	GetMatrixData(hash common.Hash) (val []byte)
-	//DeleteMxData(hash common.Hash, val []byte)
-	//
-	//GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	//GetAuthFrom(entrustFrom common.Address, height uint64) common.Address
-	//GetEntrustFrom(authFrom common.Address, height uint64) []common.Address
-	//Dump() []byte
-	//Finalise(deleteEmptyObjects bool)
-	//GetAllEntrustSignFrom(authFrom common.Address) []common.Address
-	//GetAllEntrustGasFrom(authFrom common.Address) []common.Address
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM EVM
@@ -115,11 +60,13 @@ type StateDBManager interface {
 	SaveTx(cointyp string, addr common.Address, typ byte, key uint32, data map[common.Hash][]byte)
 	NewBTrie(cointyp string, addr common.Address, typ byte)
 
-	GetStateByteArray(cointyp string, addr common.Address, hash common.Hash) []byte
-	SetStateByteArray(cointyp string, addr common.Address, hash common.Hash, b []byte)
-
 	Suicide(cointyp string, addr common.Address) bool
 	HasSuicided(cointyp string, addr common.Address) bool
+
+	GetEntrustStateByteArray(cointyp string,addr common.Address) []byte
+	GetAuthStateByteArray(cointyp string,addr common.Address) []byte
+	SetEntrustStateByteArray(cointyp string,addr common.Address, value []byte)
+	SetAuthStateByteArray(cointyp string,addr common.Address, value []byte)
 
 	//// Exist reports whether the given account exists in state.
 	//// Notably this should also return true for suicided accounts.
@@ -131,7 +78,6 @@ type StateDBManager interface {
 	RevertToSnapshot(cointyp string, ss map[byte]int)
 	Snapshot(cointyp string) map[byte]int
 
-	//setError(err error)
 	Error() error
 
 	AddLog(cointyp string, address common.Address, log *types.Log)
@@ -164,6 +110,4 @@ type StateDBManager interface {
 	GetAllEntrustGasFrom(cointyp string, authFrom common.Address) []common.Address
 
 	Dump(cointype string, address common.Address) []byte
-	//RawDump(cointype string)state.Dump
-	//RawDumpAcccount(cointype string,address common.Address) state.Dump
 }

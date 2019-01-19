@@ -133,7 +133,7 @@ func toBLock(g *core.Genesis, db mandb.Database) *types.Block {
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(common.MainAccount, addr, account.Balance)
 		///*******************************************************/
-		////hezi 应该是通过发特殊交易添加账户
+		////  应该是通过发特殊交易添加账户
 		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
 		//statedb.AddBalance(common.EntrustAccount,addr, account.Balance)
 		//statedb.AddBalance(common.FreezeAccount,addr, account.Balance)
@@ -155,7 +155,7 @@ func toBLock(g *core.Genesis, db mandb.Database) *types.Block {
 		Version:           []byte(g.Version),
 		VersionSignatures: g.VersionSignatures,
 		VrfValue:          g.VrfValue,
-		Elect:             g.Elect,
+		Elect:             g.NextElect,
 		NetTopology:       g.NetTopology,
 		Signatures:        g.Signatures,
 		Leader:            g.Leader,

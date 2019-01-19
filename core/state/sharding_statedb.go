@@ -12,7 +12,6 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"math/big"
 	"errors"
-	"fmt"
 	"github.com/matrix/go-matrix/btrie"
 	"time"
 )
@@ -32,7 +31,10 @@ type StateDBManage struct {
 	coinRoot    []common.CoinRoot
 	retcoinRoot []common.CoinRoot
 }
-
+type CoinTrie struct {
+	Coin string
+	TrieArry []DumpDB
+}
 // Create a new state from a given trie.
 func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database, db Database) (*StateDBManage, error) {
 
@@ -51,13 +53,7 @@ func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database, db Database) 
 	copy(stm.retcoinRoot, roots)
 	for _,cr := range roots{
 		stm.MakeStatedb(cr.Cointyp,true)
-		//stm.MakeStatedb(params.BTC_COIN) //YYYYYYYYYYYYYYYYYYYYYYYY
 	}
-
-	dump:=stm.Dump(params.MAN_COIN,common.HexToAddress("0x0ead6cdb8d214389909a535d4ccc21a393dddba9"))
-	fmt.Printf("dump:	%s",dump)
-
-
 	return stm, nil
 }
 func (shard *StateDBManage) MakeStatedb(cointyp string,isCheck bool) {
@@ -718,10 +714,8 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 			panic(err)
 		}
 		isex := false
-		//log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY11111","coin",cm.Cointyp,"256Hash",bshash)
 		for i, croot := range shard.retcoinRoot {
 			if croot.Cointyp == cm.Cointyp {
-				//log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY22222","coin",cm.Cointyp,"256Hash",bshash,"shard.retcoinRoot[i].Root",shard.retcoinRoot[i].Root)
 				shard.retcoinRoot[i].Root = bshash
 				isex = true
 				break
@@ -1103,18 +1097,6 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string, addr common.Address
 }
 
 func (self *StateDBManage) RawDump(cointype string, address common.Address) Dump {
-
-	//for _, cm := range self.shardings {
-	//	if cointype == cm.Cointyp {
-	//		for _, rm := range cm.Rmanage {
-	//			if rm.Range == address[0] {
-	//				return rm.State.RawDump()
-	//			}
-	//		}
-	//		break
-	//	}
-	//}
-	//return Dump{}
 	statedb,err:=self.GetStateDb(cointype, address)
 	if err!=nil {
 		log.Error("file sharding_statedb","func:sharding_RawDump:",err)
@@ -1132,12 +1114,6 @@ func (self *StateDBManage) Dump(cointype string, address common.Address) []byte 
 		return nil
 	}
 	return statedb.Dump()
-	//json, err := json.MarshalIndent(self.RawDump(cointype, address), "", "    ")
-	//if err != nil {
-	//	fmt.Println("dump err", err)
-	//}
-	//return jsonF
-
 }
 
 func (self *StateDBManage) RawDumpAcccount(cointype string, address common.Address) Dump {
@@ -1148,17 +1124,48 @@ func (self *StateDBManage) RawDumpAcccount(cointype string, address common.Addre
 		return Dump{}
 	}
 	return statedb.RawDumpAcccount(address)
-	//var dump Dump
-	//for _, cm := range self.shardings {
-	//	if cm.Cointyp == cointype {
-	//		for _, rm := range cm.Rmanage {
-	//			if rm.Range == address[0] {
-	//				dump = rm.State.RawDumpAcccount(address)
-	//				break
-	//			}
-	//		}
-	//	}
-	//}
-	//return dump
+}
+func (self *StateDBManage) GetEntrustStateByteArray(cointyp string,addr common.Address) []byte{
+	state,err:=self.GetStateDb(cointyp,addr)
+	if err != nil{
+		log.Error("GetEntrustStateByteArray err","err",err)
+		return nil
+	}
+	return state.GetEntrustStateByteArray(addr)
+}
+func (self *StateDBManage) GetAuthStateByteArray(cointyp string,addr common.Address) []byte{
+	state,err:=self.GetStateDb(cointyp,addr)
+	if err != nil{
+		log.Error("GetAuthStateByteArray err","err",err)
+		return nil
+	}
+	return state.GetAuthStateByteArray(addr)
+}
+func (self *StateDBManage) SetEntrustStateByteArray(cointyp string,addr common.Address, value []byte){
+	state,err:=self.GetStateDb(cointyp,addr)
+	if err != nil{
+		log.Error("SetEntrustStateByteArray err","err",err)
+		return
+	}
+	state.SetEntrustStateByteArray(addr,value)
+}
+func (self *StateDBManage) SetAuthStateByteArray(cointyp string,addr common.Address, value []byte){
+	state,err:=self.GetStateDb(cointyp,addr)
+	if err != nil{
+		log.Error("SetAuthStateByteArray err","err",err)
+		return
+	}
+	state.SetAuthStateByteArray(addr,value)
+}
 
+func (self *StateDBManage)RawDumpDB() []CoinTrie {
+	snapCoinTrie := make([]CoinTrie,0)
+	for _,shard := range self.shardings{
+		dumplist := make([]DumpDB,0)
+		for _,rm := range shard.Rmanage{
+			dumplist = append(dumplist,rm.State.RawDumpDB())
+		}
+		snapCoinTrie = append(snapCoinTrie,CoinTrie{shard.Cointyp,dumplist})
+	}
+	return snapCoinTrie
 }

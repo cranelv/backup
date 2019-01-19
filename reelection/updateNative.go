@@ -4,8 +4,6 @@
 package reelection
 
 import (
-	"encoding/json"
-	"errors"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/election/support"
@@ -99,15 +97,15 @@ func (self *ReElection) TopoUpdate(allNative support.AllNative, top *mc.Topology
 		return []mc.Alternative{}, err
 	}
 
-	data, err := self.bc.GetMatrixStateDataByNumber(mc.MSKeyElectConfigInfo, height)
+	st, err := self.bc.StateAtNumber(height)
 	if err != nil {
-		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		log.Error(Module, "get state by height err", err, "height", height)
 		return nil, err
 	}
-	electInfo, OK := data.(*mc.ElectConfigInfo)
-	if OK == false || electInfo == nil {
-		log.ERROR("ElectConfigInfo", "ElectConfigInfo ", "反射失败", "高度", height)
-		return nil, errors.New("反射失败")
+	electInfo, err := matrixstate.GetElectConfigInfo(st)
+	if err != nil || electInfo == nil {
+		log.ERROR("GetElectInfo", "获取选举基础信息失败 err", err)
+		return nil, err
 	}
 	allNative.ElectInfo = electInfo
 	return elect.ToPoUpdate(allNative, top), nil
@@ -149,18 +147,20 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
 
-	hashPos, err := self.GetHeaderHashByNumber(hash, heightPos)
+	ancestorHash, err := self.GetHeaderHashByNumber(hash, heightPos)
 	log.INFO(Module, "GetTopNodeInfo pos", heightPos)
 	if err != nil {
-		log.ERROR(Module, "根据hash算父header失败 hash", hashPos)
+		log.ERROR(Module, "根据hash算父header失败", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	headerPos := self.bc.GetHeaderByHash(hashPos)
-	stateDB, err := self.bc.StateAt(headerPos.Roots)
-	ElectGraphBytes := stateDB.GetMatrixData(matrixstate.GetKeyHash(mc.MSKeyElectGraph))
-	var electState mc.ElectGraph
-	if err := json.Unmarshal(ElectGraphBytes, &electState); err != nil {
-		log.ERROR(Module, "GetElection Unmarshal err", err)
+	stateDB, err := self.bc.StateAtBlockHash(ancestorHash)
+	if err != nil {
+		log.ERROR(Module, "获取ancestor state失败", err)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+	electState, err := matrixstate.GetElectGraph(stateDB)
+	if err != nil || electState == nil {
+		log.ERROR(Module, "获取elect graph 失败", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
 	master := []mc.ElectNodeInfo{}

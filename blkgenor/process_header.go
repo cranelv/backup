@@ -4,213 +4,134 @@
 package blkgenor
 
 import (
-	"math/big"
-	"time"
+	"github.com/matrix/go-matrix/consensus/blkmanage"
 
-	"encoding/json"
-	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
 )
 
-func (p *Process) processHeaderGen() error {
-	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
-	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
-
+func (p *Process) processBcHeaderGen() error {
+	log.INFO(p.logExtraInfo(), "processBCHeaderGen", "start")
+	defer log.INFO(p.logExtraInfo(), "processBCHeaderGen", "end")
 	if p.bcInterval == nil {
 		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
 		return errors.New("广播周期信息为空")
 	}
-
-	tstart := time.Now()
-	log.Info(p.logExtraInfo(), "关键时间点", "区块头开始生成", "time", tstart, "块高", p.number)
-	parent, err := p.getParentBlock()
+	parent, err := p.getParentBlock(p.number)
 	if err != nil {
 		return err
 	}
-	parentHash := parent.Hash()
-
-	NetTopology, onlineConsensusResults := p.getNetTopology(p.number, parentHash, p.bcInterval)
-	if nil == NetTopology {
-		log.Error(p.logExtraInfo(), "获取网络拓扑图错误 ", "")
-		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
-	}
-	if nil == onlineConsensusResults {
-		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
-	}
-
-	log.Debug(p.logExtraInfo(), "获取拓扑结果 ", NetTopology, "高度", p.number)
-
-	tstamp := tstart.Unix()
-	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
-		tstamp = parent.Time().Int64() + 1
-	}
-	// this will ensure we're not going off too far in the future
-	if now := time.Now().Unix(); tstamp > now+1 {
-		wait := time.Duration(tstamp-now) * time.Second
-		log.Info(p.logExtraInfo(), "等待时间同步", common.PrettyDuration(wait))
-		time.Sleep(wait)
-	}
-	account, vrfValue, vrfProof, err := p.getVrfValue(parent)
+	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "区块生成阶段 获取vrfValue失败 错误", err)
-		return err
-	}
-	header := &types.Header{
-		ParentHash:        parentHash,
-		Leader:            ca.GetAddress(),
-		Number:            new(big.Int).SetUint64(p.number),
-		GasLimit:          core.CalcGasLimit(parent),
-		Extra:             make([]byte, 0),
-		Time:              big.NewInt(tstamp),
-		NetTopology:       *NetTopology,
-		Signatures:        make([]common.Signature, 0),
-		Version:           parent.Header().Version, //param
-		VersionSignatures: parent.Header().VersionSignatures,
-		VrfValue:          baseinterface.NewVrf().GetHeaderVrf(account, vrfValue, vrfProof),
-	}
-
-	if err := p.engine().Prepare(p.blockChain(), header); err != nil {
-		log.ERROR(p.logExtraInfo(), "Failed to prepare header for mining", err)
+		log.Error(p.logExtraInfo(), "准备去看失败", err)
 		return err
 	}
 
-	log.Info(p.logExtraInfo(), "关键时间点", "开始执行交易", "time", time.Now(), "块高", p.number)
-	tsBlock, txsCode, stateDB, receipts, originalTxs, err := p.genHeaderTxs(header)
+	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, nil)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "运行交易失败", err)
+		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
-	log.Info(p.logExtraInfo(), "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", p.number)
-	err = p.blockChain().ProcessMatrixState(tsBlock, stateDB)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "运行matrix状态树失败", err)
-		return err
-	}
-
-	// 运行完状态树后，才能获取elect
-	Elect := p.genElection(stateDB)
-	if Elect == nil {
-		return errors.New("生成elect信息错误")
-	}
-	log.Debug(p.logExtraInfo(), "获取选举结果 ", Elect, "高度", p.number)
-	header = tsBlock.Header()
-	header.Elect = Elect
 	//运行完matrix状态树后，生成root
-	var txs [] types.SelfTransaction
-	for _,currencie:=range tsBlock.Currencies(){
-		txs =append(txs,currencie.Transactions.GetTransactions()...)
-	}
-	finalTxs:=types.GetCoinTX(txs)
-
-	block, err := p.engine().Finalize(p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
+	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "最终finalize错误", err)
+		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
 	}
-
-	log.Info(p.logExtraInfo(), "关键时间点", "区块头生成完毕,发出共识请求", "time", time.Now(), "块高", p.number)
-	if p.bcInterval.IsBroadcastNumber(block.NumberU64()) {
-		header = block.Header()
-		signHash := header.HashNoSignsAndNonce()
-		sign, err := p.signHelper().SignHashWithValidate(signHash.Bytes(), true, p.preBlockHash)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
-			return err
-		}
-
-		header.Signatures = make([]common.Signature, 0, 1)
-		header.Signatures = append(header.Signatures, sign)
-		sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
-		log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", types.RlpHash(header.Roots), "tx数量", len(types.GetTX(sendMsg.Txs)))
-		mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
-	} else {
-		header = block.Header()
-		p2pBlock := &mc.HD_BlkConsensusReqMsg{
-			Header:                 header,
-			TxsCode:                txsCode,
-			ConsensusTurn:          p.consensusTurn,
-			OnlineConsensusResults: onlineConsensusResults,
-			From: ca.GetAddress()}
-		//send to local block verify module
-		localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
-		if len(originalTxs) > 0 {
-			txpoolCache.MakeStruck(types.GetTX(originalTxs), header.HashNoSignsAndNonce(), p.number)
-		}
-		log.INFO(p.logExtraInfo(), "本地发送区块验证请求, root", types.RlpHash(p2pBlock.Header.Roots), "高度", p.number)
-		mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
-		p.startConsensusReqSender(p2pBlock)
+	finalHeader := block.Header()
+	err = p.setSignatures(finalHeader)
+	if err != nil {
+		return err
 	}
-
+	p.sendBroadcastMiningReq(finalHeader, finalTxs)
 	return nil
 }
 
-func (p *Process) genHeaderTxs(header *types.Header) (*types.Block, []*common.RetCallTxN, *state.StateDBManage, []types.CoinReceipts, []types.CoinSelfTransaction, error) {
-	//broadcast txs deal,remove no validators txs
-	if p.bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return nil, nil, nil, nil, nil, err
-		}
-		mapTxs := p.pm.matrix.TxPool().GetAllSpecialTxs()
-
-		Txs := make([]types.SelfTransaction, 0)
-		for _, txs := range mapTxs {
-			for _, tx := range txs {
-				log.Trace(p.logExtraInfo(), "txpool:add()", tx)
-			}
-			Txs = append(Txs, txs...)
-		}
-		work.ProcessBroadcastTransactions(p.pm.matrix.EventMux(), types.GetCoinTX(Txs), p.pm.bc)
-		retTxs := work.GetTxs()
-		block := types.NewBlock(header, types.MakeCurencyBlock(retTxs,work.Receipts,nil), nil)
-		return block, nil, work.State, work.Receipts, retTxs, nil
-
-	} else {
-		work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, header, p.pm.random)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "NewWork!", err, "高度", p.number)
-			return nil, nil, nil, nil, nil, err
-		}
-
-		upTimeMap, err := p.blockChain().ProcessUpTime(work.State, header)
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "执行uptime错误", err, "高度", p.number)
-			return nil, nil, nil, nil, nil, err
-		}
-		txsCode, originalTxs, _ := work.ProcessTransactions(p.pm.matrix.EventMux(), p.pm.txPool, p.blockChain(), upTimeMap)
-		block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(),work.Receipts,nil), nil)
-		log.Debug(p.logExtraInfo(), "区块验证请求生成，交易部分,完成 tx hash",block.Header().Roots)
-		return block, txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), nil
+func (p *Process) processHeaderGen() error {
+	log.INFO(p.logExtraInfo(), "processHeaderGen", "start")
+	defer log.INFO(p.logExtraInfo(), "processHeaderGen", "end")
+	if p.bcInterval == nil {
+		log.ERROR(p.logExtraInfo(), "区块生成阶段", "广播周期信息为空")
+		return errors.New("广播周期信息为空")
 	}
+	parent, err := p.getParentBlock(p.number)
+	if err != nil {
+		return err
+	}
+	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "准备阶段失败", err)
+		return err
+	}
+	onlineConsensusResults, ok := extraData.([]*mc.HD_OnlineConsensusVoteResultMsg)
+	if !ok {
+		log.Error(p.logExtraInfo(), "反射在线状态失败", "")
+		return errors.New("反射在线状态失败")
+	}
+
+	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, string(originHeader.Version), originHeader, nil)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
+		return err
+	}
+
+	//运行完matrix状态树后，生成root (p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
+	block,_, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
+	if err != nil {
+		log.Error(p.logExtraInfo(), "Finalize失败", err)
+		return err
+	}
+	p.sendHeaderVerifyReq(block.Header(), txsCode, onlineConsensusResults, originalTxs, finalTxs, receipts, stateDB)
+	return nil
 }
 
-func (p *Process) getParentBlock() (*types.Block, error) {
-	if p.number == 1 { // 第一个块直接返回创世区块作为父区块
-		return p.blockChain().Genesis(), nil
+
+func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.RetCallTxN, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg, originalTxs []types.CoinSelfTransaction,
+	finalTxs []types.CoinSelfTransaction, receipts []types.CoinReceipts, stateDB *state.StateDBManage) {
+	p2pBlock := &mc.HD_BlkConsensusReqMsg{
+		Header:                 header,
+		TxsCode:                txsCode,
+		ConsensusTurn:          p.consensusTurn,
+		OnlineConsensusResults: onlineConsensusResults,
+		From: ca.GetSignAddress(),
+	}
+	//send to local block verify module
+	localBlock := &mc.LocalBlockVerifyConsensusReq{BlkVerifyConsensusReq: p2pBlock, OriginalTxs: originalTxs, FinalTxs: finalTxs, Receipts: receipts, State: stateDB}
+	if len(originalTxs) > 0 {
+		txpoolCache.MakeStruck(types.GetTX(originalTxs), header.HashNoSignsAndNonce(), p.number)
+	}
+	log.INFO(p.logExtraInfo(), "本地发送区块验证请求, root", p2pBlock.Header.Roots, "高度", p.number)
+	mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
+	p.startConsensusReqSender(p2pBlock)
+}
+
+func (p *Process) sendBroadcastMiningReq(header *types.Header, finalTxs []types.CoinSelfTransaction) {
+	sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
+	log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Roots, "tx数量", len(types.GetTX(finalTxs)))
+	mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
+}
+
+func (p *Process) setSignatures(header *types.Header) error {
+
+	signHash := header.HashNoSignsAndNonce()
+	sign, err := p.signHelper().SignHashWithValidateByAccount(signHash.Bytes(), true, ca.GetDepositAddress())
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "广播区块生成，签名错误", err)
+		return err
 	}
 
-	if (p.preBlockHash == common.Hash{}) {
-		return nil, errors.Errorf("未知父区块hash[%s]", p.preBlockHash.TerminalString())
-	}
+	header.Signatures = make([]common.Signature, 0, 1)
+	header.Signatures = append(header.Signatures, sign)
 
-	parent := p.blockChain().GetBlockByHash(p.preBlockHash)
-	if nil == parent {
-		return nil, errors.Errorf("未知的父区块[%s]", p.preBlockHash.TerminalString())
-	}
-
-	return parent, nil
+	return nil
 }
 
 func (p *Process) startConsensusReqSender(req *mc.HD_BlkConsensusReqMsg) {
@@ -237,21 +158,23 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 		log.ERROR(p.logExtraInfo(), "发出区块共识req", "反射消息失败", "次数", times)
 		return
 	}
-	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", len(req.TxsCode), "次数", times)
+	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", req.TxsCodeCount(), "次数", times)
 	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
 }
 
-func (p *Process) getVrfValue(parent *types.Block) ([]byte, []byte, []byte, error) {
-	_, preVrfValue, preVrfProof := baseinterface.NewVrf().GetVrfInfoFromHeader(parent.Header().VrfValue)
-	parentMsg := VrfMsg{
-		VrfProof: preVrfProof,
-		VrfValue: preVrfValue,
-		Hash:     parent.Hash(),
+func (p *Process) getParentBlock(num uint64) (*types.Block, error) {
+	if num == 1 { // 第一个块直接返回创世区块作为父区块
+		return p.blockChain().Genesis(), nil
 	}
-	vrfmsg, err := json.Marshal(parentMsg)
-	if err != nil {
-		log.Error(p.logExtraInfo(), "生成vrfmsg出错", err, "parentMsg", parentMsg)
-		return []byte{}, []byte{}, []byte{}, errors.New("生成vrfmsg出错")
+
+	if (p.preBlockHash == common.Hash{}) {
+		return nil, errors.Errorf("未知父区块hash[%s]", p.preBlockHash.TerminalString())
 	}
-	return p.signHelper().SignVrf(vrfmsg, p.preBlockHash)
+
+	parent := p.blockChain().GetBlockByHash(p.preBlockHash)
+	if nil == parent {
+		return nil, errors.Errorf("未知的父区块[%s]", p.preBlockHash.TerminalString())
+	}
+
+	return parent, nil
 }

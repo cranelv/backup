@@ -36,6 +36,33 @@ func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Mas
 
 }
 
+func TryFilterBlockProduceBlackList(vipElec *support.Electoion, blackList []mc.UserBlockProduceSlash, minRemainNum int) int {
+	//计算目前可用Node
+	var availableNodeNum = vipElec.GetAvailableNodeNum()
+	for i := 0; i < len(blackList); i++ {
+		//如果剩余可用数小于等于最小保留数，不再过滤
+		if availableNodeNum <= minRemainNum {
+			return availableNodeNum
+		}
+		if k, status := vipElec.GetNodeByAccount(blackList[i].Address); status {
+			if vipElec.NodeList[k].Usable {
+				vipElec.NodeList[k].Usable = false
+				log.Trace("VIP选举黑名单处理", "过滤账户", vipElec.NodeList[k].Address, "禁止周期", blackList[i].ProhibitCycleCounter)
+				availableNodeNum--
+			}
+		}
+	}
+	return availableNodeNum
+}
+func printVipBlackList(blackList []mc.UserBlockProduceSlash) {
+	if len(blackList) == 0 {
+		log.Trace("VIP选举黑名单处理", "无黑名单", nil)
+	} else {
+		for _, v := range blackList {
+			log.Trace("VIP选举黑名单处理", "账户", v.Address.String(), "禁止周期", v.ProhibitCycleCounter)
+		}
+	}
+}
 func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
 	log.INFO("分层方案", "验证者拓扑生成", mvrerm)
 
@@ -47,6 +74,14 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	for vipEleLoop := len(vipEle.VipLevelCfg) - 1; vipEleLoop >= 0; vipEleLoop-- {
 		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 && vipEleLoop != 0 { //vip0继续处理
 			continue
+		}
+
+		//普通选举之前过滤区块生成黑名单
+		if vipEleLoop == 0 {
+			printVipBlackList(mvrerm.BlockProduceBlackList.BlackList)
+			if vipEle.NeedNum >= vipEle.ChosedNum {
+				TryFilterBlockProduceBlackList(vipEle, mvrerm.BlockProduceBlackList.BlackList, vipEle.NeedNum-vipEle.ChosedNum)
+			}
 		}
 		nodeList := vipEle.GetNodeByLevel(common.GetVIPLevel(vipEleLoop))
 

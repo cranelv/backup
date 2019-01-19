@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/matrix/go-matrix/core/types"
+
 	"time"
 
 	"github.com/matrix/go-matrix/accounts/signhelper"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus"
 	"github.com/matrix/go-matrix/core"
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/olconsensus"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reelection"
 )
 
@@ -64,13 +64,13 @@ type Process struct {
 	state              State
 	pm                 *ProcessManage
 	powPool            *PowPool
-	broadcastRstCache  []*mc.BlockData
+	broadcastRstCache  map[common.Address]*mc.BlockData
 	blockCache         *blockCache
 	insertBlockHash    []common.Hash
 	FullBlockReqCache  *common.ReuseMsgController
 	consensusReqSender *common.ResendMsgCtrl
 	minerPickTimer     *time.Timer
-	bcInterval         *manparams.BCInterval
+	bcInterval         *mc.BCIntervalInfo
 }
 
 func newProcess(number uint64, pm *ProcessManage) *Process {
@@ -85,7 +85,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 		state:              StateIdle,
 		pm:                 pm,
 		powPool:            NewPowPool("矿工结果池(高度)" + strconv.Itoa(int(number))),
-		broadcastRstCache:  make([]*mc.BlockData, 0),
+		broadcastRstCache:  make(map[common.Address]*mc.BlockData),
 		blockCache:         newBlockCache(),
 		FullBlockReqCache:  common.NewReuseMsgController(3),
 		consensusReqSender: nil,
@@ -95,7 +95,7 @@ func newProcess(number uint64, pm *ProcessManage) *Process {
 	return p
 }
 
-func (p *Process) StartRunning(role common.RoleType, bcInterval *manparams.BCInterval) {
+func (p *Process) StartRunning(role common.RoleType, bcInterval *mc.BCIntervalInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.role = role
@@ -168,9 +168,6 @@ func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address)
 	}
 	p.nextLeader = leader
 	log.Debug(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
-	if p.state < StateBlockInsert {
-		return
-	}
 	p.processBlockInsert(preLeader)
 }
 
@@ -202,49 +199,56 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 		return
 	}
 
-	bcInterval, err := manparams.NewBCIntervalByHash(blkInsertMsg.Header.ParentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(blkInsertMsg.Header.ParentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块插入", "获取广播周期错误", "err", err)
 		return
 	}
 
 	header := blkInsertMsg.Header
-	if bcInterval.IsBroadcastNumber(p.number) {
-		signAccount, _, err := crypto.VerifySignWithValidate(header.HashNoSignsAndNonce().Bytes(), header.Signatures[0].Bytes())
-		if err != nil {
-			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法, 签名解析错误", err)
-			return
-		}
-
-		if signAccount != header.Leader {
-			log.WARN(p.logExtraInfo(), "广播区块插入消息非法, 签名不匹配，签名人", signAccount.Hex(), "Leader", header.Leader.Hex())
-			return
-		}
-
-		if role, _ := ca.GetAccountOriginalRole(signAccount, p.preBlockHash); common.RoleBroadcast != role {
-			log.WARN(p.logExtraInfo(), "广播区块插入消息非法，签名人不是广播身份, 角色", role.String())
-			return
-		}
-		log.Info(p.logExtraInfo(), "开始插入", "广播区块")
-	} else {
-		if err := p.dposEngine().VerifyBlock(p.blockChain(), header); err != nil {
-			log.ERROR(p.logExtraInfo(), "区块插入消息DPOS共识失败", err)
-			return
-		}
-
-		if err := p.engine().VerifySeal(p.blockChain(), header); err != nil {
-			log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
-			return
-		}
-		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
+	if false == p.canInsertBlock(bcInterval, header) {
+		return
 	}
 
-	if _, err := p.InsertAndBcBlock(false, header.Leader, header); err != nil {
+	if _, err := p.insertAndBcBlock(false, header.Leader, header); err != nil {
 		log.WARN(p.logExtraInfo(), "区块插入失败, err", err, "fetch 高度", p.number, "fetch hash", blockHash.TerminalString(), "source", blkInsertMsg.From.Hex())
 		p.backend().FetcherNotify(blockHash, p.number, blkInsertMsg.From)
 	}
 
 	p.saveInsertedBlockHash(blockHash)
+}
+
+func (p *Process) canInsertBlock(bcInterval *mc.BCIntervalInfo, header *types.Header) bool {
+	if bcInterval.IsBroadcastNumber(p.number) {
+		signAccount, _, err := crypto.VerifySignWithValidate(header.HashNoSignsAndNonce().Bytes(), header.Signatures[0].Bytes())
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "广播区块插入消息非法, 签名解析错误", err)
+			return false
+		}
+
+		if signAccount != header.Leader {
+			log.WARN(p.logExtraInfo(), "广播区块插入消息非法, 签名不匹配，签名人", signAccount.Hex(), "Leader", header.Leader.Hex())
+			return false
+		}
+
+		if role, _ := ca.GetAccountOriginalRole(signAccount, p.preBlockHash); common.RoleBroadcast != role {
+			log.WARN(p.logExtraInfo(), "广播区块插入消息非法，签名人不是广播身份, 角色", role.String())
+			return false
+		}
+		log.Info(p.logExtraInfo(), "开始插入", "广播区块")
+	} else {
+		if err := p.blockChain().DPOSEngine(header.Version).VerifyBlock(p.blockChain(), header); err != nil {
+			log.ERROR(p.logExtraInfo(), "区块插入消息DPOS共识失败", err)
+			return false
+		}
+
+		if err := p.blockChain().Engine(header.Version).VerifySeal(p.blockChain(), header); err != nil {
+			log.ERROR(p.logExtraInfo(), "区块插入消息POW验证失败", err)
+			return false
+		}
+		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
+	}
+	return true
 }
 
 func (p *Process) startBcBlock() {
@@ -260,7 +264,7 @@ func (p *Process) startBcBlock() {
 	parentHeader := p.blockChain().GetHeaderByNumber(p.number - 1)
 	parentHash := parentHeader.Hash()
 
-	bcInterval, err := manparams.NewBCIntervalByHash(parentHash)
+	bcInterval, err := p.blockChain().GetBroadcastIntervalByHash(parentHash)
 	if err != nil {
 		log.ERROR(p.logExtraInfo(), "区块广播阶段", "获取广播周期错误", "err", err)
 		return
@@ -309,12 +313,19 @@ func (p *Process) startHeaderGen() {
 	}
 
 	log.INFO(p.logExtraInfo(), "开始生成验证请求, 高度", p.number)
-	err := p.processHeaderGen()
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "生成验证请求错误", err, "高度", p.number)
-		return
+	if p.bcInterval.IsBroadcastNumber(p.number) {
+		err := p.processBcHeaderGen()
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "生成普通区块验证请求错误", err, "高度", p.number)
+			return
+		}
+	} else {
+		err := p.processHeaderGen()
+		if err != nil {
+			log.ERROR(p.logExtraInfo(), "生成广播区块验证请求错误", err, "高度", p.number)
+			return
+		}
 	}
-
 	p.state = StateMinerResultVerify
 	p.processMinerResultVerify(p.curLeader, true)
 }
@@ -341,8 +352,8 @@ func (p *Process) canGenHeader() bool {
 			return false
 		}
 
-		if p.curLeader != ca.GetAddress() {
-			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetAddress().Hex(), "leader", p.curLeader.Hex())
+		if p.curLeader != ca.GetDepositAddress() {
+			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetDepositAddress().Hex(), "leader", p.curLeader.Hex())
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
@@ -403,11 +414,7 @@ func (p *Process) logExtraInfo() string {
 
 func (p *Process) blockChain() *core.BlockChain { return p.pm.bc }
 
-func (p *Process) engine() consensus.Engine { return p.pm.engine }
-
-func (p *Process) dposEngine() consensus.DPOSEngine { return p.pm.dposEngine }
-
-func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //YYY
+func (p *Process) txPool() *core.TxPoolManager { return p.pm.txPool } //Y
 
 func (p *Process) signHelper() *signhelper.SignHelper { return p.pm.signHelper }
 
