@@ -639,7 +639,7 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteList": null
+		"ElectWhiteList": null,
 		"BlkProduceSlashCfg": {
 			"Switcher" : true,
 			"LowTHR"   : 1,

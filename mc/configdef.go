@@ -589,7 +589,8 @@ func (b *LotteryCfg) Output(k, v interface{}) (interface{}, interface{}) {
 }
 
 type InterestCfg struct {
-	PayInterval uint64
+	CalcInterval uint64
+	PayInterval  uint64
 }
 
 func (b *InterestCfg) Check(k, v interface{}) (interface{}, bool) {
