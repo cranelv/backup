@@ -338,13 +338,14 @@ func newTransactions(nonce uint64, to *common.Address, amount *big.Int, gasLimit
 			arrayTx = append(arrayTx, *txto)
 		}
 	}
-	if txType == common.ExtraRevocable {
-		d.CommitTime = uint64(time.Now().Unix()) + uint64(300)
-	} else if txType == common.ExtraTimeTxType {
-		d.CommitTime = uint64(time.Now().Unix()) + uint64(600)
-	} else {
-		d.CommitTime = committime
-	}
+	//if txType == common.ExtraRevocable {
+	//	d.CommitTime = uint64(time.Now().Unix()) + uint64(300)
+	//} else if txType == common.ExtraTimeTxType {
+	//	d.CommitTime = uint64(time.Now().Unix()) + uint64(600)
+	//} else {
+	//	d.CommitTime = committime
+	//}
+	d.CommitTime = committime
 	matrixEx.TxType = txType
 	matrixEx.LockHeight = localtime
 	matrixEx.ExtraTo = arrayTx

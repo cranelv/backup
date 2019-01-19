@@ -437,6 +437,9 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails.
 func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
+	if args1.TxType == common.ExtraBroadTxType{
+		return common.Hash{}, errors.New("TxType can not be set 1")
+	}
 	var args SendTxArgs
 	args, err := StrArgsToByteArgs(args1)
 	if err != nil {
@@ -2018,6 +2021,9 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 // transaction pool.
 func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
 	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
+	if args1.TxType == common.ExtraBroadTxType{
+		return common.Hash{}, errors.New("TxType can not be set 1")
+	}
 	var args SendTxArgs
 	args, err := StrArgsToByteArgs(args1)
 	if err != nil {
@@ -2075,6 +2081,9 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
+	if args1.TxType == common.ExtraBroadTxType{
+		return common.Hash{}, errors.New("TxType can not be set 1")
+	}
 	var args SendTxArgs
 	args,err := StrArgsToByteArgs(args1)
 	if err != nil {
