@@ -558,13 +558,13 @@ var (
 				"MinMoney": 1000000,
 				"InterestRate": 10,
 				"ElectUserNum": 3,
-				"StockScale": 1600
+				"StockScale": 1000      
 			},
 		{
 				"MinMoney": 10000000,
 				"InterestRate": 15,
 				"ElectUserNum": 5,
-				"StockScale": 2000
+				"StockScale": 1000      
 			}
 		],
         "BlkCalcCfg":"1",
@@ -656,7 +656,7 @@ var (
 		}
     },
   "config": {
-					"chainID": 40,
+					"chainID": 1,           
 					"byzantiumBlock": 0,
 					"homesteadBlock": 0,
 					"eip155Block": 0,
@@ -665,16 +665,16 @@ var (
   "versionSignatures": [],
       "difficulty":"0x100",
     "timestamp":"0x5c26f140",
-		"version": "1.0.0-stable",
+	"version": "1.0.0.0",           
   
 	"signatures": [	],
       "coinbase": "MAN.1111111111111111111cs",
-      "leader":"MAN.CrsnQSJJfGxpb2taGhChLuyZwZJo", 
+    "leader":"MAN.1111111111111111111cs",      
        "gasLimit": "0x2FEFD8",   
-       "nonce": "0x0000000000000050",
+    "nonce": "0x00000000000000178",            
        "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
        "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-	     "extraData": "0x0000000000000000"
+	"extraData": "0x68656c6c6f2c77656c636f6d6520746f206d617472697820776f726c6421"  
 }
 `
 )
