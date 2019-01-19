@@ -17,7 +17,7 @@ import (
 
 const (
 	PackageName = "利息奖励"
-	Denominator = 10000000
+	Denominator = 1000000000
 )
 
 type interest struct {
@@ -50,6 +50,11 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
+	bcInterval, err := matrixstate.GetBroadcastInterval(st)
+	if err != nil {
+		log.ERROR(PackageName, "获取广播周期数据结构失败", err)
+		return nil
+	}
 	IC, err := matrixstate.GetInterestCfg(st)
 	if nil != err {
 		log.ERROR(PackageName, "获取利息状态树配置错误", "")
@@ -60,12 +65,8 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
-	if IC.PayInterval == 0 || 0 == IC.CalcInterval {
-		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
-		return nil
-	}
-	if IC.PayInterval < IC.CalcInterval {
-		log.ERROR(PackageName, "配置的发放周期小于计息周期，支付周期", IC.PayInterval, "计算周期", IC.CalcInterval)
+	if IC.PayInterval == 0 {
+		log.ERROR(PackageName, "利息周期配置错误，支付周期", IC.PayInterval)
 		return nil
 	}
 
@@ -78,9 +79,10 @@ func New(st util.StateDB) *interest {
 		log.ERROR(PackageName, "利率表为空", "")
 		return nil
 	}
-	return &interest{VipCfg, IC.CalcInterval, IC.PayInterval}
+
+	return &interest{VipCfg, bcInterval.BCInterval, IC.PayInterval}
 }
-func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*DepositInterestRate, denominator uint64) *big.Int {
+func (ic *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*DepositInterestRate, denominator uint64, broadInterval uint64) *big.Int {
 
 	if deposit.Cmp(big.NewInt(0)) <= 0 {
 		log.ERROR(PackageName, "抵押获取错误", deposit)
@@ -100,7 +102,7 @@ func (tlr *interest) calcNodeInterest(deposit *big.Int, depositInterestRate []*D
 	if blockInterest == 0 {
 		blockInterest = depositInterestRate[len(depositInterestRate)-1].Interest
 	}
-	originResult := new(big.Int).Mul(deposit, new(big.Int).SetUint64(blockInterest))
+	originResult := new(big.Int).Mul(deposit, new(big.Int).SetUint64(blockInterest*broadInterval))
 	finalResult := new(big.Int).Div(originResult, new(big.Int).SetUint64(denominator))
 	return finalResult
 }
@@ -210,7 +212,7 @@ func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address
 	InterestMap := make(map[common.Address]*big.Int)
 	for _, dv := range depositNodes {
 
-		result := ic.calcNodeInterest(dv.Deposit, depositInterestRateList, Denominator)
+		result := ic.calcNodeInterest(dv.Deposit, depositInterestRateList, Denominator, ic.CalcInterval)
 		if result.Cmp(big.NewInt(0)) <= 0 {
 			log.ERROR(PackageName, "计算的利息非法", result)
 			continue

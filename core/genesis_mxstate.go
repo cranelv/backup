@@ -635,9 +635,13 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 			return nil
 		}
 	}
-	StateCfg := g.InterestCfg
+	bcInterval, err := matrixstate.GetBroadcastInterval(state)
+	if err != nil {
+		log.ERROR("Geneis", "获取广播周期数据结构失败", err)
+		return nil
+	}
 
-	if StateCfg.PayInterval < StateCfg.CalcInterval {
+	if g.InterestCfg.PayInterval < bcInterval.BCInterval {
 
 		return errors.Errorf("配置的发放周期小于计息周期")
 	}
