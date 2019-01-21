@@ -153,6 +153,12 @@ func Base58DecodeToAddress(strData string) common.Address {
 	if !strings.Contains(strData, ".") {
 		return common.Address{}
 	}
+
+	currency := strings.Split(strData, ".")[0]
+	if !common.IsValidityManCurrency(currency){
+		return common.Address{}
+	}
+
 	crc := strData[len(strData)-1]
 	crc1 := crc8.CalCRC8([]byte(strData[0 : len(strData)-1]))
 	strCrc := EncodeInt(crc1 % 58)

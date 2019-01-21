@@ -653,3 +653,22 @@ func IsValidityCurrency(s string) bool {
 	}
 	return true
 }
+
+//长度为3-8位,不能有小写字母，不能有特殊字符，不能有数字
+func IsValidityManCurrency(s string) bool {
+	if len(s) < 3 || len(s) > 8 {
+		return false
+	}
+
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if !unicode.IsLetter(int32(ch)) {
+			return false
+		}
+		if !unicode.IsUpper(int32(ch)) {
+			return false
+		}
+	}
+
+	return true
+}

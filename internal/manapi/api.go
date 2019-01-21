@@ -426,7 +426,6 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-	tx.Currency = args.Currency
 
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
@@ -585,12 +584,25 @@ type RPCBalanceType struct {
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
-func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string, cointype string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
+func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,cointypesss string, blockNr rpc.BlockNumber) ([]RPCBalanceType, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
+	var cointype string
+	strlist := strings.Split(strAddress,".")
+	if len(strlist)>1{
+		cointype = strlist[0]
+	}else {
+		return nil, errors.New("Illegal input address")
+	}
+	if cointype == ""{
+		return nil, errors.New("Invalid currency")
+	}
 	address := base58.Base58DecodeToAddress(strAddress)
+	if address.Equal(common.Address{}){
+		return nil, errors.New("The address is 0x0000000000000000000000...")
+	}
 	var balance []RPCBalanceType
 	b := state.GetBalance(cointype, address)
 	if b == nil {
@@ -606,8 +618,6 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 			balance = append(balance, RPCBalanceType{b[i].AccountType, (*hexutil.Big)(b[i].Balance)})
 		}
 	}
-
-	//log.Info("GetBalance","余额:",balance)
 	return balance, state.Error()
 }
 func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.BlockNumber) ([]string, error) {
@@ -1961,15 +1971,14 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//if args.TxType == 9{
-	//	var mcoin common.SMakeCoin
-	//	mcoin.CoinName = "EHC"
-	//	mcoin.AddrAmount = make(map[string]*hexutil.Big)
-	//	mcoin.AddrAmount["EHC.CrsnQSJJfGxpb2taGhChLuyZwZJd"] = new(big.Int).SetUint64(5000000000000000000)
-	//	mcoin.AddrAmount["EHC.4717tmhWbuvX2yF4W7zFbfdbVxAm8"] = new(big.Int).SetUint64(3000000000000000000)
-	//	//mcoin.AddrAmount[common.HexToAddress("0xdec3b4dbf723154e6b4d21bf7bcff01420d6d272")] = new(big.Int).SetUint64(2000000000000000000)
-	//	input,_ = json.Marshal(mcoin)
-	//}
+	if args.TxType == 9{
+		var mcoin common.SMakeCoin
+		mcoin.CoinName = "EHC"
+		mcoin.AddrAmount = make(map[string]*hexutil.Big)
+		mcoin.AddrAmount["EHC.CrsnQSJJfGxpb2taGhChLuyZwZJd"] =  (*hexutil.Big)(new(big.Int).SetUint64(5000000000000000000))
+		mcoin.AddrAmount["EHC.4717tmhWbuvX2yF4W7zFbfdbVxAm8"] = (*hexutil.Big)(new(big.Int).SetUint64(3000000000000000000))
+		input,_ = json.Marshal(mcoin)
+	}
 	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency,args.CommitTime)
