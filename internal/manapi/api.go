@@ -437,7 +437,7 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails.
 func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1, passwd string) (common.Hash, error) {
-	if args1.TxType == common.ExtraBroadTxType{
+	if args1.TxType == common.ExtraBroadTxType {
 		return common.Hash{}, errors.New("TxType can not be set 1")
 	}
 	var args SendTxArgs
@@ -917,7 +917,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil,nil,nil,0, 0,"MAN",0)}
+	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil, nil, nil, 0, 0, "MAN", 0)}
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1124,17 +1124,33 @@ func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blo
 	if err != nil {
 		return nil, err
 	}
+	bcInterval, err := matrixstate.GetBroadcastInterval(preState)
+	if err != nil {
+		return nil, err
+	}
 
 	result := &TopologyStatus{}
 	// 判断是否leader重选过
-	if blockNr <= 1 {
+	if bcInterval.IsBroadcastNumber(uint64(blockNr)) || bcInterval.IsReElectionNumber(uint64(blockNr-1)) {
 		result.LeaderReelect = false
 	} else {
 		curHeader, err := s.b.HeaderByNumber(ctx, blockNr)
 		if curHeader == nil || err != nil {
 			return nil, err
 		}
-		nextLeader := topologyGraph.FindNextValidator(preHeader.Leader)
+		cmpHeader := preHeader
+		cmpNumber := blockNr - 1
+		for bcInterval.IsBroadcastNumber(uint64(cmpNumber)) || cmpHeader.IsSuperHeader() {
+			if cmpNumber == 0 {
+				return nil, errors.New("无对比区块")
+			}
+			cmpNumber--
+			cmpHeader, err = s.b.HeaderByNumber(ctx, cmpNumber)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextLeader := topologyGraph.FindNextValidator(cmpHeader.Leader)
 		result.LeaderReelect = nextLeader != curHeader.Leader
 	}
 
@@ -1344,6 +1360,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	fields := map[string]interface{}{
 		"number":           (*hexutil.Big)(head.Number),
 		"hash":             b.Hash(),
+		"signHash":         b.HashNoSignsAndNonce(),
 		"parentHash":       head.ParentHash,
 		"nonce":            head.Nonce,
 		"mixHash":          head.MixDigest,
@@ -1797,13 +1814,13 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	V 			*hexutil.Big	`json:"v"`
-	R 			*hexutil.Big 	`json:"r"`
-	S 			*hexutil.Big	`json:"s"`
+	V           *hexutil.Big   `json:"v"`
+	R           *hexutil.Big   `json:"r"`
+	S           *hexutil.Big   `json:"s"`
 	TxType      byte           `json:"txType"`     //
 	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	CommitTime  uint64 			`json:"commitTime"`
+	CommitTime  uint64         `json:"commitTime"`
 	ExtraTo     []*ExtraTo_Mx  `json:"extra_to"` //
 }
 
@@ -1825,14 +1842,14 @@ type SendTxArgs1 struct {
 	// newer name and should be preferred by clients.
 	Data        *hexutil.Bytes `json:"data"`
 	Input       *hexutil.Bytes `json:"input"`
-	V 			*hexutil.Big	`json:"v"`
-	R 			*hexutil.Big 	`json:"r"`
-	S 			*hexutil.Big	`json:"s"`
-	Currency    *string 		`json:"currency"`
+	V           *hexutil.Big   `json:"v"`
+	R           *hexutil.Big   `json:"r"`
+	S           *hexutil.Big   `json:"s"`
+	Currency    *string        `json:"currency"`
 	TxType      byte           `json:"txType"`     //
 	LockHeight  uint64         `json:"lockHeight"` //
 	IsEntrustTx byte           `json:"isEntrustTx"`
-	CommitTime  uint64 			`json:"commitTime"`
+	CommitTime  uint64         `json:"commitTime"`
 	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //
 }
 
@@ -1904,7 +1921,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency,args.CommitTime)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V), (*big.Int)(args.R), (*big.Int)(args.S), 0, args.IsEntrustTx, args.Currency, args.CommitTime)
 	}
 
 	//
@@ -1922,7 +1939,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 			txtr = append(txtr, tmp)
 		}
 	}
-	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),txtr, args.LockHeight, args.TxType, args.IsEntrustTx,args.Currency,args.CommitTime)
+	return types.NewTransactions(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V), (*big.Int)(args.R), (*big.Int)(args.S), txtr, args.LockHeight, args.TxType, args.IsEntrustTx, args.Currency, args.CommitTime)
 
 }
 
@@ -1982,7 +1999,7 @@ func CheckParams(strData string) error {
 	return nil
 }
 func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
-	if args1.From != ""{
+	if args1.From != "" {
 		from := args1.From
 		err = CheckParams(from)
 		if err != nil {
@@ -1991,7 +2008,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 		args.Currency = strings.Split(args1.From, ".")[0]
 		args.From = base58.Base58DecodeToAddress(from)
 	}
-	if args1.Currency != nil{
+	if args1.Currency != nil {
 		args.Currency = *args1.Currency
 	}
 	if args1.To != nil {
@@ -2003,13 +2020,13 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 		args.To = new(common.Address)
 		*args.To = base58.Base58DecodeToAddress(to)
 	}
-	if args1.V != nil{
+	if args1.V != nil {
 		args.V = args1.V
 	}
-	if args1.R != nil{
+	if args1.R != nil {
 		args.R = args1.R
 	}
-	if args1.S != nil{
+	if args1.S != nil {
 		args.S = args1.S
 	}
 	args.Gas = args1.Gas
@@ -2049,7 +2066,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 // transaction pool.
 func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
 	//from字段格式: 2-8长度币种（大写）+ “.”+ 以太坊地址的base58编码 + crc8/58
-	if args1.TxType == common.ExtraBroadTxType{
+	if args1.TxType == common.ExtraBroadTxType {
 		return common.Hash{}, errors.New("TxType can not be set 1")
 	}
 	var args SendTxArgs
@@ -2109,11 +2126,11 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args1 Se
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, args1 SendTxArgs1) (common.Hash, error) {
-	if args1.TxType == common.ExtraBroadTxType{
+	if args1.TxType == common.ExtraBroadTxType {
 		return common.Hash{}, errors.New("TxType can not be set 1")
 	}
 	var args SendTxArgs
-	args,err := StrArgsToByteArgs(args1)
+	args, err := StrArgsToByteArgs(args1)
 	if err != nil {
 		return common.Hash{}, err
 	}

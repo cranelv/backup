@@ -490,6 +490,10 @@ func (b *Block) HashNoSigns() common.Hash {
 	return b.header.HashNoSigns()
 }
 
+func (b *Block) HashNoSignsAndNonce() common.Hash {
+	return b.header.HashNoSignsAndNonce()
+}
+
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previsouly cached value.
 func (b *Block) Size() common.StorageSize {
