@@ -681,7 +681,10 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		HeightAuthDataList := make([]common.AuthType, 0) //按高度存储授权数据列表
 		TimeAuthDataList := make([]common.AuthType, 0)
 		str_addres := EntrustData.EntrustAddres //被委托人地址
-		addres := base58.Base58DecodeToAddress(str_addres)
+		addres ,err := base58.Base58DecodeToAddress(str_addres)
+		if err != nil{
+			return nil, st.GasUsed(), true, ErrSpecialTxFailed
+		}
 		//tmpAuthMarsha1Data := st.state.GetStateByteArray(addres, common.BytesToHash(addres[:])) //获取授权数据
 		tmpAuthMarsha1Data := st.state.GetAuthStateByteArray(addres) //获取授权数据
 		if len(tmpAuthMarsha1Data) != 0 {
@@ -887,7 +890,10 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		if isContain(uint32(index), delIndexList) {
 			//要删除的切片数据
 			str_addres := entrustFrom.EntrustAddres //被委托人地址
-			addres := base58.Base58DecodeToAddress(str_addres)
+			addres,err := base58.Base58DecodeToAddress(str_addres)
+			if err != nil{
+				return nil, st.GasUsed(), true, ErrSpecialTxFailed
+			}
 			marshaldata := st.state.GetAuthStateByteArray(addres) //获取之前的授权数据切片,marshal编码过的  //获取授权数据
 			if len(marshaldata) > 0 {
 				//oldAuthData := new(common.AuthType)   //oldAuthData的地址为0x地址

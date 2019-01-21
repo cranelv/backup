@@ -23,7 +23,11 @@ type GenesisAddress common.Address
 
 // UnmarshalJSON parses a hash in hex syntax.
 func (a *GenesisAddress) UnmarshalJSON(input []byte) error {
-	*a = GenesisAddress(base58.Base58DecodeToAddress(string(input[1 : len(input)-1])))
+	addr,err := base58.Base58DecodeToAddress(string(input[1 : len(input)-1]))
+	if err != nil{
+		return err
+	}
+	*a = GenesisAddress(addr)
 	return nil
 }
 

@@ -205,7 +205,11 @@ func CheckEntrust(ctx *cli.Context) error {
 
 	entrustValue := make(map[common.Address]string, 0)
 	for _, v := range anss {
-		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
+		addr ,err := base58.Base58DecodeToAddress(v.Address)
+		if err != nil{
+			return err
+		}
+		entrustValue[addr] = v.Password
 	}
 	err = entrust.EntrustAccountValue.SetEntrustValue(entrustValue)
 	if err != nil {

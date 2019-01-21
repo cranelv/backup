@@ -4159,7 +4159,7 @@ var inputAddressFormatter = function (address) {
     } else if (utils.isAddress(address)) {
         return address;
     }
-    throw new Error('invalid address 111');
+    throw new Error('invalid address');
 };
 
 

@@ -196,7 +196,7 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 	data.CommitTime = data1.CommitTime
 	if data1.Recipient != nil {
 		data.Recipient = new(common.Address)
-		*data.Recipient = base58.Base58DecodeToAddress(*data1.Recipient)
+		*data.Recipient ,_ = base58.Base58DecodeToAddress(*data1.Recipient)
 	}
 
 	if len(data1.Extra) > 0 {
@@ -211,7 +211,7 @@ func TxdataStringToAddres(data1 *txdata1, data *txdata) {
 					tmTo := new(Tx_to)
 					if tto.Recipient != nil {
 						tmTo.Recipient = new(common.Address)
-						*tmTo.Recipient = base58.Base58DecodeToAddress(*tto.Recipient)
+						*tmTo.Recipient,_ = base58.Base58DecodeToAddress(*tto.Recipient)
 					}
 					tmTo.Payload = tto.Payload
 					tmTo.Amount = tto.Amount

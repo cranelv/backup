@@ -375,7 +375,11 @@ func (s *PrivateAccountAPI) SetEntrustSignAccount(path string, password string) 
 	entrustValue := make(map[common.Address]string, 0)
 
 	for _, v := range anss {
-		entrustValue[base58.Base58DecodeToAddress(v.Address)] = v.Password
+		addr,err := base58.Base58DecodeToAddress(v.Address)
+		if err != nil{
+			return "",err
+		}
+		entrustValue[addr] = v.Password
 	}
 	err = entrust.EntrustAccountValue.SetEntrustValue(entrustValue)
 	if err != nil {
@@ -397,14 +401,20 @@ func (s *PrivateAccountAPI) UnlockAccount(strAddr string, password string, durat
 	} else {
 		d = time.Duration(*duration) * time.Second
 	}
-	addr := base58.Base58DecodeToAddress(strAddr)
-	err := fetchKeystore(s.am).TimedUnlock(accounts.Account{Address: addr}, password, d)
+	addr ,err := base58.Base58DecodeToAddress(strAddr)
+	if err != nil{
+		return false,err
+	}
+	err = fetchKeystore(s.am).TimedUnlock(accounts.Account{Address: addr}, password, d)
 	return err == nil, err
 }
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
 func (s *PrivateAccountAPI) LockAccount(strAddr string) bool {
-	addr := base58.Base58DecodeToAddress(strAddr)
+	addr ,err := base58.Base58DecodeToAddress(strAddr)
+	if err != nil{
+		return false
+	}
 	return fetchKeystore(s.am).Lock(addr) == nil
 }
 
@@ -508,7 +518,10 @@ func signHash(data []byte) []byte {
 // https://github.com/matrix/go-matrix/wiki/Management-APIs#personal_sign
 func (s *PrivateAccountAPI) Sign(ctx context.Context, data hexutil.Bytes, strAddr string, passwd string) (hexutil.Bytes, error) {
 	// Look up the wallet containing the requested signer
-	addr := base58.Base58DecodeToAddress(strAddr)
+	addr, err := base58.Base58DecodeToAddress(strAddr)
+	if err != nil{
+		return nil,err
+	}
 	account := accounts.Account{Address: addr}
 
 	wallet, err := s.b.AccountManager().Find(account)
@@ -588,7 +601,10 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, strAddress string,
 	if state == nil || err != nil {
 		return nil, err
 	}
-	address := base58.Base58DecodeToAddress(strAddress)
+	address ,err := base58.Base58DecodeToAddress(strAddress)
+	if err != nil{
+		return nil,err
+	}
 	var balance []RPCBalanceType
 	b := state.GetBalance(address)
 	if b == nil {
@@ -614,8 +630,10 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 	if state == nil || err != nil {
 		return nil, err
 	}
-	address := base58.Base58DecodeToAddress(strAddress)
-
+	address ,err := base58.Base58DecodeToAddress(strAddress)
+	if err != nil{
+		return nil, err
+	}
 	read, _ := depoistInfo.GetOnlineTime(state, address)
 
 	return read, state.Error()
@@ -632,7 +650,10 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	if state == nil || err != nil {
 		return nil
 	}
-	authFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	authFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
+	if err != nil{
+		return nil
+	}
 	return state.GetAllEntrustList(authFrom)
 }
 
@@ -658,7 +679,10 @@ func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) 
 	if state == nil || err != nil {
 		return ""
 	}
-	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
+	entrustFrom ,err := base58.Base58DecodeToAddress(strEntrustFrom)
+	if err != nil{
+		return ""
+	}
 	addr := state.GetAuthFrom(entrustFrom, height)
 	if addr.Equal(common.Address{}) {
 		return ""
@@ -670,7 +694,10 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) 
 	if state == nil || err != nil {
 		return nil
 	}
-	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	entrustFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
+	if err != nil{
+		return nil
+	}
 	addrList := state.GetEntrustFrom(entrustFrom, height)
 	var strAddrList []string
 	for _, addr := range addrList {
@@ -686,7 +713,10 @@ func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, time uint
 	if state == nil || err != nil {
 		return ""
 	}
-	entrustFrom := base58.Base58DecodeToAddress(strEntrustFrom)
+	entrustFrom,err := base58.Base58DecodeToAddress(strEntrustFrom)
+	if err != nil{
+		return ""
+	}
 	addr := state.GetGasAuthFromByTime(entrustFrom, time)
 	if addr.Equal(common.Address{}) {
 		return ""
@@ -698,7 +728,10 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 	if state == nil || err != nil {
 		return nil
 	}
-	entrustFrom := base58.Base58DecodeToAddress(strAuthFrom)
+	entrustFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
+	if err != nil{
+		return nil
+	}
 	addrList := state.GetEntrustFromByTime(entrustFrom, time)
 	var strAddrList []string
 	for _, addr := range addrList {
@@ -926,9 +959,9 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 }
 
 func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs) {
-	args.From = base58.Base58DecodeToAddress(manargs.From)
+	args.From ,_ = base58.Base58DecodeToAddress(manargs.From)
 	args.To = new(common.Address)
-	*args.To = base58.Base58DecodeToAddress(*manargs.To)
+	*args.To,_ = base58.Base58DecodeToAddress(*manargs.To)
 	args.GasPrice = manargs.GasPrice
 	args.Gas = manargs.Gas
 	args.Value = manargs.Value
@@ -1633,7 +1666,10 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, strA
 	if state == nil || err != nil {
 		return nil, err
 	}
-	address := base58.Base58DecodeToAddress(strAddress)
+	address ,err := base58.Base58DecodeToAddress(strAddress)
+	if err != nil{
+		return nil,err
+	}
 	nonce := state.GetNonce(address)
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }
@@ -1732,7 +1768,10 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 // sign is a helper function that signs a transaction with the private key of the given address.
 func (s *PublicTransactionPoolAPI) sign(strAddr string, tx types.SelfTransaction) (types.SelfTransaction, error) {
-	addr := base58.Base58DecodeToAddress(strAddr)
+	addr ,err := base58.Base58DecodeToAddress(strAddr)
+	if err != nil{
+		return nil,err
+	}
 
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: addr}
@@ -1961,10 +2000,16 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 			return SendTxArgs{}, err
 		}
 		args.Currency = strings.Split(args1.From, ".")[0]
-		args.From = base58.Base58DecodeToAddress(from)
+		args.From,err = base58.Base58DecodeToAddress(from)
+		if err != nil{
+			return SendTxArgs{}, err
+		}
 	}
 	if args1.Currency != nil{
 		args.Currency = *args1.Currency
+	}
+	if !common.IsValidityManCurrency(args.Currency){
+		return SendTxArgs{}, errors.New("invalid currency")
 	}
 	if args1.To != nil {
 		to := *args1.To
@@ -1973,7 +2018,10 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 			return SendTxArgs{}, err
 		}
 		args.To = new(common.Address)
-		*args.To = base58.Base58DecodeToAddress(to)
+		*args.To,err = base58.Base58DecodeToAddress(to)
+		if err != nil{
+			return SendTxArgs{}, err
+		}
 	}
 	if args1.V != nil{
 		args.V = args1.V
@@ -2006,7 +2054,10 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 				}
 				tmExtra := new(ExtraTo_Mx)
 				tmExtra.To2 = new(common.Address)
-				*tmExtra.To2 = base58.Base58DecodeToAddress(tmp)
+				*tmExtra.To2 ,err = base58.Base58DecodeToAddress(tmp)
+				if err != nil{
+					return SendTxArgs{}, err
+				}
 				tmExtra.Input2 = ar.Input2
 				tmExtra.Value2 = ar.Value2
 				extra = append(extra, tmExtra)
@@ -2111,7 +2162,10 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction_old(ctx context.Context, e
 //
 // https://github.com/matrix/wiki/wiki/JSON-RPC#man_sign
 func (s *PublicTransactionPoolAPI) Sign(strAddr string, data hexutil.Bytes) (hexutil.Bytes, error) {
-	addr := base58.Base58DecodeToAddress(strAddr)
+	addr,err := base58.Base58DecodeToAddress(strAddr)
+	if err != nil{
+		return nil,err
+	}
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: addr}
 
