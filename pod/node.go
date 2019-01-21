@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/p2p/discover"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -163,14 +162,14 @@ func (n *Node) Signature() (signature common.Signature, manAddr common.Address, 
 		if !common.FileExist(datadirManSignature) {
 			return common.Signature{}, common.Address{}, time.Now()
 		}
-		buf := make([]byte, 65)
 		fd, err := os.Open(datadirManSignature)
 		if err != nil {
 			n.log.Error("signature open file", "error", err)
 			return common.Signature{}, common.Address{}, time.Now()
 		}
 		defer fd.Close()
-		if _, err = io.ReadFull(fd, buf); err != nil {
+		buf, err := ioutil.ReadAll(fd)
+		if err != nil {
 			n.log.Error("signature read file", "error", err)
 			return common.Signature{}, common.Address{}, time.Now()
 		}
