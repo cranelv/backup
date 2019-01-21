@@ -2,10 +2,12 @@ package matrixstate
 
 import (
 	"encoding/json"
+
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -35,8 +37,8 @@ func (opt *operatorBroadcastTx) GetValue(st StateDB) (interface{}, error) {
 	if len(data) == 0 {
 		return value, nil
 	}
-	if err := json.Unmarshal(data, &value); err != nil {
-		log.Error(logInfo, "broadcastTx unmarshal failed", err)
+	if err := rlp.DecodeBytes(data, &value); err != nil {
+		log.Error(logInfo, "broadcastTx rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -53,9 +55,9 @@ func (opt *operatorBroadcastTx) SetValue(st StateDB, value interface{}) error {
 		log.Error(logInfo, "input param(broadcastTx) err", "reflect failed")
 		return ErrParamReflect
 	}
-	data, err := json.Marshal(txs)
+	data, err := rlp.EncodeToBytes(txs)
 	if err != nil {
-		log.Error(logInfo, "broadcastTx marshal failed", err)
+		log.Error(logInfo, "broadcastTx rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

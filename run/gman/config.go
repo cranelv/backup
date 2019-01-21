@@ -13,22 +13,24 @@ import (
 	"reflect"
 	"unicode"
 
+	"github.com/matrix/go-matrix/params/manparams"
+
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/dashboard"
 	"github.com/matrix/go-matrix/man"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/params/enstrust"
 	"github.com/matrix/go-matrix/pod"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/naoina/toml"
 	"gopkg.in/urfave/cli.v1"
-	"io/ioutil"
 )
 
 var (
@@ -94,7 +96,7 @@ func loadConfig(file string, cfg *gmanConfig) error {
 func defaultNodeConfig() pod.Config {
 	cfg := pod.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit)
+	cfg.Version = manparams.VersionAlpha + "_" + gitCommit
 	cfg.HTTPModules = append(cfg.HTTPModules, "man", "eth", "shh")
 	cfg.WSModules = append(cfg.WSModules, "man", "eth", "shh")
 	cfg.IPCPath = "gman.ipc"

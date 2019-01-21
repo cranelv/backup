@@ -28,6 +28,11 @@ type DumpAccount struct {
 	Code     string            `json:"code"`
 	Storage  map[string]string `json:"storage"`
 }
+type CoinDump struct {
+	CoinTyp string
+	DumpList []Dump
+}
+
 type Dump struct {
 	Root       string                 `json:"root"`
 	Accounts   map[string]DumpAccount `json:"accounts"`

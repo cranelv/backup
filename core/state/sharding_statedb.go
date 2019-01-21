@@ -1096,14 +1096,25 @@ func (self *StateDBManage) GetAllEntrustList(cointyp string, addr common.Address
 	return statedb.GetAllEntrustList(addr)
 }
 
-func (self *StateDBManage) RawDump(cointype string, address common.Address) Dump {
-	statedb,err:=self.GetStateDb(cointype, address)
-	if err!=nil {
-		log.Error("file sharding_statedb","func:sharding_RawDump:",err)
-		return Dump{}
+func (self *StateDBManage) RawDump(cointype string, address common.Address) []CoinDump {
+	coindumplist := make([]CoinDump,0)
+	if cointype == "" && address.Equal(common.Address{}){
+		for _,sh := range self.shardings{
+			dumplist := make([]Dump,0)
+			for _,rang := range sh.Rmanage{
+				dumplist = append(dumplist,rang.State.RawDump())
+			}
+			coindumplist = append(coindumplist,CoinDump{CoinTyp:sh.Cointyp,DumpList:dumplist})
+		}
+	} else {
+		statedb,err:=self.GetStateDb(cointype, address)
+		if err!=nil {
+			log.Error("file sharding_statedb","func:sharding_RawDump:",err)
+			return nil
+		}
+		coindumplist = append(coindumplist,CoinDump{CoinTyp:cointype,DumpList:[]Dump{statedb.RawDump()}})
 	}
-	return statedb.RawDump()
-
+	return coindumplist
 }
 
 func (self *StateDBManage) Dump(cointype string, address common.Address) []byte {

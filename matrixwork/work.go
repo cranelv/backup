@@ -374,12 +374,8 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType, rewart.Fromaddr), to, value, 0, new(big.Int), databytes, extra, 0, common.ExtraUnGasTxType, 0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes,nil,nil,nil, extra, 0, common.ExtraUnGasTxType, 0,rewart.CoinType,0)
 		tx.SetFromLoad(rewart.Fromaddr)
-		tx.SetTxS(big.NewInt(1))
-		tx.SetTxV(big.NewInt(1))
-		tx.SetTxR(big.NewInt(1))
-		tx.SetTxCurrency(rewart.CoinType)
 		txers = append(txers, tx)
 	}
 	return

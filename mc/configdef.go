@@ -9,8 +9,9 @@ import (
 	"github.com/matrix/go-matrix/log"
 
 	"encoding/json"
-	"github.com/matrix/go-matrix/common"
 	"reflect"
+
+	"github.com/matrix/go-matrix/common"
 )
 
 const (
@@ -614,12 +615,6 @@ func (b *InterestCfg) Check(k, v interface{}) (interface{}, bool) {
 	values := InterestCfg{}
 	err = json.Unmarshal(codedata, &values)
 	if err != nil {
-		return nil, false
-	}
-
-	if values.PayInterval < values.CalcInterval {
-
-		log.ERROR("超级交易利息奖励配置", "配置的发放周期小于计息周期", "")
 		return nil, false
 	}
 	log.Info("超级交易利息奖励配置", "InterestCfg", values)

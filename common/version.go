@@ -230,9 +230,16 @@ var (
 		},
 		{
 			Version:   "Gman_Alg_0.0.28",
-			Submitter: "zhenghe",
+			Submitter: "zhangwen",
 			Commit: []string{
 				"解决通过收据获取不到交易的问题",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.29",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改sendrawtransaction发送方式",
 			},
 		},
 	}

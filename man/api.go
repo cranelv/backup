@@ -439,13 +439,13 @@ func NewPublicDebugAPI(man *Matrix) *PublicDebugAPI {
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber, address common.Address) (state.Dump, error) {
+func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber, address common.Address) ([]state.CoinDump, error) {
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
 		// the miner and operate on those
 		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN, address), nil
+		return stateDb.RawDump("", common.Address{}), nil
 	}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
@@ -454,24 +454,24 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber, address common.Add
 		block = api.man.blockchain.GetBlockByNumber(uint64(blockNr))
 	}
 	if block == nil {
-		return state.Dump{}, fmt.Errorf("block #%d not found", blockNr)
+		return nil, fmt.Errorf("block #%d not found", blockNr)
 	}
 	stateDb, err := api.man.BlockChain().StateAt(block.Root())
 	if err != nil {
-		return state.Dump{}, err
+		return nil, err
 	}
-	return stateDb.RawDump(params.MAN_COIN, address), nil
+	return stateDb.RawDump("", common.Address{}), nil
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
 func (api *PublicDebugAPI) DumpBlockAccount(blockNr rpc.BlockNumber, address common.Address) (state.Dump, error) {
-	if blockNr == rpc.PendingBlockNumber {
-		// If we're dumping the pending state, we need to request
-		// both the pending block as well as the pending state from
-		// the miner and operate on those
-		_, stateDb := api.man.miner.Pending()
-		return stateDb.RawDump(params.MAN_COIN, address), nil
-	}
+	//if blockNr == rpc.PendingBlockNumber {
+	//	// If we're dumping the pending state, we need to request
+	//	// both the pending block as well as the pending state from
+	//	// the miner and operate on those
+	//	_, stateDb := api.man.miner.Pending()
+	//	return stateDb.RawDump(params.MAN_COIN, address), nil
+	//}
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
 		block = api.man.blockchain.CurrentBlock()

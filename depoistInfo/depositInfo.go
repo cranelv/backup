@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/rpc"
+	"github.com/pkg/errors"
 )
 
 type manBackend interface {
@@ -99,6 +100,9 @@ func getDepositInfo(tm *big.Int) (db vm.StateDBManager, err error) {
 	//	return nil, err
 	//}
 	db, _, err = depositInfo.manApi.StateAndHeaderByNumber(c, h)
+	if db == nil {
+		return nil, errors.New("db is nill")
+	}
 	return db, err
 }
 

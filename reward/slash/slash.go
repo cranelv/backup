@@ -138,11 +138,14 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 }
 
 func (bp *BlockSlash) getSlash(upTime uint64, accountReward *big.Int) *big.Int {
-	rate := 1 - float64(upTime)/float64(bp.eleMaxOnlineTime)
-	maxRate := float64(bp.SlashRate) / float64(util.RewardFullRate)
-	if rate >= maxRate {
-		rate = maxRate
+	rate := uint64((bp.eleMaxOnlineTime - upTime) * util.RewardFullRate / (bp.eleMaxOnlineTime))
+
+	if rate >= bp.SlashRate {
+		rate = bp.SlashRate
 	}
-	slash := new(big.Int).SetUint64(uint64(float64(accountReward.Uint64()) * rate))
+	log.Trace(PackageName, "slash rate 0.", rate)
+	tmp := new(big.Int).Mul(accountReward, new(big.Int).SetUint64(rate))
+
+	slash := new(big.Int).Div(tmp, new(big.Int).SetUint64(util.RewardFullRate))
 	return slash
 }
