@@ -191,7 +191,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		if b.engine != nil {
 			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.uncles,types.MakeCurencyBlock(nil,nil,nil) )//该文件专用于测试所以此处就写个空
 			// Write state changes to db
-			root, _, err := statedb.Commit(config.IsEIP158(b.header.Number)) //ShardingBB1
+			root, _, err := statedb.Commit(config.IsEIP158(b.header.Number))
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
@@ -227,7 +227,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 
 	head := &types.Header{
 		Roots:      make([]common.CoinRoot, len(roots)),
-		Sharding:   make([]common.Coinbyte, len(sharding)), //shardingBB
+		Sharding:   make([]common.Coinbyte, len(sharding)),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
 		Difficulty: engine.CalcDifficulty(chain, time.Uint64(), &types.Header{
@@ -241,7 +241,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Time:     time,
 	}
 	copy(head.Sharding, sharding)
-	copy(head.Roots, roots) //shardingBB
+	copy(head.Roots, roots)
 	return head
 }
 

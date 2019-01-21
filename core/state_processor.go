@@ -160,9 +160,9 @@ func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.Stat
 		return err
 	}
 	var root []common.CoinRoot
-	root, _ = statedb.IntermediateRoot(p.bc.chainConfig.IsEIP158(block.Number())) //shardingYY
+	root, _ = statedb.IntermediateRoot(p.bc.chainConfig.IsEIP158(block.Number()))
 	intermediateroothash := types.RlpHash(root)
-	blockroothash := types.RlpHash(block.Root()) //shardingYY
+	blockroothash := types.RlpHash(block.Root())
 	isok := false
 	for _,cr := range root{
 		for _,br := range block.Root(){
@@ -537,7 +537,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	if config.IsByzantium(header.Number) {
 		statedb.Finalise(tx.GetTxCurrency(), true)
 	} else {
-		root = statedb.IntermediateRootByCointype(tx.GetTxCurrency(), config.IsEIP158(header.Number)).Bytes() //shardingBB
+		root = statedb.IntermediateRootByCointype(tx.GetTxCurrency(), config.IsEIP158(header.Number)).Bytes()
 	}
 	*usedGas += gas
 

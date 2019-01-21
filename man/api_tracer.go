@@ -455,7 +455,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		vmctx := core.NewEVMContext(tx.From(), tx.GasPrice(), block.Header(), api.man.blockchain, nil)
 
 		vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{}, tx.GetTxCurrency())
-		if _, _, _, _, err := core.ApplyMessage(vmenv, tx, new(core.GasPool).AddGas(tx.Gas())); err != nil { //YYdownloder
+		if _, _, _, _, err := core.ApplyMessage(vmenv, tx, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			failed = err
 			break
 		}
@@ -598,7 +598,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message txinterface.Mes
 	// Run the transaction with tracing enabled.
 	vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{Debug: true, Tracer: tracer}, message.GetTxCurrency())
 
-	ret, gas, failed, _, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas())) //YYdownloder
+	ret, gas, failed, _, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()))
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %v", err)
 	}
@@ -653,7 +653,7 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 		}
 		// Not yet the searched for transaction, execute on top of the current state
 		vmenv := vm.NewEVM(context, statedb, api.config, vm.Config{}, tx.GetTxCurrency())
-		if _, _, _, _, err := core.ApplyMessage(vmenv, tx, new(core.GasPool).AddGas(tx.Gas())); err != nil { //YYdownloder
+		if _, _, _, _, err := core.ApplyMessage(vmenv, tx, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.Context{}, nil, fmt.Errorf("tx %x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state

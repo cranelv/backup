@@ -238,29 +238,14 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
-	statedb, _ := state.NewStateDBManage(nil, db, state.NewDatabase(db)) //ShardingYY
+	statedb, _ := state.NewStateDBManage(nil, db, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		statedb.AddBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance) //ShardingYY
-		///*******************************************************/
-		////  应该是通过发特殊交易添加账户
-		//statedb.AddBalance(common.LockAccount,addr, account.Balance)
-		//statedb.AddBalance(common.EntrustAccount,addr, account.Balance)
-		//statedb.AddBalance(common.FreezeAccount,addr, account.Balance)
-		///*******************************************************/
-		statedb.SetCode(params.MAN_COIN, addr, account.Code)   //ShardingYY
-		statedb.SetNonce(params.MAN_COIN, addr, account.Nonce) //ShardingYY
+		statedb.AddBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance)
+		statedb.SetCode(params.MAN_COIN, addr, account.Code)
+		statedb.SetNonce(params.MAN_COIN, addr, account.Nonce)
 		for key, value := range account.Storage {
-			statedb.SetState(params.MAN_COIN, addr, key, value) //ShardingYY
+			statedb.SetState(params.MAN_COIN, addr, key, value)
 		}
-		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-		//statedb.AddBalance(params.BTC_COIN, common.MainAccount, addr, new(big.Int).Div(account.Balance,(new(big.Int).SetUint64(2)))) //ShardingYY
-		//statedb.SetCode(params.BTC_COIN, addr, account.Code)                           //ShardingYY
-		//statedb.SetNonce(params.BTC_COIN, addr, account.Nonce)                         //ShardingYY
-		//for key, value := range account.Storage {
-		//	statedb.SetState(params.BTC_COIN, addr, key, value) //ShardingYY
-		//}
-		//YYYYYYYYYYYYYYYYYYYYYYYYYYY
-
 	}
 	if nil == g.MState {
 		log.Error("genesis", "设置matrix状态树错误", "g.MState = nil")
@@ -294,14 +279,11 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		Difficulty:        g.Difficulty,
 		MixDigest:         g.Mixhash,
 		Coinbase:          g.Coinbase,
-		Roots:             make([]common.CoinRoot, len(roots)),    //ShardingYY
-		Sharding:          make([]common.Coinbyte, len(sharding)), //ShardingBB
+		Roots:             make([]common.CoinRoot, len(roots)),
+		Sharding:          make([]common.Coinbyte, len(sharding)),
 	}
 	copy(head.Roots, roots)
 	copy(head.Sharding, sharding)
-	//var aa []common.Hash
-	//aa = append(aa,common.Hash{})
-	//head.Sharding = append(head.Sharding,common.Coinbyte{Root:roots[0].Root,Byte256:aa})//ShardingYY TODO test
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	} else if g.GasLimit < params.MinGasLimit {
@@ -311,7 +293,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
-	statedb.Database().TrieDB().CommitRoots(roots, true) //ShardingYY
+	statedb.Database().TrieDB().CommitRoots(roots, true)
 
 	return types.NewBlock(head, nil, nil), nil
 }
@@ -365,7 +347,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, 
 		Coinbase:          g.Coinbase,
 	}
 
-	head.Roots, head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number)) //ShardingYY
+	head.Roots, head.Sharding = stateDB.IntermediateRoot(chainCfg.IsEIP158(head.Number))
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}

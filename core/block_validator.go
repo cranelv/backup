@@ -112,7 +112,7 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 			}
 		}
 	}
-	if isok { //ShardingYY
+	if isok {
 		return fmt.Errorf("invalid merkle root (remote: %x local: %x)", header.Roots, root)
 	}
 	return nil

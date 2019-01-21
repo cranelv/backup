@@ -290,7 +290,7 @@ func (bc *BlockChain) loadLastState() error {
 		return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
-	if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db, bc.stateCache); err != nil { //ShardingYY
+	if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db, bc.stateCache); err != nil {
 		log.INFO("Get State Err", "err", err)
 		//log.INFO("Get State Err", "root", currentBlock.Root().TerminalString(), "err", err)
 		// Dangling block without a state associated, init from scratch
@@ -361,7 +361,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		bc.currentBlock.Store(bc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
 	}
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil {
-		if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db, bc.stateCache); err != nil { //ShardingYY
+		if _, err := state.NewStateDBManage(currentBlock.Root(), bc.db, bc.stateCache); err != nil {
 			// Rewound state missing, rolled back to before pivot, reset to genesis
 			bc.currentBlock.Store(bc.genesisBlock)
 		}
@@ -394,7 +394,7 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x…]", hash[:4])
 	}
-	if _, err := trie.NewSecure(types.RlpHash(block.Root()), bc.stateCache.TrieDB(), 0); err != nil { //ShardingYY
+	if _, err := trie.NewSecure(types.RlpHash(block.Root()), bc.stateCache.TrieDB(), 0); err != nil {
 		return err
 	}
 	// If all checks out, manually set the head block
@@ -506,7 +506,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
-		if _, err := state.NewStateDBManage((*head).Root(), bc.db, bc.stateCache); err == nil { //ShardingYY
+		if _, err := state.NewStateDBManage((*head).Root(), bc.db, bc.stateCache); err == nil {
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
@@ -656,10 +656,10 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	if block == nil {
 		return false
 	}
-	return bc.HasStateRoot(block.Root()) //ShardingYY
+	return bc.HasStateRoot(block.Root())
 }
 
-//ShardingYY
+
 func (bc *BlockChain) HasStateRoot(roots []common.CoinRoot) bool {
 	for _, root := range roots {
 		var hashs []common.Hash
@@ -788,8 +788,7 @@ func (bc *BlockChain) Stop() {
 				recent := bc.GetBlockByNumber(number - offset)
 
 				log.Info("Writing cached state to disk", "block", recent.Number(), "hash", recent.Hash(), "root", recent.Root())
-				//ShardingYY
-				if err := triedb.CommitRoots(recent.Root(), true); err != nil { //ShardingYY
+				if err := triedb.CommitRoots(recent.Root(), true); err != nil {
 					log.Error("Failed to commit recent state trie", "err", err)
 				}
 			}
@@ -1090,12 +1089,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		}
 	}
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
-	intermediateRoot, intermediateSharding := state.IntermediateRoot(deleteEmptyObjects) //shardingBB
-	root, _, err := state.Commit(deleteEmptyObjects) //ShardingBB1
+	intermediateRoot, intermediateSharding := state.IntermediateRoot(deleteEmptyObjects)
+	root, _, err := state.Commit(deleteEmptyObjects)
 	if err != nil {
 		return NonStatTy, err
 	}
-	roothash := types.RlpHash(root) //ShardingYY
+	roothash := types.RlpHash(root)
 	blockroothash := types.RlpHash(block.Root())
 	isok := false
 	for _,cr := range root{
@@ -1107,7 +1106,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 			}
 		}
 	}
-	if isok { //ShardingYY
+	if isok {
 		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", types.RlpHash(intermediateRoot), "intermediateSharding", types.RlpHash(intermediateSharding), "deleteEmptyObjects", deleteEmptyObjects)
 		return NonStatTy, errors.New("root not match")
 	}
@@ -1117,12 +1116,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		log.Info("file blockchain", "gcmode modify archive", "")
-		if err := triedb.CommitRoots(root, false); err != nil { //ShardingYY
+		if err := triedb.CommitRoots(root, false); err != nil {
 			return NonStatTy, err
 		}
 	} else {
 		// Full but not archive node, do proper garbage collection
-		triedb.ReferenceRoot(root, common.Hash{}) // metadata reference to keep trie alive  //ShardingYY
+		triedb.ReferenceRoot(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(roothash, -float32(block.NumberU64()))
 
 		if current := block.NumberU64(); current > triesInMemory {
@@ -1149,7 +1148,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 				}
 				// If optimum or critical limits reached, write to disk
 				if chosen >= lastWrite+triesInMemory || size >= 2*limit || bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-					triedb.CommitRoots(header.Roots, true) //ShardingYY
+					triedb.CommitRoots(header.Roots, true)
 					lastWrite = chosen
 					bc.gcproc = 0
 				}
@@ -1357,7 +1356,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			var winner []*types.Block
 
 			parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-			for !bc.HasState(types.RlpHash(parent.Root())) { //shardingYY
+			for !bc.HasState(types.RlpHash(parent.Root())) {
 				winner = append(winner, parent)
 				parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
 			}
@@ -1397,7 +1396,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		}
 		log.Trace("BlockChain insertChain in3 parent")
 		// Process block using the parent state as reference point.
-		state, err := state.NewStateDBManage(parent.Root(), bc.db, bc.stateCache) //ShardingYY
+		state, err := state.NewStateDBManage(parent.Root(), bc.db, bc.stateCache)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -1729,7 +1728,7 @@ func (bc *BlockChain) sendBroadTx() {
 			return
 		}
 		log.INFO(ModuleName, "sendBroadTx获取最新的root",  types.RlpHash(preBroadcastRoot.LastStateRoot).String())
-		currentAcc := ca.GetDepositAddress().Big() //YY TODO 这里应该是广播账户。后期需要修改. 后期可能需要使用委托账户
+		currentAcc := ca.GetDepositAddress().Big()
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := types.RlpHash(preBroadcastRoot.LastStateRoot).Big()
 		val := new(big.Int).Rem(broadcastBlock, big.NewInt(int64(bcInterval.BCInterval)-1))

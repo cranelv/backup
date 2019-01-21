@@ -86,8 +86,8 @@ const (
 	MaxUdpBuf uint32 = 1024 * 64
 )
 const (
-	MAN_COIN     string = "MAN" //ShardingYY
-	//BTC_COIN     string = "BTC" //ShardingYY   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
+	MAN_COIN     string = "MAN"
+	//BTC_COIN     string = "BTC"   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
 	RANGE_MOUNTS int    = 256
 	COIN_NAME    string = "COIN_TYPE"
 )

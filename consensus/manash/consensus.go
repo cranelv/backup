@@ -525,7 +525,7 @@ func (manash *Manash) Prepare(chain consensus.ChainReader, header *types.Header)
 func (manash *Manash) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDBManage, uncles []*types.Header, currencyBlock []types.CurrencyBlock) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	//	accumulateRewards(chain.Config(), state, header, uncles)
-	header.Roots, header.Sharding = state.IntermediateRoot(chain.Config().IsEIP158(header.Number)) //ShardingYY
+	header.Roots, header.Sharding = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(header, currencyBlock, uncles), nil

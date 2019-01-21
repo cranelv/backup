@@ -165,8 +165,6 @@ func (bPool *BroadCastTxPool) ProcessMsg(m NetworkMsgData) {
 	}
 
 	tx := types.SetTransactionMx(txMx)
-	//txs := make([]types.SelfTransaction, 0)
-	//txs = append(txs, tx)
 	bPool.AddTxPool(tx)
 }
 
@@ -180,12 +178,6 @@ func (bPool *BroadCastTxPool) SendMsg(data MsgStruct) {
 
 // Stop terminates the transaction pool.
 func (bPool *BroadCastTxPool) Stop() {
-	// Unsubscribe subscriptions registered from blockchain
-	//bPool.chainHeadSub.Unsubscribe()
-	//bPool.wg.Wait()
-	//if ldb != nil {
-	//	ldb.Close()
-	//}
 	log.Info("Broad Transaction pool stopped")
 }
 
@@ -194,7 +186,6 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
 	//TODO 过滤交易（白名单）
-	//for _, tx := range txs {
 	if uint64(tx.Size()) > params.TxSize {
 		log.Error("add broadcast tx pool", "tx`s size is too big", tx.Size())
 		return reerr
@@ -234,10 +225,6 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 		}
 		return reerr
 	}
-	//}
-	//if len(txs) <= 0 {
-	//	log.Trace("transfer txs is nil")
-	//}
 	return reerr //bPool.addTxs(txs, false)
 }
 func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok bool) {

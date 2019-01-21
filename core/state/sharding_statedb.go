@@ -324,7 +324,7 @@ func (shard *StateDBManage) GetNonce(cointyp string, addr common.Address) uint64
 		return stateObject.Nonce()
 	}
 
-	return 0 | params.NonceAddOne //YY
+	return 0 | params.NonceAddOne
 }
 
 func (shard *StateDBManage) GetCode(cointyp string, addr common.Address) []byte {
@@ -465,7 +465,7 @@ func (shard *StateDBManage) SetNonce(cointyp string, addr common.Address, nonce 
 
 	stateObject := shard.GetOrNewStateObject(cointyp, addr)
 	if stateObject != nil {
-		stateObject.SetNonce(nonce | params.NonceAddOne) //YY
+		stateObject.SetNonce(nonce | params.NonceAddOne)
 	}
 }
 
