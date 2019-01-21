@@ -80,7 +80,7 @@ var (
 	ErrTXPoolFull      = errors.New("txpool is full")
 	ErrTXNonceSame     = errors.New("the same Nonce transaction exists")
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
-	ErrWithoutAuth     = errors.New("not be set entrust gas")
+	ErrWithoutAuth     = errors.New("gas entrust not set ")
 	ErrinterestAmont   = errors.New("Incorrect total interest")
 	ErrSpecialTxFailed = errors.New("Run special tx failed")
 )
