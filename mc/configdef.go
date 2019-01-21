@@ -1004,7 +1004,12 @@ func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{}, bool) {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
 		return make([]string, 0), true
 	}
-	v2 := v.([]interface{})
+	v2 ,ok := v.([]interface{})
+	if !ok{
+		log.ERROR("超级交易币种打包限制配置", "v值反射失败", "")
+		return nil, false
+	}
+
 	if reflect.ValueOf(v2[0]).Kind() == reflect.String && v2[0] == "" {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
 		return make([]string, 0), true

@@ -925,11 +925,11 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
-				bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
 			}
 		} else {
 			if block.NumberU64()%SaveSnapPeriod == 5 {
-				bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 			}
 		}
 		stats.processed++
@@ -1039,11 +1039,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
-			bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
 		}
 	} else {
 		if block.NumberU64()%SaveSnapPeriod == 5 {
-			bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 		}
 	}
 	//log.Info("miss tree node debug", "入链时", "commit前state状态")
