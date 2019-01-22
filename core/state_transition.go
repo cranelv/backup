@@ -266,7 +266,7 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
-	st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -319,7 +319,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	}
 	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	st.RefundGas()
-	st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
 	delval := make(map[uint32][]common.Hash)
 	for _, tmphash := range hashlist {
 		if common.EmptyHash(tmphash) {
@@ -499,7 +499,7 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
 	st.state.SetMatrixData(txHash, b)
 	st.RefundGas()
-	st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, common.TxGasRewardAddress, costGas)
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -734,7 +734,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 	}
 	shardings = append(shardings,tmpshard...)
 	st.RefundGas()
-	st.state.AddBalance(tx.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(params.MAN_COIN,common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 
 	var entrustOK bool = false
 	Authfrom := tx.From()
@@ -931,7 +931,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	}
 	shardings = append(shardings,tmpshard...)
 	st.RefundGas()
-	st.state.AddBalance(tx.GetTxCurrency(),common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	st.state.AddBalance(params.MAN_COIN,common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 
 	Authfrom := tx.From()
 	delIndexList := make([]uint32, 0)
