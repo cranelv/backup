@@ -299,7 +299,6 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			if tmperr != nil {
 				return nil, 0, false, shardings, err
 			}
-			//0.7+0.3*pow(0.9,(num-1))
 			gas += tmpgas
 		}
 	}
@@ -307,12 +306,11 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		return nil, 0, false, shardings, err
 	}
 	st.state.SetNonce(st.msg.GetTxCurrency(), from, st.state.GetNonce(st.msg.GetTxCurrency(), from)+1)
-	var hash common.Hash
-	hash.SetBytes(tx.Data())
+	var hash common.Hash = common.BytesToHash(tx.Data())
 	hashlist = append(hashlist, hash)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			hash.SetBytes(ex.Payload)
+			hash = common.BytesToHash(ex.Payload)
 			hashlist = append(hashlist, hash)
 			if vmerr != nil {
 				break

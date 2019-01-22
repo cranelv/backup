@@ -1970,16 +1970,6 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
-	//if args.TxType == 9{
-	//	var mcoin common.SMakeCoin
-	//	mcoin.CoinName = "EHC"
-	//	mcoin.AddrAmount = make(map[string]*hexutil.Big)
-	//	mcoin.AddrAmount["EHC.CrsnQSJJfGxpb2taGhChLuyZwZJd"] =  (*hexutil.Big)(new(big.Int).SetUint64(5000000000000000000))
-	//	mcoin.AddrAmount["EHC.4717tmhWbuvX2yF4W7zFbfdbVxAm8"] = (*hexutil.Big)(new(big.Int).SetUint64(3000000000000000000))
-	//	input,_ = json.Marshal(mcoin)
-	//}
-	//YYYYYYYYYYYYYYYYYYYYYYYYYYYY
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, (*big.Int)(args.V),(*big.Int)(args.R),(*big.Int)(args.S),0, args.IsEntrustTx,args.Currency,args.CommitTime)
 	}
