@@ -88,7 +88,7 @@ func GetAllDeposit(tm *big.Int) ([]vm.DepositDetail, error) {
 	return depositList, nil
 }
 
-func getDepositInfo(tm *big.Int) (db vm.StateDB, err error) {
+func getDepositInfo(tm *big.Int) (vm.StateDB, error) {
 	depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0)
 	var c context.Context
 	var h rpc.BlockNumber
@@ -98,7 +98,7 @@ func getDepositInfo(tm *big.Int) (db vm.StateDB, err error) {
 	//if err != nil {
 	//	return nil, err
 	//}
-	db, _, err = depositInfo.manApi.StateAndHeaderByNumber(c, h)
+	db, _, err := depositInfo.manApi.StateAndHeaderByNumber(c, h)
 	if db == nil {
 		return nil, errors.New("db is nill")
 	}
