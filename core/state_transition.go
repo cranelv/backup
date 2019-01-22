@@ -148,7 +148,7 @@ func ApplyMessage(evm *vm.EVM, tx txinterface.Message, gp *GasPool) ([]byte, uin
 		stsi = NewStateTransition(evm, tx, gp)
 	}
 	if stsi == nil {
-		log.Error("File state_transition", "func AppleMessage", "interface is nil")
+		log.Error("state_transition", "AppleMessage", "interface is nil")
 	}
 	return stsi.TransitionDb()
 }
@@ -166,17 +166,17 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		case common.ExtraTimeTxType:
 			return st.CallTimeNormalTx()
 		case common.ExtraAuthTx:
-			log.INFO("====ZH: 授权交易", "txtype", txtype)
+			log.INFO("授权交易", "交易类型", txtype)
 			return st.CallAuthTx()
 		case common.ExtraCancelEntrust:
-			log.INFO("====ZH: 取消委托", "txtype", txtype)
+			log.INFO("取消委托", "交易类型", txtype)
 			return st.CallCancelAuthTx()
 		case common.ExtraSuperTxType:
 			return st.CallSuperTx()
 		//case common.ExtraCreatCurrency:
 		//	return st.CallCreatCurrencyTx()
 		default:
-			log.Info("File state_transition", "func Transitiondb", "Unknown extra txtype")
+			log.Info("state transition unknown extra txtype")
 			return nil, 0, false, ErrTXUnknownType
 		}
 
@@ -192,12 +192,12 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,from is nil")
+		return nil, 0, false, errors.New("CallTimeNormalTx from is nil")
 	}
 	//usefrom := tx.AmontFrom()
 	usefrom := tx.From()
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallTimeNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("CallTimeNormalTx usefrom is nil")
 	}
 	var (
 		vmerr error
@@ -273,7 +273,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevertNormalTx ,from is nil")
+		return nil, 0, false, errors.New("CallRevertNormalTx from is nil")
 	}
 	var (
 		vmerr error
@@ -324,22 +324,22 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		}
 		b := st.state.GetMatrixData(tmphash)
 		if b == nil {
-			log.Error("file state_transition", "func CallRevertNormalTx,err", "not found tx hash,maybe the transaction has lasted more than 24 hours")
+			log.Error("CallRevertNormalTx not found tx hash,maybe the transaction has lasted more than 24 hours")
 			continue
 		}
 		var rt common.RecorbleTx
 		errRT := json.Unmarshal(b, &rt)
 		if errRT != nil {
-			log.Error("file state_transition", "func CallRevertNormalTx,Unmarshal err", errRT)
+			log.Error("state_transition", "CallRevertNormalTx,Unmarshal err", errRT)
 			continue
 		}
 		if rt.Typ != common.ExtraRevocable {
-			log.Info("file state_transition", "func CallRevertNormalTx:err:type is ", rt.Typ, "Revert tx type should ", common.ExtraRevocable)
+			log.Info("state_transition", "CallRevertNormalTx:err:type is ", rt.Typ, "Revert tx type should ", common.ExtraRevocable)
 			continue
 		}
 		for _, vv := range rt.Adam { //一对多交易
-			log.Info("file state_transition", "func CallRevertNormalTx:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
-			log.Info("file state_transition", "func CallRevertNormalTx:from", rt.From, "vv.Amont", vv.Amont)
+			log.Info("state_transition", "CallRevertNormalTx:vv.Addr", vv.Addr, "vv.Amont", vv.Amont)
+			log.Info("state_transition", "CallRevertNormalTx:from", rt.From, "vv.Amont", vv.Amont)
 			st.state.AddBalance(common.MainAccount, rt.From, vv.Amont)
 			st.state.SubBalance(common.WithdrawAccount, rt.From, vv.Amont)
 		}
@@ -367,11 +367,11 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,from is nil")
+		return nil, 0, false, errors.New("CallRevocableNormalTx from is nil")
 	}
 	usefrom := tx.From()
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallRevocableNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("CallRevocableNormalTx usefrom is nil")
 	}
 	var (
 		vmerr error
@@ -447,7 +447,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallUnGasNormalTx ,from is nil")
+		return nil, 0, false, errors.New("CallUnGasNormalTx from is nil")
 	}
 	sender := vm.AccountRef(from)
 	var (
@@ -468,7 +468,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	interestbefor := st.state.GetBalanceByType(common.InterestRewardAddress, common.MainAccount) // Test
 	interset := big.NewInt(0)
 	if toaddr == nil { //
-		log.Error("file state_transition", "func CallUnGasNormalTx()", "to is nil")
+		log.Error("state_transition callUnGasNormalTx to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -482,7 +482,7 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition", "func CallUnGasNormalTx()", "Extro to is nil")
+				log.Error("state_transition callUnGasNormalTx Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				if *ex.Recipient == common.ContractAddress {
@@ -507,14 +507,14 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 		afterAmont := st.state.GetBalanceByType(common.ContractAddress, common.MainAccount)
 		difAmont := new(big.Int).Sub(afterAmont, beforAmont)
 		if difAmont.Cmp(interset) != 0 {
-			log.Info("file state_transition", "func rewardTx", "ContractAddress 余额与增加的钱不一致")
+			log.Info("state_transition", "rewardTx", "ContractAddress 余额与增加的钱不一致")
 			return nil, 0, false, ErrinterestAmont
 		}
 		interestafter := st.state.GetBalanceByType(common.InterestRewardAddress, common.MainAccount)
 		dif := new(big.Int).Sub(interestbefor, interestafter)
 		if difAmont.Cmp(dif) != 0 {
-			log.Info("file state_transition", "func rewardTx", "InterestRewardAddress 余额与扣除的钱不一致")
-			log.Error("ZH:state_transition", "difAmont", difAmont, "dif", dif, "afterAmont", afterAmont, "beforAmont", beforAmont, "interestafter", interestafter, "interestbefor", interestbefor)
+			log.Info("state_transition", "rewardTx", "InterestRewardAddress 余额与扣除的钱不一致")
+			log.Error("state_transition", "difAmont", difAmont, "dif", dif, "afterAmont", afterAmont, "beforAmont", beforAmont, "interestafter", interestafter, "interestbefor", interestbefor)
 			return nil, 0, false, ErrinterestAmont
 		}
 	}
@@ -529,12 +529,12 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,from is nil")
+		return nil, 0, false, errors.New("CallNormalTx from is nil")
 	}
 	//usefrom := tx.AmontFrom()
 	usefrom := from
 	if usefrom == addr {
-		return nil, 0, false, errors.New("file state_transition,func CallNormalTx ,usefrom is nil")
+		return nil, 0, false, errors.New("CallNormalTx usefrom is nil")
 	}
 	sender := vm.AccountRef(usefrom)
 	var (
@@ -638,7 +638,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		return nil, 0, false, err
 	}
 	if toaddr == nil { //
-		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
+		log.Error("state_transition callAuthTx to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -648,7 +648,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition", "func CallAuthTx()", "Extro to is nil")
+				log.Error("state_transition callAuthTx extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				// Increment the nonce for the next transaction
@@ -837,7 +837,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		return nil, 0, false, err
 	}
 	if toaddr == nil { //
-		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
+		log.Error("state transition callAuthTx to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -847,7 +847,7 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition", "func CallAuthTx()", "Extro to is nil")
+				log.Error("state transition callAuthTx Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				// Increment the nonce for the next transaction
@@ -952,7 +952,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 	}
 	st.gas = 0
 	if toaddr == nil { //
-		log.Error("file state_transition", "func CallAuthTx()", "to is nil")
+		log.Error("state_transition callAuthTx to is nil")
 		return nil, 0, false, ErrTXToNil
 	} else {
 		// Increment the nonce for the next transaction
@@ -962,7 +962,7 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
 			if toaddr == nil {
-				log.Error("file state_transition", "func CallAuthTx()", "Extro to is nil")
+				log.Error("state_transition callAuthTx Extro to is nil")
 				return nil, 0, false, ErrTXToNil
 			} else {
 				// Increment the nonce for the next transaction

@@ -190,7 +190,7 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 	//TODO 过滤交易（白名单）
 	//for _, tx := range txs {
 	if uint64(tx.Size()) > params.TxSize {
-		log.Error("add broadcast tx pool", "tx`s size is too big", tx.Size())
+		log.Error("add broadcast tx pool", "tx size is too big", tx.Size())
 		return reerr
 	}
 	if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
@@ -314,7 +314,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 		}
 		nodelist, err := ca.GetElectedByHeightAndRole(height, common.RoleValidator)
 		if err != nil {
-			log.Error("getElected error (func filter()   BroadCastTxPool)", "error", err)
+			log.Error("broadCastTxPool filter getElected error", "error", err)
 			return false
 		}
 		for _, node := range nodelist {
@@ -322,10 +322,10 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 				return true
 			}
 		}
-		log.WARN("Unknown account information (func filter()   BroadCastTxPool),mc.Privatekey,mc.Publickey")
+		log.WARN("Unknown account information ,mc.Privatekey,mc.Publickey")
 		return false
 	default:
-		log.WARN("Broadcast transaction type unknown (func filter()  BroadCastTxPool),default")
+		log.WARN("Broadcast transaction type unknown")
 		return false
 	}
 }
@@ -340,17 +340,17 @@ func (bPool *BroadCastTxPool) GetAllSpecialTxs() map[common.Address][]types.Self
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
 	reqVal := make(map[common.Address][]types.SelfTransaction, 0)
-	log.Info("File tx_pool_broad", "func GetAllSpecialTxs:len(bPool.special)", len(bPool.special))
+	log.Info("BroadCastTxPool getAllSpecialTxs", "len(bPool.special)", len(bPool.special))
 	for _, tx := range bPool.special {
 		from, err := bPool.checkTxFrom(tx)
 		if err != nil {
-			log.Error("BroadCastTxPool", "GetAllSpecialTxs", err)
+			log.Error("BroadCastTxPool", "GetAllSpecialTxs err", err)
 			continue
 		}
 		reqVal[from] = append(reqVal[from], tx)
 	}
 	bPool.special = make(map[common.Hash]types.SelfTransaction, 0)
-	log.Info("File tx_pool_broad", "func GetAllSpecialTxs::len(reqVal)", len(reqVal))
+	log.Info("BroadCastTxPool getAllSpecialTxs", "len(reqVal)", len(reqVal))
 	return reqVal
 }
 func (bPool *BroadCastTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {

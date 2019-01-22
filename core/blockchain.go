@@ -152,6 +152,9 @@ type BlockChain struct {
 	//matrix state
 	matrixProcessor *MatrixProcessor
 	topologyStore   *TopologyStore
+
+	//bad block dump history
+	badDumpHistory []common.Hash
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -188,6 +191,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		vmConfig:        vmConfig,
 		badBlocks:       badBlocks,
 		matrixProcessor: NewMatrixProcessor(),
+		badDumpHistory:  make([]common.Hash, 0),
 	}
 	bc.topologyStore = NewTopologyStore(bc)
 
@@ -1368,6 +1372,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			err = bc.Validator(block.Header().Version).ValidateState(block, parent, state, receipts, usedGas)
 			if err != nil {
 				log.Trace("BlockChain insertChain in3 Process Block err4")
+				bc.dumpBadBlock(block.Hash(), state)
 				bc.reportBlock(block, receipts, err)
 				return i, events, coalescedLogs, err
 			}
@@ -2615,5 +2620,25 @@ func (bc *BlockChain) PrintSnapshotAccountMsg(blockNum uint64, hash string, file
 	dumpDB.PrintAccountMsg()
 
 	return
+}
 
+func (bc *BlockChain) dumpBadBlock(hash common.Hash, state *state.StateDB) {
+	for _, item := range bc.badDumpHistory {
+		if item == hash {
+			return
+		}
+	}
+
+	dump := state.RawDump()
+	log.Info("dump info", "root", dump.Root)
+
+	for account, data := range dump.Accounts {
+		log.Info("dump info", "account", account, "data", data)
+	}
+
+	for matrixKey, data := range dump.MatrixData {
+		log.Info("dump info", "matrix", matrixKey, "data", data)
+	}
+
+	bc.badDumpHistory = append(bc.badDumpHistory, hash)
 }

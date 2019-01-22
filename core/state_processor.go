@@ -326,7 +326,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
 		if !statedb.GetIsEntrustByTime(from, header.Time.Uint64()) {
 			log.Error("按时间委托gas的交易失效")
-			return nil, 0, errors.New("entrustTx is invalid")
+			return nil, 0, errors.New("entrustTx invalid")
 		}
 	}
 

@@ -165,9 +165,9 @@ func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
 			if id == peer.ID() {
 				err := Send(peer.MsgReadWriter(), msgCode, data)
 				if err != nil {
-					log.Error("message.go", "发送消息失败, id", id, "err", err)
+					log.Error("message.go", "发送消息失败, id", id, "addr", addr.Hex(), "err", err)
 				} else {
-					log.Info("message.go", "发送消息成功, id", id, "IP", peer.Info().Network.RemoteAddress)
+					log.Info("message.go", "发送消息成功, id", id, "addr", addr.Hex(), "IP", peer.Info().Network.RemoteAddress)
 					bSend = true
 				}
 				break

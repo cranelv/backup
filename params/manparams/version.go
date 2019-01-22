@@ -3,7 +3,7 @@ package manparams
 import "bytes"
 
 const (
-	VersionAlpha = "1.0.0-stable"
+	VersionAlpha = "1.0.0.0"
 )
 
 var VersionList [][]byte

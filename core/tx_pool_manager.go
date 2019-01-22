@@ -166,7 +166,7 @@ func (pm *TxPoolManager) loop(config TxPoolConfig, chainconfig *params.ChainConf
 
 	pm.sub, err = mc.SubscribeEvent(mc.TxPoolManager, pm.roleChan)
 	if err != nil {
-		log.Error("txpool manage", "subscribe error", err)
+		log.Error("txpool manager", "subscribe error", err)
 		return
 	}
 
@@ -319,7 +319,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 	defer pm.txPoolsMutex.RUnlock()
 
 	if len(m.Data) <= 0 {
-		log.Error("TxPoolManager", "ProcessMsg", "data is empty")
+		log.Error("TxPoolManager processmsg data is empty")
 		return
 	}
 	messageType := m.Data[0].TxpoolType
@@ -335,7 +335,7 @@ func (pm *TxPoolManager) ProcessMsg(m NetworkMsgData) {
 			nPool.ProcessMsg(m)
 		}
 	case types.BroadCastTxIndex:
-		log.Info("bcTxs", "收到广播交易, from", m.SendAddress.Hex())
+		log.Info("TxPoolManager", "Receive broadtx from", m.SendAddress.Hex())
 		if bPool, ok := pool.(*BroadCastTxPool); ok {
 			bPool.ProcessMsg(m)
 		}
@@ -356,9 +356,9 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		txMx := types.GetTransactionMx(tx)
 		if txMx == nil {
 			// If it is nil, it may be because the assertion failed.
-			log.Error("Broad txpool", "AddBroadTx() txMx is nil", tx)
+			log.Error("TxPoolManager addBroadTx", "txMx is nil", tx)
 
-			return errors.New("tx is nil or txMx assertion failed")
+			return errors.New("TxPoolManager tx is nil or txMx assertion failed")
 		}
 		msData, err := json.Marshal(txMx)
 		if err != nil {
@@ -366,7 +366,7 @@ func (pm *TxPoolManager) AddBroadTx(tx types.SelfTransaction, bType bool) (err e
 		}
 		bids := ca.GetRolesByGroup(common.RoleBroadcast)
 		for _, bid := range bids {
-			log.Info("bcTxs", "send bc tx to", bid.Hex())
+			log.Info("TxPoolManager addBroadTx", "send broadtx to", bid.Hex())
 			pm.SendMsg(MsgStruct{Msgtype: BroadCast, SendAddr: bid, MsgData: msData, TxpoolType: types.BroadCastTxIndex})
 		}
 		return nil
@@ -407,7 +407,7 @@ func (pm *TxPoolManager) ReturnAllTxsByN(listretctx []*common.RetCallTxN, resqe 
 		select {
 		case txch := <-txAcquireCh:
 			if txch.Err != nil {
-				log.Info("File txpoolManager", "ReturnAllTxsByN:loss tx=", 0)
+				log.Info("txpoolManager", "ReturnAllTxsByN:loss tx=", 0)
 				txerr := errors.New("File txpoolManager loss tx")
 				retch <- &RetChan{nil, txerr, resqe}
 				return
@@ -418,8 +418,8 @@ func (pm *TxPoolManager) ReturnAllTxsByN(listretctx []*common.RetCallTxN, resqe 
 				return
 			}
 		case <-timeOut.C:
-			log.Info("File txpoolManager", "ReturnAllTxsByN:time out =", 0)
-			txerr := errors.New("File txpoolManager time out")
+			log.Info("txpoolManager", "ReturnAllTxsByN:time out =", 0)
+			txerr := errors.New("txpoolManager time out")
 			retch <- &RetChan{nil, txerr, resqe}
 			return
 		}

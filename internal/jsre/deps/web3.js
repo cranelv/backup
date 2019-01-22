@@ -4039,16 +4039,6 @@ var outputBlockFormatter = function(block) {
         }
     }
 
-    if (utils.isArray(block.signatures)) {
-        for(var i=0;i<block.signatures.length;i++){
-            var temp = block.signatures[i];
-            block.signatures[i] = "0x";
-            for (var j=0;j<temp.length;j++){
-                var n = temp[j].toString(16);
-                block.signatures[i] += n.length < 2 ? '0' + n : n;
-            }
-        }
-    }
     if (utils.isArray(block.transactions)) {
         block.transactions.forEach(function(item){
             if(!utils.isString(item))
@@ -5527,6 +5517,13 @@ var methods = function () {
         inputFormatter: [formatters.inputDefaultBlockNumberFormatter],
         // outputFormatter: formatters.outputNewBigNumberFormatter
     });
+    var getMatrixStateByNum = new Method({
+        name: 'getMatrixStateByNum',
+        call: 'eth_getMatrixStateByNum',
+        params: 2,
+        inputFormatter: [null,formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputNewBigNumberFormatter
+    });
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
@@ -5751,6 +5748,7 @@ var methods = function () {
     });
 
     return [
+        getMatrixStateByNum,
         getBalance,
         getUpTime,
         getFutureRewards,

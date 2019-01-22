@@ -212,6 +212,9 @@ func (h *Header) IsSuperHeader() bool {
 }
 
 func (h *Header) SuperBlockSeq() uint64 {
+	if h.Number.Uint64() == 0 {
+		return 0
+	}
 	if len(h.Extra) < 8 {
 		return 0
 	}
@@ -485,6 +488,10 @@ func (b *Block) HashNoNonce() common.Hash {
 
 func (b *Block) HashNoSigns() common.Hash {
 	return b.header.HashNoSigns()
+}
+
+func (b *Block) HashNoSignsAndNonce() common.Hash {
+	return b.header.HashNoSignsAndNonce()
 }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
