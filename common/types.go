@@ -672,3 +672,8 @@ func IsValidityManCurrency(s string) bool {
 
 	return true
 }
+
+type CoinConfig struct {
+	IsPack bool
+	PackNum uint64
+}

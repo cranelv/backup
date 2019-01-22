@@ -89,6 +89,7 @@ const (
 	MAN_COIN     string = "MAN"
 	RANGE_MOUNTS int    = 256
 	COIN_NAME    string = "COIN_TYPE"
+	COINPREFIX   string = "MATRIX"
 )
 
 var (
