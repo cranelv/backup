@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"sync"
 	"time"
+	"github.com/matrix/go-matrix/core/state"
 )
 
 var (
@@ -221,7 +222,7 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	for _, txpool := range pm.txPools {
 		txmap, _ := txpool.Pending()
 		for addr, txs := range txmap {
-			txs = pm.filter(txs)
+			//txs = pm.filter(txs)
 			if len(txs) > 0 {
 				if txlist, ok := txser[addr]; ok {
 					txlist = append(txlist, txs...)
@@ -234,67 +235,75 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return txser, nil
 }
-func (pm *TxPoolManager) filter(txser []types.SelfTransaction) (txerlist []types.SelfTransaction) {
+func BlackListFilter(tx types.SelfTransaction,state *state.StateDB) bool{
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
-	state, err := pm.chain.State()
-	if err != nil {
-		log.Error("TxPoolManager:filter", "get state failed", err)
-		return nil
-	}
+	//state, err := pm.chain.State()
+	//if err != nil {
+	//	log.Error("TxPoolManager:filter", "get state failed", err)
+	//	return nil
+	//}
 
 	blklist, err := matrixstate.GetAccountBlackList(state)
 	if err != nil {
 		//不做处理
 	}
 
-	for _, txer := range txser {
-		ct := txer.GetTxCurrency()
-		if ct == "" {
-
-		}
-
-		//黑账户过滤
-		if len(blklist) > 0 {
-			isBlkAccount := false
-			for _, blkAccount := range blklist {
-				if txer.From().Equal(blkAccount) {
-					isBlkAccount = true
-					break
-				}
-			}
-			if isBlkAccount {
-				continue
+	//黑账户过滤
+	if len(blklist) > 0 {
+		for _, blkAccount := range blklist {
+			if tx.From().Equal(blkAccount) {
+				return false
 			}
 		}
-
-		//超级交易账户不匹配
-		if txer.GetMatrixType() == common.ExtraSuperTxType {
-			mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
-			if err != nil {
-				log.Error("TxPoolManager:filter", "get super tx account failed", err)
-				continue
-			}
-			isOK := false
-			for _, superAddress := range mansuperTxAddreslist {
-				if txer.From().Equal(superAddress) {
-					isOK = true
-				}
-			}
-			if !isOK {
-				log.Error("超级账户不匹配")
-				continue
-			}
-		}
-
-		//黑账户过滤
-		if txer.To() != nil {
-			if SelfBlackList.FindBlackAddress(*txer.To()) {
-				continue
-			}
-		}
-		txerlist = append(txerlist, txer)
 	}
-	return
+
+	ct := tx.GetTxCurrency()
+	if ct == "" {
+
+	}
+
+	//超级交易账户不匹配
+	if tx.GetMatrixType() == common.ExtraSuperTxType {
+		mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
+		if err != nil {
+			log.Error("TxPoolManager:filter", "get super tx account failed", err)
+			return false
+		}
+		isOK := false
+		for _, superAddress := range mansuperTxAddreslist {
+			if tx.From().Equal(superAddress) {
+				isOK = true
+				break
+			}
+		}
+		if !isOK {
+			log.Error("超级账户不匹配")
+			return false
+		}
+	}
+
+	//奖励交易账户不匹配
+	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+		isOK := false
+		for _,account := range common.RewardAccounts{
+			if tx.From().Equal(account){
+				isOK = true
+				break
+			}
+		}
+		if !isOK{
+			log.Error("奖励交易账户不合法")
+			return false
+		}
+	}
+
+	//黑账户过滤
+	if tx.To() != nil {
+		if SelfBlackList.FindBlackAddress(*tx.To()) {
+			return false
+		}
+	}
+	return true
 }
 func (pm *TxPoolManager) AddRemote(tx types.SelfTransaction) (err error) {
 	pm.txPoolsMutex.Lock()

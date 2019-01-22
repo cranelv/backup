@@ -313,6 +313,10 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+	if !BlackListFilter(tx,statedb) {
+		return nil, 0, errors.New("blacklist account")
+	}
+
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {

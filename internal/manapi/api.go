@@ -69,7 +69,16 @@ func NewPublicMatrixAPI(b Backend) *PublicMatrixAPI {
 
 // GasPrice returns a suggestion for a gas price.
 func (s *PublicMatrixAPI) GasPrice(ctx context.Context) (*big.Int, error) {
-	return s.b.SuggestPrice(ctx)
+	//return s.b.SuggestPrice(ctx)
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil, err
+	}
+	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
+	if err != nil {
+		return nil,err
+	}
+	return gasprice,nil
 }
 
 // ProtocolVersion returns the current Matrix protocol version this node supports
@@ -1007,7 +1016,8 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, manargs ManCallArgs, blo
 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
 // given transaction against the current pending block.
-func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (hexutil.Uint64, error) {
+func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, manargs ManCallArgs) (hexutil.Uint64, error) {
+	args := ManArgsToCallArgs(manargs)
 	// Binary search the gas requirement, as it may be higher than the amount used
 	var (
 		lo  uint64 = params.TxGas - 1

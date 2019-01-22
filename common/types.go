@@ -463,7 +463,10 @@ const (
 	ExtraSuperBlockTx  byte = 120 //超级区块交易
 )
 
-var WhiteAddrlist = [1]Address{InterestRewardAddress}
+var (
+	WhiteAddrlist = [1]Address{InterestRewardAddress}
+	RewardAccounts = [5]Address{BlkMinerRewardAddress,BlkValidatorRewardAddress,TxGasRewardAddress,LotteryRewardAddress,InterestRewardAddress}
+)
 
 const (
 	RewardNomalType   byte = 0 //奖励通过普通交易发放
