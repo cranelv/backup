@@ -303,11 +303,11 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	}
 	st.state.SetNonce(from, st.state.GetNonce(from)+1)
 	var hash common.Hash
-	hash.SetBytes(tx.Data())
+	hash = common.BytesToHash(tx.Data())
 	hashlist = append(hashlist, hash)
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
 		for _, ex := range tmpExtra[0].ExtraTo {
-			hash.SetBytes(ex.Payload)
+			hash = common.BytesToHash(ex.Payload)
 			hashlist = append(hashlist, hash)
 			if vmerr != nil {
 				break
