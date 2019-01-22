@@ -365,25 +365,27 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		log.ERROR("genesis super block", "marshal alloc info err", err)
 		return nil
 	}
-	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data,nil,nil,nil, common.ExtraSuperBlockTx, 0,"MAN",0)
+	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
 	if tx0 == nil {
 		log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
 		return nil
 	}
 	txs = append(txs, tx0)
+
+	var msData []byte = nil
 	if nil != g.MState {
-		data, err = json.Marshal(g.MState)
+		msData, err = json.Marshal(g.MState)
 		if err != nil {
 			log.ERROR("genesis super block", "marshal alloc info err", err)
 			return nil
 		}
-		tx1 := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, data, nil,nil,nil,common.ExtraSuperBlockTx, 0,"MAN",0)
-		if tx1 == nil {
-			log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
-			return nil
-		}
-		txs = append(txs, tx1)
 	}
+	txMState := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, msData, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
+	if txMState == nil {
+		log.ERROR("genesis super block", "create super block matrix state tx err", "NewTransaction return nil")
+		return nil
+	}
+	txs = append(txs, txMState)
 
 	return types.NewBlock(head, txs, nil, nil)
 }

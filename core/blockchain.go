@@ -1984,7 +1984,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	}
 
 	txs := block.Transactions()
-	if len(txs) == 0 || len(txs) > 2 {
+	if len(txs) != 2 {
 		return errors.Errorf("super block's txs count(%d) err", len(txs))
 	}
 
@@ -2010,15 +2010,17 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 		}
 	}
 	mState := new(GenesisMState)
-	if 2 == len(txs) {
-		tx1 := txs[1]
-
-		if err := json.Unmarshal(tx1.Data(), mState); err != nil {
+	txMState := txs[1]
+	if tx.GetMatrixType() != common.ExtraSuperBlockTx {
+		return errors.Errorf("super block's matrix state tx type(%d) err", tx.TxType())
+	}
+	if len(txMState.Data()) > 0 {
+		if err := json.Unmarshal(txMState.Data(), mState); err != nil {
 			return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
 		}
-		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), block.Header().Number.Uint64())
-
 	}
+	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), block.Header().Number.Uint64())
+
 	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)
 		return errors.Errorf("设置超级区块状态树错误", err)

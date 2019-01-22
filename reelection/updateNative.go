@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/election/support"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/pkg/errors"
 )
 
 func GetAllNativeDataForUpdate(electstate mc.ElectGraph, electonline mc.ElectOnlineStatus, top *mc.TopologyGraph) support.AllNative {
@@ -135,48 +136,28 @@ func (self *ReElection) LastMinerGenTimeStamp(height uint64, types common.RoleTy
 
 }
 
-func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
-	height, err := self.GetNumberByHash(hash)
-	if err != nil {
-		log.ERROR(Module, "根据hash获取高度失败 err", err)
-		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
-	}
-	heightPos, err := self.LastMinerGenTimeStamp(height, types, hash)
-	if err != nil {
-		log.ERROR(Module, "根据生成点高度失败", height, "types", types)
-		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+func (self *ReElection) GetNextElectNodeInfo(electGraph *mc.ElectGraph, types common.RoleType) (master []mc.ElectNodeInfo, backup []mc.ElectNodeInfo, cand []mc.ElectNodeInfo, err error) {
+	if electGraph == nil {
+		err = errors.New("param elect graph is nil")
+		return
 	}
 
-	ancestorHash, err := self.GetHeaderHashByNumber(hash, heightPos)
-	log.INFO(Module, "GetTopNodeInfo pos", heightPos)
-	if err != nil {
-		log.ERROR(Module, "根据hash算父header失败", err)
-		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
-	}
-	stateDB, err := self.bc.StateAtBlockHash(ancestorHash)
-	if err != nil {
-		log.ERROR(Module, "获取ancestor state失败", err)
-		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
-	}
-	electState, err := matrixstate.GetElectGraph(stateDB)
-	if err != nil || electState == nil {
-		log.ERROR(Module, "获取elect graph 失败", err)
-		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
-	}
-	master := []mc.ElectNodeInfo{}
-	backup := []mc.ElectNodeInfo{}
-	cand := []mc.ElectNodeInfo{}
+	master = []mc.ElectNodeInfo{}
+	backup = []mc.ElectNodeInfo{}
+	cand = []mc.ElectNodeInfo{}
 
 	switch types {
 	case common.RoleMiner:
-		for _, v := range electState.NextMinerElect {
-			switch v.Type {
-			case common.RoleMiner:
-				master = append(master, v)
+		size := len(electGraph.NextMinerElect)
+		if size != 0 {
+			master = make([]mc.ElectNodeInfo, size, size)
+			if copy(master, electGraph.NextMinerElect) != size {
+				err = errors.New("copy next miner graph err")
+				return
 			}
 		}
 	case common.RoleValidator:
-		for _, v := range electState.NextValidatorElect {
+		for _, v := range electGraph.NextValidatorElect {
 			switch v.Type {
 			case common.RoleValidator:
 				master = append(master, v)
@@ -184,7 +165,6 @@ func (self *ReElection) GetTopNodeInfo(hash common.Hash, types common.RoleType) 
 				backup = append(backup, v)
 			case common.RoleCandidateValidator:
 				cand = append(cand, v)
-
 			}
 		}
 	}
