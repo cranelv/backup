@@ -40,7 +40,6 @@ func NewStateDBManage(roots []common.CoinRoot, mdb mandb.Database, db Database) 
 
 	if len(roots) == 0 {
 		roots = append(roots, common.CoinRoot{Cointyp: params.MAN_COIN, Root: common.Hash{}})
-		//roots = append(roots, common.CoinRoot{Cointyp: params.BTC_COIN, Root: common.Hash{}}) //YYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	stm := &StateDBManage{
 		mdb:         mdb,

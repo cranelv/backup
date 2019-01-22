@@ -87,7 +87,6 @@ const (
 )
 const (
 	MAN_COIN     string = "MAN"
-	//BTC_COIN     string = "BTC"   //YYYYYYYYYYYYYYYYYYYYYYYYYY  Test
 	RANGE_MOUNTS int    = 256
 	COIN_NAME    string = "COIN_TYPE"
 )

@@ -412,6 +412,7 @@ func (pm *TxPoolManager) ReturnAllTxsByN(listretctx []*common.RetCallTxN, resqe 
 			}
 			allTxs = append(allTxs, &RetCallTx{txch.Tx_t, txch.Rxs})
 			if len(allTxs) == len(listretctx) {
+
 				retch <- &RetChan{allTxs, nil, resqe}
 				return
 			}
