@@ -480,9 +480,9 @@ var (
 			"SlashRate": 7500
 		},
 		"EleTime": {
-			"MinerGen": 9,
+			"MinerGen": 6,
 			"MinerNetChange": 5,
-			"ValidatorGen": 9,
+			"ValidatorGen": 4,
 			"ValidatorNetChange": 3,
 			"VoteBeforeTime": 7
 		},

@@ -88,9 +88,9 @@
 			"SlashRate": 7500       \\利息惩罚最大比例10000分位
 		},
 		"EleTime": {
-			//"MinerGen": 9,          
+			"MinerGen": 6,           \\矿工选举时，使用的抵押信息，相对于广播周期的差块
 			"MinerNetChange": 5,     \\相对于广播周期生成矿工拓扑图的差块
-			//"ValidatorGen": 9,       
+			"ValidatorGen": 4,       \\验证者选举时，使用的抵押信息，相对于广播周期的差块
 			"ValidatorNetChange": 3, \\相对于广播周期生成验证者拓扑图的差块
  			"VoteBeforeTime": 7      \\相对于广播周期公私钥交易的提前时间
 		},

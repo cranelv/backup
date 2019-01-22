@@ -251,5 +251,13 @@ var (
 				"用协程生成快照(yeting)",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.31",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"公私钥增加打印",
+				"矿工和验证者生成时间点修改支持合约及时生效",
+			},
+		},
 	}
 )
