@@ -53,8 +53,8 @@ func New(bc *core.BlockChain, random *baseinterface.Random, topNode TopNodeServi
 }
 
 func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*ElectReturnInfo, error) {
-	log.INFO(Module, "GetElection", "start", "hash", hash)
-	defer log.INFO(Module, "GetElection", "end", "hash", hash)
+	log.Trace(Module, "GetElection", "start", "hash", hash)
+	defer log.Trace(Module, "GetElection", "end", "hash", hash)
 	preElectGraph, err := matrixstate.GetElectGraph(state)
 	if err != nil || nil == preElectGraph {
 		log.ERROR(Module, "GetElection err", err)
@@ -71,7 +71,7 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	data := &ElectReturnInfo{}
 
 	if self.IsMinerTopGenTiming(hash) {
-		log.INFO(Module, "GetElection", "IsMinerTopGenTiming", "高度", height)
+		log.Trace(Module, "GetElection", "IsMinerTopGenTiming", "高度", height)
 		for _, v := range preElectGraph.NextMinerElect {
 			switch v.Type {
 			case common.RoleMiner:
@@ -81,7 +81,7 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 		}
 	}
 	if self.IsValidatorTopGenTiming(hash) {
-		log.INFO(Module, "GetElection", "IsValidatorTopGenTiming", "高度", height)
+		log.Trace(Module, "GetElection", "IsValidatorTopGenTiming", "高度", height)
 		for _, v := range preElectGraph.NextValidatorElect {
 			switch v.Type {
 			case common.RoleValidator:
@@ -97,8 +97,8 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 	return data, nil
 }
 func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address, online []common.Address) ([]mc.Alternative, error) {
-	log.INFO(Module, "GetTopoChange", "start", "hash", hash, "online", online, "offline", offline)
-	defer log.INFO(Module, "GetTopoChange", "end", "hash", hash, "online", online, "offline", offline)
+	log.Trace(Module, "GetTopoChange", "start", "hash", hash, "online", online, "offline", offline)
+	defer log.Trace(Module, "GetTopoChange", "end", "hash", hash, "online", online, "offline", offline)
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash获取高度失败 err", err)
@@ -147,15 +147,15 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 
 	olineStatus := GetOnlineAlter(offline, online, *electOnlineState)
 	DiffValidatot = append(DiffValidatot, olineStatus...)
-	log.INFO(Module, "获取拓扑改变 end ", DiffValidatot)
+	log.DEBUG(Module, "获取拓扑改变 end ", DiffValidatot)
 	return DiffValidatot, nil
 }
 
 func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, error) {
 	result := &ElectReturnInfo{}
 	height, err := self.GetNumberByHash(hash)
-	log.INFO(Module, "GetNetTopologyAll", "start", "height", height)
-	defer log.INFO(Module, "GetNetTopologyAll", "end", "height", height)
+	log.Trace(Module, "GetNetTopologyAll", "start", "height", height)
+	defer log.Trace(Module, "GetNetTopologyAll", "end", "height", height)
 	if err != nil {
 		log.ERROR(Module, "根据hash获取高度失败 err", err)
 		return nil, err
@@ -166,7 +166,7 @@ func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, e
 		return nil, err
 	}
 	if bcInterval.IsReElectionNumber(height+2) == false {
-		log.Info(Module, "不是广播区间前一块 不处理 height", height+1)
+		log.Trace(Module, "不是广播区间前一块 不处理 height", height+1)
 		return result, nil
 	}
 

@@ -61,7 +61,7 @@ func (p *ReElection) genChgNetTopology(num uint64, parentHash common.Hash) (*com
 
 	onlineResults := p.topNode.GetConsensusOnlineResults()
 	if len(onlineResults) == 0 {
-		log.Info(Module, "生成拓扑变化信息", "无在线共识结果")
+		//log.Info(Module, "生成拓扑变化信息", "无在线共识结果")
 		return nil, nil
 	}
 
@@ -90,11 +90,11 @@ func (p *ReElection) getOnlineStatus(onlineResults []*mc.HD_OnlineConsensusVoteR
 	for i := 0; i < len(onlineResults); i++ {
 		result := onlineResults[i]
 		if result.Req == nil {
-			log.Info(Module, "生成拓扑变化信息", "共识请求为空")
+			log.WARN(Module, "生成拓扑变化信息", "共识请求为空")
 			continue
 		}
 		if result.IsValidity(num, manparams.OnlineConsensusValidityTime) == false {
-			log.Info(Module, "生成拓扑变化信息", "高度 不合法", "请求高度", result.Req.Number, "当前高度", num)
+			log.WARN(Module, "生成拓扑变化信息", "高度 不合法", "请求高度", result.Req.Number, "当前高度", num)
 			continue
 		}
 
@@ -106,7 +106,7 @@ func (p *ReElection) getOnlineStatus(onlineResults []*mc.HD_OnlineConsensusVoteR
 				offlineNodes = append(offlineNodes, node)
 				consensusList = append(consensusList, result)
 			} else {
-				log.Info(Module, "生成拓扑变化信息", "当前拓扑图中的节点，顶点共识状态错误", "状态", state)
+				log.ERROR(Module, "生成拓扑变化信息", "当前拓扑图中的节点，顶点共识状态错误", "状态", state)
 			}
 			continue
 		}

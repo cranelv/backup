@@ -131,7 +131,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 			tt.Position = common.PosOnline
 			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
 		}
-		log.INFO(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electOnline)
+		log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electOnline)
 		return electOnline, nil
 	}
 
@@ -211,7 +211,7 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 
 	preBroadcast.BeforeLastStateRoot = preBroadcast.LastStateRoot
 	preBroadcast.LastStateRoot = header.Root
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot.String(), "last", preBroadcast.LastStateRoot.String())
+	//log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot.String(), "last", preBroadcast.LastStateRoot.String())
 	return preBroadcast, nil
 
 }
@@ -257,7 +257,7 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn core.PreSt
 	if preHeader.Nonce.Uint64() > randomInfo.MaxNonce {
 		randomInfo.MaxNonce = preHeader.Nonce.Uint64()
 	}
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
+	//log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
 	return randomInfo, nil
 }
 
