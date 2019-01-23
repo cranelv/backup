@@ -134,13 +134,15 @@ func (ic *interest) PayInterest(state vm.StateDB, num uint64) map[common.Address
 			log.ERROR(PackageName, "支付的的利息非法", finalInterest)
 			continue
 		}
-		log.Debug(PackageName, "账户", account, "原始利息", originInterest.String(), "惩罚利息", slash.String(), "剩余利息", finalInterest.String())
+		if slash.Cmp(big.NewInt(0)) > 0 {
+			log.Debug(PackageName, "账户", account, "原始利息", originInterest.String(), "惩罚利息", slash.String(), "剩余利息", finalInterest.String())
+		}
 		AllInterestMap[account] = finalInterest
 		Deposit = new(big.Int).Add(Deposit, finalInterest)
 		depoistInfo.ResetSlash(state, account)
 	}
 	balance := state.GetBalance(common.InterestRewardAddress)
-	log.Debug(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
+	//log.Debug(PackageName, "设置利息前的账户余额", balance[common.MainAccount].Balance.String())
 	if balance[common.MainAccount].Balance.Cmp(Deposit) < 0 {
 		log.ERROR(PackageName, "利息账户余额不足，余额为", balance[common.MainAccount].Balance.String())
 		return nil
@@ -156,7 +158,7 @@ func (ic *interest) canPayInterst(state vm.StateDB, num uint64, payInterestPerio
 		return false
 	}
 	if latestNum >= ic.getLastInterestNumber(num-1, payInterestPeriod)+1 {
-		log.Debug(PackageName, "当前周期利息已支付无须再处理", "")
+		//log.Debug(PackageName, "当前周期利息已支付无须再处理", "")
 		return false
 	}
 	matrixstate.SetInterestPayNum(state, num)
@@ -218,7 +220,7 @@ func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address
 			continue
 		}
 		InterestMap[dv.Address] = result
-		log.Debug(PackageName, "账户", dv.Address.String(), "deposit", dv.Deposit.String(), "利息", result.String())
+		//log.Debug(PackageName, "账户", dv.Address.String(), "deposit", dv.Deposit.String(), "利息", result.String())
 	}
 	return InterestMap
 }
@@ -230,7 +232,7 @@ func (ic *interest) canCalcInterest(state vm.StateDB, num uint64, calcInterestIn
 		return false
 	}
 	if latestNum >= ic.getLastInterestNumber(num-1, calcInterestInterval)+1 {
-		log.Info(PackageName, "当前利息已计算无须再处理", "")
+		//log.Info(PackageName, "当前利息已计算无须再处理", "")
 		return false
 	}
 	matrixstate.SetInterestCalcNum(state, num)

@@ -71,7 +71,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 		return
 	}
 	if latestNum > bp.bcInterval.GetLastBroadcastNumber() {
-		log.Debug(PackageName, "当前惩罚已处理无须再处理", "")
+		//log.Debug(PackageName, "当前惩罚已处理无须再处理", "")
 		return
 	}
 
@@ -131,7 +131,9 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 				log.ERROR(PackageName, "惩罚比例为负数", "")
 				continue
 			}
-			log.Debug(PackageName, "惩罚账户", v.Account, "惩罚金额", slash)
+			if slash.Cmp(big.NewInt(0)) > 0 {
+				log.Debug(PackageName, "惩罚账户", v.Account, "惩罚金额", slash)
+			}
 			depoistInfo.AddSlash(currentState, v.Account, slash)
 		}
 
@@ -144,7 +146,6 @@ func (bp *BlockSlash) getSlash(upTime uint64, accountReward *big.Int) *big.Int {
 	if rate >= bp.SlashRate {
 		rate = bp.SlashRate
 	}
-	log.Trace(PackageName, "slash rate 0.", rate)
 	tmp := new(big.Int).Mul(accountReward, new(big.Int).SetUint64(rate))
 
 	slash := new(big.Int).Div(tmp, new(big.Int).SetUint64(util.RewardFullRate))
