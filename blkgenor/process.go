@@ -150,7 +150,7 @@ func (p *Process) SetCurLeader(leader common.Address, consensusTurn mc.Consensus
 	p.consensusTurn = consensusTurn
 	p.closeConsensusReqSender()
 	p.stopMinerPikerTimer()
-	log.Debug(p.logExtraInfo(), "process设置当前leader成功", p.curLeader.Hex(), "高度", p.number)
+	//log.Trace(p.logExtraInfo(), "process设置当前leader成功", p.curLeader.Hex(), "高度", p.number)
 	if p.checkState(StateIdle) {
 		return
 	}
@@ -167,7 +167,7 @@ func (p *Process) SetNextLeader(preLeader common.Address, leader common.Address)
 		return
 	}
 	p.nextLeader = leader
-	log.Debug(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
+	//log.Trace(p.logExtraInfo(), "process设置next leader成功", p.nextLeader.Hex(), "高度", p.number)
 	p.processBlockInsert(preLeader)
 }
 
@@ -274,7 +274,7 @@ func (p *Process) startBcBlock() {
 		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
 	}
 
-	log.Debug(p.logExtraInfo(), "区块广播阶段 广播周期信息", bcInterval.GetBroadcastInterval())
+	//log.Debug(p.logExtraInfo(), "区块广播阶段 广播周期信息", bcInterval.GetBroadcastInterval())
 	p.bcInterval = bcInterval
 	p.preBlockHash = parentHash
 	p.state = StateHeaderGen
