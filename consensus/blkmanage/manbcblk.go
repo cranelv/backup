@@ -180,7 +180,7 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 		log.Error(LogManBlk, "验证vrf失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
-	log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
+	//log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
 
 	return nil, nil
 }

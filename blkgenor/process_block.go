@@ -291,11 +291,6 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		}
 		blockData.block.Header = p.copyHeader(blockData.block.Header, satisfyResult)
 		blockData.state = blockStateReady
-
-		//root, _ := blockData.block.State.Commit(p.blockChain().Config().IsEIP158(blockData.block.Header.Number))
-		//if root != blockData.block.Header.Root {
-		//	log.Error("hyk_miss_trie_3", "root", blockData.block.Header.Root.TerminalString(), "state root", root.TerminalString())
-		//}
 	}
 	p.stopMinerPikerTimer()
 	p.closeConsensusReqSender()

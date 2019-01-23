@@ -158,7 +158,7 @@ func (self *HD) receive() {
 		select {
 		case data := <-self.dataChan:
 			subCode := mc.EventCode(data.Data.SubCode)
-			log.INFO("HD", "SubCode", subCode)
+			log.Trace("HD", "SubCode", subCode)
 			codec, err := self.findCodec(subCode)
 			if err != nil {
 				log.ERROR("HD", "receive findCodec err", err)

@@ -149,7 +149,7 @@ func SendToGroupWithBackup(to common.RoleType, msgCode uint64, data interface{})
 func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
 	address := ca.GetRolesByGroup(to)
 	peers := ServerP2p.Peers()
-	log.Info("message.go", "查看所有的 ServerP2P peers Count", len(peers), "目标IDS数量", len(address), "role", to.String())
+	log.Trace("message.go", "查看所有的 ServerP2P peers Count", len(peers), "目标IDS数量", len(address), "role", to.String())
 	for _, addr := range address {
 		if addr == ServerP2p.ManAddress {
 			continue
@@ -165,9 +165,9 @@ func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
 			if id == peer.ID() {
 				err := Send(peer.MsgReadWriter(), msgCode, data)
 				if err != nil {
-					log.Error("message.go", "发送消息失败, id", id, "addr", addr.Hex(), "err", err)
+					log.Trace("message.go", "发送消息失败, id", id, "addr", addr.Hex(), "err", err)
 				} else {
-					log.Info("message.go", "发送消息成功, id", id, "addr", addr.Hex(), "IP", peer.Info().Network.RemoteAddress)
+					log.Trace("message.go", "发送消息成功, id", id, "addr", addr.Hex(), "IP", peer.Info().Network.RemoteAddress)
 					bSend = true
 				}
 				break

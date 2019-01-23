@@ -112,9 +112,9 @@ func (p *ReElection) verifyChgNetTopology(header *types.Header, onlineConsensusR
 
 	// get online and offline info from header and prev topology
 	offlineNodes, onlineNods := p.parseOnlineState(header)
-	log.INFO(Module, "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
-	log.INFO(Module, "offlineNodes", offlineNodes)
-	log.INFO(Module, "onlineNods", onlineNods)
+	//log.INFO(Module, "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
+	//log.INFO(Module, "offlineNodes", offlineNodes)
+	//log.INFO(Module, "onlineNods", onlineNods)
 
 	for _, node := range offlineNodes {
 		if err := p.checkConsensusResult(node, mc.OffLine, header, onlineConsensusResults); err != nil {
@@ -128,15 +128,15 @@ func (p *ReElection) verifyChgNetTopology(header *types.Header, onlineConsensusR
 	}
 
 	// generate topology alter info
-	log.INFO(Module, "p.number", header.Number.Uint64(), "offlineNodes", offlineNodes, "onlineNods", onlineNods)
+	//log.INFO(Module, "p.number", header.Number.Uint64(), "offlineNodes", offlineNodes, "onlineNods", onlineNods)
 	alterInfo, err := p.GetTopoChange(header.ParentHash, offlineNodes, onlineNods)
-	log.INFO(Module, "alterInfo", alterInfo, "err", err)
+	//log.INFO(Module, "alterInfo", alterInfo, "err", err)
 	if err != nil {
 		return err
 	}
 
 	for _, value := range alterInfo {
-		log.Info(Module, "alter-A", value.A, "position", value.Position)
+		log.Trace(Module, "alter-A", value.A, "position", value.Position)
 	}
 	// generate self net topology
 	netTopology := p.TransferToNetTopologyChgStu(alterInfo)
