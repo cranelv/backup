@@ -208,6 +208,49 @@ func (self *StateDB) RawDump() Dump {
 	return dump
 }
 
+func (self *StateDB) RawAccount(account common.Address) *DumpAccount {
+
+	it := trie.NewIterator(self.trie.NodeIterator(nil))
+	for it.Next() {
+		addr := self.trie.GetKey(it.Key)
+		if common.BytesToAddress(addr) == common.ContractAddress {
+			matrixdt := it.Value[:4]
+			if bytes.Compare(matrixdt, []byte("MAN-")) == 0 {
+				continue
+			}
+			var data Account
+			if err := rlp.DecodeBytes(it.Value, &data); err != nil {
+				panic(err)
+			}
+
+			tBalance := new(big.Int)
+			var total_balance string
+			for _, tAccount := range data.Balance {
+				tBalance = tAccount.Balance
+				str_account := strconv.Itoa(int(tAccount.AccountType))
+				str_balance := str_account + ":" + tBalance.String()
+				total_balance += str_balance + ","
+			}
+			obj := newObject(nil, common.BytesToAddress(addr), data)
+			account := DumpAccount{
+				Balance:  total_balance[:len(total_balance)-1],
+				Nonce:    data.Nonce,
+				Root:     common.Bytes2Hex(data.Root[:]),
+				CodeHash: common.Bytes2Hex(data.CodeHash),
+				Code:     common.Bytes2Hex(obj.Code(self.db)),
+				Storage:  make(map[string]string),
+			}
+			storageIt := trie.NewIterator(obj.getTrie(self.db).NodeIterator(nil))
+			for storageIt.Next() {
+				account.Storage[common.Bytes2Hex(self.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(storageIt.Value)
+			}
+			return &account
+		}
+
+		//dump.Accounts[common.Bytes2Hex(addr)] = account
+	}
+	return nil
+}
 func (self *StateDB) Dump() []byte {
 	json, err := json.MarshalIndent(self.RawDump(), "", "    ")
 	if err != nil {

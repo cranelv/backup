@@ -289,7 +289,7 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 			log.Error("num is error", "current num:", currentNum)
 
 		}
-		w.MakeSuperGenesis(api.e.BlockChain(), api.e.chainDb, num)
+		w.MakeSuperGenesis(api.e.BlockChain(), api.e.chainDb, num, false)
 		//mc.PublicEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleValidator, BlockNum: 1})
 		//mc.PublicEvent(mc.BlkVerify_VerifyConsensusOK, &mc.BlockVerifyConsensusOK{testHeader, nil, nil, nil})
 		log.INFO("successfully gen superGenesis ", "MANSuperGenesis.", "nil")

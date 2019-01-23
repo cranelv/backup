@@ -125,6 +125,7 @@ var (
 		configFileFlag,
 		utils.GetCommitFlag,
 		utils.ManAddressFlag,
+		utils.SuperBlockElectGenFlag,
 		utils.SynSnapshootNumFlg,
 		utils.SynSnapshootHashFlg,
 		utils.SaveSnapStartFlg,

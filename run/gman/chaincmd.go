@@ -221,7 +221,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.LightModeFlag,
+			utils.SuperBlockElectGenFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -687,7 +687,11 @@ func genblock(ctx *cli.Context) error {
 		return errors.New("num is error")
 
 	}
-	w.MakeSuperGenesis(chain, chaindb, num)
+	var electFlag bool
+	if ctx.GlobalBool(utils.SuperBlockElectGenFlag.Name) {
+		electFlag = true
+	}
+	w.MakeSuperGenesis(chain, chaindb, num, electFlag)
 	//w.ManageSuperGenesis(chainDb)
 	return nil
 }
