@@ -548,7 +548,20 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 	// TODO: panic if len(txs) != len(receipts)
 	for _, currencyBlock := range currencyBlocks { //BB
 		if len(currencyBlock.Transactions.GetTransactions()) == 0 {
-			b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:EmptyRootHash,ReceiptHash:EmptyRootHash})
+			if ischeck{
+				for i, coinRoot := range b.header.Roots {
+					if coinRoot.Cointyp == currencyBlock.CurrencyName {
+						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlock.Transactions.TxHashs)
+						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlock.Receipts.RsHashs)
+						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
+						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
+						b.currencies = append(b.currencies,CurrencyBlock{CurrencyName:currencyBlock.CurrencyName,Transactions:currencyBlock.Transactions,
+							Receipts:currencyBlock.Receipts})
+					}
+				}
+			}else {
+				b.header.Roots = append(b.header.Roots,common.CoinRoot{Cointyp:currencyBlock.CurrencyName,TxHash:EmptyRootHash,ReceiptHash:EmptyRootHash})
+			}
 		} else {
 			if ischeck{
 				for i, coinRoot := range b.header.Roots {

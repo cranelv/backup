@@ -345,6 +345,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 				if !curr.Root.Equal(he.Root){
 					log.WARN(LogManBlk, "finalize root", curr.Root.Hex(), "remote root", he.Root.Hex(),"coin type",curr.Cointyp)
 				}
+				break
 			}
 		}
 
