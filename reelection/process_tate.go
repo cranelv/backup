@@ -17,7 +17,6 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.Pr
 		return nil, err
 	}
 	data, err := readFn(mc.MSKeyElectGraph)
-	log.DEBUG(Module, "data", data, "err", err, "高度", block.Header().Number.Uint64())
 	if err != nil {
 		log.ERROR(Module, "readFn 失败 key", mc.MSKeyElectGraph, "err", err)
 		return nil, err
@@ -82,8 +81,8 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 		log.ERROR(Module, "ProduceElectGraphData CheckBlock err ", err)
 		return nil, err
 	}
-	log.INFO(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
-	defer log.INFO(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
+	log.Trace(Module, "ProduceElectOnlineStateData", "start", "height", block.Header().Number.Uint64())
+	defer log.Trace(Module, "ProduceElectOnlineStateData", "end", "height", block.Header().Number.Uint64())
 	height := block.Header().Number.Uint64()
 
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)

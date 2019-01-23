@@ -56,7 +56,7 @@ var accountChecker AccountChecker
 
 func VerifyA2AccountAndPassword(data map[common.Address]string) (map[common.Address]string, string, bool) {
 	if accountChecker == nil {
-		log.Error("验证A2账户密码", "检查器未设置", "检查器 is nil")
+		log.Error("验证A2账户", "检查器未设置", "检查器 is nil")
 		return nil, "", false
 	}
 
@@ -67,11 +67,10 @@ func VerifyA2AccountAndPassword(data map[common.Address]string) (map[common.Addr
 		err := accountChecker.CheckAccountAndPassword(accounts.Account{Address: address}, password)
 		if err != nil {
 			noEntrustAccounts += fmt.Sprintf("%s\n", base58.Base58EncodeToString("MAN", address))
-			log.Warn("验证A2账户密码", "验证未通过的账户", base58.Base58EncodeToString("MAN", address), "password", password)
+			log.ERROR("验证A2账户", "错误配置账户", base58.Base58EncodeToString("MAN", address))
 			flag = false
 			continue
 		}
-		log.Debug("验证A2账户密码", "验证通过的账户", base58.Base58EncodeToString("MAN", address))
 		entrustData[address] = password
 	}
 	return entrustData, noEntrustAccounts, flag

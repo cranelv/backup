@@ -25,7 +25,7 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInf
 	upTimeAccounts := make([]common.Address, 0)
 	//todo:和老吕讨论Uptime使用当前抵押值
 	minerNum := num - 1
-	log.Debug(ModuleName, "参选矿工节点uptime高度", minerNum)
+	//log.Debug(ModuleName, "参选矿工节点uptime高度", minerNum)
 	ans, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(minerNum)), common.RoleMiner)
 	if err != nil {
 		return nil, err
@@ -33,18 +33,18 @@ func (bc *BlockChain) getUpTimeAccounts(num uint64, bcInterval *mc.BCIntervalInf
 
 	for _, v := range ans {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		//log.INFO("v.Address", "v.Address", v.Address)
 	}
 	validatorNum := num - 1
-	log.Debug(ModuleName, "参选验证节点uptime高度", validatorNum)
+	//log.Debug(ModuleName, "参选验证节点uptime高度", validatorNum)
 	ans1, err := ca.GetElectedByHeightAndRole(big.NewInt(int64(validatorNum)), common.RoleValidator)
 	if err != nil {
 		return upTimeAccounts, err
 	}
-	log.Debug(ModuleName, "获取所有uptime账户为", "")
+	//log.Debug(ModuleName, "获取所有uptime账户为", "")
 	for _, v := range ans1 {
 		upTimeAccounts = append(upTimeAccounts, v.Address)
-		log.INFO("v.Address", "v.Address", v.Address)
+		//log.INFO("v.Address", "v.Address", v.Address)
 	}
 
 	return upTimeAccounts, nil
@@ -56,9 +56,9 @@ func (bc *BlockChain) getUpTimeData(root []common.CoinRoot, num uint64, parentHa
 	}
 	headerBeatMap := make(map[common.Address][]byte, 0)
 	for k, v := range heatBeatOriginMap {
-		log.INFO(ModuleName, "主动心跳交易A1/A2", k.Hex())
+		//log.INFO(ModuleName, "主动心跳交易A1/A2", k.Hex())
 		account0, _, err := bc.GetA0AccountFromAnyAccount(k, parentHash)
-		log.INFO(ModuleName, "主动心跳交易A0", account0.Hex())
+		//log.INFO(ModuleName, "主动心跳交易A0", account0.Hex())
 		if nil != err {
 			continue
 		}
@@ -80,9 +80,9 @@ func (bc *BlockChain) getUpTimeData(root []common.CoinRoot, num uint64, parentHa
 			return nil, nil, error
 		}
 		for k, v := range temp {
-			log.INFO(ModuleName, "点名心跳交易A1/A2", k)
+			//log.INFO(ModuleName, "点名心跳交易A1/A2", k)
 			account0, _, err := bc.GetA0AccountFromAnyAccount(common.HexToAddress(k), parentHash)
-			log.INFO(ModuleName, "点名心跳交易A0", account0.Hex())
+			//log.INFO(ModuleName, "点名心跳交易A0", account0.Hex())
 			if nil != err {
 				continue
 			}
@@ -122,7 +122,7 @@ func (bc *BlockChain) getElectMap(blockNum uint64, bcInterval *mc.BCIntervalInfo
 		log.Error(ModuleName, "get获取初选列表为空", "")
 		return nil, nil, errors.New("get获取初选列表为空")
 	}
-	log.Debug(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
+	//log.Debug(ModuleName, "获取原始拓扑图所有的验证者和矿工，高度为", eleNum)
 	originValidatorMap := make(map[common.Address]uint32, 0)
 	originMinerMap := make(map[common.Address]uint32, 0)
 	for _, v := range electGraph.ElectList {
@@ -167,21 +167,23 @@ func (bc *BlockChain) calcUpTime(accounts []common.Address, calltherollRspAccoun
 		onlineBlockNum, ok := calltherollRspAccounts[account]
 		if ok { //被点名,使用点名的uptime
 			upTime = uint64(onlineBlockNum)
-			log.INFO(ModuleName, "点名账号", account, "uptime", upTime)
+			if upTime < maxUptime {
+				log.Debug(ModuleName, "点名账号", account, "uptime异常", upTime)
+			}
 
 		} else { //没被点名，没有主动上报，则为最大值，
 
 			if v, ok := HeartBeatMap[account]; ok { //有主动上报
 				if v {
 					upTime = maxUptime
-					log.Debug(ModuleName, "没被点名，有主动上报有响应", account, "uptime", upTime)
+					//log.Debug(ModuleName, "没被点名，有主动上报有响应", account, "uptime", upTime)
 				} else {
 					upTime = 0
 					log.Debug(ModuleName, "没被点名，有主动上报无响应", account, "uptime", upTime)
 				}
 			} else { //没被点名和主动上报
 				upTime = maxUptime
-				log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
+				//log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 			}
 		}
@@ -203,26 +205,26 @@ func (bc *BlockChain) saveUptime(account common.Address, upTime uint64, state *s
 	if nil != err {
 		return
 	}
-	log.Debug(ModuleName, "读取状态树", account, "upTime处理前", old)
+	//log.Debug(ModuleName, "读取状态树", account, "upTime处理前", old)
 	var newTime *big.Int
 	if _, ok := originValidatorMap[account]; ok {
 
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
-		log.Debug(ModuleName, "是原始验证节点，upTime累加", account, "upTime", newTime.Uint64())
+		//log.Debug(ModuleName, "是原始验证节点，upTime累加", account, "upTime", newTime.Uint64())
 
 	} else if _, ok := originMinerMap[account]; ok {
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
-		log.Debug(ModuleName, "是原始矿工节点，upTime累加", account, "upTime", newTime.Uint64())
+		//log.Debug(ModuleName, "是原始矿工节点，upTime累加", account, "upTime", newTime.Uint64())
 
 	} else {
 		newTime = bc.upTimesReset(old, 1, int64(upTime))
-		log.Debug(ModuleName, "其它节点，upTime累加", account, "upTime", newTime.Uint64())
+		//log.Debug(ModuleName, "其它节点，upTime累加", account, "upTime", newTime.Uint64())
 	}
 
 	depoistInfo.SetOnlineTime(state, account, newTime)
 
 	depoistInfo.GetOnlineTime(state, account)
-	log.Debug(ModuleName, "读取存入upTime账户", account, "upTime处理后", newTime.Uint64())
+	//log.Debug(ModuleName, "读取存入upTime账户", account, "upTime处理后", newTime.Uint64())
 }
 
 func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDBManage, accounts []common.Address, blockNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]uint64, error) {
@@ -240,14 +242,14 @@ func (bc *BlockChain) HandleUpTimeWithSuperBlock(state *state.StateDBManage, acc
 	for _, account := range accounts {
 
 		upTime := broadcastInterval - 3
-		log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
+		//log.Debug(ModuleName, "没被点名，没要求主动上报", account, "uptime", upTime)
 
 		// todo: add
 		depoistInfo.AddOnlineTime(state, account, new(big.Int).SetUint64(upTime))
-		read, err := depoistInfo.GetOnlineTime(state, account)
+		//read, err := depoistInfo.GetOnlineTime(state, account)
 		upTimeMap[account] = upTime
 		if nil == err {
-			log.Debug(ModuleName, "读取状态树", account, "upTime累加", read)
+			//log.Debug(ModuleName, "读取状态树", account, "upTime累加", read)
 			if _, ok := originTopologyMap[account]; ok {
 				//updateData := new(big.Int).SetUint64(read.Uint64() / 2)
 				//log.INFO(ModuleName, "是原始拓扑图节点，upTime减半", account, "upTime", read.Uint64())
@@ -280,7 +282,7 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDBManage, header *types.He
 		return nil, errors.Errorf("get super seq error")
 	}
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
-		log.Debug(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
+		//log.Debug(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetUpTimeNum(state, header.Number.Uint64())
 		upTimeAccounts, err := bc.getUpTimeAccounts(header.Number.Uint64(), bcInterval)
 		if err != nil {
@@ -296,7 +298,7 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDBManage, header *types.He
 			}
 			return upTimeMap, nil
 		} else {
-			log.Debug(ModuleName, "获取所有心跳交易", "")
+			//log.Debug(ModuleName, "获取所有心跳交易", "")
 			LastStateRoot, BeforeLastStateRoot, err := bc.getPreRoot(header, bcInterval)
 			if nil != err {
 				return nil, err

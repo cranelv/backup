@@ -3,7 +3,6 @@ package blkmanage
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -43,7 +42,7 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo,
 			}
 			bd.baseInterface.preBlockHash = preBlockHash
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
 		}
 
 	}

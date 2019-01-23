@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/matrix/go-matrix/log"
 	"io"
 	"os"
 	"reflect"
@@ -139,7 +140,7 @@ func makeFullNode(ctx *cli.Context) *pod.Node {
 	stack, cfg := makeConfigNode(ctx)
 	err := CheckEntrust(ctx)
 	if err != nil {
-		fmt.Println("检查委托交易失败 err", err)
+		log.ERROR("Init", "Entrust File Err", err)
 		os.Exit(1)
 	}
 	utils.RegisterManService(stack, &cfg.Man)

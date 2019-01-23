@@ -138,7 +138,7 @@ func (tlr *TxsLottery) ResetAccountToState() {
 }
 func (tlr *TxsLottery) LotterySaveAccount(accounts []common.Address, vrfInfo []byte) {
 	if 0 == len(accounts) {
-		log.INFO(PackageName, "当前区块没有普通交易", "")
+		//log.INFO(PackageName, "当前区块没有普通交易", "")
 		return
 	}
 
@@ -225,11 +225,11 @@ func (tlr *TxsLottery) ProcessMatrixState(num uint64) bool {
 		return false
 	}
 	if latestNum > tlr.bcInterval.GetLastReElectionNumber() {
-		log.Debug(PackageName, "当前彩票奖励已发放无须补发", "")
+		//log.Debug(PackageName, "当前彩票奖励已发放无须补发", "")
 		return false
 	}
 	if err := matrixstate.SetLotteryNum(tlr.state, num); err != nil {
-		log.Error(PackageName, "谁知彩票奖状态错误", err)
+		log.Error(PackageName, "获取彩票奖状态错误", err)
 	}
 	accountList, err := tlr.GetAccountFromState(tlr.state)
 	if nil != err {
@@ -257,12 +257,12 @@ func (tlr *TxsLottery) getLotteryList(parentHash common.Hash, num uint64, lotter
 
 	//sort.Sort(txsCmpResultList)
 	chooseResultList := make([]common.Address, 0)
-	log.Debug(PackageName, "交易数目", len(tlr.accountList))
+	//log.Debug(PackageName, "交易数目", len(tlr.accountList))
 	for i := 0; i < int(lotteryNum) && i < len(tlr.accountList); i++ {
 		randomData := uint64(rand.Uniform(0, float64(^uint64(0))))
-		log.Trace(PackageName, "随机数", randomData)
+		//log.Trace(PackageName, "随机数", randomData)
 		index := randomData % (uint64(len(tlr.accountList)))
-		log.Trace(PackageName, "交易序号", index)
+		//log.Trace(PackageName, "交易序号", index)
 		chooseResultList = append(chooseResultList, tlr.accountList[index])
 	}
 
@@ -279,7 +279,6 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList []common.Address, LotteryM
 	for _, from := range txsCmpResultList {
 
 		//抽取一等奖
-		log.Debug(PackageName, "解析交易from", from)
 		for i := 0; i < len(tlr.lotteryCfg.LotteryInfo); i++ {
 			prizeLevel := tlr.lotteryCfg.LotteryInfo[i].PrizeLevel
 			prizeNum := tlr.lotteryCfg.LotteryInfo[i].PrizeNum
@@ -287,6 +286,7 @@ func (tlr *TxsLottery) lotteryChoose(txsCmpResultList []common.Address, LotteryM
 			if RecordMap[prizeLevel] < prizeNum {
 				util.SetAccountRewards(LotteryMap, from, new(big.Int).Mul(new(big.Int).SetUint64(prizeMoney), util.ManPrice))
 				RecordMap[prizeLevel]++
+				log.Debug(PackageName, "奖励地址", from, "金额MAN", prizeMoney)
 				break
 			}
 		}

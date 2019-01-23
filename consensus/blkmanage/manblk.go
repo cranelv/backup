@@ -2,7 +2,6 @@ package blkmanage
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"reflect"
 	"time"
@@ -166,7 +165,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *mc.BCIntervalInf
 			}
 			bd.preBlockHash = preBlockHash
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Error(LogManBlk, "unkown type",reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -263,7 +262,7 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 			}
 			onlineConsensusResults = data
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -337,9 +336,19 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err
 	}
+	for _,curr := range localBlock.Header().Roots{
+		for _,he := range verifyHeader.Roots{
+			if curr.Cointyp == he.Cointyp{
+				if !curr.TxHash.Equal(he.TxHash){
+					log.WARN(LogManBlk, "共识后的交易本地hash", curr.TxHash.String(), "共识后的交易远程hash", he.TxHash.String(),"coin type",curr.Cointyp)
+				}
+				if !curr.Root.Equal(he.Root){
+					log.WARN(LogManBlk, "finalize root", curr.Root.Hex(), "remote root", he.Root.Hex(),"coin type",curr.Cointyp)
+				}
+			}
+		}
 
-	//log.Info(LogManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
-	//log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", verifyHeader.Root.Hex())
+	}
 
 	// verify election info
 	if err := support.ReElection().VerifyElection(verifyHeader, work.State); err != nil {

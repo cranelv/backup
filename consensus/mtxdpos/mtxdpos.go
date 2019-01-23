@@ -99,7 +99,7 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Hea
 	}
 
 	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, accounts)
-	log.INFO("共识引擎", "版本", string(header.Version), "签名", header.VersionSignatures[0].Bytes(), "版本节点", accounts[0].String())
+	log.Debug("共识引擎", "版本", string(header.Version))
 	if len(verifiedVersion) < targetCount {
 		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errVersionVerifySign
@@ -429,8 +429,6 @@ func (md *MtxDPOS) getValidatorStocks(reader consensus.StateReader, hash common.
 
 func (md *MtxDPOS) graph2ValidatorStocks(topologyInfo *mc.TopologyGraph, electInfo *mc.ElectGraph) map[common.Address]uint16 {
 	stocks := make(map[common.Address]uint16)
-	log.Info("测试测试测试", "拓扑图", topologyInfo.NodeList)
-	log.Info("测试测试测试", "选举", electInfo.ElectList)
 	for _, node := range topologyInfo.NodeList {
 		if node.Type != common.RoleValidator {
 			continue

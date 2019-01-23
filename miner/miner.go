@@ -25,7 +25,7 @@ import (
 
 const (
 	ModuleWork  = "Miner_Work"
-	ModuleMiner = "Miner Miner"
+	ModuleMiner = "Miner"
 )
 
 var (
