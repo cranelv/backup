@@ -352,13 +352,13 @@ func (p *Process) startReqVerifyCommon() {
 	}
 
 	if p.leaderCache.ConsensusState == false {
-		log.WARN(p.logExtraInfo(), "请求验证阶段", "当前leader未共识完成，等待leader消息", "高度", p.number)
+		log.Debug(p.logExtraInfo(), "请求验证阶段", "当前leader未共识完成，等待leader消息", "高度", p.number)
 		return
 	}
 
 	req, err := p.reqCache.GetLeaderReq(p.leaderCache.Leader, p.leaderCache.ConsensusTurn)
 	if err != nil {
-		log.WARN(p.logExtraInfo(), "请求验证阶段,寻找leader的请求错误,继续等待请求", err,
+		log.Debug(p.logExtraInfo(), "请求验证阶段,寻找leader的请求错误,继续等待请求", err,
 			"Leader", p.leaderCache.Leader.Hex(), "轮次", p.leaderCache.ConsensusTurn, "高度", p.number)
 		return
 	}
@@ -601,13 +601,13 @@ func (p *Process) processDPOSOnce() {
 	}
 
 	signs := p.curProcessReq.getVotes()
-	log.INFO(p.logExtraInfo(), "POS验证处理", "执行POS", "投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
+	log.Debug(p.logExtraInfo(), "POS验证处理", "执行POS", "投票数量", len(signs), "hash", p.curProcessReq.hash.TerminalString(), "高度", p.number)
 	rightSigns, err := p.blockChain().DPOSEngine(p.curProcessReq.req.Header.Version).VerifyHashWithVerifiedSignsAndBlock(p.blockChain(), signs, p.curProcessReq.req.Header.ParentHash)
 	if err != nil {
 		log.Trace(p.logExtraInfo(), "POS验证处理", "POS未通过", "err", err, "高度", p.number)
 		return
 	}
-	log.INFO(p.logExtraInfo(), "POS验证处理", "POS通过", "正确签名数量", len(rightSigns), "高度", p.number)
+	log.Info(p.logExtraInfo(), "POS验证处理", "POS通过", "正确签名数量", len(rightSigns), "高度", p.number)
 	p.curProcessReq.posFinished = true
 	p.curProcessReq.req.Header.Signatures = rightSigns
 
@@ -637,7 +637,7 @@ func (p *Process) finishedProcess() {
 		mc.PublishEvent(mc.BlkVerify_POSFinishedNotify, &notify)
 	}
 
-	log.Info(p.logExtraInfo(), "关键时间点", "共识投票完毕，发送挖矿请求", "time", time.Now(), "块高", p.number)
+	log.Trace(p.logExtraInfo(), "关键时间点", "共识投票完毕，发送挖矿请求", "time", time.Now(), "块高", p.number)
 	//给矿工发送区块验证结果
 	p.startSendMineReq(&mc.HD_MiningReqMsg{Header: p.curProcessReq.req.Header})
 	//给广播节点发送区块验证请求(带签名列表)
@@ -651,10 +651,10 @@ func (p *Process) checkState(state State) bool {
 
 func (p *Process) changeState(targetState State) {
 	if p.state == targetState-1 {
-		log.WARN(p.logExtraInfo(), "切换状态成功, 原状态", p.state.String(), "新状态", targetState.String(), "高度", p.number)
+		log.Trace(p.logExtraInfo(), "切换状态成功, 原状态", p.state.String(), "新状态", targetState.String(), "高度", p.number)
 		p.state = targetState
 	} else {
-		log.WARN(p.logExtraInfo(), "切换状态失败, 原状态", p.state.String(), "目标状态", targetState.String(), "高度", p.number)
+		log.Debug(p.logExtraInfo(), "切换状态失败, 原状态", p.state.String(), "目标状态", targetState.String(), "高度", p.number)
 	}
 }
 
