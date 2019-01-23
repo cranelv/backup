@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"fmt"
+
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/baseinterface"
@@ -42,11 +43,14 @@ func GetCommonMap(private map[common.Address][]byte, public map[common.Address][
 
 func GetValidPrivateSum(commonMap map[common.Address]VoteData) *big.Int {
 	PrivateSum := big.NewInt(0)
+	all := uint64(0)
 	for _, v := range commonMap {
 		if CheckVoteDataIsCompare(v.PrivateData, v.PublicData) {
 			PrivateSum.Add(PrivateSum, common.BytesToHash(v.PrivateData).Big())
+			all++
 		}
 	}
+	log.Trace(ModeleRandomCommon, "累加的有效私钥个数为", all)
 	return PrivateSum
 }
 
@@ -136,8 +140,14 @@ func GetValidVoteSum(hash common.Hash, support baseinterface.RandomChainSupport)
 	}
 
 	PrivateMap := getKeyTransInfo(preBroadcastRoot.LastStateRoot, mc.Privatekey, support)
-	PublicMap := getKeyTransInfo(preBroadcastRoot.BeforeLastStateRoot, mc.Publickey, support)
 
+	PublicMap := getKeyTransInfo(preBroadcastRoot.BeforeLastStateRoot, mc.Publickey, support)
+	for k, v := range PrivateMap {
+		log.Trace(ModeleRandomCommon, "私钥，地址", k.Hex(), "数据", v)
+	}
+	for k, v := range PublicMap {
+		log.Trace(ModeleRandomCommon, "公钥，地址", k.Hex(), "数据", v)
+	}
 	commonMap := GetCommonMap(PrivateMap, PublicMap)
 	MapAns := GetValidPrivateSum(commonMap)
 	return MapAns, nil

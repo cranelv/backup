@@ -14,6 +14,7 @@ import (
 	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -151,9 +152,7 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 }
 
 func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, error) {
-
 	result := &ElectReturnInfo{}
-	//todo 从hash获取state， 得全拓扑
 	height, err := self.GetNumberByHash(hash)
 	log.INFO(Module, "GetNetTopologyAll", "start", "height", height)
 	defer log.INFO(Module, "GetNetTopologyAll", "end", "height", height)
@@ -166,28 +165,38 @@ func (self *ReElection) GetNetTopologyAll(hash common.Hash) (*ElectReturnInfo, e
 		log.ERROR(Module, "根据hash获取广播周期信息 err", err)
 		return nil, err
 	}
-	if bcInterval.IsReElectionNumber(height + 2) {
-		masterV, backupV, _, err := self.GetTopNodeInfo(hash, common.RoleValidator)
-		if err != nil {
-			log.ERROR(Module, "获取验证者全拓扑图失败 err", err)
-			return nil, err
-		}
-		masterM, backupM, _, err := self.GetTopNodeInfo(hash, common.RoleMiner)
-		if err != nil {
-			log.ERROR(Module, "获取矿工全拓扑图失败 err", err)
-			return nil, err
-		}
-
-		result = &ElectReturnInfo{
-			MasterMiner:     masterM,
-			BackUpMiner:     backupM,
-			MasterValidator: masterV,
-			BackUpValidator: backupV,
-		}
-		log.INFO(Module, "是299 height", height)
+	if bcInterval.IsReElectionNumber(height+2) == false {
+		log.Info(Module, "不是广播区间前一块 不处理 height", height+1)
 		return result, nil
-
 	}
-	log.Info(Module, "不是广播区间前一块 不处理 height", height)
+
+	stateDB, err := self.bc.StateAtBlockHash(hash)
+	if err != nil {
+		log.ERROR(Module, "获取state失败", err)
+		return nil, err
+	}
+	electGraph, err := matrixstate.GetElectGraph(stateDB)
+	if err != nil || electGraph == nil {
+		log.ERROR(Module, "获取elect graph 失败", err)
+		return nil, errors.Errorf("获取elect graph 失败: %v", err)
+	}
+
+	masterV, backupV, _, err := self.GetNextElectNodeInfo(electGraph, common.RoleValidator)
+	if err != nil {
+		log.ERROR(Module, "获取验证者全拓扑图失败 err", err)
+		return nil, err
+	}
+	masterM, backupM, _, err := self.GetNextElectNodeInfo(electGraph, common.RoleMiner)
+	if err != nil {
+		log.ERROR(Module, "获取矿工全拓扑图失败 err", err)
+		return nil, err
+	}
+
+	result.MasterMiner = masterM
+	result.BackUpMiner = backupM
+	result.MasterValidator = masterV
+	result.BackUpValidator = backupV
+
 	return result, nil
+
 }

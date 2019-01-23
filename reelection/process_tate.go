@@ -69,8 +69,9 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.Pr
 				electList = append(electList, v)
 			}
 		}
-		electStates.ElectList = []mc.ElectNodeInfo{}
-		electStates.ElectList = append(electStates.ElectList, electList...)
+		electStates.ElectList = append([]mc.ElectNodeInfo{}, electList...)
+		electStates.NextMinerElect = []mc.ElectNodeInfo{}
+		electStates.NextValidatorElect = []mc.ElectNodeInfo{}
 	}
 	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
 	return electStates, nil
@@ -91,15 +92,27 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 		return nil, err
 	}
 	bcInterval, OK := bciData.(*mc.BCIntervalInfo)
-	if err != nil {
+	if OK == false {
 		log.Error(Module, "ProduceElectOnlineStateData broadcast interval reflect err", err)
+		return nil, errors.New("broadcast interval reflect failed")
 	}
 
 	if bcInterval.IsReElectionNumber(height + 1) {
 		electOnline := &mc.ElectOnlineStatus{
 			Number: height,
 		}
-		masterV, backupV, CandV, err := self.GetTopNodeInfo(block.Header().ParentHash, common.RoleValidator)
+
+		electData, err := readFn(mc.MSKeyElectGraph)
+		if err != nil {
+			log.Error(Module, "ProduceElectOnlineStateData read preElectGraph err", err)
+			return nil, err
+		}
+		electGraph, OK := electData.(*mc.ElectGraph)
+		if OK == false {
+			log.Error(Module, "ProduceElectOnlineStateData preElectGraph reflect failed", err)
+			return nil, errors.New("preElectGraph reflect failed")
+		}
+		masterV, backupV, CandV, err := self.GetNextElectNodeInfo(electGraph, common.RoleValidator)
 		if err != nil {
 			log.ERROR(Module, "获取验证者全拓扑图失败 err", err)
 			return nil, err

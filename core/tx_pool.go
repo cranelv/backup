@@ -80,7 +80,7 @@ var (
 	ErrTXPoolFull      = errors.New("txpool is full")
 	ErrTXNonceSame     = errors.New("the same Nonce transaction exists")
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
-	ErrWithoutAuth     = errors.New("not be set entrust gas")
+	ErrWithoutAuth     = errors.New("gas entrust not set ")
 	ErrinterestAmont   = errors.New("Incorrect total interest")
 	ErrSpecialTxFailed = errors.New("Run special tx failed")
 )
@@ -469,7 +469,7 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 	switch data.Msgtype {
 	case SendFloodSN:
 		if selfRole == common.RoleValidator || selfRole == common.RoleMiner {
-			log.Info("===Transaction flood", "selfRole", selfRole)
+			log.Info("txpool transaction flood", "selfRole", selfRole)
 			p2p.SendToGroupWithBackup(common.RoleValidator|common.RoleBackupValidator|common.RoleBroadcast, common.NetworkMsg, []interface{}{data})
 		}
 	case GetTxbyN, RecvTxbyN, GetConsensusTxbyN, RecvConsensusTxbyN: //
@@ -514,7 +514,7 @@ func (nPool *NormalTxPool) ListenUdp() {
 		select {
 		//udp接收的交易，此处应该只发给验证节点
 		case evtxs := <-nPool.udptxsCh:
-			log.Info("====== =====", "checklist: udptxs:", len(evtxs))
+			log.Info("txpool listenudp", "checklist: udptxs:", len(evtxs))
 			selfRole := ca.GetRole()
 			if selfRole == common.RoleValidator {
 				tmptxs := make([]*types.Transaction, 0)
@@ -533,7 +533,7 @@ func (nPool *NormalTxPool) ListenUdp() {
 					if tmptx == nil {
 						_, err := nPool.add(tx, false)
 						if err != nil {
-							log.Info("======error tx", "err:", err)
+							log.Info("txpool listenudp", "listenudp err:", err)
 						}
 					}
 				}
@@ -673,8 +673,8 @@ func (nPool *NormalTxPool) getPendingTx() {
 
 // 检查当前map中是否存在洪泛过来的交易
 func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid common.Address) {
-	log.Info("msg_CheckTx IN", "len(mapSN)", len(mapSN))
-	defer log.Info("msg_CheckTx OUT")
+	log.Info("txpool msg_CheckTx IN", "len(mapSN)", len(mapSN))
+	defer log.Info("txpool msg_CheckTx OUT")
 	listN := make([]uint32, 0)
 	nPool.mu.Lock()
 	for n, s := range mapSN {
@@ -708,7 +708,7 @@ func (nPool *NormalTxPool) CheckTx(mapSN map[uint32]*big.Int, nid common.Address
 
 // 接收到Leader打包的交易共识消息时根据N获取tx (调用本方法需要启动协程)
 func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr common.Address, retch chan *RetChan_txpool) {
-	log.Info("file txpool", "ReturnAllTxsByN:len(listN)", len(listN))
+	log.Info("txpool returnAllTxsByN", "len(listN)", len(listN))
 	if len(listN) <= 0 {
 		retch <- &RetChan_txpool{nil, nil, resqe}
 		return
@@ -743,7 +743,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 		for {
 			select {
 			case <-rettime.C:
-				log.Info("File txpool", "ReturnAllTxsByN:Time Out=", 0)
+				log.Info("txpool returnAllTxsByN", "Time Out=", 0)
 				break forBreak
 			case <-time.After(500 * time.Millisecond): //500毫秒轮训一次
 				tmpns := make([]uint32, 0)
@@ -787,7 +787,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 
 // (共识要交易)根据N值获取对应的交易(modi  )
 func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address) {
-	log.Trace("file txpool ", "msg_GetConsensusTxByN:len(listN)", len(listN))
+	log.Trace("txpool GetConsensusTxByN ", "msg_GetConsensusTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
 	}
@@ -799,12 +799,12 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address)
 			ntx := &ConsensusNTx{n, tx}
 			mapNtx = append(mapNtx, ntx)
 		} else {
-			log.Info("file txpool", "func msg_GetConsensusTxByN", "tx is nil")
+			log.Info("txpool getConsensusTxByN: tx is nil")
 		}
 	}
 	if len(mapNtx) != len(listN) {
 		tmpMap := txpoolCache.GetTxByN_Cache(listN, nPool.chain.CurrentBlock().Number().Uint64())
-		log.Info("txpool", "msg_GetConsensusTxByNlen(tmpMap)", len(tmpMap))
+		log.Info("txpool getConsensusTxByN", "len(tmpMap)", len(tmpMap))
 		if tmpMap != nil {
 			if len(tmpMap) == len(listN) {
 				for k, v := range tmpMap {
@@ -812,7 +812,7 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address)
 					mapNtx = append(mapNtx, ntx)
 				}
 			} else {
-				log.Info("txpool", "Amsg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
+				log.Info("txpool getConsensusTxByN", "len(mapNtx)", len(mapNtx))
 				for _, n := range listN {
 					tx := nPool.getTxbyN(n, false)
 					if tx != nil {
@@ -825,7 +825,6 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address)
 						}
 					}
 				}
-				log.Info("txpool", "Bmsg_GetConsensusTxByNlen(mapNtx)", len(mapNtx))
 			}
 		}
 	}
@@ -833,15 +832,15 @@ func (nPool *NormalTxPool) GetConsensusTxByN(listN []uint32, nid common.Address)
 	msData, err := rlp.EncodeToBytes(mapNtx)
 	if err == nil {
 		nPool.SendMsg(MsgStruct{Msgtype: RecvConsensusTxbyN, SendAddr: nid, MsgData: msData})
-		log.Trace("file txpool", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
+		log.Trace("txpool getConsensusTxByN", "GetConsensusTxByN:ntxMap", len(mapNtx), "nodeid", nid.String())
 	} else {
-		log.Trace("file tx_pool", "func GetConsensusTxByN:EncodeToBytes err", err)
+		log.Trace("tx_pool getConsensusTxByN", "GetConsensusTxByN:EncodeToBytes err", err)
 	}
 }
 
 // 根据N值获取对应的交易(洪泛)
 func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid common.Address) {
-	log.Trace("file txpool", "msg_GetTxByN:len(listN)", len(listN))
+	log.Trace("txpool getTxByN", "msg_GetTxByN:len(listN)", len(listN))
 	if len(listN) <= 0 {
 		return
 	}
@@ -853,7 +852,7 @@ func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid common.Address) {
 			ftx := types.GetFloodData(tx)
 			mapNtx[n] = ftx
 		} else {
-			log.Info("file txpool", "func msg_GetTxByN", "tx is nil")
+			log.Info("txpool getTxByN :tx is nil")
 		}
 	}
 	nPool.mu.Unlock()
@@ -863,8 +862,8 @@ func (nPool *NormalTxPool) GetTxByN(listN []uint32, nid common.Address) {
 
 //此接口传的交易带s(modi  )
 func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTransaction, nid common.Address) {
-	log.Info("func msg_RecvConsensusFloodTx", "len(mapNtx)=", len(mapNtx))
-	defer log.Info("func msg_RecvConsensusFloodTx defer ", "len(mapNtx)=", 0)
+	log.Trace("msg_RecvConsensusFloodTx", "len(mapNtx)=", len(mapNtx))
+	defer log.Trace("msg_RecvConsensusFloodTx defer ", "len(mapNtx)=", 0)
 	errorTxs := make([]*big.Int, 0)
 	txs := make([]*types.Transaction, 0)
 	tmpNtx := make(map[uint32]*types.Transaction)
@@ -888,7 +887,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		tmpNtx[n] = tx
 	}
 	nPool.getFromByTx(txs)
-	log.Info("msg_RecvConsensusFloodTx()", "len(mapNtx)=", len(tmpNtx))
+	log.Info("txpool msg_RecvConsensusFloodTx()", "len(mapNtx)=", len(tmpNtx))
 	nPool.mu.Lock()
 	for n, tx := range tmpNtx {
 		ts, ok := nPool.mapNs.Load(n)
@@ -897,7 +896,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 		}
 		s := ts.(*big.Int)
 		if s == nil || n == 0 { //如果S或者N 不合法则直接跳过
-			log.Info("msg_RecvConsensusFloodTx()", "s or n is nil : s ", s, "n:", n)
+			log.Info("txpool msg_RecvConsensusFloodTx()", "s or n is nil : s ", s, "n:", n)
 			continue
 		}
 		isExist := true
@@ -916,7 +915,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 			nPool.setnTx(n, tx, false)
 			nlist = append(nlist, n)
 		} else {
-			log.Info("msg_RecvConsensusFloodTx", "msg_RecvConsensusFloodTx,tx`s N is same", "continue")
+			log.Info("txpool msg_RecvConsensusFloodTx,tx N is same")
 		}
 	}
 	if len(nlist) > 0 {
@@ -926,7 +925,7 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 	if len(errorTxs) > 0 {
 		msData, err := json.Marshal(errorTxs)
 		if err != nil {
-			log.Error("function msg_RecvConsensusFloodTx", "send error Tx,json.Marshal is err:", err)
+			log.Error("txpool msg_RecvConsensusFloodTx", "send error Tx,Marshal err:", err)
 		} else {
 			nPool.SendMsg(MsgStruct{Msgtype: RecvErrTx, SendAddr: nid, MsgData: msData})
 			nPool.RecvErrTx(common.Address{}, errorTxs)
@@ -936,8 +935,8 @@ func (nPool *NormalTxPool) RecvConsensusFloodTx(mapNtx map[uint32]types.SelfTran
 
 // 接收洪泛的交易（根据N请求到的交易）
 func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid common.Address) {
-	log.Info("func msg_RecvFloodTx", "msg_RecvFloodTx: len(mapNtx)=", len(mapNtx))
-	defer log.Info("func msg_RecvFloodTx defer ", "msg_RecvFloodTx: len(mapNtx)=", 0)
+	log.Trace("msg_RecvFloodTx", "msg_RecvFloodTx: len(mapNtx)=", len(mapNtx))
+	defer log.Trace("msg_RecvFloodTx defer ", "msg_RecvFloodTx: len(mapNtx)=", 0)
 	errorTxs := make([]*big.Int, 0)
 	txs := make([]*types.Transaction, 0)
 	tmpNtx := make(map[uint32]*types.Transaction)

@@ -242,5 +242,22 @@ var (
 				"修改sendrawtransaction发送方式",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.30",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改超级交易这是错误类型的币种时panic问题",
+				"修改交易相关的日志打印格式",
+				"用协程生成快照(yeting)",
+			},
+		},
+		{
+			Version:   "Gman_Alg_0.0.31",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"公私钥增加打印",
+				"矿工和验证者生成时间点修改支持合约及时生效",
+			},
+		},
 	}
 )

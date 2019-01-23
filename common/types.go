@@ -463,7 +463,10 @@ const (
 	ExtraSuperBlockTx  byte = 120 //超级区块交易
 )
 
-var WhiteAddrlist = [1]Address{InterestRewardAddress}
+var (
+	WhiteAddrlist = [1]Address{InterestRewardAddress}
+	RewardAccounts = [5]Address{BlkMinerRewardAddress,BlkValidatorRewardAddress,TxGasRewardAddress,LotteryRewardAddress,InterestRewardAddress}
+)
 
 const (
 	RewardNomalType   byte = 0 //奖励通过普通交易发放
@@ -539,27 +542,27 @@ type SMakeCoin struct {
 
 
 type BroadTxkey struct {
-	key     string
-	address Address
+	Key     string
+	Address Address
 }
 type BroadTxValue struct {
-	key   BroadTxkey
-	value []byte
+	Key   BroadTxkey
+	Value []byte
 }
 
 func Greater(a, b BroadTxkey) bool {
-	if a.key > b.key {
+	if a.Key > b.Key {
 		return true
-	} else if a.key == b.key {
-		return bytes.Compare(a.address[:], b.address[:]) > 0
+	} else if a.Key == b.Key {
+		return bytes.Compare(a.Address[:], b.Address[:]) > 0
 	}
 	return false
 }
 func Less(a, b BroadTxkey) bool {
-	if a.key < b.key {
+	if a.Key < b.Key {
 		return true
-	} else if a.key == b.key {
-		return bytes.Compare(a.address[:], b.address[:]) < 0
+	} else if a.Key == b.Key {
+		return bytes.Compare(a.Address[:], b.Address[:]) < 0
 	}
 	return false
 }
@@ -568,7 +571,7 @@ type BroadTxSlice []BroadTxValue
 
 func (si *BroadTxSlice) Insert(key string, address Address, value []byte) {
 	insValue := BroadTxValue{BroadTxkey{key, address}, value}
-	index, exist := find(insValue.key, si)
+	index, exist := find(insValue.Key, si)
 	if exist {
 		(*si)[index] = insValue
 	} else {
@@ -578,8 +581,8 @@ func (si *BroadTxSlice) Insert(key string, address Address, value []byte) {
 func (si *BroadTxSlice) FindKey(key string) map[Address][]byte {
 	firstKey := BroadTxkey{key, Address{}}
 	endKey := BroadTxkey{key, Address{}}
-	for i := 0; i < len(endKey.address); i++ {
-		endKey.address[i] = 0xff
+	for i := 0; i < len(endKey.Address); i++ {
+		endKey.Address[i] = 0xff
 	}
 	first, exist := find(firstKey, si)
 	last, exist1 := find(endKey, si)
@@ -591,14 +594,14 @@ func (si *BroadTxSlice) FindKey(key string) map[Address][]byte {
 	}
 	valueMap := make(map[Address][]byte, last-first)
 	for ; first < last; first++ {
-		valueMap[(*si)[first].key.address] = (*si)[first].value
+		valueMap[(*si)[first].Key.Address] = (*si)[first].Value
 	}
 	return valueMap
 }
 func (si *BroadTxSlice) FindValue(key string, address Address) ([]byte, bool) {
 	index, exist := find(BroadTxkey{key, address}, si)
 	if exist {
-		return (*si)[index].value, true
+		return (*si)[index].Value, true
 	} else {
 		return nil, false
 	}
@@ -610,9 +613,9 @@ func find(k BroadTxkey, info *BroadTxSlice) (int, bool) {
 	}
 	for {
 		mid = (left + right) / 2
-		if Greater((*info)[mid].key, k) {
+		if Greater((*info)[mid].Key, k) {
 			right = mid - 1
-		} else if Less((*info)[mid].key, k) {
+		} else if Less((*info)[mid].Key, k) {
 			left = mid + 1
 		} else {
 			return mid, true
@@ -669,7 +672,6 @@ func IsValidityManCurrency(s string) bool {
 			return false
 		}
 	}
-
 	return true
 }
 

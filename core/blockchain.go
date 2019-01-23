@@ -963,11 +963,11 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
-				bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
 			}
 		} else {
 			if block.NumberU64()%SaveSnapPeriod == 5 {
-				bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 			}
 		}
 		stats.processed++
@@ -1081,11 +1081,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
-			bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
 		}
 	} else {
 		if block.NumberU64()%SaveSnapPeriod == 5 {
-			bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 		}
 	}
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
@@ -2066,8 +2066,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 		}
 		txs := currencie.Transactions.GetTransactions()
 
-		//txs := block.Transactions()
-		if len(txs) == 0 || len(txs) > 2 {
+		if len(txs) != 2 {
 			return errors.Errorf("super block's txs count(%d) err", len(txs))
 		}
 
@@ -2078,12 +2077,10 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 		if tx.Nonce() != block.NumberU64() {
 			return errors.Errorf("super block's tx nonce(%d) err, != block number(%d)", tx.Nonce(), block.NumberU64())
 		}
-
 		var alloc GenesisAlloc
 		if err := alloc.UnmarshalJSON(tx.Data()); err != nil {
 			return errors.Errorf("super block: unmarshal alloc info err(%v)", err)
 		}
-
 		for addr, account := range alloc {
 			stateDB.SetBalance(tx.GetTxCurrency(), common.MainAccount, addr, account.Balance)
 			stateDB.SetCode(tx.GetTxCurrency(), addr, account.Code)
@@ -2093,15 +2090,17 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 			}
 		}
 		mState := new(GenesisMState)
-		if 2 == len(txs) {
-			tx1 := txs[1]
-			mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), block.Header().Number.Uint64())
-			if err := json.Unmarshal(tx1.Data(), mState); err != nil {
+		txMState := txs[1]
+		if tx.GetMatrixType() != common.ExtraSuperBlockTx {
+			return errors.Errorf("super block's matrix state tx type(%d) err", tx.TxType())
+		}
+		if len(txMState.Data()) > 0 {
+			if err := json.Unmarshal(txMState.Data(), mState); err != nil {
 				return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
 			}
-			//mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, block.Header().Number.Uint64())
-
 		}
+		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), block.Header().Number.Uint64())
+
 		if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
 			log.Error("genesis", "设置matrix状态树错误", err)
 			return errors.Errorf("设置超级区块状态树错误", err)

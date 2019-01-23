@@ -1005,8 +1005,10 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NoDiscovery = true
 	}
 	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
-		innerAddr := base58.Base58DecodeToAddress(manAddr)
-		cfg.ManAddress = innerAddr
+		innerAddr ,err := base58.Base58DecodeToAddress(manAddr)
+		if err == nil{
+			cfg.ManAddress = innerAddr
+		}
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery

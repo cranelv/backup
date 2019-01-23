@@ -249,7 +249,10 @@ func (ac *accountCache) scanAccounts() error {
 		err = json.NewDecoder(buf).Decode(&key)
 		//addr := common.HexToAddress(key.Address)//需修改
 		strAddr := key.Address
-		addr := base58.Base58DecodeToAddress(strAddr)
+		addr ,err := base58.Base58DecodeToAddress(strAddr)
+		if err != nil{
+			return nil
+		}
 		switch {
 		case err != nil:
 			log.Debug("Failed to decode keystore key", "path", path, "err", err)
