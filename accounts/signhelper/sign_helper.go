@@ -147,7 +147,7 @@ func (sh *SignHelper) SignHashWithValidate(hash []byte, validate bool, blkHash c
 func (sh *SignHelper) SignHashWithValidateByAccount(hash []byte, validate bool, account common.Address) (common.Signature, error) {
 	signAccount, password, err := sh.authReader.GetSignAccountPassword([]common.Address{account})
 	if err != nil {
-		log.Error(ModeLog, "SignHashWithValidateByAccount", "获取密码失败", "err", err, "account", account.Hex())
+		log.Error(ModeLog, "account", account.Hex(), "签名失败", err)
 		return common.Signature{}, errors.New("get sign account password err!")
 	}
 
@@ -186,7 +186,7 @@ func (sh *SignHelper) SignTx(tx types.SelfTransaction, chainID *big.Int, blkHash
 func (sh *SignHelper) SignVrfByAccount(msg []byte, account common.Address) ([]byte, []byte, []byte, error) {
 	signAccount, password, err := sh.authReader.GetSignAccountPassword([]common.Address{account})
 	if err != nil {
-		log.Error(ModeLog, "SignVrfByAccount", "获取密码失败", "err", err, "account", account.Hex())
+		log.Error(ModeLog, "VRFaccount", account.Hex(), "签名失败", err)
 		return nil, nil, nil, errors.New("get sign account password err!")
 	}
 
@@ -252,7 +252,6 @@ func (sh *SignHelper) VerifySignWithValidateDependHash(signHash []byte, sig []by
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	accountA0, accountA1, err := sh.authReader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr, "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0, "A1Account", accountA1.Hex())
 	return accountA0, accountA1, flag, err
 }
 
@@ -263,6 +262,5 @@ func (sh *SignHelper) VerifySignWithValidateByReader(reader AuthReader, signHash
 	addr, flag, err := crypto.VerifySignWithValidate(signHash, sig)
 
 	accountA0, accountA1, err := reader.GetA0AccountFromAnyAccount(addr, blkHash)
-	log.ERROR(ModeLog, "addr", addr.Hex(), "hash", blkHash.TerminalString(), "err", err, "A0Account", accountA0.Hex(), "A1Account", accountA1.Hex())
 	return accountA0, accountA1, flag, err
 }
