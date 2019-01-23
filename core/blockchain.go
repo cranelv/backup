@@ -2533,7 +2533,8 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 	var tmpSanpInfo types.SnapSaveInfo
 	times := blockNum / uint64(period)
 	NewBlocknum := uint64(period) * times
-
+	bc.mu.Lock()
+	bc.mu.Unlock()
 	getSnapshotNums := func(num uint64, bc *BlockChain) (nums []uint64) {
 		nums = make([]uint64, 0)
 
