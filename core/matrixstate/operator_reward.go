@@ -992,7 +992,7 @@ func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return make([]common.Address, 0), nil
+		return make([]string, 0), nil
 	}
 	currencylist := make([]string, 0)
 	err := json.Unmarshal(data, &currencylist)

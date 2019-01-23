@@ -407,3 +407,19 @@ func GetAccountBlackList(st StateDB) ([]common.Address, error) {
 	}
 	return value.([]common.Address), nil
 }
+func GetCoinPackLimt(st StateDB) ([]string, error) {
+	version := GetVersionInfo(st)
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSCurrencyPack)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.([]string), nil
+}

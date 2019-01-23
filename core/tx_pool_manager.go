@@ -235,6 +235,20 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return txser, nil
 }
+
+func GetMatrixCoin(state *state.StateDBManage) ([]string, error) {
+	bs := state.GetMatrixData(types.RlpHash(params.COIN_NAME))
+	var coinlist []string
+	if len(bs)>0{
+		err := json.Unmarshal(bs,&coinlist)
+		if err != nil{
+			log.Trace("get matrix coin","unmarshal err",err)
+			return nil, err
+		}
+	}
+	return coinlist , nil
+}
+
 func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage) bool{
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
 	//state, err := pm.chain.State()

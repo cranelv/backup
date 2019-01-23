@@ -194,31 +194,46 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 // PublicAccountAPI provides an API to access accounts managed by this node.
 // It offers only methods that can retrieve accounts.
 type PublicAccountAPI struct {
-	am *accounts.Manager
+	b Backend
+	//am *accounts.Manager
 }
 
 // NewPublicAccountAPI creates a new PublicAccountAPI.
-func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
-	return &PublicAccountAPI{am: am}
+func NewPublicAccountAPI(b Backend/*,am *accounts.Manager*/) *PublicAccountAPI {
+	return &PublicAccountAPI{b:b}
 }
 
 // Accounts returns the collection of accounts this node manages
-func (s *PublicAccountAPI) Accounts() []string {
-	//addresses := make([]common.Address, 0) // return [] instead of nil if empty
-	strAddrList := make([]string, 0)
+func (s *PublicAccountAPI) Accounts() [][]string {
+	state, err := s.b.GetState()
+	if state == nil || err != nil {
+		return nil
+	}
+	coinlist,err := core.GetMatrixCoin(state)
+	if err != nil{
+		return nil
+	}
 	var tmpstr string
-	for _, wallet := range s.am.Wallets() {
+	var strMulAddrList [][]string
+	for _, wallet := range s.b.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
+			var mulAccounts [][]string
+			accountlist := make([]string,0)
 			strAddr := base58.Base58EncodeToString("MAN", account.Address)
 			if tmpstr == strAddr {
 				continue
 			}
 			tmpstr = strAddr
-			strAddrList = append(strAddrList, strAddr)
+			accountlist = append(accountlist,tmpstr)
+			for _,coin := range coinlist{
+				accountlist = append(accountlist,base58.Base58EncodeToString(coin, account.Address))
+			}
+			mulAccounts = append(mulAccounts,accountlist)
+			strMulAddrList = append(strMulAddrList, mulAccounts...)
 		}
 	}
 
-	return strAddrList
+	return strMulAddrList
 }
 
 // PrivateAccountAPI provides an API to access accounts managed by this node.
