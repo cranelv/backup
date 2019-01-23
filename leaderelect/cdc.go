@@ -56,7 +56,7 @@ func newCDC(number uint64, chain *core.BlockChain, logInfo string) *cdc {
 	return dc
 }
 
-func (dc *cdc) AnalysisState(parentHeader *types.Header, preIsSupper bool, parentState StateReader) error {
+func (dc *cdc) AnalysisState(parentHeader *types.Header, parentState StateReader) error {
 	if parentState == nil || parentHeader == nil {
 		return errors.New("parent state or parentHeader is nil")
 	}
@@ -78,7 +78,7 @@ func (dc *cdc) AnalysisState(parentHeader *types.Header, preIsSupper bool, paren
 		return err
 	}
 
-	if err := dc.leaderCal.SetValidatorsAndSpecials(parentHeader, preIsSupper, validators, specials, bcInterval); err != nil {
+	if err := dc.leaderCal.SetValidatorsAndSpecials(parentHeader, validators, specials, bcInterval); err != nil {
 		return err
 	}
 
