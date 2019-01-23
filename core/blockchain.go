@@ -1972,7 +1972,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	}
 
 	if _, err := bc.StateAt(block.Root()); err != nil {
-		log.Error("hyk", "get state err", err, "root", block.Root())
+		log.Error(ModuleName, "get state err", err, "root", block.Root())
 	}
 
 	return block, nil
@@ -2122,7 +2122,7 @@ func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address, blockH
 		log.Error(common.SignLog, "从A0账户获取A1账户", "失败", "不存在A1账户 a0Account", a0Account)
 		return common.Address{}, errors.New("不存在A1账户")
 	}
-//	log.Info(common.SignLog, "从A0账户获取A1账户", "成功", "存在A1账户 a0Account", a0Account, "a1Account", a1Account)
+	//	log.Info(common.SignLog, "从A0账户获取A1账户", "成功", "存在A1账户 a0Account", a0Account, "a1Account", a1Account)
 	return a1Account, nil
 }
 
