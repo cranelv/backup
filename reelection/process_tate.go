@@ -72,7 +72,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.Pr
 		electStates.NextMinerElect = []mc.ElectNodeInfo{}
 		electStates.NextValidatorElect = []mc.ElectNodeInfo{}
 	}
-	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
+	//log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
 	return electStates, nil
 }
 
