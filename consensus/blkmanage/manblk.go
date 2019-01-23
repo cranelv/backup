@@ -2,7 +2,6 @@ package blkmanage
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"reflect"
 	"time"
@@ -166,7 +165,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *mc.BCIntervalInf
 			}
 			bd.preBlockHash = preBlockHash
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -261,7 +260,7 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 			}
 			onlineConsensusResults = data
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
 		}
 
 	}
