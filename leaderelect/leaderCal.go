@@ -69,7 +69,7 @@ func (self *leaderCalculator) SetValidatorsAndSpecials(preHeader *types.Header, 
 		log.Error(self.logInfo, "计算leader列表", "获取真实的preLeader失败", "err", err)
 		return err
 	}
-	log.INFO(self.logInfo, "计算leader列表", "开始", "preLeader", realPreLeader.Hex(), "前区块中出现超级区块", preAppearSuper, "高度", self.number)
+	log.Trace(self.logInfo, "计算leader列表", "开始", "preLeader", realPreLeader.Hex(), "前区块中出现超级区块", preAppearSuper, "高度", self.number)
 	leaderList, err := calLeaderList(realPreLeader, self.number, preAppearSuper, validators, bcInterval)
 	if err != nil {
 		return err
