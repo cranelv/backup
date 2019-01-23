@@ -61,9 +61,9 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 		return nil, err
 	}
 
-	log.INFO(Module, "开始获取选举信息 hash", hash.String())
+	//log.INFO(Module, "开始获取选举信息 hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
-	log.INFO(Module, "preElectGraph", preElectGraph, "高度", height, "err", err)
+	//log.INFO(Module, "preElectGraph", preElectGraph, "高度", height, "err", err)
 	if err != nil {
 		log.Error(Module, "GetElection", "获取hash的高度失败")
 		return nil, err
@@ -92,7 +92,7 @@ func (self *ReElection) GetElection(state *state.StateDB, hash common.Hash) (*El
 		}
 	}
 
-	log.INFO(Module, "不是任何网络切换时间点 height", height)
+	//log.INFO(Module, "不是任何网络切换时间点 height", height)
 
 	return data, nil
 }
