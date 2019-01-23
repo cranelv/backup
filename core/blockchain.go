@@ -2439,6 +2439,8 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 	times := blockNum / uint64(period)
 	NewBlocknum := uint64(period) * times
 
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
 	getSnapshotNums := func(num uint64, bc *BlockChain) (nums []uint64) {
 		nums = make([]uint64, 0)
 
@@ -2470,6 +2472,7 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 	tmpstatedb, stateerr := bc.State()
 	if stateerr != nil {
 		log.Error("BlockChain savesnapshot ", "open state fialed,err ", stateerr)
+		return
 	}
 
 	preBCRoot, err := matrixstate.GetPreBroadcastRoot(tmpstatedb)
@@ -2523,14 +2526,14 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		//	log.Info("dump0 info", "MatrixData", common.Bytes2Hex(v.GetKey), "data", v)
 		//}
 
-		dump0 := statedb.RawDump()
-		log.Info("BlockChain savesnapshot dump info", "root", dump0.Root)
-		for k, v := range dump0.Accounts {
-			log.Info("BlockChain savesnapshot dump info", "accout", k, "data", v)
-		}
-		for k, v := range dump0.MatrixData {
-			log.Info("BlockChain savesnapshot dump info", "MatrixData", k, "data", v)
-		}
+		//dump0 := statedb.RawDump()
+		//log.Info("BlockChain savesnapshot dump info", "root", dump0.Root)
+		//for k, v := range dump0.Accounts {
+		//	log.Info("BlockChain savesnapshot dump info", "accout", k, "data", v)
+		//}
+		//for k, v := range dump0.MatrixData {
+		//	log.Info("BlockChain savesnapshot dump info", "MatrixData", k, "data", v)
+		//}
 
 		//dump1 := statedb.RawDump1(&dumpDB)
 		//log.Info("dump info", "root", dump1.Root)
