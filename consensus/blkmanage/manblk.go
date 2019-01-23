@@ -165,7 +165,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *mc.BCIntervalInf
 			}
 			bd.preBlockHash = preBlockHash
 		default:
-			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
+			log.Error(LogManBlk, "unkown type",reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -333,8 +333,12 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		return nil, nil, nil, nil, err
 	}
 
-	log.Info(LogManBlk, "共识后的交易本地hash", localBlock.TxHash(), "共识后的交易远程hash", verifyHeader.TxHash)
-	log.Info("miss tree node debug", "finalize root", localBlock.Root().Hex(), "remote root", verifyHeader.Root.Hex())
+	if !localBlock.TxHash().Equal(verifyHeader.TxHash){
+		log.WARN(LogManBlk, "共识后的交易本地hash", localBlock.TxHash().String(), "共识后的交易远程hash", verifyHeader.TxHash.String())
+	}
+	if !localBlock.Root().Equal(verifyHeader.Root){
+		log.WARN(LogManBlk, "finalize root", localBlock.Root().Hex(), "remote root", verifyHeader.Root.Hex())
+	}
 
 	// verify election info
 	if err := support.ReElection().VerifyElection(verifyHeader, work.State); err != nil {

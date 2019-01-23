@@ -188,7 +188,7 @@ func (p *Process) startBlockInsert(blkInsertMsg *mc.HD_BlockInsertNotify) {
 	log.INFO(p.logExtraInfo(), "区块插入", "启动", "区块 hash", blockHash.TerminalString(), "from", blkInsertMsg.From.Hex(), "高度", p.number)
 
 	if p.checkRepeatInsert(blockHash) {
-		log.WARN(p.logExtraInfo(), "插入区块已处理", p.number, "区块 hash", blockHash.TerminalString())
+		log.Trace(p.logExtraInfo(), "插入区块已处理", p.number, "区块 hash", blockHash.TerminalString())
 		return
 	}
 
@@ -235,7 +235,6 @@ func (p *Process) canInsertBlock(bcInterval *mc.BCIntervalInfo, header *types.He
 			log.WARN(p.logExtraInfo(), "广播区块插入消息非法，签名人不是广播身份, 角色", role.String())
 			return false
 		}
-		log.Info(p.logExtraInfo(), "开始插入", "广播区块")
 	} else {
 		if err := p.blockChain().DPOSEngine(header.Version).VerifyBlock(p.blockChain(), header); err != nil {
 			log.ERROR(p.logExtraInfo(), "区块插入消息DPOS共识失败", err)
@@ -247,7 +246,6 @@ func (p *Process) canInsertBlock(bcInterval *mc.BCIntervalInfo, header *types.He
 			return false
 		}
 
-		log.Info(p.logExtraInfo(), "开始插入", "普通区块")
 	}
 	return true
 }
@@ -271,7 +269,7 @@ func (p *Process) startBcBlock() {
 		return
 	}
 
-	if p.number != 1 { //todo 不好理解
+	if p.number != 1 {
 		log.Debug(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "区块 hash", parentHash)
 		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
 	}
@@ -335,14 +333,14 @@ func (p *Process) canGenHeader() bool {
 	switch p.role {
 	case common.RoleBroadcast:
 		if false == p.bcInterval.IsBroadcastNumber(p.number) {
-			log.INFO(p.logExtraInfo(), "广播身份，当前不是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
+			log.DEBUG(p.logExtraInfo(), "广播身份，当前不是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
 		}
 	case common.RoleValidator:
 		if p.bcInterval.IsBroadcastNumber(p.number) {
-			log.INFO(p.logExtraInfo(), "验证者身份，当前是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
+			log.DEBUG(p.logExtraInfo(), "验证者身份，当前是广播区块，不生成区块", "直接进入挖矿结果验证阶段", "高度", p.number)
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false
@@ -354,7 +352,7 @@ func (p *Process) canGenHeader() bool {
 		}
 
 		if p.curLeader != ca.GetDepositAddress() {
-			log.INFO(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetDepositAddress().Hex(), "leader", p.curLeader.Hex())
+			log.DEBUG(p.logExtraInfo(), "自己不是当前leader，进入挖矿结果验证阶段, 高度", p.number, "地址", ca.GetDepositAddress().Hex(), "leader", p.curLeader.Hex())
 			p.state = StateMinerResultVerify
 			p.processMinerResultVerify(p.curLeader, true)
 			return false

@@ -136,7 +136,7 @@ func (self *BlockVerify) handleRoleUpdatedMsg(roleMsg *mc.RoleUpdatedMsg) {
 		log.Error(self.logExtraInfo(), "CA身份消息异常", "消息为nil")
 		return
 	}
-	log.Info(self.logExtraInfo(), "CA身份消息", "开始处理", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String(), "区块hash", roleMsg.BlockHash.TerminalString())
+	log.Trace(self.logExtraInfo(), "CA身份消息", "开始处理", "高度", roleMsg.BlockNum, "角色", roleMsg.Role.String(), "区块hash", roleMsg.BlockHash.TerminalString())
 
 	curNumber := roleMsg.BlockNum + 1
 	self.processManage.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
