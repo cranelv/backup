@@ -40,8 +40,8 @@ func (p *Process) preVerifyBroadcastMinerResult(result *mc.BlockData) bool {
 		bcInterval, err = p.blockChain().GetBroadcastInterval()
 		if err != nil {
 			log.Error(p.logExtraInfo(), "预验证广播挖矿结果", "获取当前广播周期失败", "err", err)
+			return false
 		}
-		return false
 	}
 	if false == bcInterval.IsBroadcastNumber(result.Header.Number.Uint64()) {
 		log.WARN(p.logExtraInfo(), "预验证广播挖矿结果", "高度不是广播区块高度", "高度", result.Header.Number.Uint64())
