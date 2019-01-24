@@ -304,31 +304,35 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 			log.Error("coin err","get coin config err",err)
 			return false
 		}
-		var config common.CoinConfig
-		for _,cog := range coinf{
-			if cog.CoinType == cointype{
-				config = cog
-				break
+		if len(coinf) >0{
+			var config common.CoinConfig
+			ispach := false
+			for _,cog := range coinf{
+				if cog.CoinType == cointype{
+					config = cog
+					ispach = true
+					break
+				}
+			}
+			if ispach{
+				if config.PackNum > 0 {
+					filtercoinnum.mu.Lock()
+					if blockNumberByfilter != h.Uint64(){
+						blockNumberByfilter = h.Uint64()
+						filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
+					}
+					if filtercoinnum.coinNum[cointype] >= config.PackNum{
+						log.WARN("warning ","this coin tx count >= pack num.coin type",cointype,"pack num",config.PackNum,"curr tx count",filtercoinnum.coinNum[cointype])
+						return false
+					}
+					filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype]+1
+					filtercoinnum.mu.Unlock()
+				}else if config.PackNum <= 0{
+					log.WARN("warning ","this coin tx discard. coin type",cointype)
+					return false
+				}
 			}
 		}
-		if !config.IsPack{
-			log.WARN("warning ","this coin tx discard. coin type",cointype)
-			return false
-		}
-		if config.PackNum > 0 {
-			filtercoinnum.mu.Lock()
-			if blockNumberByfilter != h.Uint64(){
-				blockNumberByfilter = h.Uint64()
-				filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
-			}
-			if filtercoinnum.coinNum[cointype] >= config.PackNum{
-				log.WARN("warning ","this coin tx count >= pack num.coin type",cointype,"pack num",config.PackNum,"curr tx count",filtercoinnum.coinNum[cointype])
-				return false
-			}
-			filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype]+1
-			filtercoinnum.mu.Unlock()
-		}
-
 	}
 	//超级交易账户不匹配
 	if txtype == common.ExtraSuperTxType {
