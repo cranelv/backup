@@ -67,13 +67,12 @@ func (p *ManBlkBasePlug) setSignatures(header *types.Header) {
 func (bd *ManBlkBasePlug) setTopology(support BlKSupport, parentHash common.Hash, header *types.Header, interval *mc.BCIntervalInfo, num uint64) ([]*mc.HD_OnlineConsensusVoteResultMsg, error) {
 	NetTopology, onlineConsensusResults := support.ReElection().GetNetTopology(num, parentHash, interval)
 	if nil == NetTopology {
-		log.Error(LogManBlk, "获取网络拓扑图错误 ", "")
 		NetTopology = &common.NetTopology{common.NetTopoTypeChange, nil}
 	}
 	if nil == onlineConsensusResults {
 		onlineConsensusResults = make([]*mc.HD_OnlineConsensusVoteResultMsg, 0)
 	}
-	log.Debug(LogManBlk, "获取拓扑结果 ", NetTopology, "在线共识信息", onlineConsensusResults, "高度", num)
+	//log.Debug(LogManBlk, "获取拓扑结果 ", NetTopology, "在线共识信息", onlineConsensusResults, "高度", num)
 	header.NetTopology = *NetTopology
 	return onlineConsensusResults, nil
 }
@@ -146,7 +145,7 @@ func (bd *ManBlkBasePlug) setElect(support BlKSupport, stateDB *state.StateDBMan
 	if Elect == nil {
 		return errors.New("生成elect信息错误")
 	}
-	log.Debug(LogManBlk, "获取选举结果 ", Elect, "高度", header.Number.Uint64())
+	//log.Debug(LogManBlk, "获取选举结果 ", Elect, "高度", header.Number.Uint64())
 	header.Elect = Elect
 	return nil
 }
@@ -165,7 +164,7 @@ func (bd *ManBlkBasePlug) Prepare(support BlKSupport, interval *mc.BCIntervalInf
 			}
 			bd.preBlockHash = preBlockHash
 		default:
-			log.Error(LogManBlk, "unkown type",reflect.ValueOf(v).Type())
+			log.Error(LogManBlk, "unkown type", reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -281,14 +280,13 @@ func (bd *ManBlkBasePlug) VerifyHeader(support BlKSupport, header *types.Header,
 		log.Error(LogManBlk, "验证vrf失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
-	log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
+	//log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
 
 	return nil, nil
 }
-
 func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *types.Header, verifyTxs []types.CoinSelfTransaction, args interface{}) (*state.StateDBManage, []types.CoinSelfTransaction,
 	[]types.CoinReceipts, interface{}, error) {
-	log.INFO(LogManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
+	//log.INFO(LogManBlk, "开始交易验证, 数量", len(verifyTxs), "高度", verifyHeader.Number.Uint64())
 
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	localHeader := types.CopyHeader(verifyHeader)
@@ -348,7 +346,6 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 				break
 			}
 		}
-
 	}
 
 	// verify election info

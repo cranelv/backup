@@ -30,7 +30,7 @@ func (self *ReElection) HandleTopGen(hash common.Hash) (TopGenStatus, error) {
 	topGenStatus := TopGenStatus{}
 
 	if self.IsMinerTopGenTiming(hash) { //矿工生成时间 240
-		log.INFO(Module, "是矿工生成时间点 hash", hash.String())
+		log.INFO(Module, "计算矿工拓扑计算 ", hash.String())
 		MastM, BackM, CandM, err := self.ToGenMinerTop(hash)
 		if err != nil {
 			log.ERROR(Module, "矿工拓扑生成错误 err", err)
@@ -42,7 +42,7 @@ func (self *ReElection) HandleTopGen(hash common.Hash) (TopGenStatus, error) {
 	}
 
 	if self.IsValidatorTopGenTiming(hash) { //验证者生成时间 260
-		log.INFO(Module, "是验证者生成时间点 height", hash)
+		log.INFO(Module, "计算验证者拓扑计算 ", hash)
 		MastV, BackV, CandV, err := self.ToGenValidatorTop(hash)
 		if err != nil {
 			log.ERROR(Module, "验证者拓扑生成错误 err", err)
@@ -115,14 +115,14 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 //得到随机种子
 func (self *ReElection) GetSeed(hash common.Hash) (*big.Int, error) {
 	seed, err := self.random.GetRandom(hash, manparams.ElectionSeed)
-	log.Info(Module, "common.Default seed", seed)
+	//log.Info(Module, "common.Default seed", seed)
 	return seed, err
 
 }
 
 func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
-	log.INFO(Module, "准备生成矿工拓扑图", "start", "hash", hash.String())
-	defer log.INFO(Module, "生成矿工拓扑图结束", "end", "hash", hash.String())
+	//log.INFO(Module, "准备生成矿工拓扑图", "start", "hash", hash.String())
+	//defer log.INFO(Module, "生成矿工拓扑图结束", "end", "hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
@@ -147,7 +147,7 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 		log.ERROR(Module, "获取矿工抵押列表失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	log.INFO(Module, "矿工抵押交易", minerDeposit)
+	//log.INFO(Module, "矿工抵押交易", minerDeposit)
 
 	elect, err := self.GetElectPlug(height)
 	if err != nil {
@@ -165,7 +165,7 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 		log.ERROR(Module, "获取种子失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	log.Info(Module, "矿工选举种子", seed)
+	//log.Info(Module, "矿工选举种子", seed)
 
 	TopRsp := elect.MinerTopGen(&mc.MasterMinerReElectionReqMsg{SeqNum: height, RandSeed: seed, MinerList: minerDeposit, ElectConfig: *electConf})
 
@@ -199,8 +199,8 @@ func (self *ReElection) addBlockProduceBlackList(height uint64) (*mc.BlockProduc
 	return produceBlackList, nil
 }
 func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo, []mc.ElectNodeInfo, []mc.ElectNodeInfo, error) {
-	log.INFO(Module, "准备生成验证者拓扑图", "start", "hash", hash.String())
-	defer log.INFO(Module, "生成验证者拓扑图结束", "end", "hash", hash.String())
+	//log.INFO(Module, "准备生成验证者拓扑图", "start", "hash", hash.String())
+	//defer log.INFO(Module, "生成验证者拓扑图结束", "end", "hash", hash.String())
 	height, err := self.GetNumberByHash(hash)
 	if err != nil {
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())
@@ -223,7 +223,7 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "获取验证者列表失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	log.INFO(Module, "验证者抵押账户", validatoeDeposit)
+	//log.INFO(Module, "验证者抵押账户", validatoeDeposit)
 	foundDeposit := GetFound()
 
 	elect, err := self.GetElectPlug(height)
@@ -241,7 +241,7 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "获取验证者种子失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	log.INFO(Module, "验证者随机种子", seed)
+	//log.INFO(Module, "验证者随机种子", seed)
 
 	vipList, err := self.GetViPList(height)
 	if err != nil {
@@ -267,14 +267,14 @@ func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDeta
 	switch tp {
 	case common.RoleMiner:
 		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleMiner)
-		log.INFO("從CA獲取礦工抵押交易", "data", ans, "height", Heigh)
+		//log.INFO("從CA獲取礦工抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取矿工交易身份不对")
 		}
 		return ans, nil
 	case common.RoleValidator:
 		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleValidator)
-		log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
+		//log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取验证者交易身份不对")
 		}

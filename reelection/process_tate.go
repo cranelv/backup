@@ -72,7 +72,7 @@ func (self *ReElection) ProduceElectGraphData(block *types.Block, readFn core.Pr
 		electStates.NextMinerElect = []mc.ElectNodeInfo{}
 		electStates.NextValidatorElect = []mc.ElectNodeInfo{}
 	}
-	log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
+	//log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectGraphData data", electStates)
 	return electStates, nil
 }
 
@@ -131,7 +131,7 @@ func (self *ReElection) ProduceElectOnlineStateData(block *types.Block, readFn c
 			tt.Position = common.PosOnline
 			electOnline.ElectOnline = append(electOnline.ElectOnline, tt)
 		}
-		log.INFO(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electOnline)
+		log.DEBUG(Module, "高度", block.Number().Uint64(), "ProduceElectOnlineStateData data", electOnline)
 		return electOnline, nil
 	}
 
@@ -212,7 +212,8 @@ func (self *ReElection) ProducePreBroadcastStateData(block *types.Block, readFn 
 	copy(preBroadcast.BeforeLastStateRoot, preBroadcast.LastStateRoot)
 	preBroadcast.LastStateRoot = make([]common.CoinRoot, len(header.Roots))
 	copy(preBroadcast.LastStateRoot, header.Roots)
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot, "last", preBroadcast.LastStateRoot)
+	//log.INFO(Module, "高度", block.Number().Uint64(), "ProducePreBroadcastStateData beforelast", preBroadcast.BeforeLastStateRoot, "last", preBroadcast.LastStateRoot)
+
 	return preBroadcast, nil
 
 }
@@ -258,7 +259,7 @@ func (self *ReElection) ProduceMinHashData(block *types.Block, readFn core.PreSt
 	if preHeader.Nonce.Uint64() > randomInfo.MaxNonce {
 		randomInfo.MaxNonce = preHeader.Nonce.Uint64()
 	}
-	log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
+	//log.INFO(Module, "高度", block.Number().Uint64(), "ProduceMinHashData", randomInfo.MinHash.String())
 	return randomInfo, nil
 }
 

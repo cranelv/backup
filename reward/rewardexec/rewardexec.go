@@ -194,7 +194,7 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
 	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward, parentHash)
 	if blockReward.Cmp(big.NewInt(0)) <= 0 {
-		log.Warn(PackageName, "账户余额非法，不发放奖励", blockReward)
+	//	log.Warn(PackageName, "账户余额非法，不发放奖励", blockReward)
 		return nil
 	}
 

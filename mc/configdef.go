@@ -196,6 +196,10 @@ func (b *VIPConfig) Check(k, v interface{}) (interface{}, bool) {
 	if err != nil {
 		return nil, false
 	}
+	if 0 == len(value) {
+		log.ERROR("VIP超级交易配置", "vip配置为空", "")
+		return nil, false
+	}
 	sort.Sort(SortVIPConfig(value))
 	if (value)[0].MinMoney != uint64(0) {
 		log.ERROR("VIP超级交易配置", "vip配置中需包含最小值为0的配置", "")
@@ -713,6 +717,10 @@ func (b *BroadcastAccounts) Check(k, v interface{}) (interface{}, bool) {
 	if err != nil {
 		return nil, false
 	}
+	if 0 == len(values) {
+		log.ERROR("超级交易广播节点配置", "为空", "")
+		return nil, false
+	}
 	log.Info("超级交易广播节点配置", "BroadcastAccounts", v)
 	return values, true
 
@@ -998,8 +1006,8 @@ func (b *CurrencyConfig) Check(k, v interface{}) (interface{}, bool) {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
 		return make([]string, 0), true
 	}
-	v2 ,ok := v.([]interface{})
-	if !ok{
+	v2, ok := v.([]interface{})
+	if !ok {
 		log.ERROR("超级交易币种打包限制配置", "v值反射失败", "")
 		return nil, false
 	}
