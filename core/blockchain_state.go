@@ -40,7 +40,7 @@ func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer Produ
 	bc.matrixProcessor.RegisterProducer(key, producer)
 }
 
-func (bc *BlockChain) ProcessStateVersion(version []byte, state *state.StateDB) error {
+func (bc *BlockChain) ProcessStateVersion(num uint64, version []byte, state *state.StateDB) error {
 	return bc.matrixProcessor.ProcessStateVersion(version, state)
 }
 
