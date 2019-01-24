@@ -92,6 +92,14 @@ func (bc *BlockChain) GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCI
 	return matrixstate.GetBroadcastInterval(st)
 }
 
+func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
+	st, err := bc.StateAtBlockHash(blockHash)
+	if err != nil {
+		return "", errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
+	}
+	return matrixstate.GetVersionInfo(st), nil
+}
+
 func (bc *BlockChain) GetBroadcastIntervalByNumber(number uint64) (*mc.BCIntervalInfo, error) {
 	st, err := bc.StateAtNumber(number)
 	if err != nil {

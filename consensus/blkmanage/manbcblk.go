@@ -28,7 +28,7 @@ func NewBCBlkPlug() (*ManBCBlkPlug, error) {
 	return obj, nil
 }
 
-func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
+func (bd *ManBCBlkPlug) Prepare(version string, support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
 
 	test, _ := args.([]interface{})
 	for _, v := range test {
@@ -65,7 +65,10 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo,
 	if nil != err {
 		return nil, nil, err
 	}
-	bd.baseInterface.setVersion(originHeader, parent)
+	bd.baseInterface.setVersion(originHeader, parent, version)
+	if nil != err {
+		return nil, nil, err
+	}
 	if err := support.BlockChain().Engine(originHeader.Version).Prepare(support.BlockChain(), originHeader); err != nil {
 		log.ERROR(LogManBlk, "Failed to prepare header for mining", err)
 		return nil, nil, err
@@ -118,11 +121,6 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.ERROR(LogManBlk, "NewWork!", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
-	if err != nil {
-		log.ERROR(LogManBlk, "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
-		return nil, nil, nil, nil, nil, nil, err
-	}
 	mapTxs := support.TxPool().GetAllSpecialTxs()
 	Txs := make([]types.SelfTransaction, 0)
 	for _, txs := range mapTxs {
@@ -139,7 +137,11 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
 	}
-
+	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
+	if err != nil {
+		log.ERROR(LogManBlk, "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
+		return nil, nil, nil, nil, nil, nil, err
+	}
 	return nil, work.State, work.Receipts, Txs, work.GetTxs(), nil, nil
 }
 
@@ -153,7 +155,7 @@ func (bd *ManBCBlkPlug) Finalize(support BlKSupport, header *types.Header, state
 	return block, nil, nil
 }
 
-func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, args interface{}) (interface{}, error) {
+func (bd *ManBCBlkPlug) VerifyHeader(version string, support BlKSupport, header *types.Header, args interface{}) (interface{}, error) {
 	if err := support.BlockChain().VerifyHeader(header); err != nil {
 		log.ERROR(LogManBlk, "预验证头信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
@@ -197,11 +199,6 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 		log.WARN(LogManBlk, "广播挖矿结果验证, 创建worker错误", err)
 		return nil, nil, nil, nil, err
 	}
-	// 运行版本更新检查
-	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
-		log.ERROR(LogManBlk, "广播挖矿结果验证, 版本更新检查失败", err)
-		return nil, nil, nil, nil, err
-	}
 	//执行交易
 	work.ProcessBroadcastTransactions(support.EventMux(), verifyTxs)
 
@@ -210,6 +207,12 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	block := types.NewBlock(verifyHeader, retTxs, nil, work.Receipts)
 	if err := support.BlockChain().ProcessMatrixState(block, work.State); err != nil {
 		log.ERROR(LogManBlk, "广播挖矿结果验证, matrix 状态树运行错误", err)
+		return nil, nil, nil, nil, err
+	}
+
+	// 运行版本更新检查
+	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "广播挖矿结果验证, 版本更新检查失败", err)
 		return nil, nil, nil, nil, err
 	}
 
