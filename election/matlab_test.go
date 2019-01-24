@@ -2,7 +2,6 @@ package election
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/vm"
@@ -26,6 +25,9 @@ type NodeList struct {
 type BlackList struct {
 	Account  string
 }
+type WhiteList struct {
+	Account string
+}
 type Election struct {
 	Account  string
 	Position uint64
@@ -42,6 +44,8 @@ type ElectInfo struct {
 	NodeList         []NodeList
 	BlackList        []BlackList
 	Election         []Election
+	WhiteList         []WhiteList
+	WhiteListSwitcher bool
 }
 func init() {
 	log.InitLog(3)
@@ -75,13 +79,17 @@ func ValidatorElectProcess(vectorPath string) (bool, error) {
 	for _, v := range cfg.BlackList{
 		blackList = append(blackList,common.HexToAddress(v.Account))
 }
+	var whiteList = make([]common.Address, 0)
+	for _, v := range cfg.WhiteList {
+		whiteList = append(whiteList, common.HexToAddress(v.Account))
+	}
 
 	data := &mc.MasterValidatorReElectionReqMsg{
 		SeqNum:                  0,
 		RandSeed:                new(big.Int).SetUint64(cfg.Random),
 		ValidatorList:           ValidatorList,
 		FoundationValidatorList: []vm.DepositDetail{},
-		ElectConfig:             mc.ElectConfigInfo_All{ValidatorNum: cfg.TopNodeNum, BackValidator: cfg.BackUpNodeNum, BlackList:blackList},
+		ElectConfig:             mc.ElectConfigInfo_All{ValidatorNum: cfg.TopNodeNum, BackValidator: cfg.BackUpNodeNum, BlackList: blackList, WhiteList:whiteList, WhiteListSwitcher:cfg.WhiteListSwitcher},
 		VIPList:                 Vip,
 	}
 	ans := baseinterface.NewElect("layerd").ValidatorTopGen(data)
@@ -153,12 +161,15 @@ func MinerElectProcess(vectorPath string) (bool, error) {
 	for _, v := range cfg.BlackList{
 		blackList = append(blackList,common.HexToAddress(v.Account))
 	}
-	fmt.Println(cfg.Random)
+	var whiteList = make([]common.Address, 0)
+	for _, v := range cfg.WhiteList {
+		whiteList = append(whiteList, common.HexToAddress(v.Account))
+	}
 	data := &mc.MasterMinerReElectionReqMsg{
 		SeqNum:                  0,
 		RandSeed:                new(big.Int).SetUint64(cfg.Random),
 		MinerList:               minerList,
-		ElectConfig:             mc.ElectConfigInfo_All{MinerNum:cfg.TopNodeNum, BlackList:blackList},
+		ElectConfig:             mc.ElectConfigInfo_All{MinerNum:cfg.TopNodeNum, BlackList:blackList,WhiteList:whiteList, WhiteListSwitcher:cfg.WhiteListSwitcher},
 	}
 	ans := baseinterface.NewElect("layerd").MinerTopGen(data)
 	status, err := minerDataCmp(ans, cfg.Election)
@@ -285,6 +296,21 @@ func TestValidatorCase18(t *testing.T) {
 		t.Error(err)
 	}
 }
+func TestValidatorCase19(t *testing.T) {
+	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case19.json"); !status {
+		t.Error(err)
+	}
+}
+func TestValidatorCase20(t *testing.T) {
+	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case20.json"); !status {
+		t.Error(err)
+	}
+}
+func TestValidatorCase21(t *testing.T) {
+	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case21.json"); !status {
+		t.Error(err)
+	}
+}
 func TestMinerCase1(t *testing.T) {
 	if status, err := MinerElectProcess(".\\testdata\\testvectorM\\case1.json"); !status {
 		t.Error(err)
@@ -377,6 +403,21 @@ func TestMinerCase18(t *testing.T) {
 }
 func TestMinerCase19(t *testing.T) {
 	if status, err := MinerElectProcess(".\\testdata\\testvectorM\\case19.json"); !status {
+		t.Error(err)
+	}
+}
+func TestMinerCase20(t *testing.T) {
+	if status, err := MinerElectProcess(".\\testdata\\testvectorM\\case20.json"); !status {
+		t.Error(err)
+	}
+}
+func TestMinerCase21(t *testing.T) {
+	if status, err := MinerElectProcess(".\\testdata\\testvectorM\\case21.json"); !status {
+		t.Error(err)
+	}
+}
+func TestMinerCase22(t *testing.T) {
+	if status, err := MinerElectProcess(".\\testdata\\testvectorM\\case22.json"); !status {
 		t.Error(err)
 	}
 }

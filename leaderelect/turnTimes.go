@@ -35,10 +35,10 @@ func (tt *turnTimes) SetTimeConfig(config *mc.LeaderConfig) error {
 		return ErrParamsIsNil
 	}
 
-	tt.parentMiningTime = config.ParentMiningTime
-	tt.posOutTime = config.PosOutTime
-	tt.reelectOutTime = config.ReelectOutTime
-	tt.reelectHandleInterval = config.ReelectHandleInterval
+	tt.parentMiningTime = int64(config.ParentMiningTime)
+	tt.posOutTime = int64(config.PosOutTime)
+	tt.reelectOutTime = int64(config.ReelectOutTime)
+	tt.reelectHandleInterval = int64(config.ReelectHandleInterval)
 	return nil
 }
 

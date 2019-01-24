@@ -27,8 +27,10 @@ func (self *layered) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Mas
 	log.Trace("分层方案", "矿工拓扑生成", mmrerm)
 	vipEle := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 
+	if mmrerm.ElectConfig.WhiteListSwitcher{
+		vipEle.ProcessWhiteNode()
+	}
 	vipEle.ProcessBlackNode()
-	vipEle.ProcessWhiteNode()
 	nodeList := vipEle.GetNodeByLevel(common.VIP_Nil)
 	value := support.CalcValue(nodeList, common.RoleMiner)
 	Chosed, value := support.GetList_Common(value, vipEle.NeedNum, vipEle.RandSeed)
@@ -67,8 +69,10 @@ func (self *layered) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg)
 	log.Trace("分层方案", "验证者拓扑生成", mvrerm)
 
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
+	if mvrerm.ElectConfig.WhiteListSwitcher{
+		vipEle.ProcessWhiteNode()
+	}
 	vipEle.ProcessBlackNode()
-	vipEle.ProcessWhiteNode()
 	//vipEle.DisPlayNode()
 
 	for vipEleLoop := len(vipEle.VipLevelCfg) - 1; vipEleLoop >= 0; vipEleLoop-- {
