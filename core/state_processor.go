@@ -272,12 +272,6 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 
-	err := p.bc.ProcessStateVersion(block.Header().Version, statedb)
-	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err0")
-		return nil, nil, 0, err
-	}
-
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err1")
@@ -305,6 +299,12 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		return receipts, logs, usedGas, err
 	}
 
+	err = p.bc.ProcessStateVersion(block.NumberU64(), block.Version(), statedb)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err0")
+		return nil, nil, 0, err
+	}
+
 	return receipts, logs, usedGas, nil
 }
 
@@ -313,7 +313,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
-	if !BlackListFilter(tx,statedb) {
+	if !BlackListFilter(tx, statedb) {
 		return nil, 0, errors.New("blacklist account")
 	}
 

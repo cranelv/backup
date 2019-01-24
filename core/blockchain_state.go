@@ -40,7 +40,7 @@ func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer Produ
 	bc.matrixProcessor.RegisterProducer(key, producer)
 }
 
-func (bc *BlockChain) ProcessStateVersion(version []byte, state *state.StateDB) error {
+func (bc *BlockChain) ProcessStateVersion(num uint64, version []byte, state *state.StateDB) error {
 	return bc.matrixProcessor.ProcessStateVersion(version, state)
 }
 
@@ -90,6 +90,14 @@ func (bc *BlockChain) GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCI
 		return nil, errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
 	}
 	return matrixstate.GetBroadcastInterval(st)
+}
+
+func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
+	st, err := bc.StateAtBlockHash(blockHash)
+	if err != nil {
+		return "", errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
+	}
+	return matrixstate.GetVersionInfo(st), nil
 }
 
 func (bc *BlockChain) GetBroadcastIntervalByNumber(number uint64) (*mc.BCIntervalInfo, error) {

@@ -1,12 +1,11 @@
 package matrixstate
 
 import (
-	"encoding/json"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -460,9 +459,9 @@ func (opt *operatorLeaderConfig) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.LeaderConfig)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "leaderConfig unmarshal failed", err)
+		log.Error(logInfo, "leaderConfig rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -473,9 +472,9 @@ func (opt *operatorLeaderConfig) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
+		log.Error(logInfo, "leaderConfig rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -509,9 +508,9 @@ func (opt *operatorMinHash) GetValue(st StateDB) (interface{}, error) {
 		return value, nil
 	}
 
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "minHash unmarshal failed", err)
+		log.Error(logInfo, "minHash rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -522,9 +521,9 @@ func (opt *operatorMinHash) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "minHash marshal failed", err)
+		log.Error(logInfo, "minHash rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -558,9 +557,9 @@ func (opt *operatorSuperBlockCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.SuperBlkCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "superBlkCfg unmarshal failed", err)
+		log.Error(logInfo, "superBlkCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -571,9 +570,9 @@ func (opt *operatorSuperBlockCfg) SetValue(st StateDB, value interface{}) error 
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "superBlkCfg marshal failed", err)
+		log.Error(logInfo, "superBlkCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

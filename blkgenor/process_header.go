@@ -28,20 +28,27 @@ func (p *Process) processBcHeaderGen() error {
 	if err != nil {
 		return err
 	}
-	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
+	version, err := p.blockChain().GetVersionByHash(parent.Hash())
+
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取状态树错误", err)
+		return err
+	}
+
+	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, version, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备去看失败", err)
 		return err
 	}
 
-	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, nil)
+	_, stateDB, receipts, _, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.BroadcastBlk, version, originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.BroadcastBlk, version, originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
@@ -66,7 +73,14 @@ func (p *Process) processHeaderGen() error {
 	if err != nil {
 		return err
 	}
-	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, string(parent.Version()), p.number, p.bcInterval, p.preBlockHash)
+
+	version, err := p.blockChain().GetVersionByHash(parent.Hash())
+
+	if err != nil {
+		log.Error(p.logExtraInfo(), "获取状态树错误", err)
+		return err
+	}
+	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, version, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备阶段失败", err)
 		return err
@@ -79,14 +93,14 @@ func (p *Process) processHeaderGen() error {
 		return errors.New("反射在线状态失败")
 	}
 
-	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, string(originHeader.Version), originHeader, nil)
+	txsCode, stateDB, receipts, originalTxs, finalTxs, _, err := p.pm.manblk.ProcessState(blkmanage.CommonBlk, version, originHeader, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
 
 	//运行完matrix状态树后，生成root
-	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, string(originHeader.Version), originHeader, stateDB, finalTxs, nil, receipts, nil)
+	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, version, originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
