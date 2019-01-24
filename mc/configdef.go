@@ -74,7 +74,7 @@ const (
 
 	//交易配置
 	MSTxpoolGasLimitCfg = "man_TxpoolGasLimitCfg" //入池gas配置
-	MSCurrencyPack      = "man_CurrencyPack"      //币种打包限制
+	MSCurrencyConfig      = "man_CurrencyConfig"      //币种配置
 	MSAccountBlackList  = "man_AccountBlackList"  //账户黑名单设置
 )
 
@@ -975,10 +975,10 @@ func (b *TxpoolGasLimit) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, v
 }
 
-type CurrencyPackLimt struct {
+type CurrencyConfig struct {
 }
 
-func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{}, bool) {
+func (b *CurrencyConfig) Check(k, v interface{}) (interface{}, bool) {
 	if v == nil || k == nil {
 		log.ERROR("超级交易区块配置", "币种打包限制输入为空", "")
 		return nil, false
@@ -988,7 +988,7 @@ func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{}, bool) {
 		log.ERROR("超级交易币种打包限制配置", "key值反射失败", "")
 		return nil, false
 	}
-	if key != MSCurrencyPack {
+	if key != MSCurrencyConfig {
 		log.ERROR("超级交易币种打包限制配置", "key值非法，非法值为", key)
 		return nil, false
 	}
@@ -1027,7 +1027,7 @@ func (b *CurrencyPackLimt) Check(k, v interface{}) (interface{}, bool) {
 	}
 	return values, true
 }
-func (b *CurrencyPackLimt) Output(k, v interface{}) (interface{}, interface{}) {
+func (b *CurrencyConfig) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, v
 }
 

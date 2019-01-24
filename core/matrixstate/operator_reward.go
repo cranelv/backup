@@ -977,7 +977,7 @@ type operatorCurrencyPack struct {
 
 func newCurrencyPackOpt() *operatorCurrencyPack {
 	return &operatorCurrencyPack{
-		key: types.RlpHash(matrixStatePrefix + mc.MSCurrencyPack),
+		key: types.RlpHash(matrixStatePrefix + mc.MSCurrencyConfig),
 	}
 }
 

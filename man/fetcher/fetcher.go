@@ -545,34 +545,28 @@ func (f *Fetcher) loop() {
 			for i := 0; i < len(task.transactions) && i < len(task.uncles); i++ {
 				// Match up a body to any possible completion request
 				matched := false
-				tmpmap := make(map[string][]common.Hash)
-				tmpmaptx := make(map[string]types.SelfTransactions)
+				tmpmap := make(map[string]common.Hash)
 				for _,txer := range task.transactions[i]{
-					for _,tx := range txer.Transactions.GetTransactions(){
-						tmpmap[tx.GetTxCurrency()] = append(tmpmap[tx.GetTxCurrency()],tx.Hash())
-						tmpmaptx[tx.GetTxCurrency()] = append(tmpmaptx[tx.GetTxCurrency()],tx)
-						log.Trace("download fetch bodyFilter for1", "tx.GetTxCurrency()", tx.GetTxCurrency(), "task.peer", task.peer)
-					}
+					tmpmap[txer.CurrencyName] = types.DeriveShaHash(txer.Transactions.TxHashs)
 				}
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
 						isok := true
-						cointx := make([]types.CoinSelfTransaction,0)
 						for _,coinHeader := range announce.header.Roots{
-							txnHash := types.DeriveShaHash(tmpmap[coinHeader.Cointyp])
+							txnHash := tmpmap[coinHeader.Cointyp]
 							uncleHash := types.CalcUncleHash(task.uncles[i])
 							log.Trace("download fetch bodyFilter map", "hash", hash,"Cointyp",coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin,"blockNum",announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
+								log.Info("fetchr err","fetch body txhash != header txhash.  txnHash",txnHash.String(),"header txHash",coinHeader.TxHash.String())
 								isok = false
 							}
-							cointx = append(cointx,types.CoinSelfTransaction{CoinType:coinHeader.Cointyp,Txser:tmpmaptx[coinHeader.Cointyp]})
 						}
 						if isok {
 							// Mark the body matched, reassemble if still unknown
 							matched = true
 							if f.getBlock(hash) == nil {
 								log.Trace("download fetch bodyFilter getBlock")
-								block := types.NewBlockWithHeader(announce.header).WithBody(types.MakeCurencyBlock(cointx,nil,nil), task.uncles[i])
+								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i])
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)

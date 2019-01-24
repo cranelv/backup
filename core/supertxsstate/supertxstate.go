@@ -61,7 +61,7 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeyBlockProduceSlashCfg: new(mc.BlockProduceSlashCfg),
 
 				mc.MSTxpoolGasLimitCfg: new(mc.TxpoolGasLimit),
-				mc.MSCurrencyPack:      new(mc.CurrencyPackLimt),
+				mc.MSCurrencyConfig:      new(mc.CurrencyConfig),
 				mc.MSAccountBlackList:  new(mc.AccountBlackList),
 			},
 		}

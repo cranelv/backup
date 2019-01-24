@@ -103,7 +103,7 @@ func newManger(version string) *Manager {
 				mc.MSKeySlashCalc:    newSlashCalcOpt(),
 
 				mc.MSTxpoolGasLimitCfg: newTxpoolGasLimitOpt(),
-				mc.MSCurrencyPack:      newCurrencyPackOpt(),
+				mc.MSCurrencyConfig:      newCurrencyPackOpt(),
 				mc.MSAccountBlackList:  newAccountBlackListOpt(),
 
 				mc.MSKeyBlockProduceStatsStatus: newBlockProduceStatsStatusOpt(),
