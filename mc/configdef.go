@@ -31,6 +31,7 @@ const (
 	MSKeyElectConfigInfo        = "elect_details_info"       // 选举配置
 	MSKeyElectBlackList         = "elect_black_list"         // 选举黑名单
 	MSKeyElectWhiteList         = "elect_white_list"         // 选举白名单
+	MSKeyElectWhiteListSwitcher = "elect_white_list_switcher"         // 选举白名单生效开关
 	MSKeyAccountBroadcasts      = "account_broadcasts"       // 广播账户 []common.Address
 	MSKeyAccountInnerMiners     = "account_inner_miners"     // 基金会矿工 []common.Address
 	MSKeyAccountFoundation      = "account_foundation"       // 基金会账户 common.Address
@@ -144,6 +145,7 @@ type ElectConfigInfo_All struct {
 	ElectPlug     string
 	WhiteList     []common.Address
 	BlackList     []common.Address
+	WhiteListSwitcher bool
 }
 type ElectConfigInfo struct {
 	ValidatorNum  uint16
@@ -549,7 +551,7 @@ func (b *SlashCalc) Output(k, v interface{}) (interface{}, interface{}) {
 
 type LotteryInfo struct {
 	PrizeLevel uint8  //奖励级别
-	PrizeNum   uint64 //奖励名额MSKeyElectBlackList
+	PrizeNum   uint64 //奖励名额
 	PrizeMoney uint64 //奖励金额 单位man
 }
 
@@ -889,6 +891,42 @@ func (b *ElectWhiteList) Output(k, v interface{}) (interface{}, interface{}) {
 	return k, base58Accounts
 }
 
+type ElectWhiteListSwitcher struct {
+	Switcher bool
+}
+
+func (b *ElectWhiteListSwitcher) Check(k, v interface{}) (interface{}, bool) {
+	if v == nil || k == nil {
+		log.ERROR("超级交易白名单开关配置", "k v为空", "")
+		return nil, false
+	}
+	key, ok := k.(string)
+	if !ok {
+		log.ERROR("超级交易白名单开关配置", "key值反射失败", "")
+		return nil, false
+	}
+	if key != MSKeyElectWhiteListSwitcher{
+		log.ERROR("超级交易白名单开关配置", "key值非法，非法值为", key)
+		return nil, false
+	}
+
+	codedata, err := json.Marshal(v)
+	if err != nil {
+		return nil, false
+	}
+	value:= ElectWhiteListSwitcher{}
+	err = json.Unmarshal(codedata, &value)
+	if err != nil {
+		return nil, false
+	}
+	log.Info("超级交易白名单开关配置", "ElectWhiteListSwitcher", value)
+	return value, true
+}
+
+func (b *ElectWhiteListSwitcher) Output(k, v interface{}) (interface{}, interface{}) {
+
+	return k, v
+}
 type BlockProduceSlashCfg struct {
 	Switcher         bool
 	LowTHR           uint16

@@ -495,6 +495,9 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
+		"ElectWhiteListSwitcherCfg"  {
+			"Switcher" : false
+		},
 		"ElectWhiteList": null,
 		"BlkProduceSlashCfg": {
 			"Switcher" : true,
@@ -622,9 +625,9 @@ var (
 			"SlashRate": 7500
 		},
 		"EleTime": {
-			"MinerGen": 9,
+			"MinerGen": 6,
 			"MinerNetChange": 5,
-			"ValidatorGen": 9,
+			"ValidatorGen": 4,
 			"ValidatorNetChange": 3,
 			"VoteBeforeTime": 7
 		},
@@ -637,6 +640,9 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
+		"ElectWhiteListSwitcherCfg"  {
+			"Switcher" : false
+		},
 		"ElectWhiteList": null,
 		"BlkProduceSlashCfg": {
 			"Switcher" : true,

@@ -173,6 +173,34 @@ func SetElectMinerNum(st StateDB, num *mc.ElectMinerNumStruct) error {
 	return opt.SetValue(st, num)
 }
 
+func GetElectWhiteListSwitcher(st StateDB) (bool, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return false, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteListSwitcher)
+	if err != nil {
+		return false, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return false, err
+	}
+	return value.(*mc.ElectWhiteListSwitcher).Switcher, nil
+}
+
+func SetElectWhiteListSwitcher(st StateDB, switcher bool) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteList)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, &mc.ElectWhiteListSwitcher{Switcher: switcher})
+}
+
 func GetElectWhiteList(st StateDB) ([]common.Address, error) {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {

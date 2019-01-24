@@ -1,8 +1,6 @@
 package matrixstate
 
 import (
-	"encoding/json"
-
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
@@ -91,8 +89,8 @@ func (opt *operatorBroadcastInterval) GetValue(st StateDB) (interface{}, error) 
 		return nil, ErrDataEmpty
 	}
 	value := new(mc.BCIntervalInfo)
-	if err := json.Unmarshal(data, &value); err != nil {
-		log.Error(logInfo, "broadcastInterval unmarshal failed", err)
+	if err := rlp.DecodeBytes(data, &value); err != nil {
+		log.Error(logInfo, "broadcastInterval rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -103,9 +101,9 @@ func (opt *operatorBroadcastInterval) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "broadcastInterval marshal failed", err)
+		log.Error(logInfo, "broadcastInterval rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -201,9 +199,9 @@ func (opt *operatorPreBroadcastRoot) GetValue(st StateDB) (interface{}, error) {
 		return value, nil
 	}
 
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "preBroadcastRoot unmarshal failed", err)
+		log.Error(logInfo, "preBroadcastRoot rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -214,9 +212,9 @@ func (opt *operatorPreBroadcastRoot) SetValue(st StateDB, value interface{}) err
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "preBroadcastRoot marshal failed", err)
+		log.Error(logInfo, "preBroadcastRoot rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

@@ -212,17 +212,11 @@ func (vip *Electoion) GetVipStock(addr common.Address) int {
 
 }
 func (vip *Electoion) ProcessWhiteNode() {
-	/*
 		for k, v := range vip.NodeList {
-			if v.Usable == false {
-				continue
-			}
-			if FindAddress(v.Address, vip.EleCfg.WhiteList) {
-				vip.WhiteNodeInfo = append(vip.WhiteNodeInfo, Strallyint{Addr: v.Address, Value: DefaultStock})
+			if !FindAddress(v.Address, vip.EleCfg.WhiteList) {
 				vip.NodeList[k].SetUsable(false)
 			}
 		}
-	*/
 }
 func (vip *Electoion) GetNodeByAccount(address common.Address) (int, bool) {
 	for k, v := range vip.NodeList {

@@ -50,6 +50,7 @@ type GenesisMState struct {
 	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo,omitempty" gencodec:"required"`
 	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum,omitempty" gencodec:"required"`
 	ElectBlackListCfg            *[]GenesisAddress                `json:"ElectBlackList,omitempty" gencodec:"required"`
+	ElectWhiteListSwitcherCfg    *mc.ElectWhiteListSwitcher       `json:"ElectWhiteListSwitcherCfg,omitempty" gencodec:"required"`
 	ElectWhiteListCfg            *[]GenesisAddress                `json:"ElectWhiteList,omitempty" gencodec:"required"`
 	CurElect                     *[]GenesisElect                  `json:"CurElect,omitempty"  gencodec:"required"`
 	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg,omitempty" gencodec:"required"`
@@ -77,6 +78,11 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setElectBlackListInfo(state, num); err != nil {
 		return err
 	}
+
+	if err := ms.setElectWhiteListSwitcher(state, num); err != nil{
+		return err
+	}
+
 	if err := ms.setElectWhiteListInfo(state, num); err != nil {
 		return err
 	}
@@ -231,6 +237,20 @@ func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDB, num uint64) e
 	return matrixstate.SetElectMinerNum(state, g.ElectMinerNumCfg)
 }
 
+func (g *GenesisMState) setElectWhiteListSwitcher(state *state.StateDB, num uint64) error {
+	if num == 0 {
+		if g.ElectWhiteListSwitcherCfg == nil {
+			return errors.New("选举白名单开关配置信息为nil")
+		}
+	} else {
+		if g.ElectWhiteListSwitcherCfg == nil {
+				log.INFO("Geneis", "未修改选举白名单开关配置信息为", "")
+		return nil
+	}
+	}
+	log.Info("Geneis", ".ElectWhiteListSwitcherCfg", g.ElectWhiteListSwitcherCfg)
+	return matrixstate.SetElectWhiteListSwitcher(state, g.ElectWhiteListSwitcherCfg.Switcher)
+}
 func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDB, num uint64) error {
 	var whiteList []common.Address = nil
 	if g.ElectWhiteListCfg == nil || *g.ElectWhiteListCfg == nil {

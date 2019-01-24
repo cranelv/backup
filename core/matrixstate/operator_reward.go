@@ -1,7 +1,6 @@
 package matrixstate
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/matrix/go-matrix/common"
@@ -11,6 +10,7 @@ import (
 	"github.com/matrix/go-matrix/params"
 	"github.com/pkg/errors"
 	"reflect"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -41,9 +41,9 @@ func (opt *operatorBlkRewardCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.BlkRewardCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "blkRewardCfg unmarshal failed", err)
+		log.Error(logInfo, "blkRewardCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -54,9 +54,9 @@ func (opt *operatorBlkRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "blkRewardCfg marshal failed", err)
+		log.Error(logInfo, "blkRewardCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -91,9 +91,9 @@ func (opt *operatorTxsRewardCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.TxsRewardCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "txsRewardCfg unmarshal failed", err)
+		log.Error(logInfo, "txsRewardCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -104,9 +104,9 @@ func (opt *operatorTxsRewardCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "txsRewardCfg marshal failed", err)
+		log.Error(logInfo, "txsRewardCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -141,9 +141,9 @@ func (opt *operatorInterestCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.InterestCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "interestCfg unmarshal failed", err)
+		log.Error(logInfo, "interestCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -154,9 +154,9 @@ func (opt *operatorInterestCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "interestCfg marshal failed", err)
+		log.Error(logInfo, "interestCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -191,9 +191,9 @@ func (opt *operatorLotteryCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.LotteryCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "lotteryCfg unmarshal failed", err)
+		log.Error(logInfo, "lotteryCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -204,9 +204,9 @@ func (opt *operatorLotteryCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "lotteryCfg marshal failed", err)
+		log.Error(logInfo, "lotteryCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -241,9 +241,9 @@ func (opt *operatorSlashCfg) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.SlashCfg)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "slashCfg unmarshal failed", err)
+		log.Error(logInfo, "slashCfg rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -254,9 +254,9 @@ func (opt *operatorSlashCfg) SetValue(st StateDB, value interface{}) error {
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "slashCfg marshal failed", err)
+		log.Error(logInfo, "slashCfg rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -290,9 +290,9 @@ func (opt *operatorPreMinerBlkReward) GetValue(st StateDB) (interface{}, error) 
 	}
 
 	value := new(mc.MinerOutReward)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "preMinerBlkReward unmarshal failed", err)
+		log.Error(logInfo, "preMinerBlkReward rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -303,9 +303,9 @@ func (opt *operatorPreMinerBlkReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "preMinerBlkReward marshal failed", err)
+		log.Error(logInfo, "preMinerBlkReward rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -339,9 +339,9 @@ func (opt *operatorPreMinerTxsReward) GetValue(st StateDB) (interface{}, error) 
 	}
 
 	value := new(mc.MinerOutReward)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "preMinerTxsReward unmarshal failed", err)
+		log.Error(logInfo, "preMinerTxsReward rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -352,9 +352,9 @@ func (opt *operatorPreMinerTxsReward) SetValue(st StateDB, value interface{}) er
 		return err
 	}
 
-	data, err := json.Marshal(value)
+	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "preMinerTxsReward marshal failed", err)
+		log.Error(logInfo, "preMinerTxsReward rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -482,9 +482,9 @@ func (opt *operatorLotteryAccount) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	value := new(mc.LotteryFrom)
-	err := json.Unmarshal(data, &value)
+	err := rlp.DecodeBytes(data, &value)
 	if err != nil {
-		log.Error(logInfo, "lotteryAccount unmarshal failed", err)
+		log.Error(logInfo, "lotteryAccount rlp decode failed", err)
 		return nil, err
 	}
 	return value, nil
@@ -504,9 +504,9 @@ func (opt *operatorLotteryAccount) SetValue(st StateDB, value interface{}) error
 		log.Error(logInfo, "input param(lotteryAccount) err", "cfg is nil")
 		return ErrParamNil
 	}
-	data, err := json.Marshal(accounts)
+	data, err := rlp.EncodeToBytes(accounts)
 	if err != nil {
-		log.Error(logInfo, "lotteryAccount marshal failed", err)
+		log.Error(logInfo, "lotteryAccount rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)
@@ -941,9 +941,9 @@ func (opt *operatorTxpoolGasLimit) GetValue(st StateDB) (interface{}, error) {
 	}
 
 	msg := new(big.Int)
-	err := json.Unmarshal(data, &msg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+		return nil, errors.Errorf("json.rlp decode failed: %s", err)
 	}
 
 	return msg, nil
@@ -959,7 +959,7 @@ func (opt *operatorTxpoolGasLimit) SetValue(st StateDB, value interface{}) error
 		log.Error(logInfo, "input param(TxpoolGasLimit) err", "reflect failed")
 		return ErrParamReflect
 	}
-	encodeData, err := json.Marshal(data)
+	encodeData, err := rlp.EncodeToBytes(data)
 	if err != nil {
 		log.Error(logInfo, "TxpoolGasLimit encode failed", err)
 		return err
@@ -995,9 +995,9 @@ func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
 		return make([]common.Address, 0), nil
 	}
 	currencylist := make([]string, 0)
-	err := json.Unmarshal(data, &currencylist)
+	err := rlp.DecodeBytes(data, &currencylist)
 	if err != nil {
-		return nil, errors.Errorf("operatorCurrencyPack json.Unmarshal failed: %s", err)
+		return nil, errors.Errorf("operatorCurrencyPack json.rlp decode failed: %s", err)
 	}
 
 	return currencylist, nil
@@ -1020,9 +1020,9 @@ func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
 		return ErrParamReflect
 	}
 
-	encodeData, err := json.Marshal(data)
+	encodeData, err := rlp.EncodeToBytes(data)
 	if err != nil {
-		log.Error(logInfo, "operatorCurrencyPack Marshal failed", err)
+		log.Error(logInfo, "operatorCurrencyPack rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, encodeData)
