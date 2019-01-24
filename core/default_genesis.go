@@ -495,7 +495,7 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteListSwitcherCfg"  {
+		"ElectWhiteListSwitcherCfg":  {
 			"Switcher" : false
 		},
 		"ElectWhiteList": null,
@@ -640,7 +640,7 @@ var (
 			"MinerNum": 21
 		},
 		"ElectBlackList": null,
-		"ElectWhiteListSwitcherCfg"  {
+		"ElectWhiteListSwitcherCfg":  {
 			"Switcher" : false
 		},
 		"ElectWhiteList": null,

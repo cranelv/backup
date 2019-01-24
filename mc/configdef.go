@@ -225,10 +225,10 @@ func (b *VIPConfig) Output(k, v interface{}) (interface{}, interface{}) {
 }
 
 type LeaderConfig struct {
-	ParentMiningTime      int64 // 预留父区块挖矿时间
-	PosOutTime            int64 // 区块POS共识超时时间
-	ReelectOutTime        int64 // 重选超时时间
-	ReelectHandleInterval int64 // 重选处理间隔时间
+	ParentMiningTime      uint64 // 预留父区块挖矿时间
+	PosOutTime            uint64 // 区块POS共识超时时间
+	ReelectOutTime        uint64 // 重选超时时间
+	ReelectHandleInterval uint64 // 重选处理间隔时间
 }
 
 type PreBroadStateRoot struct {

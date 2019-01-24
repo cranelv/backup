@@ -474,7 +474,7 @@ func (opt *operatorLeaderConfig) SetValue(st StateDB, value interface{}) error {
 
 	data, err := rlp.EncodeToBytes(value)
 	if err != nil {
-		log.Error(logInfo, "preBroadcastRoot rlp encode failed", err)
+		log.Error(logInfo, "leaderConfig rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

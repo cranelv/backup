@@ -194,7 +194,7 @@ func SetElectWhiteListSwitcher(st StateDB, switcher bool) error {
 	if mgr == nil {
 		return ErrFindManager
 	}
-	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteList)
+	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteListSwitcher)
 	if err != nil {
 		return err
 	}
