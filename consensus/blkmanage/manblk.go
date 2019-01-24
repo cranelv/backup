@@ -232,7 +232,8 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
+
+	err = support.BlockChain().ProcessStateVersion(header.Number.Uint64(), header.Version, work.State)
 	if err != nil {
 		log.ERROR(LogManBlk, "区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
 		return nil, nil, nil, nil, nil, nil, err
@@ -336,14 +337,15 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
 		return nil, nil, nil, nil, err
 	}
+
 	// process state version
-	err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State)
+	err = support.BlockChain().ProcessStateVersion(verifyHeader.Number.Uint64(), verifyHeader.Version, work.State)
 	if err != nil {
 		log.ERROR(LogManBlk, "状态树验证,错误", "运行状态树版本更新失败", "err", err)
 		return nil, nil, nil, nil, err
 	}
 	// 运行完matrix state后，生成root
-	localBlock, err = support.BlockChain().Engine(localHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
+	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, finalTxs, nil, work.Receipts)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err

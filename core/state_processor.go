@@ -298,7 +298,8 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		log.Trace("BlockChain insertChain in3 Process Block err3")
 		return receipts, logs, usedGas, err
 	}
-	err = p.bc.ProcessStateVersion(block.Header().Version, statedb)
+
+	err = p.bc.ProcessStateVersion(block.NumberU64(), block.Version(), statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err0")
 		return nil, nil, 0, err

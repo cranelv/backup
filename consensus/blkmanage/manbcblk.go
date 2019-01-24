@@ -137,7 +137,7 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
+	err = support.BlockChain().ProcessStateVersion(header.Number.Uint64(), header.Version, work.State)
 	if err != nil {
 		log.ERROR(LogManBlk, "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
 		return nil, nil, nil, nil, nil, nil, err
@@ -211,7 +211,7 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	}
 
 	// 运行版本更新检查
-	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Number.Uint64(), verifyHeader.Version, work.State); err != nil {
 		log.ERROR(LogManBlk, "广播挖矿结果验证, 版本更新检查失败", err)
 		return nil, nil, nil, nil, err
 	}
