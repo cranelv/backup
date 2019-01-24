@@ -250,7 +250,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 			case <-reqCh:
 				block := chain.CurrentBlock()
 				num := block.Number().Uint64()
-				log.INFO("MAIN", "本地区块插入消息已发送", num, "hash", block.Hash())
+				log.DEBUG("MAIN", "本地区块插入消息已发送", num, "hash", block.Hash())
 				mc.PublishEvent(mc.NewBlockMessage, block)
 				sub.Unsubscribe()
 				close(reqCh)
@@ -508,7 +508,7 @@ func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
 		if _, err := state.New((*head).Root(), bc.stateCache); err == nil {
-			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
+			log.WARN("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
 		// Otherwise rewind one block and recheck state availability there
@@ -1972,7 +1972,7 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	}
 
 	if _, err := bc.StateAt(block.Root()); err != nil {
-		log.Error("hyk", "get state err", err, "root", block.Root())
+		log.Error(ModuleName, "get state err", err, "root", block.Root())
 	}
 
 	return block, nil
@@ -2038,7 +2038,7 @@ func (bc *BlockChain) GetSignAccountPassword(signAccounts []common.Address) (com
 			return signAccount, password, nil
 		}
 	}
-	log.Info(common.SignLog, "获取签名账户密码", "失败, 未找到")
+	log.ERROR(common.SignLog, "获取签名账户密码", "失败, 未找到")
 	return common.Address{}, "", errors.New("未找到密码")
 }
 
@@ -2064,11 +2064,6 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block
 	a2Accounts = st.GetEntrustFrom(a1Account, height)
 	if len(a2Accounts) == 0 {
 		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
-	} else {
-		log.Info(common.SignLog, "获得A2账户", "成功", "账户数量", len(a2Accounts), "高度", height)
-		for i, account := range a2Accounts {
-			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "高度", height)
-		}
 	}
 	a2Accounts = append(a2Accounts, a1Account)
 	//返回A2账户
@@ -2097,8 +2092,6 @@ func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address, blockH
 		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "高度", height)
 		return common.Address{}, errors.New("获取的A1账户为空")
 	}
-	log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "高度", height, "a2Account", a2Account, "a1Account", a1Account)
-
 	return a1Account, nil
 }
 
@@ -2122,7 +2115,7 @@ func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address, blockH
 		log.Error(common.SignLog, "从A0账户获取A1账户", "失败", "不存在A1账户 a0Account", a0Account)
 		return common.Address{}, errors.New("不存在A1账户")
 	}
-	log.Info(common.SignLog, "从A0账户获取A1账户", "成功", "存在A1账户 a0Account", a0Account, "a1Account", a1Account)
+	//	log.Info(common.SignLog, "从A0账户获取A1账户", "成功", "存在A1账户 a0Account", a0Account, "a1Account", a1Account)
 	return a1Account, nil
 }
 
@@ -2146,7 +2139,7 @@ func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address, blockH
 		log.Error(common.SignLog, "从A1账户获取A0账户", "失败", "不存在A0账户 a1Account", a1Account)
 		return common.Address{}, errors.New("不存在A0账户")
 	}
-	log.Info(common.SignLog, "从A1账户获取A0账户", "成功", "存在A0账户 a1Account", a1Account, "a0Account", a0Account)
+	//log.Info(common.SignLog, "从A1账户获取A0账户", "成功", "存在A0账户 a1Account", a1Account, "a0Account", a0Account)
 	return a0Account, nil
 }
 
@@ -2181,7 +2174,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	//假设传入的account为A1账户
 	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
 	if err == nil {
-		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
+		//log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
 		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
@@ -2195,7 +2188,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	if err != nil {
 		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
 	}
-	log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
+	//log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex())
 	return a0Account, a1Account, err
 }
 
@@ -2231,11 +2224,6 @@ func (bc *BlockChain) GetA2AccountsFromA1AccountAtSignHeight(a1Account common.Ad
 	a2Accounts = st.GetEntrustFrom(a1Account, signHeight)
 	if len(a2Accounts) == 0 {
 		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "签名高度", signHeight)
-	} else {
-		log.Info(common.SignLog, "获得A2账户", "成功", "账户数量", len(a2Accounts), "签名高度", signHeight)
-		for i, account := range a2Accounts {
-			log.Info(common.SignLog, "A2账户", i, "account", account.Hex(), "签名高度", signHeight)
-		}
 	}
 	a2Accounts = append(a2Accounts, a1Account)
 	//返回A2账户
@@ -2247,7 +2235,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 	//假设传入的account为A1账户
 	a0Account, err := bc.GetA0AccountFromA1Account(account, blockHash)
 	if err == nil {
-		log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
+		//log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
 		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
@@ -2261,7 +2249,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 	if err != nil {
 		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败", "签名高度", signHeight)
 	}
-	log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
+	//log.Info(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
 	return a0Account, a1Account, err
 }
 
@@ -2286,7 +2274,7 @@ func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Add
 		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "签名高度", signHeight)
 		return common.Address{}, errors.New("获取的A1账户为空")
 	}
-	log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "签名高度", signHeight, "a2Account", a2Account, "a1Account", a1Account)
+	//log.Info(common.SignLog, "从A2账户获取A1账户", "成功", "签名高度", signHeight, "a2Account", a2Account, "a1Account", a1Account)
 
 	return a1Account, nil
 }
@@ -2439,6 +2427,8 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 	times := blockNum / uint64(period)
 	NewBlocknum := uint64(period) * times
 
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
 	getSnapshotNums := func(num uint64, bc *BlockChain) (nums []uint64) {
 		nums = make([]uint64, 0)
 
@@ -2470,6 +2460,7 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 	tmpstatedb, stateerr := bc.State()
 	if stateerr != nil {
 		log.Error("BlockChain savesnapshot ", "open state fialed,err ", stateerr)
+		return
 	}
 
 	preBCRoot, err := matrixstate.GetPreBroadcastRoot(tmpstatedb)
@@ -2523,14 +2514,14 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		//	log.Info("dump0 info", "MatrixData", common.Bytes2Hex(v.GetKey), "data", v)
 		//}
 
-		dump0 := statedb.RawDump()
-		log.Info("BlockChain savesnapshot dump info", "root", dump0.Root)
-		for k, v := range dump0.Accounts {
-			log.Info("BlockChain savesnapshot dump info", "accout", k, "data", v)
-		}
-		for k, v := range dump0.MatrixData {
-			log.Info("BlockChain savesnapshot dump info", "MatrixData", k, "data", v)
-		}
+		//dump0 := statedb.RawDump()
+		//log.Info("BlockChain savesnapshot dump info", "root", dump0.Root)
+		//for k, v := range dump0.Accounts {
+		//	log.Info("BlockChain savesnapshot dump info", "accout", k, "data", v)
+		//}
+		//for k, v := range dump0.MatrixData {
+		//	log.Info("BlockChain savesnapshot dump info", "MatrixData", k, "data", v)
+		//}
 
 		//dump1 := statedb.RawDump1(&dumpDB)
 		//log.Info("dump info", "root", dump1.Root)

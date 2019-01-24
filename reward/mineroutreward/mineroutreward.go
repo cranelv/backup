@@ -1,8 +1,9 @@
 package mineroutreward
 
 import (
-	"github.com/pkg/errors"
 	"math/big"
+
+	"github.com/pkg/errors"
 
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/mc"
@@ -70,7 +71,7 @@ func (mr *MinerOutReward) GetPreMinerReward(state util.StateDB, rewardType uint8
 }
 
 func (mr *MinerOutReward) SetPreMinerReward(state util.StateDB, reward *big.Int, rewardType uint8) {
-	log.INFO(PackageName, "设置前矿工奖励值为", reward, "type", rewardType)
+	//log.INFO(PackageName, "设置前矿工奖励值为", reward, "type", rewardType)
 	minerOutReward := &mc.MinerOutReward{Reward: *reward}
 	var err error
 	if util.TxsReward == rewardType {
@@ -109,7 +110,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 
 	rewards := make(map[common.Address]*big.Int)
 	util.SetAccountRewards(rewards, coinBase, preReward)
-	log.Info(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", preReward)
+	//log.Debug(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", preReward)
 	return rewards
 }
 
@@ -120,7 +121,7 @@ func (mr *MinerOutReward) canSetMinerOutRewards(num uint64, reward *big.Int, rea
 	}
 
 	if reward.Cmp(big.NewInt(0)) <= 0 {
-		log.WARN(PackageName, "奖励金额不合法", reward)
+		//log.WARN(PackageName, "奖励金额不合法", reward)
 		return common.Address{}, errors.New("奖励金额不合法")
 	}
 

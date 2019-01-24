@@ -3,7 +3,6 @@ package blkmanage
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -43,7 +42,7 @@ func (bd *ManBCBlkPlug) Prepare(support BlKSupport, interval *mc.BCIntervalInfo,
 			}
 			bd.baseInterface.preBlockHash = preBlockHash
 		default:
-			fmt.Println("unkown type:", reflect.ValueOf(v).Type())
+			log.Warn(LogManBlk, "unkown type:", reflect.ValueOf(v).Type())
 		}
 
 	}
@@ -181,7 +180,7 @@ func (bd *ManBCBlkPlug) VerifyHeader(support BlKSupport, header *types.Header, a
 		log.Error(LogManBlk, "验证vrf失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
-	log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
+	//log.INFO(LogManBlk, "验证vrf成功 高度", header.Number.Uint64())
 
 	return nil, nil
 }

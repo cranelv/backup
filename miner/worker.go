@@ -238,7 +238,7 @@ func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
 	role := data.Role
 	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, role)
 	canMining := self.mineReqCtrl.CanMining()
-	log.INFO(ModuleMiner, "更新高度及身份", "完成", "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
+	log.Trace(ModuleMiner,  "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
 	if canMining {
 		self.StartAgent()
 		self.processMineReq()
@@ -249,14 +249,14 @@ func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
 
 func (self *worker) MiningRequestHandle(data *mc.HD_MiningReqMsg) {
 	if nil == data || nil == data.Header {
-		log.ERROR(ModuleMiner, "接受挖矿请求", "消息为nil")
+		log.ERROR(ModuleMiner, "挖矿请求Msg", "nil")
 		return
 	}
-	log.INFO(ModuleMiner, "接收挖矿请求,高度", data.Header.Number, "难度值", data.Header.Difficulty)
+	log.Trace(ModuleMiner, "请求高度", data.Header.Number)
 
 	reqData, err := self.mineReqCtrl.AddMineReq(data.Header, nil, false)
 	if err != nil {
-		log.ERROR(ModuleMiner, "接受挖矿请求", "缓存挖矿请求错误", "err", err)
+		log.ERROR(ModuleMiner, "缓存挖矿请求", err)
 		return
 	}
 
@@ -267,13 +267,13 @@ func (self *worker) MiningRequestHandle(data *mc.HD_MiningReqMsg) {
 
 func (self *worker) BroadcastHashLocalMiningReqMsgHandle(req *mc.BlockData) {
 	if nil == req || nil == req.Header {
-		log.ERROR(ModuleMiner, "接受广播挖矿请求", "消息为nil")
+		log.ERROR(ModuleMiner, "广播挖矿请求Msg", "nil")
 		return
 	}
-	log.INFO(ModuleMiner, "接受广播挖矿请求 header--difficult", req.Header.Difficulty.Uint64())
+	log.Trace(ModuleMiner, "广播请求", req.Header.Number)
 	reqData, err := self.mineReqCtrl.AddMineReq(req.Header, req.Txs, true)
 	if err != nil {
-		log.ERROR(ModuleMiner, "接受广播挖矿请求", "缓存挖矿请求错误", "err", err)
+		log.ERROR(ModuleMiner, "缓存请求Err", err)
 		return
 	}
 
@@ -294,7 +294,6 @@ func (self *worker) wait() {
 			if header == nil {
 				continue
 			}
-			log.Info(ModuleMiner, "挖矿成功, Nonce", header.Nonce, "难度", header.Difficulty, "高度", header.Number.Uint64())
 			self.foundHandle(header)
 		}
 	}
@@ -303,7 +302,7 @@ func (self *worker) wait() {
 func (self *worker) foundHandle(header *types.Header) {
 	cache, err := self.mineReqCtrl.SetMiningResult(header)
 	if err != nil {
-		log.ERROR(ModuleMiner, "挖矿结果处理", "保存失败", "err", err)
+		log.ERROR(ModuleMiner, "结果保存失败", err)
 		return
 	}
 	self.startMineResultSender(cache)
@@ -417,7 +416,7 @@ func (self *worker) CommitNewWork(header *types.Header, isBroadcastNode bool) {
 		log.Error(ModuleMiner, "创建挖矿work失败", err)
 		return
 	}
-	log.Error(ModuleMiner, "挖矿work", "开始")
+	log.INFO(ModuleMiner, "挖矿", "开始")
 
 	//// Create the current work task and check any fork transitions needed
 	work := self.current
@@ -431,15 +430,14 @@ func (self *worker) processAppointedMineReq(reqData *mineReqData) {
 	}
 
 	if self.mineReqCtrl.CanMining() == false {
-		log.INFO(ModuleMiner, "processAppointedMineReq", "当前身份不可挖矿", "身份", self.mineReqCtrl.role.String(), "高度", self.mineReqCtrl.curNumber)
 		return
 	}
 
 	if reqData.mined {
-		log.INFO(ModuleMiner, "processAppointedMineReq", "请求已挖完，直接发送挖矿结果", "hash", reqData.headerHash.TerminalString())
+		log.Trace(ModuleMiner,  "请求已完成，直接发送结果", reqData.headerHash.TerminalString())
 		self.sendMineResultFunc(reqData, 0)
 	} else {
-		log.INFO(ModuleMiner, "processAppointedMineReq", "开始挖矿", "hash", reqData.headerHash.TerminalString())
+		log.Trace(ModuleMiner,  "接收请求，开始处理", reqData.headerHash.TerminalString())
 		self.beginMine(reqData)
 	}
 }
@@ -447,10 +445,9 @@ func (self *worker) processAppointedMineReq(reqData *mineReqData) {
 func (self *worker) processMineReq() {
 	reqData := self.mineReqCtrl.GetUnMinedReq()
 	if reqData == nil {
-		log.INFO(ModuleMiner, "processMineReq", "获取未处理过的请求失败")
 		return
 	}
-	log.INFO(ModuleMiner, "processMineReq", "开始挖矿", "hash", reqData.headerHash.TerminalString())
+	log.Trace(ModuleMiner,  "开始挖矿", reqData.headerHash.TerminalString())
 	self.beginMine(reqData)
 }
 
@@ -459,20 +456,19 @@ func (self *worker) beginMine(reqData *mineReqData) {
 		return
 	}
 	if atomic.LoadInt32(&self.mining) == 0 {
-		log.INFO(ModuleMiner, "beginMine", "当前不处于mining状态，不处理")
 		return
 	}
 
 	if curMineReq := self.mineReqCtrl.GetCurrentMineReq(); curMineReq != nil {
 		if curMineReq.mined == false && curMineReq.header.Time.Cmp(reqData.header.Time) >= 0 {
-			log.INFO(ModuleMiner, "beginMine", "当前挖矿时间较大，不处理本次挖矿",
+			log.DEBUG(ModuleMiner, "beginMine", "当前挖矿时间较大，不处理本次挖矿",
 				"当前挖矿header时间", curMineReq.header.Time, "请求挖矿header时间", reqData.header.Time)
 			return
 		}
 	}
 
 	if err := self.mineReqCtrl.SetCurrentMineReq(reqData.headerHash); err != nil {
-		log.ERROR(ModuleMiner, "beginMine", "保存当前挖矿请求错误", "err", err)
+		log.ERROR(ModuleMiner,"保存挖矿请求:", err)
 		return
 	}
 	self.CommitNewWork(reqData.header, reqData.isBroadcastReq)
@@ -485,7 +481,7 @@ func (self *worker) startMineResultSender(data *mineReqData) {
 		log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
 		return
 	}
-	log.INFO(ModuleMiner, "创建挖矿结果发送器", "成功", "高度", data.header.Number.Uint64(), "hash", data.headerHash.TerminalString())
+	log.Trace(ModuleMiner, "创建挖矿结果发送器", "成功", "高度", data.header.Number.Uint64(), "hash", data.headerHash.TerminalString())
 	self.mineResultSender = sender
 }
 
@@ -495,7 +491,7 @@ func (self *worker) stopMineResultSender() {
 	}
 	self.mineResultSender.Close()
 	self.mineResultSender = nil
-	log.INFO(ModuleMiner, "挖矿结果发送器", "停止")
+	log.Trace(ModuleMiner, "挖矿结果发送器", "停止")
 }
 
 func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
@@ -511,7 +507,7 @@ func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
 	}
 
 	if err := resultData.ResendMineResult(time.Now().Unix()); err != nil {
-		log.WARN(ModuleMiner, "发出挖矿结果", "发送挖矿结果失败", "原因", err, "次数", times)
+		log.ERROR(ModuleMiner, "发出挖矿结果", "发送挖矿结果失败", "原因", err, "次数", times)
 		return
 	}
 
@@ -522,7 +518,7 @@ func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
 				Txs:    resultData.txs,
 			},
 		}
-		log.INFO(ModuleMiner, "广播挖矿结果", "发送", "交易数量", rsp.BlockMainData.Txs.Len(), "次数", times, "高度", rsp.BlockMainData.Header.Number)
+		log.Trace(ModuleMiner, "广播挖矿结果", "发送", "交易数量", rsp.BlockMainData.Txs.Len(), "次数", times, "高度", rsp.BlockMainData.Header.Number)
 		self.hd.SendNodeMsg(mc.HD_BroadcastMiningRsp, rsp, common.RoleValidator, nil)
 	} else {
 		rsp := &mc.HD_MiningRspMsg{
@@ -535,6 +531,6 @@ func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
 			Signatures: resultData.header.Signatures}
 
 		self.hd.SendNodeMsg(mc.HD_MiningRsp, rsp, common.RoleValidator|common.RoleBroadcast, nil)
-		log.INFO(ModuleMiner, "挖矿结果", "发送", "hash", rsp.BlockHash.TerminalString(), "次数", times, "高度", rsp.Number, "Nonce", rsp.Nonce)
+		log.Trace(ModuleMiner, "挖矿结果", "发送", "hash", rsp.BlockHash.TerminalString(), "次数", times, "高度", rsp.Number, "Nonce", rsp.Nonce)
 	}
 }

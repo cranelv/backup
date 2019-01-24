@@ -85,10 +85,10 @@ func (sr *SelectedReward) GetSelectedRewards(reward *big.Int, state util.StateDB
 
 	//计算选举的拓扑图的高度
 	if reward.Cmp(big.NewInt(0)) <= 0 {
-		log.WARN(PackageName, "奖励金额不合法", reward)
+		//log.WARN(PackageName, "奖励金额不合法", reward)
 		return nil
 	}
-	log.Debug(PackageName, "参与奖励大家共发放", reward)
+	//log.Debug(PackageName, "参与奖励大家共发放", reward)
 
 	currentTop, originElectNodes, err := sr.GetTopAndDeposit(chain, state, currentNum, roleType)
 	if nil != err {
@@ -109,7 +109,7 @@ func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originE
 	NodesRewardMap := make(map[common.Address]uint64, 0)
 	for _, nodelist := range newGraph {
 		NodesRewardMap[nodelist] = rewardRate
-		log.Debug(PackageName, "当前节点", nodelist.Hex())
+		//log.Debug(PackageName, "当前节点", nodelist.Hex())
 	}
 	for electList := range originElectNodes {
 		if _, ok := NodesRewardMap[electList]; ok {
@@ -117,7 +117,7 @@ func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originE
 		} else {
 			NodesRewardMap[electList] = util.RewardFullRate - rewardRate
 		}
-		log.Debug(PackageName, "初选节点", electList.Hex(), "比例", NodesRewardMap[electList])
+		//log.Debug(PackageName, "初选节点", electList.Hex(), "比例", NodesRewardMap[electList])
 	}
 
 	selectedNodesDeposit := make(map[common.Address]util.DepositInfo, 0)
@@ -131,7 +131,7 @@ func (sr *SelectedReward) CaclSelectedDeposit(newGraph []common.Address, originE
 			finalStock = uint64(1) * v
 		}
 		selectedNodesDeposit[k] = util.DepositInfo{Deposit: big.NewInt(0), FixStock: finalStock}
-		log.Debug(PackageName, "计算抵押总额,账户", k.Hex(), "股权", finalStock)
+		//log.Debug(PackageName, "计算抵押总额,账户", k.Hex(), "股权", finalStock)
 	}
 	return selectedNodesDeposit
 }

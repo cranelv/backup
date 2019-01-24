@@ -72,10 +72,9 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	a0Address := ca.GetDepositAddress()
 	nodeAddress := ca.GetSignAddress()
 	self.SetSelfAddress(a0Address, nodeAddress)
-	log.Info("测试测试测试", "selfDepositAddress", a0Address.String(), "nodeAddress", nodeAddress.String())
 
-	log.INFO(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "isSupper", msg.parentIsSupper, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
-	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentIsSupper, msg.parentStateDB); err != nil {
+	log.Debug(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
+	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentStateDB); err != nil {
 		log.ERROR(self.logInfo, "开始消息处理", "分析状态树信息错误", "err", err)
 		return
 	}
@@ -95,13 +94,11 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	}
 
 	if self.dc.turnTime.SetBeginTime(mc.ConsensusTurnInfo{}, msg.parentHeader.Time.Int64()) {
-		log.Debug(self.logInfo, "开始消息处理", "更新轮次时间成功", "高度", self.dc.number)
-		self.dc.leaderCal.dumpAllValidators(self.logInfo)
 		self.mp.SaveParentHeader(msg.parentHeader)
 		if isFirstConsensusTurn(self.ConsensusTurn()) {
 			curTime := time.Now().Unix()
 			st, remainTime, reelectTurn := self.dc.turnTime.CalState(mc.ConsensusTurnInfo{}, curTime)
-			log.INFO(self.logInfo, "开始消息处理", "完成", "状态计算结果", st.String(), "剩余时间", remainTime, "重选轮次", reelectTurn)
+			log.Debug(self.logInfo, "开始消息处理", "完成", "状态计算结果", st.String(), "剩余时间", remainTime, "重选轮次", reelectTurn)
 			self.dc.state = st
 			self.dc.curReelectTurn = 0
 			self.setTimer(remainTime, self.timer)
@@ -123,7 +120,7 @@ func (self *controller) handleBlockPOSFinishedNotify(msg *mc.BlockPOSFinishedNot
 		return
 	}
 	if err := self.mp.SavePOSNotifyMsg(msg); err == nil {
-		log.Info(self.logInfo, "POS完成通知消息处理", "缓存成功", "高度", msg.Number, "leader", msg.Header.Leader, "leader轮次", msg.ConsensusTurn.String())
+		log.Debug(self.logInfo, "POS完成通知消息处理", "缓存成功", "高度", msg.Number, "leader", msg.Header.Leader, "leader轮次", msg.ConsensusTurn.String())
 	}
 	self.processPOSState()
 }
@@ -141,7 +138,7 @@ func (self *controller) timeOutHandle() {
 			"状态计算结果", st.String(), "下次超时时间", remainTime, "计算的重选轮次", reelectTurn,
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "master", self.dc.GetReelectMaster().Hex())
 	default:
-		log.ERROR(self.logInfo, "超时事件", "当前状态错误", "state", self.State().String(), "轮次", self.curTurnInfo(), "高度", self.Number(),
+		log.Error(self.logInfo, "超时事件", "当前状态错误", "state", self.State().String(), "轮次", self.curTurnInfo(), "高度", self.Number(),
 			"轮次开始时间", self.dc.turnTime.GetBeginTime(*self.ConsensusTurn()), "当前时间", curTime)
 		return
 	}
@@ -162,7 +159,7 @@ func (self *controller) processPOSState() {
 		return
 	}
 
-	log.Info(self.logInfo, "POS完成", "状态切换为<挖矿结果等待阶段>")
+	log.Debug(self.logInfo, "POS完成", "状态切换为<挖矿结果等待阶段>")
 	self.setTimer(0, self.timer)
 	self.dc.state = stMining
 }

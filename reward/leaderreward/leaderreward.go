@@ -30,6 +30,6 @@ func (lr *LeaderReward) SetLeaderRewards(reward *big.Int, Leader common.Address,
 	}
 	rewards := make(map[common.Address]*big.Int)
 	rewards[Leader] = reward
-	log.Debug(PackageName, "leader 奖励地址", Leader, "奖励金额", reward)
+	//log.Debug(PackageName, "leader 奖励地址", Leader, "奖励金额", reward)
 	return rewards
 }
