@@ -407,7 +407,7 @@ func GetAccountBlackList(st StateDB) ([]common.Address, error) {
 	}
 	return value.([]common.Address), nil
 }
-func GetCoinConfig(st StateDB) (map[string]common.CoinConfig, error) {
+func GetCoinConfig(st StateDB) ([]common.CoinConfig, error) {
 	version := GetVersionInfo(st)
 	mgr := GetManager(version)
 	if mgr == nil {
@@ -421,5 +421,5 @@ func GetCoinConfig(st StateDB) (map[string]common.CoinConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.(map[string]common.CoinConfig), nil
+	return value.([]common.CoinConfig), nil
 }

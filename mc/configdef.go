@@ -1021,14 +1021,14 @@ func (b *CurrencyConfig) Check(k, v interface{}) (interface{}, bool) {
 	if err != nil {
 		return nil, false
 	}
-	values := make([]string, 0)
+	values := make([]common.CoinConfig, 0)
 	err = json.Unmarshal(codedata, &values)
 	if err != nil {
 		return nil, false
 	}
 
 	for _, currency := range values {
-		if !common.IsValidityCurrency(currency) {
+		if !common.IsValidityCurrency(currency.CoinType) {
 			log.ERROR("超级交易币种打包限制配置", "币种格式不正确", "")
 			return nil, false
 		}

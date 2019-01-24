@@ -22,8 +22,14 @@ var (
 	ErrTxPoolAlreadyExist = errors.New("txpool already exist")
 	ErrTxPoolIsNil        = errors.New("txpool is nil")
 	ErrTxPoolNonexistent  = errors.New("txpool nonexistent")
-)
 
+	blockNumberByfilter = uint64(0)
+)
+type CoinPachFilter struct {
+	mu sync.RWMutex
+	coinNum map[string]uint64
+}
+var filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
 //
 type RetChan struct {
 	//Rxs   []types.SelfTransaction
@@ -291,18 +297,38 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 			return false
 		}
 	}
-	//多币种过滤
+	//多币种配置过滤
 	if cointype != params.MAN_COIN{
 		coinf,err := matrixstate.GetCoinConfig(state)
 		if err != nil{
 			log.Error("coin err","get coin config err",err)
 			return false
 		}
-		config := coinf[cointype]
+		var config common.CoinConfig
+		for _,cog := range coinf{
+			if cog.CoinType == cointype{
+				config = cog
+				break
+			}
+		}
 		if !config.IsPack{
 			log.WARN("warning ","this coin tx discard. coin type",cointype)
 			return false
 		}
+		if config.PackNum > 0 {
+			filtercoinnum.mu.Lock()
+			if blockNumberByfilter != h.Uint64(){
+				blockNumberByfilter = h.Uint64()
+				filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
+			}
+			if filtercoinnum.coinNum[cointype] >= config.PackNum{
+				log.WARN("warning ","this coin tx count >= pack num.coin type",cointype,"pack num",config.PackNum,"curr tx count",filtercoinnum.coinNum[cointype])
+				return false
+			}
+			filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype]+1
+			filtercoinnum.mu.Unlock()
+		}
+
 	}
 	//超级交易账户不匹配
 	if txtype == common.ExtraSuperTxType {

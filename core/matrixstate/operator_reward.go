@@ -971,30 +971,30 @@ func (opt *operatorTxpoolGasLimit) SetValue(st StateDB, value interface{}) error
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //币种打包限制
-type operatorCurrencyPack struct {
+type operatorCurrencyConfig struct {
 	key common.Hash
 }
 
-func newCurrencyPackOpt() *operatorCurrencyPack {
-	return &operatorCurrencyPack{
+func newCurrencyPackOpt() *operatorCurrencyConfig {
+	return &operatorCurrencyConfig{
 		key: types.RlpHash(matrixStatePrefix + mc.MSCurrencyConfig),
 	}
 }
 
-func (opt *operatorCurrencyPack) KeyHash() common.Hash {
+func (opt *operatorCurrencyConfig) KeyHash() common.Hash {
 	return opt.key
 }
 
-func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
+func (opt *operatorCurrencyConfig) GetValue(st StateDB) (interface{}, error) {
 	if err := checkStateDB(st); err != nil {
-		return uint64(0), err
+		return nil, err
 	}
 
 	data := st.GetMatrixData(opt.key)
 	if len(data) == 0 {
-		return make([]string, 0), nil
+		return make([]common.CoinConfig, 0), nil
 	}
-	currencylist := make([]string, 0)
+	currencylist := make([]common.CoinConfig, 0)
 	err := json.Unmarshal(data, &currencylist)
 	if err != nil {
 		return nil, errors.Errorf("operatorCurrencyPack json.Unmarshal failed: %s", err)
@@ -1003,7 +1003,7 @@ func (opt *operatorCurrencyPack) GetValue(st StateDB) (interface{}, error) {
 	return currencylist, nil
 }
 
-func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
+func (opt *operatorCurrencyConfig) SetValue(st StateDB, value interface{}) error {
 	if err := checkStateDB(st); err != nil {
 		return err
 	}
@@ -1014,7 +1014,7 @@ func (opt *operatorCurrencyPack) SetValue(st StateDB, value interface{}) error {
 		st.SetMatrixData(opt.key, nilSlice)
 		return nil
 	}
-	data, OK := value.([]string)
+	data, OK := value.([]common.CoinConfig)
 	if !OK {
 		log.Error(logInfo, "input param(CurrencyPack) err", "reflect failed")
 		return ErrParamReflect
