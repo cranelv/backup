@@ -179,18 +179,18 @@ func CheckEntrust(ctx *cli.Context) error {
 	if path == "" {
 		return nil
 	}
-
+	fmt.Println("Please enter the password. Your password's length must be between 8 and 16 characters, and should contain numbers, uppercase letters (A-Z), lowercase letters (a-z) and special characters")
 	password, err := ReadDecryptPassword(utils.Once, ctx)
 	f, err := os.Open(path)
 	if err != nil {
-		fmt.Println("文件打开失败", err, "path", path)
+		fmt.Println("Failed to open the file", err, "path", path)
 		return err
 	}
 
 	b, err := ioutil.ReadAll(f)
 	bytesPass, err := base64.StdEncoding.DecodeString(string(b))
 	if err != nil {
-		fmt.Println("文件内容错误", err)
+		fmt.Println("Error in file contents", err)
 		return err
 	}
 	tpass, err := aes.AesDecrypt(bytesPass, []byte(password))
@@ -202,7 +202,7 @@ func CheckEntrust(ctx *cli.Context) error {
 	var anss []mc.EntrustInfo
 	err = json.Unmarshal(tpass, &anss)
 	if err != nil {
-		fmt.Println("解密失败，密码不正确", err)
+		fmt.Println("Decrypt Failed. Password is wrong", err)
 		return err
 	}
 
@@ -235,12 +235,12 @@ func ReadDecryptPassword(inputTimes int, ctx *cli.Context) ([]byte, error) {
 	for true {
 		InputCount++
 		if InputCount > 3 {
-			return []byte{}, errors.New("多次输入密码错误")
+			return []byte{}, errors.New("You entered wrong passwords for many times")
 		}
-		fmt.Printf("第 %d次密码输入 \n", InputCount)
+		fmt.Printf("This is the %d time you enter the password \n", InputCount)
 		passphrase, err = utils.GetPassword(inputTimes)
 		if err != nil {
-			fmt.Println("获取密码错误", err)
+			fmt.Println("Unable to detect your password. Please enter it again", err)
 			continue
 		}
 		if utils.CheckPassword(passphrase) {

@@ -918,7 +918,7 @@ func CheckPassword(password string) bool {
 	flagSpecialChar := false
 	for _, v := range password {
 		if IsValidChar(byte(v)) == false {
-			fmt.Println("你的密码不符合要求,不支持的字符 请重新输入")
+			fmt.Println("There are unsupported characters in your password. Please try again")
 			return false
 		}
 		switch {
@@ -935,28 +935,28 @@ func CheckPassword(password string) bool {
 	}
 
 	if flagSpecialChar == false {
-		fmt.Println("你的密码不包含特殊字符 请重新输入")
+		fmt.Println("Your password doesn't contain special characters. Please try again")
 		return false
 	}
 	if flagNum == false {
-		fmt.Println("你的密码不包含数字 请重新输入")
+		fmt.Println("Your password doesn't contain numbers. Please try again")
 		return false
 	}
 	if flagUpperChar == false {
-		fmt.Println("你的密码不包含大写字母 请重新输入")
+		fmt.Println("Your password doesn't contain uppercase letters. Please try again")
 		return false
 	}
 	if flagLowerChar == false {
-		fmt.Println("你的密码不包含小写字符 请重新输入")
+		fmt.Println("Your password doesn't contain lowercase letters. Please try again")
 		return false
 	}
 
 	if len(password) > 16 {
-		fmt.Println("你的密码大于16位 请重新输入")
+		fmt.Println("Your password's length exceeds 16 characters. Please try again")
 		return false
 	}
 	if len(password) < 8 {
-		fmt.Println("你的密码小于8位 请重新输入")
+		fmt.Println("Your password's length is less than 8 characters. Please try again")
 		return false
 	}
 	return true
