@@ -227,8 +227,8 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
 	block := types.NewBlock(header, finalTxs, nil, work.Receipts)
 	log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", block.TxHash())
-
-	err = support.BlockChain().ProcessMatrixState(block, work.State)
+	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
+	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
@@ -328,7 +328,8 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	finalTxs := work.GetTxs()
 	localBlock := types.NewBlock(localHeader, finalTxs, nil, work.Receipts)
 	// process matrix state
-	err = support.BlockChain().ProcessMatrixState(localBlock, work.State)
+	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
+	err = support.BlockChain().ProcessMatrixState(localBlock, string(parent.Version()), work.State)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
 		return nil, nil, nil, nil, err

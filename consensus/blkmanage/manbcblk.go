@@ -137,7 +137,8 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 	work.ProcessBroadcastTransactions(support.EventMux(), Txs)
 	log.Info(LogManBlk, "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", header.Number.Uint64())
 	block := types.NewBlock(header, work.GetTxs(), nil, work.Receipts)
-	err = support.BlockChain().ProcessMatrixState(block, work.State)
+	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
+	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
@@ -205,7 +206,8 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	retTxs := work.GetTxs()
 	// 运行matrix状态树
 	block := types.NewBlock(verifyHeader, retTxs, nil, work.Receipts)
-	if err := support.BlockChain().ProcessMatrixState(block, work.State); err != nil {
+
+	if err := support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State); err != nil {
 		log.ERROR(LogManBlk, "广播挖矿结果验证, matrix 状态树运行错误", err)
 		return nil, nil, nil, nil, err
 	}

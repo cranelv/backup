@@ -59,8 +59,8 @@ type GenesisMState struct {
 	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus,omitempty" gencodec:"required"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
-	if err := ms.setVersionInfo(state, num, version); err != nil {
+func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common.NetTopology, nextElect []common.Elect, newVersion string, oldVersion string, num uint64) error {
+	if err := ms.setVersionInfo(state, num, newVersion); err != nil {
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 
-	if err := ms.setTopologyToState(state, netTopology, num); err != nil {
+	if err := ms.setTopologyToState(state, netTopology, num, oldVersion); err != nil {
 		return err
 	}
 
@@ -118,7 +118,7 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 	if err := ms.setSubChainSuperAccountsToState(state, num); err != nil {
 		return err
 	}
-	if err := ms.setBCIntervalToState(state, num); err != nil {
+	if err := ms.setBCIntervalToState(state, num, oldVersion); err != nil {
 		return err
 	}
 	if err := ms.setBlkCalcToState(state, num); err != nil {
@@ -155,9 +155,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setLeaderCfgToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setBCIntervalToState(state, num); err != nil {
 		return err
 	}
 
@@ -278,7 +275,7 @@ func (g *GenesisMState) setElectBlackListInfo(state *state.StateDB, num uint64) 
 	return matrixstate.SetElectBlackList(state, blackList)
 }
 
-func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt common.NetTopology, num uint64) error {
+func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt common.NetTopology, num uint64, oldVersion string) error {
 	if num == 0 {
 		if genesisNt.Type != common.NetTopoTypeAll {
 			return errors.New("genesis net topology type is not all graph type！")
@@ -301,7 +298,7 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDB, genesisNt commo
 			return err
 		}
 	} else {
-		preGraph, err := matrixstate.GetTopologyGraph(state)
+		preGraph, err := matrixstate.GetTopologyGraphByVersion(state, oldVersion)
 		if err != nil {
 			return errors.Errorf("get pre topology graph from state err: %v", err)
 		}
@@ -673,17 +670,6 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 			return nil
 		}
 	}
-	bcInterval, err := matrixstate.GetBroadcastInterval(state)
-	if err != nil {
-		log.ERROR("Geneis", "获取广播周期数据结构失败", err)
-		return nil
-	}
-
-	if g.InterestCfg.PayInterval < bcInterval.BCInterval {
-
-		return errors.Errorf("配置的发放周期小于计息周期")
-	}
-
 	log.Info("Geneis", "InterestCfg", g.InterestCfg)
 	return matrixstate.SetInterestCfg(state, g.InterestCfg)
 }
@@ -776,7 +762,7 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDB, extra []byte, n
 	return matrixstate.SetSuperBlockCfg(state, superBlkCfg)
 }
 
-func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64) error {
+func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64, oldVersion string) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
 		if nil == g.BCICfg {
@@ -805,7 +791,7 @@ func (g *GenesisMState) setBCIntervalToState(st *state.StateDB, num uint64) erro
 			return errors.Errorf("广播周期生效高度(%d)非法, < 当前高度(%d)", g.BCICfg.BackupEnableNumber, num)
 		}
 
-		bcInterval, err := matrixstate.GetBroadcastInterval(st)
+		bcInterval, err := matrixstate.GetBroadcastIntervalByVersion(st, oldVersion)
 		if err != nil || bcInterval == nil {
 			return errors.Errorf("获取前广播周期数据失败(%v)", err)
 		}

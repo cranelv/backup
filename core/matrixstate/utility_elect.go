@@ -21,6 +21,22 @@ func GetTopologyGraph(st StateDB) (*mc.TopologyGraph, error) {
 	return value.(*mc.TopologyGraph), nil
 }
 
+func GetTopologyGraphByVersion(st StateDB, version string) (*mc.TopologyGraph, error) {
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyTopologyGraph)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.(*mc.TopologyGraph), nil
+}
+
 func SetTopologyGraph(st StateDB, graph *mc.TopologyGraph) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {

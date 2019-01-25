@@ -60,7 +60,6 @@ type ChainReader interface {
 
 	ProcessUpTime(state *state.StateDB, header *types.Header) (map[common.Address]uint64, error)
 	StateAt(root common.Hash) (*state.StateDB, error)
-	ProcessMatrixState(block *types.Block, state *state.StateDB) error
 	Engine(version []byte) consensus.Engine
 	DPOSEngine(version []byte) consensus.DPOSEngine
 	Processor(version []byte) core.Processor
@@ -158,10 +157,13 @@ func (bd *ManBlkManage) ProduceBlockVersion(num uint64, preVersion string) strin
 }
 
 func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVersion string) error {
-	//if num == manparams.VersionNumBeta && curVersion != manparams.VersionBeta {
-	//	return errors.New("版本号异常")
-	//}
-	if curVersion != preVersion {
+/*if num == manparams.VersionNumBeta {
+		if curVersion != manparams.VersionBeta {
+			return errors.New("版本号异常")
+		} else {
+			return nil
+		}
+	} else*/ if curVersion != preVersion {
 		return errors.New("版本号异常,不等于父区块版本号")
 	}
 	return nil

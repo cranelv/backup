@@ -44,8 +44,8 @@ func (bc *BlockChain) ProcessStateVersion(version []byte, st *state.StateDB) err
 	return bc.matrixProcessor.ProcessStateVersion(version, st)
 }
 
-func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
-	return bc.matrixProcessor.ProcessMatrixState(block, state)
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, preVersion string, state *state.StateDB) error {
+	return bc.matrixProcessor.ProcessMatrixState(block, preVersion, state)
 }
 
 func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error) {

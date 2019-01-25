@@ -298,7 +298,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	}
 
 	// Process matrix state
-	err = p.bc.matrixProcessor.ProcessMatrixState(block, statedb)
+	err = p.bc.matrixProcessor.ProcessMatrixState(block, string(parent.Version()), statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err4")
 		return receipts, logs, usedGas, err

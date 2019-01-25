@@ -47,8 +47,12 @@ type ChainReader interface {
 }
 
 func (sr *SelectedReward) GetTopAndDeposit(chain util.ChainReader, state util.StateDB, currentNum uint64, roleType common.RoleType) ([]common.Address, map[common.Address]uint16, error) {
+	preState, err := chain.StateAtNumber(currentNum - 1)
+	if err != nil {
+		return nil, nil, errors.New("获取父状态失败")
+	}
 
-	currentTop, originElectNodes, err := chain.GetGraphByState(state)
+	currentTop, originElectNodes, err := chain.GetGraphByState(preState)
 	if err != nil {
 		log.Error(PackageName, "获取拓扑图错误", err)
 		return nil, nil, errors.New("获取拓扑图错误")
