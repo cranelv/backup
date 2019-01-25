@@ -5,12 +5,19 @@
 package core
 
 import (
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/consensus"
 	"math/big"
 	"runtime"
 	"sync"
+
+	"github.com/matrix/go-matrix/ca"
+	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/consensus"
+
+	"bufio"
+	"io"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/matrix/go-matrix/baseinterface"
 	"github.com/matrix/go-matrix/core/matrixstate"
@@ -25,11 +32,6 @@ import (
 	"github.com/matrix/go-matrix/reward/lottery"
 	"github.com/matrix/go-matrix/reward/slash"
 	"github.com/matrix/go-matrix/reward/txsreward"
-	"os"
-	"bufio"
-	"io"
-	"strings"
-	"strconv"
 	"github.com/pkg/errors"
 )
 
@@ -164,10 +166,10 @@ func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.Stat
 	intermediateroothash := types.RlpHash(root)
 	blockroothash := types.RlpHash(block.Root())
 	isok := false
-	for _,cr := range root{
-		for _,br := range block.Root(){
-			if cr.Cointyp == br.Cointyp{
-				if cr.Root != br.Root{
+	for _, cr := range root {
+		for _, br := range block.Root() {
+			if cr.Cointyp == br.Cointyp {
+				if cr.Root != br.Root {
 					isok = true
 				}
 			}
@@ -179,66 +181,67 @@ func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.Stat
 	return nil
 }
 
-func (p *StateProcessor)readShardConfig(filePth string) ([]common.CoinSharding,error) {
+func (p *StateProcessor) readShardConfig(filePth string) ([]common.CoinSharding, error) {
 	f, err := os.Open(filePth)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	defer f.Close()
 	bfRd := bufio.NewReader(f)
-	coinshard := make([]common.CoinSharding,0)
+	coinshard := make([]common.CoinSharding, 0)
 	for {
-		ushards := make([]uint,0)
-		buf,_, err := bfRd.ReadLine()
-		if len(buf) <=0 {
+		ushards := make([]uint, 0)
+		buf, _, err := bfRd.ReadLine()
+		if len(buf) <= 0 {
 			if err != nil { //遇到任何错误立即返回，并忽略 EOF 错误信息
 				if err == io.EOF {
 					break
 				}
-				return nil,err
+				return nil, err
 			}
 		}
 		str := string(buf)
-		idx := strings.Index(str,"=")
-		coin:=str[0:idx]
+		idx := strings.Index(str, "=")
+		coin := str[0:idx]
 		shards := str[idx+1:]
-		strs := strings.Split(shards,",")
-		for _,str := range strs{
-			i,_:=strconv.Atoi(str)
-			ushards = append(ushards,uint(i))
+		strs := strings.Split(shards, ",")
+		for _, str := range strs {
+			i, _ := strconv.Atoi(str)
+			ushards = append(ushards, uint(i))
 		}
-		coinshard = append(coinshard,common.CoinSharding{CoinType:coin,Shardings:ushards})
+		coinshard = append(coinshard, common.CoinSharding{CoinType: coin, Shardings: ushards})
 	}
-	return coinshard,nil
+	return coinshard, nil
 }
-func (p *StateProcessor) checkCoinShard(coinShard []common.CoinSharding)[]common.CoinSharding{
+func (p *StateProcessor) checkCoinShard(coinShard []common.CoinSharding) []common.CoinSharding {
 	isexistCoin := false
 	isexistShard := false
-	for _,cs :=range coinShard{
-		if cs.CoinType == params.MAN_COIN{
+	for _, cs := range coinShard {
+		if cs.CoinType == params.MAN_COIN {
 			isexistCoin = true
-			for _,s := range cs.Shardings{
-				if s == 0{
+			for _, s := range cs.Shardings {
+				if s == 0 {
 					isexistShard = true
 				}
 			}
 			break
 		}
 	}
-	if !isexistCoin{
-		coinShard = append(coinShard,common.CoinSharding{CoinType:params.MAN_COIN,Shardings:[]uint{0}})
-	}else if isexistShard{
-		for i,cs :=range coinShard {
-			ui := make([]uint,0)
+	if !isexistCoin {
+		coinShard = append(coinShard, common.CoinSharding{CoinType: params.MAN_COIN, Shardings: []uint{0}})
+	} else if isexistShard {
+		for i, cs := range coinShard {
+			ui := make([]uint, 0)
 			if cs.CoinType == params.MAN_COIN {
-				ui = append(ui,uint(0))
-				ui = append(ui,coinShard[i].Shardings...)
+				ui = append(ui, uint(0))
+				ui = append(ui, coinShard[i].Shardings...)
 				coinShard[i].Shardings = ui
 			}
 		}
 	}
 	return coinShard
 }
+
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -246,21 +249,21 @@ func (p *StateProcessor) checkCoinShard(coinShard []common.CoinSharding)[]common
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBManage, cfg vm.Config,upTime map[common.Address]uint64) ([]types.CoinLogs, uint64, error) {
+func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64) ([]types.CoinLogs, uint64, error) {
 	var (
-		receipts types.Receipts
+		receipts    types.Receipts
 		allreceipts = make(map[string]types.Receipts)
-		usedGas  = new(uint64)
-		header   = block.Header()
-		allLogs  []types.CoinLogs
-		gp       = new(GasPool).AddGas(block.GasLimit())
-		retAllGas uint64= 0
+		usedGas     = new(uint64)
+		header      = block.Header()
+		allLogs     []types.CoinLogs
+		gp                 = new(GasPool).AddGas(block.GasLimit())
+		retAllGas   uint64 = 0
 	)
-	cs,cserr:=p.readShardConfig("")
+	cs, cserr := p.readShardConfig("")
 	var coinShard []common.CoinSharding
-	if cserr == nil{
-		coinShard = make([]common.CoinSharding,len(cs))
-		copy(coinShard,cs)
+	if cserr == nil {
+		coinShard = make([]common.CoinSharding, len(cs))
+		copy(coinShard, cs)
 		coinShard = p.checkCoinShard(coinShard)
 	}
 	// Iterate over and process the individual transactions
@@ -272,8 +275,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	var txcount int
 	tmpMaptx := make(map[string]types.SelfTransactions)
 	tmpMapre := make(map[string]types.Receipts)
-	for _,cb := range block.Currencies(){
-		txs = append(txs,cb.Transactions.GetTransactions()...)
+	for _, cb := range block.Currencies() {
+		txs = append(txs, cb.Transactions.GetTransactions()...)
 	}
 	var waitG = &sync.WaitGroup{}
 	maxProcs := runtime.NumCPU() //获取cpu个数
@@ -308,19 +311,19 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		if tx.IsEntrustTx() {
 			from := tx.From()
-			entrustFrom := statedb.GetGasAuthFrom(tx.GetTxCurrency(),from, p.bc.CurrentBlock().NumberU64()) //
+			entrustFrom := statedb.GetGasAuthFrom(tx.GetTxCurrency(), from, p.bc.CurrentBlock().NumberU64()) //
 			if !entrustFrom.Equal(common.Address{}) {
 				tx.Setentrustfrom(entrustFrom)
 				tx.SetIsEntrustGas(true)
 			} else {
-				entrustFrom := statedb.GetGasAuthFromByTime(tx.GetTxCurrency(),from, uint64(block.Time().Uint64()))
+				entrustFrom := statedb.GetGasAuthFromByTime(tx.GetTxCurrency(), from, uint64(block.Time().Uint64()))
 				if !entrustFrom.Equal(common.Address{}) {
 					tx.Setentrustfrom(entrustFrom)
 					tx.SetIsEntrustGas(true)
 					tx.SetIsEntrustByTime(true)
 				} else {
 					log.Error("下载过程:该用户没有被授权过委托Gas")
-					return  nil, 0, ErrWithoutAuth
+					return nil, 0, ErrWithoutAuth
 				}
 			}
 		}
@@ -329,24 +332,24 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		if err != nil && err != ErrSpecialTxFailed {
 			return nil, 0, err
 		}
-		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()],receipt)
+		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
 		retAllGas += gas
 		if isvadter {
 			//receipts = append(receipts, receipt)
-			allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
-			tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
-			tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipt)
+			allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
+			tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], tx)
+			tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], receipt)
 		} else {
 			if p.isaddSharding(shard, coinShard, tx.GetTxCurrency()) {
 				//receipts = append(receipts, receipt)
-				allLogs = append(allLogs, types.CoinLogs{CoinType:tx.GetTxCurrency(),Logs:receipt.Logs})
-				tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],tx)
-				tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],receipt)
-			}else{
-				if _,ok:=tmpMaptx[tx.GetTxCurrency()];ok{
+				allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
+				tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], tx)
+				tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], receipt)
+			} else {
+				if _, ok := tmpMaptx[tx.GetTxCurrency()]; ok {
 					//receipts = append(receipts, nil)
-					tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()],nil)
-					tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()],nil)
+					tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], nil)
+					tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], nil)
 				}
 			}
 		}
@@ -359,11 +362,11 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil && err != ErrSpecialTxFailed {
-			return  nil, 0, err
+			return nil, 0, err
 		}
 		tmpr2 := make(types.Receipts, 1+len(allreceipts[tx.GetTxCurrency()]))
 		tmpr2[0] = receipt
-		copy(tmpr2[1:],allreceipts[tx.GetTxCurrency()])
+		copy(tmpr2[1:], allreceipts[tx.GetTxCurrency()])
 		allreceipts[tx.GetTxCurrency()] = tmpr2
 
 		var tmptx types.SelfTransaction
@@ -379,47 +382,47 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		tmpr := make(types.Receipts, 1+len(receipts))
 		tmpr[0] = receipt
-		copy(tmpr[1:],receipts)
+		copy(tmpr[1:], receipts)
 		receipts = tmpr
-		if receipt != nil{
+		if receipt != nil {
 			tmpl := make([]types.CoinLogs, 0)
-			tmpl = append(tmpl, types.CoinLogs{CoinType:params.MAN_COIN,Logs:receipt.Logs})
+			tmpl = append(tmpl, types.CoinLogs{CoinType: params.MAN_COIN, Logs: receipt.Logs})
 			tmpl = append(tmpl, allLogs...)
 			allLogs = tmpl
 		}
-		ftxs = append(ftxs,tmptx)
+		ftxs = append(ftxs, tmptx)
 		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 	}
-	receipts = append(receipts,tmpMapre[params.MAN_COIN]...)
+	receipts = append(receipts, tmpMapre[params.MAN_COIN]...)
 	tmpMapre[params.MAN_COIN] = receipts
-	ftxs = append(ftxs,tmpMaptx[params.MAN_COIN]...)
+	ftxs = append(ftxs, tmpMaptx[params.MAN_COIN]...)
 	tmpMaptx[params.MAN_COIN] = ftxs
 
-	currblock := make([]types.CurrencyBlock,0)
-	for i,bc := range block.Currencies(){
+	currblock := make([]types.CurrencyBlock, 0)
+	for i, bc := range block.Currencies() {
 		if !isvadter {
-			if len(coinShard)>0{
+			if len(coinShard) > 0 {
 				for _, cs := range coinShard {
 					if bc.CurrencyName == cs.CoinType {
-						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],allreceipts[bc.CurrencyName].HashList(), cs.Shardings)
-						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName],types.TxHashList(txs), cs.Shardings)
-						currblock = append(currblock,block.Currencies()[i])
+						block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], allreceipts[bc.CurrencyName].HashList(), cs.Shardings)
+						block.Currencies()[i].Transactions = types.SetTransactions(tmpMaptx[bc.CurrencyName], types.TxHashList(txs), cs.Shardings)
+						currblock = append(currblock, block.Currencies()[i])
 						break
 					}
 				}
-			}else {
-				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],allreceipts[bc.CurrencyName].HashList(), nil)
-				currblock = append(currblock,block.Currencies()[i])
+			} else {
+				block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], allreceipts[bc.CurrencyName].HashList(), nil)
+				currblock = append(currblock, block.Currencies()[i])
 			}
 
-		}else{
-			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName],allreceipts[bc.CurrencyName].HashList(), nil)
-			currblock = append(currblock,block.Currencies()[i])
+		} else {
+			block.Currencies()[i].Receipts = types.SetReceipts(tmpMapre[bc.CurrencyName], allreceipts[bc.CurrencyName].HashList(), nil)
+			currblock = append(currblock, block.Currencies()[i])
 		}
 	}
 	block.SetCurrencies(currblock)
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb,block.Uncles(),block.Currencies())
+	p.engine.Finalize(p.bc, header, statedb, block.Uncles(), block.Currencies())
 
 	return allLogs, *usedGas, nil
 }
@@ -430,7 +433,7 @@ func (p *StateProcessor) isValidater(h *big.Int) bool {
 			return true
 		}
 	}
-	if ca.GetRole() == common.RoleBroadcast{
+	if ca.GetRole() == common.RoleBroadcast {
 		return true
 	}
 	return false
@@ -445,8 +448,8 @@ func (p *StateProcessor) isaddSharding(shard []uint, shardings []common.CoinShar
 		}
 		for _, ss := range shardings {
 			if cointyp == ss.CoinType {
-				for _,sd := range ss.Shardings{
-					if sd == s{
+				for _, sd := range ss.Shardings {
+					if sd == s {
 						return true
 					}
 				}
@@ -458,12 +461,6 @@ func (p *StateProcessor) isaddSharding(shard []uint, shardings []common.CoinShar
 }
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts, []types.CoinLogs, uint64, error) {
-
-	err := p.bc.ProcessStateVersion(block.Header().Version, statedb)
-	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err0")
-		return nil, nil, 0, err
-	}
 
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
@@ -491,6 +488,13 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		log.Trace("BlockChain insertChain in3 Process Block err3")
 		return nil, logs, usedGas, err
 	}
+
+	err = p.bc.ProcessStateVersion(block.NumberU64(), block.Header().Version, statedb)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err0")
+		return nil, nil, 0, err
+	}
+
 	return nil, logs, usedGas, nil
 }
 
@@ -499,23 +503,23 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDBManage, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, []uint, error) {
-	if !BlackListFilter(tx,statedb,header.Number) {
-		return nil, 0, nil,errors.New("blacklist account")
+	if !BlackListFilter(tx, statedb, header.Number) {
+		return nil, 0, nil, errors.New("blacklist account")
 	}
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
 		from, err = types.Sender(types.NewEIP155Signer(config.ChainId), tx)
 	}
-	statedb.MakeStatedb(tx.GetTxCurrency(),true)
+	statedb.MakeStatedb(tx.GetTxCurrency(), true)
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
 	vmenv := vm.NewEVM(context, statedb, config, cfg, tx.GetTxCurrency())
 	//如果是委托gas并且是按时间委托
 	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
-		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(),from, header.Time.Uint64()) {
+		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(), from, header.Time.Uint64()) {
 			log.Error("按时间委托gas的交易失效")
-			return nil, 0,nil, errors.New("entrustTx is invalid")
+			return nil, 0, nil, errors.New("entrustTx is invalid")
 		}
 	}
 

@@ -173,12 +173,6 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []typ
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
 	}
-
-	err = p.blockChain().ProcessStateVersion(header.Version, work.State)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("ProcessStateVersion err(%v)", err)
-	}
-
 	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
@@ -200,7 +194,10 @@ func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []typ
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("ProcessMatrixState err(%v)", err)
 	}
-
+	err = p.blockChain().ProcessStateVersion(header.Number.Uint64(), header.Version, work.State)
+	if err != nil {
+		return nil, nil, nil, errors.Errorf("ProcessStateVersion err(%v)", err)
+	}
 	// 运行完matrix state后，生成root
 	block, err := p.blockChain().Engine(localBlock.Header().Version).Finalize(p.blockChain(), localBlock.Header(), work.State, nil, types.MakeCurencyBlock(finalTxs, work.Receipts, nil))
 	if err != nil {

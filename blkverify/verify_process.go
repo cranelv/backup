@@ -12,6 +12,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core"
+	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mandb"
@@ -19,7 +20,6 @@ import (
 	"github.com/matrix/go-matrix/reelection"
 	"github.com/matrix/go-matrix/txpoolCache"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/core/types"
 )
 
 type State uint16
@@ -252,7 +252,7 @@ func (p *Process) AddVerifiedBlock(block *verifiedBlock) {
 		log.Info(p.logExtraInfo(), "AddVerifiedBlock", "添加缓存失败", "err", err, "高度", p.number)
 		return
 	}
-	ctx:=types.GetCoinTX(block.txs)
+	ctx := types.GetCoinTX(block.txs)
 	reqData.originalTxs = ctx
 	return
 }
@@ -400,8 +400,14 @@ func (p *Process) processReqOnce() {
 			return
 		}
 	}
+	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
 
-	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, string(p.curProcessReq.req.Header.Version), p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
+	if err != nil {
+		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
@@ -490,7 +496,7 @@ func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 	}
 
 	for _, listN := range result.AllTxs {
-		ctx:=types.GetCoinTX(listN.Txser)
+		ctx := types.GetCoinTX(listN.Txser)
 		p.curProcessReq.originalTxs = append(p.curProcessReq.originalTxs, ctx...)
 	}
 
@@ -499,7 +505,14 @@ func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) verifyTxsAndState() {
 	log.Trace(p.logExtraInfo(), "开始交易验证, 数量", len(p.curProcessReq.originalTxs), "高度", p.number)
-	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, string(p.curProcessReq.req.Header.Version), p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
+	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
+
+	if err != nil {
+		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
 	if nil != err {
 		log.Error(p.logExtraInfo(), "交易及状态验证失败", err, "高度", p.number, "req leader", p.curProcessReq.req.Header.Leader.Hex())
 		p.startDPOSVerify(localVerifyResultStateFailed)
