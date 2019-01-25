@@ -103,7 +103,10 @@
 			"MinerNum": 21            \\矿工数目
 		},
 		"ElectBlackList": null,       \\黑名单
-		//"ElectWhiteList": null        
+		"ElectWhiteListSwitcherCfg":  { \\选举白名单使能开关
+			"Switcher" : false        \\关闭
+		},
+		"ElectWhiteList": null        
     },
   "config": {
 					"chainID": 1,           \\链id
