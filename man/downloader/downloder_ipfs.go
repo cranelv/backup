@@ -32,11 +32,11 @@ import (
 
 const (
 	IpfsHashLen                 = 46
-	LastestBlockStroeNum        = 100   //100
-	Cache2StoreHashMaxNum       = 2000  //要改成月216000 //2628000 //24 hour* (3600 second /12 second）*365
-	Cache1StoreCache2Num        = 10000 //改成12000 1000年
-	Cache2StoreBatchBlockMaxNum = 20    //要改为8800//约年 产生 的 300单位的区块
-	Cache1StoreBatchCache2Num   = 100   // 要改为1000  年
+	LastestBlockStroeNum        = 100    //100
+	Cache2StoreHashMaxNum       = 216000 //每月产生的区块//测试 2000  //要改成月216000 //2628000 //24 hour* (3600 second /12 second）*365
+	Cache1StoreCache2Num        = 6000   //500年的 //测试10000  //改成12000 1000年
+	Cache2StoreBatchBlockMaxNum = 8800   //每年产生的//测试20     //要改为8800(24*365 )//约年 产生 的 300单位的区块
+	Cache1StoreBatchCache2Num   = 500    //500年的//测试100    // 要改为1000  年
 	BATCH_NUM                   = 300
 )
 
@@ -177,6 +177,7 @@ var gIpfsPath string
 var runQuit chan int         //struct{}
 var timeOutFlg int           //chan int
 var gtimeOutSign chan string //struct{}
+var gIPFSerrorNum int
 
 func init() {
 	/*creatInfo := DownloadFileInfo{
@@ -476,7 +477,12 @@ func (d *Downloader) IpfsTimeoutTask() {
 	}
 
 }
-
+func (d *Downloader) dealIPFSerrorProc() {
+	if gIPFSerrorNum > 10 {
+		log.Warn("ipfs error too much ,disable ipfs download")
+		d.bIpfsDownload = 0
+	}
+}
 func (d *Downloader) ClearDirectoryContent() {
 	tmpFile, err1 := os.OpenFile(path.Join(strCacheDirectory, strLastestBlockFile), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	fmt.Println("file1", err1)
@@ -566,6 +572,11 @@ func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 	var out bytes.Buffer
 	var outerr bytes.Buffer
 	//log.Debug("ipfs IpfsGetBlockByHash info before", "strHash", strHash)
+	if strHash == "" {
+		log.Debug("ipfs IpfsGetBlockByHash strHash error", "strHash", strHash)
+		gIPFSerrorNum++
+		return nil, fmt.Errorf("IpfsGetBlockByHash strHash error")
+	}
 	c := exec.Command(gIpfsPath, "get", strHash)
 	c.Stdout = &out
 	c.Stderr = &outerr
@@ -584,12 +595,13 @@ func IpfsGetBlockByHash(strHash string) (*os.File, error) {
 
 	if err != nil {
 		log.Error("ipfs IpfsGetBlockByHash error", "error", err, "ipfs err", outerr.String())
+		gIPFSerrorNum++
 		if timeOutFlg == 0 {
 			CheckIpfsStatus(err)
 		}
 		return nil, err
 	}
-
+	gIPFSerrorNum = 0
 	return os.OpenFile(strHash, os.O_RDONLY /*|os.O_APPEND*/, 0644)
 
 }
@@ -657,10 +669,11 @@ func IpfsGetFileCache2ByHash(strhash, objfileName string) (*os.File, bool, error
 		if strings.Index(stdErr, strIPFSstdErr) > 0 {
 			CheckIpfsStatus(err)
 		}
+		gIPFSerrorNum++
 		//CheckIpfsStatus(err)
 		return nil, false, err
 	}
-
+	gIPFSerrorNum = 0
 	tmpBlockFile, errf := os.OpenFile(objfileName, os.O_RDWR /*os.O_APPEND*/, 0644)
 
 	return tmpBlockFile, false, errf
@@ -975,9 +988,12 @@ func (d *Downloader) IpfsSyncGetFirstCache(index int) (*Cache1StoreCfg, error) {
 			CheckIpfsStatus(err)
 		}
 		//CheckIpfsStatus(err)
+		gIPFSerrorNum++
+		d.dealIPFSerrorProc()
 		return curCache1Info, err
 	}
 	//ReadJsFile()
+	gIPFSerrorNum = 0
 
 	err = json.Unmarshal(outbuf, curCache1Info)
 	if err != nil {

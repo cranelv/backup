@@ -259,5 +259,13 @@ var (
 				"矿工和验证者生成时间点修改支持合约及时生效",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.32",
+			Submitter: "liubo",
+			Commit: []string{
+				"ipfs 缓存大小改为设计的年月日约占大小",
+				"错误过多时退出ipfs模式",
+			},
+		},
 	}
 )
