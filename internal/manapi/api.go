@@ -2068,6 +2068,10 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 	}
 	if args1.To != nil {
 		to := *args1.To
+		tCurrency := strings.Split(to, ".")[0]
+		if args.Currency != tCurrency{
+			return SendTxArgs{}, errors.New("different currency")
+		}
 		err = CheckParams(to)
 		if err != nil {
 			return SendTxArgs{}, err
@@ -2103,6 +2107,10 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 			if ar.To2 != nil {
 				//extra = append(extra, ar)
 				tmp := *ar.To2
+				tCurrency := strings.Split(tmp, ".")[0]
+				if args.Currency != tCurrency{
+					return SendTxArgs{}, errors.New("different currency")
+				}
 				err = CheckParams(tmp)
 				if err != nil {
 					return SendTxArgs{}, err
