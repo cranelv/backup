@@ -37,7 +37,7 @@ func GetBroadcastInterval(st StateDB) (*mc.BCIntervalInfo, error) {
 }
 
 func GetBroadcastIntervalByVersion(st StateDB, version string) (*mc.BCIntervalInfo, error) {
-	mgr := GetManager(GetVersionInfo(st))
+	mgr := GetManager(version)
 	if mgr == nil {
 		return nil, ErrFindManager
 	}

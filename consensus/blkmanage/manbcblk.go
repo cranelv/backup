@@ -138,6 +138,10 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 	log.Info(LogManBlk, "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", header.Number.Uint64())
 	block := types.NewBlock(header, work.GetTxs(), nil, work.Receipts)
 	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
+	if parent == nil {
+		log.Error(LogManBlk, "获取父区块失败", "is nil")
+		return nil, nil, nil, nil, nil, nil, errors.New("父区块为nil")
+	}
 	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
