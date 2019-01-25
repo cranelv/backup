@@ -331,7 +331,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
 	if parent == nil {
 		log.Error(LogManBlk, "获取父区块失败", "is nil")
-		return nil, nil, nil, nil, nil, nil, errors.New("父区块为nil")
+		return nil, nil, nil, nil, errors.New("父区块为nil")
 	}
 	err = support.BlockChain().ProcessMatrixState(localBlock, string(parent.Version()), work.State)
 	if err != nil {
