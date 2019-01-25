@@ -4,7 +4,6 @@
 package blkgenor
 
 import (
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -20,7 +19,7 @@ func (p *Process) AddBroadcastMinerResult(result *mc.HD_BroadcastMiningRspMsg) {
 		return
 	}
 	if p.preVerifyBroadcastMinerResult(result.BlockMainData) == false {
-		log.WARN(p.logExtraInfo(), "广播区块挖矿结果", "预验证事变, 抛弃该消息")
+		log.WARN(p.logExtraInfo(), "广播区块挖矿结果", "预验证失败, 抛弃该消息")
 		return
 	}
 
@@ -65,7 +64,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		}
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 			Header:      result.Header,
-			BlockHash:   common.Hash{},
+			BlockHash:   result.Header.HashNoSignsAndNonce(),
 			OriginalTxs: retTxs,
 			FinalTxs:    retTxs,
 			Receipts:    receipts,

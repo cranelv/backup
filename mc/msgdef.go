@@ -163,8 +163,8 @@ type LocalBlockVerifyConsensusReq struct {
 	BlkVerifyConsensusReq *HD_BlkConsensusReqMsg
 	OriginalTxs           []types.CoinSelfTransaction // 原始交易列表
 	FinalTxs              []types.CoinSelfTransaction // 最终交易列表(含奖励交易)
-	Receipts              []types.CoinReceipts       // 收据
-	State                 *state.StateDBManage   // apply state changes here 状态数据库
+	Receipts              []types.CoinReceipts        // 收据
+	State                 *state.StateDBManage        // apply state changes here 状态数据库
 }
 
 type BlockPOSFinishedNotify struct {
@@ -325,9 +325,10 @@ const (
 )
 
 type RecoveryStateMsg struct {
-	Type   RecoveryType
-	Header *types.Header
-	From   common.Address
+	Type        RecoveryType
+	IsBroadcast bool
+	Header      *types.Header
+	From        common.Address
 }
 
 type HD_FullBlockReqMsg struct {
