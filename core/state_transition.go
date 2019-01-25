@@ -375,7 +375,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
-		return nil, 0, false, shardings, errors.New("file state_transition,func CallUnGasNormalTx ,from is nil")
+		return nil, 0, false, shardings, errors.New("state_transition,make coin ,from is nil")
 	}
 	sender := vm.AccountRef(from)
 	by := tx.Data()
@@ -389,10 +389,16 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
 	st.state.MakeStatedb(makecoin.CoinName,false)
 	for str,amount:=range makecoin.AddrAmount{
+		if !common.IsValidityCurrency(makecoin.CoinName){
+			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
+		}
+		if str == ""{
+			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin addr is nil")
+		}
 		addr,err:= base58.Base58DecodeToAddress(str)
 		if err != nil{
-			log.Trace("Make Coin","invalid send address",ErrSpecialTxFailed)
-			return nil, 0, false, shardings, ErrSpecialTxFailed
+			log.Trace("Make Coin","invalid send address","Base58toAddr err","base58 addr",str)
+			return nil, 0, false, shardings, errors.New("Base58toAddr err")
 		}
 		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,(*big.Int)(amount))
 	}
