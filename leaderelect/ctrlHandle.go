@@ -75,7 +75,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 
 	log.Debug(self.logInfo, "开始消息处理", "start", "高度", self.dc.number, "preLeader", msg.parentHeader.Leader.Hex(), "header time", msg.parentHeader.Time.Int64())
 	if err := self.dc.AnalysisState(msg.parentHeader, msg.parentStateDB); err != nil {
-		log.ERROR(self.logInfo, "开始消息处理", "分析状态树信息错误", "err", err)
+		log.Error(self.logInfo, "开始消息处理", "分析状态树信息错误", "err", err)
 		return
 	}
 
@@ -90,6 +90,7 @@ func (self *controller) handleStartMsg(msg *startControllerMsg) {
 		self.dc.state = stIdle
 		self.publishLeaderMsg()
 		self.mp.SaveParentHeader(msg.parentHeader)
+		self.dc.state = stWaiting
 		return
 	}
 

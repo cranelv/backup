@@ -642,7 +642,8 @@ func (self *controller) processNewBlockReadyRsp(header *types.Header, from commo
 		return
 	}
 
-	seal := !bcInterval.IsBroadcastNumber(number)
+	isBroadcast := bcInterval.IsBroadcastNumber(number)
+	seal := !isBroadcast
 	err = self.matrix.Engine().VerifyHeader(self.matrix.BlockChain(), header, seal)
 	if err != nil {
 		log.Warn(self.logInfo, "处理新区块响应", "POW验证失败", "高度", number, "verify seal", seal, "block hash", header.Hash().TerminalString(), "err", err)
@@ -658,5 +659,5 @@ func (self *controller) processNewBlockReadyRsp(header *types.Header, from commo
 
 	//发送恢复状态消息
 	log.Debug(self.logInfo, "处理新区块响应", "发送恢复状态消息", "高度", number, "block hash", header.Hash().TerminalString())
-	mc.PublishEvent(mc.Leader_RecoveryState, &mc.RecoveryStateMsg{Type: mc.RecoveryTypeFullHeader, Header: header, From: from})
+	mc.PublishEvent(mc.Leader_RecoveryState, &mc.RecoveryStateMsg{Type: mc.RecoveryTypeFullHeader, Header: header, From: from, IsBroadcast: isBroadcast})
 }

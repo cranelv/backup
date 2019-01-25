@@ -53,6 +53,7 @@ const (
 	stPos
 	stReelect
 	stMining
+	stWaiting
 )
 
 func (s stateDef) String() string {
@@ -65,6 +66,8 @@ func (s stateDef) String() string {
 		return "重选阶段"
 	case stMining:
 		return "挖矿结果等待阶段"
+	case stWaiting:
+		return "等待阶段" // 广播区块时
 	default:
 		return "未知状态"
 	}

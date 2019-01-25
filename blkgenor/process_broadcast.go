@@ -4,7 +4,6 @@
 package blkgenor
 
 import (
-	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
@@ -65,7 +64,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		}
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 			Header:      result.Header,
-			BlockHash:   common.Hash{},
+			BlockHash:   result.Header.HashNoSignsAndNonce(),
 			OriginalTxs: retTxs,
 			FinalTxs:    retTxs,
 			Receipts:    receipts,

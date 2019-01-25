@@ -325,9 +325,10 @@ const (
 )
 
 type RecoveryStateMsg struct {
-	Type   RecoveryType
-	Header *types.Header
-	From   common.Address
+	Type        RecoveryType
+	IsBroadcast bool
+	Header      *types.Header
+	From        common.Address
 }
 
 type HD_FullBlockReqMsg struct {
