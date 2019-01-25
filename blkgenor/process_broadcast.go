@@ -65,7 +65,7 @@ func (p *Process) dealMinerResultVerifyBroadcast() {
 		p.blockCache.SaveReadyBlock(&mc.BlockLocalVerifyOK{
 			Header:      result.Header,
 			BlockHash:   result.Header.HashNoSignsAndNonce(),
-			OriginalTxs: retTxs,
+			OriginalTxs: result.Txs,
 			FinalTxs:    retTxs,
 			Receipts:    receipts,
 			State:       state,

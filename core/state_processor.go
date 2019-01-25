@@ -272,6 +272,12 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 
+	_, err := p.bc.ProcessStateVersion(block.NumberU64(), parent)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err0")
+		return nil, nil, 0, err
+	}
+
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err1")
@@ -297,12 +303,6 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err3")
 		return receipts, logs, usedGas, err
-	}
-
-	err = p.bc.ProcessStateVersion(block.NumberU64(), block.Version(), statedb)
-	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err0")
-		return nil, nil, 0, err
 	}
 
 	return receipts, logs, usedGas, nil

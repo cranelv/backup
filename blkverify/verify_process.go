@@ -398,10 +398,15 @@ func (p *Process) processReqOnce() {
 			return
 		}
 	}
-	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
-
+	parent := p.blockChain().GetBlockByHash(p.curProcessReq.req.Header.ParentHash)
+	if nil == parent {
+		log.Trace(p.logExtraInfo(), "获取父区块错误，父区块hash", p.curProcessReq.req.Header.ParentHash.Hex())
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+	version, err := p.blockChain().ProcessStateVersion(p.number, parent)
 	if err != nil {
-		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
+		log.ERROR(p.logExtraInfo(), "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
@@ -501,16 +506,8 @@ func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) verifyTxsAndState() {
 
-	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
-
-	if err != nil {
-		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-
 	log.Trace(p.logExtraInfo(), "开始交易验证, 数量", len(p.curProcessReq.originalTxs), "高度", p.number)
-	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
+	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, string(p.curProcessReq.req.Header.Version), p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
 	if nil != err {
 		log.Error(p.logExtraInfo(), "交易及状态验证失败", err, "高度", p.number, "req leader", p.curProcessReq.req.Header.Leader.Hex())
 		p.startDPOSVerify(localVerifyResultStateFailed)
