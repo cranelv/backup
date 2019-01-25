@@ -271,8 +271,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 }
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
-
-	_, err := p.bc.ProcessStateVersion(block.NumberU64(), parent)
+	err := p.bc.ProcessStateVersion(block.Version(), statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err0")
 		return nil, nil, 0, err
@@ -286,14 +285,14 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	}
 	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err6")
+		log.Trace("BlockChain insertChain in3 Process Block err2")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err2")
+		log.Trace("BlockChain insertChain in3 Process Block err3")
 		p.bc.reportBlock(block, receipts, err)
 		return receipts, logs, usedGas, err
 	}
@@ -301,7 +300,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	// Process matrix state
 	err = p.bc.matrixProcessor.ProcessMatrixState(block, statedb)
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err3")
+		log.Trace("BlockChain insertChain in3 Process Block err4")
 		return receipts, logs, usedGas, err
 	}
 

@@ -404,13 +404,14 @@ func (p *Process) processReqOnce() {
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	version, err := p.blockChain().ProcessStateVersion(p.number, parent)
+	curVersion := string(p.curProcessReq.req.Header.Version)
+	err := p.pm.manblk.VerifyBlockVersion(p.number, curVersion, string(parent.Version()))
 	if err != nil {
-		log.ERROR(p.logExtraInfo(), "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
+		log.ERROR(p.logExtraInfo(), "验证版本号失败", err, "高度", p.number)
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
+	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, curVersion, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}

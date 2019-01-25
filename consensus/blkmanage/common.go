@@ -150,6 +150,23 @@ func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug M
 	bd.mapManBlkPlugs[types+version] = plug
 }
 
+func (bd *ManBlkManage) ProduceBlockVersion(num uint64, preVersion string) string {
+	//if num == manparams.VersionNumBeta {
+	//	return manparams.VersionBeta
+	//}
+	return preVersion
+}
+
+func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVersion string) error {
+	//if num == manparams.VersionNumBeta && curVersion != manparams.VersionBeta {
+	//	return errors.New("版本号异常")
+	//}
+	if curVersion != preVersion {
+		return errors.New("版本号异常,不等于父区块版本号")
+	}
+	return nil
+}
+
 func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {

@@ -28,12 +28,7 @@ func (p *Process) processBcHeaderGen() error {
 	if err != nil {
 		return err
 	}
-	version, err := p.blockChain().ProcessStateVersion(p.number, parent)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
-		return err
-	}
-
+	version := p.pm.manblk.ProduceBlockVersion(p.number, string(parent.Version()))
 	originHeader, _, err := p.pm.manblk.Prepare(blkmanage.BroadcastBlk, version, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备去看失败", err)
@@ -72,12 +67,8 @@ func (p *Process) processHeaderGen() error {
 	if err != nil {
 		return err
 	}
+	version := p.pm.manblk.ProduceBlockVersion(p.number, string(parent.Version()))
 
-	version, err := p.blockChain().ProcessStateVersion(p.number, parent)
-	if err != nil {
-		log.ERROR(p.logExtraInfo(), "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
-		return err
-	}
 	originHeader, extraData, err := p.pm.manblk.Prepare(blkmanage.CommonBlk, version, p.number, p.bcInterval, p.preBlockHash)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "准备阶段失败", err)

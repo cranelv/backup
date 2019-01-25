@@ -220,7 +220,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, ErrNoGenesis
 	}
 
-	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersion(bc, bc.genesisBlock.Header())
+	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersionSigns(bc, bc.genesisBlock.Header())
 	if err != nil {
 		return nil, err
 	}

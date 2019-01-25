@@ -29,7 +29,6 @@ func NewBCBlkPlug() (*ManBCBlkPlug, error) {
 }
 
 func (bd *ManBCBlkPlug) Prepare(version string, support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
-
 	test, _ := args.([]interface{})
 	for _, v := range test {
 		switch v.(type) {
@@ -121,6 +120,12 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.ERROR(LogManBlk, "NewWork!", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, nil, err
 	}
+
+	if err = support.BlockChain().ProcessStateVersion(header.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", header.Number.Uint64())
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
 	mapTxs := support.TxPool().GetAllSpecialTxs()
 	Txs := make([]types.SelfTransaction, 0)
 	for _, txs := range mapTxs {
@@ -167,11 +172,6 @@ func (bd *ManBCBlkPlug) VerifyHeader(version string, support BlKSupport, header 
 		return nil, err
 	}
 
-	if err := support.BlockChain().DPOSEngine(header.Version).VerifyVersion(support.BlockChain(), header); err != nil {
-		log.ERROR(LogManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
-		return nil, err
-	}
-
 	//verify vrf
 	if err := support.ReElection().VerifyVrf(header); err != nil {
 		log.Error(LogManBlk, "验证vrf失败", err, "高度", header.Number.Uint64())
@@ -194,6 +194,11 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 		log.WARN(LogManBlk, "广播挖矿结果验证, 创建worker错误", err)
 		return nil, nil, nil, nil, err
 	}
+	if err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", verifyHeader.Number.Uint64())
+		return nil, nil, nil, nil, err
+	}
+
 	//执行交易
 	work.ProcessBroadcastTransactions(support.EventMux(), verifyTxs)
 

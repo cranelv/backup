@@ -40,16 +40,8 @@ func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer Produ
 	bc.matrixProcessor.RegisterProducer(key, producer)
 }
 
-func (bc *BlockChain) ProcessStateVersion(num uint64, block *types.Block) (string, error) {
-	st, err := bc.StateAtBlockHash(block.Hash())
-	if err != nil {
-		return "", errors.Errorf("get state by hash(%s) err(%v)", block.Hash().Hex(), err)
-	}
-	err = bc.matrixProcessor.ProcessStateVersion(block.Version(), st)
-	if err != nil {
-		return "", errors.Errorf("process state version hash(%s) err(%v)", block.Hash().Hex(), err)
-	}
-	return string(block.Version()), nil
+func (bc *BlockChain) ProcessStateVersion(version []byte, st *state.StateDB) error {
+	return bc.matrixProcessor.ProcessStateVersion(version, st)
 }
 
 func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDB) error {
