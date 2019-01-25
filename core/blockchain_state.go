@@ -41,6 +41,11 @@ func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer Produ
 }
 
 func (bc *BlockChain) ProcessStateVersion(num uint64, version []byte, state *state.StateDBManage) error {
+	//增加版本号相关修改示例
+	/*	if num+1 == manparams.VersionNumBeta {
+		version = []byte(manparams.VersionBeta)
+	}*/
+
 	return bc.matrixProcessor.ProcessStateVersion(version, state)
 }
 
