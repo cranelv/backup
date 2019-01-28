@@ -14,20 +14,19 @@ PullImages:
     - make clean
     - git branch
     - make gman
-    - cp ./build/bin/gman /home/public/dailybuild/go-matrix/gman-linux-amd64-$tag
+    - mv ./build/bin/gman /home/public/dailybuild/go-matrix/gman-linux-amd64-$tag
     - make clean 
     - make gman-windows-amd64
-    - cp build/bin/gman-windows-4.0-amd64.exe /home/public/dailybuild/go-matrix/gman-windows-amd64-$tag.exe
+    - mv build/bin/gman-windows-4.0-amd64.exe /home/public/dailybuild/go-matrix/gman-windows-amd64-$tag.exe
     - make clean
     - make gman-darwin-amd64
-    - cp ./build/bin/gman-darwin-10.6-amd64 /home/public/dailybuild/go-matrix/gman-darwin-amd64-$tag
-    
+    - mv ./build/bin/gman-darwin-10.6-amd64 /home/public/dailybuild/go-matrix/gman-darwin-amd64-$tag
 KK:
   stage: KK
   script:
     - date
     - cd /home/public/dailybuild/go-matrix/
-    - tar -zcvf $tag.tar.gz gman-linux-amd64-$tag gman-windows-amd64-$tag.exe gman-darwin-amd64-$tag /home/yang/work/1229/deploy/templates/man.json /home/yang/work/1229/deploy/templates/MANGenesis.json
+    - tar -zcvf  $tag.tar.gz `ls -t gman* |head -3` /home/yang/work/1229/deploy/templates/man.json /home/yang/work/1229/deploy/templates/MANGenesis.json
     - mv $tag.tar.gz /home/public/matrix备案/
   when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
