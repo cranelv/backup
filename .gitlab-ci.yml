@@ -22,7 +22,7 @@ PullImages:
     - cp ./build/bin/gman-darwin-10.6-amd64 /home/public/dailybuild/go-matrix/gman-darwin-amd64-$tag
 KK:
   stage: KK
-  scripts:
+  script:
     - date 
   when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
