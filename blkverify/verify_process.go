@@ -400,14 +400,20 @@ func (p *Process) processReqOnce() {
 			return
 		}
 	}
-	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
-
-	if err != nil {
-		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
+	parent := p.blockChain().GetBlockByHash(p.curProcessReq.req.Header.ParentHash)
+	if nil == parent {
+		log.Trace(p.logExtraInfo(), "获取父区块错误，父区块hash", p.curProcessReq.req.Header.ParentHash.Hex())
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
-	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
+	curVersion := string(p.curProcessReq.req.Header.Version)
+	err := p.pm.manblk.VerifyBlockVersion(p.number, curVersion, string(parent.Version()))
+	if err != nil {
+		log.ERROR(p.logExtraInfo(), "验证版本号失败", err, "高度", p.number)
+		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
+	}
+	if _, err := p.pm.manblk.VerifyHeader(blkmanage.CommonBlk, curVersion, p.curProcessReq.req.Header, p.curProcessReq.req.OnlineConsensusResults); err != nil {
 		p.startDPOSVerify(localVerifyResultFailedButCanRecover)
 		return
 	}
@@ -516,6 +522,7 @@ func (p *Process) verifyTxsAndState() {
 	if nil != err {
 		log.Error(p.logExtraInfo(), "交易及状态验证失败", err, "高度", p.number, "req leader", p.curProcessReq.req.Header.Leader.Hex())
 		p.startDPOSVerify(localVerifyResultStateFailed)
+		return
 	}
 	p.curProcessReq.stateDB, p.curProcessReq.finalTxs, p.curProcessReq.receipts = stateDB, finalTxs, receipts
 	// 开始DPOS共识验证

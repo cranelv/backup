@@ -61,7 +61,7 @@ func VerifyA2AccountAndPassword(data map[common.Address]string) (map[common.Addr
 	}
 
 	entrustData := make(map[common.Address]string, 0)
-	noEntrustAccounts := fmt.Sprintf("导入失败，请检查下列账户的address，password，keyStore\n")
+	noEntrustAccounts := fmt.Sprintf("Failed to import. Please check address，password，keyStore of the following accounts\n")
 	flag := true
 	for address, password := range data {
 		err := accountChecker.CheckAccountAndPassword(accounts.Account{Address: address}, password)

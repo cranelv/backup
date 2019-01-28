@@ -59,6 +59,11 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 		return nil, err
 	}
 
+	whiteListSwitcher, err := matrixstate.GetElectWhiteListSwitcher(st)
+	if err != nil {
+		log.Error("MSKeyElectWhiteList", "MSKeyElectWhiteList", "反射失败", "高度", height)
+		return nil, err
+	}
 	elect := &mc.ElectConfigInfo_All{
 		MinerNum:      electMinerNum.MinerNum,
 		ValidatorNum:  electInfo.ValidatorNum,
@@ -66,6 +71,7 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 		ElectPlug:     electInfo.ElectPlug,
 		WhiteList:     whiteList,
 		BlackList:     blackList,
+		WhiteListSwitcher: whiteListSwitcher,
 	}
 
 	return elect, nil

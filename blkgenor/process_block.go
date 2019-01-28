@@ -12,13 +12,10 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/consensus/blkmanage"
 	"github.com/matrix/go-matrix/core"
-	"github.com/matrix/go-matrix/core/state"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/matrixwork"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/pkg/errors"
 )
 
 func (p *Process) ProcessRecoveryMsg(msg *mc.RecoveryStateMsg) {
@@ -158,67 +155,6 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 
 	p.state = StateBlockInsert
 	p.processBlockInsert(rsp.Header.Leader)
-}
-
-func (p *Process) runTxs(header *types.Header, headerHash common.Hash, Txs []types.CoinSelfTransaction) ([]types.CoinReceipts, *state.StateDBManage, []types.CoinSelfTransaction, error) {
-	parent := p.blockChain().GetBlockByHash(header.ParentHash)
-	if parent == nil {
-		return nil, nil, nil, errors.Errorf("父区块(%s)获取失败!", header.ParentHash.TerminalString())
-	}
-
-	localHeader := types.CopyHeader(header)
-	localHeader.GasUsed = 0
-
-	work, err := matrixwork.NewWork(p.blockChain().Config(), p.blockChain(), nil, localHeader)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("创建worker错误(%v)", err)
-	}
-	uptimeMap, err := p.blockChain().ProcessUpTime(work.State, localHeader)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("执行uptime错误(%v)", err)
-	}
-	err = p.blockChain().ProcessBlockGProduceSlash(work.State, localHeader)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("执行区块生产惩罚错误(%v)", err)
-	}
-	err = work.ConsensusTransactions(p.pm.matrix.EventMux(), Txs, uptimeMap)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("执行交易错误(%v)", err)
-	}
-	finalTxs := work.GetTxs()
-	cb := types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
-	localBlock := types.NewBlock(localHeader, cb, nil)
-
-	// process matrix state
-	err = p.blockChain().ProcessMatrixState(localBlock, work.State)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("ProcessMatrixState err(%v)", err)
-	}
-	err = p.blockChain().ProcessStateVersion(header.Number.Uint64(), header.Version, work.State)
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("ProcessStateVersion err(%v)", err)
-	}
-	// 运行完matrix state后，生成root
-	block, err := p.blockChain().Engine(localBlock.Header().Version).Finalize(p.blockChain(), localBlock.Header(), work.State, nil, types.MakeCurencyBlock(finalTxs, work.Receipts, nil))
-	if err != nil {
-		return nil, nil, nil, errors.Errorf("Failed to finalize block (%v)", err)
-	}
-
-	//localBlock check
-	localHash := block.Header().HashNoSignsAndNonce()
-
-	if localHash != headerHash {
-		log.ERROR(p.logExtraInfo(), "交易验证，错误", "block hash不匹配",
-			"local hash", localHash.TerminalString(), "remote hash", headerHash.TerminalString(),
-			"local root", block.Header().Roots, "remote root", header.Roots,
-			//"local txHash", block.Header().TxHash.TerminalString(), "remote txHash", header.TxHash.TerminalString(),
-			//"local ReceiptHash", block.Header().ReceiptHash.TerminalString(), "remote ReceiptHash", header.ReceiptHash.TerminalString(),
-			//"local Bloom", block.Header().Bloom.Big(), "remote Bloom", header.Bloom.Big(),
-			"local GasLimit", block.Header().GasLimit, "remote GasLimit", header.GasLimit,
-			"local GasUsed", block.Header().GasUsed, "remote GasUsed", header.GasUsed)
-		return nil, nil, nil, errors.Errorf("block hash不匹配.LocalHash(%s) != remoteHash(%s)", localHash.TerminalString(), headerHash.TerminalString())
-	}
-	return work.Receipts, work.State, finalTxs, nil
 }
 
 func (p *Process) AddMinerResult(minerResult *mc.HD_MiningRspMsg) {

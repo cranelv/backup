@@ -36,6 +36,22 @@ func GetBroadcastInterval(st StateDB) (*mc.BCIntervalInfo, error) {
 	return value.(*mc.BCIntervalInfo), nil
 }
 
+func GetBroadcastIntervalByVersion(st StateDB, version string) (*mc.BCIntervalInfo, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyBroadcastInterval)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.(*mc.BCIntervalInfo), nil
+}
+
 func SetBroadcastInterval(st StateDB, interval *mc.BCIntervalInfo) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {

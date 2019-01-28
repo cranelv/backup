@@ -21,6 +21,22 @@ func GetTopologyGraph(st StateDB) (*mc.TopologyGraph, error) {
 	return value.(*mc.TopologyGraph), nil
 }
 
+func GetTopologyGraphByVersion(st StateDB, version string) (*mc.TopologyGraph, error) {
+	mgr := GetManager(version)
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyTopologyGraph)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.(*mc.TopologyGraph), nil
+}
+
 func SetTopologyGraph(st StateDB, graph *mc.TopologyGraph) error {
 	mgr := GetManager(GetVersionInfo(st))
 	if mgr == nil {
@@ -171,6 +187,34 @@ func SetElectMinerNum(st StateDB, num *mc.ElectMinerNumStruct) error {
 		return err
 	}
 	return opt.SetValue(st, num)
+}
+
+func GetElectWhiteListSwitcher(st StateDB) (bool, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return false, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteListSwitcher)
+	if err != nil {
+		return false, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return false, err
+	}
+	return value.(*mc.ElectWhiteListSwitcher).Switcher, nil
+}
+
+func SetElectWhiteListSwitcher(st StateDB, switcher bool) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectWhiteListSwitcher)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, &mc.ElectWhiteListSwitcher{Switcher: switcher})
 }
 
 func GetElectWhiteList(st StateDB) ([]common.Address, error) {

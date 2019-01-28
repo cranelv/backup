@@ -45,6 +45,7 @@ func newManager(version string) *SuperTxsStateManager {
 				mc.MSKeyElectMinerNum:        new(mc.ElectMinerNumStruct),
 				mc.MSKeyElectBlackList:       new(mc.ElectBlackList),
 				mc.MSKeyElectWhiteList:       new(mc.ElectWhiteList),
+				mc.MSKeyElectWhiteListSwitcher:new(mc.ElectWhiteListSwitcher),
 				mc.MSKeyAccountBroadcasts:    new(mc.BroadcastAccounts),
 				mc.MSKeyAccountInnerMiners:   new(mc.InnerMinersAccounts),
 				mc.MSKeyVIPConfig:            new(mc.VIPConfig),

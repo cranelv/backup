@@ -12,7 +12,6 @@ import (
 	"github.com/matrix/go-matrix/crypto"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/pkg/errors"
 )
 
@@ -53,8 +52,6 @@ var (
 	errSuperBlockSignCount = errors.New("super block sign count err, not one")
 
 	errSuperBlockVerifySign = errors.New("super block sign is not from super super block account")
-
-	errVersionErr = errors.New("version is err")
 )
 
 type dposTarget struct {
@@ -73,14 +70,9 @@ func NewMtxDPOS() *MtxDPOS {
 	return &MtxDPOS{}
 }
 
-func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Header) error {
+func (md *MtxDPOS) VerifyVersionSigns(reader consensus.StateReader, header *types.Header) error {
 	var blockHash common.Hash
 	number := header.Number.Uint64()
-	// 验证版本号
-	if manparams.IsCorrectVersion(header.Version) == false {
-		return errVersionErr
-	}
-
 	if 0 == number {
 		blockHash = header.Hash()
 	} else {
@@ -101,7 +93,7 @@ func (md *MtxDPOS) VerifyVersion(reader consensus.StateReader, header *types.Hea
 	verifiedVersion := md.verifyHashWithSuperNodes(common.BytesToHash([]byte(header.Version)), header.VersionSignatures, accounts)
 	//log.Debug("共识引擎", "版本", string(header.Version))
 	if len(verifiedVersion) < targetCount {
-		log.ERROR("共识引擎", "验证版本,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
+		log.ERROR("共识引擎", "验证版本号签名,验证后的签名数量不足 size", len(verifiedVersion), "target", targetCount)
 		return errVersionVerifySign
 	}
 	return nil
@@ -167,7 +159,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 	if nil == header {
 		return errors.New("header is nil")
 	}
-	if err := md.VerifyVersion(reader, header); err != nil {
+	if err := md.VerifyVersionSigns(reader, header); err != nil {
 		log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
 		return err
 	}

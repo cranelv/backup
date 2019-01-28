@@ -68,6 +68,7 @@ func newManger(version string) *Manager {
 				mc.MSKeyElectConfigInfo:        newElectConfigInfoOpt(),
 				mc.MSKeyElectBlackList:         newElectBlackListOpt(),
 				mc.MSKeyElectWhiteList:         newElectWhiteListOpt(),
+				mc.MSKeyElectWhiteListSwitcher: newElectWhiteListSwitcherOpt(),
 				mc.MSKeyAccountBroadcasts:      newBroadcastAccountsOpt(),
 				mc.MSKeyAccountInnerMiners:     newInnerMinerAccountsOpt(),
 				mc.MSKeyAccountFoundation:      newFoundationAccountOpt(),

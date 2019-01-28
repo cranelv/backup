@@ -388,11 +388,6 @@ web3._extend({
 			params: 2,
 			inputFormatter:[null, null],
 		}),
-		new web3._extend.Method({
-			name:'evilFunc',
-			call:'debug_evilFunc',
-			params:4
-		}),
 	],
 	properties: []
 });
@@ -443,7 +438,7 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'getEntrustList',
 			call: 'man_getEntrustList',
-			params: 2,
+			params: 1,
 		}),
 		new web3._extend.Method({
 			name: 'getIPFSsnap',
@@ -468,22 +463,22 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'getAuthFrom',
 			call: 'man_getAuthFrom',
-			params: 3,
+			params: 2,
 		}),
 		new web3._extend.Method({
 			name: 'getEntrustFrom',
 			call: 'man_getEntrustFrom',
-			params: 3,
+			params: 2,
 		}),
 		new web3._extend.Method({
 			name: 'getAuthFromByTime',
 			call: 'man_getAuthFromByTime',
-			params: 3,
+			params: 2,
 		}),
 		new web3._extend.Method({
 			name: 'getEntrustFromByTime',
 			call: 'man_getEntrustFromByTime',
-			params: 3,
+			params: 2,
 		}),
         new web3._extend.Method({
 			name: 'getSelfLevel',

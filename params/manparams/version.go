@@ -9,21 +9,19 @@ import (
 
 const (
 	VersionAlpha = "1.0.0.0"
-
-//升级版本修改
-/*	VersionBeta          = "1.0.0.1"
-	VersionSignatureBeta = "0xc3a8b3c887e2a896cca7a3d86997ac458d4f2e1ac0472fbc37290ee131eb82400cde214d72427dcf83ad22eb5b98a269311c1589fab14d0eeeee632617714cc000"
-	VersionNumBeta       = uint64(32)*/
+	//增加版本号示例
+	//VersionBeta          = "1.0.0.1"
+	//VersionSignatureBeta = "0xc3a8b3c887e2a896cca7a3d86997ac458d4f2e1ac0472fbc37290ee131eb82400cde214d72427dcf83ad22eb5b98a269311c1589fab14d0eeeee632617714cc000"
+	//VersionNumBeta       = uint64(32)
 )
 
 var VersionList [][]byte
 var VersionSignatureMap map[string][]common.Signature
 
 func init() {
-	VersionList = [][]byte{[]byte(VersionAlpha) /*, []byte(VersionBeta)*/}
+	VersionList = [][]byte{[]byte(VersionAlpha) /*[]byte(VersionBeta)*/}
 	VersionSignatureMap = make(map[string][]common.Signature)
-	//升级版本修改
-	/*VersionSignatureMap[VersionBeta] = []common.Signature{common.BytesToSignature(common.FromHex(VersionSignatureBeta))}*/
+	//VersionSignatureMap[VersionBeta] = []common.Signature{common.BytesToSignature(common.FromHex(VersionSignatureBeta))}
 }
 
 func IsCorrectVersion(version []byte) bool {

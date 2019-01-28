@@ -5,7 +5,6 @@ package support
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 )
 
@@ -24,7 +23,7 @@ func MakeMinerAns(chosed []Strallyint, seqnum uint64) *mc.MasterMinerReElectionR
 	minerResult.SeqNum = seqnum
 	for k, v := range chosed {
 		minerResult.MasterMiner = append(minerResult.MasterMiner, MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil, common.RoleMiner))
-		log.Info(ModuleLogName, "Master", MakeElectNode(v.Addr, k, v.Value, common.VIP_Nil, common.RoleMiner))
+		//log.Info(ModuleLogName, "Master", v.Addr.String())
 	}
 	return minerResult
 }
