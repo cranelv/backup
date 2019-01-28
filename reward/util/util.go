@@ -202,3 +202,21 @@ func MergeReward(dst map[common.Address]*big.Int, src map[common.Address]*big.In
 	}
 
 }
+
+func CalcN(halfNum uint64, num uint64) uint64 {
+	n := uint64(0)
+	if 0 != halfNum {
+		n = num / halfNum
+	}
+	return n
+}
+
+func CalcRewardMount(n uint64, blockReward *big.Int) *big.Int {
+	var reward *big.Int
+	if 0 == n {
+		reward = blockReward
+	} else {
+		reward = new(big.Int).Div(blockReward, new(big.Int).Exp(big.NewInt(2), new(big.Int).SetUint64(n), big.NewInt(0)))
+	}
+	return reward
+}

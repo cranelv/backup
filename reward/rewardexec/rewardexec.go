@@ -1,6 +1,7 @@
 package rewardexec
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/matrix/go-matrix/reward/cfg"
@@ -193,7 +194,7 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 	minersBlkReward := util.CalcRateReward(blockReward, br.rewardCfg.MinersRate)
 	minerRewards := br.getMinerRewards(minersBlkReward, num, util.TxsReward, parentHash)
 	if blockReward.Cmp(big.NewInt(0)) <= 0 {
-	//	log.Warn(PackageName, "账户余额非法，不发放奖励", blockReward)
+		//	log.Warn(PackageName, "账户余额非法，不发放奖励", blockReward)
 		return nil
 	}
 
@@ -212,34 +213,16 @@ func (br *BlockReward) CalcRewardMountByNumber(blockReward *big.Int, num uint64,
 		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
 		return big.NewInt(0)
 	}
-	if nil == br.st {
-		log.ERROR(PackageName, "状态树是空", "")
-		return big.NewInt(0)
-	}
-	balance := br.st.GetBalance(address)
-	if len(balance) == 0 {
-		log.ERROR(PackageName, "账户余额获取不到", "")
-		return nil
-	}
-	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
-		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
+
+	balance, err := br.getBalance(address)
+	if nil != err {
+		log.ERROR(PackageName, "账户余额获取错误，账户为", address.Hex())
 		return big.NewInt(0)
 	}
 
-	//log.Debug(PackageName, "计算区块奖励参数 当前高度:", num, "半衰高度:", halfNum,
-	//	"初始账户", address.String(), "当前金额", balance[common.MainAccount].Balance.String())
-	var reward *big.Int
+	n := util.CalcN(halfNum, num)
 
-	n := uint64(0)
-	if 0 != halfNum {
-		n = num / halfNum
-	}
-
-	if 0 == n {
-		reward = blockReward
-	} else {
-		reward = new(big.Int).Div(blockReward, new(big.Int).Exp(big.NewInt(2), new(big.Int).SetUint64(n), big.NewInt(0)))
-	}
+	reward := util.CalcRewardMount(n, blockReward)
 	//log.Debug(PackageName, "计算区块奖励金额:", reward.String())
 	if balance[common.MainAccount].Balance.Cmp(reward) < 0 {
 		log.ERROR(PackageName, "账户余额不足，余额为", balance[common.MainAccount].Balance.String())
@@ -248,6 +231,24 @@ func (br *BlockReward) CalcRewardMountByNumber(blockReward *big.Int, num uint64,
 		return reward
 	}
 
+}
+
+func (br *BlockReward) getBalance(address common.Address) (common.BalanceType, error) {
+
+	if nil == br.st {
+		log.ERROR(PackageName, "状态树是空", "")
+		return nil, errors.New("状态树是空")
+	}
+	balance := br.st.GetBalance(address)
+	if len(balance) == 0 {
+		log.ERROR(PackageName, "账户余额获取不到", "")
+		return nil, errors.New("账户余额获取不到")
+	}
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
+		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
+		return nil, errors.New("发送账户余额不合法")
+	}
+	return balance, nil
 }
 
 func (br *BlockReward) GetRewardCfg() *cfg.RewardCfg {
