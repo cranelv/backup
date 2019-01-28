@@ -1001,7 +1001,9 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.SelfTransactions) {
 		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 	// udp send
-	SendUdpTransactions(txs)
+	if ca.GetRole() == common.RoleDefault {
+		SendUdpTransactions(txs)
+	}
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
 	for peer, txs := range txset {
 		peer.AsyncSendTransactions(txs)
