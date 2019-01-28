@@ -235,6 +235,7 @@ func main() {
 func gman(ctx *cli.Context) error {
 	node := makeFullNode(ctx)
 	startNode(ctx, node)
+	fmt.Println("Congratulations! Your Matrix Masternode has been successfully deployed and is already hard at work! Thank you for supporting the Matrix AI Network!")
 	node.Wait()
 	return nil
 }
