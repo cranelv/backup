@@ -775,8 +775,23 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 					continue
 				}
 				if AuthData.AuthAddres != (common.Address{}) && !(AuthData.AuthAddres.Equal(Authfrom)) {
-					log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
-					return nil, st.GasUsed(), true, shardings,ErrSpecialTxFailed //如果一个不满足就返回，不continue
+					//如果不是同一个人授权，先判断之前的授权人权限是否失效，如果之前的授权权限没失效则不能被重复委托
+					if AuthData.EnstrustSetType == params.EntrustByHeight{
+						if st.evm.BlockNumber.Uint64() <= AuthData.EndHeight{
+							//按高度委托未失效
+							log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
+							return nil, st.GasUsed(), true,shardings, ErrSpecialTxFailed //如果一个不满足就返回，不continue
+						}
+					}else if EntrustData.EnstrustSetType == params.EntrustByTime {
+						if st.evm.Time.Uint64() <= AuthData.EndTime{
+							//按时间委托未失效
+							log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
+							return nil, st.GasUsed(), true,shardings, ErrSpecialTxFailed //如果一个不满足就返回，不continue
+						}
+					}else{
+						//该条件不可能发生
+						log.Error("之前的授权人数据丢失")
+					}
 				}
 				//如果是同一个人委托，委托的高度不能重合
 				if AuthData.AuthAddres.Equal(Authfrom) {

@@ -692,17 +692,44 @@ func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc
 	return api.b.GetFutureRewards(ctx, number)
 }
 
+func getCoinFromManAddress(manAddress string) (string,error) {
+	err := CheckParams(manAddress)
+	if err != nil{
+		return "",err
+	}
+	return strings.Split(manAddress,".")[0],nil
+}
+
 //钱包调用
-func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string,cointype string) []common.EntrustType {
+func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.EntrustType {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
+		return nil
+	}
+	coin ,err := getCoinFromManAddress(strAuthFrom)
+	if err != nil{
 		return nil
 	}
 	authFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
 	if err != nil{
 		return nil
 	}
-	return state.GetAllEntrustList(cointype,authFrom)
+
+	validEntrustList := make([]common.EntrustType,0)
+	allEntrustList := state.GetAllEntrustList(coin,authFrom)
+	for _,entrustData := range allEntrustList{
+		if entrustData.EnstrustSetType == params.EntrustByHeight{
+			if s.b.CurrentBlock().NumberU64() <= entrustData.EndHeight{
+				validEntrustList = append(validEntrustList,entrustData)
+			}
+		}else{
+			if s.b.CurrentBlock().Time().Uint64() <= entrustData.EndTime{
+				validEntrustList = append(validEntrustList,entrustData)
+			}
+		}
+	}
+
+	return validEntrustList
 }
 
 
@@ -724,31 +751,39 @@ func (s *PublicBlockChainAPI) GetIPFSsnap(str string) {
 	s.b.Downloader().DGetIPFSsnap(str)
 }
 
-func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string,cointype string, height uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
+		return ""
+	}
+	coin ,err := getCoinFromManAddress(strEntrustFrom)
+	if err != nil{
 		return ""
 	}
 	entrustFrom ,err := base58.Base58DecodeToAddress(strEntrustFrom)
 	if err != nil{
 		return ""
 	}
-	addr := state.GetAuthFrom(cointype,entrustFrom, height)
+	addr := state.GetAuthFrom(coin,entrustFrom, height)
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,cointype string, height uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
+		return nil
+	}
+	coin ,err := getCoinFromManAddress(strAuthFrom)
+	if err != nil{
 		return nil
 	}
 	entrustFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
 	if err != nil{
 		return nil
 	}
-	addrList := state.GetEntrustFrom(cointype, entrustFrom, height)
+	addrList := state.GetEntrustFrom(coin, entrustFrom, height)
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
@@ -758,31 +793,39 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string,cointype string,
 	}
 	return strAddrList
 }
-func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, cointype string, time uint64) string {
+func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, time uint64) string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
+		return ""
+	}
+	coin ,err := getCoinFromManAddress(strEntrustFrom)
+	if err != nil{
 		return ""
 	}
 	entrustFrom,err := base58.Base58DecodeToAddress(strEntrustFrom)
 	if err != nil{
 		return ""
 	}
-	addr := state.GetGasAuthFromByTime(cointype, entrustFrom, time)
+	addr := state.GetGasAuthFromByTime(coin, entrustFrom, time)
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
 	return base58.Base58EncodeToString("MAN", addr)
 }
-func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string,cointype string, time uint64) []string {
+func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint64) []string {
 	state, err := s.b.GetState()
 	if state == nil || err != nil {
+		return nil
+	}
+	coin ,err := getCoinFromManAddress(strAuthFrom)
+	if err != nil{
 		return nil
 	}
 	entrustFrom ,err := base58.Base58DecodeToAddress(strAuthFrom)
 	if err != nil{
 		return nil
 	}
-	addrList := state.GetEntrustFromByTime(cointype, entrustFrom, time)
+	addrList := state.GetEntrustFromByTime(coin, entrustFrom, time)
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
@@ -1805,10 +1848,14 @@ func (s *PublicTransactionPoolAPI) GetRawTransactionByBlockHashAndIndex(ctx cont
 }
 
 // GetTransactionCount returns the number of transactions the given address has sent for the given block number
-func (s *PublicTransactionPoolAPI) GetTransactionCount( ctx context.Context, strAddress string, cointype string,blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
+func (s *PublicTransactionPoolAPI) GetTransactionCount( ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
+	}
+	cointype ,err := getCoinFromManAddress(strAddress)
+	if err != nil{
+		return nil,err
 	}
 	address ,err := base58.Base58DecodeToAddress(strAddress)
 	if err != nil{
