@@ -168,6 +168,7 @@ func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVer
 	}
 	return nil
 }
+
 func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {

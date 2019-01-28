@@ -195,13 +195,13 @@ func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
 	return superBlkCfg, nil
 }
 
-func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
+/*func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
 	st, err := bc.StateAtBlockHash(blockHash)
 	if err != nil {
 		return "", errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
 	}
 	return matrixstate.GetVersionInfo(st), nil
-}
+}*/
 
 func ProduceBroadcastIntervalData(block *types.Block, readFn PreStateReadFn) (interface{}, error) {
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)

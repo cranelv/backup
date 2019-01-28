@@ -60,7 +60,6 @@ func (p *ManBlkBasePlug) setVrf(support BlKSupport, parent *types.Block, header 
 
 func (p *ManBlkBasePlug) setVersion(header *types.Header, parent *types.Block, version string) error {
 	header.Version = []byte(version)
-
 	header.VersionSignatures = manparams.GetVersionSignature(parent, header.Version)
 	if nil == header.VersionSignatures {
 		log.Error(LogManBlk, "获取版本号签名错误", "")
@@ -159,7 +158,6 @@ func (bd *ManBlkBasePlug) setElect(support BlKSupport, stateDB *state.StateDBMan
 }
 
 func (bd *ManBlkBasePlug) Prepare(version string, support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
-
 	test, _ := args.([]interface{})
 	for _, v := range test {
 		switch v.(type) {
@@ -212,9 +210,8 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		log.ERROR(LogManBlk, "区块验证请求生成,交易部分", "Work创建失败", "err", err)
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	err = support.BlockChain().ProcessStateVersion(header.Version, work.State)
-	if err != nil {
-		log.ERROR(LogManBlk, "区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
+	if err = support.BlockChain().ProcessStateVersion(header.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	upTimeMap, err := support.BlockChain().ProcessUpTime(work.State, header)
@@ -285,8 +282,8 @@ func (bd *ManBlkBasePlug) VerifyHeader(version string, support BlKSupport, heade
 		return nil, err
 	}
 
-	if err := support.BlockChain().DPOSEngine(header.Version).VerifyVersionSigns(support.BlockChain(), header); err != nil {
-		log.ERROR(LogManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
+	if err := support.BlockChain().DPOSEngine([]byte(version)).VerifyVersionSigns(support.BlockChain(), header); err != nil {
+		log.ERROR(LogManBlk, "验证版本号签名失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
 
@@ -312,10 +309,8 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
-	// process state version
-	err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State)
-	if err != nil {
-		log.ERROR(LogManBlk, "状态树验证,错误", "运行状态树版本更新失败", "err", err)
+	if err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
@@ -338,6 +333,10 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	localBlock := types.NewBlock(localHeader, types.MakeCurencyBlock(finalTxs, work.Receipts, nil), nil)
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
+	if parent == nil {
+		log.Error(LogManBlk, "获取父区块失败", "is nil")
+		return nil, nil, nil, nil, errors.New("父区块为nil")
+	}
 	err = support.BlockChain().ProcessMatrixState(localBlock, string(parent.Version()), work.State)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)

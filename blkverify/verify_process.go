@@ -511,20 +511,15 @@ func (p *Process) StartVerifyTxsAndState(result *core.RetChan) {
 
 func (p *Process) verifyTxsAndState() {
 	log.Trace(p.logExtraInfo(), "开始交易验证, 数量", len(p.curProcessReq.originalTxs), "高度", p.number)
-	version, err := p.blockChain().GetVersionByHash(p.curProcessReq.req.Header.ParentHash)
-
-	if err != nil {
-		log.Error(p.logExtraInfo(), "验证头获取版本号错误", err)
-		p.startDPOSVerify(localVerifyResultStateFailed)
-		return
-	}
-	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, version, p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
+	stateDB, finalTxs, receipts, _, err := p.pm.manblk.VerifyTxsAndState(blkmanage.CommonBlk, string(p.curProcessReq.req.Header.Version), p.curProcessReq.req.Header, p.curProcessReq.originalTxs, nil)
 	if nil != err {
 		log.Error(p.logExtraInfo(), "交易及状态验证失败", err, "高度", p.number, "req leader", p.curProcessReq.req.Header.Leader.Hex())
 		p.startDPOSVerify(localVerifyResultStateFailed)
 		return
 	}
+
 	p.curProcessReq.stateDB, p.curProcessReq.finalTxs, p.curProcessReq.receipts = stateDB, finalTxs, receipts
+
 	// 开始DPOS共识验证
 	p.startDPOSVerify(localVerifyResultSuccess)
 }

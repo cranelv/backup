@@ -160,7 +160,7 @@ func (md *MtxDPOS) VerifyBlock(reader consensus.StateReader, header *types.Heade
 		return errors.New("header is nil")
 	}
 	if err := md.VerifyVersionSigns(reader, header); err != nil {
-		log.INFO("MtxDPOS", "验证区块阶段 ", "验证版本", "版本号不正确 err", "err")
+		log.INFO("共识引擎", "验证版本号签名失败", "err", err)
 		return err
 	}
 
