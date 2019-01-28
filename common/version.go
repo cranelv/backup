@@ -275,5 +275,12 @@ var (
 				"修改委托交易失效后不用取消也可以重复委托",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.34",
+			Submitter: "zhangwen",
+			Commit: []string{
+				"修复初始交易费奖励账户为0，普通交易gas费不发放奖励的问题",
+			},
+		},
 	}
 )
