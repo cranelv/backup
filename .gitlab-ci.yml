@@ -24,7 +24,7 @@ KK:
   stage: KK
   scripts:
     - date 
-    when: manual
+  when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
 #    - cp ./build/bin/geth /home/public/geth_backup/2geth$tag
