@@ -8,13 +8,6 @@ PullImages:
   stage: PullImages
   script:
     - pwd
-    
-#KK:
-#    stage: KK
-#    scripts:
-#     - id
-#     -date 
-#    when: on_failure
     - cd /home/shang/ci/go-matrix
     - git fetch --all 
     - git reset --hard origin/master
@@ -27,6 +20,11 @@ PullImages:
     - make clean
     - make gman-darwin-amd64
     - cp ./build/bin/gman-darwin-10.6-amd64 /home/public/dailybuild/go-matrix/gman-darwin-amd64-$tag
+KK:
+    stage: KK
+    scripts:
+    - date 
+    when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
 #    - cp ./build/bin/geth /home/public/geth_backup/2geth$tag
