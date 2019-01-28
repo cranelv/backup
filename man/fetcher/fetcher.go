@@ -186,7 +186,7 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 	}
 	select {
 	case f.notify <- block:
-		log.Debug("fetcher notify ", "number", number, "hash", hash.Str(),"hash2",hash.Hex(),"peer",peer)
+		//log.Debug("fetcher notify ", "number", number, "hash", hash.Str(),"hash2",hash.Hex(),"peer",peer)
 		return nil
 	case <-f.quit:
 		return errTerminated

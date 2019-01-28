@@ -772,11 +772,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if tx == nil {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
-			p.MarkTransaction(tx.Hash())
 			if nc := tx.Nonce(); nc < params.NonceAddOne {
 				nc = nc | params.NonceAddOne
 				tx.SetNonce(nc)
 			}
+			p.MarkTransaction(tx.Hash())
 		}
 		pm.txpool.AddRemotes(txs)
 	case msg.Code == common.NetworkMsg:
