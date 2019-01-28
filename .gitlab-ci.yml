@@ -2,15 +2,15 @@ stages:
   - PullImages
   - KK
 before_script:
-  - tag=` date +%Y%m%d%H%M%S`
+  - tag=`date +%Y%m%d%H%M%S`
   - echo $tag
 PullImages:
   stage: PullImages
   script:
     - pwd
     - cd /home/shang/ci/go-matrix
-    - git fetch --all 
-    - git reset --hard origin/master
+    - git pull
+    - git checkout master
     - make clean
     - git branch
     - make gman
@@ -24,7 +24,10 @@ PullImages:
 KK:
   stage: KK
   script:
-    - date 
+    - date
+    - cd /home/public/dailybuild/go-matrix/
+    - tar -zcvf $tag.tar.gz gman-linux-amd64-$tag gman-windows-amd64-$tag.exe gman-darwin-amd64-$tag /home/yang/work/1229/deploy/templates/man.json /home/yang/work/1229/deploy/templates/MANGenesis.json
+    - mv $tag.tar.gz /home/public/matrix备案/
   when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
