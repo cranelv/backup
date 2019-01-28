@@ -663,7 +663,21 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	if err != nil{
 		return nil
 	}
-	return state.GetAllEntrustList(authFrom)
+	validEntrustList := make([]common.EntrustType,0)
+	allEntrustList := state.GetAllEntrustList(authFrom)
+	for _,entrustData := range allEntrustList{
+		if entrustData.EnstrustSetType == params.EntrustByHeight{
+			if s.b.CurrentBlock().NumberU64() <= entrustData.EndHeight{
+				validEntrustList = append(validEntrustList,entrustData)
+			}
+		}else{
+			if s.b.CurrentBlock().Time().Uint64() <= entrustData.EndTime{
+				validEntrustList = append(validEntrustList,entrustData)
+			}
+		}
+	}
+
+	return validEntrustList
 }
 
 func (s *PublicBlockChainAPI) GetIPFSfirstcache() {
