@@ -72,7 +72,7 @@ func (p *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big.I
 		return big.NewInt(0)
 	}
 
-	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) < 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
 		return big.NewInt(0)
 	}
