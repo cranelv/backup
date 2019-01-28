@@ -12,6 +12,7 @@ PullImages:
     - git fetch --all 
     - git reset --hard origin/master
     - make clean
+    - git branch
     - make gman
     - cp ./build/bin/gman /home/public/dailybuild/go-matrix/gman-linux-amd64-$tag
     - make clean 
