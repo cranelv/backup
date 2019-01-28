@@ -267,5 +267,13 @@ var (
 				"错误过多时退出ipfs模式",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.33",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改tcp,udp交易hash不一致问题",
+				"修改委托交易失效后不用取消也可以重复委托",
+			},
+		},
 	}
 )
