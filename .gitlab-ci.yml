@@ -21,6 +21,8 @@ PullImages:
     - make clean
     - make gman-darwin-amd64
     - mv ./build/bin/gman-darwin-10.6-amd64 /home/public/dailybuild/go-matrix/gman-darwin-amd64-$tag
+  only:
+    - master
 KK:
   stage: KK
   script:
