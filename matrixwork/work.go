@@ -238,7 +238,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coi
 		snap1 = env.State.Snapshot(params.MAN_COIN)
 	}
 	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
-	if err != nil && err != core.ErrSpecialTxFailed {
+	if err != nil{
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		if tx.GetTxCurrency()!=params.MAN_COIN {
 			env.State.RevertToSnapshot(params.MAN_COIN, snap1)
@@ -254,7 +254,7 @@ func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.A
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 	snap := env.State.Snapshot(tx.GetTxCurrency())
 	receipt, _, _, err := core.ApplyTransaction(env.config, env.bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
-	if err != nil && err != core.ErrSpecialTxFailed {
+	if err != nil {
 		log.Info("file work", "func s_commitTransaction", err)
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		return err, nil

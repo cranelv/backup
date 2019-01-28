@@ -329,7 +329,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed {
+		if err != nil{
 			return nil, 0, err
 		}
 		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
@@ -361,7 +361,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed {
+		if err != nil {
 			return nil, 0, err
 		}
 		tmpr2 := make(types.Receipts, 1+len(allreceipts[tx.GetTxCurrency()]))
