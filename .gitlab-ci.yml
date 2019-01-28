@@ -26,8 +26,8 @@ KK:
   script:
     - date
     - cd /home/public/dailybuild/go-matrix/
-    - tar -zcvf  $tag.tar.gz `ls -t gman* |head -3` /home/yang/work/1229/deploy/templates/man.json /home/yang/work/1229/deploy/templates/MANGenesis.json
-    - mv $tag.tar.gz /home/public/matrix备案/
+    - tar -zcvf  tom$tag.tar.gz `ls -t gman* |head -3` /home/yang/work/1229/deploy/templates/man.json /home/yang/work/1229/deploy/templates/MANGenesis.json
+    - mv tom$tag.tar.gz /home/public/matrix备案/
   when: manual
 #    - ssh 192.168.3.99 "docker  build -t ptone.jp/wallet:v4 . ;docker push  ptone.jp/wallet"
 #    - make
