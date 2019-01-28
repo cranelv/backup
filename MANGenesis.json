@@ -264,11 +264,17 @@
             "balance": "8000000000000000000000000"
         },
         "MAN.4L95KmR3e8eUJvzwK2thft1eKaFYa": {
-            "balance": "231690000000000000000000000"
+            "balance": "250000000000000000000000000"
         },
         "MAN.2zXWsDtyt7vhVADGTz2yXD6h7WJnF": {
-            "balance": "100000000000000000000000000"
-        }        
+            "balance": "31690000000000000000000000"
+        },
+		"MAN.YaMnyEHkBFsx9mMKweDFv6qc6PCc": {
+            "balance": "50000000000000000000000000"
+        },
+		"MAN.oD7HAYgDWaNuKh2pi2nBpPSwkBX1": {
+  		    "balance": "689000000000000000000000000"
+		}
     },
     "mstate": {
         "Broadcasts": [
