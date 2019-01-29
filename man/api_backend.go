@@ -150,14 +150,14 @@ func (b *ManAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([]types.
 		return nil, nil
 	}
 	logs := make([]types.CoinLogs, len(receipts))
-	mm:=make( map [string][]*types.Log)
+	mm := make(map[string][]*types.Log)
 	for _, cr := range receipts {
-		for _, receipt := range cr.Receiptlist{
-			mm[cr.CoinType]=append(mm[cr.CoinType],receipt.Logs...)
+		for _, receipt := range cr.Receiptlist {
+			mm[cr.CoinType] = append(mm[cr.CoinType], receipt.Logs...)
 		}
 	}
-	for k,v:=range mm{
-		logs=append(logs,types.CoinLogs{k,v})
+	for k, v := range mm {
+		logs = append(logs, types.CoinLogs{k, v})
 	}
 	return logs, nil
 }
@@ -423,12 +423,8 @@ type AllReward struct {
 	Interest  []InterestReward
 }
 
-func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.BlockNumber) (interface{}, error) {
 
-	state, _, err := b.StateAndHeaderByNumber(ctx, number)
-	if state == nil || err != nil {
-		return nil, err
-	}
 	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number))
 	if nil != err {
 		return nil, err
@@ -458,7 +454,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		return nil, err
 	}
 
-	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner)
+	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner, originElectNodes)
 	if nil != err {
 		return nil, err
 	}
@@ -474,7 +470,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		minerRewardList = append(minerRewardList, obj)
 	}
 	allReward.Miner = minerRewardList
-	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleValidator)
+	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleValidator, originElectNodes)
 	if nil != err {
 		return nil, err
 	}
@@ -518,12 +514,9 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 	return allReward, nil
 }
 
-func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType) (map[common.Address]*big.Int, error) {
+func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
-	currentTop, originElectNodes, err := selected.GetTopAndDeposit(b.man.BlockChain(), state, latestElectNum, roleType)
-	if nil != err {
-		return nil, err
-	}
+
 	br := blkreward.New(b.man.BlockChain(), state)
 
 	RewardMap := make(map[common.Address]*big.Int)
@@ -540,6 +533,18 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestEl
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
+	topNodes := make([]common.Address, 0)
+	for _, node := range originElectNodes.ElectList {
+		if node.Type == node.Type&roleType {
+			topNodes = append(topNodes, node.Account)
+		}
+	}
+	electNodes := make(map[common.Address]uint16, 0)
+	for _, node := range originElectNodes.ElectList {
+		if node.Type == node.Type&roleType {
+			electNodes[node.Account] = node.Stock
+		}
+	}
 	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
 
 		if bcInterval.IsBroadcastNumber(num) {
@@ -553,8 +558,8 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestEl
 		} else {
 			roleOutAmount, electedMount, _ = br.CalcValidatorRateMount(rewardOut)
 		}
-
-		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, 0)
+		log.Trace("获取预期收益", "出块奖励", roleOutAmount, "参与奖励", electedMount)
+		selectedNodesDeposit := selected.CaclSelectedDeposit(topNodes, electNodes, 0)
 		if 0 == len(selectedNodesDeposit) {
 			return nil, errors.New("获取参与的抵押列表错误")
 		}
