@@ -79,10 +79,10 @@ type headerFilterTask struct {
 // headerFilterTask represents a batch of block bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string                    // The source peer of block bodies
+	peer         string                  // The source peer of block bodies
 	transactions [][]types.CurrencyBlock // Collection of transactions per block bodies
-	uncles       [][]*types.Header         // Collection of uncles per block bodies
-	time         time.Time                 // Arrival time of the blocks' contents
+	uncles       [][]*types.Header       // Collection of uncles per block bodies
+	time         time.Time               // Arrival time of the blocks' contents
 }
 
 // inject represents a schedules import operation.
@@ -477,12 +477,12 @@ func (f *Fetcher) loop() {
 						announce.time = task.time
 						isok := false
 						// If the block is empty (header only), short circuit into the final import queue
-						for _,coinRoot:=range header.Roots  {
-							if coinRoot.TxHash != types.DeriveShaHash([]common.Hash{}){
+						for _, coinRoot := range header.Roots {
+							if coinRoot.TxHash != types.DeriveShaHash([]common.Hash{}) {
 								isok = true
 							}
 						}
-						if !isok{
+						if !isok {
 							log.Trace("fetch header Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 							block := types.NewBlockWithHeader(header)
 							block.ReceivedAt = task.time
@@ -546,18 +546,19 @@ func (f *Fetcher) loop() {
 				// Match up a body to any possible completion request
 				matched := false
 				tmpmap := make(map[string]common.Hash)
-				for _,txer := range task.transactions[i]{
-					tmpmap[txer.CurrencyName] = types.DeriveShaHash(txer.Transactions.TxHashs)
+				for _, txer := range task.transactions[i] {
+					tmpmap[txer.CurrencyName] = types.DeriveShaHash(types.TxHashList(txer.Transactions.GetTransactions()))
+					//log.Trace("download fetch bodyFilter tmpmap", "CurrencyName", txer.CurrencyName, "hash1", tmpmap[txer.CurrencyName], "hash2", types.DeriveShaHash(txer.Transactions.TxHashs))
 				}
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
 						isok := true
-						for _,coinHeader := range announce.header.Roots{
+						for _, coinHeader := range announce.header.Roots {
 							txnHash := tmpmap[coinHeader.Cointyp]
 							uncleHash := types.CalcUncleHash(task.uncles[i])
-							log.Trace("download fetch bodyFilter map", "hash", hash,"Cointyp",coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin,"blockNum",announce.number)
+							log.Trace("download fetch bodyFilter map", "hash", hash, "Cointyp", coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin, "blockNum", announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
-								log.Info("fetchr err","fetch body txhash != header txhash.  txnHash",txnHash.String(),"header txHash",coinHeader.TxHash.String())
+								log.Info("fetchr err", "fetch body txhash != header txhash.  txnHash", txnHash.String(), "header txHash", coinHeader.TxHash.String())
 								isok = false
 							}
 						}
