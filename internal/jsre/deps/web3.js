@@ -5539,36 +5539,36 @@ var methods = function () {
     var getEntrustList = new Method({
         name: 'getEntrustList',
         call: 'eth_getEntrustList',
-        params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter],
+        params: 1,
+        inputFormatter: [formatters.inputAddressFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getAuthFrom = new Method({
         name: 'getAuthFrom',
         call: 'eth_getAuthFrom',
-        params: 3,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getEntrustFrom = new Method({
         name: 'getEntrustFrom',
         call: 'eth_getEntrustFrom',
-        params: 3,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getAuthFromByTime = new Method({
         name: 'getAuthFromByTime',
         call: 'eth_getAuthFromByTime',
-        params: 3,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getEntrustFromByTime = new Method({
         name: 'getEntrustFromByTime',
         call: 'eth_getEntrustFromByTime',
-        params: 3,
-        inputFormatter: [formatters.inputAddressFormatter, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
     var getCfgDataByState = new Method({
@@ -5662,8 +5662,8 @@ var methods = function () {
     var getTransactionCount = new Method({
         name: 'getTransactionCount',
         call: 'eth_getTransactionCount',
-        params: 3,
-        inputFormatter: [null, formatters.inputCurrencyFormatter, formatters.inputDefaultBlockNumberFormatter],
+        params: 2,
+        inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
         outputFormatter: utils.toDecimal
     });
 

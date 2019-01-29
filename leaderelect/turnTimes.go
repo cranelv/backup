@@ -4,10 +4,11 @@
 package leaderelect
 
 import (
+	"time"
+
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/mc"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type turnTimes struct {
@@ -35,10 +36,10 @@ func (tt *turnTimes) SetTimeConfig(config *mc.LeaderConfig) error {
 		return ErrParamsIsNil
 	}
 
-	tt.parentMiningTime = config.ParentMiningTime
-	tt.posOutTime = config.PosOutTime
-	tt.reelectOutTime = config.ReelectOutTime
-	tt.reelectHandleInterval = config.ReelectHandleInterval
+	tt.parentMiningTime = int64(config.ParentMiningTime)
+	tt.posOutTime = int64(config.PosOutTime)
+	tt.reelectOutTime = int64(config.ReelectOutTime)
+	tt.reelectHandleInterval = int64(config.ReelectHandleInterval)
 	return nil
 }
 

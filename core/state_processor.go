@@ -72,7 +72,7 @@ func (p *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big.I
 		return big.NewInt(0)
 	}
 
-	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) <= 0 {
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) < 0 {
 		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
 		return big.NewInt(0)
 	}
@@ -329,7 +329,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed {
+		if err != nil{
 			return nil, 0, err
 		}
 		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
@@ -361,7 +361,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil && err != ErrSpecialTxFailed {
+		if err != nil {
 			return nil, 0, err
 		}
 		tmpr2 := make(types.Receipts, 1+len(allreceipts[tx.GetTxCurrency()]))
@@ -462,6 +462,12 @@ func (p *StateProcessor) isaddSharding(shard []uint, shardings []common.CoinShar
 
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts, []types.CoinLogs, uint64, error) {
 
+	err := p.bc.ProcessStateVersion(block.Version(), statedb)
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err0")
+		return nil, nil, 0, err
+	}
+
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err1")
@@ -470,29 +476,23 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 	}
 	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err6")
+		log.Trace("BlockChain insertChain in3 Process Block err2")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
 	// Process block using the parent state as reference point.
 	logs, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err2")
+		log.Trace("BlockChain insertChain in3 Process Block err3")
 		p.bc.reportBlock(block, nil, err)
 		return nil, logs, usedGas, err
 	}
 
 	// Process matrix state
-	err = p.bc.matrixProcessor.ProcessMatrixState(block, statedb)
+	err = p.bc.matrixProcessor.ProcessMatrixState(block, string(parent.Version()), statedb)
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err3")
+		log.Trace("BlockChain insertChain in3 Process Block err4")
 		return nil, logs, usedGas, err
-	}
-
-	err = p.bc.ProcessStateVersion(block.NumberU64(), block.Header().Version, statedb)
-	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err0")
-		return nil, nil, 0, err
 	}
 
 	return nil, logs, usedGas, nil

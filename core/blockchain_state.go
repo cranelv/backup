@@ -40,17 +40,12 @@ func (bc *BlockChain) RegisterMatrixStateDataProducer(key string, producer Produ
 	bc.matrixProcessor.RegisterProducer(key, producer)
 }
 
-func (bc *BlockChain) ProcessStateVersion(num uint64, version []byte, state *state.StateDBManage) error {
-	//增加版本号相关修改示例
-	/*	if num+1 == manparams.VersionNumBeta {
-		version = []byte(manparams.VersionBeta)
-	}*/
-
-	return bc.matrixProcessor.ProcessStateVersion(version, state)
+func (bc *BlockChain) ProcessStateVersion(version []byte, st *state.StateDBManage) error {
+	return bc.matrixProcessor.ProcessStateVersion(version, st)
 }
 
-func (bc *BlockChain) ProcessMatrixState(block *types.Block, state *state.StateDBManage) error {
-	return bc.matrixProcessor.ProcessMatrixState(block, state)
+func (bc *BlockChain) ProcessMatrixState(block *types.Block,preVersion string, state *state.StateDBManage) error {
+	return bc.matrixProcessor.ProcessMatrixState(block, preVersion, state)
 }
 
 func (bc *BlockChain) GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error) {
@@ -200,13 +195,13 @@ func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
 	return superBlkCfg, nil
 }
 
-func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
+/*func (bc *BlockChain) GetVersionByHash(blockHash common.Hash) (string, error) {
 	st, err := bc.StateAtBlockHash(blockHash)
 	if err != nil {
 		return "", errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
 	}
 	return matrixstate.GetVersionInfo(st), nil
-}
+}*/
 
 func ProduceBroadcastIntervalData(block *types.Block, readFn PreStateReadFn) (interface{}, error) {
 	bciData, err := readFn(mc.MSKeyBroadcastInterval)

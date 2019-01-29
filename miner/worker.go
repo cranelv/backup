@@ -522,7 +522,7 @@ func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
 				Txs:    resultData.txs,
 			},
 		}
-		log.INFO(ModuleMiner, "广播挖矿结果", "发送", "交易数量", len(types.GetTX(rsp.BlockMainData.Txs)), "次数", times, "高度", rsp.BlockMainData.Header.Number)
+		log.Trace(ModuleMiner, "广播挖矿结果", "发送", "交易数量", len(types.GetTX(rsp.BlockMainData.Txs)), "次数", times, "高度", rsp.BlockMainData.Header.Number)
 		self.hd.SendNodeMsg(mc.HD_BroadcastMiningRsp, rsp, common.RoleValidator, nil)
 	} else {
 		rsp := &mc.HD_MiningRspMsg{

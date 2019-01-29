@@ -5,7 +5,6 @@ package msgsend
 
 import (
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
 )
 
 // AlgorithmMsg
@@ -18,9 +17,4 @@ type AlgorithmMsg struct {
 type NetData struct {
 	SubCode uint32
 	Msg     []byte
-}
-
-type fullBlockMsgForMarshal struct {
-	Header *types.Header
-	Txs    []*types.Transaction_Mx
 }

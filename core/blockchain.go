@@ -220,7 +220,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, ErrNoGenesis
 	}
 
-	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersion(bc, bc.genesisBlock.Header())
+	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersionSigns(bc, bc.genesisBlock.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +659,6 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	return bc.HasStateRoot(block.Root())
 }
 
-
 func (bc *BlockChain) HasStateRoot(roots []common.CoinRoot) bool {
 	for _, root := range roots {
 		var hashs []common.Hash
@@ -925,11 +924,11 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 		batch = bc.db.NewBatch()
 	)
 	for i, block := range blockChain {
-		txs := make([]types.CoinSelfTransaction,0)
-		res := make([]types.CoinReceipts,0)
+		txs := make([]types.CoinSelfTransaction, 0)
+		res := make([]types.CoinReceipts, 0)
 		for _, currencie := range block.Currencies() { //TODO BB
-			res = append(res,types.CoinReceipts{CoinType:currencie.CurrencyName,Receiptlist:currencie.Receipts.GetReceipts()})
-			txs = append(txs,types.CoinSelfTransaction{CoinType:currencie.CurrencyName,Txser:currencie.Transactions.GetTransactions()})
+			res = append(res, types.CoinReceipts{CoinType: currencie.CurrencyName, Receiptlist: currencie.Receipts.GetReceipts()})
+			txs = append(txs, types.CoinSelfTransaction{CoinType: currencie.CurrencyName, Txser: currencie.Transactions.GetTransactions()})
 		}
 
 		// Short circuit insertion if shutting down or processing failed
@@ -1073,7 +1072,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	txcount := uint64(0)
 	for _, cb := range block.Currencies() {
 		txcount += uint64(len(cb.Transactions.GetTransactions()))
-		receipts = append(receipts, types.CoinReceipts{CoinType:cb.CurrencyName,Receiptlist:cb.Receipts.GetReceipts()})
+		receipts = append(receipts, types.CoinReceipts{CoinType: cb.CurrencyName, Receiptlist: cb.Receipts.GetReceipts()})
 	}
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
 		tmpBlock := &types.BlockAllSt{Sblock: block}
@@ -1097,10 +1096,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	roothash := types.RlpHash(root)
 	blockroothash := types.RlpHash(block.Root())
 	isok := false
-	for _,cr := range root{
-		for _,br := range block.Root(){
-			if cr.Cointyp == br.Cointyp{
-				if cr.Root != br.Root{
+	for _, cr := range root {
+		for _, br := range block.Root() {
+			if cr.Cointyp == br.Cointyp {
+				if cr.Root != br.Root {
 					isok = true
 				}
 			}
@@ -1402,8 +1401,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		}
 		var (
 			//receipts types.Receipts = nil
-			logs                    = make([]types.CoinLogs, 0)
-			usedGas  uint64         = 0
+			logs           = make([]types.CoinLogs, 0)
+			usedGas uint64 = 0
 		)
 		if block.IsSuperBlock() {
 
@@ -1558,15 +1557,15 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 			}
 			receipts := rawdb.ReadReceipts(bc.db, hash, *number)
 			for _, receipt := range receipts {
-				logs := make([]*types.Log,0)
-				for _,re := range receipt.Receiptlist{
+				logs := make([]*types.Log, 0)
+				for _, re := range receipt.Receiptlist {
 					for _, log := range re.Logs {
 						del := *log
 						del.Removed = true
-						logs = append(logs,&del)
+						logs = append(logs, &del)
 					}
 				}
-				deletedLogs = append(deletedLogs, types.CoinLogs{CoinType:receipt.CoinType,Logs:logs})
+				deletedLogs = append(deletedLogs, types.CoinLogs{CoinType: receipt.CoinType, Logs: logs})
 			}
 		}
 	)
@@ -1669,9 +1668,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 // TODO: Should not expose PostChainEvents. The chain events should be posted in WriteBlock.
 func (bc *BlockChain) PostChainEvents(events []interface{}, logs []types.CoinLogs) {
 	// post event logs for further processing
-	if logs != nil || len(logs)>0{
-		for _,l:=range logs{
-			if l.Logs != nil || len(l.Logs)>0{
+	if logs != nil || len(logs) > 0 {
+		for _, l := range logs {
+			if l.Logs != nil || len(l.Logs) > 0 {
 				bc.logsFeed.Send(logs)
 				break
 			}
@@ -1727,7 +1726,7 @@ func (bc *BlockChain) sendBroadTx() {
 			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
 			return
 		}
-		log.INFO(ModuleName, "sendBroadTx获取最新的root",  types.RlpHash(preBroadcastRoot.LastStateRoot).String())
+		log.INFO(ModuleName, "sendBroadTx获取最新的root", types.RlpHash(preBroadcastRoot.LastStateRoot).String())
 		currentAcc := ca.GetDepositAddress().Big()
 		ret := new(big.Int).Rem(currentAcc, big.NewInt(int64(bcInterval.BCInterval)-1))
 		broadcastBlock := types.RlpHash(preBroadcastRoot.LastStateRoot).Big()
@@ -2099,7 +2098,11 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 				return errors.Errorf("super block: unmarshal matrix state info err(%v)", err)
 			}
 		}
-		mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), block.Header().Number.Uint64())
+	preBlock := bc.GetBlockByHash(block.ParentHash())
+	if nil == preBlock {
+		return errors.New("设置超级区块失败，父区块未找到")
+	}
+	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), string(preBlock.Version()),block.Header().Number.Uint64())
 
 		if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
 			log.Error("genesis", "设置matrix状态树错误", err)
@@ -2142,7 +2145,7 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block
 
 	a2Accounts := []common.Address{}
 	//根据区块高度、A1账户从区块链数据库中获取A2账户
-	a2Accounts = st.GetEntrustFrom(params.MAN_COIN,a1Account, height)
+	a2Accounts = st.GetEntrustFrom(params.MAN_COIN, a1Account, height)
 	if len(a2Accounts) == 0 {
 		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "高度", height)
 	}
@@ -2168,7 +2171,7 @@ func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address, blockH
 	//得到区块高度
 	height := block.NumberU64()
 	//根据区块高度、A2账户从区块链数据库中获取A1账户
-	a1Account := st.GetAuthFrom(params.MAN_COIN,a2Account, height)
+	a1Account := st.GetAuthFrom(params.MAN_COIN, a2Account, height)
 	if a1Account.Equal(common.Address{}) {
 		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "高度", height)
 		return common.Address{}, errors.New("获取的A1账户为空")
@@ -2302,7 +2305,7 @@ func (bc *BlockChain) GetA2AccountsFromA1AccountAtSignHeight(a1Account common.Ad
 
 	a2Accounts := []common.Address{}
 	//根据区块高度、A1账户从区块链数据库中获取A2账户
-	a2Accounts = st.GetEntrustFrom(params.MAN_COIN,a1Account, signHeight)
+	a2Accounts = st.GetEntrustFrom(params.MAN_COIN, a1Account, signHeight)
 	if len(a2Accounts) == 0 {
 		log.INFO(common.SignLog, "获得A2账户", "失败", "无委托交易,使用A1账户", a1Account.String(), "签名高度", signHeight)
 	}
@@ -2350,7 +2353,7 @@ func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Add
 	}
 
 	//根据区块高度、A2账户从区块链数据库中获取A1账户
-	a1Account := st.GetAuthFrom(params.MAN_COIN,a2Account, signHeight)
+	a1Account := st.GetAuthFrom(params.MAN_COIN, a2Account, signHeight)
 	if a1Account.Equal(common.Address{}) {
 		log.Error(common.SignLog, "从A2账户获取A1账户", "失败", "a2Account", a2Account, "签名高度", signHeight)
 		return common.Address{}, errors.New("获取的A1账户为空")
@@ -2401,7 +2404,7 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 	for _, otherTires := range snapshotDatas.OtherTries {
 
 		for _, value := range otherTires {
-			for _,dumpTrie := range value.TrieArry {
+			for _, dumpTrie := range value.TrieArry {
 				triedb := trie.NewDatabase(bc.GetDB())
 				mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
 				log.Info("BlockChain synSnapshot ", "otherTires root", mytrie)
@@ -2492,7 +2495,6 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 			}
 
 		}
-
 
 		//block
 		block := snapshotData.Block
@@ -2674,10 +2676,10 @@ func (bc *BlockChain) dumpBadBlock(hash common.Hash, state *state.StateDBManage)
 		}
 	}
 
-	coindumplist := state.RawDump("",common.Address{})
-	for _,dumplist := range coindumplist{
-		for _,dump:=range dumplist.DumpList{
-			log.Info("dump info","coin type",dumplist.CoinTyp, "root", dump.Root)
+	coindumplist := state.RawDump("", common.Address{})
+	for _, dumplist := range coindumplist {
+		for _, dump := range dumplist.DumpList {
+			log.Info("dump info", "coin type", dumplist.CoinTyp, "root", dump.Root)
 
 			for account, data := range dump.Accounts {
 				log.Info("dump info", "account", account, "data", data)

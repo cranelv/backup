@@ -43,7 +43,6 @@ type reqData struct {
 	finalTxs          []types.CoinSelfTransaction
 	receipts          []types.CoinReceipts
 	stateDB           *state.StateDBManage
-	localReq          bool
 	localVerifyResult verifyResult
 	posFinished       bool
 	votes             []*common.VerifiedSign
@@ -76,7 +75,7 @@ func newReqDataByLocalReq(localReq *mc.LocalBlockVerifyConsensusReq) *reqData {
 		req:               localReq.BlkVerifyConsensusReq,
 		hash:              localReq.BlkVerifyConsensusReq.Header.HashNoSignsAndNonce(),
 		originalTxs:       localReq.OriginalTxs,
-		finalTxs:		   localReq.FinalTxs,
+		finalTxs:          localReq.FinalTxs,
 		receipts:          localReq.Receipts,
 		stateDB:           localReq.State,
 		localVerifyResult: localVerifyResultProcessing,

@@ -60,7 +60,6 @@ type ChainReader interface {
 
 	ProcessUpTime(state *state.StateDBManage, header *types.Header) (map[common.Address]uint64, error)
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
-	ProcessMatrixState(block *types.Block, state *state.StateDBManage) error
 	Engine(version []byte) consensus.Engine
 	DPOSEngine(version []byte) consensus.DPOSEngine
 	Processor(version []byte) core.Processor
@@ -148,6 +147,26 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 
 func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug MANBLKPlUGS) {
 	bd.mapManBlkPlugs[types+version] = plug
+}
+
+func (bd *ManBlkManage) ProduceBlockVersion(num uint64, preVersion string) string {
+	//if num == manparams.VersionNumBeta {
+	//	return manparams.VersionBeta
+	//}
+	return preVersion
+}
+
+func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVersion string) error {
+/*if num == manparams.VersionNumBeta {
+		if curVersion != manparams.VersionBeta {
+			return errors.New("版本号异常")
+		} else {
+			return nil
+		}
+	} else*/ if curVersion != preVersion {
+		return errors.New("版本号异常,不等于父区块版本号")
+	}
+	return nil
 }
 
 func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error) {

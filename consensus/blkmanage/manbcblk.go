@@ -29,7 +29,6 @@ func NewBCBlkPlug() (*ManBCBlkPlug, error) {
 }
 
 func (bd *ManBCBlkPlug) Prepare(version string, support BlKSupport, interval *mc.BCIntervalInfo, num uint64, args interface{}) (*types.Header, interface{}, error) {
-
 	test, _ := args.([]interface{})
 	for _, v := range test {
 		switch v.(type) {
@@ -121,6 +120,12 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 		log.ERROR(LogManBlk, "NewWork!", err, "高度", header.Number.Uint64())
 		return nil, nil, nil, nil, nil, nil, err
 	}
+
+	if err = support.BlockChain().ProcessStateVersion(header.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", header.Number.Uint64())
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
 	mapTxs := support.TxPool().GetAllSpecialTxs()
 	Txs := make([]types.SelfTransaction, 0)
 	for _, txs := range mapTxs {
@@ -133,14 +138,14 @@ func (bd *ManBCBlkPlug) ProcessState(support BlKSupport, header *types.Header, a
 	log.Info(LogManBlk, "关键时间点", "开始执行MatrixState", "time", time.Now(), "块高", header.Number.Uint64())
 
 	block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(), work.Receipts, nil), nil)
-	err = support.BlockChain().ProcessMatrixState(block, work.State)
+	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
+	if parent == nil {
+		log.Error(LogManBlk, "获取父区块失败", "is nil")
+		return nil, nil, nil, nil, nil, nil, errors.New("父区块为nil")
+	}
+	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
-		return nil, nil, nil, nil, nil, nil, err
-	}
-	err = support.BlockChain().ProcessStateVersion(header.Number.Uint64(), header.Version, work.State)
-	if err != nil {
-		log.ERROR(LogManBlk, "广播区块验证请求生成,交易部分", "运行状态树版本更新失败", "err", err)
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	return nil, work.State, work.Receipts, types.GetCoinTX(Txs), work.GetTxs(), nil, nil
@@ -172,14 +177,6 @@ func (bd *ManBCBlkPlug) VerifyHeader(version string, support BlKSupport, header 
 		log.ERROR(LogManBlk, "验证拓扑信息失败", err, "高度", header.Number.Uint64())
 		return nil, err
 	}
-	if version != string(header.Version) {
-		log.ERROR(LogManBlk, "版本号不一致，远程版本号", header.Version, "本地版本号", version, "高度", header.Number.Uint64())
-		return nil, errors.New("版本号不一致")
-	}
-	if err := support.BlockChain().DPOSEngine(header.Version).VerifyVersion(support.BlockChain(), header); err != nil {
-		log.ERROR(LogManBlk, "验证版本号失败", err, "高度", header.Number.Uint64())
-		return nil, err
-	}
 
 	//verify vrf
 	if err := support.ReElection().VerifyVrf(header); err != nil {
@@ -204,6 +201,11 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 		log.WARN(LogManBlk, "广播挖矿结果验证, 创建worker错误", err)
 		return nil, nil, nil, nil, err
 	}
+	if err = support.BlockChain().ProcessStateVersion(verifyHeader.Version, work.State); err != nil {
+		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", verifyHeader.Number.Uint64())
+		return nil, nil, nil, nil, err
+	}
+
 	//执行交易
 	work.ProcessBroadcastTransactions(support.EventMux(), verifyTxs)
 
@@ -211,13 +213,8 @@ func (bd *ManBCBlkPlug) VerifyTxsAndState(support BlKSupport, verifyHeader *type
 	currblock := types.MakeCurencyBlock(retTxs, work.Receipts, nil)
 	// 运行matrix状态树
 	block := types.NewBlock(verifyHeader, currblock, nil)
-	if err := support.BlockChain().ProcessMatrixState(block, work.State); err != nil {
+	if err := support.BlockChain().ProcessMatrixState(block,string(parent.Version()),  work.State); err != nil {
 		log.ERROR(LogManBlk, "广播挖矿结果验证, matrix 状态树运行错误", err)
-		return nil, nil, nil, nil, err
-	}
-	// 运行版本更新检查
-	if err := support.BlockChain().ProcessStateVersion(verifyHeader.Number.Uint64(), verifyHeader.Version, work.State); err != nil {
-		log.ERROR(LogManBlk, "广播挖矿结果验证, 版本更新检查失败", err)
 		return nil, nil, nil, nil, err
 	}
 

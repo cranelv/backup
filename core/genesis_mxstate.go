@@ -50,6 +50,7 @@ type GenesisMState struct {
 	EleInfoCfg                   *mc.ElectConfigInfo              `json:"EleInfo,omitempty" gencodec:"required"`
 	ElectMinerNumCfg             *mc.ElectMinerNumStruct          `json:"ElectMinerNum,omitempty" gencodec:"required"`
 	ElectBlackListCfg            *[]GenesisAddress                `json:"ElectBlackList,omitempty" gencodec:"required"`
+	ElectWhiteListSwitcherCfg    *mc.ElectWhiteListSwitcher       `json:"ElectWhiteListSwitcherCfg,omitempty" gencodec:"required"`
 	ElectWhiteListCfg            *[]GenesisAddress                `json:"ElectWhiteList,omitempty" gencodec:"required"`
 	CurElect                     *[]GenesisElect                  `json:"CurElect,omitempty"  gencodec:"required"`
 	BlockProduceSlashCfg         *mc.BlockProduceSlashCfg         `json:"BlkProduceSlashCfg,omitempty" gencodec:"required"`
@@ -58,8 +59,8 @@ type GenesisMState struct {
 	BlockProduceSlashStatsStatus *mc.BlockProduceSlashStatsStatus `json:"BlkProduceStatus,omitempty" gencodec:"required"`
 }
 
-func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology common.NetTopology, nextElect []common.Elect, version string, num uint64) error {
-	if err := ms.setVersionInfo(state, num, version); err != nil {
+func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology common.NetTopology, nextElect []common.Elect, newVersion string, oldVersion string, num uint64) error {
+	if err := ms.setVersionInfo(state, num, newVersion); err != nil {
 		return err
 	}
 
@@ -77,11 +78,16 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 	if err := ms.setElectBlackListInfo(state, num); err != nil {
 		return err
 	}
+
+	if err := ms.setElectWhiteListSwitcher(state, num); err != nil {
+		return err
+	}
+
 	if err := ms.setElectWhiteListInfo(state, num); err != nil {
 		return err
 	}
 
-	if err := ms.setTopologyToState(state, netTopology, num); err != nil {
+	if err := ms.setTopologyToState(state, netTopology, num, oldVersion); err != nil {
 		return err
 	}
 
@@ -113,7 +119,7 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 	if err := ms.setSubChainSuperAccountsToState(state, num); err != nil {
 		return err
 	}
-	if err := ms.setBCIntervalToState(state, num); err != nil {
+	if err := ms.setBCIntervalToState(state, num, oldVersion); err != nil {
 		return err
 	}
 	if err := ms.setBlkCalcToState(state, num); err != nil {
@@ -152,9 +158,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 	if err := ms.setLeaderCfgToState(state, num); err != nil {
 		return err
 	}
-	if err := ms.setBCIntervalToState(state, num); err != nil {
-		return err
-	}
 
 	if err := ms.setBlockProduceSlashStatsStatus(state, num); err != nil {
 		return err
@@ -175,15 +178,15 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 }
 
 func (g *GenesisMState) setVersionInfo(state *state.StateDBManage, num uint64, version string) error {
-		if len(version) == 0 {
+	if len(version) == 0 {
 		if num == 0 {
-		return errors.New("版本信息为空")
-	} else {
-		log.INFO("Geneis", "没有配置版本信息", "")
-		return nil
+			return errors.New("版本信息为空")
+		} else {
+			log.INFO("Geneis", "没有配置版本信息", "")
+			return nil
+		}
 	}
-	}
-		return matrixstate.SetVersionInfo(state, version)
+	return matrixstate.SetVersionInfo(state, version)
 }
 
 func (g *GenesisMState) setElectTime(state *state.StateDBManage, num uint64) error {
@@ -230,6 +233,21 @@ func (g *GenesisMState) setElectMinerNumInfo(state *state.StateDBManage, num uin
 	return matrixstate.SetElectMinerNum(state, g.ElectMinerNumCfg)
 }
 
+func (g *GenesisMState) setElectWhiteListSwitcher(state *state.StateDBManage, num uint64) error {
+	if num == 0 {
+		if g.ElectWhiteListSwitcherCfg == nil {
+			return errors.New("选举白名单开关配置信息为nil")
+		}
+	} else {
+		if g.ElectWhiteListSwitcherCfg == nil {
+			log.INFO("Geneis", "未修改选举白名单开关配置信息为", "")
+			return nil
+		}
+	}
+	log.Info("Geneis", "ElectWhiteListSwitcherCfg", g.ElectWhiteListSwitcherCfg)
+	return matrixstate.SetElectWhiteListSwitcher(state, g.ElectWhiteListSwitcherCfg.Switcher)
+}
+
 func (g *GenesisMState) setElectWhiteListInfo(state *state.StateDBManage, num uint64) error {
 	var whiteList []common.Address = nil
 	if g.ElectWhiteListCfg == nil || *g.ElectWhiteListCfg == nil {
@@ -258,7 +276,7 @@ func (g *GenesisMState) setElectBlackListInfo(state *state.StateDBManage, num ui
 	return matrixstate.SetElectBlackList(state, blackList)
 }
 
-func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt common.NetTopology, num uint64) error {
+func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt common.NetTopology, num uint64, oldVersion string) error {
 	if num == 0 {
 		if genesisNt.Type != common.NetTopoTypeAll {
 			return errors.New("genesis net topology type is not all graph type！")
@@ -281,7 +299,7 @@ func (g *GenesisMState) setTopologyToState(state *state.StateDBManage, genesisNt
 			return err
 		}
 	} else {
-		preGraph, err := matrixstate.GetTopologyGraph(state)
+		preGraph, err := matrixstate.GetTopologyGraphByVersion(state, oldVersion)
 		if err != nil {
 			return errors.Errorf("get pre topology graph from state err: %v", err)
 		}
@@ -650,17 +668,6 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDBManage, num ui
 			return nil
 		}
 	}
-	bcInterval, err := matrixstate.GetBroadcastInterval(state)
-	if err != nil {
-		log.ERROR("Geneis", "获取广播周期数据结构失败", err)
-		return nil
-	}
-
-	if g.InterestCfg.PayInterval < bcInterval.BCInterval {
-
-		return errors.Errorf("配置的发放周期小于计息周期")
-	}
-
 	log.Info("Geneis", "InterestCfg", g.InterestCfg)
 	return matrixstate.SetInterestCfg(state, g.InterestCfg)
 }
@@ -753,7 +760,7 @@ func (g *GenesisMState) SetSuperBlkToState(state *state.StateDBManage, extra []b
 	return matrixstate.SetSuperBlockCfg(state, superBlkCfg)
 }
 
-func (g *GenesisMState) setBCIntervalToState(state *state.StateDBManage, num uint64) error {
+func (g *GenesisMState) setBCIntervalToState(st *state.StateDBManage, num uint64, oldVersion string) error {
 	var interval *mc.BCIntervalInfo = nil
 	if num == 0 {
 		if nil == g.BCICfg {
@@ -782,7 +789,7 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDBManage, num uin
 			return errors.Errorf("广播周期生效高度(%d)非法, < 当前高度(%d)", g.BCICfg.BackupEnableNumber, num)
 		}
 
-		bcInterval, err := matrixstate.GetBroadcastInterval(state)
+		bcInterval, err := matrixstate.GetBroadcastIntervalByVersion(st, oldVersion)
 		if err != nil || bcInterval == nil {
 			return errors.Errorf("获取前广播周期数据失败(%v)", err)
 		}
@@ -800,7 +807,7 @@ func (g *GenesisMState) setBCIntervalToState(state *state.StateDBManage, num uin
 	}
 
 	if interval != nil {
-		return matrixstate.SetBroadcastInterval(state, interval)
+		return matrixstate.SetBroadcastInterval(st, interval)
 	}
 	return nil
 }

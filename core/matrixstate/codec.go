@@ -1,65 +1,63 @@
 package matrixstate
 
 import (
-	"encoding/json"
-
 	"encoding/binary"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
 	"github.com/pkg/errors"
+	"github.com/matrix/go-matrix/rlp"
 )
 
 func encodeAccount(account common.Address) ([]byte, error) {
-	data, err := json.Marshal(account)
+	data, err := rlp.EncodeToBytes(account)
 	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
+		return nil, errors.Errorf("rlp encode failed: %s", err)
 	}
 	return data, nil
 }
 
 func decodeAccount(data []byte) (common.Address, error) {
 	msg := common.Address{}
-	err := json.Unmarshal(data, &msg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return common.Address{}, errors.Errorf("json.Unmarshal failed: %s", err)
+		return common.Address{}, errors.Errorf("rlp decode failed: %s", err)
 	}
 	return msg, nil
 }
 
 func encodeAccounts(accounts []common.Address) ([]byte, error) {
-	data, err := json.Marshal(accounts)
+	data, err := rlp.EncodeToBytes(accounts)
 	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
+		return nil, errors.Errorf("rlp encode failed: %s", err)
 	}
 	return data, nil
 }
 
 func decodeAccounts(data []byte) ([]common.Address, error) {
 	msg := make([]common.Address, 0)
-	err := json.Unmarshal(data, &msg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+		return nil, errors.Errorf("rlp decode failed: %s", err)
 	}
 	//todo 测试 data为空切片时， msg返回什么
 	return msg, nil
 }
 
 func encodeString(str string) ([]byte, error) {
-	data, err := json.Marshal(str)
+	data, err := rlp.EncodeToBytes(str)
 	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
+		return nil, errors.Errorf("rkp encdoe failed: %s", err)
 	}
 	return data, nil
 }
 
 func decodeString(data []byte) (string, error) {
 	var msg string
-	err := json.Unmarshal(data, &msg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return msg, errors.Errorf("json.Unmarshal failed: %s", err)
+		return msg, errors.Errorf("rlp decode failed: %s", err)
 	}
-	//todo 测试 data为空切片时， msg返回什么
 	return msg, nil
 }
 
@@ -70,7 +68,7 @@ func encodeUint64(num uint64) []byte {
 }
 
 func decodeUint64(data []byte) (uint64, error) {
-	if len(data) < 8 { // todo data < 8 可以解码吗？
+	if len(data) < 8 {
 		log.Error(logInfo, "decode uint64 failed", "data size is not enough", "size", len(data))
 		return 0, ErrDataSize
 	}

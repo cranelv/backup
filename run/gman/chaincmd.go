@@ -16,6 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/matrix/go-matrix/params"
+
 	"github.com/matrix/go-matrix/accounts/keystore"
 	"github.com/matrix/go-matrix/crypto/aes"
 	"github.com/matrix/go-matrix/man/wizard"
@@ -33,7 +35,6 @@ import (
 	"github.com/matrix/go-matrix/man/downloader"
 	"github.com/matrix/go-matrix/mandb"
 	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
 	"github.com/matrix/go-matrix/run/utils"
 	"github.com/matrix/go-matrix/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -222,7 +223,7 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
-			utils.LightModeFlag,
+			utils.SuperBlockElectGenFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -688,7 +689,11 @@ func genblock(ctx *cli.Context) error {
 		return errors.New("num is error")
 
 	}
-	w.MakeSuperGenesis(chain, chaindb, num)
+	var electFlag bool
+	if ctx.GlobalBool(utils.SuperBlockElectGenFlag.Name) {
+		electFlag = true
+	}
+	w.MakeSuperGenesis(chain, chaindb, num, electFlag)
 	//w.ManageSuperGenesis(chainDb)
 	return nil
 }
@@ -833,14 +838,15 @@ func signVersion(ctx *cli.Context) error {
 }
 func aesEncrypt(ctx *cli.Context) error {
 	Inpath := ctx.GlobalString(utils.AesInputFlag.Name)
-	fmt.Println("输入的文件是", Inpath)
+	fmt.Println("Your input is", Inpath)
+	fmt.Println("Your password's length must be between 8 and 16 characters, and should contain numbers, uppercase letters (A-Z), lowercase letters (a-z) and special characters")
 	JsonParse := NewJsonStruct()
 	fileValue := []mc.EntrustInfo{}
 	JsonParse.Load(Inpath, &fileValue)
 
 	dataV, err := json.Marshal(fileValue)
 	if err != nil {
-		return errors.New("对文本内容进行Marshal失败")
+		return errors.New("Marshalling on texts faild")
 	}
 	entrustPassword, err := ReadDecryptPassword(utils.Twice, ctx)
 	if err != nil {
@@ -849,7 +855,7 @@ func aesEncrypt(ctx *cli.Context) error {
 
 	xpass, err := aes.AesEncrypt(dataV, []byte(entrustPassword))
 	if err != nil {
-		return errors.New("加密失败")
+		return errors.New("Encryption Failed")
 	}
 	pass64 := base64.StdEncoding.EncodeToString(xpass)
 	//fmt.Println("加密后", pass64)
@@ -858,7 +864,7 @@ func aesEncrypt(ctx *cli.Context) error {
 	//写入文件
 	err = ioutil.WriteFile(outPath, []byte(pass64), 0666)
 	if err == nil {
-		fmt.Println("成功写入到文件", outPath)
+		fmt.Println("Write into " + outPath + " successfully")
 	}
 
 	return nil
@@ -874,13 +880,13 @@ func NewJsonStruct() *JsonStruct {
 func (jst *JsonStruct) Load(filename string, v interface{}) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Println("读取通用配置文件失败 err", err, "file", filename)
+		fmt.Println("Failed to read the common profile, err", err, "file", filename)
 		os.Exit(-1)
 		return
 	}
 	err = json.Unmarshal(data, v)
 	if err != nil {
-		fmt.Println("通用配置文件数据获取失败 err", err, "filename", filename)
+		fmt.Println("Failed to obtain data from the common profile, err", err, "filename", filename)
 		os.Exit(-1)
 		return
 	}

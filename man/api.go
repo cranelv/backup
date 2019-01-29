@@ -289,7 +289,7 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 			log.Error("num is error", "current num:", currentNum)
 
 		}
-		w.MakeSuperGenesis(api.e.BlockChain(), api.e.chainDb, num)
+		w.MakeSuperGenesis(api.e.BlockChain(), api.e.chainDb, num, false)
 		//mc.PublicEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleValidator, BlockNum: 1})
 		//mc.PublicEvent(mc.BlkVerify_VerifyConsensusOK, &mc.BlockVerifyConsensusOK{testHeader, nil, nil, nil})
 		log.INFO("successfully gen superGenesis ", "MANSuperGenesis.", "nil")
@@ -654,38 +654,4 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		dirty = append(dirty, common.BytesToAddress(key))
 	}
 	return dirty, nil
-}
-func (api *PrivateDebugAPI) EvilFunc(types string, arg1, arg2, arg3 uint32) error {
-	var err error = nil
-	switch {
-	case types == "dropMsg":
-		log.INFO("准备作恶", "丢弃消息", arg1)
-		fmt.Printf("准备作恶,丢弃消息=%x\n", arg1)
-		api.man.HD().SetBadMsg(types, arg1, arg2, arg3)
-	case types == "repeat":
-		log.INFO("准备作恶", "重发消息", arg1, "次数", arg2)
-		fmt.Printf("准备作恶,重发消息=%x; 次数=%d;\n", arg1, arg2)
-		api.man.HD().SetBadMsg(types, arg1, arg2, arg3)
-	case types == "cacheMsg":
-		log.INFO("准备作恶", "缓存消息", arg1, "数量", arg2)
-		fmt.Printf("准备作恶,缓存消息=%x; 数量=%d;\n", arg1, arg2)
-		api.man.HD().SetBadMsg(types, arg1, arg2, arg3)
-	case types == "noVote":
-		log.INFO("准备作恶", "动作", "不投票")
-		api.man.signHelper.SetBadMsg(types, arg1, arg2, arg3)
-	case types == "disagree":
-		log.INFO("准备作恶", "动作", "投反对票")
-		api.man.signHelper.SetBadMsg(types, arg1, arg2, arg3)
-	case types == "disagree":
-		log.INFO("准备作恶", "动作", "投反对票")
-		api.man.signHelper.SetBadMsg(types, arg1, arg2, arg3)
-	case types == "normal":
-		log.INFO("正常模式", "动作", "恢复正常")
-		api.man.HD().SetBadMsg(types, arg1, arg2, arg3)
-		api.man.signHelper.SetBadMsg(types, arg1, arg2, arg3)
-	default:
-		err = errors.New("不支持的操作模式")
-		log.INFO("不支持的操作模式", "", "")
-	}
-	return err
 }

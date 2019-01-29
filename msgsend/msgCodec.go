@@ -6,10 +6,9 @@ package msgsend
 import (
 	"encoding/json"
 	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/mc"
+	"github.com/matrix/go-matrix/rlp"
 	"github.com/pkg/errors"
-	"github.com/matrix/go-matrix/log"
 )
 
 func (self *HD) initCodec() {
@@ -154,52 +153,24 @@ func (*broadcastMiningRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	if !OK {
 		return nil, errors.New("reflect err! broadcast_mining_rsp_msg")
 	}
-
-	txs:=types.GetTX(rsp.BlockMainData.Txs)
-	size := len(txs)
-	marshalMsg := fullBlockMsgForMarshal{}
-	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
-	for i := 0; i < size; i++ {
-		log.DEBUG("HD", "广播挖矿结果消息, Marshal前的tx", txs[i])
-		marshalMsg.Txs = append(marshalMsg.Txs, types.GetTransactionMx(txs[i]))
-	}
-	marshalMsg.Header = rsp.BlockMainData.Header
-	data, err := json.Marshal(marshalMsg)
+	data, err := rlp.EncodeToBytes(rsp)
 	if err != nil {
-		return nil, errors.Errorf("json.Marshal failed: %s", err)
+		return nil, errors.Errorf("rlp encode err: %v", err)
 	}
 	return data, nil
 }
 
 func (*broadcastMiningRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := &fullBlockMsgForMarshal{}
-	err := json.Unmarshal([]byte(data), msg)
+	msg := new(mc.HD_BroadcastMiningRspMsg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+		return nil, errors.Errorf("rlp decode failed: %s", err)
 	}
-	if msg.Header == nil {
+	if msg.BlockMainData == nil || msg.BlockMainData.Header == nil {
 		return nil, errors.Errorf("'Header' of the msg is nil")
 	}
-
-	sendMsg := &mc.HD_BroadcastMiningRspMsg{
-		From: from,
-		BlockMainData: &mc.BlockData{
-			Header: msg.Header,
-			Txs:    make([]types.CoinSelfTransaction, 0),
-		},
-	}
-	size := len(msg.Txs)
-	var txs [] types.SelfTransaction
-	for i := 0; i < size; i++ {
-		tx := types.SetTransactionMx(msg.Txs[i])
-		txs=append(txs,tx)
-	}
-	ctxs:=types.GetCoinTX(txs)
-	for _,ctx :=range ctxs{
-		sendMsg.BlockMainData.Txs = append(sendMsg.BlockMainData.Txs, ctx)
-
-	}
-	return sendMsg, nil
+	msg.From = from
+	return msg, nil
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -496,53 +467,22 @@ func (*fullBlockRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 	if !OK {
 		return nil, errors.New("reflect err! HD_FullBlockRspMsg")
 	}
-	var ts []types.SelfTransaction
-	for _,coinTX := range rsp.Txs{
-		ts=append(ts,coinTX.Txser...)
+	data, err := rlp.EncodeToBytes(rsp)
+	if err != nil {
+		return nil, errors.Errorf("rlp encode failed: %v", err)
 	}
-	size := len(ts)
-	marshalMsg := fullBlockMsgForMarshal{}
-	marshalMsg.Txs = make([]*types.Transaction_Mx, 0, size)
-	for i := 0; i < size; i++ {
-		tx := ts[i]
-		marshalMsg.Txs = append(marshalMsg.Txs, types.SetTransactionToMx(tx))
-	}
-	marshalMsg.Header = rsp.Header
-
-	data, err :=  json.Marshal(marshalMsg)
-		if err != nil {
-			return nil, errors.Errorf("json.Marshal failed: %s", err)
-		}
-
 	return data, nil
 }
 
 func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := &fullBlockMsgForMarshal{}
-	err := json.Unmarshal([]byte(data), msg)
+	msg := new(mc.HD_FullBlockRspMsg)
+	err := rlp.DecodeBytes(data, &msg)
 	if err != nil {
-		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
+		return nil, errors.Errorf("rlp decode failed: %v", err)
 	}
 	if msg.Header == nil {
 		return nil, errors.Errorf("'header' of the msg is nil")
 	}
-
-	sendMsg := &mc.HD_FullBlockRspMsg{
-		From:   from,
-		Header: msg.Header,
-		Txs:    make([]types.CoinSelfTransaction, 0),
-	}
-
-	size := len(msg.Txs)
-	var txs	[]types.SelfTransaction
-	for i := 0; i < size; i++ {
-		tx := types.SetMxToTransaction(msg.Txs[i])
-		if nil == tx {
-			return nil, errors.Errorf("decode tx err: the (%d/%d) tx is nil", i, size)
-		}
-		txs=append(txs,tx)
-	}
-	cointx:=types.GetCoinTX(txs)
-	sendMsg.Txs =cointx
-	return sendMsg, nil
+	msg.From = from
+	return msg, nil
 }

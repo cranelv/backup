@@ -776,7 +776,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				nc = nc | params.NonceAddOne
 				tx.SetNonce(nc)
 			}
-			p.MarkTransaction(tx.Hash())
+			hash := tx.Hash()
+			p.MarkTransaction(hash)
+			log.INFO("==tcp tx hash","from",tx.From().String(),"tx.Nonce",tx.Nonce(),"hash",hash.String())
 		}
 		pm.txpool.AddRemotes(txs)
 	case msg.Code == common.NetworkMsg:
@@ -999,7 +1001,9 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.SelfTransactions) {
 		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 	// udp send
-	SendUdpTransactions(txs)
+	if ca.GetRole() == common.RoleDefault {
+		SendUdpTransactions(txs)
+	}
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
 	for peer, txs := range txset {
 		peer.AsyncSendTransactions(txs)
