@@ -1087,6 +1087,18 @@ func (shard *StateDBManage) GetAllEntrustList(cointyp string, addr common.Addres
 	}
 	return statedb.GetAllEntrustList(addr)
 }
+
+//钱包调用显示
+func (shard *StateDBManage) GetGasAuthFromByHeightAddTime(cointyp string, addr common.Address) common.Address {
+
+	statedb,err:=shard.GetStateDb(cointyp, addr)
+	if err!=nil {
+		log.Error("file sharding_statedb","func:sharding_GetAllEntrustList:",err)
+		return common.Address{}
+	}
+	return statedb.GetGasAuthFromByHeightAddTime(addr)
+}
+
 func (shard *StateDBManage) CheckCoin(cointype string)bool{
 	if cointype == params.MAN_COIN{
 		return true

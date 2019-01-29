@@ -412,6 +412,23 @@ func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) c
 	return common.Address{}
 }
 
+//rpc调用，获取当时状态的委托gas信息
+func (self *StateDB) GetGasAuthFromByHeightAddTime(entrustFrom common.Address) common.Address {
+	AuthMarsha1Data := self.GetAuthStateByteArray(entrustFrom)
+	if len(AuthMarsha1Data) > 0 {
+		AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+		err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+		if err != nil {
+			return common.Address{}
+		}
+		for _, AuthData := range AuthDataList {
+			if AuthData.IsEntrustGas == true {
+				return AuthData.AuthAddres
+			}
+		}
+	}
+	return common.Address{}
+}
 //根据授权人获取所有委托gas列表,(该方法用于取消委托时调用)
 func (self *StateDB) GetAllEntrustGasFrom(authFrom common.Address) []common.Address {
 	EntrustMarsha1Data := self.GetEntrustStateByteArray(authFrom)

@@ -5304,6 +5304,9 @@ Method.prototype.buildCall = function() {
         if(payload.method == 'debug_dumpBlock') {
             payload.params[0] = '0x' + Number(payload.params[0]).toString(16)
         }
+        if(payload.method == 'man_getAuthGasAddress') {
+            payload.params[1] = '0x' + Number(payload.params[1]).toString(16)
+        }
         if (payload.callback) {
             return method.requestManager.sendAsync(payload, function (err, result) {
                 payload.callback(err, method.formatOutput(result));
@@ -5564,6 +5567,13 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputBigNumberFormatter
     });
+    var getAuthGasAddress = new Method({
+        name: 'getAuthGasAddress',
+        call: 'eth_getAuthGasAddress',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        //outputFormatter: formatters.outputNewBigNumberFormatter
+    });
     var getCfgDataByState = new Method({
         name: 'getCfgDataByState',
         call: 'eth_getCfgDataByState',
@@ -5767,6 +5777,7 @@ var methods = function () {
         getEntrustFrom,
         getAuthFromByTime,
         getEntrustFromByTime,
+        getAuthGasAddress,
         getCfgDataByState,
         getStorageAt,
         getCode,
