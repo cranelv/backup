@@ -519,14 +519,19 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		return nil, err
 	}
 	br := blkreward.New(b.man.BlockChain(), state)
-	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
-	halfNum := br.GetRewardCfg().RewardMount.MinerHalf
+
 	RewardMap := make(map[common.Address]*big.Int)
 
 	var rewardAddr common.Address
+	var rewardIn *big.Int
+	var halfNum uint64
 	if roleType == common.RoleMiner {
+		halfNum = br.GetRewardCfg().RewardMount.MinerHalf
+		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
 		rewardAddr = common.BlkMinerRewardAddress
 	} else {
+		halfNum = br.GetRewardCfg().RewardMount.ValidatorHalf
+		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
 	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
@@ -534,8 +539,14 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		validatorReward := br.CalcRewardMountByNumber(RewardMan, uint64(num), halfNum, rewardAddr)
-		minerOutAmount, electedMount, _ := br.CalcMinerRateMount(validatorReward)
+		rewardOut := br.CalcRewardMountByNumber(rewardIn, uint64(num), halfNum, rewardAddr)
+
+		var roleOutAmount, electedMount *big.Int
+		if roleType == common.RoleMiner {
+			roleOutAmount, electedMount, _ = br.CalcMinerRateMount(rewardOut)
+		} else {
+			roleOutAmount, electedMount, _ = br.CalcValidatorRateMount(rewardOut)
+		}
 
 		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, 0)
 		if 0 == len(selectedNodesDeposit) {
@@ -548,7 +559,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		}
 		for k := range electRewards {
 			tmp := new(big.Int).SetUint64(uint64(len(electRewards)))
-			util.SetAccountRewards(electRewards, k, new(big.Int).Div(minerOutAmount, tmp))
+			util.SetAccountRewards(electRewards, k, new(big.Int).Div(roleOutAmount, tmp))
 		}
 		util.MergeReward(RewardMap, electRewards)
 
