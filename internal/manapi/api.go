@@ -688,8 +688,11 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 }
 
 func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
-
-	return api.b.GetFutureRewards(ctx, number)
+	state, _, err := api.b.StateAndHeaderByNumber(ctx, number)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return api.b.GetFutureRewards(state, number)
 }
 
 func getCoinFromManAddress(manAddress string) (string,error) {
