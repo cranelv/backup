@@ -82,7 +82,7 @@ var (
 	ErrRepeatEntrust   = errors.New("Repeat Entrust")
 	ErrWithoutAuth     = errors.New("gas entrust not set ")
 	ErrinterestAmont   = errors.New("Incorrect total interest")
-	ErrSpecialTxFailed = errors.New("Run special tx failed")
+	//ErrSpecialTxFailed = errors.New("Run special tx failed")
 )
 
 var (
