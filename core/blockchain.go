@@ -2000,11 +2000,10 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 	if !block.IsSuperBlock() {
 		return nil, errors.New("err, genesis block is not super block!")
 	}
-	b, _ := json.Marshal(block.Root())
-	blockHash := common.BytesToHash(b)
-	b1, _ := json.Marshal(superBlockGen.Roots)
-	superHash := common.BytesToHash(b1)
+	blockHash := types.RlpHash(block.Root())
+	superHash:= types.RlpHash(superBlockGen.Roots)
 	if blockHash != superHash {
+		log.Error("YYYYYYYYYYYYYYYYYY","block.Root()",block.Root(),"superBlockGen.Roots",superBlockGen.Roots)
 		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", blockHash, superHash)
 	}
 
