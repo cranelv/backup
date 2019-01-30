@@ -118,6 +118,11 @@ func (st *StateTransition) BuyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
+	balance := st.state.GetBalanceByType(params.MAN_COIN, st.msg.AmontFrom(),common.MainAccount)
+	if balance.Cmp(mgval)<0{
+		log.Error("MAN","BuyGas err","MAN Coin : Insufficient account balance.")
+		return errors.New("MAN Coin : Insufficient account balance.")
+	}
 	st.state.SubBalance(params.MAN_COIN, common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
