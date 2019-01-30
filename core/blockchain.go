@@ -2001,16 +2001,16 @@ func (bc *BlockChain) InsertSuperBlock(superBlockGen *Genesis, notify bool) (*ty
 		return nil, errors.New("err, genesis block is not super block!")
 	}
 	blockHash := types.RlpHash(block.Root())
-	superHash:= types.RlpHash(superBlockGen.Roots)
+	superHash := types.RlpHash(superBlockGen.Roots)
 	if blockHash != superHash {
-		log.Error("YYYYYYYYYYYYYYYYYY","block.Root()",block.Root(),"superBlockGen.Roots",superBlockGen.Roots)
 		return nil, errors.Errorf("root not match, calc root(%s) != genesis root(%s)", blockHash, superHash)
 	}
 
 	for _, currencie := range block.Currencies() {
 		for _, coinRoot := range superBlockGen.Roots {
 			if currencie.CurrencyName == coinRoot.Cointyp {
-				if currencie.Header.TxHash != coinRoot.TxHash {
+				bltxHash := types.DeriveShaHash(currencie.Transactions.TxHashs)
+				if bltxHash != coinRoot.TxHash {
 					return nil, errors.Errorf("txHash not match, calc txHash(%s) != genesis txHash(%s)", currencie.Header.TxHash.TerminalString(), coinRoot.TxHash.TerminalString())
 				}
 			}
