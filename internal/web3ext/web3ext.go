@@ -476,6 +476,11 @@ web3._extend({
 			params: 2,
 		}),
 		new web3._extend.Method({
+			name: 'getAuthGasAddress',
+			call: 'man_getAuthGasAddress',
+			params: 2,
+		}),
+		new web3._extend.Method({
 			name: 'getEntrustFromByTime',
 			call: 'man_getEntrustFromByTime',
 			params: 2,

@@ -688,8 +688,11 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 }
 
 func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
-
-	return api.b.GetFutureRewards(ctx, number)
+	state, _, err := api.b.StateAndHeaderByNumber(ctx, number)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return api.b.GetFutureRewards(state, number)
 }
 
 func getCoinFromManAddress(manAddress string) (string,error) {
@@ -834,6 +837,27 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 		}
 	}
 	return strAddrList
+}
+
+//钱包调用，根据块高查询委托gas授权地址
+func (s *PublicBlockChainAPI) GetAuthGasAddress(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (string, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return "", err
+	}
+	coin ,err := getCoinFromManAddress(strAddress)
+	if err != nil{
+		return "", err
+	}
+	addr,err := base58.Base58DecodeToAddress(strAddress)
+	if err != nil{
+		return "", err
+	}
+	authAddr := state.GetGasAuthFromByHeightAddTime(coin,addr)
+	if !authAddr.Equal(common.Address{}){
+		return base58.Base58EncodeToString("MAN",authAddr),nil
+	}
+	return "",errors.New("without entrust gas")
 }
 
 func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
