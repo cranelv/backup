@@ -2245,6 +2245,7 @@ func CheckFormat(strData string) bool {
 	return true
 }
 func CheckParams(strData string) error {
+	strData = strings.TrimSpace(strData)
 	if !CheckFormat(strData) {
 		return errors.New("format error")
 	}
@@ -2271,12 +2272,14 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 	}
 	if args1.Currency != nil {
 		args.Currency = *args1.Currency
+		args.Currency = strings.TrimSpace(args.Currency)
 	}
 	if !common.IsValidityManCurrency(args.Currency) {
 		return SendTxArgs{}, errors.New("invalid currency")
 	}
 	if args1.To != nil {
 		to := *args1.To
+		to = strings.TrimSpace(to)
 		tCurrency := strings.Split(to, ".")[0]
 		if args.Currency != tCurrency {
 			return SendTxArgs{}, errors.New("different currency")
@@ -2316,6 +2319,7 @@ func StrArgsToByteArgs(args1 SendTxArgs1) (args SendTxArgs, err error) {
 			if ar.To2 != nil {
 				//extra = append(extra, ar)
 				tmp := *ar.To2
+				tmp = strings.TrimSpace(tmp)
 				tCurrency := strings.Split(tmp, ".")[0]
 				if args.Currency != tCurrency {
 					return SendTxArgs{}, errors.New("different currency")
