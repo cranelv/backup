@@ -1042,7 +1042,7 @@ func (b *CurrencyConfig) Check(k, v interface{}) (interface{}, bool) {
 	v1 := reflect.ValueOf(v)
 	if v1.Kind() == reflect.Slice && v1.Len() == 0 {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
-		return make([]string, 0), true
+		return make([]common.CoinConfig, 0), true
 	}
 	v2, ok := v.([]interface{})
 	if !ok {
@@ -1052,7 +1052,7 @@ func (b *CurrencyConfig) Check(k, v interface{}) (interface{}, bool) {
 
 	if reflect.ValueOf(v2[0]).Kind() == reflect.String && v2[0] == "" {
 		log.INFO("超级交易币种打包限制配置", "设置的币种限制个数为0", "")
-		return make([]string, 0), true
+		return make([]common.CoinConfig, 0), true
 	}
 
 	codedata, err := json.Marshal(v)
