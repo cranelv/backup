@@ -149,6 +149,7 @@ func Base58EncodeToString(currency string, b common.Address) string {
 }
 
 func Base58DecodeToAddress(strData string) (common.Address,error) {
+	strData = strings.TrimSpace(strData)
 	if strData == "" {
 		return common.Address{},errors.New("input address invalid")
 	}
