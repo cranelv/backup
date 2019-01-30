@@ -32,6 +32,7 @@ import (
 	"github.com/matrix/go-matrix/rlp"
 	"github.com/matrix/go-matrix/rpc"
 	"github.com/matrix/go-matrix/trie"
+	"github.com/matrix/go-matrix/base58"
 )
 
 // PublicMatrixAPI provides an API to access Matrix full node-related
@@ -439,7 +440,18 @@ func NewPublicDebugAPI(man *Matrix) *PublicDebugAPI {
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,cointyp string, address common.Address) ([]state.CoinDump, error) {
+func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,cointyp string, addr string) ([]state.CoinDump, error) {
+	if cointyp != ""{
+		cointyp = strings.ToUpper(cointyp)
+	}
+	var address common.Address
+	if addr != ""{
+		tmpaddress,err := base58.Base58DecodeToAddress(addr)
+		if err != nil{
+			return nil,err
+		}
+		address = tmpaddress
+	}
 	if blockNr == rpc.PendingBlockNumber {
 		// If we're dumping the pending state, we need to request
 		// both the pending block as well as the pending state from
