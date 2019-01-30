@@ -1189,7 +1189,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNonceTooLow
 	}
 	balance := big.NewInt(0)
-	entrustbalance := big.NewInt(0)
+	manCoinBalance := big.NewInt(0)
 	//当前账户余额
 	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency, from) {
 		if tAccount.AccountType == common.MainAccount {
@@ -1197,46 +1197,27 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 			break
 		}
 	}
-	//委托账户的余额
-	if tx.IsEntrustGas {
-		for _, tAccount := range nPool.currentState.GetBalance(tx.Currency, tx.AmontFrom()) {
+
+	if tx.Currency != params.MAN_COIN {
+		for _, tAccount := range nPool.currentState.GetBalance(params.MAN_COIN, tx.AmontFrom()) {
 			if tAccount.AccountType == common.MainAccount {
-				entrustbalance = tAccount.Balance
+				manCoinBalance = tAccount.Balance
 				break
 			}
 		}
-	}
-	if len(txEx) > 0 && len(txEx[0].ExtraTo) > 0 {
-		//如果是委托gas，检查授权人的账户余额是否大于gas;委托人的余额是否大于转账金额
-		if tx.IsEntrustGas {
-			totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-			if entrustbalance.Cmp(totalGas) < 0 {
-				return ErrEntrustInsufficientFunds
-			}
-			if balance.Cmp(tx.TotalAmount()) < 0 {
-				return ErrInsufficientFunds
-			}
-		} else {
-			if balance.Cmp(tx.CostALL()) < 0 {
-				return ErrInsufficientFunds
-			}
+		totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
+		if manCoinBalance.Cmp(totalGas) < 0{
+			return ErrInsufficientFunds
 		}
-	} else {
-		if tx.IsEntrustGas {
-			totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-			if entrustbalance.Cmp(totalGas) < 0 {
-				return ErrEntrustInsufficientFunds
-			}
-			if balance.Cmp(tx.Value()) < 0 {
-				return ErrInsufficientFunds
-			}
-		} else {
-			if balance.Cmp(tx.Cost()) < 0 {
-				return ErrInsufficientFunds
+		if balance.Cmp(tx.TotalAmount()) < 0 {
+			return ErrInsufficientFunds
+		}
+	}else{
+		if balance.Cmp(tx.CostALL()) < 0 {
+			return ErrInsufficientFunds
+		}
+	}
 
-			}
-		}
-	}
 	intrGas, err := IntrinsicGas(tx.Data())
 	if err != nil {
 		return err
