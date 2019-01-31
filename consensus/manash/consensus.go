@@ -567,6 +567,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 }
 
 func (manash *Manash) verifyCoinbaseRole(chain consensus.ChainReader, header *types.Header) error {
+	log.DEBUG("seal coinbase", "开始验证coinbase", header.Coinbase.Hex(), "高度", header.Number, "hash", header.Hash().Hex())
 	preTopology, _, err := chain.GetGraphByHash(header.ParentHash)
 	if err != nil {
 		log.Error("seal coinbase", "get pre topology graph err", err)
