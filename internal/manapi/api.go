@@ -663,13 +663,20 @@ func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.Blo
 		return nil, err
 	}
 	bs := state.GetMatrixData(types.RlpHash(params.COIN_NAME))
-	var coinlist []string
+	var tmpcoinlist []string
 	if len(bs) > 0 {
-		err := json.Unmarshal(bs, &coinlist)
+		err := json.Unmarshal(bs, &tmpcoinlist)
 		if err != nil {
 			log.Trace("get matrix coin", "unmarshal err", err)
 			return nil, err
 		}
+	}
+	var coinlist []string
+	for _,coin := range tmpcoinlist{
+		if !common.IsValidityCurrency(coin){
+			continue
+		}
+		coinlist = append(coinlist,coin)
 	}
 	return coinlist, nil
 }
