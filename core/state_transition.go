@@ -394,10 +394,10 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	st.gas = 0
 	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
 	st.state.MakeStatedb(makecoin.CoinName,false)
+	if !common.IsValidityCurrency(makecoin.CoinName){
+		return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
+	}
 	for str,amount:=range makecoin.AddrAmount{
-		if !common.IsValidityCurrency(makecoin.CoinName){
-			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
-		}
 		if str == ""{
 			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin addr is nil")
 		}
