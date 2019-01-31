@@ -13,6 +13,7 @@ import (
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/event"
+	"github.com/matrix/go-matrix/params"
 )
 
 // Account represents an Matrix account located at a specific location defined
@@ -24,7 +25,7 @@ type Account struct {
 }
 
 func (Ac *Account) ManAddress() string {
-	return base58.Base58EncodeToString("MAN", Ac.Address)
+	return base58.Base58EncodeToString(params.MAN_COIN, Ac.Address)
 }
 
 // Wallet represents a software or hardware wallet that might contain one or more

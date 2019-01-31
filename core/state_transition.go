@@ -12,13 +12,14 @@ import (
 
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
-	matrixstate "github.com/matrix/go-matrix/core/matrixstate"
+	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/supertxsstate"
 	"github.com/matrix/go-matrix/core/txinterface"
 	"github.com/matrix/go-matrix/core/types"
 	"github.com/matrix/go-matrix/core/vm"
 	"github.com/matrix/go-matrix/log"
 	"github.com/matrix/go-matrix/params"
+	"strings"
 )
 
 var (
@@ -404,6 +405,11 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 		if err != nil{
 			log.Trace("Make Coin","invalid send address","Base58toAddr err","base58 addr",str)
 			return nil, 0, false, shardings, errors.New("Base58toAddr err")
+		}
+		strcoin := strings.Split(str,".")
+		if makecoin.CoinName != strcoin[0]{
+			log.Error("Make Coin","invalid send address","Currency mismatch with account")
+			return nil, 0, false, shardings, errors.New("Currency mismatch with account")
 		}
 		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,(*big.Int)(amount))
 	}

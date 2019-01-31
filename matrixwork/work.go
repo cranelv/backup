@@ -301,7 +301,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse("MAN").Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -393,7 +393,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 		}
 	}
 
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, mapcoingasUse.getCoinGasUse("MAN").Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
@@ -437,7 +437,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		}
 	}
 
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse("MAN").Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))

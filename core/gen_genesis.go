@@ -37,7 +37,7 @@ func (a *GenesisAddress) UnmarshalJSON(input []byte) error {
 //}
 // MarshalText returns the hex representation of a.
 func (a GenesisAddress) MarshalText() ([]byte, error) {
-	buff := base58.Base58EncodeToString("MAN", common.Address(a))
+	buff := base58.Base58EncodeToString(params.MAN_COIN, common.Address(a))
 	return []byte(buff), nil
 }
 

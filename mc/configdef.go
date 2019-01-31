@@ -12,6 +12,7 @@ import (
 	"reflect"
 
 	"github.com/matrix/go-matrix/common"
+	"github.com/matrix/go-matrix/params"
 )
 
 const (
@@ -740,7 +741,7 @@ func (b *BroadcastAccounts) Output(k, v interface{}) (interface{}, interface{}) 
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
-		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString(params.MAN_COIN, v))
 	}
 	return k, base58Accounts
 }
@@ -788,7 +789,7 @@ func (b *InnerMinersAccounts) Output(k, v interface{}) (interface{}, interface{}
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
-		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString(params.MAN_COIN, v))
 	}
 	return k, base58Accounts
 }
@@ -836,7 +837,7 @@ func (b *ElectBlackList) Output(k, v interface{}) (interface{}, interface{}) {
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
-		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString(params.MAN_COIN, v))
 	}
 	return k, base58Accounts
 }
@@ -885,7 +886,7 @@ func (b *ElectWhiteList) Output(k, v interface{}) (interface{}, interface{}) {
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
-		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString(params.MAN_COIN, v))
 	}
 	return k, base58Accounts
 }
@@ -1124,7 +1125,7 @@ func (b *AccountBlackList) Output(k, v interface{}) (interface{}, interface{}) {
 	}
 	base58Accounts := make([]string, 0)
 	for _, v := range value {
-		base58Accounts = append(base58Accounts, base58.Base58EncodeToString("MAN", v))
+		base58Accounts = append(base58Accounts, base58.Base58EncodeToString(params.MAN_COIN, v))
 	}
 	return k, base58Accounts
 }

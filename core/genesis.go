@@ -368,7 +368,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, 
 		log.ERROR("genesis super block", "marshal alloc info err", err)
 		return nil
 	}
-	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
+	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, nil, nil, nil, common.ExtraSuperBlockTx, 0, params.MAN_COIN, 0)
 	if tx0 == nil {
 		log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
 		return nil
@@ -383,7 +383,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, 
 			return nil
 		}
 	}
-	txMState := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, msData, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
+	txMState := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, msData, nil, nil, nil, common.ExtraSuperBlockTx, 0, params.MAN_COIN, 0)
 	if txMState == nil {
 		log.ERROR("genesis super block", "create super block matrix state tx err", "NewTransaction return nil")
 		return nil

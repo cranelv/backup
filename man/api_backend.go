@@ -460,7 +460,7 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.
 	}
 	minerRewardList := make([]RewardMount, 0)
 	for k, v := range RewardMap {
-		obj := RewardMount{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
+		obj := RewardMount{Account: base58.Base58EncodeToString(params.MAN_COIN, k), Reward: v}
 		for _, d := range originElectNodes.ElectList {
 			if d.Account.Equal(k) {
 				obj.VipLevel = d.VIPLevel
@@ -476,7 +476,7 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.
 	}
 	ValidatorRewardList := make([]RewardMount, 0)
 	for k, v := range validatorMap {
-		obj := RewardMount{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
+		obj := RewardMount{Account: base58.Base58EncodeToString(params.MAN_COIN, k), Reward: v}
 		for _, d := range originElectNodes.ElectList {
 			if d.Account.Equal(k) {
 				obj.VipLevel = d.VIPLevel
@@ -495,7 +495,7 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.
 	interestRewardList := make([]InterestReward, 0)
 	for k, v := range interestCalcMap {
 		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
-		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: allInterest}
+		obj := InterestReward{Account: base58.Base58EncodeToString(params.MAN_COIN, k), Reward: allInterest}
 
 		for _, d := range depositNodes {
 			if d.Address.Equal(k) {
