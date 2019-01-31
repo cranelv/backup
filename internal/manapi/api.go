@@ -1091,6 +1091,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, manAddress strin
 type CallArgs struct {
 	From     common.Address  `json:"from"`
 	To       *common.Address `json:"to"`
+	Currency *string           `json:"currency"    gencodec:"required"`
 	Gas      hexutil.Uint64  `json:"gas"`
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Value    hexutil.Big     `json:"value"`
@@ -1099,6 +1100,7 @@ type CallArgs struct {
 type ManCallArgs struct {
 	From     string         `json:"from"`
 	To       *string        `json:"to"`
+	Currency *string        `json:"currency"    gencodec:"required"`
 	Gas      hexutil.Uint64 `json:"gas"`
 	GasPrice hexutil.Big    `json:"gasPrice"`
 	Value    hexutil.Big    `json:"value"`
@@ -1168,21 +1170,38 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	return res, gas, failed, err
 }
 
-func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs) {
+func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs,err error) {
 	args.From, _ = base58.Base58DecodeToAddress(manargs.From)
 	args.To = new(common.Address)
-	*args.To, _ = base58.Base58DecodeToAddress(*manargs.To)
+	if manargs.To != nil{
+		args.To = new(common.Address)
+		*args.To, err = base58.Base58DecodeToAddress(*manargs.To)
+		if err != nil{
+			return CallArgs{},err
+		}
+	}
+	if manargs.Currency == nil{
+		return CallArgs{},errors.New("missing required field 'currency'")
+	}
+	if !common.IsValidityManCurrency(*manargs.Currency){
+		return CallArgs{},errors.New("invalidity currency")
+	}
+	args.Currency = new(string)
+	*args.Currency = *manargs.Currency
 	args.GasPrice = manargs.GasPrice
 	args.Gas = manargs.Gas
 	args.Value = manargs.Value
 	args.Data = manargs.Data
-	return
+	return args,nil
 }
 
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, manargs ManCallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
-	args := ManArgsToCallArgs(manargs)
+	args ,err := ManArgsToCallArgs(manargs)
+	if err != nil{
+		return nil,err
+	}
 	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
 	return (hexutil.Bytes)(result), err
 }
@@ -1190,7 +1209,10 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, manargs ManCallArgs, blo
 // EstimateGas returns an estimate of the amount of gas needed to execute the
 // given transaction against the current pending block.
 func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, manargs ManCallArgs) (hexutil.Uint64, error) {
-	args := ManArgsToCallArgs(manargs)
+	args ,err := ManArgsToCallArgs(manargs)
+	if err != nil{
+		return 0, err
+	}
 	// Binary search the gas requirement, as it may be higher than the amount used
 	var (
 		lo  uint64 = params.TxGas - 1
