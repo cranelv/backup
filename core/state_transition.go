@@ -397,6 +397,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	if !common.IsValidityCurrency(makecoin.CoinName){
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
 	}
+	if len(makecoin.AddrAmount)<=0{
+		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
+	}
 	for str,amount:=range makecoin.AddrAmount{
 		if str == ""{
 			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin addr is nil")
