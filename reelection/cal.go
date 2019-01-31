@@ -65,12 +65,12 @@ func (self *ReElection) GetElectConfig(height uint64) (*mc.ElectConfigInfo_All, 
 		return nil, err
 	}
 	elect := &mc.ElectConfigInfo_All{
-		MinerNum:      electMinerNum.MinerNum,
-		ValidatorNum:  electInfo.ValidatorNum,
-		BackValidator: electInfo.BackValidator,
-		ElectPlug:     electInfo.ElectPlug,
-		WhiteList:     whiteList,
-		BlackList:     blackList,
+		MinerNum:          electMinerNum.MinerNum,
+		ValidatorNum:      electInfo.ValidatorNum,
+		BackValidator:     electInfo.BackValidator,
+		ElectPlug:         electInfo.ElectPlug,
+		WhiteList:         whiteList,
+		BlackList:         blackList,
 		WhiteListSwitcher: whiteListSwitcher,
 	}
 
