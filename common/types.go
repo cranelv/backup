@@ -651,7 +651,7 @@ func IsValidityCurrency(s string) bool {
 			return false
 		}
 	}
-	if strings.Contains(s, "MAN") {
+	if strings.Contains(s, params.MAN_COIN) {
 		return false
 	}
 	return true

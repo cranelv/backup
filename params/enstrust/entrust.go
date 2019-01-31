@@ -66,8 +66,8 @@ func VerifyA2AccountAndPassword(data map[common.Address]string) (map[common.Addr
 	for address, password := range data {
 		err := accountChecker.CheckAccountAndPassword(accounts.Account{Address: address}, password)
 		if err != nil {
-			noEntrustAccounts += fmt.Sprintf("%s\n", base58.Base58EncodeToString("MAN", address))
-			log.ERROR("验证A2账户", "错误配置账户", base58.Base58EncodeToString("MAN", address))
+			noEntrustAccounts += fmt.Sprintf("%s\n", base58.Base58EncodeToString(params.MAN_COIN, address))
+			log.ERROR("验证A2账户", "错误配置账户", base58.Base58EncodeToString(params.MAN_COIN, address))
 			flag = false
 			continue
 		}

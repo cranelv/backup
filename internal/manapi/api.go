@@ -219,7 +219,7 @@ func (s *PublicAccountAPI) Accounts() [][]string {
 		for _, account := range wallet.Accounts() {
 			var mulAccounts [][]string
 			accountlist := make([]string, 0)
-			strAddr := base58.Base58EncodeToString("MAN", account.Address)
+			strAddr := base58.Base58EncodeToString(params.MAN_COIN, account.Address)
 			if tmpstr == strAddr {
 				continue
 			}
@@ -734,7 +734,7 @@ func (s *PublicBlockChainAPI) GetDeposit(ctx context.Context, blockNr rpc.BlockN
 	}
 	depositNodesOutput := make([]DepositDetail, 0)
 	for _, v := range depositNodes {
-		tmp := DepositDetail{Address: base58.Base58EncodeToString("MAN", v.Address), SignAddress: base58.Base58EncodeToString("MAN", v.SignAddress), Deposit: v.Deposit, WithdrawH: v.WithdrawH, OnlineTime: v.OnlineTime, Role: v.Role}
+		tmp := DepositDetail{Address: base58.Base58EncodeToString(params.MAN_COIN, v.Address), SignAddress: base58.Base58EncodeToString(params.MAN_COIN, v.SignAddress), Deposit: v.Deposit, WithdrawH: v.WithdrawH, OnlineTime: v.OnlineTime, Role: v.Role}
 		depositNodesOutput = append(depositNodesOutput, tmp)
 	}
 	return depositNodesOutput, state.Error()
@@ -822,7 +822,7 @@ func (s *PublicBlockChainAPI) GetAuthFrom(strEntrustFrom string, height uint64) 
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
-	return base58.Base58EncodeToString("MAN", addr)
+	return base58.Base58EncodeToString(coin, addr)
 }
 func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) []string {
 	state, err := s.b.GetState()
@@ -841,7 +841,7 @@ func (s *PublicBlockChainAPI) GetEntrustFrom(strAuthFrom string, height uint64) 
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
-			strAddr := base58.Base58EncodeToString("MAN", addr)
+			strAddr := base58.Base58EncodeToString(coin, addr)
 			strAddrList = append(strAddrList, strAddr)
 		}
 	}
@@ -864,7 +864,7 @@ func (s *PublicBlockChainAPI) GetAuthFromByTime(strEntrustFrom string, time uint
 	if addr.Equal(common.Address{}) {
 		return ""
 	}
-	return base58.Base58EncodeToString("MAN", addr)
+	return base58.Base58EncodeToString(coin, addr)
 }
 func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint64) []string {
 	state, err := s.b.GetState()
@@ -883,7 +883,7 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 	var strAddrList []string
 	for _, addr := range addrList {
 		if !addr.Equal(common.Address{}) {
-			strAddr := base58.Base58EncodeToString("MAN", addr)
+			strAddr := base58.Base58EncodeToString(coin, addr)
 			strAddrList = append(strAddrList, strAddr)
 		}
 	}
@@ -906,7 +906,7 @@ func (s *PublicBlockChainAPI) GetAuthGasAddress(ctx context.Context, strAddress 
 	}
 	authAddr := state.GetGasAuthFromByHeightAddTime(coin, addr)
 	if !authAddr.Equal(common.Address{}) {
-		return base58.Base58EncodeToString("MAN", authAddr), nil
+		return base58.Base58EncodeToString(coin, authAddr), nil
 	}
 	return "", errors.New("without entrust gas")
 }
@@ -1266,7 +1266,7 @@ func (s *PublicBlockChainAPI) GetSignAccountsByNumber(ctx context.Context, block
 		}
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", depositAccount),
+			Account:  base58.Base58EncodeToString(params.MAN_COIN, depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -1296,7 +1296,7 @@ func (s *PublicBlockChainAPI) GetSignAccountsByHash(ctx context.Context, hash co
 
 		accounts = append(accounts, common.VerifiedSign1{
 			Sign:     tmpverSign.Sign,
-			Account:  base58.Base58EncodeToString("MAN", depositAccount),
+			Account:  base58.Base58EncodeToString(params.MAN_COIN, depositAccount),
 			Validate: tmpverSign.Validate,
 			Stock:    tmpverSign.Stock,
 		})
@@ -1375,19 +1375,19 @@ func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blo
 		switch node.Type {
 		case common.RoleValidator:
 			result.Validators = append(result.Validators, NodeInfo{
-				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Account:  base58.Base58EncodeToString(params.MAN_COIN, node.Account),
 				Online:   true,
 				Position: node.Position,
 			})
 		case common.RoleBackupValidator:
 			result.BackupValidators = append(result.BackupValidators, NodeInfo{
-				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Account:  base58.Base58EncodeToString(params.MAN_COIN, node.Account),
 				Online:   true,
 				Position: node.Position,
 			})
 		case common.RoleMiner:
 			result.Miners = append(result.Miners, NodeInfo{
-				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Account:  base58.Base58EncodeToString(params.MAN_COIN, node.Account),
 				Online:   true,
 				Position: node.Position,
 			})
@@ -1404,13 +1404,13 @@ func (s *PublicBlockChainAPI) GetTopologyStatusByNumber(ctx context.Context, blo
 		switch node.Type {
 		case common.RoleValidator:
 			result.ElectValidators = append(result.ElectValidators, NodeInfo{
-				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Account:  base58.Base58EncodeToString(params.MAN_COIN, node.Account),
 				Online:   online,
 				Position: node.Position,
 			})
 		case common.RoleBackupValidator:
 			result.ElectBackupValidators = append(result.ElectBackupValidators, NodeInfo{
-				Account:  base58.Base58EncodeToString("MAN", node.Account),
+				Account:  base58.Base58EncodeToString(params.MAN_COIN, node.Account),
 				Online:   online,
 				Position: node.Position,
 			})
@@ -1553,14 +1553,14 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 /************************************************************/
 func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
-	Coinbase1 := base58.Base58EncodeToString("MAN", head.Coinbase)
-	Leader1 := base58.Base58EncodeToString("MAN", head.Leader)
+	Coinbase1 := base58.Base58EncodeToString(params.MAN_COIN, head.Coinbase)
+	Leader1 := base58.Base58EncodeToString(params.MAN_COIN, head.Leader)
 	//head.NetTopology
 	NetTopology1 := new(common.NetTopology1)
 	listNetTopolog := make([]common.NetTopologyData1, 0)
 	for _, addr := range head.NetTopology.NetTopologyData {
 		tmpstruct := new(common.NetTopologyData1)
-		tmpstruct.Account = base58.Base58EncodeToString("MAN", addr.Account)
+		tmpstruct.Account = base58.Base58EncodeToString(params.MAN_COIN, addr.Account)
 		tmpstruct.Position = addr.Position
 		listNetTopolog = append(listNetTopolog, *tmpstruct)
 	}
@@ -1572,7 +1572,7 @@ func (s *PublicBlockChainAPI) rpcOutputBlock1(b *types.Block, inclTx bool, fullT
 	for _, elect := range head.Elect {
 		tmpElect1 := new(common.Elect1)
 		tmpElect1.Type = elect.Type
-		tmpElect1.Account = base58.Base58EncodeToString("MAN", elect.Account)
+		tmpElect1.Account = base58.Base58EncodeToString(params.MAN_COIN, elect.Account)
 		tmpElect1.Stock = elect.Stock
 		tmpElect1.VIP = elect.VIP
 		listElect1 = append(listElect1, *tmpElect1)
@@ -1690,7 +1690,7 @@ func RPCTransactionToString(data *RPCTransaction) *RPCTransaction1 {
 	}
 	//内部发送的交易没有币种，默认为MAN
 	if data.Currency == "" {
-		data.Currency = "MAN"
+		data.Currency = params.MAN_COIN
 	}
 	result.From = base58.Base58EncodeToString(data.Currency, data.From)
 	if data.To != nil {
@@ -2020,9 +2020,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
 	}
-	fields["from"] = base58.Base58EncodeToString("MAN", from)
+	fields["from"] = base58.Base58EncodeToString(tx.GetTxCurrency(), from)
 	if tx.To() != nil {
-		fields["to"] = base58.Base58EncodeToString("MAN", *tx.To())
+		fields["to"] = base58.Base58EncodeToString(tx.GetTxCurrency(), *tx.To())
 	}
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
@@ -2035,7 +2035,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
 	if receipt.ContractAddress != (common.Address{}) {
-		fields["contractAddress"] = base58.Base58EncodeToString("MAN", receipt.ContractAddress)
+		fields["contractAddress"] = base58.Base58EncodeToString(tx.GetTxCurrency(), receipt.ContractAddress)
 	}
 	return fields, nil
 }

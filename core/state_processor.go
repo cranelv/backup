@@ -122,7 +122,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
 		}
 		lottery.LotterySaveAccount(account, header.VrfValue)
 	}
