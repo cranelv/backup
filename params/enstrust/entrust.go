@@ -9,6 +9,7 @@ import (
 	"github.com/matrix/go-matrix/base58"
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
+	"github.com/matrix/go-matrix/params"
 )
 
 type EntrustValue struct {

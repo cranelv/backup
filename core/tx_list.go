@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/matrix/go-matrix/core/types"
+	"github.com/matrix/go-matrix/params"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for
