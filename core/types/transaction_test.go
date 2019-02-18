@@ -6,7 +6,7 @@ package types
 
 /*
 // The values in those tests are from the Transaction Tests
-// at github.com/matrix/tests.
+// at github.com/MatrixAINetwork/tests.
 var (
 	emptyTx = NewTransaction(
 		0,

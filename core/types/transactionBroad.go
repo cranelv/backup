@@ -2,9 +2,9 @@ package types
 
 import (
 	"errors"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"io"
 	"math/big"
 	"sync/atomic"

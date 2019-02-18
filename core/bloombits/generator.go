@@ -7,8 +7,8 @@ package bloombits
 import (
 	"errors"
 
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/core/types"
+	"github.com/MatrixAINetwork/go-matrix/common"
 )
 
 // errSectionOutOfBounds is returned if the user tried to add more bloom filters
