@@ -36,6 +36,10 @@ type ChainReader interface {
 
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
+
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
+
+	GetInnerMinerAccounts(blockHash common.Hash) ([]common.Address, error)
 }
 
 // Engine is an algorithm agnostic consensus engine.

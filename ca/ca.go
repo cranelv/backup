@@ -497,6 +497,11 @@ func GetDepositAddress() common.Address {
 			return ide.addr
 		}
 	}
+	for _, innerMiner := range ide.innerMiners {
+		if ide.addr == innerMiner {
+			return ide.addr
+		}
+	}
 
 	depositAccount, err := ConvertSignToDepositAddress(ide.addr)
 	if err != nil {

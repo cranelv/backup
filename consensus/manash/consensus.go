@@ -45,6 +45,7 @@ var (
 	errInvalidDifficulty = errors.New("non-positive difficulty")
 	errInvalidMixDigest  = errors.New("invalid mix digest")
 	errInvalidPoW        = errors.New("invalid proof-of-work")
+	errCoinbase          = errors.New("invalid coinbase")
 )
 
 // Author implements consensus.Engine, returning the header's coinbase as the
@@ -468,6 +469,9 @@ func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
 func (manash *Manash) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	if err := manash.verifyCoinbaseRole(chain, header); err != nil {
+		return err
+	}
 	// If we're running a fake PoW, accept any seal as valid
 	if manash.config.PowMode == ModeFake || manash.config.PowMode == ModeFullFake {
 		time.Sleep(manash.fakeDelay)
@@ -560,4 +564,28 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		reward.Add(reward, r)
 	}
 	state.AddBalance(common.MainAccount, header.Coinbase, reward)
+}
+
+func (manash *Manash) verifyCoinbaseRole(chain consensus.ChainReader, header *types.Header) error {
+	log.DEBUG("seal coinbase", "开始验证coinbase", header.Coinbase.Hex(), "高度", header.Number, "hash", header.Hash().Hex())
+	preTopology, _, err := chain.GetGraphByHash(header.ParentHash)
+	if err != nil {
+		log.Error("seal coinbase", "get pre topology graph err", err)
+		return errCoinbase
+	}
+	if preTopology.CheckAccountRole(header.Coinbase, common.RoleMiner) {
+		return nil
+	}
+
+	innerMiners, err := chain.GetInnerMinerAccounts(header.ParentHash)
+	if err != nil {
+		log.Error("seal coinbase", "get inner miner accounts err", err)
+		return errCoinbase
+	}
+	for _, account := range innerMiners {
+		if account == header.Coinbase {
+			return nil
+		}
+	}
+	return errCoinbase
 }

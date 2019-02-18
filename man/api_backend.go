@@ -417,12 +417,8 @@ type AllReward struct {
 	Interest  []InterestReward
 }
 
-func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
+func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockNumber) (interface{}, error) {
 
-	state, _, err := b.StateAndHeaderByNumber(ctx, number)
-	if state == nil || err != nil {
-		return nil, err
-	}
 	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number))
 	if nil != err {
 		return nil, err
@@ -452,7 +448,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		return nil, err
 	}
 
-	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner)
+	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner, originElectNodes)
 	if nil != err {
 		return nil, err
 	}
@@ -468,7 +464,7 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 		minerRewardList = append(minerRewardList, obj)
 	}
 	allReward.Miner = minerRewardList
-	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleValidator)
+	validatorMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleValidator, originElectNodes)
 	if nil != err {
 		return nil, err
 	}
@@ -512,32 +508,54 @@ func (b *ManAPIBackend) GetFutureRewards(ctx context.Context, number rpc.BlockNu
 	return allReward, nil
 }
 
-func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType) (map[common.Address]*big.Int, error) {
+func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
-	currentTop, originElectNodes, err := selected.GetTopAndDeposit(b.man.BlockChain(), state, latestElectNum, roleType)
-	if nil != err {
-		return nil, err
-	}
-	br := blkreward.New(b.man.BlockChain(), state)
-	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
-	halfNum := br.GetRewardCfg().RewardMount.MinerHalf
-	RewardMap := make(map[common.Address]*big.Int)
 
+	br := blkreward.New(b.man.BlockChain(), state)
+	RewardMap := make(map[common.Address]*big.Int)
 	var rewardAddr common.Address
+	var rewardIn *big.Int
+	var halfNum uint64
 	if roleType == common.RoleMiner {
+		halfNum = br.GetRewardCfg().RewardMount.MinerHalf
+		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
 		rewardAddr = common.BlkMinerRewardAddress
 	} else {
+		halfNum = br.GetRewardCfg().RewardMount.ValidatorHalf
+		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
+
+	topNodes := make([]common.Address, 0)
+	for _, node := range originElectNodes.ElectList {
+		if node.Type == node.Type&roleType {
+			topNodes = append(topNodes, node.Account)
+		}
+	}
+
+	electNodes := make(map[common.Address]uint16, 0)
+	for _, node := range originElectNodes.ElectList {
+		if node.Type == node.Type&roleType {
+			electNodes[node.Account] = node.Stock
+		}
+	}
+
 	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
 
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		validatorReward := br.CalcRewardMountByNumber(RewardMan, uint64(num), halfNum, rewardAddr)
-		minerOutAmount, electedMount, _ := br.CalcMinerRateMount(validatorReward)
+		rewardOut := br.CalcRewardMountByNumber(rewardIn, uint64(num), halfNum, rewardAddr)
 
-		selectedNodesDeposit := selected.CaclSelectedDeposit(currentTop, originElectNodes, 0)
+		var roleOutAmount, electedMount *big.Int
+		if roleType == common.RoleMiner {
+			roleOutAmount, electedMount, _ = br.CalcMinerRateMount(rewardOut)
+
+		} else {
+			roleOutAmount, electedMount, _ = br.CalcValidatorRateMount(rewardOut)
+		}
+		log.Trace("获取预期收益", "出块奖励", roleOutAmount, "参与奖励", electedMount)
+		selectedNodesDeposit := selected.CaclSelectedDeposit(topNodes, electNodes, 0)
 		if 0 == len(selectedNodesDeposit) {
 			return nil, errors.New("获取参与的抵押列表错误")
 		}
@@ -548,7 +566,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		}
 		for k := range electRewards {
 			tmp := new(big.Int).SetUint64(uint64(len(electRewards)))
-			util.SetAccountRewards(electRewards, k, new(big.Int).Div(minerOutAmount, tmp))
+			util.SetAccountRewards(electRewards, k, new(big.Int).Div(roleOutAmount, tmp))
 		}
 		util.MergeReward(RewardMap, electRewards)
 
