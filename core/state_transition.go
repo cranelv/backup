@@ -342,7 +342,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			continue
 		}
 		if rt.From != from {
-			log.Error("file state_transition", "func CallRevertNormalTx, err", "Revert tx from different Revocable tx from")
+			log.Error("state_transition", "CallRevertNormalTx, err", "Revert tx from different Revocable tx from")
 			continue
 		}
 		if rt.Typ != common.ExtraRevocable {
@@ -350,7 +350,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			continue
 		}
 		if rt.Cointyp != st.msg.GetTxCurrency(){
-			log.Info("file state_transition", "func CallRevertNormalTx:err:tx coin type", st.msg.GetTxCurrency(), "statedb val coin type", rt.Cointyp)
+			log.Info("state_transition", "CallRevertNormalTx:err:tx coin type", st.msg.GetTxCurrency(), "statedb val coin type", rt.Cointyp)
 			continue
 		}
 		for _, vv := range rt.Adam { //一对多交易
@@ -394,10 +394,13 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	st.gas = 0
 	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
 	st.state.MakeStatedb(makecoin.CoinName,false)
+	if !common.IsValidityCurrency(makecoin.CoinName){
+		return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
+	}
+	if len(makecoin.AddrAmount)<=0{
+		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
+	}
 	for str,amount:=range makecoin.AddrAmount{
-		if !common.IsValidityCurrency(makecoin.CoinName){
-			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
-		}
 		if str == ""{
 			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin addr is nil")
 		}

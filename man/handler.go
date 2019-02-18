@@ -784,10 +784,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == common.NetworkMsg:
 		var m []*core.MsgStruct
 		if err := msg.Decode(&m); err != nil {
-			log.Info("file handler", "mag NetworkMsg err", err)
+			log.Info("handler", "mag NetworkMsg err", err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		log.Info("file handler", "msg NetworkMsg ", "ProcessMsg")
+		log.Info("handler", "msg NetworkMsg ", "ProcessMsg")
 
 		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
 		go pm.txpool.ProcessMsg(core.NetworkMsgData{SendAddress: addr, Data: m})

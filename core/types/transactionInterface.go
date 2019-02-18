@@ -81,17 +81,17 @@ func SetMxToTransaction(txm *Transaction_Mx) (txer SelfTransaction) {
 		if tx != nil {
 			txer = tx
 		} else {
-			log.Info("file transactionInterface", "func SetMxToTransaction1", "tx is nil", "Transaction_Mx", txm)
+			log.Info("transactionInterface", "SetMxToTransaction1", "tx is nil", "Transaction_Mx", txm)
 		}
 	} else if txm.TxType_Mx == common.ExtraBroadTxType {
 		tx := SetTransactionMx(txm)
 		if tx != nil {
 			txer = tx
 		} else {
-			log.Info("file transactionInterface", "func SetMxToTransaction2", "tx is nil", "Transaction_Mx", txm)
+			log.Info("transactionInterface", "SetMxToTransaction2", "tx is nil", "Transaction_Mx", txm)
 		}
 	} else {
-		log.Info("file transactionInterface", "func SetMxToTransaction", "Transaction_Mx is nil", txm)
+		log.Info("transactionInterface", "SetMxToTransaction", "Transaction_Mx is nil", txm)
 	}
 	return
 }

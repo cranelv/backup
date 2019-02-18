@@ -214,7 +214,7 @@ func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) 
 				continue
 			}
 			bPool.special[hash] = tx
-			log.Info("file tx_pool_broad", "func AddTxPool", "broadCast transaction add txpool success")
+			log.Info("tx_pool_broad", "AddTxPool", "broadCast transaction add txpool success")
 		}
 	} else {
 		reerr = errors.New("BroadCastTxPool:AddTxPool  Transaction type is error")

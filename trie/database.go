@@ -166,7 +166,7 @@ func (db *Database) ReferenceRoot(childs []common.CoinRoot, parent common.Hash) 
 		var hashs []common.Hash
 		err := rlp.DecodeBytes(cr.Root[:], &hashs)
 		if err != nil {
-			log.Error("file database", "func CommitRoots:err", err)
+			log.Error("database", "CommitRoots:err", err)
 			continue
 		}
 		for _, hash := range hashs {
@@ -243,13 +243,13 @@ func (db *Database) CommitRoots(nodes []common.CoinRoot, report bool) error {
 		var hashs []common.Hash
 		root, err := db.diskdb.Get(cr.Root[:])
 		if err != nil {
-			log.Error("file database", "func CommitRoots:err", "db.diskdb.Get", err)
+			log.Error("database", "CommitRoots:err", "db.diskdb.Get", err)
 			continue
 		}
 		//err=json.Unmarshal(root,&hashs)
 		err = rlp.DecodeBytes(root, &hashs)
 		if err != nil {
-			log.Error("file database", "func CommitRoots:err", "DecodeBytes", err)
+			log.Error("database", "CommitRoots:err", "DecodeBytes", err)
 			continue
 		}
 		for _, hash := range hashs {
