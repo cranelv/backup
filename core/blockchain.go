@@ -664,12 +664,12 @@ func (bc *BlockChain) HasStateRoot(roots []common.CoinRoot) bool {
 		var hashs []common.Hash
 		rt, err := bc.db.Get(root.Root[:])
 		if err != nil {
-			log.Error("file blockchain", "func HasStateRoot:err", "db.Get", err)
+			log.Error("blockchain", "HasStateRoot:err", "db.Get", err)
 			return false
 		}
 		err = rlp.DecodeBytes(rt, &hashs)
 		if err != nil {
-			log.Error("file blockchain", "func HasStateRoot:err", "DecodeBytes", err)
+			log.Error("blockchain", "HasStateRoot:err", "DecodeBytes", err)
 			return false
 		}
 		for _, hash := range hashs {
@@ -1114,7 +1114,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
-		log.Info("file blockchain", "gcmode modify archive", "")
+		log.Info("blockchain", "gcmode modify archive", "")
 		if err := triedb.CommitRoots(root, false); err != nil {
 			return NonStatTy, err
 		}
@@ -1735,9 +1735,9 @@ func (bc *BlockChain) sendBroadTx() {
 			height := new(big.Int).Add(new(big.Int).SetUint64(subVal), big.NewInt(int64(bcInterval.BCInterval))) //下一广播区块的高度
 			data := new([]byte)
 			mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{mc.Heartbeat, height, *data})
-			log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
+			log.Trace("blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 		}
-		log.Trace("file blockchain", "blockChian:sendBroadTx()", ret, "val", val)
+		log.Trace("blockchain", "blockChian:sendBroadTx()", ret, "val", val)
 	}
 
 	if blockNum.Uint64()%bcInterval.BCInterval == 0 { //到整百的区块后需要重置数据以便下一区块验证是否发送心跳交易

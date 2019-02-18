@@ -393,7 +393,7 @@ func (nPool *NormalTxPool) packageSNList() {
 			}
 		}
 		nPool.mu.Unlock()
-		log.Trace("file tx_pool", "func packageSNList :send tmpsnlst", len(tmpsnlst))
+		log.Trace("tx_pool", "packageSNList :send tmpsnlst", len(tmpsnlst))
 		if len(tmpsnlst) > 0 {
 			bt, _ := json.Marshal(tmpsnlst)
 			nPool.SendMsg(MsgStruct{Msgtype: SendFloodSN, MsgData: bt})
@@ -727,12 +727,12 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 		}
 	}
 	nPool.mu.Unlock()
-	log.Trace("file txpool", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
+	log.Trace("txpool", "ReturnAllTxsByN:len(ns)", len(ns), "len(txs):", len(txs))
 	if len(ns) > 0 {
 		txs = make([]types.SelfTransaction, 0)
 		msData, err2 := json.Marshal(ns)
 		if err2 != nil {
-			log.Error("file txpool", "ReturnAllTxsByN:Marshal=err", err2)
+			log.Error("txpool", "ReturnAllTxsByN:Marshal=err", err2)
 			retch <- &RetChan_txpool{nil, err2, resqe}
 			return
 		}
@@ -756,7 +756,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 				}
 				ns = tmpns
 				if len(ns) == 0 {
-					log.Trace("file txpool", "ReturnAllTxsByN:recvTx Over=", 0)
+					log.Trace("txpool", "ReturnAllTxsByN:recvTx Over=", 0)
 					break forBreak
 				}
 			}
@@ -779,10 +779,10 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 			nPool.mu.Unlock()
 		}
 		retch <- &RetChan_txpool{txs, txerr, resqe}
-		log.Trace("file txpool end if", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
+		log.Trace("txpool", "ReturnAllTxsByN:len(ns)", len(ns), "err", txerr)
 	} else {
 		retch <- &RetChan_txpool{txs, nil, resqe}
-		log.Trace("file txpool end else", "ReturnAllTxsByN", "return success")
+		log.Trace("txpool", "ReturnAllTxsByN", "return success")
 	}
 }
 
@@ -988,7 +988,7 @@ func (nPool *NormalTxPool) RecvFloodTx(mapNtx map[uint32]*types.Floodtxdata, nid
 		}
 		_, err := nPool.add(tx, false)
 		if err != nil && err != ErrKnownTransaction {
-			log.Error("file txpool", "msg_RecvFloodTx::Error=", err)
+			log.Error("txpool", "msg_RecvFloodTx::Error=", err)
 			if _, ok := nPool.mapErrorTxs[s]; !ok {
 				errorTxs = append(errorTxs, s)
 				nPool.mapErrorTxs[s] = tx

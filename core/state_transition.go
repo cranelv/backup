@@ -342,7 +342,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			continue
 		}
 		if rt.From != from {
-			log.Error("file state_transition", "func CallRevertNormalTx, err", "Revert tx from different Revocable tx from")
+			log.Error("state_transition", "CallRevertNormalTx, err", "Revert tx from different Revocable tx from")
 			continue
 		}
 		if rt.Typ != common.ExtraRevocable {
@@ -350,7 +350,7 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			continue
 		}
 		if rt.Cointyp != st.msg.GetTxCurrency(){
-			log.Info("file state_transition", "func CallRevertNormalTx:err:tx coin type", st.msg.GetTxCurrency(), "statedb val coin type", rt.Cointyp)
+			log.Info("state_transition", "CallRevertNormalTx:err:tx coin type", st.msg.GetTxCurrency(), "statedb val coin type", rt.Cointyp)
 			continue
 		}
 		for _, vv := range rt.Adam { //一对多交易

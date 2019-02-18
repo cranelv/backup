@@ -164,7 +164,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 				break
 			}
 			if txer.GetTxNLen() == 0 {
-				log.Info("file work func commitTransactions err: tx.N is nil")
+				log.Info("work.go commitTransactions err: tx.N is nil")
 				continue
 			}
 			// We use the eip155 signer regardless of the current hf.
@@ -255,7 +255,7 @@ func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.A
 	snap := env.State.Snapshot(tx.GetTxCurrency())
 	receipt, _, _, err := core.ApplyTransaction(env.config, env.bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
-		log.Info("file work", "func s_commitTransaction", err)
+		log.Error("s_commitTransaction commit err. ","err", err)
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		return err, nil
 	}
@@ -307,7 +307,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 		if err != nil {
-			log.Error("file work", "func ProcessTransactions:::reward Tx call Error", err)
+			log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 			continue
 		}
 		tmptxs := make([]types.SelfTransaction, 0)
@@ -398,7 +398,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 		if err != nil {
-			log.Error("file work", "func ProcessTransactions:::reward Tx call Error", err)
+			log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 		}
 	}
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)		
