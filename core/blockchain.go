@@ -2401,98 +2401,19 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 	}
 
 	for _, otherTires := range snapshotDatas.OtherTries {
-
 		for _, value := range otherTires {
-			for _, dumpTrie := range value.TrieArry {
-				triedb := trie.NewDatabase(bc.GetDB())
-				mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
-				log.Info("BlockChain synSnapshot ", "otherTires root", mytrie)
-				for _, it := range dumpTrie.Matrix {
-					mytrie.Update(it.GetKey, it.Value)
-				}
-				for _, it := range dumpTrie.Account {
-					mytrie.Update(it.GetKey, it.Value)
-				}
-				root, err := mytrie.Commit(nil)
-				if err != nil {
-					log.Error("BlockChain synSnapshot", "commit err: ", err)
-					return false
-				}
-
-				if triedb.Commit(root, true) != nil {
-					log.Error("BlockChain synSnapshot", "commit err: ", err)
-					return false
-				}
+			if !bc.LoadDumps(value.TrieArry, 0) {
+				return false
 			}
 		}
-
 	}
 
 	for _, snapshotData := range snapshotDatas.Datas {
-
+		log.Info("BlockChain synSnapshot", "the trie on block height", snapshotData.Block.Number())
 		for _, value := range snapshotData.CoinTries {
-
-			for _, dumpTrie := range value.TrieArry {
-				//state tire
-				triedb := trie.NewDatabase(bc.GetDB())
-
-				//code data
-				for _, itc := range dumpTrie.CodeDatas {
-					log.Info("BlockChain synSnapshot", "codehash:-", common.Bytes2Hex(itc.CodeHash), "code:-", common.Bytes2Hex(itc.Code))
-					triedb.Insert(common.BytesToHash(itc.CodeHash), itc.Code)
-					triedb.Commit(common.BytesToHash(itc.CodeHash), false)
-				}
-				log.Info("BlockChain synSnapshot finished code data")
-				mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
-				//matrix data
-				for _, itm := range dumpTrie.Matrix {
-					mytrie.Update(itm.GetKey, itm.Value)
-				}
-				log.Info("BlockChain synSnapshot finished matrix data")
-				//account data
-				for _, ita := range dumpTrie.Account {
-					mytrie.Update(ita.GetKey, ita.Value)
-				}
-				log.Info("BlockChain synSnapshot finished account data")
-
-				root, err := mytrie.Commit(nil)
-				if err != nil {
-					log.Error("BlockChain synSnapshot", "commit err: ", err)
-					return false
-				}
-
-				if triedb.Commit(root, true) != nil {
-					log.Error("BlockChain synSnapshot", "commit err: ", err)
-					return false
-				}
-
-				log.Info("BlockChain synSnapshot root,", "root", root.String())
-
-				//storage data
-				for _, itas := range dumpTrie.MapAccount {
-
-					storagetrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
-					fmt.Println()
-					for _, it := range itas.DumpData {
-						storagetrie.Update(it.GetKey, it.Value)
-					}
-
-					root4storage, err := storagetrie.Commit(nil)
-					if err != nil {
-						log.Error("BlockChain synSnapshot", "commit err: ", err)
-						return false
-					}
-
-					if triedb.Commit(root4storage, true) != nil {
-						log.Error("BlockChain synSnapshot", "commit err: ", err)
-						return false
-					}
-
-					log.Info("BlockChain synSnapshot root4storage,", "root4storage", root4storage.String())
-
-				}
+			if !bc.LoadDumps(value.TrieArry, snapshotData.Block.Number().Int64()) {
+				return false
 			}
-
 		}
 
 		//block
@@ -2513,6 +2434,80 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 	return true
 
 }
+
+func (bc *BlockChain) LoadDumps(dumps []state.DumpDB, number int64) bool {
+	var crs []common.Hash
+	triedb := trie.NewDatabase(bc.GetDB())
+	for _, dumpTrie := range dumps {
+
+		//code data
+		for _, itc := range dumpTrie.CodeDatas {
+			log.Info("BlockChain synSnapshot", "codehash:-", common.Bytes2Hex(itc.CodeHash), "code:-", common.Bytes2Hex(itc.Code))
+			triedb.Insert(common.BytesToHash(itc.CodeHash), itc.Code)
+			triedb.Commit(common.BytesToHash(itc.CodeHash), false)
+		}
+		log.Info("BlockChain synSnapshot finished code data")
+		mytrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
+		//matrix data
+		for _, itm := range dumpTrie.Matrix {
+			mytrie.Update(itm.GetKey, itm.Value)
+		}
+		log.Info("BlockChain synSnapshot finished matrix data")
+		//account data
+		for _, ita := range dumpTrie.Account {
+			mytrie.Update(ita.GetKey, ita.Value)
+		}
+		log.Info("BlockChain synSnapshot finished account data")
+
+		root, err := mytrie.Commit(nil)
+		if err != nil {
+			log.Error("BlockChain synSnapshot crs", "commit err: ", err)
+			return false
+		}
+		crs = append(crs, root)
+		if triedb.Commit(root, true) != nil {
+			log.Error("BlockChain synSnapshot", "commit err: ", err)
+			return false
+		}
+
+		log.Info("BlockChain synSnapshot crs root ,", "root", root.String(), "number", number)
+
+		//storage data
+		for _, itas := range dumpTrie.MapAccount {
+
+			storagetrie, _ := trie.NewSecure(common.Hash{}, triedb, 0)
+			fmt.Println()
+			for _, it := range itas.DumpData {
+				storagetrie.Update(it.GetKey, it.Value)
+			}
+
+			root4storage, err := storagetrie.Commit(nil)
+			if err != nil {
+				log.Error("BlockChain synSnapshot", "commit err: ", err)
+				return false
+			}
+
+			if triedb.Commit(root4storage, true) != nil {
+				log.Error("BlockChain synSnapshot", "commit err: ", err)
+				return false
+			}
+
+			log.Info("BlockChain synSnapshot root4storage,", "root4storage", root4storage.String())
+
+		}
+	}
+
+	bshash := types.RlpHash(crs)
+	bs, _ := rlp.EncodeToBytes(crs)
+	if err := bc.GetDB().Put(bshash[:], bs); err != nil {
+		log.Error("BlockChain synSnapshot", "commit err: ", err)
+		return false
+	}
+	log.Info("BlockChain synSnapshot shardingRoot", "shardingRoot", bshash.String())
+	return true
+
+}
+
 func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 
 	log.Info("BlockChain savesnapshot enter", "blockNum", blockNum, "saveSnapPeriod", SaveSnapPeriod, "saveSnapStart", SaveSnapStart)
@@ -2557,7 +2552,6 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		log.Error("BlockChain savesnapshot ", "open state fialed,err ", stateerr)
 		return
 	}
-
 	preBCRoot, err := matrixstate.GetPreBroadcastRoot(tmpstatedb)
 	if err != nil {
 		log.Error(" BlockChain savesnapshot ", "get pre broadcast root err", err)
@@ -2600,6 +2594,10 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		coinTries := statedb.RawDumpDB()
 		snapshotData := snapshot.SnapshotData{coinTries, td, *block}
 		snapshotDatas.Datas = append(snapshotDatas.Datas, snapshotData)
+		//if correct==300 {
+		//	GetDumpInfo (snapshotDatas.Datas[len(snapshotDatas.Datas)-1].CoinTries)
+		//
+		//}
 	}
 	wb, err := rlp.EncodeToBytes(&snapshotDatas)
 	if err != nil {
