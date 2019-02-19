@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/reward/util"
+	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
-	"github.com/matrix/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/mc"
 
-	"github.com/matrix/go-matrix/log"
+	"github.com/MatrixAINetwork/go-matrix/log"
 
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"math/big"
-
-	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -98,9 +97,9 @@ func Test_newManager(t *testing.T) {
 	}
 
 	blkcfg := mc.BlkRewardCfg{MinerMount: 6,
-		MinerAttenuationNum:     50000,
-		ValidatorMount:          3,
-		ValidatorAttenuationNum: 50000,
+		MinerHalf:      50000,
+		ValidatorMount: 3,
+		ValidatorHalf:  50000,
 		RewardRate: mc.RewardRateCfg{
 			MinerOutRate:        MinerOutRewardRate,
 			ElectedMinerRate:    ElectedMinerRewardRate,

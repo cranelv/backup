@@ -1,25 +1,24 @@
 package rewardexec
 
 import (
+	"bou.ke/monkey"
 	"fmt"
+	"github.com/MatrixAINetwork/go-matrix/ca"
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
+	"github.com/MatrixAINetwork/go-matrix/core/types"
+	"github.com/MatrixAINetwork/go-matrix/core/vm"
+	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+	"github.com/MatrixAINetwork/go-matrix/reward/cfg"
+	"github.com/MatrixAINetwork/go-matrix/reward/util"
 	"math/big"
 	"math/rand"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/reward/cfg"
-	"github.com/matrix/go-matrix/reward/util"
-
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/log"
+	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -175,7 +174,7 @@ func TestBlockReward_setLeaderRewards(t *testing.T) {
 
 		return nil, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -254,7 +253,7 @@ func TestBlockReward_setMinerOut(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -321,7 +320,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardobject := New(bc, rewardCfg, &State{100})
@@ -523,7 +522,7 @@ func TestBlockReward_calcTxsFees(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardCfg.MinersRate = 0

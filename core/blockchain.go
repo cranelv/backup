@@ -23,31 +23,31 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 
-	"github.com/matrix/go-matrix/ca"
-	"github.com/matrix/go-matrix/common"
-	"github.com/matrix/go-matrix/common/mclock"
-	"github.com/matrix/go-matrix/consensus"
-	"github.com/matrix/go-matrix/consensus/mtxdpos"
-	"github.com/matrix/go-matrix/core/matrixstate"
-	"github.com/matrix/go-matrix/core/rawdb"
-	"github.com/matrix/go-matrix/core/state"
-	"github.com/matrix/go-matrix/core/types"
-	"github.com/matrix/go-matrix/core/vm"
-	"github.com/matrix/go-matrix/crypto"
-	"github.com/matrix/go-matrix/event"
-	"github.com/matrix/go-matrix/log"
-	"github.com/matrix/go-matrix/mandb"
-	"github.com/matrix/go-matrix/mc"
-	"github.com/matrix/go-matrix/metrics"
-	"github.com/matrix/go-matrix/params"
-	"github.com/matrix/go-matrix/params/manparams"
-	"github.com/matrix/go-matrix/rlp"
-	"github.com/matrix/go-matrix/snapshot"
-	"github.com/matrix/go-matrix/trie"
+	"github.com/MatrixAINetwork/go-matrix/ca"
+	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/common/mclock"
+	"github.com/MatrixAINetwork/go-matrix/consensus"
+	"github.com/MatrixAINetwork/go-matrix/consensus/mtxdpos"
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
+	"github.com/MatrixAINetwork/go-matrix/core/types"
+	"github.com/MatrixAINetwork/go-matrix/core/vm"
+	"github.com/MatrixAINetwork/go-matrix/crypto"
+	"github.com/MatrixAINetwork/go-matrix/event"
+	"github.com/MatrixAINetwork/go-matrix/log"
+	"github.com/MatrixAINetwork/go-matrix/mandb"
+	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/metrics"
+	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/snapshot"
+	"github.com/MatrixAINetwork/go-matrix/trie"
 	"github.com/pkg/errors"
-	//"github.com/matrix/go-matrix/baseinterface"
-	"github.com/matrix/go-matrix/depoistInfo"
-	"github.com/matrix/go-matrix/params/enstrust"
+	//"github.com/MatrixAINetwork/go-matrix/baseinterface"
+	"github.com/MatrixAINetwork/go-matrix/depoistInfo"
+	"github.com/MatrixAINetwork/go-matrix/params/enstrust"
 )
 
 var (
@@ -200,7 +200,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.SetValidator(manparams.VersionAlpha, validator)
 	bc.SetProcessor(manparams.VersionAlpha, processor)
 	bc.engine[manparams.VersionAlpha] = engine
-	dpos := mtxdpos.NewMtxDPOS()
+	dpos := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
 	bc.dposEngine[manparams.VersionAlpha] = dpos
 
 	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
@@ -2023,7 +2023,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	if nil == preBlock {
 		return errors.New("设置超级区块失败，父区块未找到")
 	}
-	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), string(preBlock.Version()),block.Header().Number.Uint64())
+	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), string(preBlock.Version()), block.Header().Number.Uint64())
 
 	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)
