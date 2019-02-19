@@ -400,6 +400,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	if len(makecoin.AddrAmount)<=0{
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
 	}
+	addrVal := make(map[common.Address]*big.Int)
 	for str,amount:=range makecoin.AddrAmount{
 		if str == ""{
 			return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin addr is nil")
@@ -414,7 +415,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			log.Error("Make Coin","invalid send address","Currency mismatch with account")
 			return nil, 0, false, shardings, errors.New("Currency mismatch with account")
 		}
-		st.state.SetBalance(makecoin.CoinName,common.MainAccount,addr,(*big.Int)(amount))
+		addrVal[addr] = (*big.Int)(amount)
 	}
 	key := types.RlpHash(params.COIN_NAME)
 	coinlistbyte := st.state.GetMatrixData(key)
@@ -437,6 +438,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	}
 	coinby,_:=json.Marshal(clslice)
 	st.state.SetMatrixData(key, coinby)
+	for address,val:=range addrVal{
+		st.state.SetBalance(makecoin.CoinName,common.MainAccount,address,val)
+	}
 	return ret, 0, false, shardings, err
 }
 func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
