@@ -430,8 +430,10 @@ var (
         "SlashCalcCfg":"1",
 		"BlkRewardCfg": {
 			"MinerMount": 3,
-			"MinerAttenuationNum": 5000000,
+            "MinerAttenuationRate":8500,
+            "MinerAttenuationNum":5000000,
 			"ValidatorMount": 7,
+            "ValidatorAttenuationRate":8500,
 			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
 				"MinerOutRate": 4000,
@@ -467,7 +469,9 @@ var (
 			}]
 		},
 		"InterestCfg": {
-			"CalcInterval": 100,
+            "RewardMount":2,
+            "AttenuationRate":8500,
+            "AttenuationPeriod":5000000,
 			"PayInterval": 3600
 		},
 		"LeaderCfg": {
@@ -575,8 +579,10 @@ var (
         "SlashCalcCfg":"1",
 		"BlkRewardCfg": {
 			"MinerMount": 3,
+            "MinerAttenuationRate":8500,
 			"MinerAttenuationNum": 5000000,
 			"ValidatorMount": 7,
+            "ValidatorAttenuationRate":8500,
 			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
 				"MinerOutRate": 4000,
@@ -612,7 +618,9 @@ var (
 			}]
 		},
 		"InterestCfg": {
-			"CalcInterval": 100,
+            "RewardMount":2,
+            "AttenuationRate":8500,
+            "AttenuationPeriod":5000000,
 			"PayInterval": 3600
 		},
 		"LeaderCfg": {
