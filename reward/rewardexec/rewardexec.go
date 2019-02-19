@@ -1,7 +1,6 @@
 package rewardexec
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/matrix/go-matrix/reward/cfg"
@@ -88,8 +87,8 @@ func (br *BlockReward) CalcMinerRateMount(blockReward *big.Int) (*big.Int, *big.
 func (br *BlockReward) CalcValidatorRewards(Leader common.Address, num uint64) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.ValidatorMount), util.ManPrice)
-	halfNum := br.rewardCfg.RewardMount.ValidatorHalf
-	blockReward := br.CalcRewardMountByNumber(RewardMan, num-1, halfNum, common.BlkValidatorRewardAddress)
+	halfNum := br.rewardCfg.RewardMount.ValidatorAttenuation
+	blockReward := util.CalcRewardMountByNumber(br.st, RewardMan, num-1, halfNum, common.BlkValidatorRewardAddress)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放验证者奖励", "")
 		return nil
@@ -137,8 +136,8 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardT
 func (br *BlockReward) CalcMinerRewards(num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 	//广播区块不给矿工发钱
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(br.rewardCfg.RewardMount.MinerMount), util.ManPrice)
-	halfNum := br.rewardCfg.RewardMount.MinerHalf
-	blockReward := br.CalcRewardMountByNumber(RewardMan, num-1, halfNum, common.BlkMinerRewardAddress)
+	halfNum := br.rewardCfg.RewardMount.MinerAttenuation
+	blockReward := util.CalcRewardMountByNumber(br.st, RewardMan, num-1, halfNum, common.BlkMinerRewardAddress)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放矿工奖励", "")
 		return nil
@@ -204,51 +203,6 @@ func (br *BlockReward) CalcNodesRewards(blockReward *big.Int, Leader common.Addr
 	util.MergeReward(rewards, validatorReward)
 	util.MergeReward(rewards, minerRewards)
 	return rewards
-}
-
-func (br *BlockReward) CalcRewardMountByNumber(blockReward *big.Int, num uint64, halfNum uint64, address common.Address) *big.Int {
-	//todo:后续从状态树读取对应币种减半金额,现在每个100个区块余额减半，如果减半值为0则不减半
-
-	if blockReward.Cmp(big.NewInt(0)) < 0 {
-		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
-		return big.NewInt(0)
-	}
-
-	balance, err := br.getBalance(address)
-	if nil != err {
-		log.ERROR(PackageName, "账户余额获取错误，账户为", address.Hex())
-		return big.NewInt(0)
-	}
-
-	n := util.CalcN(halfNum, num)
-
-	reward := util.CalcRewardMount(n, blockReward)
-	//log.Debug(PackageName, "计算区块奖励金额:", reward.String())
-	if balance[common.MainAccount].Balance.Cmp(reward) < 0 {
-		log.ERROR(PackageName, "账户余额不足，余额为", balance[common.MainAccount].Balance.String())
-		return big.NewInt(0)
-	} else {
-		return reward
-	}
-
-}
-
-func (br *BlockReward) getBalance(address common.Address) (common.BalanceType, error) {
-
-	if nil == br.st {
-		log.ERROR(PackageName, "状态树是空", "")
-		return nil, errors.New("状态树是空")
-	}
-	balance := br.st.GetBalance(address)
-	if len(balance) == 0 {
-		log.ERROR(PackageName, "账户余额获取不到", "")
-		return nil, errors.New("账户余额获取不到")
-	}
-	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
-		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
-		return nil, errors.New("发送账户余额不合法")
-	}
-	return balance, nil
 }
 
 func (br *BlockReward) GetRewardCfg() *cfg.RewardCfg {

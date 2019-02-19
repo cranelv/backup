@@ -1,8 +1,12 @@
 package rewardexec
 
 import (
-	"bou.ke/monkey"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"testing"
+
+	"bou.ke/monkey"
 	"github.com/matrix/go-matrix/ca"
 	"github.com/matrix/go-matrix/core/matrixstate"
 	"github.com/matrix/go-matrix/core/state"
@@ -13,9 +17,6 @@ import (
 	"github.com/matrix/go-matrix/params/manparams"
 	"github.com/matrix/go-matrix/reward/cfg"
 	"github.com/matrix/go-matrix/reward/util"
-	"math/big"
-	"math/rand"
-	"testing"
 
 	"github.com/matrix/go-matrix/common"
 	"github.com/matrix/go-matrix/log"
@@ -174,7 +175,7 @@ func TestBlockReward_setLeaderRewards(t *testing.T) {
 
 		return nil, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -253,7 +254,7 @@ func TestBlockReward_setMinerOut(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -320,7 +321,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardobject := New(bc, rewardCfg, &State{100})
@@ -522,7 +523,7 @@ func TestBlockReward_calcTxsFees(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerHalf: 10000, ValidatorMount: 5, ValidatorHalf: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardCfg.MinersRate = 0

@@ -484,8 +484,8 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockN
 	if nil == interestReward {
 		return nil, err
 	}
-	interestCalcMap := interestReward.GetInterest(state, latestElectNum)
-	interestNum := bcInterval.GetReElectionInterval() / interestReward.CalcInterval
+	interestCalcMap := interestReward.GetReward(state, latestElectNum+1)
+	interestNum := bcInterval.GetReElectionInterval() - 3
 	interestRewardList := make([]InterestReward, 0)
 	for k, v := range interestCalcMap {
 		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
@@ -517,11 +517,11 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 	var rewardIn *big.Int
 	var halfNum uint64
 	if roleType == common.RoleMiner {
-		halfNum = br.GetRewardCfg().RewardMount.MinerHalf
+		halfNum = br.GetRewardCfg().RewardMount.MinerAttenuation
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
 		rewardAddr = common.BlkMinerRewardAddress
 	} else {
-		halfNum = br.GetRewardCfg().RewardMount.ValidatorHalf
+		halfNum = br.GetRewardCfg().RewardMount.ValidatorAttenuation
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
@@ -545,7 +545,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		rewardOut := br.CalcRewardMountByNumber(rewardIn, uint64(num), halfNum, rewardAddr)
+		rewardOut := util.CalcRewardMountByNumber(state, rewardIn, uint64(num), halfNum, rewardAddr)
 
 		var roleOutAmount, electedMount *big.Int
 		if roleType == common.RoleMiner {

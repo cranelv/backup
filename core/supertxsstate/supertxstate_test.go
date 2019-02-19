@@ -11,8 +11,9 @@ import (
 
 	"github.com/matrix/go-matrix/log"
 
-	"github.com/matrix/go-matrix/params/manparams"
 	"math/big"
+
+	"github.com/matrix/go-matrix/params/manparams"
 )
 
 const (
@@ -97,9 +98,9 @@ func Test_newManager(t *testing.T) {
 	}
 
 	blkcfg := mc.BlkRewardCfg{MinerMount: 6,
-		MinerHalf:      50000,
-		ValidatorMount: 3,
-		ValidatorHalf:  50000,
+		MinerAttenuation:     50000,
+		ValidatorMount:       3,
+		ValidatorAttenuation: 50000,
 		RewardRate: mc.RewardRateCfg{
 			MinerOutRate:        MinerOutRewardRate,
 			ElectedMinerRate:    ElectedMinerRewardRate,

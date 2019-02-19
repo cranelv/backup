@@ -124,7 +124,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDB, header *types.Header, 
 	if nil == interestReward {
 		return p.reverse(rewardList)
 	}
-	interestCalcMap := interestReward.CalcInterest(st, header.Number.Uint64())
+	interestCalcMap := interestReward.CalcReward(st, header.Number.Uint64())
 
 	slash := slash.New(p.bc, st)
 	if nil != slash {
