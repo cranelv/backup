@@ -430,9 +430,9 @@ var (
         "SlashCalcCfg":"1",
 		"BlkRewardCfg": {
 			"MinerMount": 3,
-			"MinerAttenuation": 5000000,
+			"MinerAttenuationNum": 5000000,
 			"ValidatorMount": 7,
-			"ValidatorAttenuation": 5000000,
+			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
 				"MinerOutRate": 4000,
 				"ElectedMinerRate": 5000,
@@ -575,9 +575,9 @@ var (
         "SlashCalcCfg":"1",
 		"BlkRewardCfg": {
 			"MinerMount": 3,
-			"MinerAttenuation": 5000000,
+			"MinerAttenuationNum": 5000000,
 			"ValidatorMount": 7,
-			"ValidatorAttenuation": 5000000,
+			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
 				"MinerOutRate": 4000,
 				"ElectedMinerRate": 5000,

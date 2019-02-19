@@ -39,7 +39,6 @@ var (
 	ManPrice *big.Int = big.NewInt(1e18)
 
 	Precision *big.Int = big.NewInt(1)
-	HalfRate           = uint64(8500)
 )
 
 type ChainReader interface {
@@ -189,12 +188,12 @@ func CalcN(halfNum uint64, num uint64) uint64 {
 	return n
 }
 
-func CalcRewardMount(blockReward *big.Int, n uint64, x uint64) *big.Int {
+func CalcRewardMount(blockReward *big.Int, n uint64, x uint16) *big.Int {
 	var reward *big.Int
 	if 0 == n {
 		reward = blockReward
 	} else {
-		rate := new(big.Int).Exp(new(big.Int).SetUint64(x), new(big.Int).SetUint64(n), big.NewInt(0))
+		rate := new(big.Int).Exp(new(big.Int).SetUint64(uint64(x)), new(big.Int).SetUint64(n), big.NewInt(0))
 		tmp := new(big.Int).Mul(blockReward, rate)
 		base := new(big.Int).Exp(new(big.Int).SetUint64(mc.RewardFullRate), new(big.Int).SetUint64(n), big.NewInt(0))
 		reward := new(big.Int).Div(tmp, base)
@@ -203,7 +202,7 @@ func CalcRewardMount(blockReward *big.Int, n uint64, x uint64) *big.Int {
 	return reward
 }
 
-func CalcRewardMountByNumber(st StateDB, blockReward *big.Int, num uint64, halfNum uint64, address common.Address) *big.Int {
+func CalcRewardMountByNumber(st StateDB, blockReward *big.Int, num uint64, halfNum uint64, address common.Address, attenuationRate uint16) *big.Int {
 
 	if blockReward.Cmp(big.NewInt(0)) < 0 {
 		log.WARN(PackageName, "折半计算的奖励金额不合法", blockReward)
@@ -218,7 +217,7 @@ func CalcRewardMountByNumber(st StateDB, blockReward *big.Int, num uint64, halfN
 
 	n := CalcN(halfNum, num)
 
-	reward := CalcRewardMount(blockReward, n, HalfRate)
+	reward := CalcRewardMount(blockReward, n, attenuationRate)
 	log.Debug(PackageName, "计算衰减奖励金额:", reward.String())
 	if balance[common.MainAccount].Balance.Cmp(reward) < 0 {
 		log.ERROR(PackageName, "账户余额不足，余额为", balance[common.MainAccount].Balance.String())

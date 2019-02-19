@@ -516,12 +516,15 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 	var rewardAddr common.Address
 	var rewardIn *big.Int
 	var halfNum uint64
+	var attenuationRate uint16
 	if roleType == common.RoleMiner {
-		halfNum = br.GetRewardCfg().RewardMount.MinerAttenuation
+		halfNum = br.GetRewardCfg().RewardMount.MinerAttenuationNum
+		attenuationRate = br.GetRewardCfg().RewardMount.MinerAttenuationRate
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
 		rewardAddr = common.BlkMinerRewardAddress
 	} else {
-		halfNum = br.GetRewardCfg().RewardMount.ValidatorAttenuation
+		halfNum = br.GetRewardCfg().RewardMount.ValidatorAttenuationNum
+		attenuationRate = br.GetRewardCfg().RewardMount.ValidatorAttenuationRate
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
@@ -545,7 +548,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		rewardOut := util.CalcRewardMountByNumber(state, rewardIn, uint64(num), halfNum, rewardAddr)
+		rewardOut := util.CalcRewardMountByNumber(state, rewardIn, uint64(num), halfNum, rewardAddr, attenuationRate)
 
 		var roleOutAmount, electedMount *big.Int
 		if roleType == common.RoleMiner {

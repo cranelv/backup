@@ -175,7 +175,7 @@ func TestBlockReward_setLeaderRewards(t *testing.T) {
 
 		return nil, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -254,7 +254,7 @@ func TestBlockReward_setMinerOut(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	rewardobject := New(&Chain{}, rewardCfg, &State{100})
 
@@ -321,7 +321,7 @@ func TestBlockReward_setSelectedBlockRewards(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardobject := New(bc, rewardCfg, &State{100})
@@ -523,7 +523,7 @@ func TestBlockReward_calcTxsFees(t *testing.T) {
 		interval2, _ := manparams.NewBCIntervalWithInterval(inteval1)
 		return interval2, nil
 	})
-	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuation: 10000, ValidatorMount: 5, ValidatorAttenuation: 10000, RewardRate: rrc}
+	RewardMount := &mc.BlkRewardCfg{MinerMount: 5, MinerAttenuationNum: 10000, ValidatorMount: 5, ValidatorAttenuationNum: 10000, RewardRate: rrc}
 	rewardCfg := cfg.New(RewardMount, nil)
 	bc := &Chain{}
 	rewardCfg.MinersRate = 0

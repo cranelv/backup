@@ -98,9 +98,9 @@ func Test_newManager(t *testing.T) {
 	}
 
 	blkcfg := mc.BlkRewardCfg{MinerMount: 6,
-		MinerAttenuation:     50000,
-		ValidatorMount:       3,
-		ValidatorAttenuation: 50000,
+		MinerAttenuationNum:     50000,
+		ValidatorMount:          3,
+		ValidatorAttenuationNum: 50000,
 		RewardRate: mc.RewardRateCfg{
 			MinerOutRate:        MinerOutRewardRate,
 			ElectedMinerRate:    ElectedMinerRewardRate,

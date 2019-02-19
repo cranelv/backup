@@ -173,7 +173,7 @@ func (ic *interest) getLastInterestNumber(number uint64, InterestInterval uint64
 }
 func (ic *interest) GetReward(state vm.StateDB, num uint64) map[common.Address]*big.Int {
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(ic.InterestConfig.RewardMount), util.ManPrice)
-	blockReward := util.CalcRewardMountByNumber(state, RewardMan, num-1, ic.InterestConfig.AttenuationPeriod, common.BlkMinerRewardAddress)
+	blockReward := util.CalcRewardMountByNumber(state, RewardMan, num-1, ic.InterestConfig.AttenuationPeriod, common.BlkMinerRewardAddress, ic.InterestConfig.AttenuationRate)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放利息奖励", "")
 		return nil
