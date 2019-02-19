@@ -108,6 +108,7 @@ type ChainReader interface {
 	GetCurrentHash() common.Hash
 	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	GetBroadcastAccounts(blockHash common.Hash) ([]common.Address, error)
+	GetInnerMinerAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetVersionSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
@@ -238,7 +239,7 @@ func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
 	role := data.Role
 	self.mineReqCtrl.SetNewNumber(data.BlockNum+1, role)
 	canMining := self.mineReqCtrl.CanMining()
-	log.Trace(ModuleMiner,  "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
+	log.Trace(ModuleMiner, "高度", data.BlockNum, "角色", role, "是否可以挖矿", canMining)
 	if canMining {
 		self.StartAgent()
 		self.processMineReq()
@@ -314,14 +315,12 @@ func (self *worker) setExtra(extra []byte) {
 	self.extra = extra
 }
 
-
-
 func (self *worker) pending() (*types.Block, *state.StateDBManage) {
 	self.currentMu.Lock()
 	defer self.currentMu.Unlock()
 
-	tx,rx:=types.GetCoinTXRS(self.current.txs,self.current.receipts)
-	cb:=types.MakeCurencyBlock(tx,rx,nil)
+	tx, rx := types.GetCoinTXRS(self.current.txs, self.current.receipts)
+	cb := types.MakeCurencyBlock(tx, rx, nil)
 	if atomic.LoadInt32(&self.mining) == 0 {
 		return types.NewBlock(
 			self.current.header,
@@ -337,8 +336,8 @@ func (self *worker) pendingBlock() *types.Block {
 	defer self.currentMu.Unlock()
 
 	if atomic.LoadInt32(&self.mining) == 0 {
-		tx,rx:=types.GetCoinTXRS(self.current.txs,self.current.receipts)
-		cb:=types.MakeCurencyBlock(tx,rx,nil)
+		tx, rx := types.GetCoinTXRS(self.current.txs, self.current.receipts)
+		cb := types.MakeCurencyBlock(tx, rx, nil)
 		return types.NewBlock(
 			self.current.header,
 			cb,
@@ -438,10 +437,10 @@ func (self *worker) processAppointedMineReq(reqData *mineReqData) {
 	}
 
 	if reqData.mined {
-		log.Trace(ModuleMiner,  "请求已完成，直接发送结果", reqData.headerHash.TerminalString())
+		log.Trace(ModuleMiner, "请求已完成，直接发送结果", reqData.headerHash.TerminalString())
 		self.sendMineResultFunc(reqData, 0)
 	} else {
-		log.Trace(ModuleMiner,  "接收请求，开始处理", reqData.headerHash.TerminalString())
+		log.Trace(ModuleMiner, "接收请求，开始处理", reqData.headerHash.TerminalString())
 		self.beginMine(reqData)
 	}
 }
@@ -451,7 +450,7 @@ func (self *worker) processMineReq() {
 	if reqData == nil {
 		return
 	}
-	log.Trace(ModuleMiner,  "开始挖矿", reqData.headerHash.TerminalString())
+	log.Trace(ModuleMiner, "开始挖矿", reqData.headerHash.TerminalString())
 	self.beginMine(reqData)
 }
 
@@ -472,7 +471,7 @@ func (self *worker) beginMine(reqData *mineReqData) {
 	}
 
 	if err := self.mineReqCtrl.SetCurrentMineReq(reqData.headerHash); err != nil {
-		log.ERROR(ModuleMiner,"保存挖矿请求:", err)
+		log.ERROR(ModuleMiner, "保存挖矿请求:", err)
 		return
 	}
 	self.CommitNewWork(reqData.header, reqData.isBroadcastReq)
