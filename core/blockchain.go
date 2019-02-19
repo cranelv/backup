@@ -200,7 +200,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.SetValidator(manparams.VersionAlpha, validator)
 	bc.SetProcessor(manparams.VersionAlpha, processor)
 	bc.engine[manparams.VersionAlpha] = engine
-	dpos := mtxdpos.NewMtxDPOS()
+	dpos := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
 	bc.dposEngine[manparams.VersionAlpha] = dpos
 
 	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
