@@ -200,7 +200,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.SetValidator(manparams.VersionAlpha, validator)
 	bc.SetProcessor(manparams.VersionAlpha, processor)
 	bc.engine[manparams.VersionAlpha] = engine
-	dpos := mtxdpos.NewMtxDPOS()
+	dpos := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
 	bc.dposEngine[manparams.VersionAlpha] = dpos
 
 	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
@@ -2023,7 +2023,7 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	if nil == preBlock {
 		return errors.New("设置超级区块失败，父区块未找到")
 	}
-	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), string(preBlock.Version()),block.Header().Number.Uint64())
+	mState.setMatrixState(stateDB, block.Header().NetTopology, block.Header().Elect, string(block.Version()), string(preBlock.Version()), block.Header().Number.Uint64())
 
 	if err := mState.SetSuperBlkToState(stateDB, block.Header().Extra, block.Header().Number.Uint64()); err != nil {
 		log.Error("genesis", "设置matrix状态树错误", err)
