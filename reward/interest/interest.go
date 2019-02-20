@@ -36,9 +36,9 @@ func (p DepositInterestRateList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p DepositInterestRateList) Len() int           { return len(p) }
 func (p DepositInterestRateList) Less(i, j int) bool { return p[i].Deposit.Cmp(p[j].Deposit) < 0 }
 
-func New(st util.StateDB) *interest {
+func New(st util.StateDB, preSt util.StateDB) *interest {
 
-	data, err := matrixstate.GetInterestCalc(st)
+	data, err := matrixstate.GetInterestCalc(preSt)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误")
 		return nil
@@ -49,12 +49,12 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
-	_, err = matrixstate.GetBroadcastInterval(st)
+	_, err = matrixstate.GetBroadcastInterval(preSt)
 	if err != nil {
 		log.ERROR(PackageName, "获取广播周期数据结构失败", err)
 		return nil
 	}
-	IC, err := matrixstate.GetInterestCfg(st)
+	IC, err := matrixstate.GetInterestCfg(preSt)
 	if nil != err {
 		log.ERROR(PackageName, "获取利息状态树配置错误", "")
 		return nil
@@ -69,7 +69,7 @@ func New(st util.StateDB) *interest {
 		return nil
 	}
 
-	VipCfg, err := matrixstate.GetVIPConfig(st)
+	VipCfg, err := matrixstate.GetVIPConfig(preSt)
 	if nil != err {
 		log.ERROR(PackageName, "获取VIP状态树配置错误", "")
 		return nil
@@ -178,7 +178,7 @@ func (ic *interest) GetReward(state vm.StateDB, num uint64) map[common.Address]*
 		log.Error(PackageName, "账户余额为0，不发放利息奖励", "")
 		return nil
 	}
-	InterestMap := ic.GetInterest(state, num)
+	InterestMap := ic.GetInterest(num)
 	RewardMap := util.CalcInterestReward(blockReward, InterestMap)
 	return RewardMap
 }
@@ -195,7 +195,7 @@ func (ic *interest) SetReward(InterestMap map[common.Address]*big.Int, state vm.
 	}
 }
 
-func (ic *interest) GetInterest(state vm.StateDB, num uint64) map[common.Address]*big.Int {
+func (ic *interest) GetInterest(num uint64) map[common.Address]*big.Int {
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
 		if v.MinMoney < 0 {

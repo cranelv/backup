@@ -419,7 +419,7 @@ type AllReward struct {
 
 func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockNumber) (interface{}, error) {
 
-	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number))
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number - 1))
 	if nil != err {
 		return nil, err
 	}
@@ -506,7 +506,7 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockN
 }
 
 func (b *ManAPIBackend) calcFutureInterest(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]*big.Int, error) {
-	interestReward := interest.New(state)
+	interestReward := interest.New(state, state)
 	if nil == interestReward {
 		return nil, errors.New("interest创建失败")
 	}
@@ -525,7 +525,7 @@ func (b *ManAPIBackend) calcFutureInterest(state *state.StateDB, latestElectNum 
 func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
 
-	br := blkreward.New(b.man.BlockChain(), state)
+	br := blkreward.New(b.man.BlockChain(), state, state)
 	RewardMap := make(map[common.Address]*big.Int)
 	var rewardAddr common.Address
 	var rewardIn *big.Int

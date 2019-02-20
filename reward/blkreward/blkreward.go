@@ -14,8 +14,8 @@ type blkreward struct {
 	state       util.StateDB
 }
 
-func New(chain util.ChainReader, st util.StateDB) reward.Reward {
-	data, err := matrixstate.GetBlkCalc(st)
+func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Reward {
+	data, err := matrixstate.GetBlkCalc(preSt)
 	if nil != err {
 		log.ERROR("固定区块奖励", "获取状态树配置错误")
 		return nil
@@ -25,7 +25,7 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		log.ERROR("固定区块奖励", "停止发放区块奖励", "")
 		return nil
 	}
-	RC, err := matrixstate.GetBlkRewardCfg(st)
+	RC, err := matrixstate.GetBlkRewardCfg(preSt)
 	if nil != err || nil == RC {
 		log.ERROR("固定区块奖励", "获取状态树配置错误", err)
 		return nil

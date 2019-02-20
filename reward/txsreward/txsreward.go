@@ -20,9 +20,9 @@ type TxsReward struct {
 	blockReward *rewardexec.BlockReward
 }
 
-func New(chain util.ChainReader, st util.StateDB) reward.Reward {
+func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Reward {
 
-	data, err := matrixstate.GetTxsCalc(st)
+	data, err := matrixstate.GetTxsCalc(preSt)
 	if nil != err {
 		log.ERROR(PackageName, "获取状态树配置错误")
 		return nil
@@ -33,7 +33,7 @@ func New(chain util.ChainReader, st util.StateDB) reward.Reward {
 		return nil
 	}
 
-	TC, err := matrixstate.GetTxsRewardCfg(st)
+	TC, err := matrixstate.GetTxsRewardCfg(preSt)
 	if nil != err || nil == TC {
 		log.ERROR(PackageName, "获取状态树配置错误", err)
 		return nil

@@ -701,7 +701,7 @@ func (s *PublicBlockChainAPI) GetDeposit(ctx context.Context, blockNr rpc.BlockN
 	return depositNodesOutput, state.Error()
 }
 func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
-	state, _, err := api.b.StateAndHeaderByNumber(ctx, number)
+	state, _, err := api.b.StateAndHeaderByNumber(ctx, number-1)
 	if state == nil || err != nil {
 		return nil, err
 	}
