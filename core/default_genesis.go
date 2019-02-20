@@ -432,7 +432,7 @@ var (
 			"MinerMount": 3,
             "MinerAttenuationRate":8500,
             "MinerAttenuationNum":5000000,
-			"ValidatorMount": 7,
+			"ValidatorMount": 5,
             "ValidatorAttenuationRate":8500,
 			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
@@ -581,7 +581,7 @@ var (
 			"MinerMount": 3,
             "MinerAttenuationRate":8500,
 			"MinerAttenuationNum": 5000000,
-			"ValidatorMount": 7,
+			"ValidatorMount": 5,
             "ValidatorAttenuationRate":8500,
 			"ValidatorAttenuationNum": 5000000,
 			"RewardRate": {
