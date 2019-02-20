@@ -5508,7 +5508,21 @@ var methods = function () {
         call: 'eth_getUpTime',
         params: 2,
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
-        outputFormatter: formatters.outputNewBigNumberFormatter
+        outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getInterest = new Method({
+        name: 'getInterest',
+        call: 'eth_getInterest',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getSlash = new Method({
+        name: 'getSlash',
+        call: 'eth_getSlash',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputBigNumberFormatter
     });
     var getFutureRewards = new Method({
         name: 'getFutureRewards',
@@ -5523,6 +5537,13 @@ var methods = function () {
         params: 2,
         inputFormatter: [null,formatters.inputDefaultBlockNumberFormatter],
         // outputFormatter: formatters.outputNewBigNumberFormatter
+    });
+    var getDeposit = new Method({
+        name: 'getDeposit',
+        call: 'eth_getDeposit',
+        params: 1,
+        inputFormatter: [ formatters.inputDefaultBlockNumberFormatter],
+        // outputFormatter: formatters.outputBigNumberFormatter
     });
     var getEntrustList = new Method({
         name: 'getEntrustList',

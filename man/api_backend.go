@@ -440,12 +440,12 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockN
 	}
 
 	if originElectNodes == nil {
-		errors.New("获取初选拓扑图结构为nil")
-		return nil, err
+
+		return nil, errors.New("获取初选拓扑图结构为nil")
 	}
 	if 0 == len(originElectNodes.ElectList) {
-		errors.New("get获取初选列表为空")
-		return nil, err
+
+		return nil, errors.New("get获取初选列表为空")
 	}
 
 	RewardMap, err := b.calcFutureBlkReward(state, latestElectNum+1, bcInterval, common.RoleMiner, originElectNodes)
@@ -480,16 +480,13 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockN
 		ValidatorRewardList = append(ValidatorRewardList, obj)
 	}
 	allReward.Validator = ValidatorRewardList
-	interestReward := interest.New(state)
-	if nil == interestReward {
+	interestCalcMap, err := b.calcFutureInterest(state, latestElectNum+1, bcInterval)
+	if nil != err {
 		return nil, err
 	}
-	interestCalcMap := interestReward.GetReward(state, latestElectNum+1)
-	interestNum := bcInterval.GetReElectionInterval() - 3
 	interestRewardList := make([]InterestReward, 0)
 	for k, v := range interestCalcMap {
-		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
-		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: allInterest}
+		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
 
 		for _, d := range depositNodes {
 			if d.Address.Equal(k) {
@@ -506,6 +503,23 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDB, number rpc.BlockN
 	}
 	allReward.Interest = interestRewardList
 	return allReward, nil
+}
+
+func (b *ManAPIBackend) calcFutureInterest(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]*big.Int, error) {
+	interestReward := interest.New(state)
+	if nil == interestReward {
+		return nil, errors.New("interest创建失败")
+	}
+	interestCalcMap := make(map[common.Address]*big.Int)
+	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
+
+		if bcInterval.IsBroadcastNumber(num) {
+			continue
+		}
+		retMap := interestReward.GetReward(state, latestElectNum+1)
+		util.MergeReward(interestCalcMap, retMap)
+	}
+	return interestCalcMap, nil
 }
 
 func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDB, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {

@@ -6,7 +6,6 @@ package man
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
@@ -20740,7 +20739,7 @@ type InterestCfg struct {
 }
 
 func TestManAPIBackend_GetFutureRewards(t *testing.T) {
-	log.InitLog(5)
+	log.InitLog(3)
 	//man := fakeManNew(0)
 	APIBackend := &ManAPIBackend{&Matrix{}, nil}
 	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
@@ -20789,12 +20788,12 @@ func TestManAPIBackend_GetFutureRewards(t *testing.T) {
 		return inteval1, nil
 	})
 	monkey.Patch(ca.GetElectedByHeight, func(height *big.Int) ([]vm.DepositDetail, error) {
-		fmt.Println("use monkey  ca.GetElectedByHeight")
+		//fmt.Println("use monkey  ca.GetElectedByHeight")
 
 		return deposit, nil
 	})
 	monkey.Patch(matrixstate.GetElectGraph, func(st matrixstate.StateDB) (*mc.ElectGraph, error) {
-		fmt.Println("use monkey  ca.GetElectGraph")
+		//fmt.Println("use monkey  ca.GetElectGraph")
 
 		return &mc.ElectGraph{Number: uint64(len(elect)), ElectList: elect}, nil
 	})
@@ -20821,7 +20820,7 @@ func TestManAPIBackend_GetFutureRewards(t *testing.T) {
 	}
 	matrixstate.SetBlkRewardCfg(state, brc)
 	matrixstate.SetInterestCalc(state, "1")
-	matrixstate.SetInterestCfg(state, &mc.InterestCfg{2, 1000000, 3600})
+	matrixstate.SetInterestCfg(state, &mc.InterestCfg{2, 8500, 1000000, 3600})
 	vip := make([]mc.VIPConfig, 0)
 	for _, v := range cfg.Vipcfg {
 		MinMoney, _ := strconv.ParseUint(v.MinMoney, 10, 64)
@@ -20857,7 +20856,7 @@ func TestManAPIBackend_GetFutureRewards(t *testing.T) {
 					findflag = true
 					break
 				}
-				//log.Info("预期奖励", "账户", v0.Address.Hex(), "计算的金额", reelectRward, "获取到的金额", v1.Reward)
+				log.Info("预期奖励", "账户", v0.Address.Hex(), "计算的金额", reelectRward, "获取到的金额", v1.Reward)
 				break
 			}
 
@@ -20899,7 +20898,6 @@ func TestManAPIBackend_GetFutureRewards(t *testing.T) {
 				if 0 == interest.Cmp(v1.Reward) {
 					findflag = true
 				}
-				log.Error("利息计算错误", "interest", interest, "reward", v1.Reward)
 				break
 			}
 
@@ -20909,7 +20907,7 @@ func TestManAPIBackend_GetFutureRewards(t *testing.T) {
 		}
 	}
 
-	log.Info("api", "data", out)
+	//log.Info("api", "data", out)
 }
 func TestManAPIBackend_GetFutureRewards2(t *testing.T) {
 	log.InitLog(3)
@@ -20961,12 +20959,12 @@ func TestManAPIBackend_GetFutureRewards2(t *testing.T) {
 		return inteval1, nil
 	})
 	monkey.Patch(ca.GetElectedByHeight, func(height *big.Int) ([]vm.DepositDetail, error) {
-		fmt.Println("use monkey  ca.GetElectedByHeight")
+		//fmt.Println("use monkey  ca.GetElectedByHeight")
 
 		return deposit, nil
 	})
 	monkey.Patch(matrixstate.GetElectGraph, func(st matrixstate.StateDB) (*mc.ElectGraph, error) {
-		fmt.Println("use monkey  ca.GetElectGraph")
+		//fmt.Println("use monkey  ca.GetElectGraph")
 
 		return &mc.ElectGraph{Number: uint64(len(elect)), ElectList: elect}, nil
 	})
@@ -20993,7 +20991,7 @@ func TestManAPIBackend_GetFutureRewards2(t *testing.T) {
 	}
 	matrixstate.SetBlkRewardCfg(state, brc)
 	matrixstate.SetInterestCalc(state, "1")
-	matrixstate.SetInterestCfg(state, &mc.InterestCfg{2, 1000000, 3600})
+	matrixstate.SetInterestCfg(state, &mc.InterestCfg{2, 8500, 1000000, 3600})
 	vip := make([]mc.VIPConfig, 0)
 	for _, v := range cfg.Vipcfg {
 		MinMoney, _ := strconv.ParseUint(v.MinMoney, 10, 64)

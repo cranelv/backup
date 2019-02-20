@@ -647,7 +647,59 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 
 	return read, state.Error()
 }
+func (s *PublicBlockChainAPI) GetInterest(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address, _ := base58.Base58DecodeToAddress(strAddress)
 
+	read, _ := depoistInfo.GetInterest(state, address)
+
+	return (*hexutil.Big)(read), state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetSlash(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address, _ := base58.Base58DecodeToAddress(strAddress)
+
+	read, _ := depoistInfo.GetSlash(state, address)
+
+	return (*hexutil.Big)(read), state.Error()
+}
+
+type DepositDetail struct {
+	Address     string
+	SignAddress string
+	Deposit     *big.Int
+	WithdrawH   *big.Int
+	OnlineTime  *big.Int
+	Role        *big.Int
+}
+
+func (s *PublicBlockChainAPI) GetDeposit(ctx context.Context, blockNr rpc.BlockNumber) ([]DepositDetail, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+
+	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetInt64(int64(blockNr)))
+	if nil != err {
+		return nil, err
+	}
+	if 0 == len(depositNodes) {
+		return nil, err
+	}
+	depositNodesOutput := make([]DepositDetail, 0)
+	for _, v := range depositNodes {
+		tmp := DepositDetail{Address: base58.Base58EncodeToString("MAN", v.Address), SignAddress: base58.Base58EncodeToString("MAN", v.SignAddress), Deposit: v.Deposit, WithdrawH: v.WithdrawH, OnlineTime: v.OnlineTime, Role: v.Role}
+		depositNodesOutput = append(depositNodesOutput, tmp)
+	}
+	return depositNodesOutput, state.Error()
+}
 func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
 	state, _, err := api.b.StateAndHeaderByNumber(ctx, number)
 	if state == nil || err != nil {
