@@ -16,6 +16,7 @@ PullImages:
 #     -date 
 #    when: on_failure
     - cd /home/shang/ci/go-matrix
+    - git checkout master
     - git fetch --all 
     - git reset --hard origin/master
     - make clean
