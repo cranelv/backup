@@ -1196,7 +1196,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs{
 				for _,hr := range q.resultCache[index].Header.Roots{
 					if hr.Cointyp == cointx.CurrencyName{
-						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(types.TxHashList(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 0error")
 							return
 						}
@@ -1210,7 +1210,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == cointx.CurrencyName {
-						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(types.TxHashList(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 02error")
 							return
 						}
@@ -1240,7 +1240,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			for _,cointx := range bodyBlock.Transactionsipfs {
 				for _, hr := range q.resultCache[index].Header.Roots {
 					if hr.Cointyp == cointx.CurrencyName {
-						if types.DeriveShaHash(cointx.Transactions.TxHashs) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
+						if types.DeriveShaHash(types.TxHashList(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(bodyBlock.Unclesipfs) != q.resultCache[index].Header.UncleHash {
 							log.Warn("recvIpfsBody deal tx hash 2error")
 							return
 						}

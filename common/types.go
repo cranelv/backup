@@ -676,6 +676,8 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinType string
-	PackNum uint64
+	CoinType string     //name
+	PackNum uint64      //打包数量限制 如果为0则不打包
+	CoinUnit *big.Int   //单位
+	CoinTotal *big.Int  //总发行量
 }

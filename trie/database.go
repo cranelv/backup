@@ -270,7 +270,7 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	start := time.Now()
+	//start := time.Now()
 	batch := db.diskdb.NewBatch()
 
 	// Move all of the accumulated preimages into a write batch
@@ -288,7 +288,7 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 		}
 	}
 	// Move the trie itself into the batch, flushing if enough data is accumulated
-	nodes, storage := len(db.nodes), db.nodesSize+db.preimagesSize
+	//nodes, storage := len(db.nodes), db.nodesSize+db.preimagesSize
 	if err := db.commit(node, batch); err != nil {
 		log.Error("Failed to commit trie from trie database", "err", err)
 		db.lock.RUnlock()
@@ -311,12 +311,12 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 
 	db.uncache(node)
 
-	logger := log.Info
-	if !report {
-		logger = log.Debug
-	}
-	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
-		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
+	//logger := log.Info
+	//if !report {
+	//	logger = log.Debug
+	//}
+	//logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
+	//	"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
 	// Reset the garbage collection statistics
 	db.gcnodes, db.gcsize, db.gctime = 0, 0, 0

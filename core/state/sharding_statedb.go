@@ -709,12 +709,14 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 		for i, croot := range shard.retcoinRoot {
 			if croot.Cointyp == cm.Cointyp {
 				shard.retcoinRoot[i].Root = bshash
+				shard.retcoinRoot[i].TxHash = types.EmptyRootHash
+				shard.retcoinRoot[i].ReceiptHash = types.EmptyRootHash
 				isex = true
 				break
 			}
 		}
 		if !isex {
-			shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash})
+			shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash,TxHash:types.EmptyRootHash,ReceiptHash:types.EmptyRootHash})
 		}
 		coinbytes = append(coinbytes, common.Coinbyte{Root: bshash, Byte256: root256})
 	}
@@ -741,12 +743,14 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string, deleteEm
 			for i, croot := range shard.retcoinRoot {
 				if croot.Cointyp == cm.Cointyp {
 					shard.retcoinRoot[i].Root = bshash
+					shard.retcoinRoot[i].TxHash = types.EmptyRootHash
+					shard.retcoinRoot[i].ReceiptHash = types.EmptyRootHash
 					isex = true
 					break
 				}
 			}
 			if !isex {
-				shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash})
+				shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash,TxHash:types.EmptyRootHash,ReceiptHash:types.EmptyRootHash})
 			}
 		}
 	}
@@ -799,12 +803,14 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 		for i, croot := range shard.retcoinRoot {
 			if croot.Cointyp == cm.Cointyp {
 				shard.retcoinRoot[i].Root = bshash
+				shard.retcoinRoot[i].TxHash = types.EmptyRootHash
+				shard.retcoinRoot[i].ReceiptHash = types.EmptyRootHash
 				isex = true
 				break
 			}
 		}
 		if !isex {
-			shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash})
+			shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash,TxHash:types.EmptyRootHash,ReceiptHash:types.EmptyRootHash})
 		}
 		coinbytes = append(coinbytes, common.Coinbyte{Root: bshash, Byte256: roots})
 	}

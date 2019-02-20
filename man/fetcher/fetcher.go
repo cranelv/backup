@@ -555,6 +555,9 @@ func (f *Fetcher) loop() {
 						isok := true
 						for _, coinHeader := range announce.header.Roots {
 							txnHash := tmpmap[coinHeader.Cointyp]
+							if txnHash == (common.Hash{}) {
+								txnHash = types.DeriveShaHash([]common.Hash{})
+							}
 							uncleHash := types.CalcUncleHash(task.uncles[i])
 							log.Trace("download fetch bodyFilter map", "hash", hash, "Cointyp", coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin, "blockNum", announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
