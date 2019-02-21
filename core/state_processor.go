@@ -202,7 +202,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	}
 	normalTxindex := 0
 	for _, tx := range txs {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
 			tmpstxs = append(tmpstxs, tx)
 			tmpstxs = append(tmpstxs, stxs...)
@@ -218,7 +219,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	waitG.Wait()
 	from := make([]common.Address, 0)
 	for i, tx := range txs[normalTxindex:] {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
 			tmpstxs = append(tmpstxs, tx)
 			tmpstxs = append(tmpstxs, stxs...)

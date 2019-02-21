@@ -283,7 +283,8 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDB) bool{
 	}
 
 	//奖励交易账户不匹配
-	if tx.GetMatrixType() == common.ExtraUnGasTxType{
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		isOK := false
 		for _,account := range common.RewardAccounts{
 			if tx.From().Equal(account){
