@@ -602,6 +602,14 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDBManage, num u
 
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
+	if uint64(g.BlkRewardCfg.MinerAttenuationRate) > RewardFullRate {
+		return errors.Errorf("矿工衰减比例配置错误")
+	}
+
+	if uint64(g.BlkRewardCfg.ValidatorAttenuationRate) > RewardFullRate {
+		return errors.Errorf("验证者衰减比例配置错误")
+	}
+
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
 	return matrixstate.SetBlkRewardCfg(state, g.BlkRewardCfg)
 }
@@ -667,6 +675,9 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDBManage, num ui
 			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
+	}
+	if uint64(g.InterestCfg.AttenuationRate) > RewardFullRate {
+		return errors.Errorf("利息衰减比例配置错误")
 	}
 	log.Info("Geneis", "InterestCfg", g.InterestCfg)
 	return matrixstate.SetInterestCfg(state, g.InterestCfg)

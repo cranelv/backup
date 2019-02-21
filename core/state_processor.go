@@ -88,60 +88,65 @@ func (env *StateProcessor) reverse(s []common.RewarTx) []common.RewarTx {
 func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
 	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
-		log.Error("work", "获取广播周期失败", err)
+		log.Error("奖励", "获取广播周期失败", err)
 		return nil
 	}
 	if bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		return nil
 	}
-	blkReward := blkreward.New(p.bc, st)
+	preState, err := p.bc.StateAtBlockHash(header.ParentHash)
+	if err != nil {
+		log.Error("奖励", "获取前一个状态错误", err)
+		return nil
+	}
+	blkReward := blkreward.New(p.bc, st, preState)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(header.Number.Uint64(), header.ParentHash)
 		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, header.Number.Uint64())
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
 		}
 	}
 
 	allGas := p.getGas(st, new(big.Int).SetUint64(usedGas))
-	txsReward := txsreward.New(p.bc, st)
+	txsReward := txsreward.New(p.bc, st, preState)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 		}
 	}
 
-	lottery := lottery.New(p.bc, st, p.random)
+	lottery := lottery.New(p.bc, st, p.random, preState)
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap, RewardTyp: common.RewardLotteryType})
 		}
 		lottery.LotterySaveAccount(account, header.VrfValue)
 	}
 
 	////todo 利息
-	interestReward := interest.New(st)
+	interestReward := interest.New(st, preState)
 
 	if nil == interestReward {
 		return p.reverse(rewardList)
 	}
-	interestCalcMap := interestReward.CalcInterest(st, header.Number.Uint64())
+	interestReward.GetReward(st, header.Number.Uint64())
 
-	slash := slash.New(p.bc, st)
+	slash := slash.New(p.bc, st, preState)
 	if nil != slash {
-		slash.CalcSlash(st, header.Number.Uint64(), upTime, interestCalcMap)
+		slash.CalcSlash(st, header.Number.Uint64(), upTime)
 	}
 	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
 	return p.reverse(rewardList)
 }
@@ -329,7 +334,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-		if err != nil{
+		if err != nil {
 			return nil, 0, err
 		}
 		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)

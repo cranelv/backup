@@ -425,7 +425,7 @@ type AllReward struct {
 
 func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.BlockNumber) (interface{}, error) {
 
-	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number))
+	bcInterval, err := manparams.GetBCIntervalInfoByNumber(uint64(number - 1))
 	if nil != err {
 		return nil, err
 	}
@@ -486,16 +486,13 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.
 		ValidatorRewardList = append(ValidatorRewardList, obj)
 	}
 	allReward.Validator = ValidatorRewardList
-	interestReward := interest.New(state)
-	if nil == interestReward {
+	interestCalcMap, err := b.calcFutureInterest(state, latestElectNum+1, bcInterval)
+	if nil != err {
 		return nil, err
 	}
-	interestCalcMap := interestReward.GetInterest(state, latestElectNum)
-	interestNum := bcInterval.GetReElectionInterval() / interestReward.CalcInterval
 	interestRewardList := make([]InterestReward, 0)
 	for k, v := range interestCalcMap {
-		allInterest := new(big.Int).Mul(v, new(big.Int).SetUint64(interestNum))
-		obj := InterestReward{Account: base58.Base58EncodeToString(params.MAN_COIN, k), Reward: allInterest}
+		obj := InterestReward{Account: base58.Base58EncodeToString("MAN", k), Reward: v}
 
 		for _, d := range depositNodes {
 			if d.Address.Equal(k) {
@@ -514,22 +511,41 @@ func (b *ManAPIBackend) GetFutureRewards(state *state.StateDBManage, number rpc.
 	return allReward, nil
 }
 
+func (b *ManAPIBackend) calcFutureInterest(state *state.StateDBManage, latestElectNum uint64, bcInterval *mc.BCIntervalInfo) (map[common.Address]*big.Int, error) {
+	interestReward := interest.New(state, state)
+	if nil == interestReward {
+		return nil, errors.New("interest创建失败")
+	}
+	interestCalcMap := make(map[common.Address]*big.Int)
+	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
+
+		if bcInterval.IsBroadcastNumber(num) {
+			continue
+		}
+		retMap := interestReward.GetReward(state, latestElectNum+1)
+		util.MergeReward(interestCalcMap, retMap)
+	}
+	return interestCalcMap, nil
+}
 func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
 
-	br := blkreward.New(b.man.BlockChain(), state)
+	br := blkreward.New(b.man.BlockChain(), state, state)
 
 	RewardMap := make(map[common.Address]*big.Int)
 
 	var rewardAddr common.Address
 	var rewardIn *big.Int
 	var halfNum uint64
+	var attenuationRate uint16
 	if roleType == common.RoleMiner {
-		halfNum = br.GetRewardCfg().RewardMount.MinerHalf
+		halfNum = br.GetRewardCfg().RewardMount.MinerAttenuationNum
+		attenuationRate = br.GetRewardCfg().RewardMount.MinerAttenuationRate
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.MinerMount), util.ManPrice)
 		rewardAddr = common.BlkMinerRewardAddress
 	} else {
-		halfNum = br.GetRewardCfg().RewardMount.ValidatorHalf
+		halfNum = br.GetRewardCfg().RewardMount.ValidatorAttenuationNum
+		attenuationRate = br.GetRewardCfg().RewardMount.ValidatorAttenuationRate
 		rewardIn = new(big.Int).Mul(new(big.Int).SetUint64(br.GetRewardCfg().RewardMount.ValidatorMount), util.ManPrice)
 		rewardAddr = common.BlkValidatorRewardAddress
 	}
@@ -550,7 +566,7 @@ func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestEl
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		rewardOut := br.CalcRewardMountByNumber(rewardIn, uint64(num), halfNum, rewardAddr)
+		rewardOut := util.CalcRewardMountByNumber(state, rewardIn, uint64(num), halfNum, rewardAddr, attenuationRate)
 
 		var roleOutAmount, electedMount *big.Int
 		if roleType == common.RoleMiner {

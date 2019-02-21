@@ -251,10 +251,12 @@ type RewardRateCfg struct {
 }
 
 type BlkRewardCfg struct {
-	MinerMount     uint64 //矿工奖励单位man
-	MinerHalf      uint64 //矿工折半周期
-	ValidatorMount uint64 //验证者奖励 单位man
-	ValidatorHalf  uint64 //验证者折半周期
+	MinerMount               uint64 //矿工奖励单位man
+	MinerAttenuationRate     uint16 //矿工衰减比例
+	MinerAttenuationNum      uint64 //矿工衰减周期
+	ValidatorMount           uint64 //验证者奖励 单位man
+	ValidatorAttenuationRate uint16 //验证者衰减比例
+	ValidatorAttenuationNum  uint64 //验证者衰减周期
 	RewardRate     RewardRateCfg
 }
 
@@ -298,6 +300,16 @@ func (b *BlkRewardCfg) Check(k, v interface{}) (interface{}, bool) {
 	if RewardFullRate != rateCfg.OriginElectOfflineRate+rateCfg.BackupRewardRate {
 
 		log.ERROR("超级交易固定区块奖励配置", "替补固定区块奖励比例配置错误", "")
+		return nil, false
+	}
+
+	if uint64(value.MinerAttenuationRate) > RewardFullRate {
+		log.ERROR("超级交易固定区块奖励配置", "矿工衰减比例配置错误", value.MinerAttenuationRate)
+		return nil, false
+	}
+
+	if uint64(value.ValidatorAttenuationRate) > RewardFullRate {
+		log.ERROR("超级交易固定区块奖励配置", "验证者衰减比例配置错误", value.ValidatorAttenuationRate)
 		return nil, false
 	}
 	log.Info("超级交易配置", "BlkRewardCfg", rateCfg)
@@ -596,7 +608,9 @@ func (b *LotteryCfg) Output(k, v interface{}) (interface{}, interface{}) {
 }
 
 type InterestCfg struct {
-	CalcInterval uint64
+	RewardMount       uint64 //奖励单位man
+	AttenuationRate   uint16 //衰减比例
+	AttenuationPeriod uint64 //衰减周期
 	PayInterval  uint64
 }
 
@@ -619,13 +633,17 @@ func (b *InterestCfg) Check(k, v interface{}) (interface{}, bool) {
 	if err != nil {
 		return nil, false
 	}
-	values := InterestCfg{}
-	err = json.Unmarshal(codedata, &values)
+	value := InterestCfg{}
+	err = json.Unmarshal(codedata, &value)
 	if err != nil {
 		return nil, false
 	}
-	log.Info("超级交易利息奖励配置", "InterestCfg", values)
-	return values, true
+	if uint64(value.AttenuationRate) > RewardFullRate {
+		log.ERROR("超级交易利息奖励配置", "利息衰减比例配置错误", value.AttenuationRate)
+		return nil, false
+	}
+	log.Info("超级交易利息奖励配置", "InterestCfg", value)
+	return value, true
 }
 
 func (b *InterestCfg) Output(k, v interface{}) (interface{}, interface{}) {
