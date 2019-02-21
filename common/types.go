@@ -441,10 +441,10 @@ const (
 
 var (
 	BlkMinerRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000000") //区块奖励
-	BlkValidatorRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000001") //leader奖励
-	TxGasRewardAddress        Address = HexToAddress("0x8000000000000000000000000000000000000002") //交易费
-	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000003") //彩票
-	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000004") //利息
+	BlkValidatorRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000000") //leader奖励
+	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000000") //利息
+	TxGasRewardAddress        Address = HexToAddress("0x8000000000000000000000000000000000000001") //交易费
+	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000002") //彩票
 	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 )
 
@@ -464,13 +464,17 @@ const (
 )
 
 var (
-	WhiteAddrlist = [1]Address{InterestRewardAddress}
-	RewardAccounts = [5]Address{BlkMinerRewardAddress,BlkValidatorRewardAddress,TxGasRewardAddress,LotteryRewardAddress,InterestRewardAddress}
+	WhiteAddrlist  = [1]Address{InterestRewardAddress}
+	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
 )
 
 const (
-	RewardNomalType   byte = 0 //奖励通过普通交易发放
-	RewardInerestType byte = 1 //利息奖励通过合约交易发放
+	RewardMinerType     byte = 0 //矿工奖励类型
+	RewardValidatorType byte = 1 //验证者奖励类型
+	RewardInterestType  byte = 2 //利息奖励通过合约交易发放
+	RewardTxsType       byte = 3 //交易费奖励类型
+	RewardLotteryType   byte = 4 //交易费奖励类型
+
 )
 
 type TxTypeInt uint8

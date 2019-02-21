@@ -246,3 +246,84 @@ func getBalance(st StateDB, address common.Address) (common.BalanceType, error) 
 	}
 	return balance, nil
 }
+
+func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
+	if nil == st {
+		log.ERROR(PackageName, "状态树是空", "")
+		return nil
+	}
+
+	ValidatorBalance, _ := getBalance(st, common.BlkMinerRewardAddress)
+	minerBalance, _ := getBalance(st, common.BlkValidatorRewardAddress)
+	interestBalance, _ := getBalance(st, common.InterestRewardAddress)
+	lotteryBalance, _ := getBalance(st, common.LotteryRewardAddress)
+	allValidator := new(big.Int).SetUint64(0)
+	allMiner := new(big.Int).SetUint64(0)
+	allInterest := new(big.Int).SetUint64(0)
+	allLottery := new(big.Int).SetUint64(0)
+	for _, v := range rewardIn {
+		if v.Fromaddr == common.BlkMinerRewardAddress {
+			for _, Amount := range v.To_Amont {
+				allMiner = new(big.Int).Add(allMiner, Amount)
+			}
+		}
+		if v.Fromaddr == common.BlkValidatorRewardAddress {
+			for _, Amount := range v.To_Amont {
+				allValidator = new(big.Int).Add(allValidator, Amount)
+			}
+		}
+
+		if v.Fromaddr == common.InterestRewardAddress {
+			for _, Amount := range v.To_Amont {
+				allInterest = new(big.Int).Add(allInterest, Amount)
+			}
+		}
+		if v.Fromaddr == common.LotteryRewardAddress {
+			for _, Amount := range v.To_Amont {
+				allLottery = new(big.Int).Add(allLottery, Amount)
+			}
+		}
+	}
+
+	rewardOut := make([]common.RewarTx, 0)
+
+	if allMiner.Cmp(minerBalance[common.MainAccount].Balance) >= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardMinerType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+
+	}
+	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) >= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardValidatorType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	}
+	if allInterest.Cmp(interestBalance[common.MainAccount].Balance) >= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardInterestType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	}
+
+	for _, v := range rewardIn {
+		if v.RewardTyp == common.RewardTxsType {
+			rewardOut = append(rewardOut, v)
+		}
+	}
+
+	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) >= 0 {
+		for _, v := range rewardIn {
+			//通过类型判断
+			if v.RewardTyp == common.RewardLotteryType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	}
+
+	return rewardOut
+}
