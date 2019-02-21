@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/MatrixAINetwork/go-matrix/core/state"
+	"github.com/MatrixAINetwork/go-matrix/mandb"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/log"
 )
@@ -18672,17 +18675,6 @@ func TestCalcStock1Rate(t *testing.T) {
 		deposit[tmp.Address] = tmp1
 	}
 
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 9000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 120000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
 	reward := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))
 	result := CalcStockRate(reward, deposit)
 	for _, v := range rewardTestFinal {
@@ -18719,17 +18711,6 @@ func TestCalcStock2Rate(t *testing.T) {
 		deposit[tmp.Address] = tmp1
 	}
 
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 9000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 120000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
-	//deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = DepositInfo{new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18)), 30000}
 	reward := new(big.Int).Mul(big.NewInt(1), big.NewInt(1e18))
 	result := CalcStockRate(reward, deposit)
 	for _, v := range rewardTestFinal {
@@ -18745,101 +18726,6 @@ func TestCalcStock2Rate(t *testing.T) {
 		}
 	}
 }
-
-//func TestCalcDepositRate1(t *testing.T) {
-//	log.InitLog(3)
-//	deposit := make(map[common.Address]*big.Int, 0)
-//
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = new(big.Int).Mul(big.NewInt(19779005), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = new(big.Int).Mul(big.NewInt(3053790), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = new(big.Int).Mul(big.NewInt(74399986), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = new(big.Int).Mul(big.NewInt(49997244), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = new(big.Int).Mul(big.NewInt(47987415), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = new(big.Int).Mul(big.NewInt(90463177), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = new(big.Int).Mul(big.NewInt(60980567), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = new(big.Int).Mul(big.NewInt(61760463), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = new(big.Int).Mul(big.NewInt(85935637), big.NewInt(-1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = new(big.Int).Mul(big.NewInt(80540888), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = new(big.Int).Mul(big.NewInt(57666385), big.NewInt(1e18))
-//	reward := new(big.Int).Mul(big.NewInt(698745832334794), big.NewInt(1e8))
-//	CalcDepositRate(reward, deposit)
-//}
-//
-//func TestCalcDepositRate2(t *testing.T) {
-//	log.InitLog(3)
-//	deposit := make(map[common.Address]*big.Int, 0)
-//
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e17))
-//	reward := new(big.Int).Mul(big.NewInt(698745832334794), big.NewInt(1e8))
-//	CalcDepositRate(reward, deposit)
-//}
-//
-//func TestCalcDepositRate3(t *testing.T) {
-//	log.InitLog(3)
-//	deposit := make(map[common.Address]*big.Int, 0)
-//
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = big.NewInt(0)
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = big.NewInt(0)
-//	reward := new(big.Int).Mul(big.NewInt(698745832334794), big.NewInt(1e8))
-//	CalcDepositRate(reward, deposit)
-//}
-//
-//func TestCalcDepositRate4(t *testing.T) {
-//	log.InitLog(3)
-//	deposit := make(map[common.Address]*big.Int, 0)
-//
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000000")] = new(big.Int).Mul(big.NewInt(19779005), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = new(big.Int).Mul(big.NewInt(3053790), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = new(big.Int).Mul(big.NewInt(74399986), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = new(big.Int).Mul(big.NewInt(49997244), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = new(big.Int).Mul(big.NewInt(47987415), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = new(big.Int).Mul(big.NewInt(90463177), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = new(big.Int).Mul(big.NewInt(60980567), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = new(big.Int).Mul(big.NewInt(61760463), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = new(big.Int).Mul(big.NewInt(85935637), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = new(big.Int).Mul(big.NewInt(80540888), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = new(big.Int).Mul(big.NewInt(57666385), big.NewInt(1e18))
-//	reward := new(big.Int).Mul(big.NewInt(1), big.NewInt(1e7))
-//	CalcDepositRate(reward, deposit)
-//}
-//
-//func TestCalcDepositRate5(t *testing.T) {
-//	log.InitLog(3)
-//	deposit := make(map[common.Address]*big.Int, 0)
-//
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000b")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000001")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000002")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000003")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000004")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000005")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000006")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000007")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000008")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x0000000000000000000000000000000000000009")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	deposit[common.HexToAddress("0x000000000000000000000000000000000000000a")] = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e18))
-//	reward := new(big.Int).Mul(big.NewInt(1), big.NewInt(13986000000000000*0.6))
-//	CalcDepositRate(reward, deposit)
-//}
 
 func TestCalcRewardMount(t *testing.T) {
 	type args struct {
@@ -18930,6 +18816,63 @@ func TestCalcRewardSide(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := CalcRewardMount(tt.args.blockReward, tt.args.n, tt.args.x); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CalcRewardMount() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAccumulator(t *testing.T) {
+	type args struct {
+		st       StateDB
+		rewardIn []common.RewarTx
+	}
+	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+
+	rewardIn := make([]common.RewarTx, 0)
+	minersRewardMap := make(map[common.Address]*big.Int)
+	minersRewardMap[common.HexToAddress("01")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("02")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("03")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
+	validaotrRewardMap := make(map[common.Address]*big.Int)
+	validaotrRewardMap[common.HexToAddress("11")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("12")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("13")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("14")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("15")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("16")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("17")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("18")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("19")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("1A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardValidatorType})
+
+	interestRewardMap := make(map[common.Address]*big.Int)
+	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("22")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("23")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("24")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("25")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("26")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("27")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("27 Discarded propagated block,")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+
+	tests := []struct {
+		name string
+		args args
+		want []common.RewarTx
+	}{
+		{name: "test", args: args{state, rewardIn}, want: rewardIn},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Accumulator(tt.args.st, tt.args.rewardIn); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Accumulator() = %v, want %v", got, tt.want)
 			}
 		})
 	}

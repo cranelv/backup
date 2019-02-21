@@ -248,11 +248,6 @@ func getBalance(st StateDB, address common.Address) (common.BalanceType, error) 
 }
 
 func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
-	if nil == st {
-		log.ERROR(PackageName, "状态树是空", "")
-		return nil
-	}
-
 	ValidatorBalance, _ := getBalance(st, common.BlkMinerRewardAddress)
 	minerBalance, _ := getBalance(st, common.BlkValidatorRewardAddress)
 	interestBalance, _ := getBalance(st, common.InterestRewardAddress)
@@ -287,7 +282,7 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 
 	rewardOut := make([]common.RewarTx, 0)
 
-	if allMiner.Cmp(minerBalance[common.MainAccount].Balance) >= 0 {
+	if allMiner.Cmp(minerBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			if v.RewardTyp == common.RewardMinerType {
 				rewardOut = append(rewardOut, v)
@@ -295,14 +290,14 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 		}
 
 	}
-	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) >= 0 {
+	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			if v.RewardTyp == common.RewardValidatorType {
 				rewardOut = append(rewardOut, v)
 			}
 		}
 	}
-	if allInterest.Cmp(interestBalance[common.MainAccount].Balance) >= 0 {
+	if allInterest.Cmp(interestBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			if v.RewardTyp == common.RewardInterestType {
 				rewardOut = append(rewardOut, v)
@@ -316,7 +311,7 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 		}
 	}
 
-	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) >= 0 {
+	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			//通过类型判断
 			if v.RewardTyp == common.RewardLotteryType {
