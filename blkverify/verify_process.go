@@ -361,7 +361,7 @@ func (p *Process) startReqVerifyCommon() {
 	req, err := p.reqCache.GetLeaderReq(p.leaderCache.Leader, p.leaderCache.ConsensusTurn)
 	if err != nil {
 		log.Debug(p.logExtraInfo(), "请求验证阶段,寻找leader的请求错误,继续等待请求", err,
-			"Leader", p.leaderCache.Leader.Hex(), "轮次", p.leaderCache.ConsensusTurn, "高度", p.number)
+			"Leader", p.leaderCache.Leader.Hex(), "轮次", p.leaderCache.ConsensusTurn.String(), "高度", p.number)
 		return
 	}
 

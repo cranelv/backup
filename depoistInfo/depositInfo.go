@@ -15,6 +15,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rpc"
 	"github.com/pkg/errors"
+	"reflect"
 )
 
 type manBackend interface {
@@ -50,7 +51,7 @@ func SetOnlineTime(stateDB vm.StateDBManager, address common.Address, ot *big.In
 
 func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail, error) {
 	db, err := getDepositInfo(tm)
-	if err != nil || db == nil {
+	if err != nil {
 		return nil, err
 	}
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
@@ -69,7 +70,7 @@ func GetDepositList(tm *big.Int, getDeposit common.RoleType) ([]vm.DepositDetail
 
 func GetDepositAndWithDrawList(tm *big.Int) ([]vm.DepositDetail, error) {
 	db, err := getDepositInfo(tm)
-	if err != nil || db == nil {
+	if err != nil {
 		return nil, err
 	}
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
@@ -80,7 +81,7 @@ func GetDepositAndWithDrawList(tm *big.Int) ([]vm.DepositDetail, error) {
 
 func GetAllDeposit(tm *big.Int) ([]vm.DepositDetail, error) {
 	db, err := getDepositInfo(tm)
-	if err != nil || db == nil {
+	if err != nil {
 		return nil, err
 	}
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
@@ -100,10 +101,19 @@ func getDepositInfo(tm *big.Int) (db vm.StateDBManager, err error) {
 	//	return nil, err
 	//}
 	db, _, err = depositInfo.manApi.StateAndHeaderByNumber(c, h)
-	if db == nil {
-		return nil, errors.New("db is nill")
+	if err != nil {
+		return nil, err
 	}
-	return db, err
+
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	dbValue := reflect.ValueOf(db)
+	if dbValue.Kind() == reflect.Ptr && dbValue.IsNil() {
+		return nil, errors.New("db is nil")
+	}
+
+	return db, nil
 }
 
 func ResetSlash(stateDB vm.StateDBManager, address common.Address) error {
@@ -159,7 +169,7 @@ func AddDeposit(stateDB vm.StateDBManager, address common.Address) error {
 // 获取A0账户
 func GetDepositAccount(stateDB vm.StateDBManager, authAccount common.Address) common.Address {
 	if depositInfo.Contract == nil {
-		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0,params.MAN_COIN)
+		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0, params.MAN_COIN)
 	}
 	return depositInfo.MatrixDeposit.GetDepositAccount(depositInfo.Contract, stateDB, authAccount)
 }
@@ -167,7 +177,7 @@ func GetDepositAccount(stateDB vm.StateDBManager, authAccount common.Address) co
 // 获取A1账户
 func GetAuthAccount(stateDB vm.StateDBManager, depositAccount common.Address) common.Address {
 	if depositInfo.Contract == nil {
-		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0,params.MAN_COIN)
+		depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0, params.MAN_COIN)
 	}
 	return depositInfo.MatrixDeposit.GetAuthAccount(depositInfo.Contract, stateDB, depositAccount)
 }
