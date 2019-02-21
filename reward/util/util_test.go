@@ -18827,7 +18827,7 @@ func TestAccumulator(t *testing.T) {
 		rewardIn []common.RewarTx
 	}
 	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
-	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Exp(big.NewInt(100), big.NewInt(18), big.NewInt(0)))
 	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
 	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
 
@@ -18848,7 +18848,7 @@ func TestAccumulator(t *testing.T) {
 	validaotrRewardMap[common.HexToAddress("18")] = new(big.Int).SetUint64(1e18)
 	validaotrRewardMap[common.HexToAddress("19")] = new(big.Int).SetUint64(1e18)
 	validaotrRewardMap[common.HexToAddress("1A")] = new(big.Int).SetUint64(1e18)
-	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardValidatorType})
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validaotrRewardMap, RewardTyp: common.RewardValidatorType})
 
 	interestRewardMap := make(map[common.Address]*big.Int)
 	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
@@ -18858,10 +18858,184 @@ func TestAccumulator(t *testing.T) {
 	interestRewardMap[common.HexToAddress("25")] = new(big.Int).SetUint64(1e18)
 	interestRewardMap[common.HexToAddress("26")] = new(big.Int).SetUint64(1e18)
 	interestRewardMap[common.HexToAddress("27")] = new(big.Int).SetUint64(1e18)
-	interestRewardMap[common.HexToAddress("27 Discarded propagated block,")] = new(big.Int).SetUint64(1e18)
-	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
-	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("28")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("29")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("2A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInterestType})
 
+	txsRewardMap := make(map[common.Address]*big.Int)
+	txsRewardMap[common.HexToAddress("31")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("32")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("33")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("34")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("35")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("36")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("37")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("38")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("39")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("3A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+
+	lotteryMap := make(map[common.Address]*big.Int)
+
+	lotteryMap[common.HexToAddress("41")] = new(big.Int).SetUint64(6e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardLotteryType})
+	tests := []struct {
+		name string
+		args args
+		want []common.RewarTx
+	}{
+		{name: "test", args: args{state, rewardIn}, want: rewardIn},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Accumulator(tt.args.st, tt.args.rewardIn); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Accumulator() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAccumulatorNotEnough(t *testing.T) {
+	log.InitLog(3)
+	type args struct {
+		st       StateDB
+		rewardIn []common.RewarTx
+	}
+	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(22), ManPrice))
+	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+
+	rewardIn := make([]common.RewarTx, 0)
+	result := make([]common.RewarTx, 0)
+	minersRewardMap := make(map[common.Address]*big.Int)
+	minersRewardMap[common.HexToAddress("01")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("02")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("03")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
+	validaotrRewardMap := make(map[common.Address]*big.Int)
+	validaotrRewardMap[common.HexToAddress("11")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("12")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("13")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("14")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("15")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("16")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("17")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("18")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("19")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("1A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validaotrRewardMap, RewardTyp: common.RewardValidatorType})
+
+	interestRewardMap := make(map[common.Address]*big.Int)
+	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("22")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("23")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("24")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("25")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("26")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("27")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("28")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("29")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("2A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInterestType})
+
+	txsRewardMap := make(map[common.Address]*big.Int)
+	txsRewardMap[common.HexToAddress("31")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("32")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("33")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("34")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("35")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("36")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("37")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("38")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("39")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("3A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+	result = append(result, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+	lotteryMap := make(map[common.Address]*big.Int)
+
+	lotteryMap[common.HexToAddress("41")] = new(big.Int).SetUint64(6e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardLotteryType})
+	result = append(result, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardLotteryType})
+	tests := []struct {
+		name string
+		args args
+		want []common.RewarTx
+	}{
+		{name: "test", args: args{state, rewardIn}, want: result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Accumulator(tt.args.st, tt.args.rewardIn); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Accumulator() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAccumulatorSideEnough(t *testing.T) {
+	log.InitLog(3)
+	type args struct {
+		st       StateDB
+		rewardIn []common.RewarTx
+	}
+	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
+	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(23), ManPrice))
+	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+
+	rewardIn := make([]common.RewarTx, 0)
+	result := make([]common.RewarTx, 0)
+	minersRewardMap := make(map[common.Address]*big.Int)
+	minersRewardMap[common.HexToAddress("01")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("02")] = new(big.Int).SetUint64(1e18)
+	minersRewardMap[common.HexToAddress("03")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
+	validaotrRewardMap := make(map[common.Address]*big.Int)
+	validaotrRewardMap[common.HexToAddress("11")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("12")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("13")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("14")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("15")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("16")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("17")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("18")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("19")] = new(big.Int).SetUint64(1e18)
+	validaotrRewardMap[common.HexToAddress("1A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validaotrRewardMap, RewardTyp: common.RewardValidatorType})
+
+	interestRewardMap := make(map[common.Address]*big.Int)
+	interestRewardMap[common.HexToAddress("21")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("22")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("23")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("24")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("25")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("26")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("27")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("28")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("29")] = new(big.Int).SetUint64(1e18)
+	interestRewardMap[common.HexToAddress("2A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestRewardMap, RewardTyp: common.RewardInterestType})
+
+	txsRewardMap := make(map[common.Address]*big.Int)
+	txsRewardMap[common.HexToAddress("31")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("32")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("33")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("34")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("35")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("36")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("37")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("38")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("39")] = new(big.Int).SetUint64(1e18)
+	txsRewardMap[common.HexToAddress("3A")] = new(big.Int).SetUint64(1e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+	result = append(result, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+	lotteryMap := make(map[common.Address]*big.Int)
+
+	lotteryMap[common.HexToAddress("41")] = new(big.Int).SetUint64(6e18)
+	rewardIn = append(rewardIn, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardLotteryType})
+	result = append(result, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardLotteryType})
 	tests := []struct {
 		name string
 		args args

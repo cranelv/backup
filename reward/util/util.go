@@ -281,7 +281,7 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	}
 
 	rewardOut := make([]common.RewarTx, 0)
-
+	log.Info(PackageName, "all", allMiner)
 	if allMiner.Cmp(minerBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			if v.RewardTyp == common.RewardMinerType {
