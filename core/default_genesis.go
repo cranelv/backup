@@ -226,12 +226,6 @@ var (
         "MAN.2nRsUetjWAaYUizRkgBxGETimfUV2":{
             "balance":"10000000000000000000000000"
         },
-        "MAN.2nRsUetjWAaYUizRkgBxGETimfUW7":{
-            "balance":"5000000000000000000000000"
-        },
-        "MAN.2nRsUetjWAaYUizRkgBxGETimfUXN":{
-            "balance":"10000000000000000000000000"
-        },
         "MAN.4L95KmR3e8eUJvzwK2thft1eKaFYa":{
             "balance":"300000000000000000000000000"
         },
