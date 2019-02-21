@@ -562,7 +562,7 @@ func (f *Fetcher) loop() {
 							log.Trace("download fetch bodyFilter map", "hash", hash, "Cointyp", coinHeader.Cointyp, "announce", coinHeader.TxHash, "txnHash", txnHash, "origin id", announce.origin, "blockNum", announce.number)
 							if txnHash != coinHeader.TxHash || uncleHash != announce.header.UncleHash || announce.origin != task.peer {
 								log.Info("fetchr err", "fetch body txhash != header txhash.  txnHash", txnHash.String(), "header txHash", coinHeader.TxHash.String(),"uncleHash",uncleHash.String(),
-									"announce.header.UncleHash",announce.header.UncleHash,"announce.origin",announce.origin,"task.peer",task.peer)
+									"announce.header.UncleHash",announce.header.UncleHash.String(),"announce.origin",announce.origin,"task.peer",task.peer)
 								isok = false
 							}
 						}
