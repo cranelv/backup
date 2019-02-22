@@ -263,8 +263,11 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 		}
 
 		if v.Fromaddr == common.InterestRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allInterest = new(big.Int).Add(allInterest, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allInterest = new(big.Int).Add(allInterest, Amount)
+				}
+
 			}
 		}
 		if v.Fromaddr == common.LotteryRewardAddress {
