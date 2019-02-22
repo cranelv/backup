@@ -1780,7 +1780,8 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 
 	var from common.Address
 
-	if tx.GetMatrixType() == common.ExtraUnGasTxType {
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		from = tx.From()
 	} else {
 		from, _ = types.Sender(signer, tx)

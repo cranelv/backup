@@ -168,7 +168,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return st.CallRevocableNormalTx()
 		case common.ExtraRevertTxType:
 			return st.CallRevertNormalTx()
-		case common.ExtraUnGasTxType:
+		case common.ExtraUnGasMinerTxType,common.ExtraUnGasValidatorTxType,common.ExtraUnGasInterestTxType,common.ExtraUnGasTxsType,common.ExtraUnGasLotteryTxType:
 			return st.CallUnGasNormalTx()
 		case common.ExtraTimeTxType:
 			return st.CallTimeNormalTx()

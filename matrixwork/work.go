@@ -374,13 +374,30 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes,nil,nil,nil, extra, 0, common.ExtraUnGasTxType, 0,rewart.CoinType,0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes,nil,nil,nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0,rewart.CoinType,0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		txers = append(txers, tx)
 	}
 	return
 }
-
+func (env *Work) rewardTypetransformation(inputType byte) byte {
+	switch inputType {
+	case common.RewardMinerType:
+		return common.ExtraUnGasMinerTxType
+	case common.RewardValidatorType:
+		return common.ExtraUnGasValidatorTxType
+	case common.RewardInterestType:
+		return common.ExtraUnGasInterestTxType
+	case common.RewardTxsType:
+		return common.ExtraUnGasTxsType
+	case common.RewardLotteryType:
+		return common.ExtraUnGasLotteryTxType
+	default:
+		log.Error("work.go","rewardTypetransformation:Unknown reward type.",inputType)
+		panic("rewardTypetransformation:Unknown reward type.")
+		return common.ExtraUnGasMinerTxType
+	}
+}
 //Broadcast
 func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.CoinSelfTransaction) {
 	tim := env.header.Time.Uint64()

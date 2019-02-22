@@ -362,7 +362,8 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 	}
 
 	//奖励交易账户验证
-	if txtype == common.ExtraUnGasTxType{
+	if txtype == common.ExtraUnGasMinerTxType || txtype == common.ExtraUnGasValidatorTxType ||
+		txtype == common.ExtraUnGasInterestTxType || txtype == common.ExtraUnGasTxsType || txtype == common.ExtraUnGasLotteryTxType {
 		isOK := false
 		for _,account := range common.RewardAccounts{
 			if from.Equal(account){

@@ -390,7 +390,8 @@ type extTransaction struct {
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
 	etx := &extTransaction{Data: tx.data, Currency: tx.Currency}
-	if tx.GetMatrixType() == common.ExtraUnGasTxType {
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		etx.From = tx.From()
 	}
 	return rlp.Encode(w, etx)
@@ -404,7 +405,8 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	err = s.Decode(&extData)
 	tx.data = extData.Data
 	tx.Currency = extData.Currency
-	if tx.GetMatrixType() == common.ExtraUnGasTxType {
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		tx.SetFromLoad(extData.From)
 	}
 	if err == nil {

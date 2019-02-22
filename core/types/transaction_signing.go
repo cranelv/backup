@@ -36,7 +36,8 @@ func BatchSender(txser SelfTransactions) {
 		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
 	}
 	for _, tx := range txser {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 			continue
 		}
 		sig := NewEIP155Signer(tx.ChainId())
