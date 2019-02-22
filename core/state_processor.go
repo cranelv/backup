@@ -101,12 +101,19 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		log.Error("奖励", "获取前一个状态错误", err)
 		return nil
 	}
-	block := p.bc.GetBlockByHash(header.ParentHash)
-	ppreState, err := p.bc.StateAtBlockHash(block.ParentHash())
-	if err != nil {
-		log.Error("奖励", "获取前一个状态错误", err)
-		return nil
+
+	var ppreState *state.StateDBManage
+	if header.Number.Uint64() == 1 {
+		ppreState = preState
+	} else {
+		block := p.bc.GetBlockByHash(header.ParentHash)
+		ppreState, err = p.bc.StateAtBlockHash(block.ParentHash())
+		if err != nil {
+			log.Error("奖励", "获取前一个状态错误", err)
+			return nil
+		}
 	}
+
 	blkReward := blkreward.New(p.bc, st, preState, ppreState)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
@@ -144,7 +151,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	interestReward := interest.New(st, preState)
 
 	if nil == interestReward {
-		return p.reverse(rewardList)
+		return p.reverse(util.Accumulator(st, rewardList))
 	}
 	interestReward.CalcReward(st, header.Number.Uint64())
 

@@ -283,6 +283,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 			}
 		}
 
+	} else {
+		log.Error(PackageName, "矿工账户余额不足,余额", allMiner.String())
 	}
 	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
@@ -290,6 +292,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "验证者账户余额不足", allValidator.String())
 	}
 
 	for _, v := range rewardIn {
@@ -304,6 +308,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "利息账户余额不足", allInterest.String())
 	}
 
 	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) <= 0 {
@@ -313,6 +319,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "彩票账户余额不足", allLottery.String())
 	}
 
 	return rewardOut
