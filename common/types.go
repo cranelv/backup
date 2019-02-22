@@ -545,6 +545,9 @@ type CoinSharding struct {
 type SMakeCoin struct {
 	CoinName string
 	AddrAmount map[string]*hexutil.Big
+	CoinUnit *big.Int   //单位
+	PackNum  uint64
+	//CoinTotal *big.Int  //总发行量
 }
 
 

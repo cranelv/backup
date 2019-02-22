@@ -680,7 +680,36 @@ func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.Blo
 	}
 	return coinlist, nil
 }
-
+func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context,cointpy string, blockNr rpc.BlockNumber) ([]common.CoinConfig, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	bs := state.GetMatrixData(types.RlpHash(mc.MSCurrencyConfig))
+	var tmpcoinlist []common.CoinConfig
+	if len(bs) > 0 {
+		err := json.Unmarshal(bs, &tmpcoinlist)
+		if err != nil {
+			log.Trace("get matrix coin", "unmarshal err", err)
+			return nil, err
+		}
+	}
+	var coinlist []common.CoinConfig
+	for _,coin := range tmpcoinlist{
+		if !common.IsValidityCurrency(coin.CoinType){
+			continue
+		}
+		if cointpy == ""{
+			coinlist = append(coinlist,coin)
+			continue
+		}
+		if cointpy == coin.CoinType{
+			coinlist = append(coinlist,coin)
+			break
+		}
+	}
+	return coinlist, nil
+}
 func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*big.Int, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {

@@ -5788,6 +5788,12 @@ var methods = function () {
         params: 1,
         inputFormatter: [formatters.inputDefaultBlockNumberFormatter]
     });
+    var getMatrixCoinConfig = new Method({
+        name: 'getMatrixCoinConfig',
+        call: 'eth_getMatrixCoinConfig',
+        params: 2,
+        inputFormatter: [formatters.inputCurrencyFormatter,formatters.inputDefaultBlockNumberFormatter]
+    });
     return [
         getMatrixStateByNum,
         getBalance,
@@ -5829,6 +5835,7 @@ var methods = function () {
         getSelfLevel,
         importSuperBlock,
         getMatrixCoin,
+        getMatrixCoinConfig,
         getTopologyStatus
     ];
 };
