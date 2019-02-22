@@ -291,17 +291,18 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 			}
 		}
 	}
+
+	for _, v := range rewardIn {
+		if v.RewardTyp == common.RewardTxsType {
+			rewardOut = append(rewardOut, v)
+		}
+	}
+
 	if allInterest.Cmp(interestBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
 			if v.RewardTyp == common.RewardInterestType {
 				rewardOut = append(rewardOut, v)
 			}
-		}
-	}
-
-	for _, v := range rewardIn {
-		if v.RewardTyp == common.RewardTxsType {
-			rewardOut = append(rewardOut, v)
 		}
 	}
 
