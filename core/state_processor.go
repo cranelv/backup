@@ -138,7 +138,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if nil == interestReward {
 		return p.reverse(rewardList)
 	}
-	interestReward.GetReward(st, header.Number.Uint64())
+	interestReward.CalcReward(st, header.Number.Uint64())
 
 	slash := slash.New(p.bc, st, preState)
 	if nil != slash {
