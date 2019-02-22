@@ -14,7 +14,7 @@ type blkreward struct {
 	state       util.StateDB
 }
 
-func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Reward {
+func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB, ppreSt util.StateDB) reward.Reward {
 	data, err := matrixstate.GetBlkCalc(preSt)
 	if nil != err {
 		log.ERROR("固定区块奖励", "获取状态树配置错误")
@@ -42,7 +42,7 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 		return nil
 	}
 
-	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(preSt)
+	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(ppreSt)
 	if err != nil {
 		log.ERROR("固定区块奖励", "获取内部矿工账户数据失败", err)
 		return nil
