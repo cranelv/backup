@@ -7,7 +7,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 )
@@ -25,7 +24,7 @@ type BlockReward struct {
 	bcInterval         *mc.BCIntervalInfo
 }
 
-func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *BlockReward {
+func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB, interval *mc.BCIntervalInfo, foundationAccount common.Address, innerMinerAccounts []common.Address) *BlockReward {
 	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.MinerOutRate+rewardCfg.RewardMount.RewardRate.ElectedMinerRate+rewardCfg.RewardMount.RewardRate.FoundationMinerRate {
 		log.ERROR(PackageName, "矿工固定区块奖励比例配置错误", "")
 		return nil
@@ -37,24 +36,6 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB) *Blo
 
 	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.OriginElectOfflineRate+rewardCfg.RewardMount.RewardRate.BackupRewardRate {
 		log.ERROR(PackageName, "替补固定区块奖励比例配置错误", "")
-		return nil
-	}
-
-	interval, err := matrixstate.GetBroadcastInterval(st)
-	if err != nil {
-		log.ERROR(PackageName, "获取广播周期失败", err)
-		return nil
-	}
-
-	foundationAccount, err := matrixstate.GetFoundationAccount(st)
-	if err != nil {
-		log.ERROR(PackageName, "获取基金会账户数据失败", err)
-		return nil
-	}
-
-	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(st)
-	if err != nil {
-		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
 		return nil
 	}
 

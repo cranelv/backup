@@ -38,7 +38,23 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 		log.ERROR(PackageName, "获取状态树配置错误", err)
 		return nil
 	}
+	interval, err := matrixstate.GetBroadcastInterval(st)
+	if err != nil {
+		log.ERROR(PackageName, "获取广播周期失败", err)
+		return nil
+	}
 
+	foundationAccount, err := matrixstate.GetFoundationAccount(st)
+	if err != nil {
+		log.ERROR(PackageName, "获取基金会账户数据失败", err)
+		return nil
+	}
+
+	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(st)
+	if err != nil {
+		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
+		return nil
+	}
 	rate := TC.RewardRate
 
 	if util.RewardFullRate != TC.ValidatorsRate+TC.MinersRate {
@@ -48,5 +64,5 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 	cfg := cfg.New(&mc.BlkRewardCfg{RewardRate: rate}, nil)
 	cfg.ValidatorsRate = TC.ValidatorsRate
 	cfg.MinersRate = TC.MinersRate
-	return rewardexec.New(chain, cfg, st)
+	return rewardexec.New(chain, cfg, st, interval, foundationAccount, innerMinerAccounts)
 }
