@@ -252,13 +252,17 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	allLottery := new(big.Int).SetUint64(0)
 	for _, v := range rewardIn {
 		if v.Fromaddr == common.BlkMinerRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allMiner = new(big.Int).Add(allMiner, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allMiner = new(big.Int).Add(allMiner, Amount)
+				}
 			}
 		}
 		if v.Fromaddr == common.BlkValidatorRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allValidator = new(big.Int).Add(allValidator, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allValidator = new(big.Int).Add(allValidator, Amount)
+				}
 			}
 		}
 
@@ -271,8 +275,10 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 			}
 		}
 		if v.Fromaddr == common.LotteryRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allLottery = new(big.Int).Add(allLottery, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allLottery = new(big.Int).Add(allLottery, Amount)
+				}
 			}
 		}
 	}
