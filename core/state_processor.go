@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/MatrixAINetwork/go-matrix/reward/util"
+
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
@@ -154,7 +156,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if 0 != len(interestPayMap) {
 		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
-	return p.reverse(rewardList)
+	return p.reverse(util.Accumulator(st, rewardList))
 }
 
 func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error {
