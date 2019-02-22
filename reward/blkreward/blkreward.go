@@ -30,8 +30,26 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 		log.ERROR("固定区块奖励", "获取状态树配置错误", err)
 		return nil
 	}
+	interval, err := matrixstate.GetBroadcastInterval(st)
+	if err != nil {
+		log.ERROR("固定区块奖励", "获取广播周期失败", err)
+		return nil
+	}
+
+	foundationAccount, err := matrixstate.GetFoundationAccount(st)
+	if err != nil {
+		log.ERROR("固定区块奖励", "获取基金会账户数据失败", err)
+		return nil
+	}
+
+	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(st)
+	if err != nil {
+		log.ERROR("固定区块奖励", "获取内部矿工账户数据失败", err)
+		return nil
+	}
+
 	rewardCfg := cfg.New(RC, nil)
-	return rewardexec.New(chain, rewardCfg, st)
+	return rewardexec.New(chain, rewardCfg, st, interval, foundationAccount, innerMinerAccounts)
 }
 
 //func (tr *blkreward) CalcNodesRewards(blockReward *big.Int, Leader common.Address, header *types.Header) map[common.Address]*big.Int {
