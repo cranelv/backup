@@ -530,7 +530,7 @@ func (b *ManAPIBackend) calcFutureInterest(state *state.StateDBManage, latestEle
 func (b *ManAPIBackend) calcFutureBlkReward(state *state.StateDBManage, latestElectNum uint64, bcInterval *mc.BCIntervalInfo, roleType common.RoleType, originElectNodes *mc.ElectGraph) (map[common.Address]*big.Int, error) {
 	selected := selectedreward.SelectedReward{}
 
-	br := blkreward.New(b.man.BlockChain(), state, state)
+	br := blkreward.New(b.man.BlockChain(), state, state, state)
 
 	RewardMap := make(map[common.Address]*big.Int)
 

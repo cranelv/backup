@@ -99,7 +99,13 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		log.Error("奖励", "获取前一个状态错误", err)
 		return nil
 	}
-	blkReward := blkreward.New(p.bc, st, preState)
+	block := p.bc.GetBlockByHash(header.ParentHash)
+	ppreState, err := p.bc.StateAtBlockHash(block.ParentHash())
+	if err != nil {
+		log.Error("奖励", "获取前一个状态错误", err)
+		return nil
+	}
+	blkReward := blkreward.New(p.bc, st, preState, ppreState)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
