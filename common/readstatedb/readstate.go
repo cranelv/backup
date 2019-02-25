@@ -24,6 +24,7 @@ func GetElectGenTimes(stateReader matrix.StateReader, height uint64) (*mc.ElectG
 	st, err := stateReader.StateAtNumber(height)
 	if err != nil {
 		log.Error(ModuleReadStateDB, "获取state失败", err)
+		return nil, err
 	}
 
 	electGenConfig, err := matrixstate.GetElectGenTime(st)
