@@ -258,24 +258,33 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	allLottery := new(big.Int).SetUint64(0)
 	for _, v := range rewardIn {
 		if v.Fromaddr == common.BlkMinerRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allMiner = new(big.Int).Add(allMiner, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allMiner = new(big.Int).Add(allMiner, Amount)
+				}
 			}
 		}
 		if v.Fromaddr == common.BlkValidatorRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allValidator = new(big.Int).Add(allValidator, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allValidator = new(big.Int).Add(allValidator, Amount)
+				}
 			}
 		}
 
 		if v.Fromaddr == common.InterestRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allInterest = new(big.Int).Add(allInterest, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allInterest = new(big.Int).Add(allInterest, Amount)
+				}
+
 			}
 		}
 		if v.Fromaddr == common.LotteryRewardAddress {
-			for _, Amount := range v.To_Amont {
-				allLottery = new(big.Int).Add(allLottery, Amount)
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allLottery = new(big.Int).Add(allLottery, Amount)
+				}
 			}
 		}
 	}
@@ -289,6 +298,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 			}
 		}
 
+	} else {
+		log.Error(PackageName, "矿工账户余额不足,余额", allMiner.String())
 	}
 	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) <= 0 {
 		for _, v := range rewardIn {
@@ -296,6 +307,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "验证者账户余额不足", allValidator.String())
 	}
 
 	for _, v := range rewardIn {
@@ -310,6 +323,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "利息账户余额不足", allInterest.String())
 	}
 
 	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) <= 0 {
@@ -319,6 +334,8 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 				rewardOut = append(rewardOut, v)
 			}
 		}
+	} else {
+		log.Error(PackageName, "彩票账户余额不足", allLottery.String())
 	}
 
 	return rewardOut
