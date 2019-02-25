@@ -5,6 +5,8 @@ package commonsupport
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/MatrixAINetwork/go-matrix"
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/ca"
@@ -13,7 +15,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
-	"math/big"
 )
 
 const (
@@ -25,12 +26,8 @@ func GetElectGenTimes(support matrix.StateReader, height uint64) (*mc.ElectGenTi
 }
 
 func getRandomInfo(hash common.Hash, support baseinterface.RandomChainSupport) (*mc.RandomInfoStruct, error) {
-	height, err := GetNumberByHash(hash, support)
-	if err != nil {
-		log.Error(ModeleRandomCommon, "获取随机数信息失败", err, "hash", hash.String())
-		return nil, fmt.Errorf("获取随机数信息失败 %v", hash)
-	}
-	randonInfo, err := readstatedb.GetRandomInfo(support.BlockChain(), height)
+
+	randonInfo, err := readstatedb.GetRandomInfo(support.BlockChain(), hash)
 	if err != nil {
 		log.Error(ModeleRandomCommon, "获取随机数信息失败,从状态树获取信息失败 err", err)
 		return nil, fmt.Errorf("获取随机数信息失败,从状态树获取信息失败 %v", err)

@@ -157,7 +157,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 
 	slash := slash.New(p.bc, st, preState)
 	if nil != slash {
-		slash.CalcSlash(st, header.Number.Uint64(), upTime)
+		slash.CalcSlash(st, header.Number.Uint64(), upTime, header.ParentHash)
 	}
 	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())
 	if 0 != len(interestPayMap) {

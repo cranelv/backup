@@ -324,7 +324,7 @@ func (bc *BlockChain) getPreRoot(header *types.Header, bcInterval *mc.BCInterval
 	var LastStateRoot []common.CoinRoot
 	var BeforeLastStateRoot []common.CoinRoot
 	if header.Number.Uint64() == bcInterval.GetLastBroadcastNumber()+1 {
-		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.ParentHash)
 		if err != nil {
 			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
 			return nil, nil, fmt.Errorf("从状态树获取前2个广播区块root失败")
@@ -333,7 +333,7 @@ func (bc *BlockChain) getPreRoot(header *types.Header, bcInterval *mc.BCInterval
 		LastStateRoot = bc.GetBlockByHash(header.ParentHash).Root()
 
 	} else {
-		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.Number.Uint64()-1)
+		preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bc, header.ParentHash)
 		if err != nil {
 			log.Error(ModuleName, "获取之前广播区块的root值失败 err", err)
 			return nil, nil, fmt.Errorf("从状态树获取前2个广播区块root失败")

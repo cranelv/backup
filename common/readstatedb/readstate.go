@@ -43,12 +43,12 @@ func GetElectGenTimes(stateReader matrix.StateReader, height uint64) (*mc.ElectG
 	return electGenConfig, nil
 }
 
-func GetPreBroadcastRoot(stateReader matrix.StateReader, height uint64) (*mc.PreBroadStateRoot, error) {
+func GetPreBroadcastRoot(stateReader matrix.StateReader, hash common.Hash) (*mc.PreBroadStateRoot, error) {
 	//if checkDataValidity(stateReader)==false{
 	//	log.Error(ModuleReadStateDB,"获取前两个广播区块root值阶段,检查入参失败","入参为空")
 	//	return nil,fmt.Errorf("获取前两个广播区块root值阶段,检查入参失败,入参为空")
 	//}
-	st, err := stateReader.StateAtNumber(height)
+	st, err := stateReader.StateAtBlockHash(hash)
 	if err != nil {
 		log.Error(ModuleReadStateDB, "获取state失败", err)
 	}
@@ -71,12 +71,12 @@ func GetPreBroadcastRoot(stateReader matrix.StateReader, height uint64) (*mc.Pre
 	return preBroadStateRoot, nil
 }
 
-func GetRandomInfo(stateReader matrix.StateReader, height uint64) (*mc.RandomInfoStruct, error) {
+func GetRandomInfo(stateReader matrix.StateReader, hash common.Hash) (*mc.RandomInfoStruct, error) {
 	//if checkDataValidity(stateReader)==false{
 	//	log.Error(ModuleReadStateDB,"获取最小阶段,检查入参失败","入参为空")
 	//	return nil,fmt.Errorf("获取最小阶段,检查入参失败,入参为空")
 	//}
-	st, err := stateReader.StateAtNumber(height)
+	st, err := stateReader.StateAtBlockHash(hash)
 	if err != nil {
 		log.Error(ModuleReadStateDB, "获取state失败", err)
 	}

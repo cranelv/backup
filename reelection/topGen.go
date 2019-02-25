@@ -71,7 +71,7 @@ func (self *ReElection) IsMinerTopGenTiming(hash common.Hash) bool {
 		return false
 	}
 
-	genData, err := self.GetElectGenTimes(height)
+	genData, err := self.GetElectGenTimes(hash)
 	if err != nil {
 		log.ERROR(Module, "获取配置错误 高度", height, "err", err)
 		return false
@@ -100,7 +100,7 @@ func (self *ReElection) IsValidatorTopGenTiming(hash common.Hash) bool {
 		return false
 	}
 
-	genData, err := self.GetElectGenTimes(height)
+	genData, err := self.GetElectGenTimes(hash)
 	if err != nil {
 		log.ERROR(Module, "获取配置错误 高度", height, "err", err)
 		return false
@@ -128,7 +128,7 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 		log.ERROR(Module, "根据hash算高度失败 ToGenMinerTop hash", hash, "err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	data, err := self.GetElectGenTimes(height)
+	data, err := self.GetElectGenTimes(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举信息失败 高度", height, "err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -149,12 +149,12 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	}
 	//log.INFO(Module, "矿工抵押交易", minerDeposit)
 
-	elect, err := self.GetElectPlug(height)
+	elect, err := self.GetElectPlug(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举插件失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	electConf, err := self.GetElectConfig(height)
+	electConf, err := self.GetElectConfig(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举信息失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -172,10 +172,10 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	return TopRsp.MasterMiner, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, nil
 }
 
-func (self *ReElection) addBlockProduceBlackList(height uint64) (*mc.BlockProduceSlashBlackList, error) {
-	st, err := self.bc.StateAtNumber(height)
+func (self *ReElection) addBlockProduceBlackList(hash common.Hash) (*mc.BlockProduceSlashBlackList, error) {
+	st, err := self.bc.StateAtBlockHash(hash)
 	if err != nil {
-		log.Error(Module, "获取state 错误", err, "number", height)
+		log.Error(Module, "获取state 错误", err, "number", hash)
 		return &mc.BlockProduceSlashBlackList{}, err
 	}
 
@@ -206,7 +206,7 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		log.ERROR(Module, "根据hash算高度失败 ToGenValidatorTop hash", hash.String())
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	data, err := self.GetElectGenTimes(height)
+	data, err := self.GetElectGenTimes(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举信息失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -226,12 +226,12 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 	//log.INFO(Module, "验证者抵押账户", validatoeDeposit)
 	foundDeposit := GetFound()
 
-	elect, err := self.GetElectPlug(height)
+	elect, err := self.GetElectPlug(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举插件失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	electConf, err := self.GetElectConfig(height)
+	electConf, err := self.GetElectConfig(hash)
 	if err != nil {
 		log.ERROR(Module, "获取选举信息失败 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -243,12 +243,12 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 	}
 	//log.INFO(Module, "验证者随机种子", seed)
 
-	vipList, err := self.GetViPList(height)
+	vipList, err := self.GetViPList(hash)
 	if err != nil {
 		log.ERROR(Module, "获取viplist为空 err", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
-	produceBlackList, err := self.addBlockProduceBlackList(height)
+	produceBlackList, err := self.addBlockProduceBlackList(hash)
 	if err != nil {
 		log.ERROR(Module, "获取区块生产惩罚错误", err, "高度", height)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err

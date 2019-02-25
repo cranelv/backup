@@ -21,8 +21,7 @@ type BlockSlash struct {
 	eleMaxOnlineTime uint64
 	SlashRate        uint64
 	bcInterval       *mc.BCIntervalInfo
-	preElectRoot     common.Hash
-	preElectList     []mc.ElectNodeInfo
+	preBroadcastRoot *mc.PreBroadStateRoot
 }
 
 func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) *BlockSlash {
@@ -82,7 +81,7 @@ func (bp *BlockSlash) GetCurrentInterest(preState *state.StateDBManage, currentS
 
 	return interestMap
 }
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64) {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64, hash common.Hash) {
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return
@@ -101,7 +100,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 	if err := matrixstate.SetSlashNum(currentState, num); err != nil {
 		log.Error(PackageName, "设置惩罚状态失败", err)
 	}
-	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, num-1)
+	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, hash)
 	if err != nil {
 		log.Error(PackageName, "获取之前广播区块的root值失败 err", err)
 		return
