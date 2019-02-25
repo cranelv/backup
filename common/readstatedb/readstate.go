@@ -16,12 +16,12 @@ func checkDataValidity(inputData interface{}) bool {
 	return common.IsNil(inputData)
 }
 
-func GetElectGenTimes(stateReader matrix.StateReader, height uint64) (*mc.ElectGenTimeStruct, error) {
+func GetElectGenTimes(stateReader matrix.StateReader, hash common.Hash) (*mc.ElectGenTimeStruct, error) {
 	//if checkDataValidity(stateReader)==false{
 	//	log.Error(ModuleReadStateDB,"获取选举时间点信息阶段,检查入参失败","入参为空")
 	//	return nil,fmt.Errorf("获取选举时间点信息阶段,检查入参失败,入参为空")
 	//}
-	st, err := stateReader.StateAtNumber(height)
+	st, err := stateReader.StateAtBlockHash(hash)
 	if err != nil {
 		log.Error(ModuleReadStateDB, "获取state失败", err)
 		return nil, err

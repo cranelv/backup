@@ -78,9 +78,9 @@ func ProduceMatrixStateData(block *types.Block, readFn PreStateReadFn) (interfac
 	tempMap[mc.Heartbeat] = make(map[common.Address][]byte)
 	tempMap[mc.Privatekey] = make(map[common.Address][]byte)
 	tempMap[mc.CallTheRoll] = make(map[common.Address][]byte)
-	txs := make(types.SelfTransactions,0)
-	for _,curr := range block.Currencies(){
-		txs = append(txs,curr.Transactions.GetTransactions()...)
+	txs := make(types.SelfTransactions, 0)
+	for _, curr := range block.Currencies() {
+		txs = append(txs, curr.Transactions.GetTransactions()...)
 	}
 	for _, tx := range txs {
 		if len(tx.GetMatrix_EX()) > 0 && tx.GetMatrix_EX()[0].TxType == 1 {
@@ -281,7 +281,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			return false
 		}
 
-		nodelist, err := ca.GetElectedByHeight(height)
+		nodelist, err := ca.GetElectedByHeightByHash(blockHash)
 		if err != nil {
 			log.Error("getElected error (func filter()   BroadCastTxPool)", "error", err)
 			return false
@@ -305,7 +305,7 @@ func (bPool *BroadCastTxPool) filter(from common.Address, keydata string) (isok 
 			log.Error("BroadCastTxPool", "convert from account to deposit account err", err, "from", from.Hex())
 			return false
 		}
-		nodelist, err := ca.GetElectedByHeightAndRole(height, common.RoleValidator)
+		nodelist, err := ca.GetElectedByHeightAndRoleByHash(blockHash, common.RoleValidator)
 		if err != nil {
 			log.Error("broadCastTxPool filter getElected error", "error", err)
 			return false

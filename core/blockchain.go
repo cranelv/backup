@@ -1398,6 +1398,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+		if block.NumberU64() == 122 {
+			log.Info("dump 122")
+			bc.dumpBadBlock(block.Hash(), state)
+		}
 		var (
 			//receipts types.Receipts = nil
 			logs           = make([]types.CoinLogs, 0)

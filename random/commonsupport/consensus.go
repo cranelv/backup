@@ -5,7 +5,6 @@ package commonsupport
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/MatrixAINetwork/go-matrix"
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
@@ -21,8 +20,8 @@ const (
 	ModeleRandomCommon = "随机数服务公共组件"
 )
 
-func GetElectGenTimes(support matrix.StateReader, height uint64) (*mc.ElectGenTimeStruct, error) {
-	return readstatedb.GetElectGenTimes(support, height)
+func GetElectGenTimes(support matrix.StateReader, hash common.Hash) (*mc.ElectGenTimeStruct, error) {
+	return readstatedb.GetElectGenTimes(support, hash)
 }
 
 func getRandomInfo(hash common.Hash, support baseinterface.RandomChainSupport) (*mc.RandomInfoStruct, error) {
@@ -56,8 +55,8 @@ func GetMaxNonce(hash common.Hash, support baseinterface.RandomChainSupport) (ui
 	return randomInfo.MaxNonce, nil
 }
 
-func GetDepositListByHeightAndRole(height *big.Int, role common.RoleType) ([]vm.DepositDetail, error) {
-	return ca.GetElectedByHeightAndRole(height, role)
+func GetDepositListByHeightAndRole(hash common.Hash, role common.RoleType) ([]vm.DepositDetail, error) {
+	return ca.GetElectedByHeightAndRoleByHash(hash, role)
 }
 
 func GetSelfAddress() common.Address {

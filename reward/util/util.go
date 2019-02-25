@@ -62,10 +62,11 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	State() (*state.StateDBManage, error)
-	StateAtNumber(number uint64) (*state.StateDBManage, error)
 	GetSuperBlockNum() (uint64, error)
 	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	StateAtBlockHash(hash common.Hash) (*state.StateDBManage, error)
+	StateAtNumber(number uint64) (*state.StateDBManage, error)
+	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
 }
 
 type StateDB interface {

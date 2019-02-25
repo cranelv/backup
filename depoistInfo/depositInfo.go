@@ -8,6 +8,8 @@ import (
 	"context"
 	"math/big"
 
+	"reflect"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
@@ -15,11 +17,11 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rpc"
 	"github.com/pkg/errors"
-	"reflect"
 )
 
 type manBackend interface {
 	StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDBManage, *types.Header, error)
+	StateAndHeaderByHash(ctx context.Context, hash common.Hash) (*state.StateDBManage, *types.Header, error)
 }
 
 type DepositInfo struct {
@@ -90,6 +92,47 @@ func GetAllDeposit(tm *big.Int) ([]vm.DepositDetail, error) {
 	return depositList, nil
 }
 
+func GetDepositListByHash(hash common.Hash, getDeposit common.RoleType) ([]vm.DepositDetail, error) {
+	db, err := getDepositInfoByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
+	//var depositList []vm.DepositDetail
+	depositList := make([]vm.DepositDetail, 0)
+	if common.RoleValidator == common.RoleValidator&getDeposit {
+
+		depositList = append(depositList, depositInfo.MatrixDeposit.GetValidatorDepositList(contract, db)...)
+	}
+
+	if common.RoleMiner == common.RoleMiner&getDeposit {
+		depositList = append(depositList, depositInfo.MatrixDeposit.GetMinerDepositList(contract, db)...)
+	}
+	return depositList, nil
+}
+
+func GetDepositAndWithDrawListByHash(hash common.Hash) ([]vm.DepositDetail, error) {
+	db, err := getDepositInfoByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
+	var depositList []vm.DepositDetail
+	depositList = depositInfo.MatrixDeposit.GetAllDepositList(contract, db, true)
+	return depositList, nil
+}
+
+func GetAllDepositByHash(hash common.Hash) ([]vm.DepositDetail, error) {
+	db, err := getDepositInfoByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 60000, params.MAN_COIN)
+	var depositList []vm.DepositDetail
+	depositList = depositInfo.MatrixDeposit.GetAllDepositList(contract, db, false)
+	return depositList, nil
+}
+
 func getDepositInfo(tm *big.Int) (db vm.StateDBManager, err error) {
 	depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0, params.MAN_COIN)
 	var c context.Context
@@ -101,6 +144,25 @@ func getDepositInfo(tm *big.Int) (db vm.StateDBManager, err error) {
 	//	return nil, err
 	//}
 	db, _, err = depositInfo.manApi.StateAndHeaderByNumber(c, h)
+	if err != nil {
+		return nil, err
+	}
+
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	dbValue := reflect.ValueOf(db)
+	if dbValue.Kind() == reflect.Ptr && dbValue.IsNil() {
+		return nil, errors.New("db is nil")
+	}
+
+	return db, nil
+}
+
+func getDepositInfoByHash(hash common.Hash) (db vm.StateDBManager, err error) {
+	depositInfo.Contract = vm.NewContract(vm.AccountRef(common.HexToAddress("1337")), vm.AccountRef(common.BytesToAddress([]byte{10})), big.NewInt(0), 0, params.MAN_COIN)
+	var c context.Context
+	db, _, err = depositInfo.manApi.StateAndHeaderByHash(c, hash)
 	if err != nil {
 		return nil, err
 	}

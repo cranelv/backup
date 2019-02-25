@@ -81,7 +81,7 @@ func (bp *BlockSlash) GetCurrentInterest(preState *state.StateDBManage, currentS
 
 	return interestMap
 }
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64, hash common.Hash) {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, upTimeMap map[common.Address]uint64, parentHash common.Hash) {
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
 		return
@@ -100,7 +100,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 	if err := matrixstate.SetSlashNum(currentState, num); err != nil {
 		log.Error(PackageName, "设置惩罚状态失败", err)
 	}
-	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, hash)
+	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, parentHash)
 	if err != nil {
 		log.Error(PackageName, "获取之前广播区块的root值失败 err", err)
 		return
@@ -122,7 +122,12 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDBManage, num uint64, u
 	}
 	//计算选举的拓扑图的高度
 	eleNum := bp.bcInterval.GetLastBroadcastNumber() - 2
-	st, err := bp.chain.StateAtNumber(eleNum)
+	ancetorHash, err := bp.chain.GetAncestorHash(parentHash, eleNum)
+	if err != nil {
+		log.Error(PackageName, "获取制动高度hash失败", err, "eleNum", eleNum)
+		return
+	}
+	st, err := bp.chain.StateAtBlockHash(ancetorHash)
 	if err != nil {
 		log.Error(PackageName, "获取选举高度的状态树失败", err, "eleNum", eleNum)
 		return

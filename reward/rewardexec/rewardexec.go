@@ -22,9 +22,11 @@ type BlockReward struct {
 	foundationAccount  common.Address
 	innerMinerAccounts []common.Address
 	bcInterval         *mc.BCIntervalInfo
+	topology           *mc.TopologyGraph
+	elect              *mc.ElectGraph
 }
 
-func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB, interval *mc.BCIntervalInfo, foundationAccount common.Address, innerMinerAccounts []common.Address) *BlockReward {
+func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB, interval *mc.BCIntervalInfo, foundationAccount common.Address, innerMinerAccounts []common.Address, top *mc.TopologyGraph, elect *mc.ElectGraph) *BlockReward {
 	if util.RewardFullRate != rewardCfg.RewardMount.RewardRate.MinerOutRate+rewardCfg.RewardMount.RewardRate.ElectedMinerRate+rewardCfg.RewardMount.RewardRate.FoundationMinerRate {
 		log.ERROR(PackageName, "矿工固定区块奖励比例配置错误", "")
 		return nil
@@ -45,6 +47,8 @@ func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB, inte
 		st:                 st,
 		foundationAccount:  foundationAccount,
 		innerMinerAccounts: innerMinerAccounts,
+		elect:              elect,
+		topology:           top,
 	}
 	br.bcInterval = interval
 	return br
@@ -94,7 +98,7 @@ func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.A
 	rewards := make(map[common.Address]*big.Int, 0)
 	leaderBlkMount, electedMount, FoundationsMount := br.CalcValidatorRateMount(blockReward)
 	leaderReward := br.rewardCfg.SetReward.SetLeaderRewards(leaderBlkMount, Leader, num)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, leaderReward)
 	util.MergeReward(rewards, electReward)
@@ -107,7 +111,7 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardT
 
 	minerOutAmount, electedMount, FoundationsMount := br.CalcMinerRateMount(blockReward)
 	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, parentHash, br.innerMinerAccounts, rewardType)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
 	util.MergeReward(rewards, electReward)

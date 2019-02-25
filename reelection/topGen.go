@@ -142,7 +142,12 @@ func (self *ReElection) ToGenMinerTop(hash common.Hash) ([]mc.ElectNodeInfo, []m
 	}
 
 	height = bcInterval.GetNextReElectionNumber(height) - minerGen
-	minerDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleMiner) //
+	AncestorHash, err := self.bc.GetAncestorHash(hash, height)
+	if nil != err {
+		log.ERROR(Module, "获取选举制定高度hash错误，高度", height, "err", err)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+	minerDeposit, err := GetAllElectedByHash(AncestorHash, common.RoleMiner) //
 	if err != nil {
 		log.ERROR(Module, "获取矿工抵押列表失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -218,7 +223,13 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
 	}
 	height = bcInterval.GetNextReElectionNumber(height) - verifyGenTime
-	validatoeDeposit, err := GetAllElectedByHeight(big.NewInt(int64(height)), common.RoleValidator)
+	AncestorHash, err := self.bc.GetAncestorHash(hash, height)
+	if nil != err {
+		log.ERROR(Module, "获取选举制定高度hash错误，高度", height, "err", err)
+		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
+	}
+
+	validatoeDeposit, err := GetAllElectedByHash(AncestorHash, common.RoleValidator)
 	if err != nil {
 		log.ERROR(Module, "获取验证者列表失败 err", err)
 		return []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, []mc.ElectNodeInfo{}, err
@@ -262,18 +273,18 @@ func (self *ReElection) ToGenValidatorTop(hash common.Hash) ([]mc.ElectNodeInfo,
 func GetFound() []vm.DepositDetail {
 	return []vm.DepositDetail{}
 }
-func GetAllElectedByHeight(Heigh *big.Int, tp common.RoleType) ([]vm.DepositDetail, error) {
+func GetAllElectedByHash(hash common.Hash, tp common.RoleType) ([]vm.DepositDetail, error) {
 
 	switch tp {
 	case common.RoleMiner:
-		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleMiner)
+		ans, err := ca.GetElectedByHeightAndRoleByHash(hash, common.RoleMiner)
 		//log.INFO("從CA獲取礦工抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取矿工交易身份不对")
 		}
 		return ans, nil
 	case common.RoleValidator:
-		ans, err := ca.GetElectedByHeightAndRole(Heigh, common.RoleValidator)
+		ans, err := ca.GetElectedByHeightAndRoleByHash(hash, common.RoleValidator)
 		//log.Info("從CA獲取驗證者抵押交易", "data", ans, "height", Heigh)
 		if err != nil {
 			return []vm.DepositDetail{}, errors.New("获取验证者交易身份不对")
