@@ -352,6 +352,9 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 // WriteBlock serializes a block into the database, header and body separately.
 func WriteBlock(db DatabaseWriter, block *types.Block) {
 	WriteBody(db, block.Hash(), block.NumberU64(), block.Body())
+	for _,hhhh:=range block.Header().Roots{
+		log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYWriteBlock","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+	}
 	WriteHeader(db, block.Header())
 }
 

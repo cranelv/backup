@@ -621,6 +621,8 @@ func NewBlockWithTxs(header *Header, currencyBlocks []CurrencyBlock) *Block {
 			for i, coinRoot := range b.header.Roots {
 				if coinRoot.Cointyp == Block.CurrencyName {
 					b.header.Roots[i].TxHash = DeriveShaHash(Block.Transactions.TxHashs)
+					log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYNewBlockWithTxs","DeriveShaHash(Block.Transactions.TxHashs)",DeriveShaHash(Block.Transactions.TxHashs),
+						"DeriveShaHash(TxHashList(Block.Transactions.GetTransactions())",DeriveShaHash(TxHashList(Block.Transactions.GetTransactions())))
 					b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: coinRoot.Cointyp, Transactions: Block.Transactions,
 						Receipts: Block.Receipts})
 				}

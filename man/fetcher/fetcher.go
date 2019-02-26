@@ -564,6 +564,7 @@ func (f *Fetcher) loop() {
 								log.Info("fetchr err", "fetch body txhash != header txhash.  txnHash", txnHash.String(), "header txHash", coinHeader.TxHash.String(),"uncleHash",uncleHash.String(),
 									"announce.header.UncleHash",announce.header.UncleHash.String(),"announce.origin",announce.origin,"task.peer",task.peer)
 								isok = false
+								panic("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
 							}
 						}
 						if isok {
