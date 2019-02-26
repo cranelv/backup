@@ -3926,6 +3926,7 @@ var inputNewCallFormatter = function (options){
     if (options.to) { // it might be contract creation
         options.to = inputAddressFormatter(options.to);
     }
+    options.currency = options.currency || ContractAddr.split('.')[0];
         ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
         return options[key] !== undefined;
     }).forEach(function(key){

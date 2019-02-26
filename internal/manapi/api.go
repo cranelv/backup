@@ -1136,7 +1136,7 @@ type CallArgs struct {
 type ManCallArgs struct {
 	From     string         `json:"from"`
 	To       *string        `json:"to"`
-	Currency *string        `json:"currency"    gencodec:"required"`
+	Currency *string        `json:"currency"`
 	Gas      hexutil.Uint64 `json:"gas"`
 	GasPrice hexutil.Big    `json:"gasPrice"`
 	Value    hexutil.Big    `json:"value"`
