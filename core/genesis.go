@@ -355,6 +355,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, 
 
 	// 创建超级区块交易
 	txs := make([]types.SelfTransaction, 0)
+	g.Alloc = make(GenesisAlloc)
 	data, err := json.Marshal(g.Alloc)
 	if err != nil {
 		log.ERROR("genesis super block", "marshal alloc info err", err)
