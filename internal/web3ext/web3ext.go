@@ -496,9 +496,9 @@ web3._extend({
 			params: 0,
 		}),
 		new web3._extend.Method({
-			name: 'getCfgDataByState',
-			call: 'man_getCfgDataByState',
-			params: 1,
+			name: 'getGasPrice',
+			call: 'man_getGasPrice',
+			params: 0,
 		}),
 	],
 	properties: [

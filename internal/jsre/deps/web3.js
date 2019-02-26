@@ -5596,10 +5596,10 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputNewBigNumberFormatter
     });
-    var getCfgDataByState = new Method({
-        name: 'getCfgDataByState',
-        call: 'eth_getCfgDataByState',
-        params: 1,
+    var getGasPrice = new Method({
+        name: 'getGasPrice',
+        call: 'eth_getGasPrice',
+        params: 0,
         // outputFormatter: formatters.outputBigNumberFormatter
     });
     var getStorageAt = new Method({
@@ -5809,7 +5809,7 @@ var methods = function () {
         getAuthFromByTime,
         getEntrustFromByTime,
         getAuthGasAddress,
-        getCfgDataByState,
+        getGasPrice,
         getStorageAt,
         getCode,
         getBlock,
