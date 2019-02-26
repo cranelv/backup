@@ -26,7 +26,7 @@ var (
 	blockNumberByfilter = uint64(0)
 )
 type CoinPachFilter struct {
-	mu sync.RWMutex
+	mu sync.Mutex
 	coinNum map[string]uint64
 }
 var filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
@@ -326,10 +326,11 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 					filtercoinnum.mu.Lock()
 					if blockNumberByfilter != h.Uint64(){
 						blockNumberByfilter = h.Uint64()
-						filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
+						filtercoinnum.coinNum = make(map[string]uint64)
 					}
 					if filtercoinnum.coinNum[cointype] >= config.PackNum{
 						log.WARN("warning ","this coin tx count >= pack num.coin type",cointype,"pack num",config.PackNum,"curr tx count",filtercoinnum.coinNum[cointype])
+						filtercoinnum.mu.Unlock()
 						return false
 					}
 					filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype]+1

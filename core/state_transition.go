@@ -21,6 +21,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"strings"
 	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
 )
 
 var (
@@ -103,7 +104,31 @@ func (st *StateTransition) UseGas(amount uint64) error {
 
 	return nil
 }
-
+func (st *StateTransition) getCoinAddress(cointyp string) common.Address{
+	if cointyp == params.MAN_COIN || cointyp == ""{
+		return common.TxGasRewardAddress
+	}
+	coinconfig := st.state.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
+	var coincfglist []common.CoinConfig
+	var ret common.Address
+	if len(coinconfig) > 0{
+		err := json.Unmarshal(coinconfig,&coincfglist)
+		if err != nil{
+			log.Trace("get coin config list","unmarshal err",err)
+			return common.TxGasRewardAddress
+		}
+	}
+	for _,cc:=range coincfglist{
+		if cc.PackNum <=0{
+			continue
+		}
+		if cc.CoinType == cointyp{
+			ret = cc.CoinAddress
+			break
+		}
+	}
+	return ret
+}
 func (st *StateTransition) BuyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
 	for _, tAccount := range st.state.GetBalance(st.msg.GetTxCurrency(), st.msg.From()) {
@@ -251,7 +276,7 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 			}
 		}
 	}
-	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
+	//costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
 		if vmerr == vm.ErrInsufficientBalance {
@@ -272,7 +297,8 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -323,9 +349,10 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 			}
 		}
 	}
-	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
+	//costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	st.RefundGas()
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	delval := make(map[uint32][]common.Hash)
 	for _, tmphash := range hashlist {
 		if common.EmptyHash(tmphash) {
@@ -438,42 +465,51 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	}
 	coinby,_:=json.Marshal(clslice)
 	st.state.SetMatrixData(key, coinby)
-	totalAmont := big.NewInt(0)
-	for address,val:=range addrVal{
-		st.state.SetBalance(makecoin.CoinName,common.MainAccount,address,val)
-		totalAmont = new(big.Int).Add(totalAmont,val)
-	}
-	coinconfig := st.state.GetMatrixData(types.RlpHash(mc.MSCurrencyConfig))
+
+	coinconfig := st.state.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
 	var coincfglist []common.CoinConfig
-	if len(coinconfig) > 0{
-		err := json.Unmarshal(coinconfig,&coincfglist)
-		if err != nil{
-			log.Trace("get coin config list","unmarshal err",err)
-			return nil, 0, false, nil, err
-		}
-	}
+	json.Unmarshal(coinconfig,&coincfglist)
 	if makecoin.PackNum == 0{
 		makecoin.PackNum = params.CallTxPachNum
 	}
 	if makecoin.CoinUnit == nil{
-		makecoin.CoinUnit = new(big.Int).SetUint64(params.CoinTypeUnit)
+		makecoin.CoinUnit = (*hexutil.Big)(new(big.Int).SetUint64(params.CoinTypeUnit))
+	}
+	if makecoin.CoinAddress == (common.Address{}){
+		makecoin.CoinAddress = common.TxGasRewardAddress
+	}
+	st.state.MakeStatedb(makecoin.CoinName,false)
+	totalAmont := big.NewInt(0)
+	for address,val:=range addrVal{
+		st.state.SetBalance(makecoin.CoinName,common.MainAccount,address,val)
+		totalAmont = new(big.Int).Add(totalAmont,val)
 	}
 	isCoin := true
 	for i,cc := range coincfglist{
 		if cc.CoinType == makecoin.CoinName{
 			coincfglist[i].CoinType = makecoin.CoinName
 			coincfglist[i].PackNum = makecoin.PackNum
-			coincfglist[i].CoinTotal = totalAmont
+			coincfglist[i].CoinTotal = (*hexutil.Big)(totalAmont)
 			coincfglist[i].CoinUnit = makecoin.CoinUnit
+			coincfglist[i].CoinAddress = makecoin.CoinAddress
 			isCoin = false
 		}
 	}
 	if isCoin{
-		coincfglist = append(coincfglist,common.CoinConfig{CoinType:makecoin.CoinName,PackNum:makecoin.PackNum,CoinTotal:totalAmont,CoinUnit:makecoin.CoinUnit})
+		tmpcc := common.CoinConfig{
+			CoinType:makecoin.CoinName,
+			PackNum:makecoin.PackNum,
+			CoinTotal: new(hexutil.Big),
+			CoinUnit: new(hexutil.Big),
+			CoinAddress:makecoin.CoinAddress,
+		}
+		tmpcc.CoinTotal = (*hexutil.Big)(totalAmont)
+		tmpcc.CoinUnit = makecoin.CoinUnit
+		coincfglist = append(coincfglist,tmpcc)
 	}
-	coinCfgbs,_:=json.Marshal(coincfglist)
-	st.state.SetMatrixData(types.RlpHash(mc.MSCurrencyConfig),coinCfgbs)
-	st.state.MakeStatedb(makecoin.CoinName,false)
+	//coinCfgbs, _ := rlp.EncodeToBytes(coincfglist)
+	coinCfgbs, _ := json.Marshal(coincfglist)
+	st.state.SetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig),coinCfgbs)
 	return ret, 0, false, shardings, err
 }
 func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -535,7 +571,7 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 			}
 		}
 	}
-	costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
+	//costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
 		if vmerr == vm.ErrInsufficientBalance {
@@ -559,7 +595,8 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
 	st.state.SetMatrixData(txHash, b)
 	st.RefundGas()
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, costGas)
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -722,7 +759,8 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	}
 	st.RefundGas()
 	shardings = append(shardings, tmpshard...)
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
@@ -794,7 +832,8 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 	}
 	shardings = append(shardings,tmpshard...)
 	st.RefundGas()
-	st.state.AddBalance(params.MAN_COIN,common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN,common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 
 	var entrustOK bool = false
 	Authfrom := tx.From()
@@ -1009,7 +1048,8 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	}
 	shardings = append(shardings,tmpshard...)
 	st.RefundGas()
-	st.state.AddBalance(params.MAN_COIN,common.MainAccount, common.TxGasRewardAddress, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
+	st.state.AddBalance(params.MAN_COIN,common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 
 	Authfrom := tx.From()
 	delIndexList := make([]uint32, 0)
@@ -1164,13 +1204,13 @@ func (st *StateTransition) CallSuperTx() (ret []byte, usedGas uint64, failed boo
 func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.GasUsed() / 2
-	if refund > st.state.GetRefund(st.msg.GetTxCurrency(), st.msg.From()) {
-		refund = st.state.GetRefund(st.msg.GetTxCurrency(), st.msg.From())
+	if refund > st.state.GetRefund(params.MAN_COIN, st.msg.From()) {
+		refund = st.state.GetRefund(params.MAN_COIN, st.msg.From())
 	}
 	st.gas += refund
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.GetTxCurrency(), common.MainAccount, st.msg.AmontFrom(), remaining)
+	st.state.AddBalance(params.MAN_COIN, common.MainAccount, st.msg.AmontFrom(), remaining)
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
 	st.gp.AddGas(st.gas)

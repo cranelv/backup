@@ -685,9 +685,10 @@ func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context,cointpy st
 	if state == nil || err != nil {
 		return nil, err
 	}
-	bs := state.GetMatrixData(types.RlpHash(mc.MSCurrencyConfig))
+	bs := state.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
 	var tmpcoinlist []common.CoinConfig
 	if len(bs) > 0 {
+		//err := rlp.DecodeBytes(bs, &tmpcoinlist)
 		err := json.Unmarshal(bs, &tmpcoinlist)
 		if err != nil {
 			log.Trace("get matrix coin", "unmarshal err", err)

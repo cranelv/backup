@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"reflect"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"encoding/json"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -995,7 +996,8 @@ func (opt *operatorCurrencyConfig) GetValue(st StateDB) (interface{}, error) {
 		return make([]common.CoinConfig, 0), nil
 	}
 	currencylist := make([]common.CoinConfig, 0)
-	err := rlp.DecodeBytes(data, &currencylist)
+	//err := rlp.DecodeBytes(data, &currencylist)
+	err := json.Unmarshal(data, &currencylist)
 	if err != nil {
 		return nil, errors.Errorf("operatorCurrencyPack rlp decode  failed: %s", err)
 	}
@@ -1020,7 +1022,8 @@ func (opt *operatorCurrencyConfig) SetValue(st StateDB, value interface{}) error
 		return ErrParamReflect
 	}
 
-	encodeData, err := rlp.EncodeToBytes(data)
+	//encodeData, err := rlp.EncodeToBytes(data)
+	encodeData, err := json.Marshal(data)
 	if err != nil {
 		log.Error(logInfo, "operatorCurrencyPack rlp encode failed", err)
 		return err
