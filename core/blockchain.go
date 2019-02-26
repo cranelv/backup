@@ -488,7 +488,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	rawdb.WriteBlock(bc.db, genesis)
 
 	bc.genesisBlock = genesis
-	bc.insert(bc.genesisBlock)
+	bc.insert(bc.genesisBlock, bc.genesisBlock)
 	bc.currentBlock.Store(bc.genesisBlock)
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
@@ -550,24 +550,11 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // or if they are on a different side chain.
 //
 // Note, this function assumes that the `mu` mutex is held!
-func (bc *BlockChain) insert(block *types.Block) {
+func (bc *BlockChain) insert(block *types.Block, old *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	var updateHeads bool
 	if block.IsSuperBlock() {
-		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
-
-		if currentblock.NumberU64() > block.NumberU64() {
-			log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
-			bc.bodyCache.Purge()
-			bc.bodyRLPCache.Purge()
-			bc.blockCache.Purge()
-			bc.futureBlocks.Purge()
-			delFn := func(hash common.Hash, num uint64) {
-				rawdb.DeleteBody(bc.db, hash, num)
-			}
-			bc.hc.SetHead(block.NumberU64()-1, delFn)
-		}
-
+		bc.superBlkRewind(block, old)
 		updateHeads = true
 	} else {
 		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
@@ -1201,11 +1188,26 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 
 	// Set new head.
 	if status == CanonStatTy {
-		bc.insert(block)
+		bc.insert(block, currentBlock)
 	}
 
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
+}
+
+func (bc *BlockChain) superBlkRewind(block *types.Block, oldBlock *types.Block) {
+	if oldBlock.NumberU64() >= block.NumberU64() {
+		log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
+
+		delFn := func(hash common.Hash, num uint64) {
+			rawdb.DeleteBody(bc.db, hash, num)
+		}
+		bc.hc.SetSBlkHead(oldBlock.Header(), block.NumberU64(), delFn)
+		bc.bodyCache.Purge()
+		bc.bodyRLPCache.Purge()
+		bc.blockCache.Purge()
+		bc.futureBlocks.Purge()
+	}
 }
 
 // InsertChain attempts to insert the given batch of blocks in to the canonical
@@ -1397,10 +1399,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		state, err := state.NewStateDBManage(parent.Root(), bc.db, bc.stateCache)
 		if err != nil {
 			return i, events, coalescedLogs, err
-		}
-		if block.NumberU64() == 122 {
-			log.Info("dump 122")
-			bc.dumpBadBlock(block.Hash(), state)
 		}
 		var (
 			//receipts types.Receipts = nil
@@ -1637,7 +1635,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	var addedTxs types.SelfTransactions
 	for i := len(newChain) - 1; i >= 0; i-- {
 		// insert the block in the canonical way, re-writing history
-		bc.insert(newChain[i])
+		bc.insert(newChain[i], oldBlock)
 		// write lookup entries for hash based transaction/receipt searches
 		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
 		for _, currencie := range newChain[i].Currencies() {

@@ -481,51 +481,29 @@ func (p *StateProcessor) isaddSharding(shard []uint, shardings []common.CoinShar
 	}
 	return false
 }
-func (p *StateProcessor) test(hash common.Hash, state *state.StateDBManage) {
-	coindumplist := state.RawDump("", common.Address{})
-	for _, dumplist := range coindumplist {
-		for _, dump := range dumplist.DumpList {
-			log.Info("dump info", "coin type", dumplist.CoinTyp, "root", dump.Root)
 
-			for account, data := range dump.Accounts {
-				log.Info("dump info", "account", account, "data", data)
-			}
-			//
-			//for matrixKey, data := range dump.MatrixData {
-			//	log.Info("dump info", "matrix", matrixKey, "data", data)
-			//}
-
-			//p.bc.badDumpHistory = append(bc.badDumpHistory, hash)
-		}
-	}
-}
 func (p *StateProcessor) Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts, []types.CoinLogs, uint64, error) {
 
-	log.Info("dump 122-0")
-	p.test(block.Hash(), statedb)
 	err := p.bc.ProcessStateVersion(block.Version(), statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err0")
 		return nil, nil, 0, err
 	}
-	log.Info("dump 122-1")
-	p.test(block.Hash(), statedb)
+
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err1")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
-	log.Info("dump 122-2")
-	p.test(block.Hash(), statedb)
+
 	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err2")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
-	log.Info("dump 122-3")
-	p.test(block.Hash(), statedb)
+
 	// Process block using the parent state as reference point.
 	logs, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {
@@ -533,16 +511,14 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		p.bc.reportBlock(block, nil, err)
 		return nil, logs, usedGas, err
 	}
-	log.Info("dump 122-4")
-	p.test(block.Hash(), statedb)
+
 	// Process matrix state
 	err = p.bc.matrixProcessor.ProcessMatrixState(block, string(parent.Version()), statedb)
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err4")
 		return nil, logs, usedGas, err
 	}
-	log.Info("dump 122-5")
-	p.test(block.Hash(), statedb)
+
 	return nil, logs, usedGas, nil
 }
 
