@@ -35,6 +35,8 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/reward/slash"
 	"github.com/MatrixAINetwork/go-matrix/reward/txsreward"
 	"github.com/pkg/errors"
+	"encoding/json"
+	"github.com/MatrixAINetwork/go-matrix/mc"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -59,7 +61,31 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
-
+func (p *StateProcessor) getCoinAddress(cointypelist map[string]types.SelfTransactions) map[string]common.Address{
+	statedbM,_ := p.bc.State()
+	coinconfig := statedbM.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
+	ret:=make(map[string]common.Address)
+	var coincfglist []common.CoinConfig
+	if len(coinconfig) > 0{
+		err := json.Unmarshal(coinconfig,&coincfglist)
+		if err != nil{
+			log.Trace("get coin config list","unmarshal err",err)
+			return nil
+		}
+	}
+	for _,cc:=range coincfglist{
+		if cc.PackNum <=0{
+			continue
+		}
+		if _,ok:=cointypelist[cc.CoinType];ok{
+			ret[cc.CoinType] = cc.CoinAddress
+		}
+	}
+	if _,ok:=cointypelist[params.MAN_COIN];ok{
+		ret[params.MAN_COIN] = common.TxGasRewardAddress
+	}
+	return ret
+}
 func (p *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big.Int {
 	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
 	if err != nil {

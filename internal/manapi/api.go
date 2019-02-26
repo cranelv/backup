@@ -685,9 +685,10 @@ func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context,cointpy st
 	if state == nil || err != nil {
 		return nil, err
 	}
-	bs := state.GetMatrixData(types.RlpHash(mc.MSCurrencyConfig))
+	bs := state.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
 	var tmpcoinlist []common.CoinConfig
 	if len(bs) > 0 {
+		//err := rlp.DecodeBytes(bs, &tmpcoinlist)
 		err := json.Unmarshal(bs, &tmpcoinlist)
 		if err != nil {
 			log.Trace("get matrix coin", "unmarshal err", err)
@@ -1136,7 +1137,7 @@ type CallArgs struct {
 type ManCallArgs struct {
 	From     string         `json:"from"`
 	To       *string        `json:"to"`
-	Currency *string        `json:"currency"    gencodec:"required"`
+	Currency *string        `json:"currency"`
 	Gas      hexutil.Uint64 `json:"gas"`
 	GasPrice hexutil.Big    `json:"gasPrice"`
 	Value    hexutil.Big    `json:"value"`
@@ -1845,6 +1846,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	for _, ext := range extra {
 		for _, e := range ext.ExtraTo {
 			b := hexutil.Bytes(e.Payload)
+			b = nil	//屏蔽input
 			result.ExtraTo = append(result.ExtraTo, &ExtraTo_Mx{
 				To2:    e.Recipient,
 				Input2: &b,
@@ -1852,6 +1854,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 			})
 		}
 	}
+	result.Input = nil	//屏蔽input
 	return result
 }
 

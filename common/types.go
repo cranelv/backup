@@ -545,8 +545,9 @@ type CoinSharding struct {
 type SMakeCoin struct {
 	CoinName string
 	AddrAmount map[string]*hexutil.Big
-	CoinUnit *big.Int   //单位
+	CoinUnit *hexutil.Big   //单位
 	PackNum  uint64
+	CoinAddress Address
 	//CoinTotal *big.Int  //总发行量
 }
 
@@ -686,8 +687,11 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinType string     //name
-	PackNum uint64      //打包数量限制 如果为0则不打包
-	CoinUnit *big.Int   //单位
-	CoinTotal *big.Int  //总发行量
+	CoinType string `json:"CoinType"` //name
+	PackNum uint64 `json:"PackNum"` //打包数量限制 如果为0则不打包
+	CoinUnit *hexutil.Big `json:"CoinUnit"`//单位
+	CoinTotal *hexutil.Big `json:"CoinTotal"`//总发行量
+	CoinAddress Address `json:"CoinAddress"`//币种交易费账户
 }
+
+const COINPREFIX string = "ms_"
