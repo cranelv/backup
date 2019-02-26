@@ -310,16 +310,8 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, mdb mandb.Database, 
 		return nil
 	}
 
-	for addr, account := range g.Alloc {
-		stateDB.SetBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance)
-		stateDB.SetCode(params.MAN_COIN, addr, account.Code)
-		stateDB.SetNonce(params.MAN_COIN, addr, account.Nonce)
-		for key, value := range account.Storage {
-			stateDB.SetState(params.MAN_COIN, addr, key, value)
-		}
-	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Version, string(parentHeader.Version),g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Version, string(parentHeader.Version), g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
