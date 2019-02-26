@@ -575,11 +575,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		for i, body := range request {
 			/*
-				cointx := make([]types.CoinSelfTransaction,0)
-				for _,curr := range body.Transactions{
-					cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
-				}
-				transactions[i] = cointx//.GetTransactions()*/
+			cointx := make([]types.CoinSelfTransaction,0)
+			for _,curr := range body.Transactions{
+				cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
+			}
+			transactions[i] = cointx//.GetTransactions()*/
 			transCrBlock[i] = body.Transactions
 			uncles[i] = body.Uncles
 		}
@@ -657,7 +657,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Retrieve the requested block's receipts, skipping if unknown to us
 			results := pm.blockchain.GetReceiptsByHash(hash)
 			if results == nil {
-				log.Info("Get receipt err", "Get receipt err", "Get receipt err")
+				log.Info("Get receipt err","Get receipt err","Get receipt err")
 				continue
 			}
 			// If known, encode and queue for response packet
@@ -778,7 +778,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			hash := tx.Hash()
 			p.MarkTransaction(hash)
-			log.INFO("==tcp tx hash", "from", tx.From().String(), "tx.Nonce", tx.Nonce(), "hash", hash.String())
+			log.INFO("==tcp tx hash","from",tx.From().String(),"tx.Nonce",tx.Nonce(),"hash",hash.String())
 		}
 		pm.txpool.AddRemotes(txs)
 	case msg.Code == common.NetworkMsg:

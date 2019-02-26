@@ -156,7 +156,7 @@ type BlockIpfs struct {
 	BlockNum         uint64
 	Headeripfs       *types.Header
 	Unclesipfs       []*types.Header
-	Transactionsipfs []types.CurrencyBlock //CoinSelfTransaction //Transactions//SelfTransaction?????
+	Transactionsipfs []types.CurrencyBlock//CoinSelfTransaction //Transactions//SelfTransaction?????
 	Receipt          []types.CoinReceipts
 }
 type BlockIpfsReq struct {
@@ -1782,7 +1782,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 					ReceiptHash: coinRoot.ReceiptHash}
 			}
 			cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(),
-				types.TxHashList(ct.Transactions.GetTransactions()), nil), types.SetReceipts(result.Receipts[i].Receiptlist, result.Receipts[i].Receiptlist.HashList(), nil)})
+				types.TxHashList(ct.Transactions.GetTransactions()), nil), types.SetReceipts(result.Receipts[i].Receiptlist,result.Receipts[i].Receiptlist.HashList(), nil)})
 		}
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 		//receipts[i] = result.Receipts
@@ -1805,8 +1805,8 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 				TxHash:      coinRoot.TxHash,
 				ReceiptHash: coinRoot.ReceiptHash}
 		}
-		cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(), types.TxHashList(ct.Transactions.GetTransactions()), nil),
-			types.SetReceipts(result.Receipts[i].Receiptlist, result.Receipts[i].Receiptlist.HashList(), nil)})
+		cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(),types.TxHashList(ct.Transactions.GetTransactions()), nil),
+		types.SetReceipts(result.Receipts[i].Receiptlist,result.Receipts[i].Receiptlist.HashList(), nil)})
 	}
 	block := types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())

@@ -70,19 +70,19 @@ const (
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
 
 	//
-	TxCount              uint64 = 1000                //一对多交易最多可以支持1000笔(包括扩展之外的那一个交易)
-	ErrTxConsensus       uint64 = 6                   //错误交易需要共识的个数（超过6个节点认为该笔交易错误就可以确认删除这笔交易）
-	SubBlockNum          uint64 = 200                 //超过SubBlockNum区块高度就删除某些东西（超过20个区块就删除未打包的交易）
-	NonceAddOne          uint64 = 0x0010000000000000  //Nonce最高位加1
-	NonceSubOne          uint64 = 0x0001FFFFFFFFFFFF  //Nonce最高位减1
-	MaxTxN               uint32 = 0x1FFFF             //交易编号最大值
-	FloodMaxTransactions int    = 200                 //洪泛交易数量阈值
-	TxSize               uint64 = 32 * 1024           //交易的大小
-	TxGasPrice           uint64 = 18000000000         //交易费
-	EntrustByHeight      byte   = 0                   //按块高委托
-	EntrustByTime        byte   = 1                   //按时间委托
-	CallTxPachNum        uint64 = 9999                //币种打包交易数量限制
-	CoinTypeUnit         uint64 = 1000000000000000000 //*big.Int = new(big.Int).SetString("0xDE0B6B3A7640000",0)//new(big.Int).SetString("0xDE0B6B3A7640000",0)
+	TxCount              uint64 = 1000               //一对多交易最多可以支持1000笔(包括扩展之外的那一个交易)
+	ErrTxConsensus       uint64 = 6                  //错误交易需要共识的个数（超过6个节点认为该笔交易错误就可以确认删除这笔交易）
+	SubBlockNum          uint64 = 200                //超过SubBlockNum区块高度就删除某些东西（超过20个区块就删除未打包的交易）
+	NonceAddOne          uint64 = 0x0010000000000000 //Nonce最高位加1
+	NonceSubOne          uint64 = 0x0001FFFFFFFFFFFF //Nonce最高位减1
+	MaxTxN               uint32 = 0x1FFFF            //交易编号最大值
+	FloodMaxTransactions int    = 200                //洪泛交易数量阈值
+	TxSize               uint64 = 32 * 1024          //交易的大小
+	TxGasPrice           uint64 = 18000000000        //交易费
+	EntrustByHeight      byte   = 0                  //按块高委托
+	EntrustByTime        byte   = 1                  //按时间委托
+	CallTxPachNum        uint64 = 9999               //币种打包交易数量限制
+	CoinTypeUnit         uint64 = 1000000000000000000//*big.Int = new(big.Int).SetString("0xDE0B6B3A7640000",0)//new(big.Int).SetString("0xDE0B6B3A7640000",0)
 
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64
@@ -98,6 +98,6 @@ var (
 	DifficultyBoundDivisor = big.NewInt(10)  // The bound divisor of the difficulty, used in the update calculations.
 	GenesisDifficulty      = big.NewInt(10)  // Difficulty of the Genesis block.
 	MinimumDifficulty      = big.NewInt(10)  // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(1)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DurationLimit          = big.NewInt(6)   // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 	FloodTime              = 1 * time.Second //洪泛时间阈值
 )
