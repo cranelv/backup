@@ -975,6 +975,10 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 	return dataval, nil
 }
 
+func (s *PublicBlockChainAPI) GetGasPrice() *big.Int  {
+	return big.NewInt(int64(params.TxGasPrice))
+}
+
 // GetBlockByNumber returns the requested block. When blockNr is -1 the chain head is returned. When fullTx is true all
 // transactions in the block are returned in full detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
