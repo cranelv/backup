@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
-	mrand "math/rand"
 	"os"
 	"path"
 	"runtime/debug"
@@ -1156,16 +1155,28 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	//todo:超级区块序号判断
-	reorg := externTd.Cmp(localTd) > 0
-	currentBlock = bc.CurrentBlock()
-	if block.IsSuperBlock() {
-		reorg = true
+	remoteSuperBlkCfg, err := matrixstate.GetSuperBlockCfg(state)
+	if err != nil {
+		return NonStatTy, err
 	}
 
-	if !reorg && externTd.Cmp(localTd) == 0 {
-		// Split same-difficulty blocks by number, then at random
-		reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
+	localSbs, err := bc.GetSuperBlockSeq()
+	if nil != err {
+		log.Error("获取超级区块序号错误")
+		return NonStatTy, err
 	}
+
+	log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
+	var reorg bool
+	if localSbs < remoteSuperBlkCfg.Seq {
+		reorg = true
+	} else if localSbs == remoteSuperBlkCfg.Seq {
+		reorg = externTd.Cmp(localTd) > 0
+	} else {
+		reorg = false
+	}
+
+	currentBlock = bc.CurrentBlock()
 	if reorg {
 		// Reorganise the chain if the parent is not the head block
 		if block.ParentHash() != currentBlock.Hash() {
@@ -1478,6 +1489,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 	debug.FreeOSMemory() //lb
 
 	log.Trace("BlockChain insertChain out")
+	for _, block := range chain {
+		if block.IsSuperBlock() {
+			log.Trace("超级区块插入事件通知")
+			events = append(events, ChainHeadEvent{block})
+		}
+	}
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
