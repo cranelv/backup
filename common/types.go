@@ -449,27 +449,26 @@ var (
 )
 
 const (
-	ExtraNormalTxType           byte = 0   //普通交易
-	ExtraBroadTxType            byte = 1   //广播交易(内部交易，钱包无用)
-	ExtraUnGasMinerTxType       byte = 2   //矿工奖励类型
-	ExtraRevocable              byte = 3   //可撤销的交易
-	ExtraRevertTxType           byte = 4   //撤销交易
-	ExtraAuthTx                 byte = 5   //授权委托
-	ExtraCancelEntrust          byte = 6   //取消委托
-	ExtraTimeTxType             byte = 7   //定时交易
-	ExtraAItxType               byte = 8   //AI 交易
-	ExtraMakeCoinType           byte = 9   //创建币种交易
-	ExtraUnGasValidatorTxType   byte = 10   //验证者奖励类型
-	ExtraUnGasInterestTxType    byte = 11   //利息奖励通过合约交易发放
-	ExtraUnGasTxsType           byte = 12   //交易费奖励类型
-	ExtraUnGasLotteryTxType     byte = 13   //彩票奖励类型
-	ExtraSuperTxType            byte = 119 //超级交易
-	ExtraSuperBlockTx           byte = 120 //超级区块交易
+	ExtraNormalTxType         byte = 0   //普通交易
+	ExtraBroadTxType          byte = 1   //广播交易(内部交易，钱包无用)
+	ExtraUnGasMinerTxType     byte = 2   //矿工奖励类型
+	ExtraRevocable            byte = 3   //可撤销的交易
+	ExtraRevertTxType         byte = 4   //撤销交易
+	ExtraAuthTx               byte = 5   //授权委托
+	ExtraCancelEntrust        byte = 6   //取消委托
+	ExtraTimeTxType           byte = 7   //定时交易
+	ExtraAItxType             byte = 8   //AI 交易
+	ExtraMakeCoinType         byte = 9   //创建币种交易
+	ExtraUnGasValidatorTxType byte = 10  //验证者奖励类型
+	ExtraUnGasInterestTxType  byte = 11  //利息奖励通过合约交易发放
+	ExtraUnGasTxsType         byte = 12  //交易费奖励类型
+	ExtraUnGasLotteryTxType   byte = 13  //彩票奖励类型
+	ExtraSuperBlockTx         byte = 120 //超级区块交易
 )
 
 var (
-	WhiteAddrlist = [1]Address{InterestRewardAddress}
-	RewardAccounts = [5]Address{BlkMinerRewardAddress,BlkValidatorRewardAddress,TxGasRewardAddress,LotteryRewardAddress,InterestRewardAddress}
+	WhiteAddrlist  = [1]Address{InterestRewardAddress}
+	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
 )
 
 const (
@@ -491,11 +490,11 @@ type AddrAmont struct {
 }
 
 type RecorbleTx struct {
-	From Address
+	From    Address
 	Cointyp string
-	Adam []AddrAmont
-	Tim  uint32
-	Typ  byte
+	Adam    []AddrAmont
+	Tim     uint32
+	Typ     byte
 }
 
 //地址为matrix地址
@@ -530,7 +529,7 @@ type CoinRoot struct {
 	Root        Hash
 	TxHash      Hash
 	ReceiptHash Hash
-	Bloom		[256]byte
+	Bloom       [256]byte
 }
 type Coinbyte struct {
 	Root    Hash
@@ -538,19 +537,18 @@ type Coinbyte struct {
 }
 
 type CoinSharding struct {
-	CoinType string
+	CoinType  string
 	Shardings []uint
 }
 
 type SMakeCoin struct {
-	CoinName string
-	AddrAmount map[string]*hexutil.Big
-	CoinUnit *hexutil.Big   //单位
-	PackNum  uint64
+	CoinName    string
+	AddrAmount  map[string]*hexutil.Big
+	CoinUnit    *hexutil.Big //单位
+	PackNum     uint64
 	CoinAddress Address
 	//CoinTotal *big.Int  //总发行量
 }
-
 
 type BroadTxkey struct {
 	Key     string
@@ -687,11 +685,11 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinType string `json:"CoinType"` //name
-	PackNum uint64 `json:"PackNum"` //打包数量限制 如果为0则不打包
-	CoinUnit *hexutil.Big `json:"CoinUnit"`//单位
-	CoinTotal *hexutil.Big `json:"CoinTotal"`//总发行量
-	CoinAddress Address `json:"CoinAddress"`//币种交易费账户
+	CoinType    string       `json:"CoinType"`    //name
+	PackNum     uint64       `json:"PackNum"`     //打包数量限制 如果为0则不打包
+	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位
+	CoinTotal   *hexutil.Big `json:"CoinTotal"`   //总发行量
+	CoinAddress Address      `json:"CoinAddress"` //币种交易费账户
 }
 
 const COINPREFIX string = "ms_"

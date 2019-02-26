@@ -30,7 +30,6 @@ type GenesisMState struct {
 	Foundation                   *GenesisAddress                  `json:"Foundation,omitempty"`
 	VersionSuperAccounts         *[]GenesisAddress                `json:"VersionSuperAccounts,omitempty"`
 	BlockSuperAccounts           *[]GenesisAddress                `json:"BlockSuperAccounts,omitempty"`
-	TxsSuperAccounts             *[]GenesisAddress                `json:"TxsSuperAccounts,omitempty"`
 	MultiCoinSuperAccounts       *[]GenesisAddress                `json:"MultiCoinSuperAccounts,omitempty"`
 	SubChainSuperAccounts        *[]GenesisAddress                `json:"SubChainSuperAccounts,omitempty"`
 	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg,omitempty" gencodec:"required"`
@@ -108,9 +107,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDBManage, netTopology 
 		return err
 	}
 	if err := ms.setBlockSuperAccountsToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setTxsSuperAccountsToState(state, num); err != nil {
 		return err
 	}
 	if err := ms.setMultiCoinSuperAccountsToState(state, num); err != nil {
@@ -462,18 +458,6 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDBManag
 		}
 	}
 	matrixstate.SetVersionSuperAccounts(state, CopyAddressSlice(g.VersionSuperAccounts))
-	return nil
-}
-
-func (g *GenesisMState) setTxsSuperAccountsToState(state *state.StateDBManage, num uint64) error {
-	if g.TxsSuperAccounts == nil || len(*g.TxsSuperAccounts) == 0 {
-		if num == 0 {
-			return errors.Errorf("the txs superAccounts of genesis is empty")
-		} else {
-			return nil
-		}
-	}
-	matrixstate.SetTxsSuperAccounts(state, CopyAddressSlice(g.TxsSuperAccounts))
 	return nil
 }
 

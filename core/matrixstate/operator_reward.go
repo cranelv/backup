@@ -3,15 +3,16 @@ package matrixstate
 import (
 	"math/big"
 
+	"encoding/json"
+	"reflect"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"github.com/pkg/errors"
-	"reflect"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
-	"encoding/json"
+	"github.com/pkg/errors"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1089,15 +1090,6 @@ func (opt *operatorAccountBlackList) SetValue(st StateDB, value interface{}) err
 	if !OK {
 		log.Error(logInfo, "input param(AccountBlackList) err", "reflect failed")
 		return ErrParamReflect
-	}
-
-	mansuperTxAddreslist, err := GetTxsSuperAccounts(st)
-	if err == nil {
-		for _, superAddress := range mansuperTxAddreslist {
-			if IsInBlackList(superAddress, accounts) {
-				return errors.New("the blacklist is invalid")
-			}
-		}
 	}
 
 	data, err := encodeAccounts(accounts)

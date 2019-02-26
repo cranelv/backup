@@ -37,7 +37,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
-	"github.com/MatrixAINetwork/go-matrix/core/supertxsstate"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/crc8"
@@ -680,12 +679,12 @@ func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.Blo
 	}
 	return coinlist, nil
 }
-func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context,cointpy string, blockNr rpc.BlockNumber) ([]common.CoinConfig, error) {
+func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context, cointpy string, blockNr rpc.BlockNumber) ([]common.CoinConfig, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	bs := state.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
+	bs := state.GetMatrixData(types.RlpHash(common.COINPREFIX + mc.MSCurrencyConfig))
 	var tmpcoinlist []common.CoinConfig
 	if len(bs) > 0 {
 		//err := rlp.DecodeBytes(bs, &tmpcoinlist)
@@ -696,16 +695,16 @@ func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context,cointpy st
 		}
 	}
 	var coinlist []common.CoinConfig
-	for _,coin := range tmpcoinlist{
-		if !common.IsValidityCurrency(coin.CoinType){
+	for _, coin := range tmpcoinlist {
+		if !common.IsValidityCurrency(coin.CoinType) {
 			continue
 		}
-		if cointpy == ""{
-			coinlist = append(coinlist,coin)
+		if cointpy == "" {
+			coinlist = append(coinlist, coin)
 			continue
 		}
-		if cointpy == coin.CoinType{
-			coinlist = append(coinlist,coin)
+		if cointpy == coin.CoinType {
+			coinlist = append(coinlist, coin)
 			break
 		}
 	}
@@ -946,39 +945,6 @@ func (s *PublicBlockChainAPI) GetAuthGasAddress(ctx context.Context, strAddress 
 		return base58.Base58EncodeToString(coin, authAddr), nil
 	}
 	return "", errors.New("without entrust gas")
-}
-
-func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
-	if len(keys) == 0 {
-		return nil
-	}
-	state, err := s.b.GetState()
-	if state == nil || err != nil {
-		return nil
-	}
-
-	version := matrixstate.GetVersionInfo(state)
-	mgr := matrixstate.GetManager(version)
-	if mgr == nil {
-		return nil
-	}
-	supMager := supertxsstate.GetManager(version)
-	mapdata := make(map[string]interface{})
-	for _, k := range keys {
-		opt, err := mgr.FindOperator(k)
-		if err != nil {
-			log.Error("GetCfgDataByState:FindOperator failed", "key", k, "err", err)
-			continue
-		}
-		dataval, err := opt.GetValue(state)
-		if err != nil {
-			log.Error("GetCfgDataByState:SetValue failed", "err", err)
-			continue
-		}
-		keystr, val := supMager.Output(k, dataval)
-		mapdata[keystr.(string)] = val
-	}
-	return mapdata
 }
 
 func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key string, blockNr rpc.BlockNumber) (interface{}, error) {
@@ -1846,7 +1812,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	for _, ext := range extra {
 		for _, e := range ext.ExtraTo {
 			b := hexutil.Bytes(e.Payload)
-			b = nil	//屏蔽input
+			b = nil //屏蔽input
 			result.ExtraTo = append(result.ExtraTo, &ExtraTo_Mx{
 				To2:    e.Recipient,
 				Input2: &b,
@@ -1854,7 +1820,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 			})
 		}
 	}
-	result.Input = nil	//屏蔽input
+	result.Input = nil //屏蔽input
 	return result
 }
 

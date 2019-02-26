@@ -26,26 +26,25 @@ const (
 	MSKeyElectOnlineState = "elect_state"    // 选举节点在线信息
 
 	//通用
-	MSKeyBroadcastInterval      = "broad_interval"           // 广播区块周期
-	MSKeyElectGenTime           = "elect_gen_time"           // 选举生成时间
-	MSKeyElectMinerNum          = "elect_miner_num"          // 选举矿工数量
-	MSKeyElectConfigInfo        = "elect_details_info"       // 选举配置
-	MSKeyElectBlackList         = "elect_black_list"         // 选举黑名单
-	MSKeyElectWhiteList         = "elect_white_list"         // 选举白名单
-	MSKeyElectWhiteListSwitcher = "elect_white_list_switcher"         // 选举白名单生效开关
-	MSKeyAccountBroadcasts      = "account_broadcasts"       // 广播账户 []common.Address
-	MSKeyAccountInnerMiners     = "account_inner_miners"     // 基金会矿工 []common.Address
-	MSKeyAccountFoundation      = "account_foundation"       // 基金会账户 common.Address
-	MSKeyAccountVersionSupers   = "account_version_supers"   // 版本签名账户 []common.Address
-	MSKeyAccountBlockSupers     = "account_block_supers"     // 超级区块签名账户 []common.Address
-	MSKeyAccountTxsSupers       = "account_txs_supers"       // 超级交易签名账户 []common.Address
-	MSKeyAccountMultiCoinSupers = "account_multicoin_supers" // 超级多币种签名账户 []common.Address
-	MSKeyAccountSubChainSupers  = "account_subchain_supers"  // 子链签名账户 []common.Address
-	MSKeyVIPConfig              = "vip_config"               // VIP配置信息
-	MSKeyPreBroadcastRoot       = "pre_broadcast_Root"       // 前广播区块root信息
-	MSKeyLeaderConfig           = "leader_config"            // leader服务配置信息
-	MSKeyMinHash                = "pre_100_min_hash"         // 最小hash
-	MSKeySuperBlockCfg          = "super_block_config"       // 超级区块配置
+	MSKeyBroadcastInterval      = "broad_interval"            // 广播区块周期
+	MSKeyElectGenTime           = "elect_gen_time"            // 选举生成时间
+	MSKeyElectMinerNum          = "elect_miner_num"           // 选举矿工数量
+	MSKeyElectConfigInfo        = "elect_details_info"        // 选举配置
+	MSKeyElectBlackList         = "elect_black_list"          // 选举黑名单
+	MSKeyElectWhiteList         = "elect_white_list"          // 选举白名单
+	MSKeyElectWhiteListSwitcher = "elect_white_list_switcher" // 选举白名单生效开关
+	MSKeyAccountBroadcasts      = "account_broadcasts"        // 广播账户 []common.Address
+	MSKeyAccountInnerMiners     = "account_inner_miners"      // 基金会矿工 []common.Address
+	MSKeyAccountFoundation      = "account_foundation"        // 基金会账户 common.Address
+	MSKeyAccountVersionSupers   = "account_version_supers"    // 版本签名账户 []common.Address
+	MSKeyAccountBlockSupers     = "account_block_supers"      // 超级区块签名账户 []common.Address
+	MSKeyAccountMultiCoinSupers = "account_multicoin_supers"  // 超级多币种签名账户 []common.Address
+	MSKeyAccountSubChainSupers  = "account_subchain_supers"   // 子链签名账户 []common.Address
+	MSKeyVIPConfig              = "vip_config"                // VIP配置信息
+	MSKeyPreBroadcastRoot       = "pre_broadcast_Root"        // 前广播区块root信息
+	MSKeyLeaderConfig           = "leader_config"             // leader服务配置信息
+	MSKeyMinHash                = "pre_100_min_hash"          // 最小hash
+	MSKeySuperBlockCfg          = "super_block_config"        // 超级区块配置
 
 	//奖励配置
 	MSKeyBlkRewardCfg      = "blk_reward"         // 区块奖励配置
@@ -76,7 +75,7 @@ const (
 
 	//交易配置
 	MSTxpoolGasLimitCfg = "man_TxpoolGasLimitCfg" //入池gas配置
-	MSCurrencyConfig      = "man_CurrencyConfig"      //币种配置
+	MSCurrencyConfig    = "man_CurrencyConfig"    //币种配置
 	MSAccountBlackList  = "man_AccountBlackList"  //账户黑名单设置
 )
 
@@ -140,12 +139,12 @@ func (b *ElectMinerNumStruct) Output(k, v interface{}) (interface{}, interface{}
 }
 
 type ElectConfigInfo_All struct {
-	MinerNum      uint16
-	ValidatorNum  uint16
-	BackValidator uint16
-	ElectPlug     string
-	WhiteList     []common.Address
-	BlackList     []common.Address
+	MinerNum          uint16
+	ValidatorNum      uint16
+	BackValidator     uint16
+	ElectPlug         string
+	WhiteList         []common.Address
+	BlackList         []common.Address
 	WhiteListSwitcher bool
 }
 type ElectConfigInfo struct {
@@ -257,7 +256,7 @@ type BlkRewardCfg struct {
 	ValidatorMount           uint64 //验证者奖励 单位man
 	ValidatorAttenuationRate uint16 //验证者衰减比例
 	ValidatorAttenuationNum  uint64 //验证者衰减周期
-	RewardRate     RewardRateCfg
+	RewardRate               RewardRateCfg
 }
 
 func (b *BlkRewardCfg) Check(k, v interface{}) (interface{}, bool) {
@@ -611,7 +610,7 @@ type InterestCfg struct {
 	RewardMount       uint64 //奖励单位man
 	AttenuationRate   uint16 //衰减比例
 	AttenuationPeriod uint64 //衰减周期
-	PayInterval  uint64
+	PayInterval       uint64
 }
 
 func (b *InterestCfg) Check(k, v interface{}) (interface{}, bool) {
@@ -923,7 +922,7 @@ func (b *ElectWhiteListSwitcher) Check(k, v interface{}) (interface{}, bool) {
 		log.ERROR("超级交易白名单开关配置", "key值反射失败", "")
 		return nil, false
 	}
-	if key != MSKeyElectWhiteListSwitcher{
+	if key != MSKeyElectWhiteListSwitcher {
 		log.ERROR("超级交易白名单开关配置", "key值非法，非法值为", key)
 		return nil, false
 	}
@@ -932,7 +931,7 @@ func (b *ElectWhiteListSwitcher) Check(k, v interface{}) (interface{}, bool) {
 	if err != nil {
 		return nil, false
 	}
-	value:= ElectWhiteListSwitcher{}
+	value := ElectWhiteListSwitcher{}
 	err = json.Unmarshal(codedata, &value)
 	if err != nil {
 		return nil, false
@@ -945,6 +944,7 @@ func (b *ElectWhiteListSwitcher) Output(k, v interface{}) (interface{}, interfac
 
 	return k, v
 }
+
 type BlockProduceSlashCfg struct {
 	Switcher         bool
 	LowTHR           uint16

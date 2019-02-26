@@ -44,7 +44,7 @@ func (bc *BlockChain) ProcessStateVersion(version []byte, st *state.StateDBManag
 	return bc.matrixProcessor.ProcessStateVersion(version, st)
 }
 
-func (bc *BlockChain) ProcessMatrixState(block *types.Block,preVersion string, state *state.StateDBManage) error {
+func (bc *BlockChain) ProcessMatrixState(block *types.Block, preVersion string, state *state.StateDBManage) error {
 	return bc.matrixProcessor.ProcessMatrixState(block, preVersion, state)
 }
 
@@ -122,14 +122,6 @@ func (bc *BlockChain) GetVersionSuperAccounts(blockHash common.Hash) ([]common.A
 		return nil, errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
 	}
 	return matrixstate.GetVersionSuperAccounts(st)
-}
-
-func (bc *BlockChain) GetTxsSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
-	st, err := bc.StateAtBlockHash(blockHash)
-	if err != nil {
-		return nil, errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
-	}
-	return matrixstate.GetTxsSuperAccounts(st)
 }
 
 func (bc *BlockChain) GetMultiCoinSuperAccounts(blockHash common.Hash) ([]common.Address, error) {

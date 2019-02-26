@@ -3,19 +3,20 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+	"sync"
+	"time"
+
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"sync"
-	"time"
-	"github.com/MatrixAINetwork/go-matrix/core/state"
-	"math/big"
 )
 
 var (
@@ -25,11 +26,14 @@ var (
 
 	blockNumberByfilter = uint64(0)
 )
+
 type CoinPachFilter struct {
-	mu sync.Mutex
+	mu      sync.Mutex
 	coinNum map[string]uint64
 }
-var filtercoinnum = CoinPachFilter{coinNum:make(map[string]uint64)}
+
+var filtercoinnum = CoinPachFilter{coinNum: make(map[string]uint64)}
+
 //
 type RetChan struct {
 	//Rxs   []types.SelfTransaction
@@ -246,29 +250,29 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 func GetMatrixCoin(state *state.StateDBManage) ([]string, error) {
 	bs := state.GetMatrixData(types.RlpHash(params.COIN_NAME))
 	var tmpcoinlist []string
-	if len(bs)>0{
-		err := json.Unmarshal(bs,&tmpcoinlist)
-		if err != nil{
-			log.Trace("get matrix coin","unmarshal err",err)
+	if len(bs) > 0 {
+		err := json.Unmarshal(bs, &tmpcoinlist)
+		if err != nil {
+			log.Trace("get matrix coin", "unmarshal err", err)
 			return nil, err
 		}
 	}
 	var coinlist []string
-	for _,coin := range tmpcoinlist{
-		if !common.IsValidityCurrency(coin){
+	for _, coin := range tmpcoinlist {
+		if !common.IsValidityCurrency(coin) {
 			continue
 		}
-		coinlist = append(coinlist,coin)
+		coinlist = append(coinlist, coin)
 	}
-	return coinlist , nil
+	return coinlist, nil
 }
 
-func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.Int) bool{
-	var(
-		from common.Address = tx.From()
-		to *common.Address   = tx.To()
-		txtype      byte    = tx.GetMatrixType()
-		cointype    string  = tx.GetTxCurrency()
+func BlackListFilter(tx types.SelfTransaction, state *state.StateDBManage, h *big.Int) bool {
+	var (
+		from     common.Address  = tx.From()
+		to       *common.Address = tx.To()
+		txtype   byte            = tx.GetMatrixType()
+		cointype string          = tx.GetTxCurrency()
 	)
 	blklist, _ := matrixstate.GetAccountBlackList(state)
 	//黑账户过滤(sender)
@@ -286,7 +290,7 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 		}
 	}
 	//创建币种交易验证
-	if txtype == common.ExtraMakeCoinType{
+	if txtype == common.ExtraMakeCoinType {
 		mansuperTxAddreslist, err := matrixstate.GetMultiCoinSuperAccounts(state)
 		if err != nil {
 			log.Error("TxPoolManager:filter-check make coin", "get super tx account failed", err)
@@ -300,65 +304,46 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 			}
 		}
 		if !isOK {
-			log.Error("address err","unknown send make coin tx address",from.String())
+			log.Error("address err", "unknown send make coin tx address", from.String())
 			return false
 		}
 	}
 	//多币种配置过滤
-	if cointype != params.MAN_COIN{
-		coinf,err := matrixstate.GetCoinConfig(state)
-		if err != nil{
-			log.Error("coin err","get coin config err",err)
+	if cointype != params.MAN_COIN {
+		coinf, err := matrixstate.GetCoinConfig(state)
+		if err != nil {
+			log.Error("coin err", "get coin config err", err)
 			return false
 		}
-		if len(coinf) >0{
+		if len(coinf) > 0 {
 			var config common.CoinConfig
 			ispach := false
-			for _,cog := range coinf{
-				if cog.CoinType == cointype{
+			for _, cog := range coinf {
+				if cog.CoinType == cointype {
 					config = cog
 					ispach = true
 					break
 				}
 			}
-			if ispach{
+			if ispach {
 				if config.PackNum > 0 {
 					filtercoinnum.mu.Lock()
-					if blockNumberByfilter != h.Uint64(){
+					if blockNumberByfilter != h.Uint64() {
 						blockNumberByfilter = h.Uint64()
 						filtercoinnum.coinNum = make(map[string]uint64)
 					}
-					if filtercoinnum.coinNum[cointype] >= config.PackNum{
-						log.WARN("warning ","this coin tx count >= pack num.coin type",cointype,"pack num",config.PackNum,"curr tx count",filtercoinnum.coinNum[cointype])
+					if filtercoinnum.coinNum[cointype] >= config.PackNum {
+						log.WARN("warning ", "this coin tx count >= pack num.coin type", cointype, "pack num", config.PackNum, "curr tx count", filtercoinnum.coinNum[cointype])
 						filtercoinnum.mu.Unlock()
 						return false
 					}
-					filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype]+1
+					filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype] + 1
 					filtercoinnum.mu.Unlock()
-				}else if config.PackNum <= 0{
-					log.WARN("warning ","this coin tx discard. coin type",cointype)
+				} else if config.PackNum <= 0 {
+					log.WARN("warning ", "this coin tx discard. coin type", cointype)
 					return false
 				}
 			}
-		}
-	}
-	//超级交易账户不匹配
-	if txtype == common.ExtraSuperTxType {
-		mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
-		if err != nil {
-			log.Error("TxPoolManager:filter", "get super tx account failed", err)
-			return false
-		}
-		isOK := false
-		for _, superAddress := range mansuperTxAddreslist {
-			if from.Equal(superAddress) {
-				isOK = true
-				break
-			}
-		}
-		if !isOK {
-			log.Error("address err","unknown send super tx address",from.String())
-			return false
 		}
 	}
 
@@ -366,14 +351,14 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDBManage,h *big.
 	if txtype == common.ExtraUnGasMinerTxType || txtype == common.ExtraUnGasValidatorTxType ||
 		txtype == common.ExtraUnGasInterestTxType || txtype == common.ExtraUnGasTxsType || txtype == common.ExtraUnGasLotteryTxType {
 		isOK := false
-		for _,account := range common.RewardAccounts{
-			if from.Equal(account){
+		for _, account := range common.RewardAccounts {
+			if from.Equal(account) {
 				isOK = true
 				break
 			}
 		}
-		if !isOK{
-			log.Error("address err","unknown send reward tx address",from.String())
+		if !isOK {
+			log.Error("address err", "unknown send reward tx address", from.String())
 			return false
 		}
 	}
