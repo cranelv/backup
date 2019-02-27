@@ -1125,7 +1125,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
-	log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
 	var reorg bool
 	if localSbs < remoteSuperBlkCfg.Seq {
 		reorg = true
@@ -1245,6 +1244,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		events        = make([]interface{}, 0, len(chain))
 		lastCanon     *types.Block
 		coalescedLogs []*types.Log
+		status        WriteStatus
 	)
 
 	// Iterate over the blocks and insert when the verifier permits
@@ -1392,7 +1392,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		proctime := time.Since(bstart)
 		log.Trace("BlockChain insertChain in3 WriteBlockWithState")
 		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, receipts, state)
+		status, err = bc.WriteBlockWithState(block, receipts, state)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -1443,7 +1443,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	log.Trace("BlockChain insertChain out")
 	for _, block := range chain {
-		if block.IsSuperBlock() {
+		if block.IsSuperBlock() && CanonStatTy == status {
 			log.Trace("超级区块插入事件通知")
 			events = append(events, ChainHeadEvent{block})
 		}
