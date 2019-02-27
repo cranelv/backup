@@ -15,7 +15,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/base58"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
-	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/txinterface"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
@@ -72,16 +71,16 @@ func IntrinsicGas(data []byte) (uint64, error) {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg txinterface.Message, gp *GasPool) *StateTransition {
-	gasprice, err := matrixstate.GetTxpoolGasLimit(evm.StateDB)
-	if err != nil {
-		log.Error("NewStateTransition err")
-		return nil
-	}
+	//gasprice, err := matrixstate.GetTxpoolGasLimit(evm.StateDB)
+	//if err != nil {
+	//	log.Error("NewStateTransition err")
+	//	return nil
+	//}
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
 		msg:      msg,
-		gasPrice: gasprice,
+		gasPrice: new(big.Int).SetUint64(params.TxGasPrice),
 		value:    msg.Value(),
 		data:     msg.Data(),
 		state:    evm.StateDB,

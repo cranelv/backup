@@ -294,7 +294,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
-	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number,"tx num",len(listTx))
 	listret, originalTxs = env.commitTransactions(mux, listTx, common.Address{})
 	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
@@ -434,7 +434,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	from := make([]common.Address, 0)
-	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number,"tx num",len(txs))
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
