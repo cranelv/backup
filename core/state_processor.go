@@ -406,7 +406,6 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	}
 	p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	for _, tx := range stxs {
-		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 		receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
@@ -439,7 +438,6 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			allLogs = tmpl
 		}
 		ftxs = append(ftxs, tmptx)
-		//fmt.Printf("旷工%s\n",statedb.Dump(tx.GetTxCurrency(),tx.From()))
 	}
 	receipts = append(receipts, tmpMapre[params.MAN_COIN]...)
 	tmpMapre[params.MAN_COIN] = receipts

@@ -23,7 +23,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
-	"fmt"
 )
 
 type ChainReader interface {
@@ -148,16 +147,16 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 }
 
 //func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsByPriceAndNonce, bc *core.BlockChain, coinbase common.Address) (listN []uint32, retTxs []types.SelfTransaction) {
-func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransactions, coinbase common.Address) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
+func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address]types.SelfTransactions, coinbase common.Address) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
 	var coalescedLogs []types.CoinLogs
 	tmpRetmap := make(map[byte][]uint32)
-	txs := types.GetCoinTX(txser)
-	for _, txers := range txs {
-		for _,txer := range txers.Txser{
+	for _, txers := range txser {
+		//txs := types.GetCoinTX(txers)
+		for _,txer := range txers{
 			// If we don't have enough gas for any further transactions then we're done
 			if env.gasPool.Gas() < params.TxGas {
 				log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
@@ -173,16 +172,19 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 			// Start executing the transaction
 			env.State.Prepare(txer.Hash(), common.Hash{}, env.tcount)
 			err, logs := env.commitTransaction(txer, env.bc, coinbase, env.gasPool)
+			isSkipFrom := false
 			switch err {
 			case core.ErrGasLimitReached:
 				// Pop the current out-of-gas transaction without shifting in the next from the account
 				log.Trace("Gas limit exceeded for current block", "sender", from)
+				isSkipFrom = true
 			case core.ErrNonceTooLow:
 				// New head notification data race between the transaction pool and miner, shift
 				log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", txer.Nonce())
 			case core.ErrNonceTooHigh:
 				// Reorg notification data race between the transaction pool and miner, skip account =
 				log.Trace("Skipping account with hight nonce", "sender", from, "nonce", txer.Nonce())
+				isSkipFrom = true
 			case nil:
 				// Everything ok, collect the logs and shift in the next transaction from the same account
 				if txer.GetTxNLen() != 0 {
@@ -203,6 +205,9 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser types.SelfTransact
 				// Strange error, discard the transaction and get the next in line (note, the
 				// nonce-too-high clause will prevent us from executing in vain).
 				log.Debug("Transaction failed, account skipped", "hash", txer.Hash(), "err", err)
+			}
+			if isSkipFrom{
+				break
 			}
 		}
 	}
@@ -290,19 +295,15 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
-	listTx := make(types.SelfTransactions, 0)
-	for _, txser := range pending {
-		listTx = append(listTx, txser...)
-	}
-	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number,"tx num",len(listTx))
-	listret, originalTxs = env.commitTransactions(mux, listTx, common.Address{})
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
+	listret, originalTxs = env.commitTransactions(mux, pending, common.Address{})
 	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
 	from := make([]common.Address, 0)
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs))
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -434,7 +435,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	from := make([]common.Address, 0)
-	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number,"tx num",len(txs))
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -445,8 +446,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		for _, t := range tx.Txser {
 			env.State.Prepare(t.Hash(), common.Hash{}, env.tcount)
 			err, logs := env.commitTransaction(t, env.bc, common.Address{}, env.gasPool)
-			fmt.Printf("验证者ConsensusTransactions11111 hash\n",t.Hash().String())
-			fmt.Printf("验证者ConsensusTransactions11111%s\n",env.State.Dump(t.GetTxCurrency(),t.From()))
 			if err == nil {
 				env.tcount++
 				coalescedLogs = append(coalescedLogs,types.CoinLogs{t.GetTxCurrency(),logs})
