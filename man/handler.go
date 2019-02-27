@@ -160,7 +160,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer, blockchain.GetBlockByNumber)
 
 	validator := func(header *types.Header) error {
 		//todo 无法连续验证，下载的区块全部不验证pow
@@ -575,11 +575,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		for i, body := range request {
 			/*
-			cointx := make([]types.CoinSelfTransaction,0)
-			for _,curr := range body.Transactions{
-				cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
-			}
-			transactions[i] = cointx//.GetTransactions()*/
+				cointx := make([]types.CoinSelfTransaction,0)
+				for _,curr := range body.Transactions{
+					cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
+				}
+				transactions[i] = cointx//.GetTransactions()*/
 			transCrBlock[i] = body.Transactions
 			uncles[i] = body.Uncles
 		}
@@ -632,7 +632,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
-			log.Debug("Failed to deliver node state data", "err", err)
+			p.Log().Debug("Failed to deliver node state data", "err", err)
 		}
 
 	case p.version >= man63 && msg.Code == GetReceiptsMsg:
@@ -657,12 +657,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Retrieve the requested block's receipts, skipping if unknown to us
 			results := pm.blockchain.GetReceiptsByHash(hash)
 			if results == nil {
-				log.Info("Get receipt err","Get receipt err","Get receipt err")
+				p.Log().Info("Get receipt err", "Get receipt err", "Get receipt err")
 				continue
 			}
 			// If known, encode and queue for response packet
 			if encoded, err := rlp.EncodeToBytes(results); err != nil {
-				log.Error("Failed to encode receipt", "err", err)
+				p.Log().Error("Failed to encode receipt", "err", err)
 			} else {
 				receipts = append(receipts, encoded)
 				bytes += len(encoded)
@@ -678,7 +678,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
-			log.Debug("Failed to deliver receipts", "err", err)
+			p.Log().Debug("Failed to deliver receipts", "err", err)
 		}
 
 	case msg.Code == NewBlockHashesMsg:
@@ -689,6 +689,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
+		}
+		if len(announces) > 0 {
+			p.Log().Trace("download fetch handleMsg receive NewBlockHashesMsg0", "BlockNum", announces[0].Number, "hash", announces[0].Hash.String())
 		}
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
@@ -713,7 +716,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
-		log.Trace("download fetch handleMsg receive NewBlockMsg", "number", request.Block.NumberU64())
+		p.Log().Trace("download fetch handleMsg receive NewBlockMsg", "number", request.Block.NumberU64(), "request.TD", request.TD)
 		pm.fetcher.Enqueue(p.id, request.Block)
 
 		// Assuming the block is importable by the peer, but possibly not yet done so,
@@ -725,7 +728,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		)
 		// Update the peers total difficulty if better than the previous
 		_, td, sbs, _ := p.Head()
-		log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "缓存序号", sbs)
+		p.Log().Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "缓存序号", sbs, "trueTD", trueTD)
 		if trueSBS < sbs {
 			//todo:日志
 			break
@@ -778,7 +781,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			hash := tx.Hash()
 			p.MarkTransaction(hash)
-			log.INFO("==tcp tx hash","from",tx.From().String(),"tx.Nonce",tx.Nonce(),"hash",hash.String())
+			log.INFO("==tcp tx hash", "from", tx.From().String(), "tx.Nonce", tx.Nonce(), "hash", hash.String())
 		}
 		pm.txpool.AddRemotes(txs)
 	case msg.Code == common.NetworkMsg:

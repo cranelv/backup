@@ -948,7 +948,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
-				go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 			}
 		} else {
 			if block.NumberU64()%SaveSnapPeriod == 5 {
@@ -1054,8 +1054,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	}
 	// Write other block data using a batch.
 	batch := bc.db.NewBatch()
-	for _,hhhh:=range block.Header().Roots{
-		log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYWriteBlockWithState","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+	for _, hhhh := range block.Header().Roots {
+		log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYWriteBlockWithState", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 	}
 	rawdb.WriteBlock(batch, block)
 	txcount := uint64(0)
@@ -1069,7 +1069,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
 		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
-			go bc.SaveSnapshot(block.NumberU64(), numSnapshotPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 		}
 	} else {
 		if block.NumberU64()%SaveSnapPeriod == 5 {
@@ -1317,8 +1317,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		bstart := time.Now()
 
 		header := block.Header()
-		for _,hhhh:=range header.Roots{
-			log.Info("111111YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+		for _, hhhh := range header.Roots {
+			log.Info("111111YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		seal := true
 		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
@@ -1328,8 +1328,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		if err == nil {
 			err = bc.Validator(header.Version).ValidateBody(block)
 		}
-		for _,hhhh:=range block.Header().Roots{
-			log.Info("222222YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+		for _, hhhh := range block.Header().Roots {
+			log.Info("222222YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		switch {
 		case err == ErrKnownBlock:
@@ -1398,8 +1398,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
-		for _,hhhh:=range block.Header().Roots{
-			log.Info("3333333YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+		for _, hhhh := range block.Header().Roots {
+			log.Info("3333333YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		// verify pos
 		err = bc.DPOSEngine(header.Version).VerifyBlock(bc, header)
@@ -1417,8 +1417,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			parent = chain[i-1]
 		}
 		log.Trace("BlockChain insertChain in3 parent")
-		for _,hhhh:=range block.Header().Roots{
-			log.Info("444444YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+		for _, hhhh := range block.Header().Roots {
+			log.Info("444444YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		// Process block using the parent state as reference point.
 		state, err := state.NewStateDBManage(parent.Root(), bc.db, bc.stateCache)
@@ -1450,8 +1450,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 				return i, events, coalescedLogs, err
 			}
 		}
-		for _,hhhh:=range block.Header().Roots{
-			log.Info("555555YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain","header.Roots[0].TxHash",hhhh.TxHash,"cointype",hhhh.Cointyp)
+		for _, hhhh := range block.Header().Roots {
+			log.Info("555555YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		proctime := time.Since(bstart)
 		log.Trace("BlockChain insertChain in3 WriteBlockWithState")

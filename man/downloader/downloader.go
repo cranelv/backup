@@ -49,9 +49,9 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 800  //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 1024 //2048      // Number of header download results to import at once into the chain
-	maxResultsProcess = 918  //396  //576      //lb//2048      // Number of content download results to import at once into the chain
+	maxQueuedHeaders  = 800 //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess = 512 //1024 //2048      // Number of header download results to import at once into the chain
+	maxResultsProcess = 918 //396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
@@ -84,6 +84,8 @@ var (
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
 )
+
+type blockQRetrievalFn func(number uint64) *types.Block
 
 type Downloader struct {
 	IpfsMode bool           //liubo ipfs
@@ -156,14 +158,15 @@ type BlockIpfs struct {
 	BlockNum         uint64
 	Headeripfs       *types.Header
 	Unclesipfs       []*types.Header
-	Transactionsipfs []types.CurrencyBlock//CoinSelfTransaction //Transactions//SelfTransaction?????
+	Transactionsipfs []types.CurrencyBlock //CoinSelfTransaction //Transactions//SelfTransaction?????
 	Receipt          []types.CoinReceipts
 }
 type BlockIpfsReq struct {
-	ReqPendflg  int
-	Flag        uint64 //int //1 单个, 2 批量 //快照时携带区块number
-	coinstr     string //快照时携带区块Hash
-	HeadReqipfs *types.Header
+	ReqPendflg   int
+	Flag         uint64 //int //1 单个, 2 批量 //快照时携带区块number
+	coinstr      string //快照时携带区块Hash
+	realBeginNum uint64 //实际开始插入节
+	HeadReqipfs  *types.Header
 }
 type SnapshootReq struct {
 	BlockNumber uint64
@@ -244,7 +247,7 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
+func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn, getBlock blockQRetrievalFn) *Downloader {
 	if lightchain == nil {
 		lightchain = chain
 	}
@@ -254,7 +257,7 @@ func New(mode SyncMode, stateDb mandb.Database, mux *event.TypeMux, chain BlockC
 		mode:           mode,
 		stateDB:        stateDb,
 		mux:            mux,
-		queue:          newQueue(),
+		queue:          newQueue(getBlock),
 		peers:          newPeerSet(),
 		rttEstimate:    uint64(rttMaxEstimate),
 		rttConfidence:  uint64(1000000),
@@ -1782,7 +1785,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 					ReceiptHash: coinRoot.ReceiptHash}
 			}
 			cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(),
-				types.TxHashList(ct.Transactions.GetTransactions()), nil), types.SetReceipts(result.Receipts[i].Receiptlist,result.Receipts[i].Receiptlist.HashList(), nil)})
+				types.TxHashList(ct.Transactions.GetTransactions()), nil), types.SetReceipts(result.Receipts[i].Receiptlist, result.Receipts[i].Receiptlist.HashList(), nil)})
 		}
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 		//receipts[i] = result.Receipts
@@ -1805,8 +1808,8 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 				TxHash:      coinRoot.TxHash,
 				ReceiptHash: coinRoot.ReceiptHash}
 		}
-		cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(),types.TxHashList(ct.Transactions.GetTransactions()), nil),
-		types.SetReceipts(result.Receipts[i].Receiptlist,result.Receipts[i].Receiptlist.HashList(), nil)})
+		cbs = append(cbs, types.CurrencyBlock{ct.CurrencyName, ch, types.SetTransactions(ct.Transactions.GetTransactions(), types.TxHashList(ct.Transactions.GetTransactions()), nil),
+			types.SetReceipts(result.Receipts[i].Receiptlist, result.Receipts[i].Receiptlist.HashList(), nil)})
 	}
 	block := types.NewBlockWithHeader(result.Header).WithBody(cbs, result.Uncles)
 	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
@@ -1987,7 +1990,7 @@ func (d *Downloader) ProcessSnapshoot(number uint64, hash string) error {
 	}
 	sendReq := make([]BlockIpfsReq, 0, 1)
 	stReq := BlockIpfsReq{
-		ReqPendflg:  4, //full同步,
+		ReqPendflg:  4, //下载快照,
 		Flag:        number,
 		coinstr:     hash, //借存状态hash
 		HeadReqipfs: nil,
