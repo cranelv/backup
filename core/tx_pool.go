@@ -1298,14 +1298,14 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		nPool.setsTx(tx_s, tx)
 		if len(tx.N) == 0 {
 			gSendst.notice <- tx.GetTxS()
-		} else {
-			log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
+		//} else {
+		//	log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
 		}
 	} else if selfRole == common.RoleDefault || selfRole == common.RoleBucket {
 		promoted := make([]types.SelfTransaction, 0)
 		promoted = append(promoted, tx)
 		nPool.sendTxCh <- NewTxsEvent{promoted, types.NormalTxIndex}
-		log.Trace("txpool:add()", "selfRole == common.RoleDefault", selfRole)
+		//log.Trace("txpool:add()", "selfRole == common.RoleDefault", selfRole)
 	} else {
 		log.Trace("txpool:add()", "unknown selfRole ", selfRole)
 	}

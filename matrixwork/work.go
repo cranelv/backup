@@ -294,6 +294,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, txser := range pending {
 		listTx = append(listTx, txser...)
 	}
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	listret, originalTxs = env.commitTransactions(mux, listTx, common.Address{})
 	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
@@ -301,8 +302,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
-
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
@@ -318,6 +319,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	tmps = append(tmps, finalTxs...)
 	finalTxs = tmps
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
+	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return
 }
 
@@ -432,6 +434,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	from := make([]common.Address, 0)
+	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	for _, tx := range txs {
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -453,7 +456,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			from = append(from,t.From())
 		}
 	}
-
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -473,7 +476,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			}
 		}(coalescedLogs, env.tcount)
 	}
-
+	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return nil
 }
 func (env *Work) GetTxs() []types.CoinSelfTransaction {
