@@ -99,6 +99,10 @@ func (b *ManAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNum
 	return b.man.blockchain.GetHeaderByNumber(uint64(blockNr)), nil
 }
 
+func (b *ManAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	return b.man.blockchain.GetHeaderByHash(hash), nil
+}
+
 func (b *ManAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Block, error) {
 	// Pending block is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
@@ -120,6 +124,16 @@ func (b *ManAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	}
 	// Otherwise resolve the block number and return its state
 	header, err := b.HeaderByNumber(ctx, blockNr)
+	if header == nil || err != nil {
+		return nil, nil, err
+	}
+	stateDb, err := b.man.BlockChain().StateAt(header.Root)
+	return stateDb, header, err
+}
+
+func (b *ManAPIBackend) StateAndHeaderByHash(ctx context.Context, hash common.Hash) (*state.StateDB, *types.Header, error) {
+	// Otherwise resolve the block number and return its state
+	header, err := b.HeaderByHash(ctx, hash)
 	if header == nil || err != nil {
 		return nil, nil, err
 	}
@@ -511,12 +525,13 @@ func (b *ManAPIBackend) calcFutureInterest(state *state.StateDB, latestElectNum 
 		return nil, errors.New("interest创建失败")
 	}
 	interestCalcMap := make(map[common.Address]*big.Int)
+	parentHash := b.man.BlockChain().GetBlockByNumber(latestElectNum + 1).Hash()
 	for num := latestElectNum; num < bcInterval.GetNextReElectionNumber(latestElectNum); num++ {
 
 		if bcInterval.IsBroadcastNumber(num) {
 			continue
 		}
-		retMap := interestReward.GetReward(state, latestElectNum+1)
+		retMap := interestReward.GetReward(state, latestElectNum+1, parentHash)
 		util.MergeReward(interestCalcMap, retMap)
 	}
 	return interestCalcMap, nil

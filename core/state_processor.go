@@ -138,11 +138,11 @@ func (p *StateProcessor) ProcessReward(st *state.StateDB, header *types.Header, 
 		return p.reverse(rewardList)
 	}
 
-	interestReward.CalcReward(st, header.Number.Uint64())
+	interestReward.CalcReward(st, header.Number.Uint64(), header.ParentHash)
 
 	slash := slash.New(p.bc, st, preState)
 	if nil != slash {
-		slash.CalcSlash(st, header.Number.Uint64(), upTime)
+		slash.CalcSlash(st, header.Number.Uint64(), upTime, header.ParentHash)
 	}
 
 	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())

@@ -21,8 +21,7 @@ type BlockSlash struct {
 	eleMaxOnlineTime uint64
 	SlashRate        uint64
 	bcInterval       *mc.BCIntervalInfo
-	preElectRoot     common.Hash
-	preElectList     []mc.ElectNodeInfo
+	preBroadcastRoot *mc.PreBroadStateRoot
 }
 
 func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) *BlockSlash {
@@ -82,7 +81,7 @@ func (bp *BlockSlash) GetCurrentInterest(preState *state.StateDB, currentState *
 
 	return interestMap
 }
-func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64) {
+func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeMap map[common.Address]uint64, parentHash common.Hash) {
 
 	if bp.bcInterval.IsBroadcastNumber(num) {
 		log.WARN(PackageName, "广播周期不处理", "")
@@ -102,7 +101,7 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 	if err := matrixstate.SetSlashNum(currentState, num); err != nil {
 		log.Error(PackageName, "设置惩罚状态失败", err)
 	}
-	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, num-1)
+	preBroadcastRoot, err := readstatedb.GetPreBroadcastRoot(bp.chain, parentHash)
 	if err != nil {
 		log.Error(PackageName, "获取之前广播区块的root值失败 err", err)
 		return
@@ -124,7 +123,12 @@ func (bp *BlockSlash) CalcSlash(currentState *state.StateDB, num uint64, upTimeM
 	}
 	//计算选举的拓扑图的高度
 	eleNum := bp.bcInterval.GetLastBroadcastNumber() - 2
-	st, err := bp.chain.StateAtNumber(eleNum)
+	ancetorHash, err := bp.chain.GetAncestorHash(parentHash, eleNum)
+	if err != nil {
+		log.Error(PackageName, "获取制动高度hash失败", err, "eleNum", eleNum)
+		return
+	}
+	st, err := bp.chain.StateAtBlockHash(ancetorHash)
 	if err != nil {
 		log.Error(PackageName, "获取选举高度的状态树失败", err, "eleNum", eleNum)
 		return

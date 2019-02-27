@@ -4,13 +4,15 @@
 package baseinterface
 
 import (
+	"math/big"
+
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"math/big"
 
 	"fmt"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/log"
@@ -77,7 +79,7 @@ func (self *RandomChain) BlockChain() ChainReader {
 }
 
 type RandomSubService interface {
-	Prepare(uint64) error
+	Prepare(uint64, common.Hash) error
 	CalcData(data common.Hash) (*big.Int, error)
 }
 
@@ -135,7 +137,7 @@ func (self *Random) Stop() {
 }
 func (self *Random) processRoleUpdateData(data *mc.RoleUpdatedMsg) {
 	for _, v := range self.mapSubService {
-		go v.Prepare(data.BlockNum)
+		go v.Prepare(data.BlockNum, data.BlockHash)
 	}
 }
 

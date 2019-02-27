@@ -171,20 +171,20 @@ func (ic *interest) getLastInterestNumber(number uint64, InterestInterval uint64
 	ans := (number / InterestInterval) * InterestInterval
 	return ans
 }
-func (ic *interest) GetReward(state vm.StateDB, num uint64) map[common.Address]*big.Int {
+func (ic *interest) GetReward(state vm.StateDB, num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 	RewardMan := new(big.Int).Mul(new(big.Int).SetUint64(ic.InterestConfig.RewardMount), util.ManPrice)
 	blockReward := util.CalcRewardMountByNumber(state, RewardMan, num-1, ic.InterestConfig.AttenuationPeriod, common.BlkMinerRewardAddress, ic.InterestConfig.AttenuationRate)
 	if blockReward.Uint64() == 0 {
 		log.Error(PackageName, "账户余额为0，不发放利息奖励", "")
 		return nil
 	}
-	InterestMap := ic.GetInterest(num)
+	InterestMap := ic.GetInterest(num, parentHash)
 	RewardMap := util.CalcInterestReward(blockReward, InterestMap)
 	return RewardMap
 }
 
-func (ic *interest) CalcReward(state vm.StateDB, num uint64) map[common.Address]*big.Int {
-	RewardMap := ic.GetReward(state, num)
+func (ic *interest) CalcReward(state vm.StateDB, num uint64, parentHash common.Hash) map[common.Address]*big.Int {
+	RewardMap := ic.GetReward(state, num, parentHash)
 	ic.SetReward(RewardMap, state)
 	return RewardMap
 }
@@ -195,7 +195,7 @@ func (ic *interest) SetReward(InterestMap map[common.Address]*big.Int, state vm.
 	}
 }
 
-func (ic *interest) GetInterest(num uint64) map[common.Address]*big.Int {
+func (ic *interest) GetInterest(num uint64, parentHash common.Hash) map[common.Address]*big.Int {
 	depositInterestRateList := make(DepositInterestRateList, 0)
 	for _, v := range ic.VIPConfig {
 		if v.MinMoney < 0 {
@@ -206,7 +206,7 @@ func (ic *interest) GetInterest(num uint64) map[common.Address]*big.Int {
 		depositInterestRateList = append(depositInterestRateList, &DepositInterestRate{deposit, v.InterestRate})
 	}
 	//sort.Sort(depositInterestRateList
-	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetUint64(num - 1))
+	depositNodes, err := ca.GetElectedByHeightByHash(parentHash)
 	if nil != err {
 		log.ERROR(PackageName, "获取的抵押列表错误", err)
 		return nil

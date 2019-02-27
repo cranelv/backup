@@ -66,6 +66,7 @@ type ChainReader interface {
 	GetSuperBlockNum() (uint64, error)
 	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	StateAtBlockHash(hash common.Hash) (*state.StateDB, error)
+	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
 }
 
 type StateDB interface {

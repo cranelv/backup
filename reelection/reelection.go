@@ -140,7 +140,11 @@ func (self *ReElection) GetTopoChange(hash common.Hash, offline []common.Address
 		return []mc.Alternative{}, err
 	}
 	antive := GetAllNativeDataForUpdate(*electState, *electOnlineState, TopoGrap)
-	DiffValidatot, err := self.TopoUpdate(antive, TopoGrap, height-1)
+	block := self.bc.GetBlockByHash(hash)
+	if block == nil {
+		log.ERROR(Module, "获取区块失败,hash", hash)
+	}
+	DiffValidatot, err := self.TopoUpdate(antive, TopoGrap, block.ParentHash())
 	if err != nil {
 		log.ERROR(Module, "拓扑更新失败 err", err, "高度", height)
 	}
