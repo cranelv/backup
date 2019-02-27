@@ -361,7 +361,7 @@ func (t *udp) findnodeByAddress(toid NodeID, toaddr *net.UDPAddr, target common.
 			log.Trace("Invalid neighbor node received", "ip", reply.Node.IP, "addr", toaddr, "err", err)
 		}
 		node = n
-		return node == nil
+		return node != nil
 	})
 	t.send(toaddr, findnodeByAddrPacket, &findnodeByAddress{
 		Target:     target,
