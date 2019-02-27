@@ -644,12 +644,12 @@ func (f *Fetcher) enqueue(peer string, block *types.Block) {
 		return
 	}
 	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+	/*if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
 		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash.String(), "distance", dist)
 		propBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
 		return
-	}
+	}*/
 	// Schedule the block for future importing
 	if _, ok := f.queued[hash]; !ok {
 		op := &inject{

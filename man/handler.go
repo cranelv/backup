@@ -160,7 +160,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer, blockchain.GetBlockByNumber)
 
 	validator := func(header *types.Header) error {
 		//todo 无法连续验证，下载的区块全部不验证pow
@@ -623,7 +623,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
-			log.Debug("Failed to deliver node state data", "err", err)
+			p.Log().Debug("Failed to deliver node state data", "err", err)
 		}
 
 	case p.version >= man63 && msg.Code == GetReceiptsMsg:
@@ -670,7 +670,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
-			log.Debug("Failed to deliver receipts", "err", err)
+			p.Log().Debug("Failed to deliver receipts", "err", err)
 		}
 
 	case msg.Code == NewBlockHashesMsg:
@@ -717,7 +717,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		)
 		// Update the peers total difficulty if better than the previous
 		_, td, sbs, _ := p.Head()
-		log.Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "缓存序号", sbs)
+		p.Log().Trace("handleMsg receive NewBlockMsg", "超级区块序号", trueSBS, "缓存序号", sbs)
 		if trueSBS < sbs {
 			//todo:日志
 			break

@@ -502,7 +502,7 @@ func copyDb(ctx *cli.Context) error {
 	chain, chainDb := utils.MakeChain(ctx, stack)
 
 	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, chainDb, new(event.TypeMux), chain, nil, nil)
+	dl := downloader.New(syncmode, chainDb, new(event.TypeMux), chain, nil, nil, nil)
 
 	// Create a source peer to satisfy downloader requests from
 	db, err := mandb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
@@ -861,7 +861,7 @@ func aesEncrypt(ctx *cli.Context) error {
 	//写入文件
 	err = ioutil.WriteFile(outPath, []byte(pass64), 0666)
 	if err == nil {
-		fmt.Println("Write into "+outPath+" successfully", )
+		fmt.Println("Write into " + outPath + " successfully")
 	}
 
 	return nil
