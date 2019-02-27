@@ -441,36 +441,43 @@ const (
 
 var (
 	BlkMinerRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000000") //区块奖励
-	BlkValidatorRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000001") //leader奖励
-	TxGasRewardAddress        Address = HexToAddress("0x8000000000000000000000000000000000000002") //交易费
-	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000003") //彩票
-	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000004") //利息
+	BlkValidatorRewardAddress Address = HexToAddress("0x8000000000000000000000000000000000000000") //leader奖励
+	InterestRewardAddress     Address = HexToAddress("0x8000000000000000000000000000000000000000") //利息
+	TxGasRewardAddress        Address = HexToAddress("0x8000000000000000000000000000000000000001") //交易费
+	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000002") //彩票
 	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 )
 
 const (
-	ExtraNormalTxType  byte = 0   //普通交易
-	ExtraBroadTxType   byte = 1   //广播交易(内部交易，钱包无用)
-	ExtraUnGasTxType   byte = 2   //无gas的奖励交易(内部交易，钱包无用)
-	ExtraRevocable     byte = 3   //可撤销的交易
-	ExtraRevertTxType  byte = 4   //撤销交易
-	ExtraAuthTx        byte = 5   //授权委托
-	ExtraCancelEntrust byte = 6   //取消委托
-	ExtraTimeTxType    byte = 7   //定时交易
-	ExtraAItxType      byte = 8   //AI 交易
-	ExtraCreatCurrency byte = 118 //创建币种交易
-	ExtraSuperTxType   byte = 119 //超级交易
-	ExtraSuperBlockTx  byte = 120 //超级区块交易
+	ExtraNormalTxType         byte = 0   //普通交易
+	ExtraBroadTxType          byte = 1   //广播交易(内部交易，钱包无用)
+	ExtraUnGasMinerTxType     byte = 2   //矿工奖励类型
+	ExtraRevocable            byte = 3   //可撤销的交易
+	ExtraRevertTxType         byte = 4   //撤销交易
+	ExtraAuthTx               byte = 5   //授权委托
+	ExtraCancelEntrust        byte = 6   //取消委托
+	ExtraTimeTxType           byte = 7   //定时交易
+	ExtraAItxType             byte = 8   //AI 交易
+	ExtraUnGasValidatorTxType byte = 10  //验证者奖励类型
+	ExtraUnGasInterestTxType  byte = 11  //利息奖励通过合约交易发放
+	ExtraUnGasTxsType         byte = 12  //交易费奖励类型
+	ExtraUnGasLotteryTxType   byte = 13  //彩票奖励类型
+	ExtraCreatCurrency        byte = 118 //创建币种交易
+	ExtraSuperBlockTx         byte = 120 //超级区块交易
 )
 
 var (
-	WhiteAddrlist = [1]Address{InterestRewardAddress}
-	RewardAccounts = [5]Address{BlkMinerRewardAddress,BlkValidatorRewardAddress,TxGasRewardAddress,LotteryRewardAddress,InterestRewardAddress}
+	WhiteAddrlist  = [1]Address{InterestRewardAddress}
+	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
 )
 
 const (
-	RewardNomalType   byte = 0 //奖励通过普通交易发放
-	RewardInerestType byte = 1 //利息奖励通过合约交易发放
+	RewardMinerType     byte = 0 //矿工奖励类型
+	RewardValidatorType byte = 1 //验证者奖励类型
+	RewardInterestType  byte = 2 //利息奖励通过合约交易发放
+	RewardTxsType       byte = 3 //交易费奖励类型
+	RewardLotteryType   byte = 4 //彩票奖励类型
+
 )
 
 type TxTypeInt uint8

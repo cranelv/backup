@@ -485,11 +485,6 @@ web3._extend({
 			call: 'man_getSelfLevel',
 			params: 0,
 		}),
-		new web3._extend.Method({
-			name: 'getCfgDataByState',
-			call: 'man_getCfgDataByState',
-			params: 1,
-		}),
 	],
 	properties: [
 		new web3._extend.Property({

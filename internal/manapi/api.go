@@ -37,7 +37,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
-	"github.com/MatrixAINetwork/go-matrix/core/supertxsstate"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/crc8"
@@ -647,9 +646,61 @@ func (s *PublicBlockChainAPI) GetUpTime(ctx context.Context, strAddress string, 
 
 	return read, state.Error()
 }
+func (s *PublicBlockChainAPI) GetInterest(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address, _ := base58.Base58DecodeToAddress(strAddress)
 
+	read, _ := depoistInfo.GetInterest(state, address)
+
+	return (*hexutil.Big)(read), state.Error()
+}
+
+func (s *PublicBlockChainAPI) GetSlash(ctx context.Context, strAddress string, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	address, _ := base58.Base58DecodeToAddress(strAddress)
+
+	read, _ := depoistInfo.GetSlash(state, address)
+
+	return (*hexutil.Big)(read), state.Error()
+}
+
+type DepositDetail struct {
+	Address     string
+	SignAddress string
+	Deposit     *big.Int
+	WithdrawH   *big.Int
+	OnlineTime  *big.Int
+	Role        *big.Int
+}
+
+func (s *PublicBlockChainAPI) GetDeposit(ctx context.Context, blockNr rpc.BlockNumber) ([]DepositDetail, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+
+	depositNodes, err := ca.GetElectedByHeight(new(big.Int).SetInt64(int64(blockNr)))
+	if nil != err {
+		return nil, err
+	}
+	if 0 == len(depositNodes) {
+		return nil, err
+	}
+	depositNodesOutput := make([]DepositDetail, 0)
+	for _, v := range depositNodes {
+		tmp := DepositDetail{Address: base58.Base58EncodeToString("MAN", v.Address), SignAddress: base58.Base58EncodeToString("MAN", v.SignAddress), Deposit: v.Deposit, WithdrawH: v.WithdrawH, OnlineTime: v.OnlineTime, Role: v.Role}
+		depositNodesOutput = append(depositNodesOutput, tmp)
+	}
+	return depositNodesOutput, state.Error()
+}
 func (api *PublicBlockChainAPI) GetFutureRewards(ctx context.Context, number rpc.BlockNumber) (interface{}, error) {
-	state, _, err := api.b.StateAndHeaderByNumber(ctx, number)
+	state, _, err := api.b.StateAndHeaderByNumber(ctx, number-1)
 	if state == nil || err != nil {
 		return nil, err
 	}
@@ -767,39 +818,6 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 		}
 	}
 	return strAddrList
-}
-
-func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
-	if len(keys) == 0 {
-		return nil
-	}
-	state, err := s.b.GetState()
-	if state == nil || err != nil {
-		return nil
-	}
-
-	version := matrixstate.GetVersionInfo(state)
-	mgr := matrixstate.GetManager(version)
-	if mgr == nil {
-		return nil
-	}
-	supMager := supertxsstate.GetManager(version)
-	mapdata := make(map[string]interface{})
-	for _, k := range keys {
-		opt, err := mgr.FindOperator(k)
-		if err != nil {
-			log.Error("GetCfgDataByState:FindOperator failed", "key", k, "err", err)
-			continue
-		}
-		dataval, err := opt.GetValue(state)
-		if err != nil {
-			log.Error("GetCfgDataByState:SetValue failed", "err", err)
-			continue
-		}
-		keystr, val := supMager.Output(k, dataval)
-		mapdata[keystr.(string)] = val
-	}
-	return mapdata
 }
 
 func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key string, blockNr rpc.BlockNumber) (interface{}, error) {
@@ -1584,7 +1602,8 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 
 	var from common.Address
 
-	if tx.GetMatrixType() == common.ExtraUnGasTxType {
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		from = tx.From()
 	} else {
 		from, _ = types.Sender(signer, tx)

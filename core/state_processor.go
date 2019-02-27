@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/MatrixAINetwork/go-matrix/reward/util"
+
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
@@ -81,60 +83,74 @@ func (env *StateProcessor) reverse(s []common.RewarTx) []common.RewarTx {
 func (p *StateProcessor) ProcessReward(st *state.StateDB, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
 	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
-		log.Error("work", "获取广播周期失败", err)
+		log.Error("奖励", "获取广播周期失败", err)
 		return nil
 	}
 	if bcInterval.IsBroadcastNumber(header.Number.Uint64()) {
 		return nil
 	}
-	blkReward := blkreward.New(p.bc, st)
+	preState, err := p.bc.StateAtBlockHash(header.ParentHash)
+	if err != nil {
+		log.Error("奖励", "获取前一个状态错误", err)
+		return nil
+	}
+	block := p.bc.GetBlockByHash(header.ParentHash)
+	ppreState, err := p.bc.StateAtBlockHash(block.ParentHash())
+	if err != nil {
+		log.Error("奖励", "获取前一个状态错误", err)
+		return nil
+	}
+	blkReward := blkreward.New(p.bc, st, preState, ppreState)
 	rewardList := make([]common.RewarTx, 0)
 	if nil != blkReward {
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(header.Number.Uint64(), header.ParentHash)
 		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, header.Number.Uint64())
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
 		}
 	}
 
 	allGas := p.getGas(st, new(big.Int).SetUint64(usedGas))
-	txsReward := txsreward.New(p.bc, st)
+	txsReward := txsreward.New(p.bc, st, preState)
 	if nil != txsReward {
 		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 		}
 	}
-	lottery := lottery.New(p.bc, st, p.random)
+	lottery := lottery.New(p.bc, st, p.random, preState)
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap})
+			rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap, RewardTyp: common.RewardLotteryType})
 		}
 		lottery.LotterySaveAccount(account, header.VrfValue)
 	}
 
 	////todo 利息
-	interestReward := interest.New(st)
+	interestReward := interest.New(st, preState)
 	if nil == interestReward {
 		return p.reverse(rewardList)
 	}
-	interestCalcMap := interestReward.CalcInterest(st, header.Number.Uint64())
 
-	slash := slash.New(p.bc, st)
+	interestReward.CalcReward(st, header.Number.Uint64(), header.ParentHash)
+
+	slash := slash.New(p.bc, st, preState)
 	if nil != slash {
-		slash.CalcSlash(st, header.Number.Uint64(), upTime, interestCalcMap)
+		slash.CalcSlash(st, header.Number.Uint64(), upTime, header.ParentHash)
 	}
+
 	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInerestType})
+		rewardList = append(rewardList, common.RewarTx{CoinType: "MAN", Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
-	return p.reverse(rewardList)
+
+	return p.reverse(util.Accumulator(st, rewardList))
 }
 
 func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.StateDB) error {
@@ -192,7 +208,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	}
 	normalTxindex := 0
 	for _, tx := range txs {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
 			tmpstxs = append(tmpstxs, tx)
 			tmpstxs = append(tmpstxs, stxs...)
@@ -208,7 +225,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDB, 
 	waitG.Wait()
 	from := make([]common.Address, 0)
 	for i, tx := range txs[normalTxindex:] {
-		if tx.GetMatrixType() == common.ExtraUnGasTxType {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 			tmpstxs := make([]types.SelfTransaction, 0)
 			tmpstxs = append(tmpstxs, tx)
 			tmpstxs = append(tmpstxs, stxs...)

@@ -30,7 +30,6 @@ type GenesisMState struct {
 	Foundation                   *GenesisAddress                  `json:"Foundation,omitempty"`
 	VersionSuperAccounts         *[]GenesisAddress                `json:"VersionSuperAccounts,omitempty"`
 	BlockSuperAccounts           *[]GenesisAddress                `json:"BlockSuperAccounts,omitempty"`
-	TxsSuperAccounts             *[]GenesisAddress                `json:"TxsSuperAccounts,omitempty"`
 	MultiCoinSuperAccounts       *[]GenesisAddress                `json:"MultiCoinSuperAccounts,omitempty"`
 	SubChainSuperAccounts        *[]GenesisAddress                `json:"SubChainSuperAccounts,omitempty"`
 	VIPCfg                       *[]mc.VIPConfig                  `json:"VIPCfg,omitempty" gencodec:"required"`
@@ -107,9 +106,6 @@ func (ms *GenesisMState) setMatrixState(state *state.StateDB, netTopology common
 		return err
 	}
 	if err := ms.setBlockSuperAccountsToState(state, num); err != nil {
-		return err
-	}
-	if err := ms.setTxsSuperAccountsToState(state, num); err != nil {
 		return err
 	}
 	if err := ms.setMultiCoinSuperAccountsToState(state, num); err != nil {
@@ -467,18 +463,6 @@ func (g *GenesisMState) setVersionSuperAccountsToState(state *state.StateDB, num
 	return nil
 }
 
-func (g *GenesisMState) setTxsSuperAccountsToState(state *state.StateDB, num uint64) error {
-	if g.TxsSuperAccounts == nil || len(*g.TxsSuperAccounts) == 0 {
-		if num == 0 {
-			return errors.Errorf("the txs superAccounts of genesis is empty")
-		} else {
-			return nil
-		}
-	}
-	matrixstate.SetTxsSuperAccounts(state, CopyAddressSlice(g.TxsSuperAccounts))
-	return nil
-}
-
 func (g *GenesisMState) setMultiCoinSuperAccountsToState(state *state.StateDB, num uint64) error {
 	if g.MultiCoinSuperAccounts == nil || len(*g.MultiCoinSuperAccounts) == 0 {
 		if num == 0 {
@@ -604,6 +588,14 @@ func (g *GenesisMState) setBlkRewardCfgToState(state *state.StateDB, num uint64)
 
 		return errors.Errorf("替补固定区块奖励比例配置错误")
 	}
+	if uint64(g.BlkRewardCfg.MinerAttenuationRate) > RewardFullRate {
+		return errors.Errorf("矿工衰减比例配置错误")
+	}
+
+	if uint64(g.BlkRewardCfg.ValidatorAttenuationRate) > RewardFullRate {
+		return errors.Errorf("验证者衰减比例配置错误")
+	}
+
 	log.Info("Geneis", "BlkRewardCfg", g.BlkRewardCfg)
 	return matrixstate.SetBlkRewardCfg(state, g.BlkRewardCfg)
 }
@@ -669,6 +661,9 @@ func (g *GenesisMState) setInterestCfgToState(state *state.StateDB, num uint64) 
 			log.INFO("Geneis", "没有配置利息配置信息", "")
 			return nil
 		}
+	}
+	if uint64(g.InterestCfg.AttenuationRate) > RewardFullRate {
+		return errors.Errorf("利息衰减比例配置错误")
 	}
 	log.Info("Geneis", "InterestCfg", g.InterestCfg)
 	return matrixstate.SetInterestCfg(state, g.InterestCfg)

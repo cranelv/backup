@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
-	mrand "math/rand"
 	"os"
 	"path"
 	"runtime/debug"
@@ -489,7 +488,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	rawdb.WriteBlock(bc.db, genesis)
 
 	bc.genesisBlock = genesis
-	bc.insert(bc.genesisBlock)
+	bc.insert(bc.genesisBlock, bc.genesisBlock)
 	bc.currentBlock.Store(bc.genesisBlock)
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
@@ -551,24 +550,11 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 // or if they are on a different side chain.
 //
 // Note, this function assumes that the `mu` mutex is held!
-func (bc *BlockChain) insert(block *types.Block) {
+func (bc *BlockChain) insert(block *types.Block, old *types.Block) {
 	// If the block is on a side chain or an unknown one, force other heads onto it too
 	var updateHeads bool
 	if block.IsSuperBlock() {
-		currentblock := bc.GetBlockByHash(bc.GetCurrentHash())
-
-		if currentblock.NumberU64() > block.NumberU64() {
-			log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
-			bc.bodyCache.Purge()
-			bc.bodyRLPCache.Purge()
-			bc.blockCache.Purge()
-			bc.futureBlocks.Purge()
-			delFn := func(hash common.Hash, num uint64) {
-				rawdb.DeleteBody(bc.db, hash, num)
-			}
-			bc.hc.SetHead(block.NumberU64()-1, delFn)
-		}
-
+		bc.superBlkRewind(block, old)
 		updateHeads = true
 	} else {
 		updateHeads = rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
@@ -1128,32 +1114,40 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
-	//todo:超级区块序号判断
-	reorg := externTd.Cmp(localTd) > 0
+	remoteSuperBlkCfg, err := matrixstate.GetSuperBlockCfg(state)
+	if err != nil {
+		return NonStatTy, err
+	}
+
+	localSbs, err := bc.GetSuperBlockSeq()
+	if nil != err {
+		log.Error("获取超级区块序号错误")
+		return NonStatTy, err
+	}
+
+	var reorg bool
+	if localSbs < remoteSuperBlkCfg.Seq {
+		reorg = true
+	} else if localSbs == remoteSuperBlkCfg.Seq {
+		reorg = externTd.Cmp(localTd) > 0
+	} else {
+		reorg = false
+	}
 	currentBlock = bc.CurrentBlock()
-	if block.IsSuperBlock() {
+	if reorg {
+		// Reorganise the chain if the parent is not the head block
+		if block.ParentHash() != currentBlock.Hash() {
+			if err := bc.reorg(currentBlock, block); err != nil {
+				return NonStatTy, err
+			}
+		}
+		// Write the positional metadata for transaction/receipt lookups and preimages
+		rawdb.WriteTxLookupEntries(batch, block)
+		rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+
 		status = CanonStatTy
 	} else {
-
-		if !reorg && externTd.Cmp(localTd) == 0 {
-			// Split same-difficulty blocks by number, then at random
-			reorg = block.NumberU64() < currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() && mrand.Float64() < 0.5)
-		}
-		if reorg {
-			// Reorganise the chain if the parent is not the head block
-			if block.ParentHash() != currentBlock.Hash() {
-				if err := bc.reorg(currentBlock, block); err != nil {
-					return NonStatTy, err
-				}
-			}
-			// Write the positional metadata for transaction/receipt lookups and preimages
-			rawdb.WriteTxLookupEntries(batch, block)
-			rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
-
-			status = CanonStatTy
-		} else {
-			status = SideStatTy
-		}
+		status = SideStatTy
 	}
 
 	if err := batch.Write(); err != nil {
@@ -1162,11 +1156,26 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// Set new head.
 	if status == CanonStatTy {
-		bc.insert(block)
+		bc.insert(block, currentBlock)
 	}
 
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
+}
+
+func (bc *BlockChain) superBlkRewind(block *types.Block, oldBlock *types.Block) {
+	if oldBlock.NumberU64() >= block.NumberU64() {
+		log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
+
+		delFn := func(hash common.Hash, num uint64) {
+			rawdb.DeleteBody(bc.db, hash, num)
+		}
+		bc.hc.SetSBlkHead(oldBlock.Header(), block.NumberU64(), delFn)
+		bc.bodyCache.Purge()
+		bc.bodyRLPCache.Purge()
+		bc.blockCache.Purge()
+		bc.futureBlocks.Purge()
+	}
 }
 
 // InsertChain attempts to insert the given batch of blocks in to the canonical
@@ -1235,6 +1244,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		events        = make([]interface{}, 0, len(chain))
 		lastCanon     *types.Block
 		coalescedLogs []*types.Log
+		status        WriteStatus
 	)
 
 	// Iterate over the blocks and insert when the verifier permits
@@ -1382,7 +1392,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		proctime := time.Since(bstart)
 		log.Trace("BlockChain insertChain in3 WriteBlockWithState")
 		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, receipts, state)
+		status, err = bc.WriteBlockWithState(block, receipts, state)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -1432,6 +1442,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	debug.FreeOSMemory() //lb
 
 	log.Trace("BlockChain insertChain out")
+	for _, block := range chain {
+		if block.IsSuperBlock() && CanonStatTy == status {
+			log.Trace("超级区块插入事件通知")
+			events = append(events, ChainHeadEvent{block})
+		}
+	}
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
@@ -1575,7 +1591,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	var addedTxs types.SelfTransactions
 	for i := len(newChain) - 1; i >= 0; i-- {
 		// insert the block in the canonical way, re-writing history
-		bc.insert(newChain[i])
+		bc.insert(newChain[i], oldBlock)
 		// write lookup entries for hash based transaction/receipt searches
 		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
 		addedTxs = append(addedTxs, newChain[i].Transactions()...)
