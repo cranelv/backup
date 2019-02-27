@@ -274,15 +274,15 @@ func BlackListFilter(tx types.SelfTransaction, state *state.StateDBManage, h *bi
 		txtype   byte            = tx.GetMatrixType()
 		cointype string          = tx.GetTxCurrency()
 	)
-	blklist, _ := matrixstate.GetAccountBlackList(state)
-	//黑账户过滤(sender)
-	if len(blklist) > 0 {
-		for _, blkAccount := range blklist {
-			if from.Equal(blkAccount) {
-				return false
-			}
-		}
-	}
+	//blklist, _ := matrixstate.GetAccountBlackList(state)
+	////黑账户过滤(sender)
+	//if len(blklist) > 0 {
+	//	for _, blkAccount := range blklist {
+	//		if from.Equal(blkAccount) {
+	//			return false
+	//		}
+	//	}
+	//}
 	//黑账户过滤(to)
 	if to != nil {
 		if SelfBlackList.FindBlackAddress(*to) {
