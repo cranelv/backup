@@ -37,7 +37,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
-	"github.com/MatrixAINetwork/go-matrix/core/supertxsstate"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/crc8"
@@ -819,39 +818,6 @@ func (s *PublicBlockChainAPI) GetEntrustFromByTime(strAuthFrom string, time uint
 		}
 	}
 	return strAddrList
-}
-
-func (s *PublicBlockChainAPI) GetCfgDataByState(keys []string) map[string]interface{} {
-	if len(keys) == 0 {
-		return nil
-	}
-	state, err := s.b.GetState()
-	if state == nil || err != nil {
-		return nil
-	}
-
-	version := matrixstate.GetVersionInfo(state)
-	mgr := matrixstate.GetManager(version)
-	if mgr == nil {
-		return nil
-	}
-	supMager := supertxsstate.GetManager(version)
-	mapdata := make(map[string]interface{})
-	for _, k := range keys {
-		opt, err := mgr.FindOperator(k)
-		if err != nil {
-			log.Error("GetCfgDataByState:FindOperator failed", "key", k, "err", err)
-			continue
-		}
-		dataval, err := opt.GetValue(state)
-		if err != nil {
-			log.Error("GetCfgDataByState:SetValue failed", "err", err)
-			continue
-		}
-		keystr, val := supMager.Output(k, dataval)
-		mapdata[keystr.(string)] = val
-	}
-	return mapdata
 }
 
 func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key string, blockNr rpc.BlockNumber) (interface{}, error) {

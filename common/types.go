@@ -449,22 +449,21 @@ var (
 )
 
 const (
-	ExtraNormalTxType           byte = 0   //普通交易
-	ExtraBroadTxType            byte = 1   //广播交易(内部交易，钱包无用)
-	ExtraUnGasMinerTxType       byte = 2   //矿工奖励类型
-	ExtraRevocable              byte = 3   //可撤销的交易
-	ExtraRevertTxType           byte = 4   //撤销交易
-	ExtraAuthTx                 byte = 5   //授权委托
-	ExtraCancelEntrust          byte = 6   //取消委托
-	ExtraTimeTxType             byte = 7   //定时交易
-	ExtraAItxType               byte = 8   //AI 交易
-	ExtraUnGasValidatorTxType   byte = 10   //验证者奖励类型
-	ExtraUnGasInterestTxType    byte = 11   //利息奖励通过合约交易发放
-	ExtraUnGasTxsType           byte = 12   //交易费奖励类型
-	ExtraUnGasLotteryTxType     byte = 13   //彩票奖励类型
-	ExtraCreatCurrency          byte = 118 //创建币种交易
-	ExtraSuperTxType            byte = 119 //超级交易
-	ExtraSuperBlockTx           byte = 120 //超级区块交易
+	ExtraNormalTxType         byte = 0   //普通交易
+	ExtraBroadTxType          byte = 1   //广播交易(内部交易，钱包无用)
+	ExtraUnGasMinerTxType     byte = 2   //矿工奖励类型
+	ExtraRevocable            byte = 3   //可撤销的交易
+	ExtraRevertTxType         byte = 4   //撤销交易
+	ExtraAuthTx               byte = 5   //授权委托
+	ExtraCancelEntrust        byte = 6   //取消委托
+	ExtraTimeTxType           byte = 7   //定时交易
+	ExtraAItxType             byte = 8   //AI 交易
+	ExtraUnGasValidatorTxType byte = 10  //验证者奖励类型
+	ExtraUnGasInterestTxType  byte = 11  //利息奖励通过合约交易发放
+	ExtraUnGasTxsType         byte = 12  //交易费奖励类型
+	ExtraUnGasLotteryTxType   byte = 13  //彩票奖励类型
+	ExtraCreatCurrency        byte = 118 //创建币种交易
+	ExtraSuperBlockTx         byte = 120 //超级区块交易
 )
 
 var (

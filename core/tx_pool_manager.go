@@ -3,18 +3,19 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"sync"
-	"time"
-	"github.com/MatrixAINetwork/go-matrix/core/state"
 )
 
 var (
@@ -235,7 +236,7 @@ func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, e
 	}
 	return txser, nil
 }
-func BlackListFilter(tx types.SelfTransaction,state *state.StateDB) bool{
+func BlackListFilter(tx types.SelfTransaction, state *state.StateDB) bool {
 	//TODO 目前只要求过滤一个币种. 需要去状态树上获取被过滤的币种
 	//state, err := pm.chain.State()
 	//if err != nil {
@@ -262,37 +263,17 @@ func BlackListFilter(tx types.SelfTransaction,state *state.StateDB) bool{
 
 	}
 
-	//超级交易账户不匹配
-	if tx.GetMatrixType() == common.ExtraSuperTxType {
-		mansuperTxAddreslist, err := matrixstate.GetTxsSuperAccounts(state)
-		if err != nil {
-			log.Error("TxPoolManager:filter", "get super tx account failed", err)
-			return false
-		}
+	//奖励交易账户不匹配
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 		isOK := false
-		for _, superAddress := range mansuperTxAddreslist {
-			if tx.From().Equal(superAddress) {
+		for _, account := range common.RewardAccounts {
+			if tx.From().Equal(account) {
 				isOK = true
 				break
 			}
 		}
 		if !isOK {
-			log.Error("超级账户不匹配")
-			return false
-		}
-	}
-
-	//奖励交易账户不匹配
-	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
-		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
-		isOK := false
-		for _,account := range common.RewardAccounts{
-			if tx.From().Equal(account){
-				isOK = true
-				break
-			}
-		}
-		if !isOK{
 			log.Error("奖励交易账户不合法")
 			return false
 		}

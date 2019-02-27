@@ -74,7 +74,6 @@ func newManger(version string) *Manager {
 				mc.MSKeyAccountFoundation:      newFoundationAccountOpt(),
 				mc.MSKeyAccountVersionSupers:   newVersionSuperAccountsOpt(),
 				mc.MSKeyAccountBlockSupers:     newBlockSuperAccountsOpt(),
-				mc.MSKeyAccountTxsSupers:       newTxsSuperAccountsOpt(),
 				mc.MSKeyAccountMultiCoinSupers: newMultiCoinSuperAccountsOpt(),
 				mc.MSKeyAccountSubChainSupers:  newSubChainSuperAccountsOpt(),
 				mc.MSKeyVIPConfig:              newVIPConfigOpt(),

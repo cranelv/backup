@@ -124,14 +124,6 @@ func (bc *BlockChain) GetVersionSuperAccounts(blockHash common.Hash) ([]common.A
 	return matrixstate.GetVersionSuperAccounts(st)
 }
 
-func (bc *BlockChain) GetTxsSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
-	st, err := bc.StateAtBlockHash(blockHash)
-	if err != nil {
-		return nil, errors.Errorf("get state by hash(%s) err(%v)", blockHash.Hex(), err)
-	}
-	return matrixstate.GetTxsSuperAccounts(st)
-}
-
 func (bc *BlockChain) GetMultiCoinSuperAccounts(blockHash common.Hash) ([]common.Address, error) {
 	st, err := bc.StateAtBlockHash(blockHash)
 	if err != nil {

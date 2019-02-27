@@ -313,16 +313,8 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 		return nil
 	}
 
-	for addr, account := range g.Alloc {
-		stateDB.SetBalance(common.MainAccount, addr, account.Balance)
-		stateDB.SetCode(addr, account.Code)
-		stateDB.SetNonce(addr, account.Nonce)
-		for key, value := range account.Storage {
-			stateDB.SetState(addr, key, value)
-		}
-	}
 	if nil != g.MState {
-		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Version, string(parentHeader.Version),g.Number); err != nil {
+		if err := g.MState.setMatrixState(stateDB, g.NetTopology, g.NextElect, g.Version, string(parentHeader.Version), g.Number); err != nil {
 			log.Error("genesis super block", "设置matrix状态树错误", err)
 			return nil
 		}
@@ -367,6 +359,7 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 
 	// 创建超级区块交易
 	txs := make([]types.SelfTransaction, 0)
+	g.Alloc = make(GenesisAlloc)
 	data, err := json.Marshal(g.Alloc)
 	if err != nil {
 		log.ERROR("genesis super block", "marshal alloc info err", err)
