@@ -1291,6 +1291,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		events        = make([]interface{}, 0, len(chain))
 		lastCanon     *types.Block
 		coalescedLogs []types.CoinLogs
+		status        WriteStatus
 	)
 
 	// Iterate over the blocks and insert when the verifier permits
@@ -1456,7 +1457,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		proctime := time.Since(bstart)
 		log.Trace("BlockChain insertChain in3 WriteBlockWithState")
 		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, state)
+		status, err = bc.WriteBlockWithState(block, state)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
@@ -1506,7 +1507,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 
 	log.Trace("BlockChain insertChain out")
 	for _, block := range chain {
-		if block.IsSuperBlock() {
+		if block.IsSuperBlock() && status == CanonStatTy {
 			log.Trace("超级区块插入事件通知")
 			events = append(events, ChainHeadEvent{block})
 		}
