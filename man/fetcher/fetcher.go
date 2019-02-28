@@ -565,7 +565,6 @@ func (f *Fetcher) loop() {
 									"announce.header.UncleHash", announce.header.UncleHash.String(), "announce.origin", announce.origin, "task.peer", task.peer)
 								isok = false
 								break
-								//panic("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
 							}
 						}
 						if isok {
