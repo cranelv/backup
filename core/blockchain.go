@@ -1054,9 +1054,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	}
 	// Write other block data using a batch.
 	batch := bc.db.NewBatch()
-	for _, hhhh := range block.Header().Roots {
-		log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYWriteBlockWithState", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
-	}
+
 	rawdb.WriteBlock(batch, block)
 	txcount := uint64(0)
 	for _, cb := range block.Currencies() {
@@ -1318,9 +1316,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		bstart := time.Now()
 
 		header := block.Header()
-		for _, hhhh := range header.Roots {
-			log.Info("111111YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
-		}
+
 		seal := true
 		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
 			seal = false
@@ -1329,9 +1325,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		if err == nil {
 			err = bc.Validator(header.Version).ValidateBody(block)
 		}
-		for _, hhhh := range block.Header().Roots {
-			log.Info("222222YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
-		}
+
 		switch {
 		case err == ErrKnownBlock:
 			// Block and state both already known. However if the current block is below
@@ -1399,9 +1393,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
-		for _, hhhh := range block.Header().Roots {
-			log.Info("3333333YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
-		}
+
 		// verify pos
 		err = bc.DPOSEngine(header.Version).VerifyBlock(bc, header)
 		if err != nil {
@@ -1418,9 +1410,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			parent = chain[i-1]
 		}
 		log.Trace("BlockChain insertChain in3 parent")
-		for _, hhhh := range block.Header().Roots {
-			log.Info("444444YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
-		}
+
 		// Process block using the parent state as reference point.
 		state, err := state.NewStateDBManage(parent.Root(), bc.db, bc.stateCache)
 		if err != nil {
@@ -1450,9 +1440,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 				bc.reportBlock(block, nil, err)
 				return i, events, coalescedLogs, err
 			}
-		}
-		for _, hhhh := range block.Header().Roots {
-			log.Info("555555YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYinsertChain", "header.Roots[0].TxHash", hhhh.TxHash, "cointype", hhhh.Cointyp)
 		}
 		proctime := time.Since(bstart)
 		log.Trace("BlockChain insertChain in3 WriteBlockWithState")

@@ -95,9 +95,6 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 				if receiptSha != cr.ReceiptHash {
 					return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", cr.ReceiptHash, receiptSha)
 				}
-				txHash1 := types.DeriveShaHash(types.TxHashList(currencie.Transactions.GetTransactions()))
-				txHash2 := types.DeriveShaHash(currencie.Transactions.TxHashs)
-				log.Info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYValidateState","txHash1",txHash1,"txHash2",txHash2,"cr.TxHash",cr.TxHash)
 
 				break
 			}

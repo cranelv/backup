@@ -185,7 +185,6 @@ func (bPool *BroadCastTxPool) Stop() {
 func (bPool *BroadCastTxPool) AddTxPool(tx types.SelfTransaction) (reerr error) {
 	bPool.mu.Lock()
 	defer bPool.mu.Unlock()
-	//TODO 过滤交易（白名单）
 	if uint64(tx.Size()) > params.TxSize {
 		log.Error("add broadcast tx pool", "tx size is too big", tx.Size())
 		return reerr
