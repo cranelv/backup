@@ -159,14 +159,14 @@ func (shard *StateDBManage) GetStateDb(cointyp string, address common.Address)( 
 	cms := shard.shardings
 	for _, cm := range cms {
 		if cm.Cointyp == cointyp {
-			rms := cm.Rmanage
-			return rms[address[0]].State,nil
+			return cm.Rmanage[address[0]].State,nil
+			//rms := cm.Rmanage
 			//for _, rm := range rms {
 			//	if rm.Range == address[0] {
 			//		return rm.State,nil
 			//	}
 			//} YYYYYYYYYYYYYYYYYYYYYYYYYYY
-			break
+			//break
 		}
 	}
 	return nil,errors.New("Sharding_GetStateDb Error:  Can`t Get StateDB")
