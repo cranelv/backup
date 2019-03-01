@@ -822,12 +822,13 @@ func (shard *StateDBManage) CommitSaveTx(cointyp string, addr common.Address) {
 
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
-			for _, rm := range cm.Rmanage {
-				if rm.Range == addr[0] {
-					rm.State.CommitSaveTx()
-					break
-				}
-			}
+			cm.Rmanage[addr[0]].State.CommitSaveTx()
+			//for _, rm := range cm.Rmanage {
+			//	if rm.Range == addr[0] {
+			//		rm.State.CommitSaveTx()
+			//		break
+			//	}
+			//} YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 			break
 		}
 	}
