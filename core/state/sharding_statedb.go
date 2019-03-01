@@ -160,11 +160,12 @@ func (shard *StateDBManage) GetStateDb(cointyp string, address common.Address)( 
 	for _, cm := range cms {
 		if cm.Cointyp == cointyp {
 			rms := cm.Rmanage
-			for _, rm := range rms {
-				if rm.Range == address[0] {
-					return rm.State,nil
-				}
-			}
+			return rms[address[0]].State,nil
+			//for _, rm := range rms {
+			//	if rm.Range == address[0] {
+			//		return rm.State,nil
+			//	}
+			//} YYYYYYYYYYYYYYYYYYYYYYYYYYY
 			break
 		}
 	}
