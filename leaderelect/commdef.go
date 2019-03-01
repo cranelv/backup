@@ -4,7 +4,6 @@
 package leaderelect
 
 import (
-	"errors"
 	"github.com/MatrixAINetwork/go-matrix/accounts/signhelper"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
@@ -14,6 +13,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -112,4 +112,23 @@ type specialAccounts struct {
 	broadcasts    []common.Address
 	versionSupers []common.Address
 	blockSupers   []common.Address
+}
+
+func checkHeaderLegality(header *types.Header, chainReader *core.BlockChain) error {
+	number := header.Number.Uint64()
+	if number < 2 {
+		return nil
+	}
+	criticalAncestorBlk := chainReader.GetBlockByNumber(number - 2)
+	if criticalAncestorBlk == nil {
+		return errors.Errorf("获取区块(%d)的主链爷区块未找到", number)
+	}
+	parentBlk := chainReader.GetBlockByHash(header.ParentHash)
+	if nil == parentBlk {
+		return errors.Errorf("区块(%d)的父区块(%s)未找到", number, header.ParentHash.Hex())
+	}
+	if parentBlk.ParentHash() != criticalAncestorBlk.Hash() {
+		return errors.Errorf("区块(%d)的爷区块(%s)不是主链区块", number, parentBlk.ParentHash())
+	}
+	return nil
 }
