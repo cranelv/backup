@@ -141,6 +141,11 @@ func (self *LeaderIdentity) newBlockReadyBCHandle(msg *mc.NewBlockReadyMsg) {
 	curNumber := msg.Header.Number.Uint64()
 	log.Debug(self.extraInfo, "NewBlockReady消息处理", "开始", "高度", curNumber)
 
+	if err := checkHeaderLegality(msg.Header, self.matrix.BlockChain()); err != nil {
+		log.Warn(self.extraInfo, "NewBlockReady处理异常", "区块不合法", "err", err)
+		return
+	}
+
 	startMsg := &startControllerMsg{
 		parentHeader:  msg.Header,
 		parentStateDB: msg.State,
