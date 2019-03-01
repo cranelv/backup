@@ -1093,7 +1093,8 @@ func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
 	maxProcs := runtime.NumCPU() //获取cpu个数
 	if maxProcs >= 2 {
-		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
+		//runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量 YYYYYYYYYYYYYYYYYYYYYYYYY
+		runtime.GOMAXPROCS(maxProcs / 2)
 	}
 	for _, tx := range txs {
 		waitG.Add(1)
