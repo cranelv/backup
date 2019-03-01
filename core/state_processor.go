@@ -551,9 +551,9 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDBManage, header *types.Header, tx types.SelfTransaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, []uint, error) {
-	if !BlackListFilter(tx, statedb, header.Number) {
-		return nil, 0, nil, errors.New("blacklist account")
-	}
+	//if !BlackListFilter(tx, statedb, header.Number) { YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+	//	return nil, 0, nil, errors.New("blacklist account")
+	//}
 	// Create a new context to be used in the EVM environment
 	from, err := tx.GetTxFrom()
 	if err != nil {
@@ -563,13 +563,13 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	context := NewEVMContext(from, tx.GasPrice(), header, bc, author)
 
 	vmenv := vm.NewEVM(context, statedb, config, cfg, tx.GetTxCurrency())
-	//如果是委托gas并且是按时间委托
-	if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
-		if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(), from, header.Time.Uint64()) {
-			log.Error("按时间委托gas的交易失效")
-			return nil, 0, nil, errors.New("entrustTx is invalid")
-		}
-	}
+	//如果是委托gas并且是按时间委托 YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+	//if tx.GetIsEntrustGas() && tx.GetIsEntrustByTime() {
+	//	if !statedb.GetIsEntrustByTime(tx.GetTxCurrency(), from, header.Time.Uint64()) {
+	//		log.Error("按时间委托gas的交易失效")
+	//		return nil, 0, nil, errors.New("entrustTx is invalid")
+	//	}
+	//}
 
 	// Apply the transaction to the current state (included in the env)
 	var gas uint64

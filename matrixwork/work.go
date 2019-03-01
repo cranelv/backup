@@ -237,17 +237,17 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 }
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
-	snap := env.State.Snapshot(tx.GetTxCurrency())
-	var snap1 map[byte]int
-	if tx.GetTxCurrency()!=params.MAN_COIN {
-		snap1 = env.State.Snapshot(params.MAN_COIN)
-	}
+	//snap := env.State.Snapshot(tx.GetTxCurrency())  YYYYYYYYYYYYYYYYYYYYYYYYYYY
+	//var snap1 map[byte]int
+	//if tx.GetTxCurrency()!=params.MAN_COIN {
+	//	snap1 = env.State.Snapshot(params.MAN_COIN)
+	//}
 	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil{
-		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
-		if tx.GetTxCurrency()!=params.MAN_COIN {
-			env.State.RevertToSnapshot(params.MAN_COIN, snap1)
-		}
+		//env.State.RevertToSnapshot(tx.GetTxCurrency(), snap) YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+		//if tx.GetTxCurrency()!=params.MAN_COIN {
+		//	env.State.RevertToSnapshot(params.MAN_COIN, snap1)
+		//}
 		return err, nil
 	}
 	env.transer = append(env.transer, tx)
