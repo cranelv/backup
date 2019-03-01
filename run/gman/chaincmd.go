@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -233,16 +234,46 @@ participating.
 
 It expects the genesis file as argument.`,
 	}
-
-	signCommand = cli.Command{
-		Action:    utils.MigrateFlags(signBlock),
-		Name:      "signblock",
+	genBlockRootsCommand = cli.Command{
+		Action:    utils.MigrateFlags(genBlockRoots),
+		Name:      "genblockroots",
 		Usage:     "Bootstrap and rollback a new super block",
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+	signCommand = cli.Command{
+		Action:    utils.MigrateFlags(signBlock),
+		Name:      "signblock",
+		Usage:     "sign a new super block",
+		ArgsUsage: "<datafile>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+
+	signSuperBlockCommand = cli.Command{
+		Action:    utils.MigrateFlags(signSuperBlock),
+		Name:      "signsuperblock",
+		Usage:     "sign a new super block",
+		ArgsUsage: "",
+		Flags:     []cli.Flag{},
+		Category:  "BLOCKCHAIN COMMANDS",
 		Description: `
 The rollback command initializes a new genesis block and definition for the network.
 This is a destructive action and changes the network in which you will be
@@ -258,6 +289,23 @@ It expects the genesis file as argument.`,
 		ArgsUsage: "<genesisPath> blockNum",
 		Flags:     []cli.Flag{},
 		Category:  "BLOCKCHAIN COMMANDS",
+		Description: `
+The rollback command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+
+It expects the genesis file as argument.`,
+	}
+
+	keystoreToPrivateKeyCommand = cli.Command{
+		Action:    utils.MigrateFlags(keystoreToPrivateKey),
+		Name:      "keystoretoprivatekey",
+		Usage:     "sign  version",
+		ArgsUsage: "<genesisPath> blockNum",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The rollback command initializes a new genesis block and definition for the network.
 This is a destructive action and changes the network in which you will be
@@ -286,21 +334,7 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("Must supply path to genesis JSON file")
-	} /*
-		file, err := os.Open(genesisPath)
-		if err != nil {
-			utils.Fatalf("Failed to read genesis file: %v", err)
-		}
-		defer file.Close()
-
-		genesis, err := core.GetDefaultGeneis()
-
-		if err != nil {
-			utils.Fatalf("获取默认配置文件失败:%v", err)
-		}
-		genesis1 := new(core.Genesis1)
-		//
-	*/
+	}
 	genesis, err := core.DefaultGenesis(genesisPath)
 	if err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
@@ -694,7 +728,55 @@ func genblock(ctx *cli.Context) error {
 	return nil
 }
 
-func signBlock(ctx *cli.Context) error {
+func genBlockRoots(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("keyfile must be given as argument")
+	}
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	matrixGenesis := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	chain, chainDB := utils.MakeChain(ctx, stack)
+	if chain == nil {
+		utils.Fatalf("make chain err")
+	}
+
+	parent := chain.GetHeaderByHash(matrixGenesis.ParentHash)
+	if nil == parent {
+		utils.Fatalf("get parent header err")
+	}
+	genesis := new(core.Genesis)
+	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
+	genesis = matrixGenesis
+	superBlock := genesis.GenSuperBlock(parent, chainDB, state.NewDatabase(chainDB), chain.Config())
+	if nil == superBlock {
+		utils.Fatalf("genesis super block err")
+	}
+
+	matrixGenesis.Roots = make([]common.CoinRoot, len(superBlock.Root()))
+	copy(matrixGenesis.Roots, superBlock.Root())
+	matrixGenesis.Sharding = make([]common.Coinbyte, len(superBlock.Sharding()))
+	copy(matrixGenesis.Sharding, superBlock.Sharding())
+	//matrixGenesis.TxHash = superBlock.TxHash()
+	pathSplit := strings.Split(genesisPath, ".json")
+	out, _ := json.MarshalIndent(matrixGenesis, "", "  ")
+	if err := ioutil.WriteFile(pathSplit[0]+"Roots.json", out, 0644); err != nil {
+		utils.Fatalf("Failed to save genesis file, err = %v", err)
+	}
+	fmt.Println("Exported sign  block to ", pathSplit[0]+"Roots.json")
+	return nil
+}
+
+func signSuperBlock(ctx *cli.Context) error {
 	if len(ctx.Args()) < 2 {
 		utils.Fatalf("This command requires 2 arguments.")
 	}
@@ -717,51 +799,32 @@ func signBlock(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(matrixGenesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-
-	stack, _ := makeConfigNode(ctx)
-	chain, chainDB := utils.MakeChain(ctx, stack)
-	if chain == nil {
-		utils.Fatalf("make chain err")
-	}
-
-	parent := chain.GetHeaderByHash(matrixGenesis.ParentHash)
-	if nil == parent {
-		utils.Fatalf("get parent header err")
-	}
-	genesis := new(core.Genesis)
-	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
-	genesis = matrixGenesis
-	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
-	superBlock := genesis.GenSuperBlock(parent, chainDB, state.NewDatabase(chainDB), chain.Config())
-	if nil == superBlock {
-		utils.Fatalf("genesis super block err")
-	}
-	// get block hash
+	//	// get block hash
 	ECDSPrivateKey, err := crypto.HexToECDSA(privateKey)
 	if nil != err {
 		utils.Fatalf("input private key error")
 	}
-	blockHash := superBlock.HashNoSigns()
+	block := matrixGenesis.ToSuperBlock()
+	blockHash := block.HashNoSigns()
+	fmt.Println("blockhash:", blockHash.Hex())
 	signBytes, err := crypto.Sign(blockHash.Bytes(), ECDSPrivateKey)
 	if err != nil {
 		utils.Fatalf("Unlocked account: %v", err)
 	}
 
 	sign := common.BytesToSignature(signBytes)
-	matrixGenesis.Roots = make([]common.CoinRoot, len(superBlock.Root()))
-	copy(matrixGenesis.Roots, superBlock.Root())
 	//matrixGenesis.TxHash = superBlock.TxHash()
-	matrixGenesis.Signatures = append(genesis.Signatures, sign)
+	matrixGenesis.Signatures = append(matrixGenesis.Signatures, sign)
 	pathSplit := strings.Split(genesisPath, ".json")
 	out, _ := json.MarshalIndent(matrixGenesis, "", "  ")
 	if err := ioutil.WriteFile(pathSplit[0]+"Signed.json", out, 0644); err != nil {
 		utils.Fatalf("Failed to save genesis file, err = %v", err)
 	}
-	fmt.Println("Exported sign  block to ", pathSplit[0]+"Signed.json")
+	fmt.Println("Exported sign  block to", pathSplit[0]+"Signed.json")
 	return nil
 }
 
-func signTestModeBlock(ctx *cli.Context) error {
+func signBlock(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("keyfile must be given as argument")
@@ -790,14 +853,12 @@ func signTestModeBlock(ctx *cli.Context) error {
 	genesis := new(core.Genesis)
 	//core.ManGenesisToEthGensis(matrixGenesis, genesis)
 	genesis = matrixGenesis
-	//todo 签名的时候必须有链数据，没有链数据无法签名，后续考虑做成签名工具，链数据检查
 	superBlock := genesis.GenSuperBlock(parent, chainDB, state.NewDatabase(chainDB), chain.Config())
 	if nil == superBlock {
 		utils.Fatalf("genesis super block err")
 	}
 	// get block hash
 	blockHash := superBlock.HashNoSigns()
-	//todo 优化 签名账户可否不适用全节点，单启指定钱包
 	passwordList, err := utils.GetSignPassword(ctx)
 	if err != nil {
 		utils.Fatalf(err.Error())
@@ -815,6 +876,7 @@ func signTestModeBlock(ctx *cli.Context) error {
 	if err := ks.Unlock(account, passPhrase); err != nil {
 		utils.Fatalf("unlock account failed")
 	}
+	fmt.Println("blockhash:", blockHash.Hex())
 	signBytes, err := ks.SignHash(account, blockHash.Bytes())
 	if err != nil {
 		utils.Fatalf("Unlocked account: %v", err)
@@ -897,6 +959,37 @@ func signTestModeVersion(ctx *cli.Context) error {
 		return nil
 	}
 	fmt.Println("Exported sign  version to ", pathSplit[0]+"VersionSigned.json")
+	return nil
+}
+
+func keystoreToPrivateKey(ctx *cli.Context) error {
+	passwordList, err := utils.GetSignPassword(ctx)
+	if err != nil {
+		utils.Fatalf(err.Error())
+	}
+	passphrase := getPassPhrase("", false, 0, passwordList)
+
+	stack, _ := makeConfigNode(ctx)
+	accounts := stack.AccountManager()
+	if nil == accounts {
+		utils.Fatalf("no accounts")
+		return nil
+	}
+
+	wallets := accounts.Wallets()
+	if 0 == len(wallets) {
+		utils.Fatalf("no wallet ")
+		return nil
+	}
+	wallet := wallets[0]
+
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	err, key := ks.GetKey(wallet.Accounts()[0], passphrase)
+	if nil != err {
+		utils.Fatalf("GetKey error")
+		return nil
+	}
+	fmt.Println("PrivateKey:" + hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)))
 	return nil
 }
 

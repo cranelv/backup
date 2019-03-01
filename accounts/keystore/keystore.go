@@ -590,6 +590,14 @@ func (ks *KeyStore) CheckAccountAndPassword(a accounts.Account, passphrase strin
 	return nil
 }
 
+func (ks *KeyStore) GetKey(a accounts.Account, passphrase string) (error, *Key) {
+	_, key, err := ks.getDecryptedKey(a, passphrase)
+	if err != nil {
+		return err, nil
+	}
+	return nil, key
+}
+
 // zeroKey zeroes a private key in memory.
 func zeroKey(k *ecdsa.PrivateKey) {
 	b := k.D.Bits()

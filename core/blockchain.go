@@ -1493,10 +1493,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 	debug.FreeOSMemory() //lb
 
 	log.Trace("BlockChain insertChain out")
-	for _, block := range chain {
-		if block.IsSuperBlock() && status == CanonStatTy {
+	for i := 0; i < len(chain)-1; i++ {
+		if chain[i].IsSuperBlock() && status == CanonStatTy {
 			log.Trace("超级区块插入事件通知")
-			events = append(events, ChainHeadEvent{block})
+			events = append(events, ChainHeadEvent{chain[i]})
 		}
 	}
 	// Append a single chain head event if we've progressed the chain
