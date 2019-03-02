@@ -120,6 +120,7 @@ type BlockChain struct {
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
 	stateCache   state.Database // State database to reuse between imports (contains state cache)
+	depCache     *lru.Cache
 	bodyCache    *lru.Cache     // Cache for the most recent block bodies
 	bodyRLPCache *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
 	blockCache   *lru.Cache     // Cache for the most recent entire blocks
@@ -171,7 +172,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	blockCache, _ := lru.New(blockCacheLimit)
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 	badBlocks, _ := lru.New(badBlockLimit)
-
+	deposits,_ := lru.New(10)
 	bc := &BlockChain{
 		chainConfig:     chainConfig,
 		cacheConfig:     cacheConfig,
@@ -183,6 +184,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		bodyRLPCache:    bodyRLPCache,
 		blockCache:      blockCache,
 		futureBlocks:    futureBlocks,
+		depCache:		 deposits,
 		engine:          make(map[string]consensus.Engine),
 		dposEngine:      make(map[string]consensus.DPOSEngine),
 		processor:       make(map[string]Processor),
@@ -2163,7 +2165,17 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address,block 
 	//返回A2账户
 	return a2Accounts, nil
 }
-
+func (bc *BlockChain) getDepositState(block *types.Block)(*state.StateDBManage, error){
+	hash := types.RlpHash(block.Root())
+	if stCache,exist := bc.depCache.Get(hash);exist{
+		return stCache.(*state.StateDBManage),nil
+	}
+	st, err := bc.StateAt(block.Root())
+	if err == nil {
+		bc.depCache.Add(hash,st)
+	}
+	return st,err
+}
 //根据A2账户得到A1账户
 func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address,block *types.Block,st *state.StateDBManage) (common.Address, error) {
 	//根据区块哈希得到区块
@@ -2207,11 +2219,6 @@ func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address,block *
 func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address,block *types.Block,st *state.StateDBManage) (common.Address, error) {
 	//根据区块哈希得到区块
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
-	if err != nil {
-		log.ERROR(common.SignLog, "从A1账户获取A0账户", "失败", "根据区块root获取状态树失败 err", err)
-		return common.Address{}, errors.New("获取stateDB失败")
-	}
 
 	a0Account := depoistInfo.GetDepositAccount(st, a1Account)
 	if a0Account == (common.Address{}) {
@@ -2244,7 +2251,7 @@ func (bc *BlockChain) GetA2AccountsFromA0Account(a0Account common.Address, block
 		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getDepositState(block)
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return nil, errors.New("获取stateDB失败")
@@ -2270,7 +2277,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 		return common.Address{},common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getDepositState(block)
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return common.Address{},common.Address{}, errors.New("获取stateDB失败")
@@ -2305,7 +2312,7 @@ func (bc *BlockChain) GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Ad
 		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getDepositState(block)
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return nil, errors.New("获取stateDB失败")
@@ -2342,7 +2349,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 		return common.Address{}, common.Address{}, nil
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getDepositState(block)
 	if err != nil {
 		log.ERROR(common.SignLog, "从A1账户获取A0账户", "失败", "根据区块root获取状态树失败 err", err)
 		return common.Address{}, common.Address{}, nil
