@@ -5,7 +5,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -297,22 +296,6 @@ participating.
 It expects the genesis file as argument.`,
 	}
 
-	keystoreToPrivateKeyCommand = cli.Command{
-		Action:    utils.MigrateFlags(keystoreToPrivateKey),
-		Name:      "keystoretoprivatekey",
-		Usage:     "sign  version",
-		ArgsUsage: "<genesisPath> blockNum",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
-		Description: `
-The rollback command initializes a new genesis block and definition for the network.
-This is a destructive action and changes the network in which you will be
-participating.
-
-It expects the genesis file as argument.`,
-	}
 	AesEncryptCommand = cli.Command{
 		Action:    utils.MigrateFlags(aesEncrypt),
 		Name:      "aes",
@@ -959,37 +942,6 @@ func signTestModeVersion(ctx *cli.Context) error {
 		return nil
 	}
 	fmt.Println("Exported sign  version to ", pathSplit[0]+"VersionSigned.json")
-	return nil
-}
-
-func keystoreToPrivateKey(ctx *cli.Context) error {
-	passwordList, err := utils.GetSignPassword(ctx)
-	if err != nil {
-		utils.Fatalf(err.Error())
-	}
-	passphrase := getPassPhrase("", false, 0, passwordList)
-
-	stack, _ := makeConfigNode(ctx)
-	accounts := stack.AccountManager()
-	if nil == accounts {
-		utils.Fatalf("no accounts")
-		return nil
-	}
-
-	wallets := accounts.Wallets()
-	if 0 == len(wallets) {
-		utils.Fatalf("no wallet ")
-		return nil
-	}
-	wallet := wallets[0]
-
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	err, key := ks.GetKey(wallet.Accounts()[0], passphrase)
-	if nil != err {
-		utils.Fatalf("GetKey error")
-		return nil
-	}
-	fmt.Println("PrivateKey:" + hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)))
 	return nil
 }
 

@@ -171,7 +171,6 @@ func init() {
 		signCommand,
 		signSuperBlockCommand,
 		signVersionCommand,
-		keystoreToPrivateKeyCommand,
 		// See monitorcmd.go:
 		monitorCommand,
 		// See accountcmd.go:
