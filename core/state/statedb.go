@@ -47,6 +47,7 @@ type StateDB struct {
 	trie Trie
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
+	readMu sync.Mutex
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
 
@@ -788,6 +789,8 @@ func (self *StateDB) deleteStateObject(stateObject *stateObject) {
 
 // Retrieve a state object given by the address. Returns nil if not found.
 func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObject) {
+	self.readMu.Lock()
+	defer self.readMu.Unlock()
 	// Prefer 'live' objects.
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
