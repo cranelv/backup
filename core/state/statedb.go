@@ -846,6 +846,8 @@ func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
+	self.readMu.Lock()
+	defer self.readMu.Unlock()
 	val, exist := self.matrixData[hash]
 	if exist {
 		return val
