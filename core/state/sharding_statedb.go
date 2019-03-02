@@ -678,7 +678,7 @@ func (shard *StateDBManage) Finalise(cointyp string, deleteEmptyObjects bool) {
 	for _, cms := range shard.shardings {
 		if cms.Cointyp == cointyp {
 			for _, cm := range cms.Rmanage {
-				log.Info("Finalise ----------------------------------------------","coin type",cointyp,"range",cm.Range,"dirties length",len(cm.State.journal.dirties))
+				//log.Info("Finalise ----------------------------------------------","coin type",cointyp,"range",cm.Range,"dirties length",len(cm.State.journal.dirties))
 				cm.State.Finalise(deleteEmptyObjects)
 			}
 			break
