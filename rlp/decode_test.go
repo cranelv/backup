@@ -29,6 +29,8 @@ func TestRlpTestFunc(t *testing.T){
 
 }
 func TestStreamKind(t *testing.T) {
+	temp := make(map[int][]int)
+	temp[10] = append(temp[10],1)
 	tests := []struct {
 		input    string
 		wantKind Kind

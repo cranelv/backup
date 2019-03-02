@@ -444,7 +444,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	ftxs = append(ftxs, tmpMaptx[params.MAN_COIN]...)
 	tmpMaptx[params.MAN_COIN] = ftxs
 
-	currblock := make([]types.CurrencyBlock, 0)
+	currblock := make([]types.CurrencyBlock, 0, len(block.Currencies()))
 	for i, bc := range block.Currencies() {
 		if !isvadter {
 			if len(coinShard) > 0 {

@@ -152,7 +152,8 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
-	var coalescedLogs []types.CoinLogs
+	coalescedLogs := make([]types.CoinLogs,0,1024)
+	retTxs = make([]types.SelfTransaction,0,1024)
 	tmpRetmap := make(map[byte][]uint32)
 	for _, txers := range txser {
 		//txs := types.GetCoinTX(txers)
@@ -189,15 +190,19 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 				// Everything ok, collect the logs and shift in the next transaction from the same account
 				if txer.GetTxNLen() != 0 {
 					n := txer.GetTxN(0)
+					tmpRetmap[txer.TxType()] = append(tmpRetmap[txer.TxType()],n)
+					/*
 					if listN, ok := tmpRetmap[txer.TxType()]; ok {
 						listN = append(listN, n)
 						tmpRetmap[txer.TxType()] = listN
 					} else {
-						listN := make([]uint32, 0)
-						listN = append(listN, n)
+						listN := make([]uint32, 1)
+						listN[0] = n
 						tmpRetmap[txer.TxType()] = listN
 					}
+					*/
 					retTxs = append(retTxs, txer)
+
 				}
 				coalescedLogs = append(coalescedLogs, types.CoinLogs{txer.GetTxCurrency(),logs})
 				env.tcount++
@@ -211,6 +216,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 			}
 		}
 	}
+	listret = make([]*common.RetCallTxN,0,len(tmpRetmap))
 	for t, n := range tmpRetmap {
 		ts := common.RetCallTxN{t, n}
 		listret = append(listret, &ts)
@@ -297,9 +303,9 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	listret, originalTxs = env.commitTransactions(mux, pending, common.Address{})
-	finalTxs = append(finalTxs, originalTxs...)
+//	finalTxs = append(finalTxs, originalTxs...)
 	tmps := make([]types.SelfTransaction, 0)
-	from := make([]common.Address, 0)
+	from := make([]common.Address, 0,len(originalTxs))
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
@@ -317,8 +323,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
-	tmps = append(tmps, finalTxs...)
-	finalTxs = tmps
+	finalTxs = append(tmps, originalTxs...)
+//	finalTxs = tmps
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return
