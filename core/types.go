@@ -5,6 +5,8 @@
 package core
 
 import (
+	"math/big"
+
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
@@ -36,7 +38,7 @@ type Validator interface {
 type Processor interface {
 	ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error
 	ProcessTxs(block *types.Block, statedb *state.StateDBManage, cfg vm.Config, upTime map[common.Address]uint64) ([]types.CoinLogs, uint64, error)
-	Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts,[]types.CoinLogs, uint64, error)
+	Process(block *types.Block, parent *types.Block, statedb *state.StateDBManage, cfg vm.Config) ([]types.CoinReceipts, []types.CoinLogs, uint64, error)
 	SetRandom(random *baseinterface.Random)
-	ProcessReward(state *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, from []common.Address, usedGas uint64) []common.RewarTx
+	ProcessReward(state *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, account map[string][]common.Address, usedGas map[string]*big.Int) []common.RewarTx
 }

@@ -7,6 +7,7 @@ package core
 import (
 	"math/big"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
@@ -21,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
+
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
@@ -28,6 +31,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/crypto"
 	"github.com/MatrixAINetwork/go-matrix/log"
+	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/reward/blkreward"
 	"github.com/MatrixAINetwork/go-matrix/reward/interest"
@@ -35,8 +39,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/reward/slash"
 	"github.com/MatrixAINetwork/go-matrix/reward/txsreward"
 	"github.com/pkg/errors"
-	"encoding/json"
-	"github.com/MatrixAINetwork/go-matrix/mc"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -61,47 +63,47 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
-func (p *StateProcessor) getCoinAddress(cointypelist map[string]types.SelfTransactions) map[string]common.Address{
-	statedbM,_ := p.bc.State()
-	coinconfig := statedbM.GetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig))
-	ret:=make(map[string]common.Address)
+func (p *StateProcessor) getCoinAddress(cointypelist map[string]*big.Int) map[string]common.Address {
+	statedbM, _ := p.bc.State()
+	coinconfig := statedbM.GetMatrixData(types.RlpHash(common.COINPREFIX + mc.MSCurrencyConfig))
+	ret := make(map[string]common.Address)
 	var coincfglist []common.CoinConfig
-	if len(coinconfig) > 0{
-		err := json.Unmarshal(coinconfig,&coincfglist)
-		if err != nil{
-			log.Trace("get coin config list","unmarshal err",err)
+	if len(coinconfig) > 0 {
+		err := json.Unmarshal(coinconfig, &coincfglist)
+		if err != nil {
+			log.Trace("get coin config list", "unmarshal err", err)
 			return nil
 		}
 	}
-	for _,cc:=range coincfglist{
-		if cc.PackNum <=0{
+	for _, cc := range coincfglist {
+		if cc.PackNum <= 0 {
 			continue
 		}
-		if _,ok:=cointypelist[cc.CoinType];ok{
+		if _, ok := cointypelist[cc.CoinType]; ok {
 			ret[cc.CoinType] = cc.CoinAddress
 		}
 	}
-	if _,ok:=cointypelist[params.MAN_COIN];ok{
+	if _, ok := cointypelist[params.MAN_COIN]; ok {
 		ret[params.MAN_COIN] = common.TxGasRewardAddress
 	}
 	return ret
 }
-func (p *StateProcessor) getGas(state *state.StateDBManage, gas *big.Int) *big.Int {
+func (p *StateProcessor) getGas(state *state.StateDBManage, coinType string, gas *big.Int, From common.Address) *big.Int {
 	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
 	if err != nil {
 		return big.NewInt(0)
 	}
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
-	log.INFO("奖励", "交易费奖励总额", allGas.String())
-	balance := state.GetBalance(params.MAN_COIN, common.TxGasRewardAddress)
+	log.INFO("奖励", coinType+"交易费奖励总额", allGas.String())
+	balance := state.GetBalance(params.MAN_COIN, From)
 
 	if len(balance) == 0 {
-		log.WARN("奖励", "交易费奖励账户余额不合法", "")
+		log.WARN("奖励", coinType+"交易费奖励账户余额不合法", "")
 		return big.NewInt(0)
 	}
 
 	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) <= 0 || balance[common.MainAccount].Balance.Cmp(allGas) < 0 {
-		log.WARN("奖励", "交易费奖励账户余额不合法，余额", balance)
+		log.WARN("奖励", coinType+"交易费奖励账户余额不合法，余额", balance)
 		return big.NewInt(0)
 	}
 	return allGas
@@ -113,7 +115,7 @@ func (env *StateProcessor) reverse(s []common.RewarTx) []common.RewarTx {
 	return s
 }
 
-func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, account []common.Address, usedGas uint64) []common.RewarTx {
+func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.Header, upTime map[common.Address]uint64, account map[string][]common.Address, usedGas map[string]*big.Int) []common.RewarTx {
 	bcInterval, err := matrixstate.GetBroadcastInterval(st)
 	if err != nil {
 		log.Error("奖励", "获取广播周期失败", err)
@@ -154,13 +156,27 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
 		}
 	}
-
-	allGas := p.getGas(st, new(big.Int).SetUint64(usedGas))
+	coinAddr := p.getCoinAddress(usedGas)
+	if nil == coinAddr {
+		log.Error("奖励", "获取币种错误", "")
+		return nil
+	}
 	txsReward := txsreward.New(p.bc, st, preState)
 	if nil != txsReward {
-		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
-		if 0 != len(txsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+		sortedGas := make([]string, 0)
+
+		for k := range usedGas {
+			sortedGas = append(sortedGas, k)
+		}
+		sort.Strings(sortedGas)
+		for _, k := range sortedGas {
+			if FromAddr, ok := coinAddr[k]; ok {
+				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
+				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
+				if 0 != len(txsRewardMap) {
+					rewardList = append(rewardList, common.RewarTx{CoinType: k, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+				}
+			}
 		}
 	}
 
@@ -170,7 +186,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		if 0 != len(lotteryRewardMap) {
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap, RewardTyp: common.RewardLotteryType})
 		}
-		lottery.LotterySaveAccount(account, header.VrfValue)
+		lottery.LotterySaveAccount(account[params.MAN_COIN], header.VrfValue)
 	}
 
 	////todo 利息
@@ -302,8 +318,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		usedGas     = new(uint64)
 		header      = block.Header()
 		allLogs     []types.CoinLogs
-		gp                 = new(GasPool).AddGas(block.GasLimit())
-		retAllGas   = make(map[string]uint64)
+		gp          = new(GasPool).AddGas(block.GasLimit())
+		retAllGas   = make(map[string]*big.Int)
 	)
 	cs, cserr := p.readShardConfig("")
 	var coinShard []common.CoinSharding
@@ -381,7 +397,13 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			return nil, 0, err
 		}
 		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
-		retAllGas[tx.GetTxCurrency()] += gas
+		//retAllGas[tx.GetTxCurrency()] += gas
+		if _, ok := retAllGas[tx.GetTxCurrency()]; !ok {
+			retAllGas[tx.GetTxCurrency()] = new(big.Int).SetUint64(gas)
+		} else {
+			retAllGas[tx.GetTxCurrency()].Add(retAllGas[tx.GetTxCurrency()], new(big.Int).SetUint64(gas))
+		}
+
 		if isvadter {
 			//receipts = append(receipts, receipt)
 			allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
