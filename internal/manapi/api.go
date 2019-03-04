@@ -1816,7 +1816,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 	for _, ext := range extra {
 		for _, e := range ext.ExtraTo {
 			b := hexutil.Bytes(e.Payload)
-			b = nil //屏蔽input
+			//b = nil //屏蔽input
 			result.ExtraTo = append(result.ExtraTo, &ExtraTo_Mx{
 				To2:    e.Recipient,
 				Input2: &b,
@@ -1824,7 +1824,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 			})
 		}
 	}
-	result.Input = nil //屏蔽input
+	//result.Input = nil //屏蔽input
 	return result
 }
 
