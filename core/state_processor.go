@@ -6,7 +6,6 @@ package core
 
 import (
 	"math/big"
-	"runtime"
 	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
