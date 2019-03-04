@@ -389,6 +389,58 @@ func (g *Genesis) GenSuperBlock(parentHeader *types.Header, stateCache state.Dat
 
 	return types.NewBlock(head, txs, nil, nil)
 }
+func (g *Genesis) ToSuperBlock() *types.Block {
+	head := &types.Header{
+		Number:            new(big.Int).SetUint64(g.Number),
+		Nonce:             types.EncodeNonce(g.Nonce),
+		Time:              new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:        g.ParentHash,
+		Extra:             g.ExtraData,
+		Version:           []byte(g.Version),
+		VersionSignatures: g.VersionSignatures,
+		Elect:             g.NextElect,
+		NetTopology:       g.NetTopology,
+		Signatures:        g.Signatures,
+		Leader:            g.Leader,
+		GasLimit:          g.GasLimit,
+		GasUsed:           g.GasUsed,
+		Difficulty:        g.Difficulty,
+		MixDigest:         g.Mixhash,
+		Coinbase:          g.Coinbase,
+	}
+
+	// 创建超级区块交易
+	txs := make([]types.SelfTransaction, 0)
+	g.Alloc = make(GenesisAlloc)
+	data, err := json.Marshal(g.Alloc)
+	if err != nil {
+		log.ERROR("genesis super block", "marshal alloc info err", err)
+		return nil
+	}
+	tx0 := types.NewTransaction(g.Number, common.Address{}, nil, 0, nil, data, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
+	if tx0 == nil {
+		log.ERROR("genesis super block", "create super block tx err", "NewTransaction return nil")
+		return nil
+	}
+	txs = append(txs, tx0)
+
+	var msData []byte = nil
+	if nil != g.MState {
+		msData, err = json.Marshal(g.MState)
+		if err != nil {
+			log.ERROR("genesis super block", "marshal alloc info err", err)
+			return nil
+		}
+	}
+	txMState := types.NewTransaction(g.Number, common.Address{}, nil, 1, nil, msData, nil, nil, nil, common.ExtraSuperBlockTx, 0, "MAN", 0)
+	if txMState == nil {
+		log.ERROR("genesis super block", "create super block matrix state tx err", "NewTransaction return nil")
+		return nil
+	}
+	txs = append(txs, txMState)
+
+	return types.NewBlock(head, txs, nil, nil)
+}
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.

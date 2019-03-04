@@ -827,6 +827,9 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 	}
 
 	version := matrixstate.GetVersionInfo(state)
+	if key == mc.MSKeyVersionInfo {
+		return version, nil
+	}
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
 		return nil, nil

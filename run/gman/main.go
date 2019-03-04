@@ -167,7 +167,9 @@ func init() {
 		rollbackCommand,
 		genBlockCommand,
 		importSupBlockCommand,
+		genBlockRootsCommand,
 		signCommand,
+		signSuperBlockCommand,
 		signVersionCommand,
 		// See monitorcmd.go:
 		monitorCommand,
