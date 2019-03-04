@@ -226,10 +226,11 @@ func (self *worker) update() {
 	}
 }
 func (self *worker) RoleUpdatedMsgHandler(data *mc.RoleUpdatedMsg) {
-	if data.IsSuperBlock {
+	if data.SuperSeq > self.mineReqCtrl.curSuperSeq {
 		self.StopAgent()
 		self.stopMineResultSender()
 		self.mineReqCtrl.Clear()
+		self.mineReqCtrl.curSuperSeq = data.SuperSeq
 	}
 
 	if data.BlockNum+1 > self.mineReqCtrl.curNumber {

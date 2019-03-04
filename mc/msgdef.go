@@ -131,11 +131,11 @@ type MasterValidatorReElectionRsq struct {
 }
 
 type RoleUpdatedMsg struct {
-	Role         common.RoleType
-	BlockNum     uint64
-	BlockHash    common.Hash
-	Leader       common.Address
-	IsSuperBlock bool
+	Role      common.RoleType
+	BlockNum  uint64
+	BlockHash common.Hash
+	Leader    common.Address
+	SuperSeq  uint64
 }
 
 type LeaderChangeNotify struct {

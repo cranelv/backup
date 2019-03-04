@@ -285,3 +285,36 @@ func (req *HD_BlkConsensusReqMsg) TxsCodeCount() int {
 	}
 	return txsCodeCount
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// self  > param: return 1
+// self == param: return 0
+// self  < param: return -1
+func (self *ChainState) Cmp(superSeq uint64, curNumber uint64) int {
+	if self.superSeq > superSeq {
+		return 1
+	} else if self.superSeq < superSeq {
+		return -1
+	} else {
+		if self.curNumber > curNumber {
+			return 1
+		} else if self.curNumber < curNumber {
+			return -1
+		} else {
+			return 0
+		}
+	}
+}
+
+func (self *ChainState) CurNumber() uint64 {
+	return self.curNumber
+}
+
+func (self *ChainState) SuperSeq() uint64 {
+	return self.superSeq
+}
+
+func (self *ChainState) Reset(superSeq uint64, curNumber uint64) {
+	self.superSeq = superSeq
+	self.curNumber = curNumber
+}

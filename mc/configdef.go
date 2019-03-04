@@ -1,8 +1,8 @@
 package mc
 
 import (
-	"math/big"
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"math/big"
 )
 
 const (
@@ -125,8 +125,6 @@ type VIPConfig struct {
 	StockScale   uint16 //千分比
 }
 
-
-
 type LeaderConfig struct {
 	ParentMiningTime      uint64 // 预留父区块挖矿时间
 	PosOutTime            uint64 // 区块POS共识超时时间
@@ -207,7 +205,6 @@ type RandomInfoStruct struct {
 	MaxNonce uint64
 }
 
-
 type ElectWhiteListSwitcher struct {
 	Switcher bool
 }
@@ -238,4 +235,9 @@ type BlockProduceSlashBlackList struct {
 
 type BlockProduceSlashStatsStatus struct {
 	Number uint64
+}
+
+type ChainState struct {
+	superSeq  uint64
+	curNumber uint64
 }
