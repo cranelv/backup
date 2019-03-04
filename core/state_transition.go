@@ -687,11 +687,11 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	if from == addr {
 		return nil, 0, false, shardings, errors.New("CallNormalTx from is nil")
 	}
-	usefrom := from
-	if usefrom == addr {
-		return nil, 0, false, shardings, errors.New("CallNormalTx usefrom is nil")
-	}
-	sender := vm.AccountRef(usefrom)
+//	usefrom := from
+//	if usefrom == addr {
+//		return nil, 0, false, shardings, errors.New("CallNormalTx usefrom is nil")
+//	}
+	sender := vm.AccountRef(from)
 	var (
 		evm   = st.evm
 		vmerr error
@@ -726,7 +726,7 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 		tmpshard = append(tmpshard, uint(caddr[0]))
 	} else {
 		// Increment the nonce for the next transaction
-		st.state.SetNonce(tx.GetTxCurrency(), from, st.state.GetNonce(tx.GetTxCurrency(), from)+1)
+		st.state.SetNonce(tx.GetTxCurrency(), from, st.msg.Nonce()+1)//st.state.GetNonce(tx.GetTxCurrency(), from)
 		ret, st.gas, tmpshard, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
 	}
 	if vmerr == nil && (&tmpExtra) != nil && len(tmpExtra) > 0 {
@@ -1120,6 +1120,9 @@ func (st *StateTransition) RefundGas() {
 		refund = st.state.GetRefund(params.MAN_COIN, st.msg.From())
 	}
 	st.gas += refund
+	if st.gas == 0 {
+		return
+	}
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	st.state.AddBalance(params.MAN_COIN, common.MainAccount, st.msg.AmontFrom(), remaining)
