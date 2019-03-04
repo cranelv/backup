@@ -31,10 +31,10 @@ type sigCache struct {
 //批量解签名
 func BatchSender(txser SelfTransactions) {
 	var waitG = &sync.WaitGroup{}
-	maxProcs := runtime.NumCPU() //获取cpu个数
-	if maxProcs >= 2 {
-		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
-	}
+//	maxProcs := runtime.NumCPU() //获取cpu个数
+//	if maxProcs >= 2 {
+//		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
+//	}
 	for _, tx := range txser {
 		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
 			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {

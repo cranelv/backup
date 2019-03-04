@@ -21,7 +21,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"github.com/MatrixAINetwork/go-matrix/txpoolCache"
-	"runtime"
 )
 
 //
@@ -1091,11 +1090,12 @@ func (nPool *NormalTxPool) blockTiming() {
 // 根据交易获取交易中的from
 func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
-	maxProcs := runtime.NumCPU() //获取cpu个数
-	if maxProcs >= 2 {
+
+//	maxProcs := runtime.NumCPU() //获取cpu个数
+//	if maxProcs >= 2 {
 		//runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量 YYYYYYYYYYYYYYYYYYYYYYYYY
-		runtime.GOMAXPROCS(maxProcs / 2)
-	}
+//		runtime.GOMAXPROCS(maxProcs / 2)
+//	}
 	for _, tx := range txs {
 		if tx.From() != (common.Address{}){
 			continue

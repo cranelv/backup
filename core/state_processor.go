@@ -325,11 +325,11 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		txs = append(txs, cb.Transactions.GetTransactions()...)
 	}
 	var waitG = &sync.WaitGroup{}
-	maxProcs := runtime.NumCPU() //获取cpu个数
-	if maxProcs >= 2 {
+//	maxProcs := runtime.NumCPU() //获取cpu个数
+//	if maxProcs >= 2 {
 		//runtime.GOMAXPROCS(maxProcs - 1)
-		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-	}
+//		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+//	}
 	normalTxindex := 0
 	for _, tx := range txs {
 		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
