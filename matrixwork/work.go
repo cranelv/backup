@@ -244,6 +244,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coi
 	}
 	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
+		log.Error(packagename, "ApplyTransaction,err", err)
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		if tx.GetTxCurrency() != params.MAN_COIN {
 			env.State.RevertToSnapshot(params.MAN_COIN, snap1)
