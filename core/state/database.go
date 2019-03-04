@@ -21,7 +21,7 @@ const (
 	// Number of past tries to keep. This value is chosen such that
 	// reasonable chain reorg depths will hit an existing trie.
 	maxPastTries = 12
-	PastTriesSize = 8192
+	PastTriesSize = 1024
 
 	// Number of codehash->size associations to keep.
 	codeSizeCacheSize = 100000

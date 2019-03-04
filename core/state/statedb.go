@@ -1013,7 +1013,10 @@ func (self *StateDB) Copy() *StateDB {
 func (self *StateDB) Snapshot() int {
 	id := self.nextRevisionId
 	self.nextRevisionId++
-	self.validRevisions = append(self.validRevisions, revision{id, self.journal.length()})
+	len1 := len(self.validRevisions)
+	if len1 == 0 || self.validRevisions[len1-1].journalIndex < self.journal.length(){
+		self.validRevisions = append(self.validRevisions, revision{id, self.journal.length()})
+	}
 	return id
 }
 
@@ -1024,7 +1027,8 @@ func (self *StateDB) RevertToSnapshot(revid int) {
 		return self.validRevisions[i].id >= revid
 	})
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != revid {
-		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
+//		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
+		idx--
 	}
 	snapshot := self.validRevisions[idx].journalIndex
 
