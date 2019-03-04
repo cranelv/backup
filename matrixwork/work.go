@@ -245,7 +245,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot(tx.GetTxCurrency())  
-	var snap1 map[byte]int
+	snap1 :=make([]int,256)
 	if tx.GetTxCurrency()!=params.MAN_COIN {
 		snap1 = env.State.Snapshot(params.MAN_COIN)
 	}

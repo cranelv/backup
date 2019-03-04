@@ -639,9 +639,9 @@ func (shard *StateDBManage) Copy() *StateDBManage {
 }
 
 // Snapshot returns an identifier for the current revision of the state.
-func (shard *StateDBManage) Snapshot(cointyp string) map[byte]int {
+func (shard *StateDBManage) Snapshot(cointyp string) []int {
 
-	ss := make(map[byte]int, 0)
+	ss := make([]int,256)
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
 			for _, rm := range cm.Rmanage {
@@ -656,13 +656,12 @@ func (shard *StateDBManage) Snapshot(cointyp string) map[byte]int {
 }
 
 // RevertToSnapshot reverts all state changes made since the given revision.
-func (shard *StateDBManage) RevertToSnapshot(cointyp string, ss map[byte]int) {
+func (shard *StateDBManage) RevertToSnapshot(cointyp string, ss []int) {
 	// Find the snapshot in the stack of valid snapshots.
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
 			for _, rm := range cm.Rmanage {
-				id := ss[rm.Range]
-				rm.State.RevertToSnapshot(id)
+				rm.State.RevertToSnapshot(ss[rm.Range])
 			}
 			break
 		}
