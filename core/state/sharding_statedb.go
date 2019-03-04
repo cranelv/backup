@@ -637,22 +637,22 @@ func (shard *StateDBManage) Copy() *StateDBManage {
 	return state
 
 }
-
+var gss = make([]int,256)
 // Snapshot returns an identifier for the current revision of the state.
 func (shard *StateDBManage) Snapshot(cointyp string) []int {
 
-	ss := make([]int,256)
+//	ss := make([]int,256)
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
 			for _, rm := range cm.Rmanage {
 				self := rm.State
 				id := self.Snapshot()
-				ss[rm.Range] = id
+				gss[rm.Range] = id
 			}
 			break
 		}
 	}
-	return ss
+	return gss
 }
 
 // RevertToSnapshot reverts all state changes made since the given revision.
