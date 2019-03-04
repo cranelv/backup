@@ -303,7 +303,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		header      = block.Header()
 		allLogs     []types.CoinLogs
 		gp                 = new(GasPool).AddGas(block.GasLimit())
-		retAllGas   uint64 = 0
+		retAllGas   = make(map[string]uint64)
 	)
 	cs, cserr := p.readShardConfig("")
 	var coinShard []common.CoinSharding
@@ -346,7 +346,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		go types.Sender_self(sig, ttx, waitG)
 	}
 	waitG.Wait()
-	from := make([]common.Address, 0)
+	from := make(map[string][]common.Address)
 	isvadter := p.isValidater(header.ParentHash)
 	for i, tx := range txs[normalTxindex:] {
 		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
@@ -381,7 +381,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			return nil, 0, err
 		}
 		allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
-		retAllGas += gas
+		retAllGas[tx.GetTxCurrency()] += gas
 		if isvadter {
 			//receipts = append(receipts, receipt)
 			allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
@@ -402,7 +402,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			}
 		}
 		txcount = i
-		from = append(from, tx.From())
+		from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 	}
 	p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	for _, tx := range stxs {
