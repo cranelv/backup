@@ -13,7 +13,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/crypto"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"runtime"
 	"sync"
 )
 
