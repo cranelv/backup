@@ -32,6 +32,9 @@ func DeriveSha(list DerivableList) common.Hash {
 	return trie.Hash()
 }
 func DeriveShaHash(list []common.Hash) common.Hash {
+	if len(list) == 0{
+		return EmptyRootHash
+	}
 	keybuf := new(bytes.Buffer)
 	trie := new(trie.Trie)
 	log.Info("DeriveSha Empty Hash", "hash", trie.Hash())

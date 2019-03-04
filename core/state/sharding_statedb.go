@@ -220,7 +220,7 @@ func (shard *StateDBManage) GetLogs(cointyp string, address common.Address, hash
 func (shard *StateDBManage) Logs() []types.CoinLogs {
 
 	cms := shard.shardings
-	var logs []types.CoinLogs
+	logs := make([]types.CoinLogs,0,256)
 	for _, cm := range cms {
 		//if cm.Cointyp==cointyp {
 		rms := cm.Rmanage
@@ -615,7 +615,7 @@ func (shard *StateDBManage) Copy() *StateDBManage {
 		coinRoot:  make([]common.CoinRoot, 0),
 	}
 	for _, cm := range shard.shardings {
-		var rms []*RangeManage
+		rms := make([]*RangeManage,0,256)
 		for _, rm := range cm.Rmanage {
 			sd := rm.State.Copy()
 			rms = append(rms, &RangeManage{
@@ -637,22 +637,22 @@ func (shard *StateDBManage) Copy() *StateDBManage {
 	return state
 
 }
-var gss = make([]int,256)
+//var gss = make([]int,256)
 // Snapshot returns an identifier for the current revision of the state.
 func (shard *StateDBManage) Snapshot(cointyp string) []int {
 
-//	ss := make([]int,256)
+	ss := make([]int,256)
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
 			for _, rm := range cm.Rmanage {
 				self := rm.State
 				id := self.Snapshot()
-				gss[rm.Range] = id
+				ss[rm.Range] = id
 			}
 			break
 		}
 	}
-	return gss
+	return ss
 }
 
 // RevertToSnapshot reverts all state changes made since the given revision.
@@ -699,8 +699,9 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 			root := rm.State.IntermediateRoot(deleteEmptyObjects)
 			root256 = append(root256, root)
 		}
-		bshash = types.RlpHash(root256)
-		bs, _ := rlp.EncodeToBytes(root256)
+		bs,bshash := types.RlpEncodeAndHash(root256)
+//		bshash = types.RlpHash(root256)
+//		bs, _ := rlp.EncodeToBytes(root256)
 		err := shard.mdb.Put(bshash[:], bs)
 		if err != nil {
 			log.Error("file:sharding_statedb.go", "func:IntermediateRoot", err)
@@ -726,15 +727,16 @@ func (shard *StateDBManage) IntermediateRoot(deleteEmptyObjects bool) ([]common.
 
 func (shard *StateDBManage) IntermediateRootByCointype(cointype string, deleteEmptyObjects bool) common.Hash {
 
-	var root256 []common.Hash
+	root256 := make([]common.Hash,0,256)
 	for _, cm := range shard.shardings {
 		if cointype == cm.Cointyp {
 			for _, rm := range cm.Rmanage {
 				root := rm.State.IntermediateRoot(deleteEmptyObjects)
 				root256 = append(root256, root)
 			}
-			bshash := types.RlpHash(root256)
-			bs, _ := rlp.EncodeToBytes(root256)
+			bs,bshash := types.RlpEncodeAndHash(root256)
+//			bs, _ := rlp.EncodeToBytes(root256)
+//			bshash := types.RlpHash(root256)
 			err := shard.mdb.Put(bshash[:], bs)
 			if err != nil {
 				log.Error("file:sharding_statedb.go", "func:IntermediateRoot", err)
@@ -753,6 +755,7 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string, deleteEm
 			if !isex {
 				shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cm.Cointyp, Root: bshash,TxHash:types.EmptyRootHash,ReceiptHash:types.EmptyRootHash})
 			}
+			break
 		}
 	}
 	return types.RlpHash(root256)
@@ -784,7 +787,7 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 
 	var coinbytes = make([]common.Coinbyte, 0)
 	for _, cm := range shard.shardings {
-		var roots = make([]common.Hash, 0)
+		var roots = make([]common.Hash, 0,256)
 		for _, rm := range cm.Rmanage {
 			root, err := rm.State.Commit(deleteEmptyObjects)
 			if err != nil {
@@ -793,9 +796,10 @@ func (shard *StateDBManage) Commit(deleteEmptyObjects bool) ([]common.CoinRoot, 
 			}
 			roots = append(roots, root)
 		}
-		bshash := types.RlpHash(roots)
-		bs, err := rlp.EncodeToBytes(roots)
-		err = shard.mdb.Put(bshash[:], bs)
+		bs,bshash := types.RlpEncodeAndHash(roots)
+//		bshash := types.RlpHash(roots)
+//		bs, err := rlp.EncodeToBytes(roots)
+		err := shard.mdb.Put(bshash[:], bs)
 		if err != nil {
 			log.Error("file:sharding_statedb.go", "func:Commit", err)
 			panic(err)

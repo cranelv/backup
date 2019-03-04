@@ -327,7 +327,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	var waitG = &sync.WaitGroup{}
 	maxProcs := runtime.NumCPU() //获取cpu个数
 	if maxProcs >= 2 {
-		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+		runtime.GOMAXPROCS(maxProcs - 1)
+//		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 	}
 	normalTxindex := 0
 	for _, tx := range txs {

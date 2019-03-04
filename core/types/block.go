@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	EmptyRootHash  = DeriveShaHash([]common.Hash{})
+	EmptyRootHash  = common.HexToHash("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")//DeriveShaHash([]common.Hash{})
 	EmptyUncleHash = CalcUncleHash(nil)
 )
 
@@ -253,6 +253,13 @@ func RlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
+}
+func RlpEncodeAndHash(x interface{}) (buff []byte,h common.Hash) {
+	hw := sha3.NewKeccak256()
+	buff,_ = rlp.EncodeToBytes(x)
+	hw.Write(buff)
+	hw.Sum(h[:0])
+	return buff,h
 }
 
 //1. Complete Block transactions = []SelfTransactio

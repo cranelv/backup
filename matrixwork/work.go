@@ -242,10 +242,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 	}
 	return listret, retTxs
 }
-var gss = make([]int,256)
+//var gss = make([]int,256)
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot(tx.GetTxCurrency())  
-	snap1 :=gss
+	var snap1 []int
 	if tx.GetTxCurrency()!=params.MAN_COIN {
 		snap1 = env.State.Snapshot(params.MAN_COIN)
 	}
