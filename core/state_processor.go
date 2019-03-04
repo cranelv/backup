@@ -404,6 +404,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		txcount = i
 		from = append(from, tx.From())
 	}
+	statedb.Finalise("MAN",true)
 	p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	for _, tx := range stxs {
 		statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
@@ -439,6 +440,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 		ftxs = append(ftxs, tmptx)
 	}
+	statedb.Finalise("MAN",true)
 	receipts = append(receipts, tmpMapre[params.MAN_COIN]...)
 	tmpMapre[params.MAN_COIN] = receipts
 	ftxs = append(ftxs, tmpMaptx[params.MAN_COIN]...)
@@ -590,7 +592,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(tx.GetTxCurrency(), true)
+		//statedb.Finalise(tx.GetTxCurrency(), true)
 	} else {
 		root = statedb.IntermediateRootByCointype(tx.GetTxCurrency(), config.IsEIP158(header.Number)).Bytes()
 	}

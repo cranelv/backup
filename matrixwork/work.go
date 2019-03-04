@@ -216,6 +216,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 			}
 		}
 	}
+	env.State.Finalise("MAN",true)
 	listret = make([]*common.RetCallTxN,0,len(tmpRetmap))
 	for t, n := range tmpRetmap {
 		ts := common.RetCallTxN{t, n}
@@ -418,6 +419,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 		env.commitTransaction(t, env.bc, common.Address{}, nil)
 		}
 	}
+	env.State.Finalise("MAN",true)
 
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
@@ -427,6 +429,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 			log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 		}
 	}
+	env.State.Finalise("MAN",true)
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)		
 	return
 }
@@ -461,6 +464,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			from = append(from,t.From())
 		}
 	}
+	env.State.Finalise("MAN",true)
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
@@ -470,6 +474,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			return err
 		}
 	}
+	env.State.Finalise("MAN",true)
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		go func(logs []types.CoinLogs, tcount int) {
