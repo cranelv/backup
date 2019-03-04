@@ -174,7 +174,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
 				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
 				if 0 != len(txsRewardMap) {
-					rewardList = append(rewardList, common.RewarTx{CoinType: k, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+					rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 				}
 			}
 		}
