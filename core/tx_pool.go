@@ -1097,6 +1097,9 @@ func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 		runtime.GOMAXPROCS(maxProcs / 2)
 	}
 	for _, tx := range txs {
+		if tx.From() != (common.Address{}){
+			continue
+		}
 		waitG.Add(1)
 		ttx := tx
 		go types.Sender_self(nPool.signer, ttx, waitG)
