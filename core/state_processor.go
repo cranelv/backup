@@ -6,8 +6,6 @@ package core
 
 import (
 	"math/big"
-	"sync"
-
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
 	"github.com/MatrixAINetwork/go-matrix/ca"
@@ -36,6 +34,8 @@ import (
 	"github.com/pkg/errors"
 	"encoding/json"
 	"github.com/MatrixAINetwork/go-matrix/mc"
+	"sync"
+	"runtime"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -323,29 +323,64 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	for _, cb := range block.Currencies() {
 		txs = append(txs, cb.Transactions.GetTransactions()...)
 	}
-	var waitG = &sync.WaitGroup{}
+//	var waitG = &sync.WaitGroup{}
 //	maxProcs := runtime.NumCPU() //获取cpu个数
 //	if maxProcs >= 2 {
 		//runtime.GOMAXPROCS(maxProcs - 1)
 //		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 //	}
 	normalTxindex := 0
-	for _, tx := range txs {
-		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
-			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
-			tmpstxs := make([]types.SelfTransaction, 0)
-			tmpstxs = append(tmpstxs, tx)
-			tmpstxs = append(tmpstxs, stxs...)
-			stxs = tmpstxs
-			normalTxindex++
-			continue
+	if len(txs)>0{
+		sig := types.NewEIP155Signer(txs[0].ChainId())
+		var waitG = &sync.WaitGroup{}
+		routineNum := len(txs)/100+1
+		if routineNum > 1{
+			maxProcs := runtime.GOMAXPROCS(0)  //获取cpu个数
+			if maxProcs >= 2 {
+				maxProcs--
+			}
+			if maxProcs<routineNum{
+				routineNum = maxProcs
+			}
 		}
-		sig := types.NewEIP155Signer(tx.ChainId())
-		waitG.Add(1)
-		ttx := tx
-		go types.Sender_self(sig, ttx, waitG)
+		routChan := make(chan types.SelfTransaction,0)
+		for i:=0;i<routineNum;i++ {
+			waitG.Add(1)
+			go types.Sender_sub(sig,routChan,waitG)
+		}
+		for _, tx := range txs {
+			if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+				tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
+				tmpstxs := make([]types.SelfTransaction, 0)
+				tmpstxs = append(tmpstxs, tx)
+				tmpstxs = append(tmpstxs, stxs...)
+				stxs = tmpstxs
+				normalTxindex++
+				continue
+			}
+			routChan <- tx
+		}
+		close(routChan)
+		waitG.Wait()
 	}
-	waitG.Wait()
+
+//	types.BatchSender_self(txs,nil,filter)
+	//for _, tx := range txs {
+	//	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+	//		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
+	//		tmpstxs := make([]types.SelfTransaction, 0)
+	//		tmpstxs = append(tmpstxs, tx)
+	//		tmpstxs = append(tmpstxs, stxs...)
+	//		stxs = tmpstxs
+	//		normalTxindex++
+	//		continue
+	//	}
+	//	sig := types.NewEIP155Signer(tx.ChainId())
+	//	waitG.Add(1)
+	//	ttx := tx
+	//	go types.Sender_self(sig, ttx, waitG)
+	//}
+	//waitG.Wait()
 	from := make([]common.Address, 0)
 	isvadter := p.isValidater(header.ParentHash)
 	for i, tx := range txs[normalTxindex:] {
