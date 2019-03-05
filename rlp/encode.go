@@ -374,7 +374,22 @@ func writeRawValue(val reflect.Value, w *encbuf) error {
 	w.str = append(w.str, val.Bytes()...)
 	return nil
 }
-
+var uintBuff = make([]byte,16)
+func EncodeUint(i uint64)([]byte, error) {
+	if i == 0 {
+		uintBuff[0] = 0x80
+		return uintBuff[:1],nil
+	} else if i < 128 {
+		// fits single byte
+		uintBuff[0] = byte(i)
+		return uintBuff[:1],nil
+	} else {
+		// TODO: encode int to w.str directly
+		s := putint(uintBuff[1:], i)
+		uintBuff[0] = 0x80 + byte(s)
+		return uintBuff[:s+1],nil
+	}
+}
 func writeUint(val reflect.Value, w *encbuf) error {
 	i := val.Uint()
 	if i == 0 {
