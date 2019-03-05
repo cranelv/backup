@@ -320,7 +320,7 @@ type Rules struct {
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158 bool
 	IsByzantium                               bool
 }
-var grules *Rules
+var grules Rules
 func (c *ChainConfig) Rules(num *big.Int) *Rules {
 	if grules.ChainId == nil{
 		chainId := c.ChainId
@@ -329,6 +329,6 @@ func (c *ChainConfig) Rules(num *big.Int) *Rules {
 		}
 		grules.ChainId = new(big.Int).Set(chainId)
 	}
-	return grules
+	return &grules
 	//return Rules{ChainId: new(big.Int).Set(chainId), IsHomestead: true, IsEIP150: true, IsEIP155: true, IsEIP158: true, IsByzantium: true}
 }
