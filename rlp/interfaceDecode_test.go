@@ -5,8 +5,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"math/big"
 	"testing"
-	"gitlab.matrix.com/net/ethereum/rlp"
-	"bytes"
 )
 
 type testInterface interface {
@@ -61,11 +59,7 @@ type testStruct struct {
 }
 
 func TestDecodeInterface1(t *testing.T) {
-	var keybuf = new(bytes.Buffer)
-	for i:=uint(0);i<uint(100);i++{
-		keybuf.Reset()
-		rlp.Encode(keybuf,i)
-	}
+
 	testRlp := testStruct{&testStruct1{100, 100, 100}, &testStruct2{100, 100, 100, 100}}
 	b, _ := EncodeToBytes(testRlp)
 	t.Log(b)
