@@ -34,6 +34,7 @@ import (
 	_ "github.com/MatrixAINetwork/go-matrix/election/layered"
 	_ "github.com/MatrixAINetwork/go-matrix/election/nochoice"
 	_ "github.com/MatrixAINetwork/go-matrix/election/stock"
+	_ "github.com/MatrixAINetwork/go-matrix/election/layeredmep"
 	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"github.com/MatrixAINetwork/go-matrix/run/utils"
 )
