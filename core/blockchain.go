@@ -2241,7 +2241,7 @@ func (bc *BlockChain) GetA2AccountsFromA0Account(a0Account common.Address, block
 		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getStateCache(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return nil, errors.New("获取stateDB失败")
@@ -2267,7 +2267,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 		return common.Address{},common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getStateCache(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return common.Address{},common.Address{}, errors.New("获取stateDB失败")
@@ -2302,7 +2302,7 @@ func (bc *BlockChain) GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Ad
 		return nil, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getStateCache(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return nil, errors.New("获取stateDB失败")
@@ -2339,7 +2339,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 		return common.Address{}, common.Address{}, nil
 	}
 	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
+	st, err := bc.getStateCache(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "从A1账户获取A0账户", "失败", "根据区块root获取状态树失败 err", err)
 		return common.Address{}, common.Address{}, nil
@@ -2603,7 +2603,7 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		root := header.Roots
 
 		log.Info("BlockChain savesnapshot ", "root ###############################: ", root)
-		statedb, err := bc.StateAt(root)
+		statedb, err := bc.getStateCache(root)
 		if err != nil {
 			log.Error("BlockChain savesnapshot ", "open state fialed,err ", err)
 			return
