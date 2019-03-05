@@ -26,7 +26,7 @@ type Config struct {
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default
 	// table.
-	JumpTable [256]operation
+	JumpTable *[256]operation
 }
 
 // Interpreter is used to run Matrix based contracts and will utilise the

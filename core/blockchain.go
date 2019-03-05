@@ -1296,6 +1296,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
+		getBlock := bc.GetBlockByHash(block.Hash())
+		if nil != getBlock {
+			continue
+		}
 		var txs []types.SelfTransaction
 		for _, currencie := range block.Currencies() {
 			tx := currencie.Transactions.GetTransactions()
