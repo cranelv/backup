@@ -326,7 +326,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 }
 
 func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTransaction) {
-	for _, rewart := range rewarts {
+	for i, rewart := range rewarts {
 		sorted_keys := make([]string, 0)
 		for k, _ := range rewart.To_Amont {
 			sorted_keys = append(sorted_keys, k.String())
@@ -378,7 +378,7 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType, rewart.Fromaddr), to, value, 0, new(big.Int), databytes, nil, nil, nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0, rewart.CoinType, 0)
+		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType, rewart.Fromaddr)+uint64(i), to, value, 0, new(big.Int), databytes, nil, nil, nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0, rewart.CoinType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		txers = append(txers, tx)
 	}
