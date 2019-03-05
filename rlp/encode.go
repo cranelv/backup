@@ -492,9 +492,14 @@ func writeEncoderNoPtr(val reflect.Value, w *encbuf) error {
 }
 func writeTypeInterface(val reflect.Value, w *encbuf) error {
 	if val.Type().Implements(typerInterface) {
-		valRLP := InterfaceRLP{val.Interface().(InterfaceTyper).GetConstructorType(), val.Interface()}
-		info, _ := cachedTypeInfo(reflect.TypeOf(valRLP), tags{})
-		return info.writer(reflect.ValueOf(valRLP), w)
+		lh := w.list()
+		defer w.listEnd(lh)
+		rlpType := val.Interface().(InterfaceTyper).GetConstructorType()
+		writeUint(reflect.ValueOf(rlpType),w)
+		return writeInterface(val, w)
+		//valRLP := InterfaceRLP{val.Interface().(InterfaceTyper).GetConstructorType(), val.Interface()}
+		//info, _ := cachedTypeInfo(reflect.TypeOf(valRLP), tags{})
+		//return info.writer(reflect.ValueOf(valRLP), w)
 	} else {
 		return writeInterface(val, w)
 	}
