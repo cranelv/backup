@@ -337,8 +337,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		routineNum := len(txs)/100+1
 		if routineNum > 1{
 			maxProcs := runtime.GOMAXPROCS(0)  //获取cpu个数
-			if maxProcs >= 2 {
-				maxProcs--
+			if maxProcs > 2 {
+				maxProcs /= 2
 			}
 			if maxProcs<routineNum{
 				routineNum = maxProcs
