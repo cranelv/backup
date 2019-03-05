@@ -331,7 +331,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 //	}
 	normalTxindex := 0
 	if len(txs)>0{
-		sig := types.NewEIP155Signer(txs[0].ChainId())
+		log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","chainID",txs[len(txs)-1].ChainId())
+		sig := types.NewEIP155Signer(txs[len(txs)-1].ChainId())
 		var waitG = &sync.WaitGroup{}
 		routineNum := len(txs)/100+1
 		if routineNum > 1{
