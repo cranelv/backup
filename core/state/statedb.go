@@ -69,8 +69,8 @@ type StateDB struct {
 	// The refund counter, also used by state transitioning.
 	refund uint64
 
-	thash, bhash common.Hash
-	txIndex      int
+//	thash, bhash common.Hash
+//	txIndex      int
 	logs         map[common.Hash][]*types.Log
 	logSize      uint
 
@@ -150,9 +150,9 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.btreeMapDirty = make([]BtreeDietyStruct, 0)
 	self.matrixData = make(map[common.Hash][]byte)
 	self.matrixDataDirty = make(map[common.Hash][]byte)
-	self.thash = common.Hash{}
-	self.bhash = common.Hash{}
-	self.txIndex = 0
+	//self.thash = common.Hash{}
+	//self.bhash = common.Hash{}
+	//self.txIndex = 0
 	self.logs = make(map[common.Hash][]*types.Log)
 	self.logSize = 0
 	self.preimages = make(map[common.Hash][]byte)
@@ -160,16 +160,16 @@ func (self *StateDB) Reset(root common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
-	self.journal.append(addLogChange{txhash: self.thash})
-
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
-	self.logSize++
-}
+//func (self *StateDB) AddLog(log *types.Log) {
+//	self.journal.append(addLogChange{txhash: self.thash})
+//
+//	log.TxHash = self.thash
+//	log.BlockHash = self.bhash
+//	log.TxIndex = uint(self.txIndex)
+//	log.Index = self.logSize
+//	self.logs[self.thash] = append(self.logs[self.thash], log)
+//	self.logSize++
+//}
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
 	return self.logs[hash]
@@ -1091,11 +1091,11 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
-	self.thash = thash
-	self.bhash = bhash
-	self.txIndex = ti
-}
+//func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+//	self.thash = thash
+//	self.bhash = bhash
+//	self.txIndex = ti
+//}
 
 func (s *StateDB) clearJournalAndRefund() {
 	s.journal = newJournal()

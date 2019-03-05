@@ -639,6 +639,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt := types.NewReceipt(root, failed, *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = gas
+
 	// if the transaction created a contract, store the creation address in the receipt.
 	if tx.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
@@ -646,6 +647,11 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.GetTxCurrency(), tx.From(), tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-
+	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
+		log.Info("=======================================","root",common.ToHex(root),"failed",failed,"usedGad",usedGas,"receipt.TxHash",receipt.TxHash.String())
+		log.Info("=======================================","receipt.GasUsed",receipt.GasUsed,"receipt.ContractAddress",receipt.ContractAddress.String())
+		log.Info("========================================","receipt.Logs",len(receipt.Logs),"receipt.Bloom",common.ToHex(receipt.Bloom[:]))
+	}
 	return receipt, gas, shardings, err
 }

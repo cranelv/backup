@@ -27,6 +27,8 @@ type CoinManage struct {
 type StateDBManage struct {
 	db          Database
 	mdb         mandb.Database
+	thash, bhash common.Hash
+	txIndex      int
 	shardings   []*CoinManage
 	coinRoot    []common.CoinRoot
 	retcoinRoot []common.CoinRoot
@@ -136,6 +138,9 @@ func (shard *StateDBManage) addShardings(cointyp string) {
 }
 func (shard *StateDBManage) Reset(roots []common.CoinRoot) error {
 
+	shard.thash = common.Hash{}
+	shard.bhash = common.Hash{}
+	shard.txIndex = 0
 	for _, cr := range roots {
 		for _, cm := range shard.shardings {
 			if cm.Cointyp == cr.Cointyp {
@@ -196,13 +201,13 @@ func (shard *StateDBManage) AddLog(cointyp string, address common.Address, logs 
 		log.Error("sharding_statedb","func:sharding_AddLog:",err)
 		return
 	}
-	self.journal.append(addLogChange{txhash: self.thash})
+	self.journal.append(addLogChange{txhash: shard.thash})
 
-	logs.TxHash = self.thash
-	logs.BlockHash = self.bhash
-	logs.TxIndex = uint(self.txIndex)
+	logs.TxHash = shard.thash
+	logs.BlockHash = shard.bhash
+	logs.TxIndex = uint(shard.txIndex)
 	logs.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], logs)
+	self.logs[shard.thash] = append(self.logs[shard.thash], logs)
 	self.logSize++
 }
 
@@ -765,12 +770,15 @@ func (shard *StateDBManage) IntermediateRootByCointype(cointype string, deleteEm
 // used when the EVM emits new state logs.
 
 func (shard *StateDBManage) Prepare(thash, bhash common.Hash, ti int) {
+	shard.thash = thash
+	shard.bhash = bhash
+	shard.txIndex = ti
 
-	for _, cm := range shard.shardings {
-		for _, rm := range cm.Rmanage {
-			rm.State.Prepare(thash, bhash, ti)
-		}
-	}
+	//for _, cm := range shard.shardings {
+	//	for _, rm := range cm.Rmanage {
+	//		rm.State.Prepare(thash, bhash, ti)
+	//	}
+	//}
 }
 
 func (shard *StateDBManage) clearJournalAndRefund() {
