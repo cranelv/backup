@@ -271,12 +271,12 @@ func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.A
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
 		return err, nil
 	}
-	tmps := make([]types.SelfTransaction, 0)
+	tmps := make([]types.SelfTransaction, 0,len(env.transer)+1)
 	tmps = append(tmps, tx)
 	tmps = append(tmps, env.transer...)
 	env.transer = tmps
 
-	tmpr := make([]*types.Receipt, 0)
+	tmpr := make([]*types.Receipt, 0,len(env.recpts)+1)
 	tmpr = append(tmpr, receipt)
 	tmpr = append(tmpr, env.recpts...)
 	env.recpts = tmpr
@@ -310,7 +310,9 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs),"hash",types.DeriveShaHash(types.TxHashList(originalTxs)).String())
+	aa := make(types.Receipts,len(env.recpts))
+	aa = append(aa,env.recpts...)
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs),"hash",types.DeriveShaHash(aa.HashList()).String())
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -324,8 +326,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
+	env.State.Finalise("MAN",true)
 	finalTxs = append(tmps, originalTxs...)
-//	finalTxs = tmps
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return
@@ -465,7 +467,9 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		}
 	}
 	env.State.Finalise("MAN",true)
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
+	aa := make(types.Receipts,len(env.recpts))
+	aa = append(aa,env.recpts...)
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"hash",types.DeriveShaHash(aa.HashList()).String())
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
