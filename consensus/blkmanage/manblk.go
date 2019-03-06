@@ -345,6 +345,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	localBlock := types.NewBlock(localHeader, aaa, nil)
 	log.Info("==========================yYYYY===========3333","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
 	log.Info("==========================yYYYY===========4444","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========444455","MakeCurencyBlock recp RsHashs",types.RlpHash(aaa[0].Receipts.RsHashs))
 	log.Info("==========================yYYYY===========5555","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
@@ -363,6 +364,9 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	// 运行完matrix state后，生成root
 	bbb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
 	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,bbb)
+	log.Info("==========================yYYYY===========99991111","MakeCurencyBlock recp RsHashs",types.RlpHash(bbb[0].Receipts.RsHashs))
+	log.Info("==========================yYYYY===========99992222","MakeCurencyBlock recp RsHashs",types.RlpHash(localBlock.Currencies()[0].Receipts.RsHashs))
+	log.Info("==========================yYYYY===========99993333","MakeCurencyBlock recp RsHashs",types.RlpHash(localBlock.Currencies()[0].Receipts.GetReceipts().HashList()))
 	log.Info("==========================yYYYY===========9999","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
 	log.Info("==========================yYYYY===========9191","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
 	log.Info("==========================yYYYY===========9292","MakeCurencyBlock recp HashList",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())

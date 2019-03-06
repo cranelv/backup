@@ -49,5 +49,44 @@ func DeriveShaHash(list []common.Hash) common.Hash {
 		trie.Update(keybuf.Bytes(), hash1[:])
 	}
 //	log.Info("DeriveSha Result Hash", "hash", trie.Hash())
+	hash := trie.Hash()
+	hash2 := DeriveShaHash2(list)
+	hash1 := DeriveShaHash1(list)
+	if hash != hash1 {
+		log.Error("----------------------------derivesha Error","hash",hash.String(),"hash1",hash1.String(),"hash2",hash2)
+	}
+	return hash
+}
+func DeriveShaHash1(list []common.Hash) common.Hash {
+	if len(list) == 0{
+		return EmptyRootHash
+	}
+	trie := new(trie.Trie)
+	//	log.Info("DeriveSha Empty Hash", "hash", trie.Hash())
+	//	log.Info("DeriveSha Trie Root Type", "Type Name",trie.Root())
+	for i := 0; i < len(list); i++ {
+				buff,_ := rlp.EncodeUint(uint64(i))
+		//		rlp.Encode(keybuf, uint(i))
+//		hash1 := list[i]
+		trie.Update(buff, list[i][:])
+	}
+	//	log.Info("DeriveSha Result Hash", "hash", trie.Hash())
 	return trie.Hash()
 }
+func DeriveShaHash2(list []common.Hash) common.Hash {
+	if len(list) == 0{
+		return EmptyRootHash
+	}
+	trie := new(trie.Trie)
+	//	log.Info("DeriveSha Empty Hash", "hash", trie.Hash())
+	//	log.Info("DeriveSha Trie Root Type", "Type Name",trie.Root())
+	for i := 0; i < len(list); i++ {
+		buff,_ := rlp.EncodeUint(uint64(i))
+		//		rlp.Encode(keybuf, uint(i))
+		hash1 := list[i]
+		trie.Update(buff, hash1[:])
+	}
+	//	log.Info("DeriveSha Result Hash", "hash", trie.Hash())
+	return trie.Hash()
+}
+
