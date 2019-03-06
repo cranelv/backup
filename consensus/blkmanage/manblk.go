@@ -303,8 +303,10 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	localHeader := types.CopyHeader(verifyHeader)
 	localHeader.GasUsed = 0
+	log.Info("==========================yYYYY===========aaaa","recp hash",localHeader.Roots[0].ReceiptHash.String())
 	verifyHeaderHash := verifyHeader.HashNoSignsAndNonce()
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, localHeader)
+	log.Info("==========================yYYYY===========bbbb","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.ERROR(LogManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
@@ -313,16 +315,19 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
+	log.Info("==========================yYYYY===========cccc","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		log.Error(LogManBlk, "uptime处理错误", err)
 		return nil, nil, nil, nil, err
 	}
+	log.Info("==========================yYYYY===========dddd","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	err = support.BlockChain().ProcessBlockGProduceSlash(work.State, localHeader)
 	if err != nil {
 		log.Error(LogManBlk, "区块生产惩罚处理错误", err)
 		return nil, nil, nil, nil, err
 	}
+	log.Info("==========================yYYYY===========eeee","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
 	if err != nil {
 		log.ERROR(LogManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
