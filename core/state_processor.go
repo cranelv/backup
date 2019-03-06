@@ -165,25 +165,17 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if nil != txsReward {
 		sortedCoin := make([]string, 0)
 
-		//for k := range usedGas {
-		//	sortedCoin = append(sortedCoin, k)
-		//}
-		sortedCoin = append(sortedCoin, "1")
-		sortedCoin = append(sortedCoin, "2")
-		sortedCoin = append(sortedCoin, "3")
+		for k := range usedGas {
+			sortedCoin = append(sortedCoin, k)
+		}
 		sort.Strings(sortedCoin)
-		for i, k := range sortedCoin {
-			//if FromAddr, ok := coinAddr[k]; ok {
-			//	allGas := p.getGas(preState, k, usedGas[k], FromAddr)
-			//	txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
-			//if 0 != len(txsRewardMap) {
-			//rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
-			//}
-			//}
-			gas := new(big.Int).Mul(new(big.Int).SetUint64(10000000), new(big.Int).SetInt64(int64(i)))
-			txsRewardMap := txsReward.CalcNodesRewards(gas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
-			if 0 != len(txsRewardMap) {
-				rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+		for _, k := range sortedCoin {
+			if FromAddr, ok := coinAddr[k]; ok {
+				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
+				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
+				if 0 != len(txsRewardMap) {
+					rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+				}
 			}
 		}
 	}
