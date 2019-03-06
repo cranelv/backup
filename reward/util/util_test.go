@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/MatrixAINetwork/go-matrix/params"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/log"
@@ -18941,10 +18943,11 @@ func TestAccumulator(t *testing.T) {
 		st       StateDB
 		rewardIn []common.RewarTx
 	}
-	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
-	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Exp(big.NewInt(100), big.NewInt(18), big.NewInt(0)))
-	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
-	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+	chaindb := mandb.NewMemDatabase()
+	state, _ := state.NewStateDBManage(nil, chaindb, state.NewDatabase(chaindb))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(23), ManPrice))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
 
 	rewardIn := make([]common.RewarTx, 0)
 	minersRewardMap := make(map[common.Address]*big.Int)
@@ -19017,11 +19020,11 @@ func TestAccumulatorNotEnough(t *testing.T) {
 		st       StateDB
 		rewardIn []common.RewarTx
 	}
-	state.NewDatabase()
-	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
-	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(22), ManPrice))
-	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
-	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+	chaindb := mandb.NewMemDatabase()
+	state, _ := state.NewStateDBManage(nil, chaindb, state.NewDatabase(chaindb))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(23), ManPrice))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
 
 	rewardIn := make([]common.RewarTx, 0)
 	result := make([]common.RewarTx, 0)
@@ -19096,10 +19099,11 @@ func TestAccumulatorSideEnough(t *testing.T) {
 		st       StateDB
 		rewardIn []common.RewarTx
 	}
-	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
-	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(23), ManPrice))
-	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
-	state.SetBalance(common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
+	chaindb := mandb.NewMemDatabase()
+	state, _ := state.NewStateDBManage(nil, chaindb, state.NewDatabase(chaindb))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(23), ManPrice))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))
+	state.SetBalance(params.MAN_COIN, common.MainAccount, common.TxGasRewardAddress, new(big.Int).SetUint64(16e18))
 
 	rewardIn := make([]common.RewarTx, 0)
 	result := make([]common.RewarTx, 0)

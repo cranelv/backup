@@ -365,7 +365,7 @@ func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutR
 		}
 	}
 	multiCoinMinerOut := make([]mc.MultiCoinMinerOutReward, 0)
-	minerOutReward := mc.MultiCoinMinerOutReward{CoinType: params.COIN_NAME, Reward: currentReward.Reward}
+	minerOutReward := mc.MultiCoinMinerOutReward{CoinType: params.MAN_COIN, Reward: currentReward.Reward}
 	log.INFO(PackageName, "获取前一个矿工奖励值为", currentReward.Reward, "type", rewardType)
 	multiCoinMinerOut = append(multiCoinMinerOut, minerOutReward)
 	return multiCoinMinerOut, nil

@@ -54,7 +54,7 @@ type ChainReader interface {
 	State() (*state.StateDBManage, error)
 }
 
-func SetPreMinerReward(state util.StateDB, reward *big.Int, rewardType uint8, multiCoinMinerOut []mc.MultiCoinMinerOutReward, coinType string) {
+func SetPreMinerReward(state util.StateDB, reward *big.Int, rewardType uint8, coinType string) {
 	//log.INFO(PackageName, "设置前矿工奖励值为", reward, "type", rewardType)
 	minerOutReward := &mc.MinerOutReward{Reward: *reward}
 	var err error
@@ -63,16 +63,22 @@ func SetPreMinerReward(state util.StateDB, reward *big.Int, rewardType uint8, mu
 		if version == manparams.VersionAlpha {
 			err = matrixstate.SetPreMinerTxsReward(state, minerOutReward)
 		} else if version == manparams.VersionBeta {
+			multiCoinMinerOut, err := matrixstate.GetPreMinerMultiCoinTxsReward(state)
+			if err != nil {
+				log.Error(PackageName, "设置前矿工奖励值错误", err)
+			}
 			multiCoinMinerOut = addMultiCoinMinerOutReward(coinType, reward, multiCoinMinerOut)
 			err = matrixstate.SetPreMinerMultiCoinTxsReward(state, multiCoinMinerOut)
 		} else {
 			log.Error(PackageName, "设置前矿工奖励值版本号错误", version)
+			return
 		}
 	} else {
 		err = matrixstate.SetPreMinerBlkReward(state, minerOutReward)
 	}
 	if err != nil {
 		log.Error(PackageName, "设置前矿工奖励值错误", err)
+		return
 	}
 	log.INFO(PackageName, "设置前一个矿工奖励值为", reward, "type", rewardType)
 	return
@@ -119,7 +125,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 
 	//preReward, err := mr.GetPreMinerReward(state, rewardType, coinType)
 	reward := findMultiCoinMinerOutReward(coinType, mr.PreReward)
-	SetPreMinerReward(state, curReward, mr.RewardType, mr.PreReward, coinType)
+	SetPreMinerReward(state, curReward, mr.RewardType, coinType)
 	if nil == reward {
 		log.Error(coinType+PackageName, "无法获取对应币种奖励", "")
 		return nil

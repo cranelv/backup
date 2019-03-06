@@ -15,6 +15,7 @@ var versionOpt MatrixOperator
 
 func init() {
 	mangerAlpha = newManger(manparams.VersionAlpha)
+	mangerBeta = newManger(manparams.VersionBeta)
 	versionOpt = newVersionInfoOpt()
 }
 
@@ -33,6 +34,8 @@ func GetManager(version string) *Manager {
 	switch version {
 	case manparams.VersionAlpha:
 		return mangerAlpha
+	case manparams.VersionBeta:
+		return mangerBeta
 	default:
 		log.Error(logInfo, "get Manger err", "version not exist", "version", version)
 		return nil

@@ -139,7 +139,7 @@ func (br *BlockReward) CalcMinerRewards(num uint64, parentHash common.Hash) map[
 		log.WARN(PackageName, "广播周期不处理", "")
 		return nil
 	}
-	return br.getMinerRewards(blockReward, num, util.BlkReward, parentHash, params.COIN_NAME)
+	return br.getMinerRewards(blockReward, num, util.BlkReward, parentHash, params.MAN_COIN)
 }
 func (br *BlockReward) canCalcFoundationRewards(blockReward *big.Int, num uint64) bool {
 	if br.bcInterval.IsBroadcastNumber(num) {
