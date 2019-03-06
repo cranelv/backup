@@ -351,7 +351,7 @@ func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutR
 			multiCoin, err := matrixstate.GetPreMinerMultiCoinTxsReward(state)
 			if err != nil {
 				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
-				return nil, errors.New("获取矿工交易金额错误")
+				return make([]mc.MultiCoinMinerOutReward, 0), errors.New("获取矿工交易金额错误")
 			}
 			return multiCoin, nil
 		} else {

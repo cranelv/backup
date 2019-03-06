@@ -142,6 +142,9 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 
 	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionAlpha, manBcplug)
 
+	obj.RegisterManBLkPlugs(CommonBlk, manparams.VersionBeta, manCommonplug)
+
+	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionBeta, manBcplug)
 	return obj, nil
 }
 
@@ -157,13 +160,13 @@ func (bd *ManBlkManage) ProduceBlockVersion(num uint64, preVersion string) strin
 }
 
 func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVersion string) error {
-/*if num == manparams.VersionNumBeta {
+	/*if num == manparams.VersionNumBeta {
 		if curVersion != manparams.VersionBeta {
 			return errors.New("版本号异常")
 		} else {
 			return nil
 		}
-	} else*/ if curVersion != preVersion {
+	} else*/if curVersion != preVersion {
 		return errors.New("版本号异常,不等于父区块版本号")
 	}
 	return nil
