@@ -305,16 +305,16 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	listret, originalTxs = env.commitTransactions(mux, pending, common.Address{})
 //	finalTxs = append(finalTxs, originalTxs...)
-	tmps := make([]types.SelfTransaction, 0)
 	from := make([]common.Address, 0,len(originalTxs))
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
 //	aa := make(types.Receipts,len(env.recpts))
 //	aa = append(aa,env.recpts...)
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs),"hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String())
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs),"hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
+	tmps := make([]types.SelfTransaction, 0)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 		if err != nil {
@@ -329,7 +329,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	env.State.Finalise("MAN",true)
 	finalTxs = append(tmps, originalTxs...)
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
-	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
+	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number,"recpts hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
 	return
 }
 
@@ -468,7 +468,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	env.State.Finalise("MAN",true)
 //	types.Receipts(env.recpts).HashList()
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String())
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"recpts hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
@@ -489,7 +489,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			}
 		}(coalescedLogs, env.tcount)
 	}
-	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
+	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number,"recpts hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
 	return nil
 }
 func (env *Work) GetTxs() []types.CoinSelfTransaction {

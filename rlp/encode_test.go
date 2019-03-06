@@ -18,7 +18,13 @@ import (
 type testEncoder struct {
 	err error
 }
-
+func TestEncodeUint(t *testing.T){
+	for i:=uint64(1000000);i!=10000000;i+=24957 {
+		buff,_ := EncodeUint(i)
+		buff1,_ := EncodeToBytes(i)
+		fmt.Println(buff,buff1)
+	}
+}
 func (e *testEncoder) EncodeRLP(w io.Writer) error {
 	if e == nil {
 		w.Write([]byte{0, 0, 0, 0})
