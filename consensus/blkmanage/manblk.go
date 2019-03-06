@@ -329,8 +329,13 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		return nil, nil, nil, nil, err
 	}
 	finalTxs := work.GetTxs()
-
-	localBlock := types.NewBlock(localHeader, types.MakeCurencyBlock(finalTxs, work.Receipts, nil), nil)
+	aaa := types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	log.Info("==========================yYYYY===========1111","recp hash",types.DeriveShaHash(work.Receipts[0].Receiptlist.HashList()).String())
+	log.Info("==========================yYYYY===========2222","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
+	localBlock := types.NewBlock(localHeader, aaa, nil)
+	log.Info("==========================yYYYY===========3333","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
+	log.Info("==========================yYYYY===========4444","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========5555","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
 	if parent == nil {
@@ -342,9 +347,15 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
 		return nil, nil, nil, nil, err
 	}
-
+	log.Info("==========================yYYYY===========6666","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
+	log.Info("==========================yYYYY===========7777","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========8888","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
 	// 运行完matrix state后，生成root
-	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil, types.MakeCurencyBlock(finalTxs, work.Receipts, nil))
+	bbb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,bbb)
+	log.Info("==========================yYYYY===========9999","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
+	log.Info("==========================yYYYY===========9191","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========9292","MakeCurencyBlock recp HashList",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err
