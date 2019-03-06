@@ -649,9 +649,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
 		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
-		log.Info("=======================================","root",common.ToHex(root),"failed",failed,"usedGad",usedGas,"receipt.TxHash",receipt.TxHash.String())
+		log.Info("=======================================","root",new(big.Int).SetBytes(root).String(),"failed",failed,"usedGad",*usedGas,"receipt.TxHash",receipt.TxHash.String())
 		log.Info("=======================================","receipt.GasUsed",receipt.GasUsed,"receipt.ContractAddress",receipt.ContractAddress.String())
-		log.Info("========================================","receipt.Logs",len(receipt.Logs),"receipt.Bloom",common.ToHex(receipt.Bloom[:]))
+		log.Info("========================================","receipt.Logs",len(receipt.Logs),"receipt.Bloom",new(big.Int).SetBytes(receipt.Bloom[:]).String())
 	}
 	return receipt, gas, shardings, err
 }
