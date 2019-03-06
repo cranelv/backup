@@ -36,13 +36,17 @@ func DeriveShaHash(list []common.Hash) common.Hash {
 	if len(list) == 0{
 		return EmptyRootHash
 	}
+	keybuf := new(bytes.Buffer)
 	trie := new(trie.Trie)
 //	log.Info("DeriveSha Empty Hash", "hash", trie.Hash())
 	//	log.Info("DeriveSha Trie Root Type", "Type Name",trie.Root())
 	for i := 0; i < len(list); i++ {
-		buff,_ := rlp.EncodeUint(uint64(i))
+		keybuf.Reset()
+		rlp.Encode(keybuf, uint(i))
+//		buff,_ := rlp.EncodeUint(uint64(i))
 //		rlp.Encode(keybuf, uint(i))
-		trie.Update(buff, list[i][:])
+		hash1 := list[i]
+		trie.Update(keybuf.Bytes(), hash1[:])
 	}
 //	log.Info("DeriveSha Result Hash", "hash", trie.Hash())
 	return trie.Hash()

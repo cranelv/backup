@@ -131,25 +131,33 @@ func GetCoinTX(txs []SelfTransaction)[]CoinSelfTransaction  {
 func GetCoinTXRS(txs []SelfTransaction,rxs []*Receipt) ([]CoinSelfTransaction,[]CoinReceipts) {
 	var tx []CoinSelfTransaction	//BB
 	var rx []CoinReceipts
+	manTm := make([]SelfTransaction,0,len(txs))
+	manRm := make([]*Receipt,0,len(rxs))
 	tm := make(map[string][]SelfTransaction)
 	rm := make(map[string][]*Receipt)
 	for i,t := range txs  {
-		tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
-		rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],rxs[i])
+		if t.GetTxCurrency() == params.MAN_COIN{
+			manTm = append(manTm,t)
+			manRm = append(manRm,rxs[i])
+		}else{
+			log.Info("--------------------------------new currency","name",t.GetTxCurrency())
+			tm[t.GetTxCurrency()]=append(tm[t.GetTxCurrency()],t)
+			rm[t.GetTxCurrency()]=append(rm[t.GetTxCurrency()],rxs[i])
+		}
 	}
 	sorted_keys := make([]string, 0)
 	for k, _ := range tm {
 		sorted_keys = append(sorted_keys, k)
 	}
 	sort.Strings(sorted_keys)
-	tx=append(tx,CoinSelfTransaction{params.MAN_COIN,tm[params.MAN_COIN]})
-	rx=append(rx,CoinReceipts{params.MAN_COIN,rm[params.MAN_COIN]})
+	tx=append(tx,CoinSelfTransaction{params.MAN_COIN,manTm})
+	rx=append(rx,CoinReceipts{params.MAN_COIN,manRm})
 	for _,k:=range sorted_keys  {
-		if k == params.MAN_COIN{
-			continue
-		}
 		tx=append(tx,CoinSelfTransaction{k,tm[k]})
 		rx=append(rx,CoinReceipts{k,rm[k]})
+	}
+	if len(rxs) != len(rx[0].Receiptlist) {
+		log.Error("------------------------------------Error","input Len",len(rxs),"outPut len",len(rx[0].Receiptlist))
 	}
 	return tx,rx
 }
