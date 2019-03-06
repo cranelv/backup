@@ -66,9 +66,14 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 		log.Error("固定区块奖励", "获取拓扑图错误", err)
 		return nil
 	}
+	preMiner, err := util.GetPreMinerReward(preSt, util.BlkReward)
+	if err != nil {
+		log.Error("固定区块奖励", "获取前一个矿工奖励错误", err)
+		return nil
+	}
 
-	cfg := cfg.New(&mc.BlkRewardCfg{RewardRate: rate}, nil)
+	cfg := cfg.New(&mc.BlkRewardCfg{RewardRate: rate}, nil, preMiner, innerMinerAccounts, util.TxsReward)
 	cfg.ValidatorsRate = TC.ValidatorsRate
 	cfg.MinersRate = TC.MinersRate
-	return rewardexec.New(chain, cfg, st, interval, foundationAccount, innerMinerAccounts, currentTop, originElectNodes)
+	return rewardexec.New(chain, cfg, st, interval, foundationAccount, currentTop, originElectNodes)
 }

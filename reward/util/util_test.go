@@ -19017,6 +19017,7 @@ func TestAccumulatorNotEnough(t *testing.T) {
 		st       StateDB
 		rewardIn []common.RewarTx
 	}
+	state.NewDatabase()
 	state, _ := state.New(common.Hash{}, state.NewDatabase(mandb.NewMemDatabase()))
 	state.SetBalance(common.MainAccount, common.BlkMinerRewardAddress, new(big.Int).Mul(big.NewInt(22), ManPrice))
 	state.SetBalance(common.MainAccount, common.LotteryRewardAddress, new(big.Int).SetUint64(16e18))

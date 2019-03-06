@@ -163,16 +163,16 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	}
 	txsReward := txsreward.New(p.bc, st, preState)
 	if nil != txsReward {
-		sortedGas := make([]string, 0)
+		sortedCoin := make([]string, 0)
 
 		for k := range usedGas {
-			sortedGas = append(sortedGas, k)
+			sortedCoin = append(sortedCoin, k)
 		}
-		sort.Strings(sortedGas)
-		for _, k := range sortedGas {
+		sort.Strings(sortedCoin)
+		for _, k := range sortedCoin {
 			if FromAddr, ok := coinAddr[k]; ok {
 				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
-				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash)
+				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
 				if 0 != len(txsRewardMap) {
 					rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 				}

@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
-
 	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 
 	"github.com/MatrixAINetwork/go-matrix/log"
 
@@ -334,4 +334,40 @@ func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	}
 
 	return rewardOut
+}
+
+func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutReward, error) {
+	var currentReward *mc.MinerOutReward
+	var err error
+	if TxsReward == rewardType {
+		version := matrixstate.GetVersionInfo(state)
+		if version == manparams.VersionAlpha {
+			currentReward, err = matrixstate.GetPreMinerTxsReward(state)
+			if err != nil {
+				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
+				return nil, errors.New("获取矿工交易金额错误")
+			}
+		} else if version == manparams.VersionBeta {
+			multiCoin, err := matrixstate.GetPreMinerMultiCoinTxsReward(state)
+			if err != nil {
+				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
+				return nil, errors.New("获取矿工交易金额错误")
+			}
+			return multiCoin, nil
+		} else {
+			log.Error(PackageName, "获取前矿工奖励值版本号错误", version)
+		}
+	} else {
+		currentReward, err = matrixstate.GetPreMinerBlkReward(state)
+		if err != nil {
+			log.Error(PackageName, "获取矿工区块奖励金额错误", err)
+			return nil, errors.New("获取矿工区块金额错误")
+		}
+	}
+	multiCoinMinerOut := make([]mc.MultiCoinMinerOutReward, 0)
+	minerOutReward := mc.MultiCoinMinerOutReward{CoinType: params.COIN_NAME, Reward: currentReward.Reward}
+	log.INFO(PackageName, "获取前一个矿工奖励值为", currentReward.Reward, "type", rewardType)
+	multiCoinMinerOut = append(multiCoinMinerOut, minerOutReward)
+	return multiCoinMinerOut, nil
+
 }
