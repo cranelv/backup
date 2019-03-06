@@ -225,7 +225,7 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
-	log.Info("==========================TTTTTTTT===========aaaa","recp hash",header.Roots[0].ReceiptHash.String())
+	//log.Info("==========================TTTTTTTT===========aaaa","recp hash",header.Roots[0].ReceiptHash.String())
 	aaa := types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil)
 	log.Info("==========================TTTTTTTT===========bbbb","recp hash",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
 	log.Info("==========================TTTTTTTT===========cccc","recp hash",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
