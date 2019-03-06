@@ -225,11 +225,16 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
-
-	block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil), nil)
+	log.Info("==========================TTTTTTTT===========aaaa","recp hash",header.Roots[0].ReceiptHash.String())
+	aaa := types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil)
+	log.Info("==========================TTTTTTTT===========bbbb","recp hash",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
+	log.Info("==========================TTTTTTTT===========cccc","recp hash",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
+	block := types.NewBlock(header, aaa, nil)
+	log.Info("==========================TTTTTTTT===========dddd","recp hash",block.Header().Roots[0].ReceiptHash.String())
 	log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.TxHashList(finalTxs))
 	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
 	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
+	log.Info("==========================TTTTTTTT===========eeee","recp hash",block.Header().Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err

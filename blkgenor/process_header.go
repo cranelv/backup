@@ -86,9 +86,10 @@ func (p *Process) processHeaderGen() error {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
-
+	log.Info("==========================TTTTTTTT===========ffff","recp hash",types.DeriveShaHash(receipts[0].Receiptlist.HashList()).String())
 	//运行完matrix状态树后，生成root (p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
 	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, version, originHeader, stateDB, finalTxs, nil, receipts, nil)
+	log.Info("==========================TTTTTTTT===========eeee","recp hash",block.Header().Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
