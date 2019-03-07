@@ -21,6 +21,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/crypto/sha3"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/params"
 )
 
 var (
@@ -553,6 +554,9 @@ type storageblock struct {
 func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
 	ischeck := len(b.header.Roots) > 0
+	if !ischeck || b.header.Roots[0].Cointyp != params.MAN_COIN || currencyBlocks[0].CurrencyName!= params.MAN_COIN{
+		log.Error("========================YYYYYYYYYYYYYYY================= CurrencyName error", "ischeck",ischeck,"header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
+	}
 	// TODO: panic if len(txs) != len(receipts)
 	for _, currencyBlock := range currencyBlocks { //BB
 		if len(currencyBlock.Transactions.GetTransactions()) == 0 {
@@ -580,6 +584,8 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlock.CurrencyName, Transactions: currencyBlock.Transactions,
 							Receipts: currencyBlock.Receipts})
+					}else {
+						log.Error("========================YYYYYYYYYYYYYYY================= eles", "header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
 					}
 				}
 			} else {
