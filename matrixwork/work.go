@@ -78,6 +78,7 @@ type Work struct {
 	recpts       []*types.Receipt
 
 	createdAt time.Time
+	mapcoingasUse coingasUse
 }
 type coingasUse struct {
 	mapcoin  map[string]*big.Int
@@ -85,7 +86,6 @@ type coingasUse struct {
 	mu       sync.RWMutex
 }
 
-var mapcoingasUse coingasUse = coingasUse{mapcoin: make(map[string]*big.Int), mapprice: make(map[string]*big.Int)}
 
 func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
@@ -136,6 +136,7 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		header:  header,
 		bc:      bc,
 	}
+	Work.mapcoingasUse = coingasUse{mapcoin: make(map[string]*big.Int), mapprice: make(map[string]*big.Int)}
 	var err error
 
 	Work.State, err = bc.StateAt(bc.GetBlockByHash(header.ParentHash).Root())
@@ -146,7 +147,6 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 	return Work, nil
 }
 
-//func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsByPriceAndNonce, bc *core.BlockChain, coinbase common.Address) (listN []uint32, retTxs []types.SelfTransaction) {
 func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address]types.SelfTransactions, coinbase common.Address) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
@@ -242,7 +242,6 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 	}
 	return listret, retTxs
 }
-//var gss = make([]int,256)
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
 	snap := env.State.Snapshot(tx.GetTxCurrency())  
 	var snap1 []int
@@ -259,7 +258,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coi
 	}
 	env.transer = append(env.transer, tx)
 	env.recpts = append(env.recpts, receipt)
-	mapcoingasUse.setCoinGasUse(tx, receipt.GasUsed)
+	env.mapcoingasUse.setCoinGasUse(tx, receipt.GasUsed)
 	return nil, receipt.Logs
 }
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
@@ -284,35 +283,24 @@ func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.A
 	return nil, receipt.Logs
 }
 
-//Leader
-var lostCnt int = 0
-
-type retStruct struct {
-	no  []uint32
-	txs []*types.Transaction
-}
-
 func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil, nil
 	}
-	mapcoingasUse.clearmap()
+	env.mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	listret, originalTxs = env.commitTransactions(mux, pending, common.Address{})
-//	finalTxs = append(finalTxs, originalTxs...)
 	from := make([]common.Address, 0,len(originalTxs))
 	for _, tx := range originalTxs {
 		from = append(from, tx.From())
 	}
-//	aa := make(types.Receipts,len(env.recpts))
-//	aa = append(aa,env.recpts...)
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"tx num ",len(originalTxs),"hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	tmps := make([]types.SelfTransaction, 0)
 	for _, tx := range txers {
@@ -421,7 +409,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
-	mapcoingasUse.clearmap()
+	env.mapcoingasUse.clearmap()
 	for _, tx := range txs {
 		for _,t:=range  tx.Txser{
 		env.commitTransaction(t, env.bc, common.Address{}, nil)
@@ -429,7 +417,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	}
 	env.State.Finalise("MAN",true)
 
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, env.mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
@@ -446,7 +434,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
-	mapcoingasUse.clearmap()
+	env.mapcoingasUse.clearmap()
 	var coalescedLogs []types.CoinLogs
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
@@ -475,7 +463,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	env.State.Finalise("MAN",true)
 //	types.Receipts(env.recpts).HashList()
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number,"recpts hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.getCoinGasUse(params.MAN_COIN).Uint64())
 	txers := env.makeTransaction(rewart)
 	for _, tx := range txers {
 		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
