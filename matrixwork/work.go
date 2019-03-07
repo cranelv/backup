@@ -334,6 +334,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 }
 
 func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTransaction) {
+	nonceMap := make(map[common.Address]uint64)
 	for _, rewart := range rewarts {
 		sorted_keys := make([]string, 0)
 		for k, _ := range rewart.To_Amont {
@@ -386,7 +387,12 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 			}
 			extra = append(extra, tmp)
 		}
-		tx := types.NewTransactions(env.State.GetNonce(rewart.CoinType,rewart.Fromaddr), to, value, 0, new(big.Int), databytes,nil,nil,nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0,rewart.CoinType,0)
+		if _, ok := nonceMap[rewart.Fromaddr]; ok {
+			nonceMap[rewart.Fromaddr] = nonceMap[rewart.Fromaddr] + 1
+		} else {
+			nonceMap[rewart.Fromaddr] = env.State.GetNonce(rewart.CoinType, rewart.Fromaddr)
+		}
+		tx := types.NewTransactions(nonceMap[rewart.Fromaddr], to, value, 0, new(big.Int), databytes,nil,nil,nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0,rewart.CoinType,0)
 		tx.SetFromLoad(rewart.Fromaddr)
 		txers = append(txers, tx)
 	}
