@@ -63,10 +63,10 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
-func (p *StateProcessor) getCoinAddress(cointypelist map[string]*big.Int) map[string]common.Address {
+func (p *StateProcessor) getCoinAddress(cointypelist map[string]*big.Int) []common.CoinConfig /*map[string]common.Address */{
 	statedbM, _ := p.bc.State()
 	coinconfig := statedbM.GetMatrixData(types.RlpHash(common.COINPREFIX + mc.MSCurrencyConfig))
-	ret := make(map[string]common.Address)
+	//ret := make(map[string]common.Address)
 	var coincfglist []common.CoinConfig
 	if len(coinconfig) > 0 {
 		err := json.Unmarshal(coinconfig, &coincfglist)
@@ -75,18 +75,19 @@ func (p *StateProcessor) getCoinAddress(cointypelist map[string]*big.Int) map[st
 			return nil
 		}
 	}
-	for _, cc := range coincfglist {
-		if cc.PackNum <= 0 {
-			continue
-		}
-		if _, ok := cointypelist[cc.CoinType]; ok {
-			ret[cc.CoinType] = cc.CoinAddress
-		}
-	}
-	if _, ok := cointypelist[params.MAN_COIN]; ok {
-		ret[params.MAN_COIN] = common.TxGasRewardAddress
-	}
-	return ret
+	//for _, cc := range coincfglist {
+	//	if cc.PackNum <= 0 {
+	//		continue
+	//	}
+	//	if _, ok := cointypelist[cc.CoinType]; ok {
+	//		ret[cc.CoinType] = cc.CoinAddress
+	//	}
+	//}
+	//if _, ok := cointypelist[params.MAN_COIN]; ok {
+	//	ret[params.MAN_COIN] = common.TxGasRewardAddress
+	//}
+	//return ret
+	return coincfglist
 }
 func (p *StateProcessor) getGas(state *state.StateDBManage, coinType string, gas *big.Int, From common.Address) *big.Int {
 	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
