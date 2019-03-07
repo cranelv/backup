@@ -174,6 +174,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
 				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
 				if 0 != len(txsRewardMap) {
+					//todo:发放币种从chain上获取
 					rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 				}
 			}
