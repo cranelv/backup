@@ -367,7 +367,7 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	log.Info("==========================yYYYY===========99991111","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
 	log.Info("==========================yYYYY===========99992222","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())
 	log.Info("==========================yYYYY===========99993333","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.GetReceipts().HashList()).String())
-	log.Info("==========================yYYYY===========99994444","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
+	log.Info("==========================yYYYY===========99994444","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String(),"Length",len(localBlock.Header().Roots))
 	log.Info("==========================yYYYY===========99995555","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.RsHashs).String())
 	log.Info("==========================yYYYY===========99996666","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	if err != nil {

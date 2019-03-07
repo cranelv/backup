@@ -450,7 +450,8 @@ type CurrencyHeader struct {
 	ReceiptHash common.Hash
 }
 
-func MakeCurencyBlock(txser []CoinSelfTransaction, rece []CoinReceipts, shardings []uint) (cb []CurrencyBlock) {
+func MakeCurencyBlock(txser []CoinSelfTransaction, rece []CoinReceipts, shardings []uint) ([]CurrencyBlock) {
+	cb := make([]CurrencyBlock,0,len(txser))
 	for i, txer := range txser {
 		var br BodyReceipts = BodyReceipts{}
 		if len(rece) > 0 {
@@ -579,6 +580,7 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 					if coinRoot.Cointyp == currencyBlock.CurrencyName {
 						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlock.Transactions.TxHashs)
 						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlock.Receipts.RsHashs)
+						log.Error("========================YYYYYYYYYYYYYYY=================","NewBlock",b.header.Roots[i].ReceiptHash)
 						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
 						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlock.CurrencyName, Transactions: currencyBlock.Transactions,
