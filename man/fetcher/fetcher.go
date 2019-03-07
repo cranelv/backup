@@ -269,6 +269,7 @@ func (f *Fetcher) loop() {
 	// Iterate the block fetching until a quit is requested
 	fetchTimer := time.NewTimer(0)
 	completeTimer := time.NewTimer(0)
+	updateQueueTimer := time.NewTicker(1 * time.Minute)
 
 	for {
 		// Clean up any expired block fetches
@@ -304,6 +305,7 @@ func (f *Fetcher) loop() {
 			}
 			// Otherwise if fresh and still unknown, try and import
 			hash := op.block.Hash()
+			log.Trace("fetch queue update", "blockNumber", number, "hash", hash.String(), "curHeight", height)
 			if number+maxUncleDist < height || f.getBlock(hash) != nil {
 				f.forgetBlock(hash)
 				continue
@@ -315,7 +317,8 @@ func (f *Fetcher) loop() {
 		case <-f.quit:
 			// Fetcher terminating, abort all operations
 			return
-
+		case <-updateQueueTimer.C:
+			log.Trace("fetch update operate which is before select will begin")
 		case notification := <-f.notify:
 			// A block was announced, make sure the peer isn't DOSing us
 			propAnnounceInMeter.Mark(1)
