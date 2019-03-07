@@ -345,7 +345,6 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	localBlock := types.NewBlock(localHeader, aaa, nil)
 	log.Info("==========================yYYYY===========3333","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
 	log.Info("==========================yYYYY===========4444","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========444455","MakeCurencyBlock recp RsHashs",types.RlpHash(aaa[0].Receipts.RsHashs))
 	log.Info("==========================yYYYY===========5555","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
@@ -361,15 +360,16 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	log.Info("==========================yYYYY===========6666","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
 	log.Info("==========================yYYYY===========7777","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
 	log.Info("==========================yYYYY===========8888","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
+	log.Info("==========================yYYYY===========88881111","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	// 运行完matrix state后，生成root
 	bbb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
 	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,bbb)
-	log.Info("==========================yYYYY===========99991111","MakeCurencyBlock recp RsHashs",types.RlpHash(bbb[0].Receipts.RsHashs))
-	log.Info("==========================yYYYY===========99992222","MakeCurencyBlock recp RsHashs",types.RlpHash(localBlock.Currencies()[0].Receipts.RsHashs))
-	log.Info("==========================yYYYY===========99993333","MakeCurencyBlock recp RsHashs",types.RlpHash(localBlock.Currencies()[0].Receipts.GetReceipts().HashList()))
+	log.Info("==========================yYYYY===========99991111","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========99992222","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())
+	log.Info("==========================yYYYY===========99993333","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.GetReceipts().HashList()).String())
 	log.Info("==========================yYYYY===========99994444","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
-	log.Info("==========================yYYYY===========99995555","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========99996666","MakeCurencyBlock recp HashList",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())
+	log.Info("==========================yYYYY===========99995555","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.RsHashs).String())
+	log.Info("==========================yYYYY===========99996666","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err
