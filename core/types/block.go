@@ -459,7 +459,7 @@ func MakeCurencyBlock(txser []CoinSelfTransaction, rece []CoinReceipts, sharding
 		}
 		cb = append(cb, CurrencyBlock{CurrencyName: txer.CoinType, Transactions: SetTransactions(txer.Txser, TxHashList(txer.Txser), shardings), Receipts: br})
 	}
-	return
+	return cb
 }
 
 //币种block
