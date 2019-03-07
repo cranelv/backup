@@ -19,9 +19,13 @@ type testEncoder struct {
 	err error
 }
 func TestEncodeUint(t *testing.T){
-	for i:=uint64(1000000);i!=10000000;i+=24957 {
+	for i:=uint64(100353345353445453);i<10000000000000000000;i+=24957 {
 		buff,_ := EncodeUint(i)
 		buff1,_ := EncodeToBytes(i)
+		if bytes.Compare(buff1,buff) != 0{
+			t.Error("Encode Error")
+			t.Fail()
+		}
 		fmt.Println(buff,buff1)
 	}
 }

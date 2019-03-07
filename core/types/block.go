@@ -558,42 +558,43 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 	//	log.Error("========================YYYYYYYYYYYYYYY================= CurrencyName error", "ischeck",ischeck,"header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
 	//}
 	// TODO: panic if len(txs) != len(receipts)
-	for _, currencyBlock := range currencyBlocks { //BB
-		if len(currencyBlock.Transactions.GetTransactions()) == 0 {
+//	for _, currencyBlock := range currencyBlocks { //BB
+	for i:=0;i<len(currencyBlocks);i++ {
+		if len(currencyBlocks[i].Transactions.GetTransactions()) == 0 {
 			if ischeck {
 				for i, coinRoot := range b.header.Roots {
-					if coinRoot.Cointyp == currencyBlock.CurrencyName {
-						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlock.Transactions.TxHashs)
-						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlock.Receipts.RsHashs)
-						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
-						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
-						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlock.CurrencyName, Transactions: currencyBlock.Transactions,
-							Receipts: currencyBlock.Receipts})
+					if coinRoot.Cointyp == currencyBlocks[i].CurrencyName {
+						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
+						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
+						b.header.Roots[i].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
+						b.header.Roots[i].Cointyp = currencyBlocks[i].CurrencyName
+						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
+							Receipts: currencyBlocks[i].Receipts})
 					}
 				}
 			} else {
-				b.header.Roots = append(b.header.Roots, common.CoinRoot{Cointyp: currencyBlock.CurrencyName, TxHash: EmptyRootHash, ReceiptHash: EmptyRootHash})
+				b.header.Roots = append(b.header.Roots, common.CoinRoot{Cointyp: currencyBlocks[i].CurrencyName, TxHash: EmptyRootHash, ReceiptHash: EmptyRootHash})
 			}
 		} else {
 			if ischeck {
 				for i, coinRoot := range b.header.Roots {
-					if coinRoot.Cointyp == currencyBlock.CurrencyName {
-						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlock.Transactions.TxHashs)
-						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlock.Receipts.RsHashs)
+					if coinRoot.Cointyp == currencyBlocks[i].CurrencyName {
+						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
+						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
 						log.Error("========================YYYYYYYYYYYYYYY=================","NewBlock",b.header.Roots[i].ReceiptHash)
-						b.header.Roots[i].Bloom = CreateBloom(currencyBlock.Receipts.GetReceipts())
-						b.header.Roots[i].Cointyp = currencyBlock.CurrencyName
-						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlock.CurrencyName, Transactions: currencyBlock.Transactions,
-							Receipts: currencyBlock.Receipts})
+						b.header.Roots[i].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
+						b.header.Roots[i].Cointyp = currencyBlocks[i].CurrencyName
+						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
+							Receipts: currencyBlocks[i].Receipts})
 					}else {
 						log.Error("========================YYYYYYYYYYYYYYY================= eles", "header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
 					}
 				}
 			} else {
-				b.header.Roots = append(b.header.Roots, common.CoinRoot{Cointyp: currencyBlock.CurrencyName, TxHash: DeriveShaHash(currencyBlock.Transactions.TxHashs),
-					ReceiptHash: DeriveShaHash(currencyBlock.Receipts.GetReceipts().HashList()), Bloom: CreateBloom(currencyBlock.Receipts.GetReceipts())})
-				b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlock.CurrencyName, Transactions: currencyBlock.Transactions,
-					Receipts: currencyBlock.Receipts})
+				b.header.Roots = append(b.header.Roots, common.CoinRoot{Cointyp: currencyBlocks[i].CurrencyName, TxHash: DeriveShaHash(currencyBlocks[i].Transactions.TxHashs),
+					ReceiptHash: DeriveShaHash(currencyBlocks[i].Receipts.RsHashs), Bloom: CreateBloom(currencyBlocks[i].Receipts.GetReceipts())})
+				b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
+					Receipts: currencyBlocks[i].Receipts})
 			}
 
 		}
