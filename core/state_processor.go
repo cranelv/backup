@@ -7,8 +7,9 @@ package core
 import (
 	"math/big"
 	"runtime"
-	"sort"
 	"sync"
+
+	"github.com/MatrixAINetwork/go-matrix/reward"
 
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
@@ -45,6 +46,7 @@ import (
 // state from one point to another.
 //
 // StateProcessor implements Processor.
+
 type StateProcessor struct {
 	config *params.ChainConfig // Chain configuration options
 	bc     *BlockChain         // Canonical block chain
@@ -63,16 +65,16 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 func (p *StateProcessor) SetRandom(random *baseinterface.Random) {
 	p.random = random
 }
-func (p *StateProcessor) getCoinAddress(cointypelist map[string]*big.Int) []common.CoinConfig /*map[string]common.Address */{
-	statedbM, _ := p.bc.State()
+func (p *StateProcessor) getCoinConfig(statedbM *state.StateDBManage) []common.CoinConfig /*map[string]common.Address */ {
+	//statedbM, _ := p.bc.State()
 	coinconfig := statedbM.GetMatrixData(types.RlpHash(common.COINPREFIX + mc.MSCurrencyConfig))
 	//ret := make(map[string]common.Address)
 	var coincfglist []common.CoinConfig
 	if len(coinconfig) > 0 {
 		err := json.Unmarshal(coinconfig, &coincfglist)
 		if err != nil {
-			log.Trace("get coin config list", "unmarshal err", err)
-			return nil
+			log.Error("get coin config list", "unmarshal err", err)
+			return coincfglist
 		}
 	}
 	//for _, cc := range coincfglist {
@@ -157,29 +159,11 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
 		}
 	}
-	coinAddr := p.getCoinAddress(usedGas)
-	if nil == coinAddr {
-		log.Error("奖励", "获取币种错误", "")
-		return nil
-	}
-	txsReward := txsreward.New(p.bc, st, preState)
-	if nil != txsReward {
-		sortedCoin := make([]string, 0)
 
-		for k := range usedGas {
-			sortedCoin = append(sortedCoin, k)
-		}
-		sort.Strings(sortedCoin)
-		for _, k := range sortedCoin {
-			if FromAddr, ok := coinAddr[k]; ok {
-				allGas := p.getGas(preState, k, usedGas[k], FromAddr)
-				txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, k)
-				if 0 != len(txsRewardMap) {
-					//todo:发放币种从chain上获取
-					rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: FromAddr, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
-				}
-			}
-		}
+	txsReward := txsreward.New(p.bc, st, preState)
+
+	if nil != txsReward {
+		rewardList = p.processMultiCoinReward(usedGas, preState, txsReward, header, rewardList)
 	}
 
 	lottery := lottery.New(p.bc, st, p.random, preState)
@@ -208,6 +192,35 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
 	return p.reverse(util.Accumulator(st, rewardList))
+}
+
+func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, preState *state.StateDBManage, txsReward reward.Reward, header *types.Header, rewardList []common.RewarTx) []common.RewarTx {
+	gas := new(big.Int).SetUint64(0)
+	allGas := new(big.Int).SetUint64(0)
+	if value, ok := usedGas[params.MAN_COIN]; ok {
+		gas = value
+	}
+	allGas = p.getGas(preState, params.MAN_COIN, gas, common.TxGasRewardAddress)
+	txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, params.MAN_COIN)
+	if 0 != len(txsRewardMap) {
+		//todo:发放币种从chain上获取
+		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+	}
+	coinConfig := p.getCoinConfig(preState)
+	for _, config := range coinConfig {
+
+		if value, ok := usedGas[config.CoinType]; ok {
+			allGas = p.getGas(preState, config.CoinType, value, config.CoinAddress)
+		} else {
+			allGas = new(big.Int).SetUint64(0)
+		}
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, config.CoinType)
+		if 0 != len(txsRewardMap) {
+			//todo:发放币种从chain上获取
+			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: config.CoinAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+		}
+	}
+	return rewardList
 }
 
 func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error {
