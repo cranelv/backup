@@ -374,10 +374,9 @@ func writeRawValue(val reflect.Value, w *encbuf) error {
 	w.str = append(w.str, val.Bytes()...)
 	return nil
 }
-var uintBuff = make([]byte,16)
-var zeroBuff = make([]byte,16)
+
 func EncodeUint(i uint64)([]byte, error) {
-	copy(uintBuff,zeroBuff)
+	uintBuff := make([]byte,16)
 	if i == 0 {
 		uintBuff[0] = 0x80
 		return uintBuff[:1],nil
