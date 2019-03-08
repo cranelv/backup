@@ -558,12 +558,12 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 	for i:=0;i<len(currencyBlocks);i++ {
 		if len(currencyBlocks[i].Transactions.GetTransactions()) == 0 {
 			if ischeck {
-				for i, coinRoot := range b.header.Roots {
+				for j, coinRoot := range b.header.Roots {
 					if coinRoot.Cointyp == currencyBlocks[i].CurrencyName {
-						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
-						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
-						b.header.Roots[i].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
-						b.header.Roots[i].Cointyp = currencyBlocks[i].CurrencyName
+						b.header.Roots[j].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
+						b.header.Roots[j].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
+						b.header.Roots[j].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
+						b.header.Roots[j].Cointyp = currencyBlocks[i].CurrencyName
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
 							Receipts: currencyBlocks[i].Receipts})
 					}
@@ -573,12 +573,12 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 			}
 		} else {
 			if ischeck {
-				for i, coinRoot := range b.header.Roots {
+				for j, coinRoot := range b.header.Roots {
 					if coinRoot.Cointyp == currencyBlocks[i].CurrencyName {
-						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
-						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
-						b.header.Roots[i].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
-						b.header.Roots[i].Cointyp = currencyBlocks[i].CurrencyName
+						b.header.Roots[j].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
+						b.header.Roots[j].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
+						b.header.Roots[j].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
+						b.header.Roots[j].Cointyp = currencyBlocks[i].CurrencyName
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
 							Receipts: currencyBlocks[i].Receipts})
 					}else {
