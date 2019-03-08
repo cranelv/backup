@@ -1111,26 +1111,6 @@ func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	}
 	close(routChan)
 	waitG.Wait()
-
-	//	var waitG = &sync.WaitGroup{}
-
-//	maxProcs := runtime.NumCPU() //获取cpu个数
-//	if maxProcs >= 2 {
-		//runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量 YYYYYYYYYYYYYYYYYYYYYYYYY
-//		runtime.GOMAXPROCS(maxProcs / 2)
-//	}
-
-/*
-	for _, tx := range txs {
-		if tx.From() != (common.Address{}){
-			continue
-		}
-		waitG.Add(1)
-		ttx := tx
-		go types.Sender_self(nPool.signer, ttx, waitG)
-	}
-	waitG.Wait()
-*/
 }
 
 // 检查交易中是否存在from

@@ -323,15 +323,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	for _, cb := range block.Currencies() {
 		txs = append(txs, cb.Transactions.GetTransactions()...)
 	}
-//	var waitG = &sync.WaitGroup{}
-//	maxProcs := runtime.NumCPU() //获取cpu个数
-//	if maxProcs >= 2 {
-		//runtime.GOMAXPROCS(maxProcs - 1)
-//		runtime.GOMAXPROCS(maxProcs / 2) //限制同时运行的goroutines数量  YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-//	}
 	normalTxindex := 0
 	if len(txs)>0{
-		log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","chainID",txs[len(txs)-1].ChainId())
 		sig := types.NewEIP155Signer(txs[len(txs)-1].ChainId())
 		var waitG = &sync.WaitGroup{}
 		routineNum := len(txs)/100+1
@@ -647,11 +640,6 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.GetTxCurrency(), tx.From(), tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
-		tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
-		log.Info("=======================================","root",new(big.Int).SetBytes(root).String(),"failed",failed,"usedGad",*usedGas,"receipt.TxHash",receipt.TxHash.String())
-		log.Info("=======================================","receipt.GasUsed",receipt.GasUsed,"receipt.ContractAddress",receipt.ContractAddress.String())
-		log.Info("========================================","receipt.Logs",len(receipt.Logs),"receipt.Bloom",new(big.Int).SetBytes(receipt.Bloom[:]).String())
-	}
+
 	return receipt, gas, shardings, err
 }

@@ -225,16 +225,11 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		return nil, nil, nil, nil, nil, nil, err
 	}
 	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
-	//log.Info("==========================TTTTTTTT===========aaaa","recp hash",header.Roots[0].ReceiptHash.String())
-	aaa := types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil)
-	log.Info("==========================TTTTTTTT===========bbbb","recp hash",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
-	log.Info("==========================TTTTTTTT===========cccc","recp hash",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
-	block := types.NewBlock(header, aaa, nil)
-	log.Info("==========================TTTTTTTT===========dddd","recp hash",block.Header().Roots[0].ReceiptHash.String())
+	cb := types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil)
+	block := types.NewBlock(header, cb, nil)
 	log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.TxHashList(finalTxs))
 	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
 	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
-	log.Info("==========================TTTTTTTT===========eeee","recp hash",block.Header().Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.Error(LogManBlk, "运行matrix状态树失败", err)
 		return nil, nil, nil, nil, nil, nil, err
@@ -308,10 +303,8 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 	//跑交易交易验证， Root TxHash ReceiptHash Bloom GasLimit GasUsed
 	localHeader := types.CopyHeader(verifyHeader)
 	localHeader.GasUsed = 0
-	log.Info("==========================yYYYY===========aaaa","recp hash",localHeader.Roots[0].ReceiptHash.String())
 	verifyHeaderHash := verifyHeader.HashNoSignsAndNonce()
 	work, err := matrixwork.NewWork(support.BlockChain().Config(), support.BlockChain(), nil, localHeader)
-	log.Info("==========================yYYYY===========bbbb","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.ERROR(LogManBlk, "交易验证，创建work失败!", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
@@ -320,32 +313,24 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "状态树更新版本号失败", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
-	log.Info("==========================yYYYY===========cccc","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	uptimeMap, err := support.BlockChain().ProcessUpTime(work.State, localHeader)
 	if err != nil {
 		log.Error(LogManBlk, "uptime处理错误", err)
 		return nil, nil, nil, nil, err
 	}
-	log.Info("==========================yYYYY===========dddd","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	err = support.BlockChain().ProcessBlockGProduceSlash(work.State, localHeader)
 	if err != nil {
 		log.Error(LogManBlk, "区块生产惩罚处理错误", err)
 		return nil, nil, nil, nil, err
 	}
-	log.Info("==========================yYYYY===========eeee","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	err = work.ConsensusTransactions(support.EventMux(), verifyTxs, uptimeMap)
 	if err != nil {
 		log.ERROR(LogManBlk, "交易验证，共识执行交易出错!", err, "高度", verifyHeader.Number.Uint64())
 		return nil, nil, nil, nil, err
 	}
 	finalTxs := work.GetTxs()
-	aaa := types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
-	log.Info("==========================yYYYY===========1111","recp hash",types.DeriveShaHash(work.Receipts[0].Receiptlist.HashList()).String())
-	log.Info("==========================yYYYY===========2222","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
-	localBlock := types.NewBlock(localHeader, aaa, nil)
-	log.Info("==========================yYYYY===========3333","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
-	log.Info("==========================yYYYY===========4444","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========5555","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
+	cb := types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	localBlock := types.NewBlock(localHeader, cb, nil)
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
 	if parent == nil {
@@ -357,19 +342,9 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
 		return nil, nil, nil, nil, err
 	}
-	log.Info("==========================yYYYY===========6666","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String())
-	log.Info("==========================yYYYY===========7777","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(aaa[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========8888","MakeCurencyBlock recp HashList",types.DeriveShaHash(aaa[0].Receipts.GetReceipts().HashList()).String())
-	log.Info("==========================yYYYY===========88881111","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
 	// 运行完matrix state后，生成root
-	bbb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
-	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,bbb)
-	log.Info("==========================yYYYY===========99991111","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========99992222","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(bbb[0].Receipts.GetReceipts().HashList()).String())
-	log.Info("==========================yYYYY===========99993333","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.GetReceipts().HashList()).String())
-	log.Info("==========================yYYYY===========99994444","localBlock recp hash",localBlock.Header().Roots[0].ReceiptHash.String(),"Length",len(localBlock.Header().Roots))
-	log.Info("==========================yYYYY===========99995555","MakeCurencyBlock recp RsHashs",types.DeriveShaHash(localBlock.Currencies()[0].Receipts.RsHashs).String())
-	log.Info("==========================yYYYY===========99996666","localHeader recp hash",localHeader.Roots[0].ReceiptHash.String())
+	ncb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,ncb)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err

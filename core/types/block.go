@@ -554,11 +554,7 @@ type storageblock struct {
 func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) *Block {
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
 	ischeck := len(b.header.Roots) > 0
-	//if !ischeck || b.header.Roots[0].Cointyp != params.MAN_COIN || currencyBlocks[0].CurrencyName!= params.MAN_COIN{
-	//	log.Error("========================YYYYYYYYYYYYYYY================= CurrencyName error", "ischeck",ischeck,"header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
-	//}
 	// TODO: panic if len(txs) != len(receipts)
-//	for _, currencyBlock := range currencyBlocks { //BB
 	for i:=0;i<len(currencyBlocks);i++ {
 		if len(currencyBlocks[i].Transactions.GetTransactions()) == 0 {
 			if ischeck {
@@ -581,13 +577,12 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 					if coinRoot.Cointyp == currencyBlocks[i].CurrencyName {
 						b.header.Roots[i].TxHash = DeriveShaHash(currencyBlocks[i].Transactions.TxHashs)
 						b.header.Roots[i].ReceiptHash = DeriveShaHash(currencyBlocks[i].Receipts.RsHashs)
-						log.Error("========================YYYYYYYYYYYYYYY=================","NewBlock",b.header.Roots[i].ReceiptHash)
 						b.header.Roots[i].Bloom = CreateBloom(currencyBlocks[i].Receipts.GetReceipts())
 						b.header.Roots[i].Cointyp = currencyBlocks[i].CurrencyName
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
 							Receipts: currencyBlocks[i].Receipts})
 					}else {
-						log.Error("========================YYYYYYYYYYYYYYY================= eles", "header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
+						log.Error("coin name err", "header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
 					}
 				}
 			} else {

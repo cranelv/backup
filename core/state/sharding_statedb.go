@@ -165,13 +165,6 @@ func (shard *StateDBManage) GetStateDb(cointyp string, address common.Address)( 
 	for _, cm := range cms {
 		if cm.Cointyp == cointyp {
 			return cm.Rmanage[address[0]].State,nil
-			//rms := cm.Rmanage
-			//for _, rm := range rms {
-			//	if rm.Range == address[0] {
-			//		return rm.State,nil
-			//	}
-			//} YYYYYYYYYYYYYYYYYYYYYYYYYYY
-			//break
 		}
 	}
 	return nil,errors.New("Sharding_GetStateDb Error:  Can`t Get StateDB")
@@ -835,12 +828,6 @@ func (shard *StateDBManage) CommitSaveTx(cointyp string, addr common.Address) {
 	for _, cm := range shard.shardings {
 		if cm.Cointyp == cointyp {
 			cm.Rmanage[addr[0]].State.CommitSaveTx()
-			//for _, rm := range cm.Rmanage {
-			//	if rm.Range == addr[0] {
-			//		rm.State.CommitSaveTx()
-			//		break
-			//	}
-			//} YYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 			break
 		}
 	}

@@ -86,10 +86,8 @@ func (p *Process) processHeaderGen() error {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
-	log.Info("==========================TTTTTTTT===========ffff","recp hash",types.DeriveShaHash(receipts[0].Receiptlist.HashList()).String())
 	//运行完matrix状态树后，生成root (p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
 	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, version, originHeader, stateDB, finalTxs, nil, receipts, nil)
-	log.Info("==========================TTTTTTTT===========gggg","recp hash",block.Header().Roots[0].ReceiptHash.String())
 	if err != nil {
 		log.Error(p.logExtraInfo(), "Finalize失败", err)
 		return err
@@ -114,9 +112,6 @@ func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.Re
 	}
 	log.INFO(p.logExtraInfo(), "本地发送区块验证请求, root", p2pBlock.Header.Roots, "高度", p.number)
 	mc.PublishEvent(mc.BlockGenor_HeaderVerifyReq, localBlock)
-	log.Info("==========================TTTTTTTT===========hhhh","recp hash header",header.Roots[0].ReceiptHash.String())
-	log.Info("==========================TTTTTTTT===========iiii","recp hash p2pBlock",p2pBlock.Header.Roots[0].ReceiptHash.String())
-	log.Info("==========================TTTTTTTT===========jjjj","recp hash localBlock",localBlock.BlkVerifyConsensusReq.Header.Roots[0].ReceiptHash.String())
 	p.startConsensusReqSender(p2pBlock)
 }
 
