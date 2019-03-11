@@ -269,7 +269,7 @@ func (f *Fetcher) loop() {
 	// Iterate the block fetching until a quit is requested
 	fetchTimer := time.NewTimer(0)
 	completeTimer := time.NewTimer(0)
-	updateQueueTime := time.NewTicker(1 * time.Minute)
+	updateQueueTimer := time.NewTicker(1 * time.Minute)
 
 	for {
 		// Clean up any expired block fetches
@@ -317,8 +317,9 @@ func (f *Fetcher) loop() {
 		case <-f.quit:
 			// Fetcher terminating, abort all operations
 			return
-		case <-updateQueueTime.C:
+		case <-updateQueueTimer.C:
 			log.Trace("fetch update operate which is before select will rebegin")
+
 		case notification := <-f.notify:
 			// A block was announced, make sure the peer isn't DOSing us
 			propAnnounceInMeter.Mark(1)
