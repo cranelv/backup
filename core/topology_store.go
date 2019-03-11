@@ -110,3 +110,15 @@ func (ts *TopologyStore) GetInnerMinersAccount(blockHash common.Hash) ([]common.
 	}
 	return matrixstate.GetInnerMinerAccounts(st)
 }
+
+func (ts *TopologyStore) GetSuperSeq(blockHash common.Hash) (uint64, error) {
+	st, err := ts.bc.StateAtBlockHash(blockHash)
+	if err != nil {
+		return 0, err
+	}
+	supBlkState, err := matrixstate.GetSuperBlockCfg(st)
+	if err != nil {
+		return 0, err
+	}
+	return supBlkState.Seq, nil
+}
