@@ -74,7 +74,7 @@ func (p *StateProcessor) getCoinConfig(statedbM *state.StateDBManage) []common.C
 		err := json.Unmarshal(coinconfig, &coincfglist)
 		if err != nil {
 			log.Error("get coin config list", "unmarshal err", err)
-			return coincfglist
+			return nil
 		}
 	}
 	//for _, cc := range coincfglist {

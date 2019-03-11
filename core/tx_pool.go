@@ -22,6 +22,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"github.com/MatrixAINetwork/go-matrix/txpoolCache"
 	"runtime"
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 )
 
 //
@@ -1197,7 +1198,20 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
+	var payGasType string
 	if tx.Currency != params.MAN_COIN {
+		coinCfglist,err := matrixstate.GetCoinConfig(nPool.currentState)
+		if err != nil{
+			return errors.New("get GetCoinConfig err")
+		}
+		for _,coinCfg := range coinCfglist{
+			if coinCfg.CoinType == tx.Currency {
+				payGasType = coinCfg.PayCoinType
+			}
+		}
+	}
+
+	if tx.Currency != params.MAN_COIN && payGasType == params.MAN_COIN{
 		for _, tAccount := range nPool.currentState.GetBalance(params.MAN_COIN, tx.AmontFrom()) {
 			if tAccount.AccountType == common.MainAccount {
 				manCoinBalance = tAccount.Balance

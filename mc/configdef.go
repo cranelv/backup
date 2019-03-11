@@ -1,9 +1,8 @@
 package mc
 
 import (
-	"math/big"
-
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"math/big"
 )
 
 const (
@@ -241,4 +240,9 @@ type BlockProduceSlashBlackList struct {
 
 type BlockProduceSlashStatsStatus struct {
 	Number uint64
+}
+
+type ChainState struct {
+	superSeq  uint64
+	curNumber uint64
 }

@@ -113,22 +113,3 @@ type specialAccounts struct {
 	versionSupers []common.Address
 	blockSupers   []common.Address
 }
-
-func checkHeaderLegality(header *types.Header, chainReader *core.BlockChain) error {
-	number := header.Number.Uint64()
-	if number < 2 {
-		return nil
-	}
-	criticalAncestorBlk := chainReader.GetBlockByNumber(number - 2)
-	if criticalAncestorBlk == nil {
-		return errors.Errorf("获取区块(%d)的主链爷区块未找到", number)
-	}
-	parentBlk := chainReader.GetBlockByHash(header.ParentHash)
-	if nil == parentBlk {
-		return errors.Errorf("区块(%d)的父区块(%s)未找到", number, header.ParentHash.Hex())
-	}
-	if parentBlk.ParentHash() != criticalAncestorBlk.Hash() {
-		return errors.Errorf("区块(%d)的爷区块(%s)不是主链区块", number, parentBlk.ParentHash())
-	}
-	return nil
-}

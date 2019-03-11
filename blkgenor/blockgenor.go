@@ -5,10 +5,10 @@ package blkgenor
 
 import (
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
-	"github.com/MatrixAINetwork/go-matrix/core/types"
 )
 
 type BlockGenor struct {
@@ -166,7 +166,7 @@ func (self *BlockGenor) roleUpdatedMsgHandle(roleMsg *mc.RoleUpdatedMsg) error {
 
 	role := roleMsg.Role
 	curNumber := roleMsg.BlockNum + 1
-	self.pm.SetCurNumber(curNumber, roleMsg.IsSuperBlock)
+	self.pm.SetCurNumber(curNumber, roleMsg.SuperSeq)
 	if role == common.RoleValidator || role == common.RoleBroadcast {
 		curProcess := self.pm.GetCurrentProcess()
 		curProcess.StartRunning(role, bcInterval)

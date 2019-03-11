@@ -41,6 +41,7 @@ const (
 	ElectPlug_layerd = "layerd"
 	ElectPlug_stock  = "stock"
 	ELectPlug_direct = "direct"
+	ElectPlug_layerdMEP = "layerd_MEP"
 )
 
 var (

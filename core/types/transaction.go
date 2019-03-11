@@ -601,14 +601,15 @@ func (tx *Transaction) GetTxFrom() (from common.Address, err error) {
 }
 
 func (tx *Transaction) TotalAmount() *big.Int {
-	total := tx.data.Amount
+	amount := tx.data.Amount
 	txEx := tx.GetMatrix_EX()
+	total := new(big.Int)
 	if len(txEx) > 0{
 		for _, extra := range tx.data.Extra[0].ExtraTo {
 			total.Add(total, extra.Amount)
 		}
 	}
-	return total
+	return total.Add(total,amount)
 }
 
 //// Cost returns amount + gasprice * gaslimit.
