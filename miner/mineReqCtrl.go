@@ -25,7 +25,7 @@ type mineReqData struct {
 	headerHash         common.Hash
 	header             *types.Header
 	isBroadcastReq     bool
-	txs               []types.CoinSelfTransaction
+	txs                []types.CoinSelfTransaction
 	mineDiff           *big.Int
 	mineResultSendTime int64
 }
@@ -57,6 +57,7 @@ func (self *mineReqData) ResendMineResult(curTime int64) error {
 }
 
 type mineReqCtrl struct {
+	curSuperSeq     uint64
 	curNumber       uint64
 	currentMineReq  *mineReqData
 	role            common.RoleType
@@ -69,6 +70,7 @@ type mineReqCtrl struct {
 
 func newMinReqCtrl(bc ChainReader) *mineReqCtrl {
 	return &mineReqCtrl{
+		curSuperSeq:     0,
 		curNumber:       0,
 		currentMineReq:  nil,
 		role:            common.RoleNil,

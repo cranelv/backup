@@ -12,7 +12,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	//"github.com/MatrixAINetwork/go-matrix/log"
 )
 
 // BlockValidator is responsible for validating block headers, uncles and

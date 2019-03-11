@@ -954,6 +954,9 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 	}
 
 	version := matrixstate.GetVersionInfo(state)
+	if key == mc.MSKeyVersionInfo {
+		return version, nil
+	}
 	mgr := matrixstate.GetManager(version)
 	if mgr == nil {
 		return nil, nil
@@ -975,7 +978,7 @@ func (s *PublicBlockChainAPI) GetMatrixStateByNum(ctx context.Context, key strin
 	return dataval, nil
 }
 
-func (s *PublicBlockChainAPI) GetGasPrice() *big.Int  {
+func (s *PublicBlockChainAPI) GetGasPrice() *big.Int {
 	return big.NewInt(int64(params.TxGasPrice))
 }
 

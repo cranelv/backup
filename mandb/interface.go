@@ -13,7 +13,7 @@ type Putter interface {
 	Put(key []byte, value []byte) error
 }
 
-// Database wraps all database operations. All methods are safe for concurrent use.
+// Database wraps all database operations. All methods are safe for concurrent use.(并行使用)
 type Database interface {
 	Putter
 	Get(key []byte) ([]byte, error)

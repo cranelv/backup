@@ -4,7 +4,6 @@
 package leaderelect
 
 import (
-	"errors"
 	"github.com/MatrixAINetwork/go-matrix/accounts/signhelper"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
@@ -14,6 +13,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
+	"github.com/pkg/errors"
 )
 
 var (
