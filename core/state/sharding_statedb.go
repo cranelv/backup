@@ -673,13 +673,13 @@ func (shard *StateDBManage) RevertToSnapshot(cointyp string, ss []int) {
 func (shard *StateDBManage) Finalise(cointyp string, deleteEmptyObjects bool) {
 
 	for _, cms := range shard.shardings {
-		if cms.Cointyp == cointyp {
+		//if cms.Cointyp == cointyp { //可以不用判断币种
 			for _, cm := range cms.Rmanage {
 				//log.Info("Finalise ----------------------------------------------","coin type",cointyp,"range",cm.Range,"dirties length",len(cm.State.journal.dirties))
 				cm.State.Finalise(deleteEmptyObjects)
 			}
-			break
-		}
+			//break
+		//}
 	}
 }
 

@@ -314,7 +314,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		tmptxs = append(tmptxs, tmps...)
 		tmps = tmptxs
 	}
-	env.State.Finalise("MAN",true)
+	env.State.Finalise("",true)
 	finalTxs = append(tmps, originalTxs...)
 	env.txs,env.Receipts =types.GetCoinTXRS(env.transer,env.recpts)
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number,"recpts hash",types.DeriveShaHash(types.Receipts(env.recpts).HashList()).String(),"tx hash",types.DeriveShaHash(types.TxHashList(env.transer)).String())
