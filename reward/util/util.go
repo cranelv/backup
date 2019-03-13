@@ -43,13 +43,12 @@ var (
 
 type ChainReader interface {
 	// Config retrieves the blockchain's chain configuration.
-	Config() *params.ChainConfig
+	//Config() *params.ChainConfig
 
 	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *types.Header
 
 	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
+	//GetHeader(hash common.Hash, number uint64) *types.Header
 
 	// GetHeaderByNumber retrieves a block header from the database by number.
 
