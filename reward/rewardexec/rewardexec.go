@@ -99,7 +99,7 @@ func (br *BlockReward) getValidatorRewards(blockReward *big.Int, Leader common.A
 	rewards := make(map[common.Address]*big.Int, 0)
 	leaderBlkMount, electedMount, FoundationsMount := br.CalcValidatorRateMount(blockReward)
 	leaderReward := br.rewardCfg.SetReward.SetLeaderRewards(leaderBlkMount, Leader, num)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, common.RoleValidator|common.RoleBackupValidator, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, leaderReward)
 	util.MergeReward(rewards, electReward)
@@ -112,7 +112,7 @@ func (br *BlockReward) getMinerRewards(blockReward *big.Int, num uint64, rewardT
 
 	minerOutAmount, electedMount, FoundationsMount := br.CalcMinerRateMount(blockReward)
 	minerOutReward := br.rewardCfg.SetReward.SetMinerOutRewards(minerOutAmount, br.st, br.chain, num, parentHash, coinType)
-	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, br.chain, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
+	electReward := br.rewardCfg.SetReward.GetSelectedRewards(electedMount, br.st, common.RoleMiner|common.RoleBackupMiner, num, br.rewardCfg.RewardMount.RewardRate.BackupRewardRate, br.topology, br.elect)
 	foundationReward := br.calcFoundationRewards(FoundationsMount, num)
 	util.MergeReward(rewards, minerOutReward)
 	util.MergeReward(rewards, electReward)

@@ -9,8 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
@@ -21,8 +24,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"github.com/MatrixAINetwork/go-matrix/txpoolCache"
-	"runtime"
-	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 )
 
 //
@@ -176,10 +177,10 @@ var DefaultTxPoolConfig = TxPoolConfig{
 }
 
 type NormalTxPool struct {
-	config      TxPoolConfig
-	chainconfig *params.ChainConfig
-	chain       blockChain
-	gasPrice    *big.Int
+	config       TxPoolConfig
+	chainconfig  *params.ChainConfig
+	chain        blockChain
+	gasPrice     *big.Int
 	chainHeadCh  chan ChainHeadEvent
 	sendTxCh     chan NewTxsEvent
 	chainHeadSub event.Subscription
@@ -524,7 +525,7 @@ func (nPool *NormalTxPool) ListenUdp() {
 						nc = nc | params.NonceAddOne
 						tx.SetNonce(nc)
 					}
-					log.INFO("==udp tx hash","from",tx.From().String(),"tx.Nonce",tx.Nonce(),"hash",tx.Hash().String())
+					log.INFO("==udp tx hash", "from", tx.From().String(), "tx.Nonce", tx.Nonce(), "hash", tx.Hash().String())
 					tmptxs = append(tmptxs, tx)
 				}
 				nPool.getFromByTx(tmptxs)
@@ -1200,18 +1201,18 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	var payGasType string
 	if tx.Currency != params.MAN_COIN {
-		coinCfglist,err := matrixstate.GetCoinConfig(nPool.currentState)
-		if err != nil{
+		coinCfglist, err := matrixstate.GetCoinConfig(nPool.currentState)
+		if err != nil {
 			return errors.New("get GetCoinConfig err")
 		}
-		for _,coinCfg := range coinCfglist{
+		for _, coinCfg := range coinCfglist {
 			if coinCfg.CoinType == tx.Currency {
-				payGasType = coinCfg.PayCoinType
+				payGasType = coinCfg.CoinType
 			}
 		}
 	}
 
-	if tx.Currency != params.MAN_COIN && payGasType == params.MAN_COIN{
+	if tx.Currency != params.MAN_COIN && payGasType == params.MAN_COIN {
 		for _, tAccount := range nPool.currentState.GetBalance(params.MAN_COIN, tx.AmontFrom()) {
 			if tAccount.AccountType == common.MainAccount {
 				manCoinBalance = tAccount.Balance
@@ -1219,13 +1220,13 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 		}
 		totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-		if manCoinBalance.Cmp(totalGas) < 0{
+		if manCoinBalance.Cmp(totalGas) < 0 {
 			return ErrInsufficientFunds
 		}
 		if balance.Cmp(tx.TotalAmount()) < 0 {
 			return ErrInsufficientFunds
 		}
-	}else{
+	} else {
 		if balance.Cmp(tx.CostALL()) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -1312,8 +1313,8 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 		nPool.setsTx(tx_s, tx)
 		if len(tx.N) == 0 {
 			gSendst.notice <- tx.GetTxS()
-		//} else {
-		//	log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
+			//} else {
+			//	log.Trace("txpool:add()", "gSendst.notice::tx N ", tx.N)
 		}
 	} else if selfRole == common.RoleDefault || selfRole == common.RoleBucket {
 		promoted := make([]types.SelfTransaction, 0)

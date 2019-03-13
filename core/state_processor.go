@@ -98,7 +98,7 @@ func (p *StateProcessor) getGas(state *state.StateDBManage, coinType string, gas
 	}
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
 	log.INFO("奖励", coinType+"交易费奖励总额", allGas.String())
-	balance := state.GetBalance(params.MAN_COIN, From)
+	balance := state.GetBalance(coinType, From)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", coinType+"交易费奖励账户余额不合法", "")
@@ -160,7 +160,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		}
 	}
 
-	txsReward := txsreward.New(p.bc, st, preState)
+	txsReward := txsreward.New(p.bc, st, preState, ppreState)
 
 	if nil != txsReward {
 		rewardList = p.processMultiCoinReward(usedGas, preState, txsReward, header, rewardList)
@@ -179,7 +179,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	interestReward := interest.New(st, preState)
 
 	if nil == interestReward {
-		return p.reverse(util.Accumulator(st, rewardList))
+		return p.reverse(util.AccumulatorCheck(st, rewardList))
 	}
 	interestReward.CalcReward(st, header.Number.Uint64(), header.ParentHash)
 
@@ -191,7 +191,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if 0 != len(interestPayMap) {
 		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
-	return p.reverse(util.Accumulator(st, rewardList))
+	return p.reverse(util.AccumulatorCheck(st, rewardList))
 }
 
 func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, preState *state.StateDBManage, txsReward reward.Reward, header *types.Header, rewardList []common.RewarTx) []common.RewarTx {
@@ -204,20 +204,20 @@ func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, pre
 	txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, params.MAN_COIN)
 	if 0 != len(txsRewardMap) {
 		//todo:发放币种从chain上获取
-		rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+		rewardList = append(rewardList, common.RewarTx{CoinRange: params.MAN_COIN, CoinType: params.MAN_COIN, Fromaddr: common.TxGasRewardAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 	}
 	coinConfig := p.getCoinConfig(preState)
 	for _, config := range coinConfig {
 
-		if value, ok := usedGas[config.CoinType]; ok {
+		if value, ok := usedGas[config.CoinRange]; ok {
 			allGas = p.getGas(preState, config.CoinType, value, config.CoinAddress)
 		} else {
 			allGas = new(big.Int).SetUint64(0)
 		}
-		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, config.CoinType)
+		txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, config.CoinRange)
 		if 0 != len(txsRewardMap) {
 			//todo:发放币种从chain上获取
-			rewardList = append(rewardList, common.RewarTx{CoinType: params.MAN_COIN, Fromaddr: config.CoinAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
+			rewardList = append(rewardList, common.RewarTx{CoinRange: config.CoinRange, CoinType: config.CoinType, Fromaddr: config.CoinAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 		}
 	}
 	return rewardList

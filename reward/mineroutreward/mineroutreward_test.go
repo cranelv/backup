@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/MatrixAINetwork/go-matrix/params"
+
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
@@ -13,6 +15,27 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 )
+
+func TestSetPreMinerAlpha(t *testing.T) {
+	chaindb := mandb.NewMemDatabase()
+	state, _ := state.NewStateDBManage(nil, chaindb, state.NewDatabase(chaindb))
+
+	matrixstate.SetVersionInfo(state, manparams.VersionAlpha)
+	SetPreMinerReward(state, big.NewInt(int64(2e18)), util.TxsReward, params.MAN_COIN)
+	out, err := util.GetPreMinerReward(state, util.TxsReward)
+	if nil != err {
+		t.Error("fail")
+	}
+	if 1 != len(out) {
+		t.Error("fail")
+	}
+	if out[0].CoinType != params.MAN_COIN {
+		t.Error("fail")
+	}
+	if 0 != out[0].Reward.Cmp(big.NewInt(int64(2e18))) {
+		t.Error("fail")
+	}
+}
 
 func TestSetPreMinerReward(t *testing.T) {
 	chaindb := mandb.NewMemDatabase()
@@ -90,9 +113,9 @@ func TestModifyVersionReward(t *testing.T) {
 	if nil != err {
 		t.Error("fail")
 	}
-	for i := 0; i < 100; i++ {
-		SetPreMinerReward(state, big.NewInt(int64(i)), util.TxsReward, strconv.Itoa(i))
-	}
+
+	SetPreMinerReward(state, big.NewInt(int64(99)), util.TxsReward, params.MAN_COIN)
+
 	out2, err := util.GetPreMinerReward(state, util.TxsReward)
 	if nil != err {
 		t.Error("fail")
@@ -114,5 +137,36 @@ func TestModifyVersionReward(t *testing.T) {
 	}
 	for _, v := range out3 {
 		fmt.Println("币种", v.CoinType, "奖励", v.Reward.String())
+	}
+}
+
+func TestModifyVersion2Reward(t *testing.T) {
+	chaindb := mandb.NewMemDatabase()
+	state, _ := state.NewStateDBManage(nil, chaindb, state.NewDatabase(chaindb))
+
+	matrixstate.SetVersionInfo(state, manparams.VersionAlpha)
+	_, err := util.GetPreMinerReward(state, util.TxsReward)
+	if nil != err {
+		t.Error("fail")
+	}
+
+	SetPreMinerReward(state, big.NewInt(int64(99)), util.TxsReward, params.MAN_COIN)
+
+	out2, err := util.GetPreMinerReward(state, util.TxsReward)
+	if nil != err {
+		t.Error("fail")
+	}
+	if 1 != len(out2) {
+
+	}
+
+	for _, v := range out2 {
+		fmt.Println("币种", v.CoinType, "奖励", v.Reward.String())
+	}
+
+	matrixstate.SetVersionInfo(state, manparams.VersionBeta)
+	_, err = util.GetPreMinerReward(state, util.TxsReward)
+	if nil == err {
+		t.Error("fail")
 	}
 }

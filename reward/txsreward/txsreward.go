@@ -20,7 +20,7 @@ type TxsReward struct {
 	blockReward *rewardexec.BlockReward
 }
 
-func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Reward {
+func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB, ppreSt util.StateDB) reward.Reward {
 
 	data, err := matrixstate.GetTxsCalc(preSt)
 	if nil != err {
@@ -50,7 +50,7 @@ func New(chain util.ChainReader, st util.StateDB, preSt util.StateDB) reward.Rew
 		return nil
 	}
 
-	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(preSt)
+	innerMinerAccounts, err := matrixstate.GetInnerMinerAccounts(ppreSt)
 	if err != nil {
 		log.ERROR(PackageName, "获取内部矿工账户数据失败", err)
 		return nil

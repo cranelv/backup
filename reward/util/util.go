@@ -56,16 +56,11 @@ type ChainReader interface {
 	// GetHeaderByHash retrieves a block header from the database by its hash.
 	GetHeaderByHash(hash common.Hash) *types.Header
 
-	GetBlockByNumber(number uint64) *types.Block
-
 	// GetBlock retrieves a block sfrom the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	State() (*state.StateDBManage, error)
-	GetSuperBlockNum() (uint64, error)
 	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	StateAtBlockHash(hash common.Hash) (*state.StateDBManage, error)
-	StateAtNumber(number uint64) (*state.StateDBManage, error)
 	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
 }
 
@@ -241,7 +236,150 @@ func getBalance(st StateDB, address common.Address) (common.BalanceType, error) 
 	}
 	return balance, nil
 }
-func Accumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
+func getBalanceByCoinType(st StateDB, address common.Address, cointype string) (common.BalanceType, error) {
+
+	balance := st.GetBalance(cointype, address)
+	if len(balance) == 0 {
+		log.ERROR(PackageName, "账户余额获取不到", "")
+		return nil, errors.New("账户余额获取不到")
+	}
+	if balance[common.MainAccount].Balance.Cmp(big.NewInt(0)) < 0 {
+		log.WARN(PackageName, "发送账户余额不合法，地址", address.Hex(), "余额", balance[common.MainAccount].Balance)
+		return nil, errors.New("发送账户余额不合法")
+	}
+	return balance, nil
+}
+func TxsCoinAccumulator(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
+
+	ValidatorBalance, _ := getBalance(st, common.BlkMinerRewardAddress)
+	minerBalance, _ := getBalance(st, common.BlkValidatorRewardAddress)
+	interestBalance, _ := getBalance(st, common.InterestRewardAddress)
+	lotteryBalance, _ := getBalance(st, common.LotteryRewardAddress)
+	allValidator := new(big.Int).SetUint64(0)
+	allMiner := new(big.Int).SetUint64(0)
+	allInterest := new(big.Int).SetUint64(0)
+	allLottery := new(big.Int).SetUint64(0)
+	for _, v := range rewardIn {
+		if v.Fromaddr == common.BlkMinerRewardAddress {
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allMiner = new(big.Int).Add(allMiner, Amount)
+				}
+			}
+		}
+		if v.Fromaddr == common.BlkValidatorRewardAddress {
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allValidator = new(big.Int).Add(allValidator, Amount)
+				}
+			}
+		}
+
+		if v.Fromaddr == common.InterestRewardAddress {
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allInterest = new(big.Int).Add(allInterest, Amount)
+				}
+
+			}
+		}
+		if v.Fromaddr == common.LotteryRewardAddress {
+			for account, Amount := range v.To_Amont {
+				if !account.Equal(common.ContractAddress) {
+					allLottery = new(big.Int).Add(allLottery, Amount)
+				}
+			}
+		}
+	}
+
+	rewardOut := make([]common.RewarTx, 0)
+
+	if allMiner.Cmp(minerBalance[common.MainAccount].Balance) <= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardMinerType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+
+	} else {
+		log.Error(PackageName, "矿工账户余额不足,余额", allMiner.String())
+	}
+	if allValidator.Cmp(ValidatorBalance[common.MainAccount].Balance) <= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardValidatorType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	} else {
+		log.Error(PackageName, "验证者账户余额不足", allValidator.String())
+	}
+
+	for _, v := range rewardIn {
+		if v.RewardTyp == common.RewardTxsType {
+			rewardOut = append(rewardOut, v)
+		}
+	}
+
+	if allInterest.Cmp(interestBalance[common.MainAccount].Balance) <= 0 {
+		for _, v := range rewardIn {
+			if v.RewardTyp == common.RewardInterestType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	} else {
+		log.Error(PackageName, "利息账户余额不足", allInterest.String())
+	}
+
+	if allLottery.Cmp(lotteryBalance[common.MainAccount].Balance) <= 0 {
+		for _, v := range rewardIn {
+			//通过类型判断
+			if v.RewardTyp == common.RewardLotteryType {
+				rewardOut = append(rewardOut, v)
+			}
+		}
+	} else {
+		log.Error(PackageName, "彩票账户余额不足", allLottery.String())
+	}
+
+	return rewardOut
+}
+
+func getRewardSum(reardMap map[common.Address]*big.Int) *big.Int {
+	sum := big.NewInt(0)
+	for _, v := range reardMap {
+		sum.Add(sum, v)
+	}
+	return sum
+}
+
+func CointypeCheck(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
+	rewardMap := make(map[string]*big.Int)
+
+	for _, v := range rewardIn {
+		if v.RewardTyp == common.RewardTxsType {
+			if _, ok := rewardMap[v.CoinType]; ok {
+				rewardMap[v.CoinType] = new(big.Int).Add(rewardMap[v.CoinType], getRewardSum(v.To_Amont))
+			} else {
+				rewardMap[v.CoinType] = getRewardSum(v.To_Amont)
+			}
+		}
+	}
+
+	for coinType, all := range rewardMap {
+		balance, err := getBalanceByCoinType(st, common.TxGasRewardAddress, coinType)
+		log.Info(PackageName, "发放币种", coinType, "计算的奖励总额为", all, "账户余额为", balance[common.MainAccount].Balance)
+		if nil != err {
+			continue
+		}
+		if all.Cmp(balance[common.MainAccount].Balance) > 0 {
+			log.Crit(PackageName, "发放币种", coinType, "交易费奖励余额不足，计算的奖励总额为", all, "账户余额为", balance[common.MainAccount].Balance)
+			return nil
+		}
+	}
+	return rewardIn
+}
+
+func AccumulatorCheck(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 
 	ValidatorBalance, _ := getBalance(st, common.BlkMinerRewardAddress)
 	minerBalance, _ := getBalance(st, common.BlkValidatorRewardAddress)

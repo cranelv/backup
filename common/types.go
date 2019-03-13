@@ -428,6 +428,7 @@ type NetTopology struct {
 	NetTopologyData []NetTopologyData
 }
 type RewarTx struct {
+	CoinRange string
 	CoinType  string
 	Fromaddr  Address
 	To_Amont  map[Address]*big.Int
@@ -685,7 +686,8 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinType    string       `json:"CoinType"`    //name
+	CoinRange   string       `json:"CoinRange"`   //分区币种
+	CoinType    string       `json:"CoinType"`    //支付币种
 	PackNum     uint64       `json:"PackNum"`     //打包数量限制 如果为0则不打包
 	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位
 	CoinTotal   *hexutil.Big `json:"CoinTotal"`   //总发行量
