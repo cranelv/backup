@@ -35,7 +35,7 @@ type ChainReader interface {
 type txPoolReader interface {
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending() (map[common.Address]types.SelfTransactions, error)
+	Pending() (map[string]map[common.Address]types.SelfTransactions, error)
 }
 
 var packagename string = "matrixwork"
@@ -256,26 +256,26 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coi
 	mapcoingasUse.setCoinGasUse(tx, receipt.GasUsed)
 	return nil, receipt.Logs
 }
-func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
+func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.Address, gp *core.GasPool) (error, []*types.Log,*types.Receipt) {
 	env.State.Prepare(tx.Hash(), common.Hash{}, env.tcount)
 	snap := env.State.Snapshot(tx.GetTxCurrency())
 	receipt, _, _, err := core.ApplyTransaction(env.config, env.bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Error("s_commitTransaction commit err. ", "err", err)
 		env.State.RevertToSnapshot(tx.GetTxCurrency(), snap)
-		return err, nil
+		return err, nil,nil
 	}
-	tmps := make([]types.SelfTransaction, 0)
-	tmps = append(tmps, tx)
-	tmps = append(tmps, env.transer...)
-	env.transer = tmps
+	//tmps := make([]types.SelfTransaction, 0)
+	//tmps = append(tmps, tx)
+	//tmps = append(tmps, env.transer...)
+	//env.transer = tmps
 
-	tmpr := make([]*types.Receipt, 0)
-	tmpr = append(tmpr, receipt)
-	tmpr = append(tmpr, env.recpts...)
-	env.recpts = tmpr
+	//tmpr := make([]*types.Receipt, 0)
+	//tmpr = append(tmpr, receipt)
+	//tmpr = append(tmpr, env.recpts...)
+	//env.recpts = tmpr
 	env.tcount++
-	return nil, receipt.Logs
+	return nil, receipt.Logs,receipt
 }
 
 //Leader
@@ -286,47 +286,102 @@ type retStruct struct {
 	txs []*types.Transaction
 }
 
-func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction, finalTxs []types.SelfTransaction) {
+func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
-		return nil, nil, nil
+		return nil, nil
 	}
 	mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
-	listret, originalTxs = env.commitTransactions(mux, pending, common.Address{})
-	finalTxs = append(finalTxs, originalTxs...)
-	tmps := make([]types.SelfTransaction, 0)
+
+	coins := make([]string,0)
+	coinsnoman := make([]string,0)
+	for coinname,_ := range pending{
+		if coinname == params.MAN_COIN{
+			continue
+		}
+		coinsnoman = append(coinsnoman,coinname)
+	}
+	sort.Strings(coinsnoman)
+	coins = append(coins,params.MAN_COIN)
+	coins = append(coins,coinsnoman...)
+	finalTxsmap := make(map[string][]types.CoinSelfTransaction) //按币种存放的所有交易map
+	finalRecpetsmap := make(map[string][]types.CoinReceipts) //按币种存放的所有收据map
+	//先跑MAN交易，后跑其他币种交易
+	for _,coinname := range coins{
+		tmplistret, tmporiginalTxs := env.commitTransactions(mux, pending[coinname], common.Address{})
+		originalTxs = append(originalTxs,tmporiginalTxs...)
+		listret = append(listret,tmplistret...)
+
+		tmptxsmap := finalTxsmap[coinname]
+		tmptxsmap = append(tmptxsmap,types.GetCoinTX(tmporiginalTxs)...)
+		finalTxsmap[coinname] = tmptxsmap
+		tmprecpetmap := finalRecpetsmap[coinname]
+		_,coinrecpts := types.GetCoinTXRS(tmporiginalTxs,env.recpts)
+		tmprecpetmap = append(tmprecpetmap,coinrecpts...)
+		finalRecpetsmap[coinname] = tmprecpetmap
+	}
+
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
 		from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 	}
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number, "tx num ", len(originalTxs))
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
-	txers := env.makeTransaction(rewart)
-	for _, tx := range txers {
-		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
-		if err != nil {
-			log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
-			continue
+	rewardTxmap := env.makeTransaction(rewart)
+	//tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
+	//tmpReceips := make([]types.CoinReceipts,0,len(coins))
+	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
+	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+	//先跑MAN奖励交易，后跑其他币种奖励交易
+	for _,coinname := range coins{
+		var tReceipt types.CoinReceipts
+		var tRewartTx types.CoinSelfTransaction
+		//tmpcoinTxs := make([]types.CoinSelfTransaction,0,len(coins))
+		//tmpcoinRecpets := make([]types.CoinReceipts,0,len(coins))
+		for _, tx := range rewardTxmap[coinname] {
+			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
+			if err != nil {
+				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
+				continue
+			}
+			tReceipt.CoinType = coinname	//必须放循环里赋值，防止交易都执行失败时交易为空但cointype赋值了
+			tRewartTx.CoinType = coinname
+			tRewartTx.Txser = append(tRewartTx.Txser,tx)
+			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
 		}
-		tmptxs := make([]types.SelfTransaction, 0)
-		tmptxs = append(tmptxs, tx)
-		tmptxs = append(tmptxs, tmps...)
-		tmps = tmptxs
+		for _,cointxs := range finalTxsmap[coinname]{
+			tRewartTx.Txser = append(tRewartTx.Txser,cointxs.Txser...)
+		}
+		//tmpcoinTxs = append(tmpcoinTxs,tRewartTx)
+		//tmpcoinTxs = append(tmpcoinTxs,finalTxsmap[coinname]...)
+		allfinalTxs = append(allfinalTxs,tRewartTx) //奖励交易放对应分区币种的前面
+
+		for _,coinrecpts := range finalRecpetsmap[coinname]{
+			tReceipt.Receiptlist = append(tReceipt.Receiptlist,coinrecpts.Receiptlist...)
+		}
+		//tmpcoinRecpets = append(tmpcoinRecpets,tReceipt)
+		//tmpcoinRecpets = append(tmpcoinRecpets,finalRecpetsmap[coinname]...)
+		allfinalRecpets = append(allfinalRecpets,tReceipt)
 	}
-	tmps = append(tmps, finalTxs...)
-	finalTxs = tmps
-	env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
+	env.txs = allfinalTxs
+	env.Receipts = allfinalRecpets
+	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
+	//tmpReceips = append(tmpReceips,env.Receipts...)
+	//env.Receipts = tmpReceips
+	//tmpTxslist = append(tmpTxslist,env.txs...)
+	//env.txs = tmpTxslist
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return
 }
 
-func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTransaction) {
+func (env *Work) makeTransaction(rewarts []common.RewarTx) (coinTxs map[string]types.SelfTransactions) {
 	nonceMap := make(map[common.Address]uint64)
+	coinTxs = make(map[string]types.SelfTransactions)
 	for _, rewart := range rewarts {
 		sorted_keys := make([]string, 0)
 		for k := range rewart.To_Amont {
@@ -386,7 +441,11 @@ func (env *Work) makeTransaction(rewarts []common.RewarTx) (txers []types.SelfTr
 		}
 		tx := types.NewTransactions(nonceMap[rewart.Fromaddr], to, value, 0, new(big.Int), databytes, nil, nil, nil, extra, 0, env.rewardTypetransformation(rewart.RewardTyp), 0, rewart.CoinType, 0)
 		tx.SetFromLoad(rewart.Fromaddr)
-		txers = append(txers, tx)
+		//txers = append(txers, tx)
+
+		rewartTxs := coinTxs[rewart.CoinRange]
+		rewartTxs = append(rewartTxs,tx)
+		coinTxs[rewart.CoinRange] = rewartTxs
 	}
 	return
 }
@@ -422,14 +481,47 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	}
 
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
-	txers := env.makeTransaction(rewart)
-	for _, tx := range txers {
-		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
-		if err != nil {
-			log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
+	rewardTxmap := env.makeTransaction(rewart)
+	coins := make([]string,0)
+	coinsnoman := make([]string,0)
+	for coinname,_ := range rewardTxmap{
+		if coinname == params.MAN_COIN{
+			continue
 		}
+		coinsnoman = append(coinsnoman,coinname)
 	}
+	sort.Strings(coinsnoman)
+	coins = append(coins,params.MAN_COIN)
+	coins = append(coins,coinsnoman...)
+
+	tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
+	tmpReceips := make([]types.CoinReceipts,0,len(coins))
+	for _,coinname := range coins{
+		var tReceipt types.CoinReceipts
+		var tRewartTx types.CoinSelfTransaction
+		tReceipt.CoinType = coinname
+		tRewartTx.CoinType = coinname
+		for _, tx := range rewardTxmap[coinname] {
+			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
+			if err != nil {
+				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
+				continue
+			}
+			tRewartTx.Txser = append(tRewartTx.Txser,tx)
+			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
+		}
+
+		tmpTxslist = append(tmpTxslist,tRewartTx)
+		tmpReceips = append(tmpReceips,tReceipt)
+	}
+
 	env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
+	tmpReceips = append(tmpReceips,env.Receipts...)
+	env.Receipts = tmpReceips
+	tmpTxslist = append(tmpTxslist,env.txs...)
+	env.txs = tmpTxslist
+
+	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	return
 }
 
@@ -465,14 +557,47 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
-	txers := env.makeTransaction(rewart)
-	for _, tx := range txers {
-		err, _ := env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
-		if err != nil {
-			return err
+	rewardTxmap := env.makeTransaction(rewart)
+	coins := make([]string,0)
+	coinsnoman := make([]string,0)
+	for coinname,_ := range rewardTxmap{
+		if coinname == params.MAN_COIN{
+			continue
 		}
+		coinsnoman = append(coinsnoman,coinname)
 	}
+	sort.Strings(coinsnoman)
+	coins = append(coins,params.MAN_COIN)
+	coins = append(coins,coinsnoman...)
+
+	tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
+	tmpReceips := make([]types.CoinReceipts,0,len(coins))
+	for _,coinname := range coins{
+		var tReceipt types.CoinReceipts
+		var tRewartTx types.CoinSelfTransaction
+		tReceipt.CoinType = coinname
+		tRewartTx.CoinType = coinname
+		for _, tx := range rewardTxmap[coinname] {
+			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
+			if err != nil {
+				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
+				continue
+			}
+			tRewartTx.Txser = append(tRewartTx.Txser,tx)
+			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
+		}
+
+		tmpTxslist = append(tmpTxslist,tRewartTx)
+		tmpReceips = append(tmpReceips,tReceipt)
+	}
+
 	env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
+	tmpReceips = append(tmpReceips,env.Receipts...)
+	env.Receipts = tmpReceips
+	tmpTxslist = append(tmpTxslist,env.txs...)
+	env.txs = tmpTxslist
+
+	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		go func(logs []types.CoinLogs, tcount int) {
 			if len(logs) > 0 {

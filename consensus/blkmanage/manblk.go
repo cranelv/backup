@@ -224,10 +224,11 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		log.ERROR(LogManBlk, "执行区块惩罚处理错误", err, "高度", header.Number)
 		return nil, nil, nil, nil, nil, nil, err
 	}
-	txsCode, originalTxs, finalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
+	txsCode, originalTxs := work.ProcessTransactions(support.EventMux(), support.TxPool(), upTimeMap)
 
-	block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil), nil)
-	log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.TxHashList(finalTxs))
+	//block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil), nil)
+	block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(), work.Receipts, nil), nil)
+	//log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.TxHashList(finalTxs))
 	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
 	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {
@@ -235,7 +236,7 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	return txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), types.GetCoinTX(finalTxs), nil, nil
+	return txsCode, work.State, work.Receipts, types.GetCoinTX(originalTxs), work.GetTxs(), nil, nil
 }
 
 func (bd *ManBlkBasePlug) Finalize(support BlKSupport, header *types.Header, state *state.StateDBManage, txs []types.CoinSelfTransaction, uncles []*types.Header, receipts []types.CoinReceipts, args interface{}) (*types.Block, interface{}, error) {

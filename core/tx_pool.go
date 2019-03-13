@@ -631,24 +631,34 @@ func (nPool *NormalTxPool) Content() map[common.Address][]*types.Transaction {
 // Pending retrieves all currently processable transactions, groupped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
-func (nPool *NormalTxPool) Pending() (map[common.Address][]types.SelfTransaction, error) {
+func (nPool *NormalTxPool) Pending() (map[string]map[common.Address][]types.SelfTransaction, error) {
 	nPool.mu.Lock()
 	defer nPool.mu.Unlock()
-	pending := make(map[common.Address][]types.SelfTransaction)
+	pending := make(map[string]map[common.Address][]types.SelfTransaction)
 	for addr, list := range nPool.pending {
 		txlist := make([]*types.Transaction, 0)
-		for _, txs := range list.txs {
+		for coin, txs := range list.txs {
 			txlist = append(txlist, txs.Flatten()...)
-		}
-		var txser types.SelfTransactions
-		for _, tx := range txlist {
-			txser = append(txser, tx)
-			if len(tx.N) <= 0 {
-				continue
+			txsmap := pending[coin]
+			txsmap = make(map[common.Address][]types.SelfTransaction)
+			for _,tx := range txlist{
+				if len(tx.N) <= 0 {
+					continue
+				}
+				nPool.NContainer[tx.N[0]] = tx
+				txsmap[addr] = append(txsmap[addr],tx)
 			}
-			nPool.NContainer[tx.N[0]] = tx
+			pending[coin] = txsmap
 		}
-		pending[addr] = txser
+		//var txser types.SelfTransactions
+		//for _, tx := range txlist {
+		//	txser = append(txser, tx)
+		//	if len(tx.N) <= 0 {
+		//		continue
+		//	}
+		//	nPool.NContainer[tx.N[0]] = tx
+		//}
+		//pending[addr] = txser
 	}
 	return pending, nil
 }
@@ -1207,7 +1217,8 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 		for _, coinCfg := range coinCfglist {
 			if coinCfg.CoinType == tx.Currency {
-				payGasType = coinCfg.CoinType
+				payGasType = coinCfg.PayCoinType
+				break
 			}
 		}
 	}

@@ -549,6 +549,7 @@ type SMakeCoin struct {
 	PackNum     uint64
 	CoinAddress Address
 	//CoinTotal *big.Int  //总发行量
+	PayCoinType	string
 }
 
 type BroadTxkey struct {
@@ -692,6 +693,7 @@ type CoinConfig struct {
 	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位
 	CoinTotal   *hexutil.Big `json:"CoinTotal"`   //总发行量
 	CoinAddress Address      `json:"CoinAddress"` //币种交易费账户
+	PayCoinType	string 		 `json:"PayCoinType"` //发放币种
 }
 
 const COINPREFIX string = "ms_"
