@@ -220,7 +220,7 @@ func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, pre
 			rewardList = append(rewardList, common.RewarTx{CoinRange: config.CoinRange, CoinType: config.CoinType, Fromaddr: config.CoinAddress, To_Amont: txsRewardMap, RewardTyp: common.RewardTxsType})
 		}
 	}
-	return rewardList
+	return util.TxsCoinAccumulator(preState, rewardList)
 }
 
 func (p *StateProcessor) ProcessSuperBlk(block *types.Block, statedb *state.StateDBManage) error {
