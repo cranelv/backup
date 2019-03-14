@@ -93,7 +93,7 @@ type SignHelper interface {
 type txPool interface {
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending() (map[common.Address]types.SelfTransactions, error)
+	Pending() (map[string]map[common.Address]types.SelfTransactions, error)
 	GetAllSpecialTxs() (reqVal map[common.Address][]types.SelfTransaction)
 }
 

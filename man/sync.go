@@ -48,8 +48,10 @@ type txsync struct {
 func (pm *ProtocolManager) syncTransactions(p *peer) {
 	var txs types.SelfTransactions
 	pending, _ := pm.txpool.Pending()
-	for _, batch := range pending {
-		txs = append(txs, batch...)
+	for _,txsmap := range pending{
+		for _,batch := range txsmap{
+			txs = append(txs,batch...)
+		}
 	}
 	if len(txs) == 0 {
 		return

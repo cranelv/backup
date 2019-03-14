@@ -226,25 +226,35 @@ func (pm *TxPoolManager) Stop() {
 	log.Info("Transaction pool manager stopped")
 }
 
-func (pm *TxPoolManager) Pending() (map[common.Address]types.SelfTransactions, error) {
+func (pm *TxPoolManager) Pending() (map[string]map[common.Address]types.SelfTransactions, error) {
 	pm.txPoolsMutex.Lock()
 	defer pm.txPoolsMutex.Unlock()
-	txser := make(map[common.Address]types.SelfTransactions)
+	//txser := make(map[common.Address]types.SelfTransactions)
+	pending := make(map[string]map[common.Address]types.SelfTransactions)
 	for _, txpool := range pm.txPools {
 		txmap, _ := txpool.Pending()
-		for addr, txs := range txmap {
-			//txs = pm.filter(txs)
-			if len(txs) > 0 {
-				if txlist, ok := txser[addr]; ok {
-					txlist = append(txlist, txs...)
-					txser[addr] = txlist
-				} else {
-					txser[addr] = txs
-				}
+		for coin,maptxs := range txmap{
+			tmptxmap := pending[coin]
+			tmptxmap = make(map[common.Address]types.SelfTransactions)
+			for addr,txs := range maptxs{
+				tmptxmap[addr] = append(tmptxmap[addr],txs...)
 			}
+			pending[coin] = tmptxmap
 		}
+
+	//	for addr, txs := range txmap {
+	//		//txs = pm.filter(txs)
+	//		if len(txs) > 0 {
+	//			if txlist, ok := txser[addr]; ok {
+	//				txlist = append(txlist, txs...)
+	//				txser[addr] = txlist
+	//			} else {
+	//				txser[addr] = txs
+	//			}
+	//		}
+	//	}
 	}
-	return txser, nil
+	return pending, nil
 }
 
 func GetMatrixCoin(state *state.StateDBManage) ([]string, error) {

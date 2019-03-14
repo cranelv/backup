@@ -21,6 +21,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 )
 
 var (
@@ -144,12 +145,23 @@ func (st *StateTransition) BuyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	balance := st.state.GetBalanceByType(params.MAN_COIN, st.msg.AmontFrom(), common.MainAccount)
+	coinCfglist,err := matrixstate.GetCoinConfig(st.state)
+	if err != nil{
+		return errors.New("get GetCoinConfig err")
+	}
+	var payGasType string = params.MAN_COIN
+	for _,coinCfg := range coinCfglist{
+		if coinCfg.CoinType == st.msg.GetTxCurrency() {
+			payGasType = coinCfg.PayCoinType
+			break
+		}
+	}
+	balance := st.state.GetBalanceByType(payGasType, st.msg.AmontFrom(), common.MainAccount)
 	if balance.Cmp(mgval) < 0 {
 		log.Error("MAN", "BuyGas err", "MAN Coin : Insufficient account balance.")
 		return errors.New("MAN Coin : Insufficient account balance.")
 	}
-	st.state.SubBalance(params.MAN_COIN, common.MainAccount, st.msg.AmontFrom(), mgval)
+	st.state.SubBalance(payGasType, common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
 
@@ -424,6 +436,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	if len(makecoin.AddrAmount) <= 0 {
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
 	}
+	if makecoin.PayCoinType != makecoin.CoinName && makecoin.PayCoinType != params.MAN_COIN{
+		return nil, 0, false, shardings, errors.New("state_transition,make coin err, PayCoinType is error")
+	}
 	addrVal := make(map[common.Address]*big.Int)
 	for str, amount := range makecoin.AddrAmount {
 		if str == "" {
@@ -489,6 +504,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			coincfglist[i].CoinTotal = (*hexutil.Big)(totalAmont)
 			coincfglist[i].CoinUnit = makecoin.CoinUnit
 			coincfglist[i].CoinAddress = makecoin.CoinAddress
+			coincfglist[i].PayCoinType = makecoin.PayCoinType
 			isCoin = false
 		}
 	}
@@ -499,6 +515,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			CoinTotal:   new(hexutil.Big),
 			CoinUnit:    new(hexutil.Big),
 			CoinAddress: makecoin.CoinAddress,
+			PayCoinType: makecoin.PayCoinType,
 		}
 		tmpcc.CoinTotal = (*hexutil.Big)(totalAmont)
 		tmpcc.CoinUnit = makecoin.CoinUnit
