@@ -3,9 +3,6 @@ package rewardexec
 import (
 	"math/big"
 
-	"github.com/MatrixAINetwork/go-matrix/core/state"
-	"github.com/MatrixAINetwork/go-matrix/core/types"
-
 	"github.com/MatrixAINetwork/go-matrix/params"
 
 	"github.com/MatrixAINetwork/go-matrix/reward/cfg"
@@ -29,12 +26,6 @@ type BlockReward struct {
 	bcInterval         *mc.BCIntervalInfo
 	topology           *mc.TopologyGraph
 	elect              *mc.ElectGraph
-}
-
-type ChainReader interface {
-	GetHeaderByHash(hash common.Hash) *types.Header
-
-	StateAtBlockHash(hash common.Hash) (*state.StateDBManage, error)
 }
 
 func New(chain util.ChainReader, rewardCfg *cfg.RewardCfg, st util.StateDB, interval *mc.BCIntervalInfo, foundationAccount common.Address, top *mc.TopologyGraph, elect *mc.ElectGraph) *BlockReward {
