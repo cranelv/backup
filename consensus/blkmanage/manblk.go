@@ -228,7 +228,7 @@ func (bd *ManBlkBasePlug) ProcessState(support BlKSupport, header *types.Header,
 
 	//block := types.NewBlock(header, types.MakeCurencyBlock(types.GetCoinTX(finalTxs), work.Receipts, nil), nil)
 	block := types.NewBlock(header, types.MakeCurencyBlock(work.GetTxs(), work.Receipts, nil), nil)
-	//log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.TxHashList(finalTxs))
+	log.Debug(LogManBlk, "区块验证请求生成，交易部分,完成 tx hash", types.CoinTxHashList(work.GetTxs()))
 	parent := support.BlockChain().GetBlockByHash(header.ParentHash)
 	err = support.BlockChain().ProcessMatrixState(block, string(parent.Version()), work.State)
 	if err != nil {

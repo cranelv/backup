@@ -309,22 +309,15 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	sort.Strings(coinsnoman)
 	coins = append(coins,params.MAN_COIN)
 	coins = append(coins,coinsnoman...)
-	finalTxsmap := make(map[string][]types.CoinSelfTransaction) //按币种存放的所有交易map
-	finalRecpetsmap := make(map[string][]types.CoinReceipts) //按币种存放的所有收据map
 	//先跑MAN交易，后跑其他币种交易
 	for _,coinname := range coins{
 		tmplistret, tmporiginalTxs := env.commitTransactions(mux, pending[coinname], common.Address{})
 		originalTxs = append(originalTxs,tmporiginalTxs...)
 		listret = append(listret,tmplistret...)
-
-		tmptxsmap := finalTxsmap[coinname]
-		tmptxsmap = append(tmptxsmap,types.GetCoinTX(tmporiginalTxs)...)
-		finalTxsmap[coinname] = tmptxsmap
-		tmprecpetmap := finalRecpetsmap[coinname]
-		_,coinrecpts := types.GetCoinTXRS(tmporiginalTxs,env.recpts)
-		tmprecpetmap = append(tmprecpetmap,coinrecpts...)
-		finalRecpetsmap[coinname] = tmprecpetmap
 	}
+
+	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
+	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
@@ -333,15 +326,14 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number, "tx num ", len(originalTxs))
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
 	rewardTxmap := env.makeTransaction(rewart)
-	//tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
-	//tmpReceips := make([]types.CoinReceipts,0,len(coins))
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
 	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
-		var tReceipt types.CoinReceipts
-		var tRewartTx types.CoinSelfTransaction
-		//tmpcoinTxs := make([]types.CoinSelfTransaction,0,len(coins))
+		var tCoinReceipt types.CoinReceipts
+		var tCointxs types.CoinSelfTransaction
+		tmpTxs := make([]types.SelfTransaction,0)
+		tmpRecepts := make(types.Receipts,0)
 		//tmpcoinRecpets := make([]types.CoinReceipts,0,len(coins))
 		for _, tx := range rewardTxmap[coinname] {
 			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
@@ -349,32 +341,31 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 				continue
 			}
-			tReceipt.CoinType = coinname	//必须放循环里赋值，防止交易都执行失败时交易为空但cointype赋值了
-			tRewartTx.CoinType = coinname
-			tRewartTx.Txser = append(tRewartTx.Txser,tx)
-			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
+			tmpTxs = append(tmpTxs,tx) //奖励放对应分区币种的前面
+			tmpRecepts = append(tmpRecepts,recpts) //奖励放对应分区币种的前面
 		}
-		for _,cointxs := range finalTxsmap[coinname]{
-			tRewartTx.Txser = append(tRewartTx.Txser,cointxs.Txser...)
-		}
-		//tmpcoinTxs = append(tmpcoinTxs,tRewartTx)
-		//tmpcoinTxs = append(tmpcoinTxs,finalTxsmap[coinname]...)
-		allfinalTxs = append(allfinalTxs,tRewartTx) //奖励交易放对应分区币种的前面
 
-		for _,coinrecpts := range finalRecpetsmap[coinname]{
-			tReceipt.Receiptlist = append(tReceipt.Receiptlist,coinrecpts.Receiptlist...)
+		//tmpTxs = append(tmpTxs,tRewartTx...) //奖励交易放对应分区币种的前面
+		for _,cointxs := range finalCoinTxs{
+			if coinname == cointxs.CoinType{
+				tmpTxs = append(tmpTxs,cointxs.Txser...)
+			}
 		}
-		//tmpcoinRecpets = append(tmpcoinRecpets,tReceipt)
-		//tmpcoinRecpets = append(tmpcoinRecpets,finalRecpetsmap[coinname]...)
-		allfinalRecpets = append(allfinalRecpets,tReceipt)
+		tCointxs.CoinType = coinname
+		tCointxs.Txser = tmpTxs
+		allfinalTxs = append(allfinalTxs,tCointxs)
+
+		for _,coinrecpts := range finalCoinRecpets{
+			if coinname == coinrecpts.CoinType{
+				tmpRecepts = append(tmpRecepts,coinrecpts.Receiptlist...)
+			}
+		}
+		tCoinReceipt.CoinType = coinname
+		tCoinReceipt.Receiptlist = tmpRecepts
+		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
 	}
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
-	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
-	//tmpReceips = append(tmpReceips,env.Receipts...)
-	//env.Receipts = tmpReceips
-	//tmpTxslist = append(tmpTxslist,env.txs...)
-	//env.txs = tmpTxslist
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
 	return
 }
@@ -479,6 +470,8 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 			env.commitTransaction(t, env.bc, common.Address{}, nil)
 		}
 	}
+	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
+	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
 	rewardTxmap := env.makeTransaction(rewart)
@@ -494,32 +487,46 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	coins = append(coins,params.MAN_COIN)
 	coins = append(coins,coinsnoman...)
 
-	tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
-	tmpReceips := make([]types.CoinReceipts,0,len(coins))
+	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
+	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
-		var tReceipt types.CoinReceipts
-		var tRewartTx types.CoinSelfTransaction
-		tReceipt.CoinType = coinname
-		tRewartTx.CoinType = coinname
+		var tCoinReceipt types.CoinReceipts
+		var tCointxs types.CoinSelfTransaction
+		tmpTxs := make([]types.SelfTransaction,0)
+		tmpRecepts := make(types.Receipts,0)
+		//tmpcoinRecpets := make([]types.CoinReceipts,0,len(coins))
 		for _, tx := range rewardTxmap[coinname] {
 			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 			if err != nil {
 				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 				continue
 			}
-			tRewartTx.Txser = append(tRewartTx.Txser,tx)
-			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
+			tmpTxs = append(tmpTxs,tx) //奖励放对应分区币种的前面
+			tmpRecepts = append(tmpRecepts,recpts) //奖励放对应分区币种的前面
 		}
 
-		tmpTxslist = append(tmpTxslist,tRewartTx)
-		tmpReceips = append(tmpReceips,tReceipt)
-	}
+		//tmpTxs = append(tmpTxs,tRewartTx...) //奖励交易放对应分区币种的前面
+		for _,cointxs := range finalCoinTxs{
+			if coinname == cointxs.CoinType{
+				tmpTxs = append(tmpTxs,cointxs.Txser...)
+			}
+		}
+		tCointxs.CoinType = coinname
+		tCointxs.Txser = tmpTxs
+		allfinalTxs = append(allfinalTxs,tCointxs)
 
-	env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
-	tmpReceips = append(tmpReceips,env.Receipts...)
-	env.Receipts = tmpReceips
-	tmpTxslist = append(tmpTxslist,env.txs...)
-	env.txs = tmpTxslist
+		for _,coinrecpts := range finalCoinRecpets{
+			if coinname == coinrecpts.CoinType{
+				tmpRecepts = append(tmpRecepts,coinrecpts.Receiptlist...)
+			}
+		}
+		tCoinReceipt.CoinType = coinname
+		tCoinReceipt.Receiptlist = tmpRecepts
+		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
+	}
+	env.txs = allfinalTxs
+	env.Receipts = allfinalRecpets
 
 	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	return
@@ -555,6 +562,9 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			from[t.GetTxCurrency()] = append(from[t.GetTxCurrency()], t.From())
 		}
 	}
+	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
+	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
+
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
 	rewardTxmap := env.makeTransaction(rewart)
@@ -570,32 +580,46 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	coins = append(coins,params.MAN_COIN)
 	coins = append(coins,coinsnoman...)
 
-	tmpTxslist := make([]types.CoinSelfTransaction,0,len(coins))
-	tmpReceips := make([]types.CoinReceipts,0,len(coins))
+	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
+	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
-		var tReceipt types.CoinReceipts
-		var tRewartTx types.CoinSelfTransaction
-		tReceipt.CoinType = coinname
-		tRewartTx.CoinType = coinname
+		var tCoinReceipt types.CoinReceipts
+		var tCointxs types.CoinSelfTransaction
+		tmpTxs := make([]types.SelfTransaction,0)
+		tmpRecepts := make(types.Receipts,0)
+		//tmpcoinRecpets := make([]types.CoinReceipts,0,len(coins))
 		for _, tx := range rewardTxmap[coinname] {
 			err, _ ,recpts:= env.s_commitTransaction(tx, common.Address{}, new(core.GasPool).AddGas(0))
 			if err != nil {
 				log.Error("work.go", "ProcessTransactions:::reward Tx call Error", err)
 				continue
 			}
-			tRewartTx.Txser = append(tRewartTx.Txser,tx)
-			tReceipt.Receiptlist = append(tReceipt.Receiptlist,recpts)
+			tmpTxs = append(tmpTxs,tx) //奖励放对应分区币种的前面
+			tmpRecepts = append(tmpRecepts,recpts) //奖励放对应分区币种的前面
 		}
 
-		tmpTxslist = append(tmpTxslist,tRewartTx)
-		tmpReceips = append(tmpReceips,tReceipt)
-	}
+		//tmpTxs = append(tmpTxs,tRewartTx...) //奖励交易放对应分区币种的前面
+		for _,cointxs := range finalCoinTxs{
+			if coinname == cointxs.CoinType{
+				tmpTxs = append(tmpTxs,cointxs.Txser...)
+			}
+		}
+		tCointxs.CoinType = coinname
+		tCointxs.Txser = tmpTxs
+		allfinalTxs = append(allfinalTxs,tCointxs)
 
-	env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
-	tmpReceips = append(tmpReceips,env.Receipts...)
-	env.Receipts = tmpReceips
-	tmpTxslist = append(tmpTxslist,env.txs...)
-	env.txs = tmpTxslist
+		for _,coinrecpts := range finalCoinRecpets{
+			if coinname == coinrecpts.CoinType{
+				tmpRecepts = append(tmpRecepts,coinrecpts.Receiptlist...)
+			}
+		}
+		tCoinReceipt.CoinType = coinname
+		tCoinReceipt.Receiptlist = tmpRecepts
+		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
+	}
+	env.txs = allfinalTxs
+	env.Receipts = allfinalRecpets
 
 	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	if len(coalescedLogs) > 0 || env.tcount > 0 {

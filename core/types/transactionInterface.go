@@ -173,3 +173,11 @@ func TxHashList(txs SelfTransactions)(list []common.Hash){
 	}
 	return
 }
+func CoinTxHashList(txs []CoinSelfTransaction)(list []common.Hash){
+	for _,cointx := range txs{
+		for _,tx := range cointx.Txser{
+			list = append(list,tx.Hash())
+		}
+	}
+	return
+}
