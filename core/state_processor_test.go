@@ -90,7 +90,7 @@ func TestStateProcessor_onlyman(t *testing.T) {
 	txs.setNodesRewards(params.MAN_COIN, ManMap)
 
 	//txs.CalcNodesRewards(new(big.Int).SetUint64(1e10), common.HexToAddress("11"), 1, common.Hash{}, params.MAN_COIN)
-	out := processor.ProcessMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
+	out := processor.processMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
 	if 1 != len(out) {
 		t.Error("输出结果错误", len(out))
 	}
@@ -177,7 +177,7 @@ func TestStateProcessor_ProcessMultiCoinReward(t *testing.T) {
 
 	txs.setNodesRewards("C", CMap)
 	//txs.CalcNodesRewards(new(big.Int).SetUint64(1e10), common.HexToAddress("11"), 1, common.Hash{}, params.MAN_COIN)
-	out := processor.ProcessMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
+	out := processor.processMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
 	if 4 != len(out) {
 		t.Error("输出结果错误", len(out))
 	}
@@ -264,7 +264,7 @@ func TestStateProcessor_ProcessMultiCoinReward2(t *testing.T) {
 
 	txs.setNodesRewards("C", CMap)
 	//txs.CalcNodesRewards(new(big.Int).SetUint64(1e10), common.HexToAddress("11"), 1, common.Hash{}, params.MAN_COIN)
-	out := processor.ProcessMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
+	out := processor.processMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
 	if 4 != len(out) {
 		t.Error("输出结果错误", len(out))
 	}
@@ -351,7 +351,7 @@ func TestStateProcessor_ProcessMultiCoinReward3(t *testing.T) {
 
 	txs.setNodesRewards("C", CMap)
 	//txs.CalcNodesRewards(new(big.Int).SetUint64(1e10), common.HexToAddress("11"), 1, common.Hash{}, params.MAN_COIN)
-	out := processor.ProcessMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
+	out := processor.processMultiCoinReward(usedGas, preState, txs, &types.Header{Number: new(big.Int).SetUint64(1), Leader: common.HexToAddress("11"), ParentHash: common.Hash{}}, rewardlist)
 	if 4 != len(out) {
 		t.Error("输出结果错误", len(out))
 	}

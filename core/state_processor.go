@@ -25,6 +25,8 @@ import (
 
 	"encoding/json"
 
+	"sort"
+
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
@@ -40,7 +42,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/reward/slash"
 	"github.com/MatrixAINetwork/go-matrix/reward/txsreward"
 	"github.com/pkg/errors"
-	"sort"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -152,12 +153,12 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 		//todo: read half number from state
 		minersRewardMap := blkReward.CalcMinerRewards(header.Number.Uint64(), header.ParentHash)
 		if 0 != len(minersRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinRange:params.MAN_COIN,CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
+			rewardList = append(rewardList, common.RewarTx{CoinRange: params.MAN_COIN, CoinType: params.MAN_COIN, Fromaddr: common.BlkMinerRewardAddress, To_Amont: minersRewardMap, RewardTyp: common.RewardMinerType})
 		}
 
 		validatorsRewardMap := blkReward.CalcValidatorRewards(header.Leader, header.Number.Uint64())
 		if 0 != len(validatorsRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinRange:params.MAN_COIN,CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
+			rewardList = append(rewardList, common.RewarTx{CoinRange: params.MAN_COIN, CoinType: params.MAN_COIN, Fromaddr: common.BlkValidatorRewardAddress, To_Amont: validatorsRewardMap, RewardTyp: common.RewardValidatorType})
 		}
 	}
 
@@ -171,7 +172,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	if nil != lottery {
 		lotteryRewardMap := lottery.LotteryCalc(header.ParentHash, header.Number.Uint64())
 		if 0 != len(lotteryRewardMap) {
-			rewardList = append(rewardList, common.RewarTx{CoinRange:params.MAN_COIN,CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap, RewardTyp: common.RewardLotteryType})
+			rewardList = append(rewardList, common.RewarTx{CoinRange: params.MAN_COIN, CoinType: params.MAN_COIN, Fromaddr: common.LotteryRewardAddress, To_Amont: lotteryRewardMap, RewardTyp: common.RewardLotteryType})
 		}
 		lottery.LotterySaveAccount(account[params.MAN_COIN], header.VrfValue)
 	}
@@ -190,9 +191,9 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	}
 	interestPayMap := interestReward.PayInterest(st, header.Number.Uint64())
 	if 0 != len(interestPayMap) {
-		rewardList = append(rewardList, common.RewarTx{CoinRange:params.MAN_COIN,CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
+		rewardList = append(rewardList, common.RewarTx{CoinRange: params.MAN_COIN, CoinType: params.MAN_COIN, Fromaddr: common.InterestRewardAddress, To_Amont: interestPayMap, RewardTyp: common.RewardInterestType})
 	}
-	return p.reverse(util.AccumulatorCheck(st, rewardList))
+	return util.AccumulatorCheck(st, rewardList)
 }
 
 func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, preState *state.StateDBManage, txsReward reward.Reward, header *types.Header, rewardList []common.RewarTx) []common.RewarTx {
@@ -353,7 +354,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	tMaptxs := make(map[string]types.SelfTransactions)
 	for _, cb := range block.Currencies() {
 		alltxs := tMaptxs[cb.CurrencyName]
-		alltxs = append(alltxs,cb.Transactions.GetTransactions()...)
+		alltxs = append(alltxs, cb.Transactions.GetTransactions()...)
 		tMaptxs[cb.CurrencyName] = alltxs
 	}
 	var waitG = &sync.WaitGroup{}
@@ -363,24 +364,24 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	}
 
 	rewardTxmap := make(map[string]types.SelfTransactions) //存放所有奖励交易
-	txsmap := make(map[string]types.SelfTransactions) //存放所有普通交易
-	for coinname,txs := range tMaptxs{
-		for _,tx := range txs {
+	txsmap := make(map[string]types.SelfTransactions)      //存放所有普通交易
+	for coinname, txs := range tMaptxs {
+		for _, tx := range txs {
 			if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
 				tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
 				rewardtxs := rewardTxmap[coinname]
-				rewardtxs = append(rewardtxs,tx)
+				rewardtxs = append(rewardtxs, tx)
 				rewardTxmap[coinname] = rewardtxs
 				continue
 			}
 			tmptxs := txsmap[coinname]
-			tmptxs = append(tmptxs,tx)
+			tmptxs = append(tmptxs, tx)
 			txsmap[coinname] = tmptxs
 		}
 	}
 
-	for _,txs := range txsmap{
-		for _,tx := range txs{
+	for _, txs := range txsmap {
+		for _, tx := range txs {
 			sig := types.NewEIP155Signer(tx.ChainId())
 			waitG.Add(1)
 			ttx := tx
@@ -391,82 +392,82 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	waitG.Wait()
 	from := make(map[string][]common.Address)
 	isvadter := p.isValidater(header.ParentHash)
-	coins := make([]string,0)
-	coinsnoman := make([]string,0)
-	for coin,_ := range txsmap{
-		if coin == params.MAN_COIN{
+	coins := make([]string, 0)
+	coinsnoman := make([]string, 0)
+	for coin, _ := range txsmap {
+		if coin == params.MAN_COIN {
 			continue
 		}
-		coinsnoman = append(coinsnoman,coin)
+		coinsnoman = append(coinsnoman, coin)
 	}
 	sort.Strings(coinsnoman)
-	coins = append(coins,params.MAN_COIN)
-	coins = append(coins,coinsnoman...)
+	coins = append(coins, params.MAN_COIN)
+	coins = append(coins, coinsnoman...)
 	//先跑MAN交易,再跑其他币种交易
-	for _,coinname := range coins{
-		txs= txsmap[coinname]
-		for i,tx := range txs{
-				if tx.IsEntrustTx() {
-					from := tx.From()
-					entrustFrom := statedb.GetGasAuthFrom(tx.GetTxCurrency(), from, p.bc.CurrentBlock().NumberU64()) //
+	for _, coinname := range coins {
+		txs = txsmap[coinname]
+		for i, tx := range txs {
+			if tx.IsEntrustTx() {
+				from := tx.From()
+				entrustFrom := statedb.GetGasAuthFrom(tx.GetTxCurrency(), from, p.bc.CurrentBlock().NumberU64()) //
+				if !entrustFrom.Equal(common.Address{}) {
+					tx.Setentrustfrom(entrustFrom)
+					tx.SetIsEntrustGas(true)
+				} else {
+					entrustFrom := statedb.GetGasAuthFromByTime(tx.GetTxCurrency(), from, uint64(block.Time().Uint64()))
 					if !entrustFrom.Equal(common.Address{}) {
 						tx.Setentrustfrom(entrustFrom)
 						tx.SetIsEntrustGas(true)
+						tx.SetIsEntrustByTime(true)
 					} else {
-						entrustFrom := statedb.GetGasAuthFromByTime(tx.GetTxCurrency(), from, uint64(block.Time().Uint64()))
-						if !entrustFrom.Equal(common.Address{}) {
-							tx.Setentrustfrom(entrustFrom)
-							tx.SetIsEntrustGas(true)
-							tx.SetIsEntrustByTime(true)
-						} else {
-							log.Error("下载过程:该用户没有被授权过委托Gas")
-							return nil, 0, ErrWithoutAuth
-						}
+						log.Error("下载过程:该用户没有被授权过委托Gas")
+						return nil, 0, ErrWithoutAuth
 					}
 				}
-				statedb.Prepare(tx.Hash(), block.Hash(), i)
-				receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-				if err != nil {
-					return nil, 0, err
-				}
-				allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
-				//retAllGas[tx.GetTxCurrency()] += gas
-				if _, ok := retAllGas[tx.GetTxCurrency()]; !ok {
-					retAllGas[tx.GetTxCurrency()] = new(big.Int).SetUint64(gas)
-				} else {
-					retAllGas[tx.GetTxCurrency()].Add(retAllGas[tx.GetTxCurrency()], new(big.Int).SetUint64(gas))
-				}
+			}
+			statedb.Prepare(tx.Hash(), block.Hash(), i)
+			receipt, gas, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+			if err != nil {
+				return nil, 0, err
+			}
+			allreceipts[tx.GetTxCurrency()] = append(allreceipts[tx.GetTxCurrency()], receipt)
+			//retAllGas[tx.GetTxCurrency()] += gas
+			if _, ok := retAllGas[tx.GetTxCurrency()]; !ok {
+				retAllGas[tx.GetTxCurrency()] = new(big.Int).SetUint64(gas)
+			} else {
+				retAllGas[tx.GetTxCurrency()].Add(retAllGas[tx.GetTxCurrency()], new(big.Int).SetUint64(gas))
+			}
 
-				if isvadter {
+			if isvadter {
+				//receipts = append(receipts, receipt)
+				allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
+				tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], tx)
+				tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], receipt)
+			} else {
+				if p.isaddSharding(shard, coinShard, tx.GetTxCurrency()) {
 					//receipts = append(receipts, receipt)
 					allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
 					tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], tx)
 					tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], receipt)
 				} else {
-					if p.isaddSharding(shard, coinShard, tx.GetTxCurrency()) {
-						//receipts = append(receipts, receipt)
-						allLogs = append(allLogs, types.CoinLogs{CoinType: tx.GetTxCurrency(), Logs: receipt.Logs})
-						tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], tx)
-						tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], receipt)
-					} else {
-						if _, ok := tmpMaptx[tx.GetTxCurrency()]; ok {
-							//receipts = append(receipts, nil)
-							tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], nil)
-							tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], nil)
-						}
+					if _, ok := tmpMaptx[tx.GetTxCurrency()]; ok {
+						//receipts = append(receipts, nil)
+						tmpMaptx[tx.GetTxCurrency()] = append(tmpMaptx[tx.GetTxCurrency()], nil)
+						tmpMapre[tx.GetTxCurrency()] = append(tmpMapre[tx.GetTxCurrency()], nil)
 					}
 				}
-				txcount = i
-				from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 			}
+			txcount = i
+			from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
+		}
 	}
 
 	p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	//先是MAN奖励交易,后是其他币种奖励交易
-	for _,coinname := range coins{
+	for _, coinname := range coins {
 		tmpRewardtxs := rewardTxmap[coinname]
 		ftxs := make([]types.SelfTransaction, 0)
-		receipts := make(types.Receipts,0)
+		receipts := make(types.Receipts, 0)
 		for _, tx := range tmpRewardtxs {
 			statedb.Prepare(tx.Hash(), block.Hash(), txcount+1)
 			receipt, _, shard, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)

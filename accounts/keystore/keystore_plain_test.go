@@ -86,7 +86,7 @@ func TestKeyStorePassphrase(t *testing.T) {
 func TestKeyStorePassphraseVersion(t *testing.T) {
 
 	pass := "xxx"
-	filename := "D:\\gopath\\bin\\release\\data\\superrollback0\\chaindata\\keystore\\UTC--2018-11-06T07-06-53.216916000Z--MAN.2ww9ZDPEAVNJGu3iSjJF7r5EhP5jS"
+	filename := "D:\\gopath\\bin\\release\\data\\boot1\\chaindata\\keystore\\UTC--2018-07-10T09-55-32.981025668Z--MAN.CrsnQSJJfGxpb2taGhChLuyZwZJo"
 	keyjson, err := ioutil.ReadFile(string(filename))
 	if err != nil {
 		log.Crit("Failed to read user input", "err", err)
