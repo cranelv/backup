@@ -149,6 +149,12 @@ type DownloadFileInfo struct {
 	StrIPFSServer2Info   string
 	StrIPFSServer3Info   string
 	StrIPFSServer4Info   string
+	StrIPFSServer5Info   string
+	StrIPFSServer6Info   string
+	StrIPFSServer7Info   string
+	StrIPFSServer8Info   string
+	StrIPFSServer9Info   string
+	StrIPFSServer10Info  string
 	PrimaryDescription   string
 	SecondaryDescription string
 }
@@ -281,7 +287,7 @@ func (d *Downloader) IpfsDownloadInit() error {
 	var outerr bytes.Buffer
 	// Directory
 	CheckDirAndCreate(strCacheDirectory)
-	fmt.Println("IpfsDownloadInit enter")
+	//fmt.Println("IpfsDownloadInit enter")
 	//
 	d.dpIpfs.StrIPFSLocationPath = IpfsInfo.IpfsPath      //"D:\\lb\\go-ipfs"
 	d.dpIpfs.StrIPFSExecName = IpfsInfo.IpfsPath + "ipfs" //d.dpIpfs.StrIPFSLocationPath + "\\ipfs.exe"
@@ -291,7 +297,7 @@ func (d *Downloader) IpfsDownloadInit() error {
 	d.dpIpfs.StrIPFSServerInfo = IpfsInfo.StrIPFSServerInfo //"/ip4/192.168.3.30/tcp/4001/ipfs/QmQSazdGapokSejxeTTQc4tCRcHgqRPtoMeW3trRk4zA1S"
 	//	return nil // foe test
 	listPeerId[0] = d.dpIpfs.StrIpfspeerID
-	listPeerId[1] = d.dpIpfs.StrIpfspeerID
+	listPeerId[1] = d.dpIpfs.StrIpfsSecondpeerID
 	if d.dpIpfs.StrIpfsSecondpeerID != "" {
 		listPeerId[1] = d.dpIpfs.StrIpfsSecondpeerID
 	}
@@ -350,6 +356,31 @@ func (d *Downloader) IpfsDownloadInit() error {
 		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer4Info)
 		err = c.Run()
 	}
+	if IpfsInfo.StrIPFSServer5Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer5Info)
+		err = c.Run()
+	}
+	if IpfsInfo.StrIPFSServer6Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer6Info)
+		err = c.Run()
+	}
+	if IpfsInfo.StrIPFSServer7Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer7Info)
+		err = c.Run()
+	}
+	if IpfsInfo.StrIPFSServer8Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer8Info)
+		err = c.Run()
+	}
+	if IpfsInfo.StrIPFSServer9Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer9Info)
+		err = c.Run()
+	}
+	if IpfsInfo.StrIPFSServer10Info != "" {
+		c = exec.Command(d.dpIpfs.StrIPFSExecName, "bootstrap", "add", IpfsInfo.StrIPFSServer10Info)
+		err = c.Run()
+	}
+
 	out.Reset()
 	outerr.Reset()
 
@@ -1458,8 +1489,13 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 	}
 	if bNeedBatch == true {
 		d.AddNewBatchBlockToIpfs()
+		if SingleBlockStore == false {
+			err = d.IPfsDirectoryUpdate()
+		}
 	}
-	err = d.IPfsDirectoryUpdate()
+	if SingleBlockStore == true {
+		err = d.IPfsDirectoryUpdate()
+	}
 	testShowlog++
 
 	//if testShowlog == 6 || testShowlog == 18 || testShowlog == 30 || testShowlog == 50 || testShowlog == 70 {
@@ -2114,7 +2150,7 @@ func (d *Downloader) AddStateRootInfoToIpfs(blockNum uint64, strheadHash string,
 	}
 	gIpfsStat.totalZipSnapDataSize += zipSize
 
-	log.Warn(" ipfs AddStateRootInfoToIpfs snap", "blockNum", blockNum, "newblock", newBlock, "bHash", string(bHash[0:IpfsHashLen]),
+	log.Warn("static ipfs AddStateRootInfoToIpfs snap", "blockNum", blockNum, "newblock", newBlock, "bHash", string(bHash[0:IpfsHashLen]),
 		"snapSize", snapSize, "zipSize", zipSize, "snaptotalSize", gIpfsStat.totalSnapDataSize, "snapTotalzipSize", gIpfsStat.totalZipSnapDataSize)
 	if gIpfsStoreCache.storeipfsCache1 == nil {
 		readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
@@ -2230,7 +2266,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 	}
 
 	offset = uint64(len(bhead))
-	log.Trace(" ipfs BatchStoreAllBlock write header ", "blockNum", blockNum, "offset", offset)
+	//log.Trace(" ipfs BatchStoreAllBlock write header ", "blockNum", blockNum, "offset", offset)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, HeadBatchFlag)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, offset)
 	binary.Write(d.dpIpfs.BatchStBlock.headerStoreFile, binary.BigEndian, blockNum)
@@ -2277,7 +2313,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 	}
 
 	offset = uint64(len(breceipt))
-	log.Trace(" ipfs BatchStoreAllBlock write receipt ", "blockNum", blockNum, "offset", offset)
+	//log.Trace(" ipfs BatchStoreAllBlock write receipt ", "blockNum", blockNum, "offset", offset)
 
 	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, ReceiptBatchFlag)
 	binary.Write(d.dpIpfs.BatchStBlock.receiptStoreFile, binary.BigEndian, offset)

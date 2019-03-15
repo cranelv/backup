@@ -121,10 +121,10 @@ type BlockChain struct {
 
 	stateCache   state.Database // State database to reuse between imports (contains state cache)
 	depCache     *lru.Cache
-	bodyCache    *lru.Cache     // Cache for the most recent block bodies
-	bodyRLPCache *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
-	blockCache   *lru.Cache     // Cache for the most recent entire blocks
-	futureBlocks *lru.Cache     // future blocks are blocks added for later processing
+	bodyCache    *lru.Cache // Cache for the most recent block bodies
+	bodyRLPCache *lru.Cache // Cache for the most recent block bodies in RLP encoded format
+	blockCache   *lru.Cache // Cache for the most recent entire blocks
+	futureBlocks *lru.Cache // future blocks are blocks added for later processing
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -172,7 +172,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	blockCache, _ := lru.New(blockCacheLimit)
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 	badBlocks, _ := lru.New(badBlockLimit)
-	deposits,_ := lru.New(10)
+	deposits, _ := lru.New(10)
 	bc := &BlockChain{
 		chainConfig:     chainConfig,
 		cacheConfig:     cacheConfig,
@@ -184,7 +184,7 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 		bodyRLPCache:    bodyRLPCache,
 		blockCache:      blockCache,
 		futureBlocks:    futureBlocks,
-		depCache:		 deposits,
+		depCache:        deposits,
 		engine:          make(map[string]consensus.Engine),
 		dposEngine:      make(map[string]consensus.DPOSEngine),
 		processor:       make(map[string]Processor),
@@ -1067,7 +1067,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		tmpBlock := &types.BlockAllSt{Sblock: block}
 		tmpBlock.Pading = txcount
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
-		log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
+		//log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
 			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
 		}
@@ -1475,9 +1475,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		stats.usedGas += usedGas
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())
 		//lb
-		tmp := txs
-		log.Trace("BlockChain insertChain mem", "len", len(tmp))
-		tmp = nil
+		//tmp := txs
+		//log.Trace("BlockChain insertChain mem", "len", len(tmp))
+		//tmp = nil
+		txs = nil
 		thd := block.Header()
 		thd.Elect = nil
 		thd.Difficulty = nil
@@ -2150,7 +2151,7 @@ func (bc *BlockChain) GetSignAccountPassword(signAccounts []common.Address) (com
 }
 
 //根据A1账户得到A2账户集合
-func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address,block *types.Block,st *state.StateDBManage) ([]common.Address, error) {
+func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address, block *types.Block, st *state.StateDBManage) ([]common.Address, error) {
 	//根据区块哈希得到区块
 	//得到区块高度
 	height := block.NumberU64()
@@ -2167,20 +2168,20 @@ func (bc *BlockChain) GetA2AccountsFromA1Account(a1Account common.Address,block 
 }
 
 //根据A2账户得到A1账户
-func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address,block *types.Block,st *state.StateDBManage) (common.Address, error) {
+func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address, block *types.Block, st *state.StateDBManage) (common.Address, error) {
 	//根据区块哈希得到区块
 	/*
-	block := bc.GetBlockByHash(blockHash)
-	if block == nil {
-		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块hash算区块失败", "err")
-		return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
-	}
-	//根据区块根得到区块链数据库
-	st, err := bc.StateAt(block.Root())
-	if err != nil {
-		log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
-		return common.Address{}, errors.New("获取stateDB失败")
-	}
+		block := bc.GetBlockByHash(blockHash)
+		if block == nil {
+			log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块hash算区块失败", "err")
+			return common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+		}
+		//根据区块根得到区块链数据库
+		st, err := bc.StateAt(block.Root())
+		if err != nil {
+			log.ERROR(common.SignLog, "从A2账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
+			return common.Address{}, errors.New("获取stateDB失败")
+		}
 	*/
 	//得到区块高度
 	height := block.NumberU64()
@@ -2194,7 +2195,7 @@ func (bc *BlockChain) GetA1AccountFromA2Account(a2Account common.Address,block *
 }
 
 //根据A0账户得到A1账户
-func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address,block *types.Block,st *state.StateDBManage) (common.Address, error) {
+func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address, block *types.Block, st *state.StateDBManage) (common.Address, error) {
 
 	a1Account := depoistInfo.GetAuthAccount(st, a0Account)
 	if a1Account == (common.Address{}) {
@@ -2206,7 +2207,7 @@ func (bc *BlockChain) GetA1AccountFromA0Account(a0Account common.Address,block *
 }
 
 //根据A1账户得到A0账户
-func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address,block *types.Block,st *state.StateDBManage) (common.Address, error) {
+func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address, block *types.Block, st *state.StateDBManage) (common.Address, error) {
 	//根据区块哈希得到区块
 	//根据区块根得到区块链数据库
 
@@ -2218,6 +2219,7 @@ func (bc *BlockChain) GetA0AccountFromA1Account(a1Account common.Address,block *
 	//log.Info(common.SignLog, "从A1账户获取A0账户", "成功", "存在A0账户 a1Account", a1Account, "a0Account", a0Account)
 	return a0Account, nil
 }
+
 /*
 //根据A2账户得到A0账户
 func (bc *BlockChain) GetA0AccountFromA2Account(a2Account common.Address, blockHash common.Hash) (common.Address, error) {
@@ -2247,11 +2249,11 @@ func (bc *BlockChain) GetA2AccountsFromA0Account(a0Account common.Address, block
 		return nil, errors.New("获取stateDB失败")
 	}
 
-	a1Account, err := bc.GetA1AccountFromA0Account(a0Account, block,st)
+	a1Account, err := bc.GetA1AccountFromA0Account(a0Account, block, st)
 	if err != nil {
 		return nil, err
 	}
-	a2Accounts, err := bc.GetA2AccountsFromA1Account(a1Account, block,st)
+	a2Accounts, err := bc.GetA2AccountsFromA1Account(a1Account, block, st)
 	if err != nil {
 		return nil, err
 	}
@@ -2264,28 +2266,28 @@ func (bc *BlockChain) GetA0AccountFromAnyAccount(account common.Address, blockHa
 	block := bc.GetBlockByHash(blockHash)
 	if block == nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块hash获取区块失败", "err")
-		return common.Address{},common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
+		return common.Address{}, common.Address{}, errors.Errorf("获取区块(%s)失败", blockHash.TerminalString())
 	}
 	//根据区块根得到区块链数据库
 	st, err := bc.getStateCache(block.Root())
 	if err != nil {
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
-		return common.Address{},common.Address{}, errors.New("获取stateDB失败")
+		return common.Address{}, common.Address{}, errors.New("获取stateDB失败")
 	}
 	//假设传入的account为A1账户
-	a0Account, err := bc.GetA0AccountFromA1Account(account, block,st)
+	a0Account, err := bc.GetA0AccountFromA1Account(account, block, st)
 	if err == nil {
 		//log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex())
 		return a0Account, account, nil
 	}
 	//走到这，说明是输入账户不是A1账户
-	a1Account, err := bc.GetA1AccountFromA2Account(account, block,st)
+	a1Account, err := bc.GetA1AccountFromA2Account(account, block, st)
 	if err != nil {
 		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为非法账户", "输入账户", account.Hex())
 		return common.Address{0}, common.Address{0}, err
 	}
 	//走到这，说明是A2账户
-	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, block,st)
+	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, block, st)
 	if err != nil {
 		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败")
 	}
@@ -2307,18 +2309,18 @@ func (bc *BlockChain) GetA2AccountsFromA0AccountAtSignHeight(a0Account common.Ad
 		log.ERROR(common.SignLog, "从A0账户获取A1账户", "失败", "根据区块root获取状态树失败 err", err)
 		return nil, errors.New("获取stateDB失败")
 	}
-	a1Account, err := bc.GetA1AccountFromA0Account(a0Account, block,st)
+	a1Account, err := bc.GetA1AccountFromA0Account(a0Account, block, st)
 	if err != nil {
 		return nil, err
 	}
-	a2Accounts, err := bc.GetA2AccountsFromA1AccountAtSignHeight(a1Account, block,st, signHeight)
+	a2Accounts, err := bc.GetA2AccountsFromA1AccountAtSignHeight(a1Account, block, st, signHeight)
 	if err != nil {
 		return nil, err
 	}
 	return a2Accounts, nil
 }
 
-func (bc *BlockChain) GetA2AccountsFromA1AccountAtSignHeight(a1Account common.Address,block *types.Block,st *state.StateDBManage, signHeight uint64) ([]common.Address, error) {
+func (bc *BlockChain) GetA2AccountsFromA1AccountAtSignHeight(a1Account common.Address, block *types.Block, st *state.StateDBManage, signHeight uint64) ([]common.Address, error) {
 
 	a2Accounts := []common.Address{}
 	//根据区块高度、A1账户从区块链数据库中获取A2账户
@@ -2345,7 +2347,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 		return common.Address{}, common.Address{}, nil
 	}
 	//假设传入的account为A1账户
-	a0Account, err := bc.GetA0AccountFromA1Account(account, block,st)
+	a0Account, err := bc.GetA0AccountFromA1Account(account, block, st)
 	if err == nil {
 		//log.Debug(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A1账户", "输入A1", account.Hex(), "输出A0", a0Account.Hex(), "签名高度", signHeight)
 		return a0Account, account, nil
@@ -2357,7 +2359,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 		return common.Address{0}, common.Address{0}, err
 	}
 	//走到这，说明是A2账户
-	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, block,st)
+	a0Account, err = bc.GetA0AccountFromA1Account(a1Account, block, st)
 	if err != nil {
 		log.Error(common.SignLog, "根据任意账户得到A0和A1账户", "输入为A2账户", "输入A2", account.Hex(), "输出A1", a1Account.Hex(), "输出A0", "失败", "签名高度", signHeight)
 	}
@@ -2366,7 +2368,7 @@ func (bc *BlockChain) GetA0AccountFromAnyAccountAtSignHeight(account common.Addr
 }
 
 //根据A2账户得到A1账户
-func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Address,st *state.StateDBManage, signHeight uint64) (common.Address, error) {
+func (bc *BlockChain) GetA1AccountFromA2AccountAtSignHeight(a2Account common.Address, st *state.StateDBManage, signHeight uint64) (common.Address, error) {
 
 	//根据区块高度、A2账户从区块链数据库中获取A1账户
 	a1Account := st.GetAuthFrom(params.MAN_COIN, a2Account, signHeight)
