@@ -1828,7 +1828,7 @@ func newRPCTransaction(tx types.SelfTransaction, blockHash common.Hash, blockNum
 			})
 		}
 	}
-	//result.Input = nil //屏蔽input
+	result.Input = nil //屏蔽input
 	return result
 }
 
