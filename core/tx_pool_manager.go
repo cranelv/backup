@@ -9,7 +9,6 @@ import (
 
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
@@ -282,7 +281,7 @@ func BlackListFilter(tx types.SelfTransaction, state *state.StateDBManage, h *bi
 		from     common.Address  = tx.From()
 		to       *common.Address = tx.To()
 		txtype   byte            = tx.GetMatrixType()
-		cointype string          = tx.GetTxCurrency()
+		//cointype string          = tx.GetTxCurrency()
 	)
 	//blklist, _ := matrixstate.GetAccountBlackList(state)
 	////黑账户过滤(sender)
@@ -300,62 +299,62 @@ func BlackListFilter(tx types.SelfTransaction, state *state.StateDBManage, h *bi
 		}
 	}
 	//创建币种交易验证
-	if txtype == common.ExtraMakeCoinType {
-		mansuperTxAddreslist, err := matrixstate.GetMultiCoinSuperAccounts(state)
-		if err != nil {
-			log.Error("TxPoolManager:filter-check make coin", "get super tx account failed", err)
-			return false
-		}
-		isOK := false
-		for _, superAddress := range mansuperTxAddreslist {
-			if from.Equal(superAddress) {
-				isOK = true
-				break
-			}
-		}
-		if !isOK {
-			log.Error("address err", "unknown send make coin tx address", from.String())
-			return false
-		}
-	}
+	//if txtype == common.ExtraMakeCoinType {
+	//	mansuperTxAddreslist, err := matrixstate.GetMultiCoinSuperAccounts(state)
+	//	if err != nil {
+	//		log.Error("TxPoolManager:filter-check make coin", "get super tx account failed", err)
+	//		return false
+	//	}
+	//	isOK := false
+	//	for _, superAddress := range mansuperTxAddreslist {
+	//		if from.Equal(superAddress) {
+	//			isOK = true
+	//			break
+	//		}
+	//	}
+	//	if !isOK {
+	//		log.Error("address err", "unknown send make coin tx address", from.String())
+	//		return false
+	//	}
+	//}
 	//多币种配置过滤
-	if cointype != params.MAN_COIN {
-		coinf, err := matrixstate.GetCoinConfig(state)
-		if err != nil {
-			log.Error("coin err", "get coin config err", err)
-			return false
-		}
-		if len(coinf) > 0 {
-			var config common.CoinConfig
-			ispach := false
-			for _, cog := range coinf {
-				if cog.CoinType == cointype {
-					config = cog
-					ispach = true
-					break
-				}
-			}
-			if ispach {
-				if config.PackNum > 0 {
-					filtercoinnum.mu.Lock()
-					if blockNumberByfilter != h.Uint64() {
-						blockNumberByfilter = h.Uint64()
-						filtercoinnum.coinNum = make(map[string]uint64)
-					}
-					if filtercoinnum.coinNum[cointype] >= config.PackNum {
-						log.WARN("warning ", "this coin tx count >= pack num.coin type", cointype, "pack num", config.PackNum, "curr tx count", filtercoinnum.coinNum[cointype])
-						filtercoinnum.mu.Unlock()
-						return false
-					}
-					filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype] + 1
-					filtercoinnum.mu.Unlock()
-				} else if config.PackNum <= 0 {
-					log.WARN("warning ", "this coin tx discard. coin type", cointype)
-					return false
-				}
-			}
-		}
-	}
+	//if cointype != params.MAN_COIN {
+	//	coinf, err := matrixstate.GetCoinConfig(state)
+	//	if err != nil {
+	//		log.Error("coin err", "get coin config err", err)
+	//		return false
+	//	}
+	//	if len(coinf) > 0 {
+	//		var config common.CoinConfig
+	//		ispach := false
+	//		for _, cog := range coinf {
+	//			if cog.CoinType == cointype {
+	//				config = cog
+	//				ispach = true
+	//				break
+	//			}
+	//		}
+	//		if ispach {
+	//			if config.PackNum > 0 {
+	//				filtercoinnum.mu.Lock()
+	//				if blockNumberByfilter != h.Uint64() {
+	//					blockNumberByfilter = h.Uint64()
+	//					filtercoinnum.coinNum = make(map[string]uint64)
+	//				}
+	//				if filtercoinnum.coinNum[cointype] >= config.PackNum {
+	//					log.WARN("warning ", "this coin tx count >= pack num.coin type", cointype, "pack num", config.PackNum, "curr tx count", filtercoinnum.coinNum[cointype])
+	//					filtercoinnum.mu.Unlock()
+	//					return false
+	//				}
+	//				filtercoinnum.coinNum[cointype] = filtercoinnum.coinNum[cointype] + 1
+	//				filtercoinnum.mu.Unlock()
+	//			} else if config.PackNum <= 0 {
+	//				log.WARN("warning ", "this coin tx discard. coin type", cointype)
+	//				return false
+	//			}
+	//		}
+	//	}
+	//}
 
 	//奖励交易账户验证
 	if txtype == common.ExtraUnGasMinerTxType || txtype == common.ExtraUnGasValidatorTxType ||
