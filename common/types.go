@@ -693,7 +693,7 @@ type CoinConfig struct {
 	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位
 	CoinTotal   *hexutil.Big `json:"CoinTotal"`   //总发行量
 	CoinAddress Address      `json:"CoinAddress"` //币种交易费账户
-	PayCoinType	string 		 `json:"PayCoinType"` //发放币种
+	//PayCoinType	string 		 `json:"PayCoinType"` //发放币种
 }
 
 const COINPREFIX string = "ms_"

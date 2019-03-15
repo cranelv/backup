@@ -317,7 +317,17 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	}
 
 	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
-	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
+	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
+	finalCoinTxs := make([]types.CoinSelfTransaction,0,len(coins))
+	finalCoinRecpets := make([]types.CoinReceipts,0,len(coins))
+	var MANCoinReceipt types.CoinReceipts
+	var MANtmCointxs types.CoinSelfTransaction
+	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+	MANCoinReceipt.CoinType = params.MAN_COIN
+	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
+	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
@@ -348,7 +358,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		//tmpTxs = append(tmpTxs,tRewartTx...) //奖励交易放对应分区币种的前面
 		for _,cointxs := range finalCoinTxs{
 			if coinname == cointxs.CoinType{
-				tmpTxs = append(tmpTxs,cointxs.Txser...)
+				tmpTxs = append(tmpTxs,cointxs.Txser...) //普通交易放后面
 			}
 		}
 		tCointxs.CoinType = coinname
@@ -465,27 +475,41 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	mapcoingasUse.clearmap()
+	coins := make([]string,0,len(txs)+1)
 	for _, tx := range txs {
+		coins = append(coins,tx.CoinType)
 		for _, t := range tx.Txser {
 			env.commitTransaction(t, env.bc, common.Address{}, nil)
 		}
 	}
-	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
-	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
-
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
-	rewardTxmap := env.makeTransaction(rewart)
-	coins := make([]string,0)
-	coinsnoman := make([]string,0)
-	for coinname,_ := range rewardTxmap{
+	coinsnoman := make([]string,0,len(txs)+1)
+	for _,coinname := range coins{
 		if coinname == params.MAN_COIN{
 			continue
 		}
 		coinsnoman = append(coinsnoman,coinname)
 	}
 	sort.Strings(coinsnoman)
-	coins = append(coins,params.MAN_COIN)
-	coins = append(coins,coinsnoman...)
+	tcoins := make([]string,0,len(txs)+1)
+	tcoins = append(tcoins,params.MAN_COIN)
+	tcoins = append(tcoins,coinsnoman...)
+	coins = tcoins //前面是man币，后面是排序过的币种
+
+	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
+	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
+	finalCoinTxs := make([]types.CoinSelfTransaction,0)
+	finalCoinRecpets := make([]types.CoinReceipts,0)
+	var MANCoinReceipt types.CoinReceipts
+	var MANtmCointxs types.CoinSelfTransaction
+	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+	MANCoinReceipt.CoinType = params.MAN_COIN
+	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
+	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
+
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
+	rewardTxmap := env.makeTransaction(rewart)
 
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
@@ -542,8 +566,10 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	from := make(map[string][]common.Address)
+	coins := make([]string,0,len(txs)+1)
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	for _, tx := range txs {
+		coins = append(coins,tx.CoinType)
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
@@ -562,23 +588,36 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 			from[t.GetTxCurrency()] = append(from[t.GetTxCurrency()], t.From())
 		}
 	}
-	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
-	finalCoinTxs,finalCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 
-	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
-	rewardTxmap := env.makeTransaction(rewart)
-	coins := make([]string,0)
-	coinsnoman := make([]string,0)
-	for coinname,_ := range rewardTxmap{
+	coinsnoman := make([]string,0,len(txs)+1)
+	for _,coinname := range coins{
 		if coinname == params.MAN_COIN{
 			continue
 		}
 		coinsnoman = append(coinsnoman,coinname)
 	}
 	sort.Strings(coinsnoman)
-	coins = append(coins,params.MAN_COIN)
-	coins = append(coins,coinsnoman...)
+	tcoins := make([]string,0,len(txs)+1)
+	tcoins = append(tcoins,params.MAN_COIN)
+	tcoins = append(tcoins,coinsnoman...)
+	coins = tcoins //前面是man币，后面是排序过的币种
+
+	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
+	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
+	finalCoinTxs := make([]types.CoinSelfTransaction,0)
+	finalCoinRecpets := make([]types.CoinReceipts,0)
+	var MANCoinReceipt types.CoinReceipts
+	var MANtmCointxs types.CoinSelfTransaction
+	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+	MANCoinReceipt.CoinType = params.MAN_COIN
+	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
+	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
+
+	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
+	rewardTxmap := env.makeTransaction(rewart)
 
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)

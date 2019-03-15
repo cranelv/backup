@@ -1217,7 +1217,7 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 		for _, coinCfg := range coinCfglist {
 			if coinCfg.CoinType == tx.Currency {
-				payGasType = coinCfg.PayCoinType
+				payGasType = coinCfg.CoinRange
 				break
 			}
 		}

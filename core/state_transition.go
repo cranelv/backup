@@ -104,18 +104,17 @@ func (st *StateTransition) UseGas(amount uint64) error {
 
 	return nil
 }
-func (st *StateTransition) getCoinAddress(cointyp string) common.Address {
+func (st *StateTransition) getCoinAddress(cointyp string) (rewardaddr common.Address,coinrange string) {
 	if cointyp == params.MAN_COIN || cointyp == "" {
-		return common.TxGasRewardAddress
+		return common.TxGasRewardAddress,cointyp
 	}
 	coinconfig := st.state.GetMatrixData(types.RlpHash(common.COINPREFIX + mc.MSCurrencyConfig))
 	var coincfglist []common.CoinConfig
-	var ret common.Address
 	if len(coinconfig) > 0 {
 		err := json.Unmarshal(coinconfig, &coincfglist)
 		if err != nil {
 			log.Trace("get coin config list", "unmarshal err", err)
-			return common.TxGasRewardAddress
+			return common.TxGasRewardAddress,params.MAN_COIN
 		}
 	}
 	for _, cc := range coincfglist {
@@ -123,11 +122,12 @@ func (st *StateTransition) getCoinAddress(cointyp string) common.Address {
 			continue
 		}
 		if cc.CoinType == cointyp {
-			ret = cc.CoinAddress
+			rewardaddr = cc.CoinAddress
+			coinrange = cc.CoinRange
 			break
 		}
 	}
-	return ret
+	return rewardaddr,coinrange
 }
 func (st *StateTransition) BuyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
@@ -152,7 +152,7 @@ func (st *StateTransition) BuyGas() error {
 	var payGasType string = params.MAN_COIN
 	for _,coinCfg := range coinCfglist{
 		if coinCfg.CoinType == st.msg.GetTxCurrency() {
-			payGasType = coinCfg.PayCoinType
+			payGasType = coinCfg.CoinRange
 			break
 		}
 	}
@@ -266,7 +266,9 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 		return nil, 0, false, shardings, err
 	}
 	st.state.SetNonce(st.msg.GetTxCurrency(), from, st.state.GetNonce(st.msg.GetTxCurrency(), from)+1)
-	st.RefundGas()
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	st.state.AddBalance(st.msg.GetTxCurrency(), common.WithdrawAccount, usefrom, st.value)
 	st.state.SubBalance(st.msg.GetTxCurrency(), common.MainAccount, usefrom, st.value)
 	shardings = append(shardings, uint(from[0]))
@@ -306,8 +308,6 @@ func (st *StateTransition) CallTimeNormalTx() (ret []byte, usedGas uint64, faile
 	mapHashamont := make(map[common.Hash][]byte)
 	mapHashamont[txHash] = b
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -359,9 +359,10 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 		}
 	}
 	//costGas := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice)
-	st.RefundGas()
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
+
 	delval := make(map[uint32][]common.Hash)
 	for _, tmphash := range hashlist {
 		if common.EmptyHash(tmphash) {
@@ -504,7 +505,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			coincfglist[i].CoinTotal = (*hexutil.Big)(totalAmont)
 			coincfglist[i].CoinUnit = makecoin.CoinUnit
 			coincfglist[i].CoinAddress = makecoin.CoinAddress
-			coincfglist[i].PayCoinType = makecoin.PayCoinType
+			coincfglist[i].CoinRange = makecoin.PayCoinType
 			isCoin = false
 		}
 	}
@@ -515,7 +516,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			CoinTotal:   new(hexutil.Big),
 			CoinUnit:    new(hexutil.Big),
 			CoinAddress: makecoin.CoinAddress,
-			PayCoinType: makecoin.PayCoinType,
+			CoinRange: makecoin.PayCoinType,
 		}
 		tmpcc.CoinTotal = (*hexutil.Big)(totalAmont)
 		tmpcc.CoinUnit = makecoin.CoinUnit
@@ -608,9 +609,9 @@ func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, 
 	mapHashamont[txHash] = b
 	st.state.SaveTx(st.msg.GetTxCurrency(), st.msg.From(), tx.GetMatrixType(), rt.Tim, mapHashamont)
 	st.state.SetMatrixData(txHash, b)
-	st.RefundGas()
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -771,11 +772,10 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, nil, vmerr
 		}
 	}
-	st.RefundGas()
 	shardings = append(shardings, tmpshard...)
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
-
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
 
@@ -845,9 +845,9 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		}
 	}
 	shardings = append(shardings, tmpshard...)
-	st.RefundGas()
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 
 	var entrustOK bool = false
 	Authfrom := tx.From()
@@ -1061,9 +1061,9 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		}
 	}
 	shardings = append(shardings, tmpshard...)
-	st.RefundGas()
-	gasaddr := st.getCoinAddress(tx.GetTxCurrency())
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 
 	Authfrom := tx.From()
 	delIndexList := make([]uint32, 0)
@@ -1130,16 +1130,16 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 	return ret, st.GasUsed(), vmerr != nil, shardings, nil
 }
 
-func (st *StateTransition) RefundGas() {
+func (st *StateTransition) RefundGas(coinrange string) {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.GasUsed() / 2
-	if refund > st.state.GetRefund(params.MAN_COIN, st.msg.From()) {
-		refund = st.state.GetRefund(params.MAN_COIN, st.msg.From())
+	if refund > st.state.GetRefund(coinrange, st.msg.From()) {
+		refund = st.state.GetRefund(coinrange, st.msg.From())
 	}
 	st.gas += refund
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(params.MAN_COIN, common.MainAccount, st.msg.AmontFrom(), remaining)
+	st.state.AddBalance(coinrange, common.MainAccount, st.msg.AmontFrom(), remaining)
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
 	st.gp.AddGas(st.gas)
