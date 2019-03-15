@@ -687,7 +687,7 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinRange   string       `json:"CoinRange"`   //分区币种
+	CoinRange   string       `json:"CoinRange"`   //coinrange和cointype是一个类型，为了扩展方便保留该字段
 	CoinType    string       `json:"CoinType"`    //支付币种
 	PackNum     uint64       `json:"PackNum"`     //打包数量限制 如果为0则不打包
 	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位

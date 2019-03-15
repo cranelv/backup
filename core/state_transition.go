@@ -129,7 +129,8 @@ func (st *StateTransition) getCoinAddress(cointyp string) (rewardaddr common.Add
 	}
 	return rewardaddr,coinrange
 }
-func (st *StateTransition) BuyGas() error {
+//按币种分区扣gas（该接口废弃）
+func (st *StateTransition) BuyGas_coin() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
 	for _, tAccount := range st.state.GetBalance(st.msg.GetTxCurrency(), st.msg.From()) {
 		if tAccount.AccountType == common.MainAccount {
@@ -162,6 +163,32 @@ func (st *StateTransition) BuyGas() error {
 		return errors.New("MAN Coin : Insufficient account balance.")
 	}
 	st.state.SubBalance(payGasType, common.MainAccount, st.msg.AmontFrom(), mgval)
+	return nil
+}
+
+//扣各自币种的gas
+func (st *StateTransition) BuyGas() error {
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	for _, tAccount := range st.state.GetBalance(st.msg.GetTxCurrency(), st.msg.From()) {
+		if tAccount.AccountType == common.MainAccount {
+			if tAccount.Balance.Cmp(mgval) < 0 {
+				return errInsufficientBalanceForGas
+			}
+			break
+		}
+	}
+	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
+		return err
+	}
+	st.gas += st.msg.Gas()
+
+	st.initialGas = st.msg.Gas()
+	balance := st.state.GetBalanceByType(st.msg.GetTxCurrency(), st.msg.AmontFrom(), common.MainAccount)
+	if balance.Cmp(mgval) < 0 {
+		log.Error("MAN", "BuyGas err", "MAN Coin : Insufficient account balance.")
+		return errors.New("MAN Coin : Insufficient account balance.")
+	}
+	st.state.SubBalance(st.msg.GetTxCurrency(), common.MainAccount, st.msg.AmontFrom(), mgval)
 	return nil
 }
 
@@ -437,9 +464,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	if len(makecoin.AddrAmount) <= 0 {
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
 	}
-	if makecoin.PayCoinType != makecoin.CoinName && makecoin.PayCoinType != params.MAN_COIN{
-		return nil, 0, false, shardings, errors.New("state_transition,make coin err, PayCoinType is error")
-	}
+	//if makecoin.PayCoinType != makecoin.CoinName && makecoin.PayCoinType != params.MAN_COIN{
+	//	return nil, 0, false, shardings, errors.New("state_transition,make coin err, PayCoinType is error")
+	//}
 	addrVal := make(map[common.Address]*big.Int)
 	for str, amount := range makecoin.AddrAmount {
 		if str == "" {
@@ -505,7 +532,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			coincfglist[i].CoinTotal = (*hexutil.Big)(totalAmont)
 			coincfglist[i].CoinUnit = makecoin.CoinUnit
 			coincfglist[i].CoinAddress = makecoin.CoinAddress
-			coincfglist[i].CoinRange = makecoin.PayCoinType
+			coincfglist[i].CoinRange = makecoin.CoinName //coinrange和cointype是一个类型，为了扩展方便保留该字段
 			isCoin = false
 		}
 	}
@@ -516,7 +543,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			CoinTotal:   new(hexutil.Big),
 			CoinUnit:    new(hexutil.Big),
 			CoinAddress: makecoin.CoinAddress,
-			CoinRange: makecoin.PayCoinType,
+			CoinRange: makecoin.CoinName,
 		}
 		tmpcc.CoinTotal = (*hexutil.Big)(totalAmont)
 		tmpcc.CoinUnit = makecoin.CoinUnit

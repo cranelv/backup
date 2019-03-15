@@ -78,6 +78,8 @@ type Work struct {
 	recpts  []*types.Receipt
 
 	createdAt time.Time
+	packNum int //MAN以外的其他币种打包数量限制（不能超过MAN的1/100）
+	coinType string
 }
 type coingasUse struct {
 	mapcoin  map[string]*big.Int
@@ -154,9 +156,17 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 
 	var coalescedLogs []types.CoinLogs
 	tmpRetmap := make(map[byte][]uint32)
+	isExceed := false
 	for _, txers := range txser {
+		if isExceed{
+			break
+		}
 		//txs := types.GetCoinTX(txers)
 		for _, txer := range txers {
+			if uint64(env.packNum) >= params.OtherCoinPackNum && env.coinType != params.MAN_COIN{
+				isExceed = true
+				break
+			}
 			// If we don't have enough gas for any further transactions then we're done
 			if env.gasPool.Gas() < params.TxGas {
 				log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
@@ -201,6 +211,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 				}
 				coalescedLogs = append(coalescedLogs, types.CoinLogs{txer.GetTxCurrency(), logs})
 				env.tcount++
+				env.packNum++
 			default:
 				// Strange error, discard the transaction and get the next in line (note, the
 				// nonce-too-high clause will prevent us from executing in vain).
@@ -311,6 +322,8 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	coins = append(coins,coinsnoman...)
 	//先跑MAN交易，后跑其他币种交易
 	for _,coinname := range coins{
+		env.packNum = 0
+		env.coinType = coinname
 		tmplistret, tmporiginalTxs := env.commitTransactions(mux, pending[coinname], common.Address{})
 		originalTxs = append(originalTxs,tmporiginalTxs...)
 		listret = append(listret,tmplistret...)
@@ -477,9 +490,15 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	mapcoingasUse.clearmap()
 	coins := make([]string,0,len(txs)+1)
 	for _, tx := range txs {
+		env.packNum = 0
+		env.coinType = tx.CoinType
 		coins = append(coins,tx.CoinType)
 		for _, t := range tx.Txser {
+			if uint64(env.packNum) >= params.OtherCoinPackNum && env.coinType != params.MAN_COIN{
+				break
+			}
 			env.commitTransaction(t, env.bc, common.Address{}, nil)
+			env.packNum++
 		}
 	}
 	coinsnoman := make([]string,0,len(txs)+1)
@@ -569,6 +588,8 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	coins := make([]string,0,len(txs)+1)
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	for _, tx := range txs {
+		env.packNum = 0
+		env.coinType = tx.CoinType
 		coins = append(coins,tx.CoinType)
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {
@@ -577,11 +598,15 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		}
 		// Start executing the transaction
 		for _, t := range tx.Txser {
+			if uint64(env.packNum) >= params.OtherCoinPackNum && env.coinType != params.MAN_COIN{
+				break
+			}
 			env.State.Prepare(t.Hash(), common.Hash{}, env.tcount)
 			err, logs := env.commitTransaction(t, env.bc, common.Address{}, env.gasPool)
 			if err == nil {
 				env.tcount++
 				coalescedLogs = append(coalescedLogs, types.CoinLogs{t.GetTxCurrency(), logs})
+				env.packNum++
 			} else {
 				return err
 			}

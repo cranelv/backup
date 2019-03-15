@@ -13,7 +13,6 @@ import (
 
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
@@ -1200,7 +1199,6 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNonceTooLow
 	}
 	balance := big.NewInt(0)
-	manCoinBalance := big.NewInt(0)
 	//当前账户余额
 	for _, tAccount := range nPool.currentState.GetBalance(tx.Currency, from) {
 		if tAccount.AccountType == common.MainAccount {
@@ -1209,39 +1207,44 @@ func (nPool *NormalTxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	var payGasType string
-	if tx.Currency != params.MAN_COIN {
-		coinCfglist, err := matrixstate.GetCoinConfig(nPool.currentState)
-		if err != nil {
-			return errors.New("get GetCoinConfig err")
-		}
-		for _, coinCfg := range coinCfglist {
-			if coinCfg.CoinType == tx.Currency {
-				payGasType = coinCfg.CoinRange
-				break
-			}
-		}
+	if balance.Cmp(tx.CostALL()) < 0 {
+		return ErrInsufficientFunds
 	}
 
-	if tx.Currency != params.MAN_COIN && payGasType == params.MAN_COIN {
-		for _, tAccount := range nPool.currentState.GetBalance(params.MAN_COIN, tx.AmontFrom()) {
-			if tAccount.AccountType == common.MainAccount {
-				manCoinBalance = tAccount.Balance
-				break
-			}
-		}
-		totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
-		if manCoinBalance.Cmp(totalGas) < 0 {
-			return ErrInsufficientFunds
-		}
-		if balance.Cmp(tx.TotalAmount()) < 0 {
-			return ErrInsufficientFunds
-		}
-	} else {
-		if balance.Cmp(tx.CostALL()) < 0 {
-			return ErrInsufficientFunds
-		}
-	}
+	//manCoinBalance := big.NewInt(0)
+	//var payGasType string
+	//if tx.Currency != params.MAN_COIN {
+	//	coinCfglist, err := matrixstate.GetCoinConfig(nPool.currentState)
+	//	if err != nil {
+	//		return errors.New("get GetCoinConfig err")
+	//	}
+	//	for _, coinCfg := range coinCfglist {
+	//		if coinCfg.CoinType == tx.Currency {
+	//			payGasType = coinCfg.CoinRange
+	//			break
+	//		}
+	//	}
+	//}
+	//
+	//if tx.Currency != params.MAN_COIN && payGasType == params.MAN_COIN {
+	//	for _, tAccount := range nPool.currentState.GetBalance(params.MAN_COIN, tx.AmontFrom()) {
+	//		if tAccount.AccountType == common.MainAccount {
+	//			manCoinBalance = tAccount.Balance
+	//			break
+	//		}
+	//	}
+	//	totalGas := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
+	//	if manCoinBalance.Cmp(totalGas) < 0 {
+	//		return ErrInsufficientFunds
+	//	}
+	//	if balance.Cmp(tx.TotalAmount()) < 0 {
+	//		return ErrInsufficientFunds
+	//	}
+	//} else {
+	//	if balance.Cmp(tx.CostALL()) < 0 {
+	//		return ErrInsufficientFunds
+	//	}
+	//}
 
 	intrGas, err := IntrinsicGas(tx.Data())
 	if err != nil {
