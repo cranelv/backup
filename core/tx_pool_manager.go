@@ -233,25 +233,12 @@ func (pm *TxPoolManager) Pending() (map[string]map[common.Address]types.SelfTran
 	for _, txpool := range pm.txPools {
 		txmap, _ := txpool.Pending()
 		for coin,maptxs := range txmap{
-			tmptxmap := pending[coin]
-			tmptxmap = make(map[common.Address]types.SelfTransactions)
+			tmptxmap := make(map[common.Address]types.SelfTransactions)
 			for addr,txs := range maptxs{
 				tmptxmap[addr] = append(tmptxmap[addr],txs...)
 			}
 			pending[coin] = tmptxmap
 		}
-
-	//	for addr, txs := range txmap {
-	//		//txs = pm.filter(txs)
-	//		if len(txs) > 0 {
-	//			if txlist, ok := txser[addr]; ok {
-	//				txlist = append(txlist, txs...)
-	//				txser[addr] = txlist
-	//			} else {
-	//				txser[addr] = txs
-	//			}
-	//		}
-	//	}
 	}
 	return pending, nil
 }

@@ -635,9 +635,11 @@ func (nPool *NormalTxPool) Pending() (map[string]map[common.Address][]types.Self
 	defer nPool.mu.Unlock()
 	pending := make(map[string]map[common.Address][]types.SelfTransaction)
 	for addr, list := range nPool.pending {
-		txlist := make([]*types.Transaction, 0)
+		//txlist := make([]*types.Transaction, 0)
 		for coin, txs := range list.txs {
-			txlist = append(txlist, txs.Flatten()...)
+			//txlist = append(txlist, txs.Flatten()...)
+			txlist := make([]*types.Transaction, 0)
+			txlist = txs.Flatten()
 			txsmap := pending[coin]
 			txsmap = make(map[common.Address][]types.SelfTransaction)
 			for _,tx := range txlist{

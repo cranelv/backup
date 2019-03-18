@@ -315,7 +315,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		if coinname == params.MAN_COIN{
 			continue
 		}
-		coinsnoman = append(coinsnoman,coinname)
+		coinsnoman = append(coinsnoman,coinname) //leader
 	}
 	sort.Strings(coinsnoman)
 	coins = append(coins,params.MAN_COIN)
@@ -333,14 +333,31 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 	finalCoinTxs := make([]types.CoinSelfTransaction,0,len(coins))
 	finalCoinRecpets := make([]types.CoinReceipts,0,len(coins))
-	var MANCoinReceipt types.CoinReceipts
-	var MANtmCointxs types.CoinSelfTransaction
-	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
-	MANCoinReceipt.CoinType = params.MAN_COIN
-	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
+	isHaveManCoin := false
+	for _,tcoin := range tCoinTxs{
+		if tcoin.CoinType == params.MAN_COIN{
+			isHaveManCoin = true
+			break
+		}
+	}
+	if !isHaveManCoin{
+		var MANCoinReceipt types.CoinReceipts
+		var MANtmCointxs types.CoinSelfTransaction
+		MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+		MANCoinReceipt.CoinType = params.MAN_COIN
+		finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+		finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	}
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
-	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
+
+	////===================测试==============================//
+	//if len(finalCoinTxs)>1{//=====测试 leader
+	//	log.Error("leader=====","tCoinTxs",types.RlpHash(tCoinTxs),"tCoinRecpets",types.RlpHash(tCoinRecpets),"originalTxs",originalTxs,"tCoinTxs",tCoinTxs,"tCoinRecpets",tCoinRecpets)
+	//	log.Error("leader=======1","txs hash",types.RlpHash(env.transer),"recepts hash",types.RlpHash(env.recpts),"all txs hash",types.RlpHash(finalCoinTxs),"all recpts hash",types.RlpHash(finalCoinRecpets))
+	//}
+	////===================测试==============================//
 
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
@@ -489,6 +506,9 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
 	mapcoingasUse.clearmap()
 	coins := make([]string,0,len(txs)+1)
+	if len(txs)>1{
+		txs = mysort(txs)
+	}
 	for _, tx := range txs {
 		env.packNum = 0
 		env.coinType = tx.CoinType
@@ -518,13 +538,24 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 	finalCoinTxs := make([]types.CoinSelfTransaction,0)
 	finalCoinRecpets := make([]types.CoinReceipts,0)
-	var MANCoinReceipt types.CoinReceipts
-	var MANtmCointxs types.CoinSelfTransaction
-	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
-	MANCoinReceipt.CoinType = params.MAN_COIN
-	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+
+	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
+	isHaveManCoin := false
+	for _,tcoin := range tCoinTxs{
+		if tcoin.CoinType == params.MAN_COIN{
+			isHaveManCoin = true
+			break
+		}
+	}
+	if !isHaveManCoin{
+		var MANCoinReceipt types.CoinReceipts
+		var MANtmCointxs types.CoinSelfTransaction
+		MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+		MANCoinReceipt.CoinType = params.MAN_COIN
+		finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+		finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	}
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
-	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
@@ -575,6 +606,39 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	return
 }
 
+func mysort(s []types.CoinSelfTransaction) (sortCointxs []types.CoinSelfTransaction) {
+	tmap := make(map[string][]types.SelfTransaction)
+	keys := make([]string,0)
+	coinsnoman := make([]string,0)
+	coins := make([]string,0)
+	for _,k := range s{
+		txs := tmap[k.CoinType]
+		txs = append(txs,k.Txser...)
+		tmap[k.CoinType] = txs
+		keys = append(keys,k.CoinType)
+	}
+	sort.Strings(keys)
+	isHaveMan := false
+	for _,key := range keys{
+		if key == params.MAN_COIN{
+			isHaveMan = true
+			continue
+		}
+		coinsnoman = append(coinsnoman,key)
+	}
+	if isHaveMan{
+		coins = append(coins,params.MAN_COIN)
+	}
+	coins = append(coins,coinsnoman...)
+	for _,coinname := range coins{
+		var cointx types.CoinSelfTransaction
+		cointx.CoinType = coinname
+		cointx.Txser = append(cointx.Txser,tmap[coinname]...)
+		sortCointxs = append(sortCointxs,cointx)
+	}
+	return sortCointxs
+}
+
 func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfTransaction, upTime map[common.Address]uint64) error {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
@@ -587,6 +651,12 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	from := make(map[string][]common.Address)
 	coins := make([]string,0,len(txs)+1)
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
+	if len(txs)>1{
+		//log.INFO("=====sort1","txs",txs)
+		txs = mysort(txs)
+		//log.INFO("=====sort2","txs",txs)
+	}
+
 	for _, tx := range txs {
 		env.packNum = 0
 		env.coinType = tx.CoinType
@@ -619,7 +689,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		if coinname == params.MAN_COIN{
 			continue
 		}
-		coinsnoman = append(coinsnoman,coinname)
+		coinsnoman = append(coinsnoman,coinname) //fllow
 	}
 	sort.Strings(coinsnoman)
 	tcoins := make([]string,0,len(txs)+1)
@@ -629,16 +699,33 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 
 	//finalCoinTxs -按币种存放的所有交易;finalCoinRecpets -按币种存放的所有收据
 	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
-	finalCoinTxs := make([]types.CoinSelfTransaction,0)
-	finalCoinRecpets := make([]types.CoinReceipts,0)
-	var MANCoinReceipt types.CoinReceipts
-	var MANtmCointxs types.CoinSelfTransaction
-	MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
-	MANCoinReceipt.CoinType = params.MAN_COIN
-	finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+	finalCoinTxs := make([]types.CoinSelfTransaction,0,len(coins))
+	finalCoinRecpets := make([]types.CoinReceipts,0,len(coins))
+	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
+	isHaveManCoin := false
+	for _,tcoin := range tCoinTxs{
+		if tcoin.CoinType == params.MAN_COIN{
+			isHaveManCoin = true
+			break
+		}
+	}
+	if !isHaveManCoin{
+		var MANCoinReceipt types.CoinReceipts
+		var MANtmCointxs types.CoinSelfTransaction
+		MANtmCointxs.CoinType = params.MAN_COIN //MAN分区必须有，用于存放矿工和验证者奖励费
+		MANCoinReceipt.CoinType = params.MAN_COIN
+		finalCoinTxs = append(finalCoinTxs,MANtmCointxs)
+		finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
+	}
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
-	finalCoinRecpets = append(finalCoinRecpets,MANCoinReceipt)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
+
+	////===================测试==============================//
+	//if len(finalCoinTxs)>1{//=====测试 fllower
+	//	log.Error("fllower=====","tCoinTxs",types.RlpHash(tCoinTxs),"tCoinRecpets",types.RlpHash(tCoinRecpets),"tCoinTxs",tCoinTxs,"tCoinRecpets",tCoinRecpets)
+	//	log.Error("fllower==========1","txs hash",types.RlpHash(env.transer),"env.transer",env.transer,"recepts hash",types.RlpHash(env.recpts),"all txs hash",types.RlpHash(finalCoinTxs),"all recpts hash",types.RlpHash(finalCoinRecpets))
+	//}
+	////===================测试==============================//
 
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
