@@ -330,8 +330,8 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		return nil, nil, nil, nil, err
 	}
 	finalTxs := work.GetTxs()
-
-	localBlock := types.NewBlock(localHeader, types.MakeCurencyBlock(finalTxs, work.Receipts, nil), nil)
+	cb := types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	localBlock := types.NewBlock(localHeader, cb, nil)
 	// process matrix state
 	parent := support.BlockChain().GetBlockByHash(verifyHeader.ParentHash)
 	if parent == nil {
@@ -343,9 +343,9 @@ func (bd *ManBlkBasePlug) VerifyTxsAndState(support BlKSupport, verifyHeader *ty
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "运行matrix状态出错", "err", err)
 		return nil, nil, nil, nil, err
 	}
-
 	// 运行完matrix state后，生成root
-	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil, types.MakeCurencyBlock(finalTxs, work.Receipts, nil))
+	ncb:=types.MakeCurencyBlock(finalTxs, work.Receipts, nil)
+	localBlock, err = support.BlockChain().Engine(verifyHeader.Version).Finalize(support.BlockChain(), localHeader, work.State, nil,ncb)
 	if err != nil {
 		log.ERROR(LogManBlk, "matrix状态验证,错误", "Failed to finalize block for sealing", "err", err)
 		return nil, nil, nil, nil, err

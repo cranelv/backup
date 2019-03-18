@@ -375,6 +375,22 @@ func writeRawValue(val reflect.Value, w *encbuf) error {
 	return nil
 }
 
+func EncodeUint(i uint64)([]byte, error) {
+	uintBuff := make([]byte,16)
+	if i == 0 {
+		uintBuff[0] = 0x80
+		return uintBuff[:1],nil
+	} else if i < 128 {
+		// fits single byte
+		uintBuff[0] = byte(i)
+		return uintBuff[:1],nil
+	} else {
+		// TODO: encode int to w.str directly
+		s := putint(uintBuff[1:], i)
+		uintBuff[0] = 0x80 + byte(s)
+		return uintBuff[:s+1],nil
+	}
+}
 func writeUint(val reflect.Value, w *encbuf) error {
 	i := val.Uint()
 	if i == 0 {
@@ -477,9 +493,14 @@ func writeEncoderNoPtr(val reflect.Value, w *encbuf) error {
 }
 func writeTypeInterface(val reflect.Value, w *encbuf) error {
 	if val.Type().Implements(typerInterface) {
-		valRLP := InterfaceRLP{val.Interface().(InterfaceTyper).GetConstructorType(), val.Interface()}
-		info, _ := cachedTypeInfo(reflect.TypeOf(valRLP), tags{})
-		return info.writer(reflect.ValueOf(valRLP), w)
+		lh := w.list()
+		defer w.listEnd(lh)
+		rlpType := val.Interface().(InterfaceTyper).GetConstructorType()
+		writeUint(reflect.ValueOf(rlpType),w)
+		return writeInterface(val, w)
+		//valRLP := InterfaceRLP{val.Interface().(InterfaceTyper).GetConstructorType(), val.Interface()}
+		//info, _ := cachedTypeInfo(reflect.TypeOf(valRLP), tags{})
+		//return info.writer(reflect.ValueOf(valRLP), w)
 	} else {
 		return writeInterface(val, w)
 	}

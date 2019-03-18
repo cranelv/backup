@@ -80,6 +80,7 @@ type Work struct {
 	createdAt time.Time
 	packNum int //MAN以外的其他币种打包数量限制（不能超过MAN的1/100）
 	coinType string
+	mapcoingasUse coingasUse
 }
 type coingasUse struct {
 	mapcoin  map[string]*big.Int
@@ -87,7 +88,6 @@ type coingasUse struct {
 	mu       sync.RWMutex
 }
 
-var mapcoingasUse coingasUse = coingasUse{mapcoin: make(map[string]*big.Int), mapprice: make(map[string]*big.Int)}
 
 func (cu *coingasUse) setCoinGasUse(txer types.SelfTransaction, gasuse uint64) {
 	cu.mu.Lock()
@@ -138,6 +138,7 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 		header:  header,
 		bc:      bc,
 	}
+	Work.mapcoingasUse = coingasUse{mapcoin: make(map[string]*big.Int), mapprice: make(map[string]*big.Int)}
 	var err error
 
 	Work.State, err = bc.StateAt(bc.GetBlockByHash(header.ParentHash).Root())
@@ -148,13 +149,13 @@ func NewWork(config *params.ChainConfig, bc ChainReader, gasPool *core.GasPool, 
 	return Work, nil
 }
 
-//func (env *Work) commitTransactions(mux *event.TypeMux, txs *types.TransactionsByPriceAndNonce, bc *core.BlockChain, coinbase common.Address) (listN []uint32, retTxs []types.SelfTransaction) {
 func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address]types.SelfTransactions, coinbase common.Address) (listret []*common.RetCallTxN, retTxs []types.SelfTransaction) {
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
-	var coalescedLogs []types.CoinLogs
+	coalescedLogs := make([]types.CoinLogs,0,1024)
+	retTxs = make([]types.SelfTransaction,0,1024)
 	tmpRetmap := make(map[byte][]uint32)
 	isExceed := false
 	for _, txers := range txser {
@@ -199,15 +200,19 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 				// Everything ok, collect the logs and shift in the next transaction from the same account
 				if txer.GetTxNLen() != 0 {
 					n := txer.GetTxN(0)
+					tmpRetmap[txer.TxType()] = append(tmpRetmap[txer.TxType()],n)
+					/*
 					if listN, ok := tmpRetmap[txer.TxType()]; ok {
 						listN = append(listN, n)
 						tmpRetmap[txer.TxType()] = listN
 					} else {
-						listN := make([]uint32, 0)
-						listN = append(listN, n)
+						listN := make([]uint32, 1)
+						listN[0] = n
 						tmpRetmap[txer.TxType()] = listN
 					}
+					*/
 					retTxs = append(retTxs, txer)
+
 				}
 				coalescedLogs = append(coalescedLogs, types.CoinLogs{txer.GetTxCurrency(), logs})
 				env.tcount++
@@ -222,6 +227,8 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 			}
 		}
 	}
+	env.State.Finalise("MAN",true)
+	listret = make([]*common.RetCallTxN,0,len(tmpRetmap))
 	for t, n := range tmpRetmap {
 		ts := common.RetCallTxN{t, n}
 		listret = append(listret, &ts)
@@ -246,11 +253,10 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 	}
 	return listret, retTxs
 }
-
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
-	snap := env.State.Snapshot(tx.GetTxCurrency())
-	var snap1 map[byte]int
-	if tx.GetTxCurrency() != params.MAN_COIN {
+	snap := env.State.Snapshot(tx.GetTxCurrency())  
+	var snap1 []int
+	if tx.GetTxCurrency()!=params.MAN_COIN {
 		snap1 = env.State.Snapshot(params.MAN_COIN)
 	}
 	receipt, _, _, err := core.ApplyTransaction(env.config, bc, &coinbase, gp, env.State, env.header, tx, &env.header.GasUsed, vm.Config{})
@@ -264,7 +270,7 @@ func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coi
 	}
 	env.transer = append(env.transer, tx)
 	env.recpts = append(env.recpts, receipt)
-	mapcoingasUse.setCoinGasUse(tx, receipt.GasUsed)
+	env.mapcoingasUse.setCoinGasUse(tx, receipt.GasUsed)
 	return nil, receipt.Logs
 }
 func (env *Work) s_commitTransaction(tx types.SelfTransaction, coinbase common.Address, gp *core.GasPool) (error, []*types.Log,*types.Receipt) {
@@ -316,7 +322,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return nil, nil
 	}
-	mapcoingasUse.clearmap()
+	env.mapcoingasUse.clearmap()
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
@@ -377,7 +383,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 	}
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number, "tx num ", len(originalTxs))
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.mapcoin)
 	rewardTxmap := env.makeTransaction(rewart)
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
@@ -425,6 +431,7 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 		tCoinReceipt.Receiptlist = tmpRecepts
 		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
 	}
+	env.State.Finalise("",true)
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
 	log.Info("work", "关键时间点", "奖励执行完成", "time", time.Now(), "块高", env.header.Number)
@@ -525,11 +532,11 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
 	env.State.UpdateTxForBtreeBytime(uint32(tim))
-	mapcoingasUse.clearmap()
 	coins := make([]string,0,len(txs)+1)
 	if len(txs)>1{
 		txs = mysort(txs)
 	}
+	env.mapcoingasUse.clearmap()
 	for _, tx := range txs {
 		env.packNum = 0
 		env.coinType = tx.CoinType
@@ -559,6 +566,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 	finalCoinTxs := make([]types.CoinSelfTransaction,0)
 	finalCoinRecpets := make([]types.CoinReceipts,0)
+	env.State.Finalise("MAN",true)
 
 	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
 	isHaveManCoin := false
@@ -627,10 +635,9 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 		tCoinReceipt.Receiptlist = tmpRecepts
 		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
 	}
+	env.State.Finalise("MAN",true)
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
-
-	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	return
 }
 
@@ -671,7 +678,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	if env.gasPool == nil {
 		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
-	mapcoingasUse.clearmap()
+	env.mapcoingasUse.clearmap()
 	var coalescedLogs []types.CoinLogs
 	tim := env.header.Time.Uint64()
 	env.State.UpdateTxForBtree(uint32(tim))
@@ -745,7 +752,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
-
+	env.State.Finalise("MAN",true)
 	////===================测试==============================//
 	//if len(finalCoinTxs)>1{//=====测试 fllower
 	//	log.Error("fllower=====","tCoinTxs",types.RlpHash(tCoinTxs),"tCoinRecpets",types.RlpHash(tCoinRecpets),"tCoinTxs",tCoinTxs,"tCoinRecpets",tCoinRecpets)
@@ -754,7 +761,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	////===================测试==============================//
 
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
-	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, mapcoingasUse.mapcoin)
+	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.mapcoin)
 	rewardTxmap := env.makeTransaction(rewart)
 
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
@@ -792,7 +799,6 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 		tCointxs.CoinType = coinname
 		tCointxs.Txser = tmpTxs
 		allfinalTxs = append(allfinalTxs,tCointxs)
-
 		for _,coinrecpts := range finalCoinRecpets{
 			if coinname == coinrecpts.CoinType{
 				tmpRecepts = append(tmpRecepts,coinrecpts.Receiptlist...)
@@ -804,8 +810,8 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
+	env.State.Finalise("MAN",true)
 
-	//env.txs, env.Receipts = types.GetCoinTXRS(env.transer, env.recpts)
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		go func(logs []types.CoinLogs, tcount int) {
 			if len(logs) > 0 {

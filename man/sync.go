@@ -180,6 +180,7 @@ func (pm *ProtocolManager) syncer() {
 	//快照下载 SnaploadFromLoacl
 	if SnapshootNumber != 0 {
 		if SnaploadFromLocal == 0 {
+			fmt.Println("snapshoot  DownLoad start blockNum=", SnapshootNumber)
 			pm.downloader.SetSnapshootNum(SnapshootNumber)
 			log.Warn("download  Snapshoot status will begin", "number", SnapshootNumber, "shash", SnapshootHash)
 			time.Sleep(10 * time.Second)
@@ -206,6 +207,7 @@ func (pm *ProtocolManager) syncer() {
 			log.Debug(" snapshoot deal over,but block Num is illegal", "SnapshootNumber", SnapshootNumber, "current block", pm.blockchain.CurrentBlock().NumberU64())
 			os.Exit(1)
 		}
+		fmt.Println("snapshoot  DownLoad and use sucess, blockNum=", SnapshootNumber)
 	}
 	// Wait for different events to fire synchronisation operations
 	forceSync := time.NewTicker(forceSyncCycle)

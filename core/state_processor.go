@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/reward"
-
 	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
 	"github.com/MatrixAINetwork/go-matrix/ca"
@@ -473,7 +472,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 		}
 	}
-
+	statedb.Finalise("MAN",true)
 	rewarts := p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	tmpmapcoin := make(map[string]bool)//为了拿到币种,v值无意义
 	for _,rewart := range rewarts{
@@ -536,7 +535,8 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 	//ftxs = append(ftxs, tmpMaptx[params.MAN_COIN]...)
 	//tmpMaptx[params.MAN_COIN] = ftxs
 
-	currblock := make([]types.CurrencyBlock, 0)
+	statedb.Finalise("MAN",true)
+	currblock := make([]types.CurrencyBlock, 0, len(block.Currencies()))
 	for i, bc := range block.Currencies() {
 		if !isvadter {
 			if len(coinShard) > 0 {
@@ -682,7 +682,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Update the state with pending changes
 	var root []byte
 	if config.IsByzantium(header.Number) {
-		statedb.Finalise(tx.GetTxCurrency(), true)
+		//statedb.Finalise(tx.GetTxCurrency(), true)
 	} else {
 		root = statedb.IntermediateRootByCointype(tx.GetTxCurrency(), config.IsEIP158(header.Number)).Bytes()
 	}
@@ -693,6 +693,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt := types.NewReceipt(root, failed, *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = gas
+
 	// if the transaction created a contract, store the creation address in the receipt.
 	if tx.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())

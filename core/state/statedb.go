@@ -47,6 +47,7 @@ type StateDB struct {
 	trie Trie
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
+	readMu sync.Mutex
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
 
@@ -68,8 +69,8 @@ type StateDB struct {
 	// The refund counter, also used by state transitioning.
 	refund uint64
 
-	thash, bhash common.Hash
-	txIndex      int
+//	thash, bhash common.Hash
+//	txIndex      int
 	logs         map[common.Hash][]*types.Log
 	logSize      uint
 
@@ -149,9 +150,9 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.btreeMapDirty = make([]BtreeDietyStruct, 0)
 	self.matrixData = make(map[common.Hash][]byte)
 	self.matrixDataDirty = make(map[common.Hash][]byte)
-	self.thash = common.Hash{}
-	self.bhash = common.Hash{}
-	self.txIndex = 0
+	//self.thash = common.Hash{}
+	//self.bhash = common.Hash{}
+	//self.txIndex = 0
 	self.logs = make(map[common.Hash][]*types.Log)
 	self.logSize = 0
 	self.preimages = make(map[common.Hash][]byte)
@@ -159,16 +160,16 @@ func (self *StateDB) Reset(root common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
-	self.journal.append(addLogChange{txhash: self.thash})
-
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
-	self.logSize++
-}
+//func (self *StateDB) AddLog(log *types.Log) {
+//	self.journal.append(addLogChange{txhash: self.thash})
+//
+//	log.TxHash = self.thash
+//	log.BlockHash = self.bhash
+//	log.TxIndex = uint(self.txIndex)
+//	log.Index = self.logSize
+//	self.logs[self.thash] = append(self.logs[self.thash], log)
+//	self.logSize++
+//}
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
 	return self.logs[hash]
@@ -788,6 +789,8 @@ func (self *StateDB) deleteStateObject(stateObject *stateObject) {
 
 // Retrieve a state object given by the address. Returns nil if not found.
 func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObject) {
+	self.readMu.Lock()
+	defer self.readMu.Unlock()
 	// Prefer 'live' objects.
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
@@ -843,6 +846,8 @@ func (self *StateDB) deleteMatrixData(hash common.Hash, val []byte) {
 }
 
 func (self *StateDB) GetMatrixData(hash common.Hash) (val []byte) {
+	self.readMu.Lock()
+	defer self.readMu.Unlock()
 	val, exist := self.matrixData[hash]
 	if exist {
 		return val
@@ -1008,7 +1013,10 @@ func (self *StateDB) Copy() *StateDB {
 func (self *StateDB) Snapshot() int {
 	id := self.nextRevisionId
 	self.nextRevisionId++
-	self.validRevisions = append(self.validRevisions, revision{id, self.journal.length()})
+	len1 := len(self.validRevisions)
+	if len1 == 0 || self.validRevisions[len1-1].journalIndex < self.journal.length(){
+		self.validRevisions = append(self.validRevisions, revision{id, self.journal.length()})
+	}
 	return id
 }
 
@@ -1019,7 +1027,8 @@ func (self *StateDB) RevertToSnapshot(revid int) {
 		return self.validRevisions[i].id >= revid
 	})
 	if idx == len(self.validRevisions) || self.validRevisions[idx].id != revid {
-		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
+//		panic(fmt.Errorf("revision id %v cannot be reverted", revid))
+		idx--
 	}
 	snapshot := self.validRevisions[idx].journalIndex
 
@@ -1035,6 +1044,7 @@ func (self *StateDB) GetRefund() uint64 {
 
 // Finalise finalises the state by removing the self destructed objects
 // and clears the journal as well as the refunds.
+
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	for addr := range s.journal.dirties {
 		stateObject, exist := s.stateObjects[addr]
@@ -1052,6 +1062,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			s.deleteStateObject(stateObject)
 		} else {
 			stateObject.updateRoot(s.db)
+			//stateObject.updateTrie(s.db)
 			s.updateStateObject(stateObject)
 		}
 		s.stateObjectsDirty[addr] = struct{}{}
@@ -1080,11 +1091,11 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
-	self.thash = thash
-	self.bhash = bhash
-	self.txIndex = ti
-}
+//func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+//	self.thash = thash
+//	self.bhash = bhash
+//	self.txIndex = ti
+//}
 
 func (s *StateDB) clearJournalAndRefund() {
 	s.journal = newJournal()

@@ -75,8 +75,8 @@ type StateDBManager interface {
 	// is defined according to EIP161 (balance = nonce = code = 0).
 	Empty(cointyp string, addr common.Address) bool
 
-	RevertToSnapshot(cointyp string, ss map[byte]int)
-	Snapshot(cointyp string) map[byte]int
+	RevertToSnapshot(cointyp string, ss []int)
+	Snapshot(cointyp string) []int
 
 	Error() error
 

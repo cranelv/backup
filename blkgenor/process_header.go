@@ -86,7 +86,6 @@ func (p *Process) processHeaderGen() error {
 		log.Error(p.logExtraInfo(), "运行交易和状态树失败", err)
 		return err
 	}
-
 	//运行完matrix状态树后，生成root (p.blockChain(), header, stateDB, nil, tsBlock.Currencies())
 	block, _, err := p.pm.manblk.Finalize(blkmanage.CommonBlk, version, originHeader, stateDB, finalTxs, nil, receipts, nil)
 	if err != nil {

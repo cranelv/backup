@@ -267,5 +267,13 @@ var (
 				"4. panic增加时间 ",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.33",
+			Submitter: "lb",
+			Commit: []string{
+				"fetch增加loop周期例行检查功能，防止fetch阻塞区块入库",
+				"panic增加换行",
+			},
+		},
 	}
 )

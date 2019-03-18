@@ -1092,15 +1092,25 @@ func (nPool *NormalTxPool) blockTiming() {
 // 根据交易获取交易中的from
 func (nPool *NormalTxPool) getFromByTx(txs []*types.Transaction) {
 	var waitG = &sync.WaitGroup{}
-	maxProcs := runtime.NumCPU() //获取cpu个数
-	if maxProcs >= 2 {
-		runtime.GOMAXPROCS(maxProcs - 1) //限制同时运行的goroutines数量
+	routineNum := len(txs)/100+1
+	if routineNum > 1{
+		maxProcs := runtime.GOMAXPROCS(0)  //获取cpu个数
+		if maxProcs > 2 {
+			maxProcs /= 2
+		}
+		if maxProcs<routineNum{
+			routineNum = maxProcs
+		}
+	}
+	routChan := make(chan types.SelfTransaction,0)
+	for i:=0;i<routineNum;i++ {
+		waitG.Add(1)
+		go types.Sender_sub(nPool.signer,routChan,waitG)
 	}
 	for _, tx := range txs {
-		waitG.Add(1)
-		ttx := tx
-		go types.Sender_self(nPool.signer, ttx, waitG)
+			routChan <- tx
 	}
+	close(routChan)
 	waitG.Wait()
 }
 
