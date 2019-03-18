@@ -319,7 +319,19 @@ func (p *StateProcessor) checkCoinShard(coinShard []common.CoinSharding) []commo
 	}
 	return coinShard
 }
-
+func myCoinsort(coins []string) []string {
+	coinsnoman := make([]string,0,len(coins))
+	retCoins := make([]string,0,len(coins))
+	for _,coinname := range coins{
+		if coinname == params.MAN_COIN{
+			continue
+		}
+		coinsnoman = append(coinsnoman,coinname)
+	}
+	retCoins = append(retCoins,params.MAN_COIN)
+	retCoins = append(retCoins,coinsnoman...)
+	return retCoins
+}
 // Process processes the state changes according to the Matrix rules by running
 // the transaction messages using the statedb and applying any rewards to both
 // the processor (coinbase) and any included uncles.
@@ -462,7 +474,17 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		}
 	}
 
-	p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
+	rewarts := p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
+	tmpmapcoin := make(map[string]bool)//为了拿到币种,v值无意义
+	for _,rewart := range rewarts{
+		tmpmapcoin[rewart.CoinRange] = true
+	}
+	tmpcoins := make([]string,0)
+	for rewardCoinname,_ := range tmpmapcoin{
+		tmpcoins = append(tmpcoins,rewardCoinname)
+	}
+	coins = myCoinsort(tmpcoins)
+
 	//先是MAN奖励交易,后是其他币种奖励交易
 	for _, coinname := range coins {
 		tmpRewardtxs := rewardTxmap[coinname]
