@@ -473,7 +473,7 @@ func AccumulatorCheck(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	return rewardOut
 }
 
-func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutReward, error) {
+func 计算衰减奖励金额(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutReward, error) {
 	var currentReward *mc.MinerOutReward
 	var err error
 	if TxsReward == rewardType {
@@ -490,6 +490,10 @@ func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutR
 				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
 				return make([]mc.MultiCoinMinerOutReward, 0), errors.New("获取矿工交易金额错误")
 			}
+			for _, v := range multiCoin {
+				log.Trace(PackageName, "获取前一个矿工奖励值为", v.Reward, "type", v.CoinType)
+			}
+
 			return multiCoin, nil
 		} else {
 			log.Error(PackageName, "获取前矿工奖励值版本号错误", version)
