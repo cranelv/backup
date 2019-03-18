@@ -390,7 +390,6 @@ func (nPool *NormalTxPool) packageSNList() {
 				nPool.setTxNum(tx, tmpnum, false)
 				tmpsnlst[tmpnum] = s
 				nPool.setnTx(tmpnum, tx, false)
-				log.Error("=====packageSNList","tx N",tmpnum,"txhash",tx.Hash())
 			}
 		}
 		nPool.mu.Unlock()
