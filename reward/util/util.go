@@ -473,7 +473,7 @@ func AccumulatorCheck(st StateDB, rewardIn []common.RewarTx) []common.RewarTx {
 	return rewardOut
 }
 
-func 计算衰减奖励金额(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutReward, error) {
+func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutReward, error) {
 	var currentReward *mc.MinerOutReward
 	var err error
 	if TxsReward == rewardType {
