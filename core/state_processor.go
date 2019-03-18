@@ -93,14 +93,14 @@ func (p *StateProcessor) getCoinConfig(statedbM *state.StateDBManage) []common.C
 	//return ret
 	return coincfglist
 }
-func (p *StateProcessor) getGas(state *state.StateDBManage, coinType string, gas *big.Int, From common.Address) *big.Int {
-	gasprice, err := matrixstate.GetTxpoolGasLimit(state)
+func (p *StateProcessor) getGas(currentState *state.StateDBManage, preState *state.StateDBManage, coinType string, gas *big.Int, From common.Address) *big.Int {
+	gasprice, err := matrixstate.GetTxpoolGasLimit(preState)
 	if err != nil {
 		return big.NewInt(0)
 	}
 	allGas := new(big.Int).Mul(gas, new(big.Int).SetUint64(gasprice.Uint64()))
 	log.INFO("奖励", coinType+"交易费奖励总额", allGas.String())
-	balance := state.GetBalance(coinType, From)
+	balance := currentState.GetBalance(coinType, From)
 
 	if len(balance) == 0 {
 		log.WARN("奖励", coinType+"交易费奖励账户余额不合法", "")
@@ -165,7 +165,7 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	txsReward := txsreward.New(p.bc, st, preState, ppreState)
 
 	if nil != txsReward {
-		rewardList = p.processMultiCoinReward(usedGas, preState, txsReward, header, rewardList)
+		rewardList = p.processMultiCoinReward(usedGas, st, preState, txsReward, header, rewardList)
 	}
 
 	lottery := lottery.New(p.bc, st, p.random, preState)
@@ -196,13 +196,13 @@ func (p *StateProcessor) ProcessReward(st *state.StateDBManage, header *types.He
 	return util.AccumulatorCheck(st, rewardList)
 }
 
-func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, preState *state.StateDBManage, txsReward reward.Reward, header *types.Header, rewardList []common.RewarTx) []common.RewarTx {
+func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, currentState *state.StateDBManage, preState *state.StateDBManage, txsReward reward.Reward, header *types.Header, rewardList []common.RewarTx) []common.RewarTx {
 	gas := new(big.Int).SetUint64(0)
 	allGas := new(big.Int).SetUint64(0)
 	if value, ok := usedGas[params.MAN_COIN]; ok {
 		gas = value
 	}
-	allGas = p.getGas(preState, params.MAN_COIN, gas, common.TxGasRewardAddress)
+	allGas = p.getGas(currentState, preState, params.MAN_COIN, gas, common.TxGasRewardAddress)
 	txsRewardMap := txsReward.CalcNodesRewards(allGas, header.Leader, header.Number.Uint64(), header.ParentHash, params.MAN_COIN)
 	if 0 != len(txsRewardMap) {
 		//todo:发放币种从chain上获取
