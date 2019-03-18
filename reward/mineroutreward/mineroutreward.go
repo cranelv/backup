@@ -138,7 +138,7 @@ func (mr *MinerOutReward) SetMinerOutRewards(curReward *big.Int, state util.Stat
 
 	rewards := make(map[common.Address]*big.Int)
 	util.SetAccountRewards(rewards, coinBase, reward)
-	//log.Debug(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", preReward)
+	log.Debug(PackageName, "出块矿工账户：", coinBase.String(), "发放奖励高度", num, "奖励金额", reward)
 	return rewards
 }
 
