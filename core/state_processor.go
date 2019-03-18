@@ -211,7 +211,7 @@ func (p *StateProcessor) processMultiCoinReward(usedGas map[string]*big.Int, cur
 	coinConfig := p.getCoinConfig(preState)
 	for _, config := range coinConfig {
 		if value, ok := usedGas[config.CoinRange]; ok {
-			allGas = p.getGas(preState, config.CoinType, value, config.CoinAddress)
+			allGas = p.getGas(currentState, preState, config.CoinType, value, config.CoinAddress)
 		} else {
 			allGas = new(big.Int).SetUint64(0)
 		}
