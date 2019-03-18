@@ -390,6 +390,7 @@ func (nPool *NormalTxPool) packageSNList() {
 				nPool.setTxNum(tx, tmpnum, false)
 				tmpsnlst[tmpnum] = s
 				nPool.setnTx(tmpnum, tx, false)
+				log.Error("=====packageSNList","tx N",tmpnum,"txhash",tx.Hash())
 			}
 		}
 		nPool.mu.Unlock()
@@ -1450,7 +1451,7 @@ func (nPool *NormalTxPool) DemoteUnexecutables() {
 			}
 			// Delete the entire queue entry if it became empty.
 			if list.Empty(typ) {
-				delete(nPool.pending, addr)
+				delete(nPool.pending[addr].txs, typ)
 			}
 		}
 	}

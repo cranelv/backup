@@ -680,9 +680,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	coins := make([]string,0,len(txs)+1)
 	log.Info("work", "关键时间点", "开始执行交易", "time", time.Now(), "块高", env.header.Number)
 	if len(txs)>1{
-		//log.INFO("=====sort1","txs",txs)
 		txs = mysort(txs)
-		//log.INFO("=====sort2","txs",txs)
 	}
 
 	for _, tx := range txs {
