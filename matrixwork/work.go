@@ -296,6 +296,19 @@ type retStruct struct {
 	no  []uint32
 	txs []*types.Transaction
 }
+func myCoinsort(coins []string) []string {
+	coinsnoman := make([]string,0,len(coins))
+	retCoins := make([]string,0,len(coins))
+	for _,coinname := range coins{
+		if coinname == params.MAN_COIN{
+			continue
+		}
+		coinsnoman = append(coinsnoman,coinname)
+	}
+	retCoins = append(retCoins,params.MAN_COIN)
+	retCoins = append(retCoins,coinsnoman...)
+	return retCoins
+}
 
 func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime map[common.Address]uint64) (listret []*common.RetCallTxN, originalTxs []types.SelfTransaction) {
 	pending, err := tp.Pending()
@@ -368,6 +381,14 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	rewardTxmap := env.makeTransaction(rewart)
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+
+	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
+	tmpcoins := make([]string,0)
+	for rewardCoinname,_ := range rewardTxmap{
+		tmpcoins = append(tmpcoins,rewardCoinname)
+	}
+	coins = myCoinsort(tmpcoins)
+
 	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
 		var tCoinReceipt types.CoinReceipts
@@ -563,6 +584,13 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
+	tmpcoins := make([]string,0)
+	for rewardCoinname,_ := range rewardTxmap{
+		tmpcoins = append(tmpcoins,rewardCoinname)
+	}
+	coins = myCoinsort(tmpcoins)
+
 	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
 		var tCoinReceipt types.CoinReceipts
@@ -733,6 +761,13 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 
 	allfinalTxs := make([]types.CoinSelfTransaction,0,len(coins)) //按币种存放的所有交易切片(先放分区币种的奖励交易，然后存该币种的普通交易)
 	allfinalRecpets := make([]types.CoinReceipts,0,len(coins))  //按币种存放的所有收据切片(先放分区币种的奖励收据，然后存该币种的普通收据)
+	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
+	tmpcoins := make([]string,0)
+	for rewardCoinname,_ := range rewardTxmap{
+		tmpcoins = append(tmpcoins,rewardCoinname)
+	}
+	coins = myCoinsort(tmpcoins)
+
 	//先跑MAN奖励交易，后跑其他币种奖励交易
 	for _,coinname := range coins{
 		var tCoinReceipt types.CoinReceipts

@@ -228,19 +228,22 @@ func (pm *TxPoolManager) Stop() {
 func (pm *TxPoolManager) Pending() (map[string]map[common.Address]types.SelfTransactions, error) {
 	pm.txPoolsMutex.Lock()
 	defer pm.txPoolsMutex.Unlock()
-	//txser := make(map[common.Address]types.SelfTransactions)
-	pending := make(map[string]map[common.Address]types.SelfTransactions)
-	for _, txpool := range pm.txPools {
-		txmap, _ := txpool.Pending()
-		for coin,maptxs := range txmap{
-			tmptxmap := make(map[common.Address]types.SelfTransactions)
-			for addr,txs := range maptxs{
-				tmptxmap[addr] = append(tmptxmap[addr],txs...)
-			}
-			pending[coin] = tmptxmap
-		}
-	}
-	return pending, nil
+	return pm.txPools[types.NormalTxIndex].Pending()
+
+	//pending := make(map[string]map[common.Address]types.SelfTransactions)
+	//for _, txpool := range pm.txPools {
+	//	txmap, _ := txpool.Pending()
+	//	for coin,maptxs := range txmap{
+	//		tmptxmap := make(map[common.Address]types.SelfTransactions)
+	//		for addr,txs := range maptxs{
+	//			tmptxs := tmptxmap[addr]
+	//			tmptxs = append(tmptxs,txs...)
+	//			tmptxmap[addr] = tmptxs
+	//		}
+	//		pending[coin] = tmptxmap
+	//	}
+	//}
+	//return pending, nil
 }
 
 func GetMatrixCoin(state *state.StateDBManage) ([]string, error) {
