@@ -472,7 +472,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 			from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 		}
 	}
-	statedb.Finalise("MAN",true)
+	//statedb.Finalise("MAN",true)
 	rewarts := p.ProcessReward(statedb, block.Header(), upTime, from, retAllGas)
 	tmpmapcoin := make(map[string]bool)//为了拿到币种,v值无意义
 	for _,rewart := range rewarts{
@@ -530,12 +530,7 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 		tmpMaptx[coinname] = ftxs
 	}
 
-	//receipts = append(receipts, tmpMapre[params.MAN_COIN]...)
-	//tmpMapre[params.MAN_COIN] = receipts
-	//ftxs = append(ftxs, tmpMaptx[params.MAN_COIN]...)
-	//tmpMaptx[params.MAN_COIN] = ftxs
-
-	statedb.Finalise("MAN",true)
+	statedb.Finalise("",true)
 	currblock := make([]types.CurrencyBlock, 0, len(block.Currencies()))
 	for i, bc := range block.Currencies() {
 		if !isvadter {

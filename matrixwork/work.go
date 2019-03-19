@@ -371,13 +371,6 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 
-	////===================测试==============================//
-	//if len(finalCoinTxs)>1{//=====测试 leader
-	//	log.Error("leader=====","tCoinTxs",types.RlpHash(tCoinTxs),"tCoinRecpets",types.RlpHash(tCoinRecpets),"originalTxs",originalTxs,"tCoinTxs",tCoinTxs,"tCoinRecpets",tCoinRecpets)
-	//	log.Error("leader=======1","txs hash",types.RlpHash(env.transer),"recepts hash",types.RlpHash(env.recpts),"all txs hash",types.RlpHash(finalCoinTxs),"all recpts hash",types.RlpHash(finalCoinRecpets))
-	//}
-	////===================测试==============================//
-
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
 		from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
@@ -566,7 +559,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	tCoinTxs,tCoinRecpets := types.GetCoinTXRS(env.transer,env.recpts) // env.transer就是originalTxs
 	finalCoinTxs := make([]types.CoinSelfTransaction,0)
 	finalCoinRecpets := make([]types.CoinReceipts,0)
-	env.State.Finalise("MAN",true)
+	//env.State.Finalise("MAN",true)
 
 	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
 	isHaveManCoin := false
@@ -635,7 +628,7 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 		tCoinReceipt.Receiptlist = tmpRecepts
 		allfinalRecpets = append(allfinalRecpets,tCoinReceipt)
 	}
-	env.State.Finalise("MAN",true)
+	env.State.Finalise("",true)
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
 	return
@@ -752,13 +745,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
-	env.State.Finalise("MAN",true)
-	////===================测试==============================//
-	//if len(finalCoinTxs)>1{//=====测试 fllower
-	//	log.Error("fllower=====","tCoinTxs",types.RlpHash(tCoinTxs),"tCoinRecpets",types.RlpHash(tCoinRecpets),"tCoinTxs",tCoinTxs,"tCoinRecpets",tCoinRecpets)
-	//	log.Error("fllower==========1","txs hash",types.RlpHash(env.transer),"env.transer",env.transer,"recepts hash",types.RlpHash(env.recpts),"all txs hash",types.RlpHash(finalCoinTxs),"all recpts hash",types.RlpHash(finalCoinRecpets))
-	//}
-	////===================测试==============================//
+	//env.State.Finalise("MAN",true)
 
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.mapcoin)
@@ -810,7 +797,7 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	}
 	env.txs = allfinalTxs
 	env.Receipts = allfinalRecpets
-	env.State.Finalise("MAN",true)
+	env.State.Finalise("",true)
 
 	if len(coalescedLogs) > 0 || env.tcount > 0 {
 		go func(logs []types.CoinLogs, tcount int) {
