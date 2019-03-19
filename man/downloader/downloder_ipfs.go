@@ -1415,20 +1415,25 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		if tmplistBlockInfo.blockNum == 1 { //说明要重新开始
 			d.ClearDirectoryContent()
 		}
-		tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
-		if errf != nil {
-			log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
-			return errf
-		}
 
-		//errd := rlp.Encode(tmpBlockFile, newBlock)
-		errd := rlp.Encode(tmpBlockFile, stBlock)
-		tmpBlockFile.Close()
+		//可注掉，目前为统计-begin
 		{
-			fhandler, _ := os.Stat(strNewBlockStoreFile)
-			gIpfsStat.totalBlockSize += fhandler.Size()
-			log.Debug("ipfs block encode info", "error", errd, "blockNum", tmplistBlockInfo.blockNum, "blockSize", fhandler.Size(), "totalSize", gIpfsStat.totalBlockSize)
+			tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
+			if errf != nil {
+				log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
+				return errf
+			}
+
+			//errd := rlp.Encode(tmpBlockFile, newBlock)
+			errd := rlp.Encode(tmpBlockFile, stBlock)
+			tmpBlockFile.Close()
+			{
+				fhandler, _ := os.Stat(strNewBlockStoreFile)
+				gIpfsStat.totalBlockSize += fhandler.Size()
+				log.Trace("ipfs block encode info", "error", errd, "blockNum", tmplistBlockInfo.blockNum, "blockSize", fhandler.Size(), "totalSize", gIpfsStat.totalBlockSize)
+			}
 		}
+		//可注掉，目前为统计-end
 		err = nil
 
 		if SingleBlockStore == true {
@@ -2073,6 +2078,7 @@ func (d *Downloader) IpsfAddNewBatchBlockToCache(stCfg *Cache1StoreCfg, blockNum
 
 }
 
+//批量存储区块
 func (d *Downloader) AddNewBatchBlockToIpfs() {
 	/*d.dpIpfs.BatchStBlock.headerStoreFile
 	d.dpIpfs.BatchStBlock.bodyStoreFile
@@ -2229,6 +2235,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
 		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
 	}*/
+	log.Trace(" ipfs BatchStoreAllBlock recv  block", "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum, "blockNum", blockNum)
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum != 0 {
 		beginNum := d.dpIpfs.BatchStBlock.ExpectBeginNum
 		//读文件时，可能原来文件中携带的值较大，而实际测试删除数据又从1开始

@@ -802,14 +802,14 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 	}*/
 	//lb 从后往前找的代码
 	newCount := 1
-	newHeadFrom := head
+	newHeadBeginFrom := head
 	for {
 		skip := 15 + 1
-		if (int64(newHeadFrom) - int64(skip)) > 0 {
+		if (int64(newHeadBeginFrom) - int64(skip)) > 0 {
 			if newCount > limit {
 				break
 			}
-			newHeadFrom = newHeadFrom - uint64(skip)
+			newHeadBeginFrom = newHeadBeginFrom - uint64(skip)
 			newCount++
 
 		} else {
@@ -817,9 +817,9 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 		}
 
 	}
-	from = int64(newHeadFrom)
-	p.log.Debug("Looking for common ancestor another", "newHeadFrom", newHeadFrom, "newCount", newCount)
-	go p.peer.RequestHeadersByNumber(newHeadFrom, newCount, 15, false)
+	from = int64(newHeadBeginFrom)
+	p.log.Debug("Looking for common ancestor another", "newHeadBeginFrom", newHeadBeginFrom, "newCount", newCount)
+	go p.peer.RequestHeadersByNumber(newHeadBeginFrom, newCount, 15, false)
 	//lb
 	//go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
 
@@ -1374,7 +1374,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				if kind == "headers" && d.bIpfsDownload == 1 {
 					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
-						log.Trace("fetchParts Data Reserve header too big,wait for ipfs stroe", "gCurDownloadHeadReqBeginNum", gCurDownloadHeadReqBeginNum, "gIpfsProcessBlockNumber", gIpfsProcessBlockNumber)
+						//log.Trace("fetchParts Data Reserve header too big,wait for ipfs stroe", "gCurDownloadHeadReqBeginNum", gCurDownloadHeadReqBeginNum, "gIpfsProcessBlockNumber", gIpfsProcessBlockNumber)
 						bTestWaitFlg = true
 						break
 					}
