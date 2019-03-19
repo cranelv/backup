@@ -227,7 +227,7 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 			}
 		}
 	}
-	env.State.Finalise("MAN",true)
+	//env.State.Finalise("MAN",true)
 	listret = make([]*common.RetCallTxN,0,len(tmpRetmap))
 	for t, n := range tmpRetmap {
 		ts := common.RetCallTxN{t, n}
