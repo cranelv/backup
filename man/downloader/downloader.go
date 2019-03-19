@@ -175,6 +175,7 @@ type SnapshootReq struct {
 }
 
 var SnapshootNumber uint64
+var gCurDownloadHeadReqBeginNum uint64
 
 // LightChain encapsulates functions required to synchronise a light chain.
 type LightChain interface {
@@ -794,7 +795,33 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 	if count > limit {
 		count = limit
 	}
-	go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
+
+	/*newHeadFrom := int64(head) - int64(count*16)
+	if newHeadFrom < 0 {
+		newHeadFrom = 0
+	}*/
+	//lb 从后往前找的代码
+	newCount := 1
+	newHeadFrom := head
+	for {
+		skip := 15 + 1
+		if (int64(newHeadFrom) - int64(skip)) > 0 {
+			if newCount > limit {
+				break
+			}
+			newHeadFrom = newHeadFrom - uint64(skip)
+			newCount++
+
+		} else {
+			break
+		}
+
+	}
+	from = int64(newHeadFrom)
+	p.log.Debug("Looking for common ancestor another", "newHeadFrom", newHeadFrom, "newCount", newCount)
+	go p.peer.RequestHeadersByNumber(newHeadFrom, newCount, 15, false)
+	//lb
+	//go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
 
 	// Wait for the remote response to the head fetch
 	number, hash := uint64(0), common.Hash{}
@@ -1345,6 +1372,12 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				if pending() == 0 {
 					break
 				}
+				if kind == "headers" && d.bIpfsDownload == 1 {
+					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
+						log.Trace("fetchParts Data Reserve header too big,wait for ipfs stroe", "gCurDownloadHeadReqBeginNum", gCurDownloadHeadReqBeginNum, "gIpfsProcessBlockNumber", gIpfsProcessBlockNumber)
+						break
+					}
+				}
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
 				// no more headers are available, or that the peer is known not to
 				// have them.
@@ -1357,6 +1390,10 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				if request == nil {
 					continue
+				}
+				//lb
+				if kind == "headers" && d.bIpfsDownload == 1 {
+					gCurDownloadHeadReqBeginNum = request.From
 				}
 				if request.From > 0 {
 					peer.log.Trace("Requesting new batch of data", "type", kind, "from", request.From)

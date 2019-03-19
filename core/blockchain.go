@@ -56,6 +56,7 @@ var (
 
 	SaveSnapPeriod uint64 = 300
 	SaveSnapStart  uint64 = 0
+	CleanMemFlgNum int    = 0
 )
 
 const (
@@ -1328,6 +1329,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			err = bc.Validator(header.Version).ValidateBody(block)
 		}
 
+		CleanMemFlgNum++
+
 		switch {
 		case err == ErrKnownBlock:
 			// Block and state both already known. However if the current block is below
@@ -1491,10 +1494,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		//receipts = nil
 		block = nil
 		logs = nil
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 	}
-	debug.FreeOSMemory() //lb
-
+	if CleanMemFlgNum > 100 {
+		log.Trace("BlockChain FreeOSMemory")
+		debug.FreeOSMemory() //lb
+		CleanMemFlgNum = 0
+	}
 	log.Trace("BlockChain insertChain out")
 	for i := 0; i < len(chain)-1; i++ {
 		if chain[i].IsSuperBlock() && status == CanonStatTy {

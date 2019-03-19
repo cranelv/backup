@@ -197,6 +197,7 @@ var runQuit chan int         //struct{}
 var timeOutFlg int           //chan int
 var gtimeOutSign chan string //struct{}
 var gIpfsStat IPFSBlockStat
+var gIpfsProcessBlockNumber uint64
 
 func init() {
 	/*creatInfo := DownloadFileInfo{
@@ -437,7 +438,7 @@ func RestartIpfsDaemon() {
 		//strErrInfo := outerr.String()
 		//d.dpIpfs.BIpfsIsRunning = true
 		if err != nil {
-			log.Error("ipfs RestartIpfsDaemon daemon error, will exit", "error", err, "outerr", outerr.String())
+			log.Error("ipfs RestartIpfsDaemon daemon error, will exit", "error", err, "out", out.String(), "outerr", outerr.String())
 			//return err
 		}
 		//d.IpfsMode = false //启动失败时 置为false
@@ -447,7 +448,8 @@ func RestartIpfsDaemon() {
 	<-flgCh
 	log.Warn("ipfs---- RestartIpfsDaemon daemon over")
 	fmt.Println("ipfs ---restart over")
-	time.Sleep(5 * time.Second)
+	time.Sleep(20 * time.Second)
+	log.Warn("ipfs---- RestartIpfsDaemon daemon sleep over")
 }
 func CheckIpfsStatus(err error) {
 	//log.Warn("ipfs---- CheckIpfsStatus--------")
@@ -1099,6 +1101,11 @@ func (d *Downloader) IPfsDirectoryUpdate() error {
 			log.Error("ipfs IPfsDirectoryUpdate add dictory error again", "error", err)
 			return err
 		}
+	}
+
+	if out.Len() < IpfsHashLen {
+		log.Error("ipfs IPfsDirectoryUpdate add dictory error again", "error", err, "out.Len() ", out.Len(), "ipfs err", outerr.String())
+		return err
 	}
 	publishHash := string(out.Bytes()[0 : out.Len()-1]) //0：IpfsHashLen
 
@@ -2093,6 +2100,7 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 		log.Error(" ipfs AddNewBatchBlockToIpfs error", "strBatchBodyFile", bBodyHash)
 		return
 	}
+
 	gIpfsStat.totalZipBatchBlockSize += batchZipSize
 	log.Warn("static ipfs AddNewBatchBlockToIpfs body info", "blockNum", d.dpIpfs.BatchStBlock.curBlockNum, "batchsize", batchBodySize, "zipsize", batchZipSize, "batchtoatalsize", gIpfsStat.totalBatchBlockSize, "zipTotalsize", gIpfsStat.totalZipBatchBlockSize)
 	bReceiptHash, _, err1 := IpfsAddNewFile(strBatchReceiptFile, true)
@@ -2122,6 +2130,7 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 	}
 	log.Debug("ipfs AddNewBatchBlockToIpfs sucess ", "blockNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
 
+	gIpfsProcessBlockNumber = d.dpIpfs.BatchStBlock.curBlockNum
 	//file test
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum == 1 {
 		//	compareFiletoBatchBlock()
@@ -2169,6 +2178,7 @@ func (d *Downloader) AddStateRootInfoToIpfs(blockNum uint64, strheadHash string,
 	err := d.IPfsDirectoryUpdate()
 	if err != nil {
 		log.Error(" ipfs AddStateRootInfoToIpfs error IPfsDirectoryUpdate", "blockNum", blockNum, "filePath", strheadHash)
+		return
 	}
 	log.Warn(" ipfs snapshoot AddStateRootInfoToIpfs sucess", "blockNum", blockNum, "strheadHash", strheadHash, "filePath", filePath)
 }
