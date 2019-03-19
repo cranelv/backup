@@ -1361,7 +1361,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			// Send a download request to all idle peers, until throttled
 			progressed, throttled, running := false, false, inFlight()
 			idles, total := idle()
-
+			bTestWaitFlg := false
 			for _, peer := range idles {
 				// Short circuit if throttling activated
 				if throttle() {
@@ -1375,6 +1375,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				if kind == "headers" && d.bIpfsDownload == 1 {
 					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
 						log.Trace("fetchParts Data Reserve header too big,wait for ipfs stroe", "gCurDownloadHeadReqBeginNum", gCurDownloadHeadReqBeginNum, "gIpfsProcessBlockNumber", gIpfsProcessBlockNumber)
+						bTestWaitFlg = true
 						break
 					}
 				}
@@ -1416,7 +1417,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			}
 			// Make sure that we have peers available for fetching. If all peers have been tried
 			// and all failed throw an error
-			if !progressed && !throttled && !running && len(idles) == total && pending() > 0 {
+			if !progressed && !throttled && !running && !bTestWaitFlg && len(idles) == total && pending() > 0 {
 				return errPeersUnavailable
 			}
 		}
