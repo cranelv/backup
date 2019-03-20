@@ -746,13 +746,18 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 							log.Warn("download queue Reserveipfs continuous begin ", "i", i, "blockNum", tmpReq.HeadReqipfs.Number.Uint64())
 						} else {
 							if curMod < 270 {
+								tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
+								if tmpBlock == nil {
+									log.Warn("download queue Reserveipfs calc blockNum", "blcokNum", curDiv*300+1) //还未入链等待
+									break
+								}
 								for n := 0; n < (300 - int(curMod) + 1); n++ {
 									if q.resultCache[i+n] == nil {
 										break
 									}
 									q.resultCache[i+n].Flag = 2
 								}
-								tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
+								//tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
 								tmpReq := BlockIpfsReq{
 									ReqPendflg:   components, //q.resultCache[i].Pending,
 									Flag:         2,
@@ -1296,12 +1301,14 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 
 	if q.resultCache[index] == nil {
 		header := bodyBlock.Headeripfs
+		log.Warn("download  syn recv a block insert reserveHeaders new discard ", "index", index, " header number", header.Number.Uint64())
+		return
 		hash := header.Hash()
 		components := 1
 		if q.mode == FastSync {
 			components = 2
 		}
-		log.Warn("download  syn recv a block insert reserveHeaders new", "index", index, " header number", header.Number.Uint64())
+		//log.Warn("download  syn recv a block insert reserveHeaders new", "index", index, " header number", header.Number.Uint64())
 		//ResultCache
 		q.resultCache[index] = &fetchResult{
 			Pending: components,

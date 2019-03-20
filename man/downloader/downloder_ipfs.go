@@ -3095,7 +3095,7 @@ func (d *Downloader) SynIPFSCheck() {
 
 }
 func (d *Downloader) ClearIpfsQueue() {
-
+	//d.dpIpfs.HeaderIpfsCh = d.dpIpfs.HeaderIpfsCh[0:0]
 	if d.dpIpfs != nil && d.dpIpfs.DownRetrans != nil {
 		if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
 			d.dpIpfs.DownMutex.Lock()

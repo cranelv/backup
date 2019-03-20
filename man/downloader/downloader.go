@@ -635,6 +635,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 // used when cancelling the downloads from inside the downloader.
 func (d *Downloader) cancel() {
 	// Close the current cancel channel
+	log.Debug("Downloading cancel()")
 	d.cancelLock.Lock()
 	if d.cancelCh != nil {
 		select {
