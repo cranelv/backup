@@ -226,6 +226,8 @@ type BlockChain interface {
 	//lb ipfs
 	SetbSendIpfsFlg(bool)
 	GetStoreBlockInfo() *prque.Prque //types.Blocks //(storeBlock types.Blocks)
+	GetIpfsQMux()
+	GetIpfsQUnMux()
 
 	GetSuperBlockSeq() (uint64, error)
 	GetSuperBlockNum() (uint64, error)

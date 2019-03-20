@@ -149,6 +149,7 @@ type BlockChain struct {
 	//lb ipfs
 	bBlockSendIpfs bool
 	qBlockQueue    *prque.Prque
+	qIpfsMu        sync.RWMutex
 
 	//matrix state
 	matrixProcessor *MatrixProcessor
@@ -946,8 +947,10 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 			tmpBlock := &types.BlockAllSt{Sblock: block}
 			//copy(tmpBlock.SReceipt, receipts)
 			//tmpBlock.SReceipt = receipts
-			tmpBlock.Pading = uint64(len(txs))
+			//tmpBlock.Pading = uint64(len(txs))
+			bc.GetIpfsQMux()
 			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+			bc.GetIpfsQUnMux()
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
@@ -1012,6 +1015,12 @@ func (bc *BlockChain) GetStoreBlockInfo() *prque.Prque {
 	//(storeBlock types.Blocks) {
 	return bc.qBlockQueue
 }
+func (bc *BlockChain) GetIpfsQMux() {
+	bc.qIpfsMu.Lock()
+}
+func (bc *BlockChain) GetIpfsQUnMux() {
+	bc.qIpfsMu.Unlock()
+}
 
 // WriteBlockWithoutState writes only the block and its metadata to the database,
 // but does not write any state. This is used to construct competing side forks
@@ -1066,8 +1075,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	}
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
 		tmpBlock := &types.BlockAllSt{Sblock: block}
-		tmpBlock.Pading = txcount
+		//tmpBlock.Pading = txcount
+		bc.GetIpfsQMux()
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+		bc.GetIpfsQUnMux()
 		//log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
 			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)

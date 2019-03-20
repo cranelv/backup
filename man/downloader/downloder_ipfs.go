@@ -1385,8 +1385,11 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 			//}
 		}
 	}
-	var bNeedBatch bool = false
+	bNeedBatch := false
+	bNeedSanp := false
+	var tmpsnap types.SnapSaveInfo
 	curlistBlockInfo := make([]listBlockInfo, 0)
+	d.blockchain.GetIpfsQMux()
 	for {
 		var tmplistBlockInfo listBlockInfo //:= new(listBlockInfo)
 		if blockqueue.Empty() {
@@ -1399,8 +1402,10 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		case *types.BlockAllSt:
 
 		case types.SnapSaveInfo:
-			tmpsnap := revInfo.(types.SnapSaveInfo)
-			d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
+			bNeedSanp = true
+			tmpsnap = revInfo.(types.SnapSaveInfo)
+			//tmpsnap := revInfo.(types.SnapSaveInfo)
+			///d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
 			continue
 		default:
 			continue
@@ -1464,6 +1469,10 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 			bNeedBatch = true //批量区块存储文件 上传标记
 			break
 		}
+	}
+	d.blockchain.GetIpfsQUnMux()
+	if bNeedSanp == true {
+		d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
 	}
 
 	if SingleBlockStore == true {
@@ -2245,14 +2254,18 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		//distance := math.Abs(float64(blockNum - d.dpIpfs.BatchStBlock.ExpectBeginNum))
 		//if distance > 300 {
 		if ((blockNum > beginNum) && (blockNum-beginNum >= BATCH_NUM)) || ((beginNum > blockNum) && (beginNum-blockNum >= BATCH_NUM)) {
-			log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
+			log.Warn(" ipfs BatchStoreAllBlock write file error illage", "blockNum", blockNum, "ExpectBeginNum", beginNum)
+			//return false
+			//如文件保存到325， 重启后变为 621开始
+			/*log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
 			if d.dpIpfs.BatchStBlock.headerStoreFile != nil {
 
 				d.dpIpfs.BatchStBlock.headerStoreFile.Close()
 				d.dpIpfs.BatchStBlock.bodyStoreFile.Close()
 				d.dpIpfs.BatchStBlock.receiptStoreFile.Close()
 			}
-			d.BatchBlockStoreInit(true)
+			d.BatchBlockStoreInit(true)*/
+
 		}
 	} else {
 		if blockNum == 1 {

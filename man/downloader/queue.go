@@ -563,7 +563,8 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 		if index >= len(q.resultCache) || index < 0 {
 			//common.Report("index allocation went beyond available resultCache space")
 			log.Warn("index allocation went beyond available resultCache space")
-			return nil, fmt.Errorf("index allocation went beyond available resultCache space ")
+			break
+			//return nil, fmt.Errorf("index allocation went beyond available resultCache space ")
 		}
 		if q.resultCache[index] == nil {
 
@@ -1320,13 +1321,16 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 
 	if index > 300 {
 		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
-			log.Warn("download  syn recv a block but begining is to receive, begin origin Req", q.resultCache[0].Header.Number.Uint64())
 			hash := q.resultCache[0].Header.Hash()
-			q.blockTaskPool[hash] = q.resultCache[0].Header
-			q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
-			if q.resultCache[0].Pending > 1 {
-				q.receiptTaskPool[hash] = q.resultCache[0].Header
-				q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+			_, ok := q.blockTaskPool[hash]
+			if !ok {
+				log.Warn("download  syn recv a block but begining is to receive, begin origin Req", "blockNum", q.resultCache[0].Header.Number.Uint64())
+				q.blockTaskPool[hash] = q.resultCache[0].Header
+				q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+				if q.resultCache[0].Pending > 1 {
+					q.receiptTaskPool[hash] = q.resultCache[0].Header
+					q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+				}
 			}
 		}
 	}
