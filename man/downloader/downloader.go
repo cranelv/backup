@@ -623,6 +623,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			break
 		}
 	}
+	log.Debug("Downloading fetchPart over")
 	d.queue.Close()
 	d.ClearIpfsQueue()
 	d.Cancel()

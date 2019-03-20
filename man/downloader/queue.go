@@ -405,7 +405,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 	}
 	results := make([]*fetchResult, nproc)
 	copy(results, q.resultCache[:nproc])
-	log.Warn("download queue  Results", "len ", len(results), "nproc", nproc)
+	log.Warn("download queue  Results", "len ", len(results), "nproc", nproc, "closed", q.closed)
 	if len(results) > 0 {
 		// Mark results as done before dropping them from the cache.
 		for _, result := range results {
@@ -1310,6 +1310,19 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		}
 	}
 	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
+
+	if index > 300 {
+		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
+			log.Warn("download  syn recv a block but begining is to receive, begin origin Req", q.resultCache[0].Header.Number.Uint64())
+			hash := q.resultCache[0].Header.Hash()
+			q.blockTaskPool[hash] = q.resultCache[0].Header
+			q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+			if q.resultCache[0].Pending > 1 {
+				q.receiptTaskPool[hash] = q.resultCache[0].Header
+				q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+			}
+		}
+	}
 	//head hash
 	switch bodyBlock.Flag {
 	case 0:

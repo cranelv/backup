@@ -1622,7 +1622,7 @@ func (d *Downloader) GetBlockAndAnalysisSend(blockhash string, stype string) boo
 	//
 	defer func() {
 		blockFile.Close()
-		os.Remove(blockhash)
+		os.Remove(blockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ipfs GetBlockAndAnalysis error in IpfsGetBlockByHash", "error", err)
@@ -2616,7 +2616,7 @@ func (d *Downloader) ParseBatchHeader(batchblockhash string, beginReqNumber uint
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchHeader error in IpfsGetBlockByHash", "error", err)
@@ -2675,7 +2675,7 @@ func (d *Downloader) ParseBatchBody(batchblockhash string, beginReqNumber uint64
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchBody error in IpfsGetBlockByHash", "error", err)
@@ -2745,7 +2745,7 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string, beginReqNumber uin
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchReceipt error in IpfsGetBlockByHash", "error", err)
@@ -2807,10 +2807,11 @@ func (d *Downloader) ParseMPTstatus(batchblockhash string, beginReqNumber uint64
 	blockFile, err := IpfsGetBlockByHash(batchblockhash, true)
 	//解压区块
 	filepath := blockFile.Name()
-	//defer func() {
+	defer func() {
+		os.Remove(batchblockhash + ".unzip")
+	}()
 	blockFile.Close()
-	//os.Remove(batchblockhash)
-	//}()
+
 	if err != nil {
 		log.Debug(" ParseMPTstatus error in IpfsGetBlockByHash", "error", err)
 		return false
@@ -3170,7 +3171,7 @@ func (d *Downloader) GetBlockByIPFS(strHash string) {
 	//解压
 	defer func() {
 		file.Close()
-		os.Remove(strHash)
+		os.Remove(strHash + ".unzip")
 	}()
 	if err != nil {
 		fmt.Println("ipfs block error", err)
@@ -3207,5 +3208,5 @@ func (d *Downloader) GetsanpByIPFS(strHash string) {
 	//if d.blockchain {
 	d.blockchain.PrintSnapshotAccountMsg(0, "", strHash)
 	//}
-	os.Remove(strHash)
+	os.Remove(strHash + ".unzip")
 }
