@@ -510,13 +510,14 @@ type EntrustType struct {
 	//委托权限
 	IsEntrustGas    bool //委托gas
 	IsEntrustSign   bool //委托签名
-	EnstrustSetType byte //0-按高度委托,1-按时间委托
+	EnstrustSetType byte //0-按高度委托,1-按时间委托,2-按次数委托
 
 	//委托限制
 	StartHeight uint64 //委托起始高度
 	EndHeight   uint64 //委托结束高度
 	StartTime   uint64
 	EndTime     uint64
+	EntrustCount uint32 //委托次数
 }
 
 type AuthType struct {
@@ -528,6 +529,7 @@ type AuthType struct {
 	EndHeight       uint64  //委托结束高度
 	StartTime       uint64
 	EndTime         uint64
+	EntrustCount   uint32 //授权委托次数
 }
 
 type CoinRoot struct {

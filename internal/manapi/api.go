@@ -813,8 +813,12 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 			if s.b.CurrentBlock().NumberU64() <= entrustData.EndHeight {
 				validEntrustList = append(validEntrustList, entrustData)
 			}
-		} else {
+		} else if entrustData.EnstrustSetType == params.EntrustByTime{
 			if s.b.CurrentBlock().Time().Uint64() <= entrustData.EndTime {
+				validEntrustList = append(validEntrustList, entrustData)
+			}
+		}else if entrustData.EnstrustSetType == params.EntrustByCount{
+			if entrustData.EntrustCount > 0{
 				validEntrustList = append(validEntrustList, entrustData)
 			}
 		}

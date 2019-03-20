@@ -46,7 +46,8 @@ type Transaction struct {
 	// by
 	N               []uint32
 	IsEntrustGas    bool
-	IsEntrustByTime bool //是否是按时间委托（不是按时间就是按高度，二选一）
+	IsEntrustByTime bool //是否是按时间委托
+	IsEntrustByCount bool //是否按次数委托
 }
 type TransactionCall struct {
 	*Transaction
@@ -635,13 +636,18 @@ func (tx *Transaction) GetIsEntrustGas() bool {
 func (tx *Transaction) GetIsEntrustByTime() bool {
 	return tx.IsEntrustByTime
 }
+func (tx *Transaction) GetIsEntrustByCount() bool {
+	return tx.IsEntrustByCount
+}
 func (tx *Transaction) SetIsEntrustGas(b bool) {
 	tx.IsEntrustGas = b
 }
 func (tx *Transaction) SetIsEntrustByTime(b bool) {
 	tx.IsEntrustByTime = b
 }
-
+func (tx *Transaction) SetIsEntrustByCount(b bool) {
+	tx.IsEntrustByCount = b
+}
 //
 func (tx *Transaction) GetTxV() *big.Int  { return tx.data.V }
 func (tx *Transaction) SetTxV(v *big.Int) { tx.data.V = v }

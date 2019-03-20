@@ -430,9 +430,16 @@ func (p *StateProcessor) ProcessTxs(block *types.Block, statedb *state.StateDBMa
 						tx.Setentrustfrom(entrustFrom)
 						tx.SetIsEntrustGas(true)
 						tx.SetIsEntrustByTime(true)
-					} else {
-						log.Error("下载过程:该用户没有被授权过委托Gas")
-						return nil, 0, ErrWithoutAuth
+					}else{
+						entrustFrom := statedb.GetGasAuthFromByCount(tx.GetTxCurrency(),from)
+						if !entrustFrom.Equal(common.Address{}) {
+							tx.Setentrustfrom(entrustFrom)
+							tx.SetIsEntrustGas(true)
+							tx.SetIsEntrustByCount(true)
+						} else {
+							log.Error("下载过程:该用户没有被授权过委托Gas或授权失效")
+							return nil, 0, ErrWithoutAuth
+						}
 					}
 				}
 			}
@@ -669,6 +676,10 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		}
 	} else {
 		_, gas, failed, shardings, err = ApplyMessage(vmenv, tx, gp)
+		if tx.IsEntrustTx() && tx.GetIsEntrustByCount(){
+			statedb.GasAuthCountSubOne(tx.GetTxCurrency(),from) //授权次数减1
+			statedb.GasEntrustCountSubOne(tx.GetTxCurrency(),tx.AmontFrom()) //委托次数减1
+		}
 		if err != nil {
 			return nil, 0, nil, err
 		}

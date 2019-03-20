@@ -1282,8 +1282,15 @@ func (nPool *NormalTxPool) add(tx *types.Transaction, local bool) (bool, error) 
 				tx.IsEntrustGas = true
 				tx.IsEntrustByTime = true
 			} else {
-				log.Error("该用户没有被授权过委托Gas")
-				return false, ErrWithoutAuth
+				entrustFrom := nPool.currentState.GetGasAuthFromByCount(tx.Currency,from)
+				if !entrustFrom.Equal(common.Address{}) {
+					tx.Setentrustfrom(entrustFrom)
+					tx.IsEntrustGas = true
+					tx.IsEntrustByCount = true
+				} else {
+					log.Error("该用户没有被授权过委托gas或授权gas失效")
+					return false, ErrWithoutAuth
+				}
 			}
 		}
 	}
