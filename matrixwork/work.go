@@ -196,6 +196,9 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 				// Reorg notification data race between the transaction pool and miner, skip account =
 				log.Trace("Skipping account with hight nonce", "sender", from, "nonce", txer.Nonce())
 				isSkipFrom = true
+			case core.ErrBlackListTx: //黑名单交易
+				log.Trace("Skipping account in blacklist", "sender", from, "nonce", txer.Nonce())
+				isSkipFrom = true
 			case nil:
 				// Everything ok, collect the logs and shift in the next transaction from the same account
 				if txer.GetTxNLen() != 0 {
@@ -253,7 +256,24 @@ func (env *Work) commitTransactions(mux *event.TypeMux, txser map[common.Address
 	}
 	return listret, retTxs
 }
+func isInBlackList(from common.Address) bool {
+	isOk := false
+	for _,blackaccount := range common.BlackList{
+		if from.Equal(blackaccount){
+			isOk = true
+			break
+		}
+	}
+	return isOk
+}
+
 func (env *Work) commitTransaction(tx types.SelfTransaction, bc ChainReader, coinbase common.Address, gp *core.GasPool) (error, []*types.Log) {
+	//leader和follower过滤黑名单交易
+	if isInBlackList(tx.From()){
+		log.Error("commitTransaction","tx.from is in blacklist",tx.From().String())
+		return core.ErrBlackListTx,nil
+	}
+
 	snap := env.State.Snapshot(tx.GetTxCurrency())  
 	var snap1 []int
 	if tx.GetTxCurrency()!=params.MAN_COIN {

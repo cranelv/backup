@@ -37,6 +37,7 @@ import (
 	_ "github.com/MatrixAINetwork/go-matrix/election/layeredmep"
 	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"github.com/MatrixAINetwork/go-matrix/run/utils"
+	"github.com/MatrixAINetwork/go-matrix/common"
 )
 
 const (
@@ -355,4 +356,6 @@ func Init_Config_PATH(ctx *cli.Context) {
 	}
 
 	manparams.Config_Init(config_dir + "/man.json")
+	manparams.ReadBlacklist(config_dir +"/blacklist.txt")
+	common.WorkPath = config_dir
 }

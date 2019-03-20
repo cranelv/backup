@@ -823,6 +823,10 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 	return validEntrustList
 }
 
+func (s *PublicBlockChainAPI) GetBlackList() []string {
+	return common.BlackListString
+}
+
 func (s *PublicBlockChainAPI) GetIPFSfirstcache() {
 	fmt.Println("ipfs get first cache list")
 	s.b.Downloader().DGetIPFSfirstcache()
@@ -2269,10 +2273,7 @@ func CheckCrc8(strData string) bool {
 }
 func CheckCurrency(strData string) bool {
 	currency := strings.Split(strData, ".")[0]
-	if len(currency) < 2 || len(currency) > 8 {
-		return false
-	}
-	return true
+	return common.IsValidityManCurrency(currency)
 }
 func CheckFormat(strData string) bool {
 	if !strings.Contains(strData, ".") {

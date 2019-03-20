@@ -464,12 +464,17 @@ const (
 	ExtraUnGasInterestTxType  byte = 11  //利息奖励通过合约交易发放
 	ExtraUnGasTxsType         byte = 12  //交易费奖励类型
 	ExtraUnGasLotteryTxType   byte = 13  //彩票奖励类型
+	ExtraSetBlackListTxType   byte = 14  //设置黑名单交易
 	ExtraSuperBlockTx         byte = 120 //超级区块交易
 )
 
 var (
 	WhiteAddrlist  = [1]Address{InterestRewardAddress}
 	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
+	ConsensusAccounts []Address
+	BlackList 		  []Address
+	BlackListString   []string
+	WorkPath          string
 )
 
 const (

@@ -22,6 +22,8 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"os"
+	"bufio"
 )
 
 var (
@@ -244,6 +246,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return st.CallCancelAuthTx()
 		case common.ExtraMakeCoinType:
 			return st.CallMakeCoinTx()
+		case common.ExtraSetBlackListTxType:
+			return st.CallSetBlackListTx()
 		default:
 			log.Info("state transition unknown extra txtype")
 			return nil, 0, false, nil, ErrTXUnknownType
@@ -464,9 +468,6 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	if len(makecoin.AddrAmount) <= 0 {
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, address and amount is nil")
 	}
-	//if makecoin.PayCoinType != makecoin.CoinName && makecoin.PayCoinType != params.MAN_COIN{
-	//	return nil, 0, false, shardings, errors.New("state_transition,make coin err, PayCoinType is error")
-	//}
 	addrVal := make(map[common.Address]*big.Int)
 	for str, amount := range makecoin.AddrAmount {
 		if str == "" {
@@ -721,6 +722,56 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 	shardings = append(shardings, tmpshard...)
 	return ret, 0, vmerr != nil, shardings, err
 }
+
+func (st *StateTransition) CallSetBlackListTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
+	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	var addr common.Address
+	from := tx.From()
+	if from == addr {
+		return nil, 0, false, shardings, errors.New("state_transition,make coin ,from is nil")
+	}
+	sender := vm.AccountRef(from)
+	data := tx.Data()
+	var blacklist []string
+	err = json.Unmarshal(data, &blacklist)
+	if err != nil {
+		log.Error("CallSetBlackListTx", "Unmarshal err", err)
+		return nil, 0, false, shardings, err
+	}
+	st.gas = 0
+	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
+
+	file,err := os.OpenFile(common.WorkPath+"/blacklist.txt",os.O_CREATE | os.O_TRUNC,0666)
+	if err != nil{
+		file.Close()
+		log.Error("CallSetBlackListTx", "OpenFile err", err)
+		return nil, 0, false, shardings, err
+	}
+	var tmpBlackListString []string
+	var tmpBlackList []common.Address
+	writer := bufio.NewWriter(file)
+	for _,black := range blacklist{
+		addr,err := base58.Base58DecodeToAddress(black)
+		if err != nil{
+			log.Error("invalidate black","black",black)
+			continue
+		}
+		writer.WriteString(black)
+		writer.WriteString("\x0D\x0A")
+		writer.Flush()
+		tmpBlackListString = append(tmpBlackListString,black)
+		tmpBlackList = append(tmpBlackList,addr)
+	}
+	file.Close()
+	if len(tmpBlackListString) > 0 || len(blacklist)==0{
+		common.BlackListString = make([]string,0,len(tmpBlackListString))
+		common.BlackList = make([]common.Address,0,len(tmpBlackList))
+		common.BlackListString = append(common.BlackListString,tmpBlackListString...)
+		common.BlackList = append(common.BlackList,tmpBlackList...)
+	}
+	return ret, 0, false, shardings, err
+}
+
 func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
 	if err = st.PreCheck(); err != nil {
 		return
