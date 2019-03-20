@@ -407,7 +407,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, sbs u
 // checks fail an error will be returned. This method is synchronous
 func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, sbs uint64, sbh uint64, mode SyncMode) error {
 	// Mock out the synchronisation if testing
-	log.Trace("Downloader synchronise enter", "id", id)
+	//log.Trace("Downloader synchronise enter", "id", id)
 	if d.synchroniseMock != nil {
 		return d.synchroniseMock(id, hash)
 	}
@@ -1212,6 +1212,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 	// Prepare the queue and fetch block parts until the block header fetcher's done
 	finished := false
 	bchecked := false
+	flgtest := 1
 	for {
 		select {
 		case <-d.cancelCh:
@@ -1279,7 +1280,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				continue //break
 			}*/
-			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
+			flgtest++
+			if kind != "receipts" && flgtest > 10 {
+				log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
+				flgtest = 0
+			}
 			if d.peers.Len() == 0 {
 				return errNoPeers
 			}
@@ -1374,7 +1379,9 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				if kind == "headers" && d.bIpfsDownload == 1 {
 					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
-						//log.Trace("fetchParts Data Reserve header too big,wait for ipfs stroe", "gCurDownloadHeadReqBeginNum", gCurDownloadHeadReqBeginNum, "gIpfsProcessBlockNumber", gIpfsProcessBlockNumber)
+						if flgtest > 6 {
+							log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)
+						}
 						bTestWaitFlg = true
 						break
 					}

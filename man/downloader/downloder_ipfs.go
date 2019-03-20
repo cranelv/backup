@@ -67,7 +67,8 @@ type Caches2CfgMap struct {
 	CurCacheBeignNum uint64
 	CurCacheBlockNum uint64
 	NumHashStore     uint32
-	MapList          BlockStore
+	//CurOfCache1Pos	 uint32
+	MapList BlockStore
 }
 
 //cache1

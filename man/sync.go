@@ -295,7 +295,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 			}
 		}
 	}
-	log.Trace("download sync.go enter Synchronise downloader", "currentBlock", currentBlock.NumberU64())
+	//log.Trace("download sync.go enter Synchronise downloader", "currentBlock", currentBlock.NumberU64())
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, pSbs, pSbh, mode); err != nil {
 		return

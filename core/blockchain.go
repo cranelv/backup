@@ -1170,7 +1170,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		return NonStatTy, err
 	}
 
-	log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
+	//log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
 	var reorg bool
 	if localSbs < remoteSuperBlkCfg.Seq {
 		reorg = true
