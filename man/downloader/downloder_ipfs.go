@@ -2258,6 +2258,11 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		//if distance > 300 {
 		if ((blockNum > beginNum) && (blockNum-beginNum >= BATCH_NUM)) || ((beginNum > blockNum) && (beginNum-blockNum >= BATCH_NUM)) {
 			log.Warn(" ipfs BatchStoreAllBlock write file error illage", "blockNum", blockNum, "ExpectBeginNum", beginNum)
+			//后加
+			if blockNum == 1 {
+				log.Warn(" ipfs BatchStoreAllBlock recv new block num=1 ,then clear file")
+				d.BatchBlockStoreInit(true)
+			}
 			//return false
 			//如文件保存到325， 重启后变为 621开始
 			/*log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
