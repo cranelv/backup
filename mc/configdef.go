@@ -196,6 +196,11 @@ type MinerOutReward struct {
 	Reward big.Int
 }
 
+type MultiCoinMinerOutReward struct {
+	CoinType string
+	Reward   big.Int
+}
+
 type LotteryFrom struct {
 	From []common.Address
 }

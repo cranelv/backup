@@ -17,7 +17,7 @@ const (
 	GasLimitBoundDivisor uint64 = 1024      // The bound divisor of the gas limit, used in update calculations.
 	MinGasLimit          uint64 = 630000000 // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = 630000000 // Gas limit of the Genesis block.
-
+	OtherCoinPackNum     uint64 = GenesisGasLimit / 21000 //其他币种打包限制为MAN的1/100
 	MaximumExtraDataSize  uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
 	SloadGas              uint64 = 50    // Multiplied by the number of 32-byte words that are copied (round up) for any *COPY operation and added.
@@ -81,6 +81,7 @@ const (
 	TxGasPrice           uint64 = 18000000000        //交易费
 	EntrustByHeight      byte   = 0                  //按块高委托
 	EntrustByTime        byte   = 1                  //按时间委托
+	EntrustByCount       byte   = 2                  //按次数委托
 	CallTxPachNum        uint64 = 9999               //币种打包交易数量限制
 	CoinTypeUnit         uint64 = 1000000000000000000//*big.Int = new(big.Int).SetString("0xDE0B6B3A7640000",0)//new(big.Int).SetString("0xDE0B6B3A7640000",0)
 

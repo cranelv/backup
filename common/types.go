@@ -428,6 +428,7 @@ type NetTopology struct {
 	NetTopologyData []NetTopologyData
 }
 type RewarTx struct {
+	CoinRange string
 	CoinType  string
 	Fromaddr  Address
 	To_Amont  map[Address]*big.Int
@@ -463,12 +464,17 @@ const (
 	ExtraUnGasInterestTxType  byte = 11  //利息奖励通过合约交易发放
 	ExtraUnGasTxsType         byte = 12  //交易费奖励类型
 	ExtraUnGasLotteryTxType   byte = 13  //彩票奖励类型
+	ExtraSetBlackListTxType   byte = 14  //设置黑名单交易
 	ExtraSuperBlockTx         byte = 120 //超级区块交易
 )
 
 var (
 	WhiteAddrlist  = [1]Address{InterestRewardAddress}
 	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
+	ConsensusAccounts []Address
+	BlackList 		  []Address
+	BlackListString   []string
+	WorkPath          string
 )
 
 const (
@@ -504,13 +510,14 @@ type EntrustType struct {
 	//委托权限
 	IsEntrustGas    bool //委托gas
 	IsEntrustSign   bool //委托签名
-	EnstrustSetType byte //0-按高度委托,1-按时间委托
+	EnstrustSetType byte //0-按高度委托,1-按时间委托,2-按次数委托
 
 	//委托限制
 	StartHeight uint64 //委托起始高度
 	EndHeight   uint64 //委托结束高度
 	StartTime   uint64
 	EndTime     uint64
+	EntrustCount uint32 //委托次数
 }
 
 type AuthType struct {
@@ -522,6 +529,7 @@ type AuthType struct {
 	EndHeight       uint64  //委托结束高度
 	StartTime       uint64
 	EndTime         uint64
+	EntrustCount   uint32 //授权委托次数
 }
 
 type CoinRoot struct {
@@ -548,6 +556,7 @@ type SMakeCoin struct {
 	PackNum     uint64
 	CoinAddress Address
 	//CoinTotal *big.Int  //总发行量
+	PayCoinType	string
 }
 
 type BroadTxkey struct {
@@ -685,11 +694,13 @@ func IsValidityManCurrency(s string) bool {
 }
 
 type CoinConfig struct {
-	CoinType    string       `json:"CoinType"`    //name
+	CoinRange   string       `json:"CoinRange"`   //coinrange和cointype是一个类型，为了扩展方便保留该字段
+	CoinType    string       `json:"CoinType"`    //支付币种
 	PackNum     uint64       `json:"PackNum"`     //打包数量限制 如果为0则不打包
 	CoinUnit    *hexutil.Big `json:"CoinUnit"`    //单位
 	CoinTotal   *hexutil.Big `json:"CoinTotal"`   //总发行量
 	CoinAddress Address      `json:"CoinAddress"` //币种交易费账户
+	//PayCoinType	string 		 `json:"PayCoinType"` //发放币种
 }
 
 const COINPREFIX string = "ms_"

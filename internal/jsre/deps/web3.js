@@ -5596,6 +5596,13 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
         //outputFormatter: formatters.outputNewBigNumberFormatter
     });
+    var getBlackList = new Method({
+        name: 'getBlackList',
+        call: 'eth_getBlackList',
+        params: 0,
+        //inputFormatter: [formatters.inputAddressFormatter],
+        //outputFormatter: formatters.outputBigNumberFormatter
+    });
     var getGasPrice = new Method({
         name: 'getGasPrice',
         call: 'eth_getGasPrice',
@@ -5809,6 +5816,7 @@ var methods = function () {
         getAuthFromByTime,
         getEntrustFromByTime,
         getAuthGasAddress,
+        getBlackList,
         getGasPrice,
         getStorageAt,
         getCode,

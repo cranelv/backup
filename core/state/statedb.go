@@ -395,6 +395,74 @@ func (self *StateDB) GetGasAuthFromByTime(entrustFrom common.Address, time uint6
 	return common.Address{}
 }
 
+//获取按次数返回的授权人
+func (self *StateDB) GetGasAuthFromByCount(entrustFrom common.Address) common.Address {
+	AuthMarsha1Data := self.GetAuthStateByteArray(entrustFrom)
+	if len(AuthMarsha1Data) == 0 {
+		return common.Address{}
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	if err != nil {
+		return common.Address{}
+	}
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByCount && AuthData.IsEntrustGas == true && AuthData.EntrustCount > 0 {
+			return AuthData.AuthAddres
+		}
+	}
+	return common.Address{}
+}
+
+//授权次数减1
+func (self *StateDB) GasAuthCountSubOne(entrustFrom common.Address) bool {
+	AuthMarsha1Data := self.GetAuthStateByteArray(entrustFrom)
+	if len(AuthMarsha1Data) == 0 {
+		return false
+	}
+	AuthDataList := make([]common.AuthType, 0) //授权数据是结构体切片
+	err := json.Unmarshal(AuthMarsha1Data, &AuthDataList)
+	if err != nil {
+		return false
+	}
+	newAuthDataList := make([]common.AuthType, 0)
+	for _, AuthData := range AuthDataList {
+		if AuthData.EnstrustSetType == params.EntrustByCount && AuthData.IsEntrustGas == true && AuthData.EntrustCount > 0 {
+			AuthData.EntrustCount--
+		}
+		newAuthDataList = append(newAuthDataList,AuthData)
+	}
+	if len(newAuthDataList) >0 {
+		marshalData,_ := json.Marshal(newAuthDataList)
+		self.SetAuthStateByteArray(entrustFrom,marshalData)
+	}
+	return true
+}
+//委托人次数减1（用于钱包展示时反向查找）
+func (self *StateDB) GasEntrustCountSubOne(authFrom common.Address){
+	EntrustMarsha1Data := self.GetEntrustStateByteArray(authFrom)
+	if len(EntrustMarsha1Data) == 0 {
+		return
+	}
+	EntrustDataList := make([]common.EntrustType, 0) //委托数据是结构体切片
+	err := json.Unmarshal(EntrustMarsha1Data, &EntrustDataList)
+	if err != nil {
+		return
+	}
+	newEntrustDataList := make([]common.EntrustType, 0)
+	for _, EntrustData := range EntrustDataList {
+		if EntrustData.EnstrustSetType == params.EntrustByCount && EntrustData.IsEntrustGas == true && EntrustData.EntrustCount > 0 {
+			EntrustData.EntrustCount--
+		}
+		newEntrustDataList = append(newEntrustDataList,EntrustData)
+	}
+	if len(newEntrustDataList) >0 {
+		marshalData,_ := json.Marshal(newEntrustDataList)
+		self.SetEntrustStateByteArray(authFrom,marshalData)
+	}
+	return
+}
+
 //根据委托人from和高度获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (self *StateDB) GetGasAuthFrom(entrustFrom common.Address, height uint64) common.Address {
 	AuthMarsha1Data := self.GetAuthStateByteArray(entrustFrom)

@@ -813,14 +813,22 @@ func (s *PublicBlockChainAPI) GetEntrustList(strAuthFrom string) []common.Entrus
 			if s.b.CurrentBlock().NumberU64() <= entrustData.EndHeight {
 				validEntrustList = append(validEntrustList, entrustData)
 			}
-		} else {
+		} else if entrustData.EnstrustSetType == params.EntrustByTime{
 			if s.b.CurrentBlock().Time().Uint64() <= entrustData.EndTime {
+				validEntrustList = append(validEntrustList, entrustData)
+			}
+		}else if entrustData.EnstrustSetType == params.EntrustByCount{
+			if entrustData.EntrustCount > 0{
 				validEntrustList = append(validEntrustList, entrustData)
 			}
 		}
 	}
 
 	return validEntrustList
+}
+
+func (s *PublicBlockChainAPI) GetBlackList() []string {
+	return common.BlackListString
 }
 
 func (s *PublicBlockChainAPI) GetIPFSfirstcache() {
@@ -1232,8 +1240,9 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, manargs ManCallAr
 	if uint64(args.Gas) >= params.TxGas {
 		hi = uint64(args.Gas)
 	} else {
+		//hi = params.MinGasLimit
 		// Retrieve the current pending block to act as the gas ceiling
-		block, err := s.b.BlockByNumber(ctx, rpc.PendingBlockNumber)
+		block, err := s.b.BlockByNumber(ctx, rpc.LatestBlockNumber)
 		if err != nil {
 			return 0, err
 		}
@@ -1245,7 +1254,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, manargs ManCallAr
 	executable := func(gas uint64) bool {
 		args.Gas = hexutil.Uint64(gas)
 
-		_, _, failed, err := s.doCall(ctx, args, rpc.PendingBlockNumber, vm.Config{}, 0)
+		_, _, failed, err := s.doCall(ctx, args, rpc.LatestBlockNumber, vm.Config{}, 0)
 		if err != nil || failed {
 			return false
 		}
@@ -2268,10 +2277,7 @@ func CheckCrc8(strData string) bool {
 }
 func CheckCurrency(strData string) bool {
 	currency := strings.Split(strData, ".")[0]
-	if len(currency) < 2 || len(currency) > 8 {
-		return false
-	}
-	return true
+	return common.IsValidityManCurrency(currency)
 }
 func CheckFormat(strData string) bool {
 	if !strings.Contains(strData, ".") {

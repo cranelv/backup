@@ -1002,6 +1002,36 @@ func (shard *StateDBManage) GetGasAuthFromByTime(cointyp string, entrustFrom com
 	return statedb.GetGasAuthFromByTime(entrustFrom, time)
 }
 
+func (shard *StateDBManage) GetGasAuthFromByCount(cointyp string, entrustFrom common.Address) common.Address {
+
+	statedb,err:=shard.GetStateDb(cointyp, entrustFrom)
+	if err!=nil {
+		log.Error("sharding_statedb","sharding_GetGasAuthFrom:",err)
+		return common.Address{}
+	}
+	return statedb.GetGasAuthFromByCount(entrustFrom)
+}
+
+func (shard *StateDBManage) GasAuthCountSubOne(cointyp string, entrustFrom common.Address) bool {
+
+	statedb,err:=shard.GetStateDb(cointyp, entrustFrom)
+	if err!=nil {
+		log.Error("sharding_statedb","sharding_GetGasAuthFrom:",err)
+		return false
+	}
+	return statedb.GasAuthCountSubOne(entrustFrom)
+}
+func (shard *StateDBManage) GasEntrustCountSubOne(cointyp string, authFrom common.Address) {
+
+	statedb,err:=shard.GetStateDb(cointyp, authFrom)
+	if err!=nil {
+		log.Error("sharding_statedb","sharding_GetGasAuthFrom:",err)
+		return
+	}
+	statedb.GasEntrustCountSubOne(authFrom)
+	return
+}
+
 //根据委托人from和时间获取授权人的from,返回授权人地址(内部调用,仅适用委托gas)
 func (shard *StateDBManage) GetGasAuthFrom(cointyp string, addr common.Address, height uint64) common.Address {
 

@@ -275,5 +275,14 @@ var (
 				"panic增加换行",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.34",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"修改多币种奖励",
+				"增加黑名单机制",
+				"委托交易增加按次数委托",
+			},
+		},
 	}
 )

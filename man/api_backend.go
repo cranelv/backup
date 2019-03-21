@@ -250,8 +250,10 @@ func (b *ManAPIBackend) GetPoolTransactions() (types.SelfTransactions, error) {
 		return nil, err
 	}
 	var txs types.SelfTransactions
-	for _, batch := range pending {
-		txs = append(txs, batch...)
+	for _,txsmap := range pending{
+		for _, batch := range txsmap {
+			txs = append(txs, batch...)
+		}
 	}
 	return txs, nil
 }
