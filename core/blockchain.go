@@ -1485,6 +1485,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			blockInsertTimer.UpdateSince(bstart)
 			events = append(events, ChainSideEvent{block})
 		}
+
+		// 发出区块插入事件
+		mc.PublishEvent(mc.BlockInserted, &mc.BlockInsertedMsg{Block: mc.BlockInfo{Hash: block.Hash(), Number: block.NumberU64()}, InsertTime: uint64(time.Now().Unix()), CanonState: status == CanonStatTy})
+
 		stats.processed++
 		stats.usedGas += usedGas
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())
@@ -2725,5 +2729,17 @@ func (bc *BlockChain) dumpBadBlock(hash common.Hash, state *state.StateDBManage)
 			bc.badDumpHistory = append(bc.badDumpHistory, hash)
 		}
 	}
+}
 
+func (bc *BlockChain) DelLocalBlocks(blocks []*mc.BlockInfo) (fails []*mc.BlockInfo, err error) {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	for i := 0; i < len(blocks); i++ {
+		blk := blocks[i]
+		rawdb.DeleteBody(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteHeader(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteTd(bc.db, blk.Hash, blk.Number)
+	}
+	return nil, nil
 }

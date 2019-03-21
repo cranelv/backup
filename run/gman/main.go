@@ -32,9 +32,9 @@ import (
 	_ "github.com/MatrixAINetwork/go-matrix/crypto"
 	_ "github.com/MatrixAINetwork/go-matrix/crypto/vrf"
 	_ "github.com/MatrixAINetwork/go-matrix/election/layered"
+	_ "github.com/MatrixAINetwork/go-matrix/election/layeredmep"
 	_ "github.com/MatrixAINetwork/go-matrix/election/nochoice"
 	_ "github.com/MatrixAINetwork/go-matrix/election/stock"
-	_ "github.com/MatrixAINetwork/go-matrix/election/layeredmep"
 	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"github.com/MatrixAINetwork/go-matrix/run/utils"
 	"github.com/MatrixAINetwork/go-matrix/common"
@@ -134,6 +134,7 @@ var (
 		utils.SaveSnapPeriodFlg,
 		utils.SnapModeFlg,
 		utils.GetGenesisFlag,
+		utils.LessDiskEnabledFlag,
 	}
 
 	rpcFlags = []cli.Flag{
