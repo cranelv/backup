@@ -1401,7 +1401,10 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 					progressed = true
 				}
 				if request == nil {
-					bTestWaitFlg = true
+					if kind == "headers" {
+						bTestWaitFlg = true
+						break
+					}
 					continue
 				}
 				//lb
