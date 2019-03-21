@@ -502,6 +502,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, bHead bool) *fetchR
 	//lb
 	index := int(int64(send)-int64(q.resultOffset)) + MaxHeaderFetch
 	if index >= len(q.resultCache) || index < 0 {
+		q.headerTaskQueue.Push(send, -float32(send))
 		log.Debug("download queue ReserveHeaders left resultcache ", "send", send, "q.resultOffset", q.resultOffset)
 		return nil
 	}
