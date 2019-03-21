@@ -1812,7 +1812,10 @@ secondCache:
 			log.Error(" ipfs  SyncBlockFromIpfs error IpfsGetBlockByHash cache2File", "error", err)
 			return 1
 		}
-		defer cache2File.Close()
+		defer func() {
+			cache2File.Close()
+			os.Remove(stCache2Infohash)
+		}()
 
 		//cache2st := new(Caches2CfgMap) //eof
 		gIpfsCache.getipfsCache2 = new(Caches2CfgMap)
@@ -2878,7 +2881,10 @@ func (d *Downloader) DownloadBatchBlock(headhash string /*common.Hash*/, headNum
 		}
 		return 1
 	}
-	defer cache2File.Close()
+	defer func() {
+		cache2File.Close()
+		os.Remove(stCache2Infohash)
+	}()
 
 	//cache2st := new(Caches2CfgMap) //eof
 	gIpfsCache.getipfsBatchCache2 = new(Caches2CfgMap)
