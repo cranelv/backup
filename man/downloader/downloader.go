@@ -1401,6 +1401,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 					progressed = true
 				}
 				if request == nil {
+					bTestWaitFlg = true
 					continue
 				}
 				//lb
