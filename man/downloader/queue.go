@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	blockCacheItems      = 1024             //lb 8192             // Maximum number of blocks to cache before throttling the download
+	blockCacheItems      = 1200             //1024             //lb 8192             // Maximum number of blocks to cache before throttling the download
 	blockCacheMemory     = 64 * 1024 * 1024 // Maximum amount of memory to use for block caching
 	blockCacheSizeWeight = 0.1              // Multiplier to approximate the average block size based on past ones
 	QSingleBlockStore    = false
@@ -452,10 +452,21 @@ func (q *queue) countProcessableItems() int {
 	}
 	return len(q.resultCache)
 }
+func (q *queue) leftResultCaceh() int {
+	length := len(q.resultCache)
+	var left int
+	for i := length - 1; i > 0; i-- {
+		if q.resultCache[i] != nil {
+			return left
+		}
+		left++
+	}
+	return left
+}
 
 // ReserveHeaders reserves a set of headers for the given peer, skipping any
 // previously failed batches.
-func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
+func (q *queue) ReserveHeaders(p *peerConnection, count int, bHead bool) *fetchRequest {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -463,6 +474,14 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 	// not corrupt state)
 	if _, ok := q.headerPendPool[p.id]; ok {
 		return nil
+	}
+	//if d.bIpfsDownload == 2 && (d.mode == FullSync || d.mode == FastSync)
+	if bHead {
+		leftLen := q.leftResultCaceh()
+		if leftLen < MaxHeaderFetch+3 {
+			log.Debug("download queue ReserveHeaders left resulchche ", "leftlen", leftLen)
+			return nil
+		}
 	}
 	// Retrieve a batch of hashes, skipping previously failed ones
 	send, skip := uint64(0), []uint64{}
@@ -1294,16 +1313,16 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		}
 		return
 	}
-	if bodyBlock.Flag == 33 && q.resultCache[index] != nil && q.resultCache[index].Pending == 0 {
+	if bodyBlock.Flag == 33 /*&& q.resultCache[index] != nil && q.resultCache[index].Pending == 0*/ {
 		log.Trace("download queue blockIpfsPool reqlist  delete ", "trueBlockNumber", bodyBlock.BlockNum)
 		q.BlockIpfsdeletePool(bodyBlock.BlockNum)
 		return
 	}
 
 	if q.resultCache[index] == nil {
-		header := bodyBlock.Headeripfs
-		log.Warn("download  syn recv a block insert reserveHeaders new discard ", "index", index, " header number", header.Number.Uint64())
+		log.Warn("download  syn recv a block insert reserveHeaders new discard ", "index", index, " header number", bodyBlock.BlockNum)
 		return
+		header := bodyBlock.Headeripfs
 		hash := header.Hash()
 		components := 1
 		if q.mode == FastSync {
