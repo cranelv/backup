@@ -1485,6 +1485,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			blockInsertTimer.UpdateSince(bstart)
 			events = append(events, ChainSideEvent{block})
 		}
+
+		// 发出区块插入事件
+		mc.PublishEvent(mc.BlockInserted, &mc.BlockInsertedMsg{Block: mc.BlockInfo{Hash: block.Hash(), Number: block.NumberU64()}, InsertTime: uint64(time.Now().Unix()), CanonState: status == CanonStatTy})
+
 		stats.processed++
 		stats.usedGas += usedGas
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())

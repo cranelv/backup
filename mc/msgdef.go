@@ -356,3 +356,14 @@ type EntrustInfo struct {
 	Address  string
 	Password string
 }
+
+type BlockInfo struct {
+	Hash   common.Hash
+	Number uint64
+}
+
+type BlockInsertedMsg struct {
+	Block      BlockInfo
+	InsertTime uint64
+	CanonState bool
+}

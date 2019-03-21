@@ -72,5 +72,7 @@ const (
 	//1030_scf
 	EveryBlockSeedRsp
 
+	BlockInserted
+
 	LastEventCode
 )
