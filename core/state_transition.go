@@ -1103,7 +1103,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 		for _,newEntrustData := range EntrustList{
 			if newEntrustData.EnstrustSetType == params.EntrustByCount{
 				for i,oldEntrustData := range AllEntrustList{
-					if oldEntrustData.EntrustAddres == newEntrustData.EntrustAddres{
+					if oldEntrustData.EntrustAddres == newEntrustData.EntrustAddres && oldEntrustData.EnstrustSetType == params.EntrustByCount{
 						AllEntrustList[i].EntrustCount = newEntrustData.EntrustCount
 						isHave = true
 						break
@@ -1220,12 +1220,27 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		log.Error("没有委托数据")
 		return nil, st.GasUsed(), true, shardings, nil
 	}
-	entrustDataList := make([]common.EntrustType, 0)
-	err = json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	allentrustDataList := make([]common.EntrustType, 0)
+	err = json.Unmarshal(EntrustMarsha1Data, &allentrustDataList)
 	if err != nil {
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, st.GasUsed(), true, shardings, nil
 	}
+
+	entrustDataList := make([]common.EntrustType, 0,len(allentrustDataList))
+	for _, entrustdata := range allentrustDataList {
+		if entrustdata.EnstrustSetType == params.EntrustByTime && st.evm.Time.Uint64() > entrustdata.EndTime{
+			continue
+		}
+		if entrustdata.EnstrustSetType == params.EntrustByHeight && st.evm.BlockNumber.Uint64() > entrustdata.EndHeight {
+			continue
+		}
+		if entrustdata.EnstrustSetType == params.EntrustByCount && entrustdata.EntrustCount <= 0 {
+			continue
+		}
+		entrustDataList = append(entrustDataList,entrustdata)
+	}
+
 	newentrustDataList := make([]common.EntrustType, 0)
 	for index, entrustFrom := range entrustDataList {
 		if isContain(uint32(index), delIndexList) {
@@ -1243,16 +1258,19 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 				if err != nil {
 					return nil, st.GasUsed(), true, shardings, nil
 				}
-				newDelAuthDataList := make([]common.AuthType, 0)
+				newAuthDataList := make([]common.AuthType, 0)
 				for _, oldAuthData := range oldAuthDataList {
 					//只要起始高度或时间能对应上，就是要删除的切片
-					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime || entrustFrom.EntrustCount == oldAuthData.EntrustCount{
-						oldAuthData.IsEntrustGas = false
-						oldAuthData.IsEntrustSign = false
-						newDelAuthDataList = append(newDelAuthDataList, oldAuthData)
+					if entrustFrom.EnstrustSetType == oldAuthData.EnstrustSetType{
+						if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime || entrustFrom.EntrustCount == oldAuthData.EntrustCount{
+							oldAuthData.IsEntrustGas = false
+							oldAuthData.IsEntrustSign = false
+							continue
+						}
 					}
+					newAuthDataList = append(newAuthDataList, oldAuthData)
 				}
-				newAuthDatalist, err := json.Marshal(newDelAuthDataList)
+				newAuthDatalist, err := json.Marshal(newAuthDataList)
 				if err != nil {
 					return nil, st.GasUsed(), true, shardings, nil
 				}
