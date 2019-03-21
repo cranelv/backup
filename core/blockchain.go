@@ -2729,5 +2729,17 @@ func (bc *BlockChain) dumpBadBlock(hash common.Hash, state *state.StateDBManage)
 			bc.badDumpHistory = append(bc.badDumpHistory, hash)
 		}
 	}
+}
 
+func (bc *BlockChain) DelLocalBlocks(blocks []*mc.BlockInfo) (fails []*mc.BlockInfo, err error) {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	for i := 0; i < len(blocks); i++ {
+		blk := blocks[i]
+		rawdb.DeleteBody(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteHeader(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteTd(bc.db, blk.Hash, blk.Number)
+	}
+	return nil, nil
 }
