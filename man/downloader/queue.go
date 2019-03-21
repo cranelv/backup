@@ -499,9 +499,10 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, bHead bool) *fetchR
 	for _, from := range skip {
 		q.headerTaskQueue.Push(from, -float32(from))
 	}
-	index := int(int64(send)-int64(q.resultOffset)) - MaxHeaderFetch
+	//lb
+	index := int(int64(send)-int64(q.resultOffset)) + MaxHeaderFetch
 	if index >= len(q.resultCache) || index < 0 {
-		log.Debug("download queue ReserveHeaders left resultcache ", "send", send)
+		log.Debug("download queue ReserveHeaders left resultcache ", "send", send, "q.resultOffset", q.resultOffset)
 		return nil
 	}
 	// Assemble and return the block download request
