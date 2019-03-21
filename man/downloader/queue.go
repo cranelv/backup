@@ -405,7 +405,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 	}
 	results := make([]*fetchResult, nproc)
 	copy(results, q.resultCache[:nproc])
-	log.Warn("download queue  Results", "len ", len(results), "nproc", nproc)
+	log.Warn("download queue  Results", "len ", len(results), "nproc", nproc, "closed", q.closed)
 	if len(results) > 0 {
 		// Mark results as done before dropping them from the cache.
 		for _, result := range results {
@@ -563,7 +563,8 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 		if index >= len(q.resultCache) || index < 0 {
 			//common.Report("index allocation went beyond available resultCache space")
 			log.Warn("index allocation went beyond available resultCache space")
-			return nil, fmt.Errorf("index allocation went beyond available resultCache space ")
+			break
+			//return nil, fmt.Errorf("index allocation went beyond available resultCache space ")
 		}
 		if q.resultCache[index] == nil {
 
@@ -746,13 +747,18 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 							log.Warn("download queue Reserveipfs continuous begin ", "i", i, "blockNum", tmpReq.HeadReqipfs.Number.Uint64())
 						} else {
 							if curMod < 270 {
+								tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
+								if tmpBlock == nil {
+									log.Warn("download queue Reserveipfs calc blockNum", "blcokNum", curDiv*300+1) //还未入链等待
+									break
+								}
 								for n := 0; n < (300 - int(curMod) + 1); n++ {
 									if q.resultCache[i+n] == nil {
 										break
 									}
 									q.resultCache[i+n].Flag = 2
 								}
-								tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
+								//tmpBlock := q.getBlock(curDiv*300 + 1) // 取本地链
 								tmpReq := BlockIpfsReq{
 									ReqPendflg:   components, //q.resultCache[i].Pending,
 									Flag:         2,
@@ -1296,12 +1302,14 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 
 	if q.resultCache[index] == nil {
 		header := bodyBlock.Headeripfs
+		log.Warn("download  syn recv a block insert reserveHeaders new discard ", "index", index, " header number", header.Number.Uint64())
+		return
 		hash := header.Hash()
 		components := 1
 		if q.mode == FastSync {
 			components = 2
 		}
-		log.Warn("download  syn recv a block insert reserveHeaders new", "index", index, " header number", header.Number.Uint64())
+		//log.Warn("download  syn recv a block insert reserveHeaders new", "index", index, " header number", header.Number.Uint64())
 		//ResultCache
 		q.resultCache[index] = &fetchResult{
 			Pending: components,
@@ -1310,6 +1318,22 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		}
 	}
 	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
+
+	if index > 300 {
+		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
+			hash := q.resultCache[0].Header.Hash()
+			_, ok := q.blockTaskPool[hash]
+			if !ok {
+				log.Warn("download  syn recv a block but begining is to receive, begin origin Req", "blockNum", q.resultCache[0].Header.Number.Uint64())
+				q.blockTaskPool[hash] = q.resultCache[0].Header
+				q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+				if q.resultCache[0].Pending > 1 {
+					q.receiptTaskPool[hash] = q.resultCache[0].Header
+					q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+				}
+			}
+		}
+	}
 	//head hash
 	switch bodyBlock.Flag {
 	case 0:

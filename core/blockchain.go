@@ -56,6 +56,7 @@ var (
 
 	SaveSnapPeriod uint64 = 300
 	SaveSnapStart  uint64 = 0
+	CleanMemFlgNum int    = 0
 )
 
 const (
@@ -148,6 +149,7 @@ type BlockChain struct {
 	//lb ipfs
 	bBlockSendIpfs bool
 	qBlockQueue    *prque.Prque
+	qIpfsMu        sync.RWMutex
 
 	//matrix state
 	matrixProcessor *MatrixProcessor
@@ -945,8 +947,10 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 			tmpBlock := &types.BlockAllSt{Sblock: block}
 			//copy(tmpBlock.SReceipt, receipts)
 			//tmpBlock.SReceipt = receipts
-			tmpBlock.Pading = uint64(len(txs))
+			//tmpBlock.Pading = uint64(len(txs))
+			bc.GetIpfsQMux()
 			bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+			bc.GetIpfsQUnMux()
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
@@ -1011,6 +1015,12 @@ func (bc *BlockChain) GetStoreBlockInfo() *prque.Prque {
 	//(storeBlock types.Blocks) {
 	return bc.qBlockQueue
 }
+func (bc *BlockChain) GetIpfsQMux() {
+	bc.qIpfsMu.Lock()
+}
+func (bc *BlockChain) GetIpfsQUnMux() {
+	bc.qIpfsMu.Unlock()
+}
 
 // WriteBlockWithoutState writes only the block and its metadata to the database,
 // but does not write any state. This is used to construct competing side forks
@@ -1065,8 +1075,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	}
 	if bc.bBlockSendIpfs && bc.qBlockQueue != nil {
 		tmpBlock := &types.BlockAllSt{Sblock: block}
-		tmpBlock.Pading = txcount
+		//tmpBlock.Pading = txcount
+		bc.GetIpfsQMux()
 		bc.qBlockQueue.Push(tmpBlock, -float32(block.NumberU64()))
+		bc.GetIpfsQUnMux()
 		//log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
 			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
@@ -1169,7 +1181,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		return NonStatTy, err
 	}
 
-	log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
+	//log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
 	var reorg bool
 	if localSbs < remoteSuperBlkCfg.Seq {
 		reorg = true
@@ -1327,6 +1339,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		if err == nil {
 			err = bc.Validator(header.Version).ValidateBody(block)
 		}
+
+		CleanMemFlgNum++
 
 		switch {
 		case err == ErrKnownBlock:
@@ -1491,10 +1505,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		//receipts = nil
 		block = nil
 		logs = nil
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 	}
-	debug.FreeOSMemory() //lb
-
+	if CleanMemFlgNum > 100 {
+		log.Trace("BlockChain FreeOSMemory")
+		debug.FreeOSMemory() //lb
+		CleanMemFlgNum = 0
+	}
 	log.Trace("BlockChain insertChain out")
 	for i := 0; i < len(chain)-1; i++ {
 		if chain[i].IsSuperBlock() && status == CanonStatTy {

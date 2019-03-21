@@ -175,6 +175,7 @@ type SnapshootReq struct {
 }
 
 var SnapshootNumber uint64
+var gCurDownloadHeadReqBeginNum uint64
 
 // LightChain encapsulates functions required to synchronise a light chain.
 type LightChain interface {
@@ -225,6 +226,8 @@ type BlockChain interface {
 	//lb ipfs
 	SetbSendIpfsFlg(bool)
 	GetStoreBlockInfo() *prque.Prque //types.Blocks //(storeBlock types.Blocks)
+	GetIpfsQMux()
+	GetIpfsQUnMux()
 
 	GetSuperBlockSeq() (uint64, error)
 	GetSuperBlockNum() (uint64, error)
@@ -406,7 +409,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, sbs u
 // checks fail an error will be returned. This method is synchronous
 func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, sbs uint64, sbh uint64, mode SyncMode) error {
 	// Mock out the synchronisation if testing
-	log.Trace("Downloader synchronise enter", "id", id)
+	//log.Trace("Downloader synchronise enter", "id", id)
 	if d.synchroniseMock != nil {
 		return d.synchroniseMock(id, hash)
 	}
@@ -622,6 +625,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			break
 		}
 	}
+	log.Debug("Downloading fetchPart over")
 	d.queue.Close()
 	d.ClearIpfsQueue()
 	d.Cancel()
@@ -633,6 +637,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 // used when cancelling the downloads from inside the downloader.
 func (d *Downloader) cancel() {
 	// Close the current cancel channel
+	log.Debug("Downloading cancel()")
 	d.cancelLock.Lock()
 	if d.cancelCh != nil {
 		select {
@@ -794,7 +799,33 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 	if count > limit {
 		count = limit
 	}
-	go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
+
+	/*newHeadFrom := int64(head) - int64(count*16)
+	if newHeadFrom < 0 {
+		newHeadFrom = 0
+	}*/
+	//lb 从后往前找的代码
+	newCount := 1
+	newHeadBeginFrom := head
+	for {
+		skip := 15 + 1
+		if (int64(newHeadBeginFrom) - int64(skip)) > 0 {
+			if newCount > limit {
+				break
+			}
+			newHeadBeginFrom = newHeadBeginFrom - uint64(skip)
+			newCount++
+
+		} else {
+			break
+		}
+
+	}
+	from = int64(newHeadBeginFrom)
+	p.log.Debug("Looking for common ancestor another", "newHeadBeginFrom", newHeadBeginFrom, "newCount", newCount)
+	go p.peer.RequestHeadersByNumber(newHeadBeginFrom, newCount, 15, false)
+	//lb
+	//go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
 
 	// Wait for the remote response to the head fetch
 	number, hash := uint64(0), common.Hash{}
@@ -1185,6 +1216,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 	// Prepare the queue and fetch block parts until the block header fetcher's done
 	finished := false
 	bchecked := false
+	flgtest := 1
 	for {
 		select {
 		case <-d.cancelCh:
@@ -1252,7 +1284,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				continue //break
 			}*/
-			log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
+			flgtest++
+			if kind != "receipts" && flgtest > 10 {
+				log.Trace("fetchParts update Data fetching", "type", kind, "len", pending(), "Download ", d.bIpfsDownload, "finished", finished)
+				flgtest = 0
+			}
 			if d.peers.Len() == 0 {
 				return errNoPeers
 			}
@@ -1334,7 +1370,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			// Send a download request to all idle peers, until throttled
 			progressed, throttled, running := false, false, inFlight()
 			idles, total := idle()
-
+			bTestWaitFlg := false
 			for _, peer := range idles {
 				// Short circuit if throttling activated
 				if throttle() {
@@ -1344,6 +1380,15 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				// Short circuit if there is no more available task.
 				if pending() == 0 {
 					break
+				}
+				if kind == "headers" && d.bIpfsDownload == 1 {
+					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
+						if flgtest > 6 {
+							log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)
+						}
+						bTestWaitFlg = true
+						break
+					}
 				}
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
 				// no more headers are available, or that the peer is known not to
@@ -1357,6 +1402,10 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				}
 				if request == nil {
 					continue
+				}
+				//lb
+				if kind == "headers" && d.bIpfsDownload == 1 {
+					gCurDownloadHeadReqBeginNum = request.From
 				}
 				if request.From > 0 {
 					peer.log.Trace("Requesting new batch of data", "type", kind, "from", request.From)
@@ -1379,7 +1428,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			}
 			// Make sure that we have peers available for fetching. If all peers have been tried
 			// and all failed throw an error
-			if !progressed && !throttled && !running && len(idles) == total && pending() > 0 {
+			if !progressed && !throttled && !running && !bTestWaitFlg && len(idles) == total && pending() > 0 {
 				return errPeersUnavailable
 			}
 		}

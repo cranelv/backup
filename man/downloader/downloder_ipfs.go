@@ -67,7 +67,8 @@ type Caches2CfgMap struct {
 	CurCacheBeignNum uint64
 	CurCacheBlockNum uint64
 	NumHashStore     uint32
-	MapList          BlockStore
+	//CurOfCache1Pos	 uint32
+	MapList BlockStore
 }
 
 //cache1
@@ -197,6 +198,7 @@ var runQuit chan int         //struct{}
 var timeOutFlg int           //chan int
 var gtimeOutSign chan string //struct{}
 var gIpfsStat IPFSBlockStat
+var gIpfsProcessBlockNumber uint64
 
 func init() {
 	/*creatInfo := DownloadFileInfo{
@@ -437,7 +439,7 @@ func RestartIpfsDaemon() {
 		//strErrInfo := outerr.String()
 		//d.dpIpfs.BIpfsIsRunning = true
 		if err != nil {
-			log.Error("ipfs RestartIpfsDaemon daemon error, will exit", "error", err, "outerr", outerr.String())
+			log.Error("ipfs RestartIpfsDaemon daemon error, will exit", "error", err, "out", out.String(), "outerr", outerr.String())
 			//return err
 		}
 		//d.IpfsMode = false //启动失败时 置为false
@@ -447,7 +449,8 @@ func RestartIpfsDaemon() {
 	<-flgCh
 	log.Warn("ipfs---- RestartIpfsDaemon daemon over")
 	fmt.Println("ipfs ---restart over")
-	time.Sleep(5 * time.Second)
+	time.Sleep(20 * time.Second)
+	log.Warn("ipfs---- RestartIpfsDaemon daemon sleep over")
 }
 func CheckIpfsStatus(err error) {
 	//log.Warn("ipfs---- CheckIpfsStatus--------")
@@ -1100,6 +1103,11 @@ func (d *Downloader) IPfsDirectoryUpdate() error {
 			return err
 		}
 	}
+
+	if out.Len() < IpfsHashLen {
+		log.Error("ipfs IPfsDirectoryUpdate add dictory error again", "error", err, "out.Len() ", out.Len(), "ipfs err", outerr.String())
+		return err
+	}
 	publishHash := string(out.Bytes()[0 : out.Len()-1]) //0：IpfsHashLen
 
 	out.Reset()
@@ -1377,8 +1385,11 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 			//}
 		}
 	}
-	var bNeedBatch bool = false
+	bNeedBatch := false
+	bNeedSanp := false
+	var tmpsnap types.SnapSaveInfo
 	curlistBlockInfo := make([]listBlockInfo, 0)
+	d.blockchain.GetIpfsQMux()
 	for {
 		var tmplistBlockInfo listBlockInfo //:= new(listBlockInfo)
 		if blockqueue.Empty() {
@@ -1391,8 +1402,10 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		case *types.BlockAllSt:
 
 		case types.SnapSaveInfo:
-			tmpsnap := revInfo.(types.SnapSaveInfo)
-			d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
+			bNeedSanp = true
+			tmpsnap = revInfo.(types.SnapSaveInfo)
+			//tmpsnap := revInfo.(types.SnapSaveInfo)
+			///d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
 			continue
 		default:
 			continue
@@ -1408,20 +1421,25 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 		if tmplistBlockInfo.blockNum == 1 { //说明要重新开始
 			d.ClearDirectoryContent()
 		}
-		tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
-		if errf != nil {
-			log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
-			return errf
-		}
 
-		//errd := rlp.Encode(tmpBlockFile, newBlock)
-		errd := rlp.Encode(tmpBlockFile, stBlock)
-		tmpBlockFile.Close()
+		//可注掉，目前为统计-begin
 		{
-			fhandler, _ := os.Stat(strNewBlockStoreFile)
-			gIpfsStat.totalBlockSize += fhandler.Size()
-			log.Debug("ipfs block encode info", "error", errd, "blockNum", tmplistBlockInfo.blockNum, "blockSize", fhandler.Size(), "totalSize", gIpfsStat.totalBlockSize)
+			tmpBlockFile, errf := os.OpenFile(strNewBlockStoreFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644) //"NewTmpBlcok.rp"
+			if errf != nil {
+				log.Error("ipfs RecvBlockToDeal error in open file ", "error=", errf)
+				return errf
+			}
+
+			//errd := rlp.Encode(tmpBlockFile, newBlock)
+			errd := rlp.Encode(tmpBlockFile, stBlock)
+			tmpBlockFile.Close()
+			{
+				fhandler, _ := os.Stat(strNewBlockStoreFile)
+				gIpfsStat.totalBlockSize += fhandler.Size()
+				log.Trace("ipfs block encode info", "error", errd, "blockNum", tmplistBlockInfo.blockNum, "blockSize", fhandler.Size(), "totalSize", gIpfsStat.totalBlockSize)
+			}
 		}
+		//可注掉，目前为统计-end
 		err = nil
 
 		if SingleBlockStore == true {
@@ -1451,6 +1469,10 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 			bNeedBatch = true //批量区块存储文件 上传标记
 			break
 		}
+	}
+	d.blockchain.GetIpfsQUnMux()
+	if bNeedSanp == true {
+		d.AddStateRootInfoToIpfs(tmpsnap.BlockNum, tmpsnap.BlockHash, tmpsnap.SnapPath)
 	}
 
 	if SingleBlockStore == true {
@@ -1609,7 +1631,7 @@ func (d *Downloader) GetBlockAndAnalysisSend(blockhash string, stype string) boo
 	//
 	defer func() {
 		blockFile.Close()
-		os.Remove(blockhash)
+		os.Remove(blockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ipfs GetBlockAndAnalysis error in IpfsGetBlockByHash", "error", err)
@@ -2066,6 +2088,7 @@ func (d *Downloader) IpsfAddNewBatchBlockToCache(stCfg *Cache1StoreCfg, blockNum
 
 }
 
+//批量存储区块
 func (d *Downloader) AddNewBatchBlockToIpfs() {
 	/*d.dpIpfs.BatchStBlock.headerStoreFile
 	d.dpIpfs.BatchStBlock.bodyStoreFile
@@ -2093,6 +2116,7 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 		log.Error(" ipfs AddNewBatchBlockToIpfs error", "strBatchBodyFile", bBodyHash)
 		return
 	}
+
 	gIpfsStat.totalZipBatchBlockSize += batchZipSize
 	log.Warn("static ipfs AddNewBatchBlockToIpfs body info", "blockNum", d.dpIpfs.BatchStBlock.curBlockNum, "batchsize", batchBodySize, "zipsize", batchZipSize, "batchtoatalsize", gIpfsStat.totalBatchBlockSize, "zipTotalsize", gIpfsStat.totalZipBatchBlockSize)
 	bReceiptHash, _, err1 := IpfsAddNewFile(strBatchReceiptFile, true)
@@ -2122,6 +2146,7 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 	}
 	log.Debug("ipfs AddNewBatchBlockToIpfs sucess ", "blockNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
 
+	gIpfsProcessBlockNumber = d.dpIpfs.BatchStBlock.curBlockNum
 	//file test
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum == 1 {
 		//	compareFiletoBatchBlock()
@@ -2169,6 +2194,7 @@ func (d *Downloader) AddStateRootInfoToIpfs(blockNum uint64, strheadHash string,
 	err := d.IPfsDirectoryUpdate()
 	if err != nil {
 		log.Error(" ipfs AddStateRootInfoToIpfs error IPfsDirectoryUpdate", "blockNum", blockNum, "filePath", strheadHash)
+		return
 	}
 	log.Warn(" ipfs snapshoot AddStateRootInfoToIpfs sucess", "blockNum", blockNum, "strheadHash", strheadHash, "filePath", filePath)
 }
@@ -2219,6 +2245,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
 		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
 	}*/
+	log.Trace(" ipfs BatchStoreAllBlock recv  block", "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum, "blockNum", blockNum)
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum != 0 {
 		beginNum := d.dpIpfs.BatchStBlock.ExpectBeginNum
 		//读文件时，可能原来文件中携带的值较大，而实际测试删除数据又从1开始
@@ -2227,14 +2254,18 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		//distance := math.Abs(float64(blockNum - d.dpIpfs.BatchStBlock.ExpectBeginNum))
 		//if distance > 300 {
 		if ((blockNum > beginNum) && (blockNum-beginNum >= BATCH_NUM)) || ((beginNum > blockNum) && (beginNum-blockNum >= BATCH_NUM)) {
-			log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
+			log.Warn(" ipfs BatchStoreAllBlock write file error illage", "blockNum", blockNum, "ExpectBeginNum", beginNum)
+			//return false
+			//如文件保存到325， 重启后变为 621开始
+			/*log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
 			if d.dpIpfs.BatchStBlock.headerStoreFile != nil {
 
 				d.dpIpfs.BatchStBlock.headerStoreFile.Close()
 				d.dpIpfs.BatchStBlock.bodyStoreFile.Close()
 				d.dpIpfs.BatchStBlock.receiptStoreFile.Close()
 			}
-			d.BatchBlockStoreInit(true)
+			d.BatchBlockStoreInit(true)*/
+
 		}
 	} else {
 		if blockNum == 1 {
@@ -2598,7 +2629,7 @@ func (d *Downloader) ParseBatchHeader(batchblockhash string, beginReqNumber uint
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchHeader error in IpfsGetBlockByHash", "error", err)
@@ -2657,7 +2688,7 @@ func (d *Downloader) ParseBatchBody(batchblockhash string, beginReqNumber uint64
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchBody error in IpfsGetBlockByHash", "error", err)
@@ -2727,7 +2758,7 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string, beginReqNumber uin
 	//解压区块
 	defer func() {
 		blockFile.Close()
-		os.Remove(batchblockhash)
+		os.Remove(batchblockhash + ".unzip")
 	}()
 	if err != nil {
 		log.Debug(" ParseBatchReceipt error in IpfsGetBlockByHash", "error", err)
@@ -2789,10 +2820,11 @@ func (d *Downloader) ParseMPTstatus(batchblockhash string, beginReqNumber uint64
 	blockFile, err := IpfsGetBlockByHash(batchblockhash, true)
 	//解压区块
 	filepath := blockFile.Name()
-	//defer func() {
+	defer func() {
+		os.Remove(batchblockhash + ".unzip")
+	}()
 	blockFile.Close()
-	//os.Remove(batchblockhash)
-	//}()
+
 	if err != nil {
 		log.Debug(" ParseMPTstatus error in IpfsGetBlockByHash", "error", err)
 		return false
@@ -3076,7 +3108,7 @@ func (d *Downloader) SynIPFSCheck() {
 
 }
 func (d *Downloader) ClearIpfsQueue() {
-
+	//d.dpIpfs.HeaderIpfsCh = d.dpIpfs.HeaderIpfsCh[0:0]
 	if d.dpIpfs != nil && d.dpIpfs.DownRetrans != nil {
 		if lsize := d.dpIpfs.DownRetrans.Len(); lsize > 0 {
 			d.dpIpfs.DownMutex.Lock()
@@ -3152,7 +3184,7 @@ func (d *Downloader) GetBlockByIPFS(strHash string) {
 	//解压
 	defer func() {
 		file.Close()
-		os.Remove(strHash)
+		os.Remove(strHash + ".unzip")
 	}()
 	if err != nil {
 		fmt.Println("ipfs block error", err)
@@ -3189,5 +3221,5 @@ func (d *Downloader) GetsanpByIPFS(strHash string) {
 	//if d.blockchain {
 	d.blockchain.PrintSnapshotAccountMsg(0, "", strHash)
 	//}
-	os.Remove(strHash)
+	os.Remove(strHash + ".unzip")
 }
