@@ -63,13 +63,37 @@ type Genesis struct {
 	ParentHash common.Hash       `json:"parentHash"`
 	Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
 	Sharding   []common.Coinbyte `json:"sharding,omitempty"`
-	Currencys  map[string][]GenesisCurryce `json:"currencys"`
+	Currencys  map[string][]Genesiscurrencys `json:"currencys"`
 }
 
-type GenesisCurryce struct {
+type Genesiscurrencys struct {
 	Account string
-	Quant string
+	Quant *big.Int
 }
+func (gc Genesiscurrencys) MarshalJSON()([]byte, error){
+	type Genesiscurrencys struct {
+		Account string                      `json:"Account" gencodec:"required"`
+		Quant    *math.HexOrDecimal256       `json:"Quant" gencodec:"required"`
+	}
+	var enc Genesiscurrencys
+	enc.Account = gc.Account
+	enc.Quant = (*math.HexOrDecimal256)(gc.Quant)
+	return json.Marshal(&enc)
+}
+func (g *Genesiscurrencys) UnmarshalJSON(input []byte) error {
+	type Genesiscurrencys struct {
+		Account string                      `json:"Account" gencodec:"required"`
+		Quant    *math.HexOrDecimal256       `json:"Quant" gencodec:"required"`
+	}
+	var dec Genesiscurrencys
+	if err := json.Unmarshal(input, &dec); err != nil {
+		return err
+	}
+	g.Account = dec.Account
+	g.Quant = (*big.Int)(dec.Quant)
+	return nil
+}
+
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
@@ -197,12 +221,6 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 		log.Warn("Genesis Block Lost Cfg")
 		return newcfg, stored, errGenesisLostChainCfg
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
-	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
-	// if we just continued here.
-	/*	if genesis == nil && stored != params.MainnetGenesisHash {
-		return storedcfg, stored, nil
-	}*/
 	if genesis == nil {
 		return storedcfg, stored, nil
 	}
@@ -228,7 +246,7 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.AllManashProtocolChanges
 	}
 }
-func sortMapByString(tmpMap map[string][]GenesisCurryce) []string{
+func sortMapByString(tmpMap map[string][]Genesiscurrencys) []string{
 	clist := make([]string,0,len(tmpMap))
 	for k,_:=range tmpMap{
 		clist = append(clist,k)
@@ -252,8 +270,7 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 			coinlist = append(coinlist, coinname)
 			allAmount := new(big.Int)
 			for _,cuff := range g.Currencys[coinname]{
-				tmpval,_:=new(big.Int).SetString(cuff.Quant,0)
-				allAmount = new(big.Int).Add(allAmount,tmpval)
+				allAmount = new(big.Int).Add(allAmount,cuff.Quant)
 			}
 			coincfglist = append(coincfglist,common.CoinConfig{CoinType:coinname,CoinTotal:(*hexutil.Big)(allAmount),
 				PackNum:params.CallTxPachNum,CoinUnit:(*hexutil.Big)(new(big.Int).SetUint64(params.CoinTypeUnit)),
@@ -280,8 +297,8 @@ func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 			if err != nil{
 				continue
 			}
-			tmpval,_:=new(big.Int).SetString(cuff.Quant,0)
-			statedb.AddBalance(cname,common.MainAccount,addr,tmpval)
+			//tmpval,_:=new(big.Int).SetString(cuff.Quant,0)
+			statedb.AddBalance(cname,common.MainAccount,addr,cuff.Quant)
 		}
 	}
 	if nil == g.MState {
