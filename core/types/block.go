@@ -582,7 +582,7 @@ func NewBlock(header *Header, currencyBlocks []CurrencyBlock, uncles []*Header) 
 						b.currencies = append(b.currencies, CurrencyBlock{CurrencyName: currencyBlocks[i].CurrencyName, Transactions: currencyBlocks[i].Transactions,
 							Receipts: currencyBlocks[i].Receipts})
 					}else {
-						log.Error("coin name err", "header", b.header.Roots[0].Cointyp,"block",currencyBlocks[0].CurrencyName)
+						log.Error("coin name err", "header", coinRoot.Cointyp,"block",currencyBlocks[i].CurrencyName)
 					}
 				}
 			} else {

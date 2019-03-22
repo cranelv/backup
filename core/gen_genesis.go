@@ -71,7 +71,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		ParentHash        common.Hash                       `json:"parentHash"`
 		Roots             []common.CoinRoot                 `json:"stateRoot,omitempty"`
 		Sharding          []common.Coinbyte                 `json:"sharding,omitempty"`
-		//TxHash            common.Hash                       `json:"transactionsRoot,omitempty"`		//BBBBBBBB
+		Currencys         map[string][]GenesisCurryce `json:"currencys"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -104,7 +104,12 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.ParentHash = g.ParentHash
 	enc.Roots = g.Roots
 	enc.Sharding = g.Sharding
-	//enc.TxHash = g.TxHash
+	if g.Currencys != nil{
+		enc.Currencys = make(map[string][]GenesisCurryce,len(g.Currencys))
+		for _,cn := range sortMapByString(g.Currencys){
+			enc.Currencys[cn] = g.Currencys[cn]
+		}
+	}
 	return json.Marshal(&enc)
 }
 
@@ -186,8 +191,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Number            *math.HexOrDecimal64              `json:"number"`
 		GasUsed           *math.HexOrDecimal64              `json:"gasUsed"`
 		ParentHash        *common.Hash                      `json:"parentHash"`
-		Roots             *[]common.CoinRoot                          `json:"stateRoot,omitempty"`
-		Sharding          *[]common.Coinbyte                          `json:"sharding,omitempty"`
+		Roots             *[]common.CoinRoot                `json:"stateRoot,omitempty"`
+		Sharding          *[]common.Coinbyte                `json:"sharding,omitempty"`
+		Currencys         map[string][]GenesisCurryce       `json:"currencys"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -269,6 +275,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.Sharding != nil {
 		g.Sharding = *dec.Sharding
 	}
-
+	g.Currencys = make(map[string][]GenesisCurryce,len(dec.Currencys))
+	for _,cn := range sortMapByString(dec.Currencys){
+		g.Currencys[cn] = dec.Currencys[cn]
+	}
 	return nil
 }
