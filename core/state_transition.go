@@ -927,7 +927,8 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 	st.RefundGas(coinrange)
 	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 
-	var entrustOK bool = false
+	isModiEntrustCount := false
+	entrustOK := false
 	Authfrom := tx.From()
 	EntrustList := make([]common.EntrustType, 0)
 	err = json.Unmarshal(tx.Data(), &EntrustList) //EntrustList为被委托人的EntrustType切片
@@ -971,13 +972,13 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 							log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
 							return nil, st.GasUsed(), true, shardings, nil //如果一个不满足就返回，不continue
 						}
-					} else if EntrustData.EnstrustSetType == params.EntrustByTime {
+					} else if AuthData.EnstrustSetType == params.EntrustByTime {
 						if st.evm.Time.Uint64() <= AuthData.EndTime {
 							//按时间委托未失效
 							log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
 							return nil, st.GasUsed(), true, shardings, nil //如果一个不满足就返回，不continue
 						}
-					} else if EntrustData.EnstrustSetType == params.EntrustByCount{
+					} else if AuthData.EnstrustSetType == params.EntrustByCount{
 						if AuthData.EntrustCount > 0{
 							log.Error("该委托人已经被委托过了，不能重复委托", "from", tx.From(), "Nonce", tx.Nonce())
 							return nil, st.GasUsed(), true, shardings, nil //如果一个不满足就返回，不continue
@@ -1004,7 +1005,14 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 						}
 						TimeAuthDataList = append(TimeAuthDataList, AuthData)
 					} else if EntrustData.EnstrustSetType == params.EntrustByCount{
-
+						//读取以前的按次数授权是同一个人，则修改以前的授权次数
+						for index,oldAuthData := range CountAuthDataList{
+							if oldAuthData.AuthAddres.Equal(addres){
+								AuthData.EntrustCount = EntrustData.EntrustCount
+								CountAuthDataList[index] = AuthData
+								isModiEntrustCount = true
+							}
+						}
 					} else {
 						log.Error("未设置委托类型", "from", tx.From(), "Nonce", tx.Nonce())
 						return nil, st.GasUsed(), true, shardings, nil
@@ -1056,15 +1064,18 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 
 		if EntrustData.EnstrustSetType == params.EntrustByCount{
 			//按次数委托
-			t_authData := new(common.AuthType)
-			t_authData.EnstrustSetType = EntrustData.EnstrustSetType
-			t_authData.StartTime = EntrustData.StartTime
-			t_authData.EndTime = EntrustData.EndTime
-			t_authData.IsEntrustSign = EntrustData.IsEntrustSign
-			t_authData.IsEntrustGas = EntrustData.IsEntrustGas
-			t_authData.AuthAddres = Authfrom
-			t_authData.EntrustCount = EntrustData.EntrustCount
-			CountAuthDataList = append(CountAuthDataList, *t_authData)
+			if !isModiEntrustCount{
+				t_authData := new(common.AuthType)
+				t_authData.EnstrustSetType = EntrustData.EnstrustSetType
+				t_authData.StartTime = EntrustData.StartTime
+				t_authData.EndTime = EntrustData.EndTime
+				t_authData.IsEntrustSign = EntrustData.IsEntrustSign
+				t_authData.IsEntrustGas = EntrustData.IsEntrustGas
+				t_authData.AuthAddres = Authfrom
+				t_authData.EntrustCount = EntrustData.EntrustCount
+				CountAuthDataList = append(CountAuthDataList, *t_authData)
+				isModiEntrustCount = false
+			}
 			marshalAuthData, err := json.Marshal(CountAuthDataList)
 			if err != nil {
 				log.Error("Marshal err")
@@ -1085,7 +1096,26 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 				return nil, st.GasUsed(), true, shardings, nil
 			}
 		}
-		AllEntrustList = append(AllEntrustList, EntrustList...)
+
+		//遍历之前的委托数据，看是否有同一个人按次数授权的，如果有，直接修改之前的次数
+		isHave := false
+		tmpEntrustList := make([]common.EntrustType, 0)
+		for _,newEntrustData := range EntrustList{
+			if newEntrustData.EnstrustSetType == params.EntrustByCount{
+				for i,oldEntrustData := range AllEntrustList{
+					if oldEntrustData.EntrustAddres == newEntrustData.EntrustAddres && oldEntrustData.EnstrustSetType == params.EntrustByCount{
+						AllEntrustList[i].EntrustCount = newEntrustData.EntrustCount
+						isHave = true
+						break
+					}
+				}
+			}
+			if !isHave{
+				tmpEntrustList = append(tmpEntrustList,newEntrustData)
+			}
+		}
+
+		AllEntrustList = append(AllEntrustList, tmpEntrustList...)
 		allDataList, err := json.Marshal(AllEntrustList)
 		if err != nil {
 			log.Error("Marshal error")
@@ -1190,12 +1220,27 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 		log.Error("没有委托数据")
 		return nil, st.GasUsed(), true, shardings, nil
 	}
-	entrustDataList := make([]common.EntrustType, 0)
-	err = json.Unmarshal(EntrustMarsha1Data, &entrustDataList)
+	allentrustDataList := make([]common.EntrustType, 0)
+	err = json.Unmarshal(EntrustMarsha1Data, &allentrustDataList)
 	if err != nil {
 		log.Error("CallAuthTx Unmarshal err")
 		return nil, st.GasUsed(), true, shardings, nil
 	}
+
+	entrustDataList := make([]common.EntrustType, 0,len(allentrustDataList))
+	for _, entrustdata := range allentrustDataList {
+		if entrustdata.EnstrustSetType == params.EntrustByTime && st.evm.Time.Uint64() > entrustdata.EndTime{
+			continue
+		}
+		if entrustdata.EnstrustSetType == params.EntrustByHeight && st.evm.BlockNumber.Uint64() > entrustdata.EndHeight {
+			continue
+		}
+		if entrustdata.EnstrustSetType == params.EntrustByCount && entrustdata.EntrustCount <= 0 {
+			continue
+		}
+		entrustDataList = append(entrustDataList,entrustdata)
+	}
+
 	newentrustDataList := make([]common.EntrustType, 0)
 	for index, entrustFrom := range entrustDataList {
 		if isContain(uint32(index), delIndexList) {
@@ -1213,16 +1258,19 @@ func (st *StateTransition) CallCancelAuthTx() (ret []byte, usedGas uint64, faile
 				if err != nil {
 					return nil, st.GasUsed(), true, shardings, nil
 				}
-				newDelAuthDataList := make([]common.AuthType, 0)
+				newAuthDataList := make([]common.AuthType, 0)
 				for _, oldAuthData := range oldAuthDataList {
 					//只要起始高度或时间能对应上，就是要删除的切片
-					if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime || entrustFrom.EntrustCount == oldAuthData.EntrustCount{
-						oldAuthData.IsEntrustGas = false
-						oldAuthData.IsEntrustSign = false
-						newDelAuthDataList = append(newDelAuthDataList, oldAuthData)
+					if entrustFrom.EnstrustSetType == oldAuthData.EnstrustSetType{
+						if entrustFrom.StartHeight == oldAuthData.StartHeight || entrustFrom.StartTime == oldAuthData.StartTime || entrustFrom.EntrustCount == oldAuthData.EntrustCount{
+							oldAuthData.IsEntrustGas = false
+							oldAuthData.IsEntrustSign = false
+							continue
+						}
 					}
+					newAuthDataList = append(newAuthDataList, oldAuthData)
 				}
-				newAuthDatalist, err := json.Marshal(newDelAuthDataList)
+				newAuthDatalist, err := json.Marshal(newAuthDataList)
 				if err != nil {
 					return nil, st.GasUsed(), true, shardings, nil
 				}
