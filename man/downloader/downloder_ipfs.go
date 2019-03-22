@@ -485,7 +485,7 @@ func ipfsGetTimeout() {
 }
 func TimeoutExec(str string) {
 	var flg int
-	timeOut := time.NewTicker(10 * time.Minute)
+	timeOut := time.NewTicker(16 * time.Minute)
 	defer func() {
 		log.Warn("ipfs---- ipfsTimeoutExec out--------", "flg", flg, "hash", str)
 		timeOut.Stop()
@@ -1114,7 +1114,9 @@ func (d *Downloader) IPfsDirectoryUpdate() error {
 	outerr.Reset()
 	//run
 	c = exec.Command(d.dpIpfs.StrIPFSExecName, "name", "publish", publishHash) //string(outbuf[:]))
+	IpfsStartTimer(publishHash)
 	err = c.Run()
+	IpfsStopTimer()
 	strErrInfo := outerr.String()
 
 	if err != nil {
