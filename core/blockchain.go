@@ -2108,6 +2108,8 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	for _, currencie := range block.Currencies() {
 		if currencie.CurrencyName != params.MAN_COIN {
 			errors.Errorf("super block's txs CurrencyName not Matrix err", currencie.CurrencyName)
+			log.Error("super block error","super block's txs CurrencyName not Matrix err",currencie.CurrencyName)
+			continue
 		}
 		txs := currencie.Transactions.GetTransactions()
 
