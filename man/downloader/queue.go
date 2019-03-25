@@ -25,6 +25,7 @@ var (
 	blockCacheMemory     = 64 * 1024 * 1024 // Maximum amount of memory to use for block caching
 	blockCacheSizeWeight = 0.1              // Multiplier to approximate the average block size based on past ones
 	QSingleBlockStore    = false
+	NumBlockInfoFromIpfs = 0
 )
 
 var (
@@ -1317,12 +1318,14 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		if bodyBlock.Flag == 33 {
 			log.Trace("download queue blockIpfsPool reqlist  delete resultCache is nil", "BlockNumber", bodyBlock.BlockNum)
 			q.BlockIpfsdeletePool(bodyBlock.BlockNum)
+			q.active.Signal()
 		}
 		return
 	}
 	if bodyBlock.Flag == 33 /*&& q.resultCache[index] != nil && q.resultCache[index].Pending == 0*/ {
 		log.Trace("download queue blockIpfsPool reqlist  delete ", "trueBlockNumber", bodyBlock.BlockNum)
 		q.BlockIpfsdeletePool(bodyBlock.BlockNum)
+		q.active.Signal()
 		return
 	}
 
@@ -1345,7 +1348,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 	}
 	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
 
-	if index > 300 {
+	if index > 10 { //300 //ipfs 方式改为批量后,按理应该顺序，相差一定数目就就可以认为区块没有存储
 		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
 			hash := q.resultCache[0].Header.Hash()
 			_, ok := q.blockTaskPool[hash]
@@ -1450,7 +1453,12 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 		//q.BlockIpfsdeletePool(trueBlockNumber)
 	}*/
 	// Wake up
-	q.active.Signal()
+	NumBlockInfoFromIpfs++
+	if NumBlockInfoFromIpfs > 30 {
+		q.active.Signal()
+		NumBlockInfoFromIpfs = 0
+	}
+
 }
 
 func (q *queue) checkIpfsPool() (bool, int, []uint64) {

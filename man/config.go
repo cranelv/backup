@@ -23,7 +23,7 @@ import (
 
 // DefaultConfig contains default settings for use on the Matrix main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FastSync,
+	SyncMode: downloader.FullSync, //FastSync,
 	Manash: manash.Config{
 		CacheDir:       "manash",
 		CachesInMem:    2,
