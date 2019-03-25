@@ -817,7 +817,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 						i = i + (300 - int(curMod) + 1)
 					}
 
-					if calcDiv == remoteDiv && remoteMod > 0 {
+					if calcDiv == remoteDiv && remoteMod > 0 && q.resultCache[i] != nil {
 						q.resultCache[i].Flag = 1
 						hash := q.resultCache[i].Header.Hash()
 						q.blockTaskPool[hash] = q.resultCache[i].Header
@@ -829,7 +829,7 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 						log.Warn("download queue Reserveipfs add to  quondam download", "i", i, "blockNum", q.resultCache[i].Header.Number, "hash", hash.String())
 					}
 
-				} else {
+				} else if q.resultCache[i] != nil {
 					q.resultCache[i].Flag = 1
 					hash := q.resultCache[i].Header.Hash()
 					q.blockTaskPool[hash] = q.resultCache[i].Header
