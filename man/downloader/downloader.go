@@ -374,6 +374,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 	d.cancelLock.RUnlock()
 
 	if master {
+		logger.Trace("Unregistering sync peer download cancel")
 		d.cancel()
 	}
 	return nil
@@ -653,6 +654,7 @@ func (d *Downloader) cancel() {
 // Cancel aborts all of the operations and waits for all download goroutines to
 // finish before returning.
 func (d *Downloader) Cancel() {
+	log.Debug("Downloading CancelCancel()")
 	d.cancel()
 	d.cancelWg.Wait()
 }
@@ -1112,8 +1114,10 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) (
 		}
 		expire   = func() map[string]int { return d.queue.ExpireHeaders(d.requestTTL()) }
 		throttle = func() bool { return false }
-		reserve  = func(p *peerConnection, count int) (*fetchRequest, bool, error) {
-			return d.queue.ReserveHeaders(p, count, true), false, nil
+		reserve  = func(p *peerConnection, count int) (*fetchRequest, bool, bool, error) {
+			//return d.queue.ReserveHeaders(p, count, d.bIpfsDownload), false, nil
+			request, wait := d.queue.ReserveHeaders(p, count, d.bIpfsDownload)
+			return request, wait, false, nil
 		}
 		fetch    = func(p *peerConnection, req *fetchRequest) error { return p.FetchHeaders(req.From, MaxHeaderFetch) }
 		capacity = func(p *peerConnection) int { return p.HeaderCapacity(d.requestRTT()) }
@@ -1203,7 +1207,7 @@ func (d *Downloader) fetchReceipts(from uint64) error {
 //  - setIdle:     network callback to set a peer back to idle and update its estimated capacity (traffic shaping)
 //  - kind:        textual label of the type being downloaded to display in log mesages
 func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliver func(dataPack) (int, error), wakeCh chan bool,
-	expire func() map[string]int, pending func() int, inFlight func() bool, throttle func() bool, reserve func(*peerConnection, int) (*fetchRequest, bool, error),
+	expire func() map[string]int, pending func() int, inFlight func() bool, throttle func() bool, reserve func(*peerConnection, int) (*fetchRequest, bool, bool, error),
 	fetchHook func([]*types.Header), fetch func(*peerConnection, *fetchRequest) error, cancel func(*fetchRequest), capacity func(*peerConnection) int,
 	idle func() ([]*peerConnection, int), setIdle func(*peerConnection, int), kind string) error {
 
@@ -1220,6 +1224,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 	for {
 		select {
 		case <-d.cancelCh:
+			log.Trace("download fetchParts cancelCh", "type", kind)
 			return errCancel
 
 		case packet := <-deliveryCh:
@@ -1381,7 +1386,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				if pending() == 0 {
 					break
 				}
-				if kind == "headers" && d.bIpfsDownload == 1 {
+				/*if kind == "headers" && d.bIpfsDownload == 1 {
 					if gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber > 610 {
 						if flgtest > 6 {
 							log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)
@@ -1389,11 +1394,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 						bTestWaitFlg = true
 						break
 					}
-				}
+				}*/
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
 				// no more headers are available, or that the peer is known not to
 				// have them.
-				request, progress, err := reserve(peer, capacity(peer))
+				request, bwait, progress, err := reserve(peer, capacity(peer))
 				if err != nil {
 					return err
 				}
@@ -1401,16 +1406,16 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 					progressed = true
 				}
 				if request == nil {
-					if kind == "headers" {
+					if kind == "headers" && bwait {
 						bTestWaitFlg = true
 						break
 					}
 					continue
 				}
 				//lb
-				if kind == "headers" && d.bIpfsDownload == 1 {
+				/*if kind == "headers" && d.bIpfsDownload == 1 {
 					gCurDownloadHeadReqBeginNum = request.From
-				}
+				}*/
 				if request.From > 0 {
 					peer.log.Trace("Requesting new batch of data", "type", kind, "from", request.From)
 				} else {
@@ -1433,6 +1438,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			// Make sure that we have peers available for fetching. If all peers have been tried
 			// and all failed throw an error
 			if !progressed && !throttled && !running && !bTestWaitFlg && len(idles) == total && pending() > 0 {
+				log.Trace("download fetchpart no idle", "total", total)
 				return errPeersUnavailable
 			}
 		}

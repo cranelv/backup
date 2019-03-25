@@ -453,37 +453,38 @@ func (q *queue) countProcessableItems() int {
 	}
 	return len(q.resultCache)
 }
-func (q *queue) leftResultCaceh() int {
+func (q *queue) leftResultCaceh() (int, uint64) {
 	length := len(q.resultCache)
 	var left int
 	for i := length - 1; i > 0; i-- {
 		if q.resultCache[i] != nil {
-			return left
+			//return left
+			return left, q.resultCache[i].Header.Number.Uint64()
 		}
 		left++
 	}
-	return left
+	return left, 0
 }
 
 // ReserveHeaders reserves a set of headers for the given peer, skipping any
 // previously failed batches.
-func (q *queue) ReserveHeaders(p *peerConnection, count int, bHead bool) *fetchRequest {
+func (q *queue) ReserveHeaders(p *peerConnection, count int, ipfsmode int) (*fetchRequest, bool) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	// Short circuit if the peer's already downloading something (sanity check to
 	// not corrupt state)
 	if _, ok := q.headerPendPool[p.id]; ok {
-		return nil
+		return nil, false
 	}
 	//if d.bIpfsDownload == 2 && (d.mode == FullSync || d.mode == FastSync)
-	if bHead {
+	/*if bHead {
 		leftLen := q.leftResultCaceh()
 		if leftLen < MaxHeaderFetch+3 {
 			log.Debug("download queue ReserveHeaders left resulchche ", "leftlen", leftLen)
 			return nil
 		}
-	}
+	}*/
 	// Retrieve a batch of hashes, skipping previously failed ones
 	send, skip := uint64(0), []uint64{}
 	for send == 0 && !q.headerTaskQueue.Empty() {
@@ -501,29 +502,48 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, bHead bool) *fetchR
 		q.headerTaskQueue.Push(from, -float32(from))
 	}
 	//lb
+	/*leftLen, NumberB := q.leftResultCaceh()
+	if NumberB != 0 {
+		if NumberB < send && leftLen < MaxHeaderFetch+3 { //send 可能为重传
+			q.headerTaskQueue.Push(send, -float32(send))
+			log.Debug("download queue ReserveHeaders left resulchche ", "leftlen", leftLen, "NumberB", NumberB, "send", send)
+			return nil
+		}
+	}*/
+	// Assemble and return the block download request
+	if send == 0 {
+		return nil, false
+	}
+
 	index := int(int64(send)-int64(q.resultOffset)) + MaxHeaderFetch
 	if index >= len(q.resultCache) || index < 0 {
 		q.headerTaskQueue.Push(send, -float32(send))
-		log.Debug("download queue ReserveHeaders left resultcache ", "send", send, "q.resultOffset", q.resultOffset)
-		return nil
+		log.Debug("download queue ReserveHeaders left resultcache ", "send", send, "q.resultOffset", q.resultOffset, "index", index)
+		return nil, true
 	}
-	// Assemble and return the block download request
-	if send == 0 {
-		return nil
+
+	if ipfsmode == 1 { //广播节点
+		if int(gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber) > blockCacheItems {
+			q.headerTaskQueue.Push(send, -float32(send))
+			log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)
+			return nil, true
+		}
+		gCurDownloadHeadReqBeginNum = send
 	}
+
 	request := &fetchRequest{
 		Peer: p,
 		From: send,
 		Time: time.Now(),
 	}
 	q.headerPendPool[p.id] = request
-	return request
+	return request, false
 }
 
 // ReserveBodies reserves a set of body fetches for the given peer, skipping any
 // previously failed downloads. Beside the next batch of needed fetches, it also
 // returns a flag whether empty blocks were queued requiring processing.
-func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
+func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, bool, error) {
 	isNoop := func(header *types.Header) bool {
 		//flag:=true
 		for _, cr := range header.Roots {
@@ -543,7 +563,7 @@ func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool
 // ReserveReceipts reserves a set of receipt fetches for the given peer, skipping
 // any previously failed downloads. Beside the next batch of needed fetches, it
 // also returns a flag whether empty receipts were queued requiring importing.
-func (q *queue) ReserveReceipts(p *peerConnection, count int) (*fetchRequest, bool, error) {
+func (q *queue) ReserveReceipts(p *peerConnection, count int) (*fetchRequest, bool, bool, error) {
 	isNoop := func(header *types.Header) bool {
 		//return header.ReceiptHash == types.EmptyRootHash
 		for _, cr := range header.Roots {
@@ -856,14 +876,14 @@ func (q *queue) Reserveipfs(recvheader []*types.Header, origin, remote uint64) (
 // reason the lock is not obtained in here is because the parameters already need
 // to access the queue, so they already need a lock anyway.
 func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*types.Header, taskQueue *prque.Prque,
-	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, isNoop func(*types.Header) bool) (*fetchRequest, bool, error) {
+	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, isNoop func(*types.Header) bool) (*fetchRequest, bool, bool, error) {
 	// Short circuit if the pool has been depleted, or if the peer's already
 	// downloading something (sanity check not to corrupt state)
 	if taskQueue.Empty() {
-		return nil, false, nil
+		return nil, false, false, nil
 	}
 	if _, ok := pendPool[p.id]; ok {
-		return nil, false, nil
+		return nil, false, false, nil
 	}
 	// Calculate an upper limit on the items we might fetch (i.e. throttling)
 	space := q.resultSlots(pendPool, donePool)
@@ -881,7 +901,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 {
 			common.Report("index allocation went beyond available resultCache space")
-			return nil, false, errInvalidChain
+			return nil, false, false, errInvalidChain
 		}
 		if q.resultCache[index] == nil {
 			components := 1
@@ -921,7 +941,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 	}
 	// Assemble and return the block download request
 	if len(send) == 0 {
-		return nil, progress, nil
+		return nil, false, progress, nil
 	}
 
 	log.Warn("download  queue reserveHeaders  reqest ", "p=", p.id, "sendcount", len(send))
@@ -933,7 +953,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 	}
 	pendPool[p.id] = request
 
-	return request, progress, nil
+	return request, false, progress, nil
 }
 
 // CancelHeaders aborts a fetch request, returning all pending skeleton indexes to the queue.
