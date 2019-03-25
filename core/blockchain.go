@@ -1107,7 +1107,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		}
 	}
 	if isok {
-		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot", types.RlpHash(intermediateRoot), "intermediateSharding", types.RlpHash(intermediateSharding), "deleteEmptyObjects", deleteEmptyObjects)
+		log.INFO("blockChain", "WriteBlockWithState", "root信息", "root", roothash, "header root", blockroothash, "intermediateRoot",
+			types.RlpHash(intermediateRoot), "intermediateSharding", types.RlpHash(intermediateSharding), "deleteEmptyObjects", deleteEmptyObjects)
 		return NonStatTy, errors.New("root not match")
 	}
 
@@ -1485,6 +1486,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			blockInsertTimer.UpdateSince(bstart)
 			events = append(events, ChainSideEvent{block})
 		}
+
+		// 发出区块插入事件
+		mc.PublishEvent(mc.BlockInserted, &mc.BlockInsertedMsg{Block: mc.BlockInfo{Hash: block.Hash(), Number: block.NumberU64()}, InsertTime: uint64(time.Now().Unix()), CanonState: status == CanonStatTy})
+
 		stats.processed++
 		stats.usedGas += usedGas
 		stats.report(chain, i, bc.stateCache.TrieDB().Size())
@@ -2103,6 +2108,8 @@ func (bc *BlockChain) processSuperBlockState(block *types.Block, stateDB *state.
 	for _, currencie := range block.Currencies() {
 		if currencie.CurrencyName != params.MAN_COIN {
 			errors.Errorf("super block's txs CurrencyName not Matrix err", currencie.CurrencyName)
+			log.Error("super block error","super block's txs CurrencyName not Matrix err",currencie.CurrencyName)
+			continue
 		}
 		txs := currencie.Transactions.GetTransactions()
 
@@ -2725,5 +2732,17 @@ func (bc *BlockChain) dumpBadBlock(hash common.Hash, state *state.StateDBManage)
 			bc.badDumpHistory = append(bc.badDumpHistory, hash)
 		}
 	}
+}
 
+func (bc *BlockChain) DelLocalBlocks(blocks []*mc.BlockInfo) (fails []*mc.BlockInfo, err error) {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	for i := 0; i < len(blocks); i++ {
+		blk := blocks[i]
+		rawdb.DeleteBody(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteHeader(bc.db, blk.Hash, blk.Number)
+		rawdb.DeleteTd(bc.db, blk.Hash, blk.Number)
+	}
+	return nil, nil
 }

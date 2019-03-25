@@ -485,7 +485,7 @@ func ipfsGetTimeout() {
 }
 func TimeoutExec(str string) {
 	var flg int
-	timeOut := time.NewTicker(10 * time.Minute)
+	timeOut := time.NewTicker(16 * time.Minute)
 	defer func() {
 		log.Warn("ipfs---- ipfsTimeoutExec out--------", "flg", flg, "hash", str)
 		timeOut.Stop()
@@ -1114,7 +1114,9 @@ func (d *Downloader) IPfsDirectoryUpdate() error {
 	outerr.Reset()
 	//run
 	c = exec.Command(d.dpIpfs.StrIPFSExecName, "name", "publish", publishHash) //string(outbuf[:]))
+	IpfsStartTimer(publishHash)
 	err = c.Run()
+	IpfsStopTimer()
 	strErrInfo := outerr.String()
 
 	if err != nil {
@@ -1812,7 +1814,10 @@ secondCache:
 			log.Error(" ipfs  SyncBlockFromIpfs error IpfsGetBlockByHash cache2File", "error", err)
 			return 1
 		}
-		defer cache2File.Close()
+		defer func() {
+			cache2File.Close()
+			os.Remove(stCache2Infohash)
+		}()
 
 		//cache2st := new(Caches2CfgMap) //eof
 		gIpfsCache.getipfsCache2 = new(Caches2CfgMap)
@@ -2255,6 +2260,11 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		//if distance > 300 {
 		if ((blockNum > beginNum) && (blockNum-beginNum >= BATCH_NUM)) || ((beginNum > blockNum) && (beginNum-blockNum >= BATCH_NUM)) {
 			log.Warn(" ipfs BatchStoreAllBlock write file error illage", "blockNum", blockNum, "ExpectBeginNum", beginNum)
+			//后加
+			if blockNum == 1 {
+				log.Warn(" ipfs BatchStoreAllBlock recv new block num=1 ,then clear file")
+				d.BatchBlockStoreInit(true)
+			}
 			//return false
 			//如文件保存到325， 重启后变为 621开始
 			/*log.Warn(" ipfs BatchStoreAllBlock write file ExpectBeginNum illage ,then clear ", "blockNum", blockNum, "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum)
@@ -2878,7 +2888,10 @@ func (d *Downloader) DownloadBatchBlock(headhash string /*common.Hash*/, headNum
 		}
 		return 1
 	}
-	defer cache2File.Close()
+	defer func() {
+		cache2File.Close()
+		os.Remove(stCache2Infohash)
+	}()
 
 	//cache2st := new(Caches2CfgMap) //eof
 	gIpfsCache.getipfsBatchCache2 = new(Caches2CfgMap)

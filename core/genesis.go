@@ -23,6 +23,9 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/base58"
+	"sort"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -53,7 +56,6 @@ type Genesis struct {
 	Coinbase   common.Address `json:"coinbase"`
 	Alloc      GenesisAlloc   `json:"alloc"      gencodec:"required"`
 	MState     *GenesisMState `json:"mstate"    gencodec:"required"`
-
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64            `json:"number"`
@@ -61,7 +63,35 @@ type Genesis struct {
 	ParentHash common.Hash       `json:"parentHash"`
 	Roots      []common.CoinRoot `json:"stateRoot"        gencodec:"required"`
 	Sharding   []common.Coinbyte `json:"sharding,omitempty"`
-	//TxHash     common.Hash `json:"transactionsRoot,omitempty"`			//BBBBBBBB
+	Currencys  map[string][]Genesiscurrencys `json:"currencys"`
+}
+
+type Genesiscurrencys struct {
+	Account string
+	Quant *big.Int
+}
+func (gc Genesiscurrencys) MarshalJSON()([]byte, error){
+	type Genesiscurrencys struct {
+		Account string                      `json:"Account" gencodec:"required"`
+		Quant    *math.HexOrDecimal256       `json:"Quant" gencodec:"required"`
+	}
+	var enc Genesiscurrencys
+	enc.Account = gc.Account
+	enc.Quant = (*math.HexOrDecimal256)(gc.Quant)
+	return json.Marshal(&enc)
+}
+func (g *Genesiscurrencys) UnmarshalJSON(input []byte) error {
+	type Genesiscurrencys struct {
+		Account string                      `json:"Account" gencodec:"required"`
+		Quant    *math.HexOrDecimal256       `json:"Quant" gencodec:"required"`
+	}
+	var dec Genesiscurrencys
+	if err := json.Unmarshal(input, &dec); err != nil {
+		return err
+	}
+	g.Account = dec.Account
+	g.Quant = (*big.Int)(dec.Quant)
+	return nil
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -187,21 +217,10 @@ func SetupGenesisBlock(db mandb.Database, genesis *Genesis) (*params.ChainConfig
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	/*	if storedcfg == nil {
-		log.Warn("Found genesis block without chain config")
-		rawdb.WriteChainConfig(db, stored, newcfg)
-		return newcfg, stored, nil
-	}*/
 	if storedcfg == nil {
 		log.Warn("Genesis Block Lost Cfg")
 		return newcfg, stored, errGenesisLostChainCfg
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
-	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
-	// if we just continued here.
-	/*	if genesis == nil && stored != params.MainnetGenesisHash {
-		return storedcfg, stored, nil
-	}*/
 	if genesis == nil {
 		return storedcfg, stored, nil
 	}
@@ -223,28 +242,63 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
 		return g.Config
-	/*case ghash == params.MainnetGenesisHash:
-		return params.MainnetChainConfig
-	case ghash == params.TestnetGenesisHash:
-		return params.TestnetChainConfig*/
 	default:
 		return params.AllManashProtocolChanges
 	}
 }
-
+func sortMapByString(tmpMap map[string][]Genesiscurrencys) []string{
+	clist := make([]string,0,len(tmpMap))
+	for k,_:=range tmpMap{
+		clist = append(clist,k)
+	}
+	sort.Strings(clist)
+	return clist
+}
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
 func (g *Genesis) ToBlock(db mandb.Database) (*types.Block, error) {
 	if db == nil {
 		db = mandb.NewMemDatabase()
 	}
-	statedb, _ := state.NewStateDBManage(nil, db, state.NewDatabase(db))
+	roots:=make([]common.CoinRoot,0,len(g.Currencys)+1)
+	roots = append(roots, common.CoinRoot{Cointyp: params.MAN_COIN, Root: common.Hash{}})
+	var coinlist []string
+	var coincfglist []common.CoinConfig
+	if len(g.Currencys) > 0{
+		for _,coinname := range sortMapByString(g.Currencys){
+			roots = append(roots, common.CoinRoot{Cointyp: coinname, Root: common.Hash{}})
+			coinlist = append(coinlist, coinname)
+			allAmount := new(big.Int)
+			for _,cuff := range g.Currencys[coinname]{
+				allAmount = new(big.Int).Add(allAmount,cuff.Quant)
+			}
+			coincfglist = append(coincfglist,common.CoinConfig{CoinType:coinname,CoinTotal:(*hexutil.Big)(allAmount),
+				PackNum:params.CallTxPachNum,CoinUnit:(*hexutil.Big)(new(big.Int).SetUint64(params.CoinTypeUnit)),
+				CoinAddress:common.TxGasRewardAddress,CoinRange:coinname})
+		}
+	}
+	statedb, _ := state.NewStateDBManage(roots, db, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(params.MAN_COIN, common.MainAccount, addr, account.Balance)
 		statedb.SetCode(params.MAN_COIN, addr, account.Code)
 		statedb.SetNonce(params.MAN_COIN, addr, account.Nonce)
 		for key, value := range account.Storage {
 			statedb.SetState(params.MAN_COIN, addr, key, value)
+		}
+	}
+	key := types.RlpHash(params.COIN_NAME)
+	coinby, _ := json.Marshal(coinlist)
+	statedb.SetMatrixData(key, coinby)
+	coinCfgbs, _ := json.Marshal(coincfglist)
+	statedb.SetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig), coinCfgbs)
+	for _,cname := range sortMapByString(g.Currencys){
+		for _,cuff := range g.Currencys[cname]{
+			addr,err:= base58.Base58DecodeToAddress(cuff.Account)
+			if err != nil{
+				continue
+			}
+			//tmpval,_:=new(big.Int).SetString(cuff.Quant,0)
+			statedb.AddBalance(cname,common.MainAccount,addr,cuff.Quant)
 		}
 	}
 	if nil == g.MState {

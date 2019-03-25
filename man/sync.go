@@ -48,9 +48,9 @@ type txsync struct {
 func (pm *ProtocolManager) syncTransactions(p *peer) {
 	var txs types.SelfTransactions
 	pending, _ := pm.txpool.Pending()
-	for _,txsmap := range pending{
-		for _,batch := range txsmap{
-			txs = append(txs,batch...)
+	for _, txsmap := range pending {
+		for _, batch := range txsmap {
+			txs = append(txs, batch...)
 		}
 	}
 	if len(txs) == 0 {
@@ -269,6 +269,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	log.Warn("download sync.go enter Synchronise", "currentBlock", currentBlock.NumberU64())
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
+	/* //fast 模式不启用
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
 		mode = downloader.FastSync
@@ -282,7 +283,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		atomic.StoreUint32(&pm.fastSync, 1)
 		mode = downloader.FastSync
 		log.Trace("download sync.go enter Synchronise set fastSync", "currentBlock", currentBlock.NumberU64())
-	}
+	}*/
 
 	if mode == downloader.FastSync {
 		log.Trace("download sync.go enter Synchronise fastSync hash", "currentBlock", currentBlock.NumberU64())

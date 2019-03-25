@@ -68,6 +68,7 @@ func (shard *StateDBManage) MakeStatedb(cointyp string,isCheck bool) {
 	for _, cr := range shard.coinRoot {
 		if cr.Cointyp == cointyp {
 			isex = true
+			break
 		}
 	}
 	var cointypes []string
@@ -96,8 +97,6 @@ func (shard *StateDBManage) MakeStatedb(cointyp string,isCheck bool) {
 		shard.coinRoot = append(shard.coinRoot, common.CoinRoot{Cointyp: cointyp, Root: common.Hash{}})
 		shard.retcoinRoot = append(shard.retcoinRoot, common.CoinRoot{Cointyp: cointyp, Root: common.Hash{}})
 	}
-
-
 	shard.addShardings(cointyp)
 }
 func (shard *StateDBManage) addShardings(cointyp string) {
@@ -106,17 +105,8 @@ func (shard *StateDBManage) addShardings(cointyp string) {
 		if cr.Cointyp == cointyp {
 			rms := make([]*RangeManage, 0)
 			var hashs []common.Hash
-			Roots, err := shard.mdb.Get(cr.Root[:])
-			if err != nil {
-				log.Error("sharding_statedb", "addShardings:Get", err)
-				//return
-			} else {
-				err = rlp.DecodeBytes(Roots, &hashs)
-				if err != nil {
-					log.Error("sharding_statedb", "addShardings:DecodeBytes", err)
-					return
-				}
-			}
+			Roots, _ := shard.mdb.Get(cr.Root[:])
+			rlp.DecodeBytes(Roots, &hashs)
 			if len(hashs) <= 0 {
 				for idx := 0; idx < params.RANGE_MOUNTS; idx++ {
 					hashs = append(hashs, common.Hash{})
