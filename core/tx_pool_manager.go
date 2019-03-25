@@ -288,6 +288,37 @@ func BlackListFilter(tx types.SelfTransaction, state *state.StateDBManage, h *bi
 		}
 	}
 
+	//创建币种
+	if txtype == common.ExtraMakeCoinType{
+		if !tx.To().Equal(common.DestroyAddress){
+			log.Error("destroy address error","address",tx.To())
+			return false
+		}
+		key := types.RlpHash(params.COIN_NAME)
+		coinlistbyte := state.GetMatrixData(key)
+		var coinlist []string
+		if len(coinlistbyte) > 0 {
+			err := json.Unmarshal(coinlistbyte, &coinlist)
+			if err != nil {
+				log.Error("get coin list", "unmarshal err", err)
+				//return nil, 0, false, nil, err
+			}
+		}
+
+		value,_ := new(big.Int).SetString(params.DestroyBalance,0)
+		//每100个币种衰减百分之五
+		for i := 0; i< len(coinlist)/params.CoinDampingNum; i++{
+			tmpa := big.NewInt(95)
+			tmpb := big.NewInt(100)
+			value.Mul(value,tmpa)
+			value.Quo(value,tmpb)
+		}
+		if tx.Value().Cmp(value) < 0{
+			log.Error("makecoin balance not enough","current balance",tx.Value(),"correct balance",value)
+			return false
+		}
+	}
+
 	//黑账户过滤(to)
 	if to != nil {
 		if SelfBlackList.FindBlackAddress(*to) {

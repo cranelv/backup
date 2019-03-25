@@ -445,6 +445,14 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	}
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
+func isExistCoin(newCoin string,coinlist []string) bool {
+	for _,coin := range coinlist{
+		if coin == newCoin{
+			return true
+		}
+	}
+	return false
+}
 func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
@@ -494,6 +502,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			log.Trace("get coin list", "unmarshal err", err)
 			return nil, 0, false, nil, err
 		}
+	}
+	if isExistCoin(makecoin.CoinName,coinlist){
+		return nil, 0, false, shardings, errors.New("Coin exist")
 	}
 	clmap := make(map[string]bool)
 	coinlist = append(coinlist, makecoin.CoinName)

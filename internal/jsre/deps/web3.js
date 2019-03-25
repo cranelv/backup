@@ -5796,6 +5796,12 @@ var methods = function () {
         params: 1,
         inputFormatter: [formatters.inputDefaultBlockNumberFormatter]
     });
+    var getDestroyBalance = new Method({
+        name: 'getDestroyBalance',
+        call: 'eth_getDestroyBalance',
+        params: 1,
+        inputFormatter: [formatters.inputDefaultBlockNumberFormatter]
+    });
     var getMatrixCoinConfig = new Method({
         name: 'getMatrixCoinConfig',
         call: 'eth_getMatrixCoinConfig',
@@ -5844,6 +5850,7 @@ var methods = function () {
         getSelfLevel,
         importSuperBlock,
         getMatrixCoin,
+        getDestroyBalance,
         getMatrixCoinConfig,
         getTopologyStatus
     ];
