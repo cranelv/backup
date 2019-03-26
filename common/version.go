@@ -284,5 +284,12 @@ var (
 				"委托交易增加按次数委托",
 			},
 		},
+		{
+			Version:   "Gman_Alg_0.0.35",
+			Submitter: "zhenghe",
+			Commit: []string{
+				"创建币种增加to地址限制，销毁金额衰减机制",
+			},
+		},
 	}
 )

@@ -84,6 +84,7 @@ const (
 	EntrustByCount       byte   = 2                  //按次数委托
 	CallTxPachNum        uint64 = 9999               //币种打包交易数量限制
 	CoinTypeUnit         uint64 = 1000000000000000000//*big.Int = new(big.Int).SetString("0xDE0B6B3A7640000",0)//new(big.Int).SetString("0xDE0B6B3A7640000",0)
+	CoinDampingNum       int    = 100                //每100个币种衰减百分之五
 
 	// Udp buffer
 	MaxUdpBuf uint32 = 1024 * 64
@@ -93,6 +94,7 @@ const (
 	RANGE_MOUNTS int    = 256
 	COIN_NAME    string = "COIN_TYPE"
 	//COINPREFIX   string = "MATRIX"
+	DestroyBalance string = "100000000000000000000000" //创建币种需要的最小转账余额,十万MAN
 )
 
 var (

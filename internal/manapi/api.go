@@ -679,6 +679,37 @@ func (s *PublicBlockChainAPI) GetMatrixCoin(ctx context.Context, blockNr rpc.Blo
 	}
 	return coinlist, nil
 }
+func (s *PublicBlockChainAPI) GetDestroyBalance(ctx context.Context, blockNr rpc.BlockNumber) (*big.Int, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	bs := state.GetMatrixData(types.RlpHash(params.COIN_NAME))
+	var tmpcoinlist []string
+	if len(bs) > 0 {
+		err := json.Unmarshal(bs, &tmpcoinlist)
+		if err != nil {
+			log.Trace("get matrix coin", "unmarshal err", err)
+			return nil, err
+		}
+	}
+	var coinlist []string
+	for _, coin := range tmpcoinlist {
+		if !common.IsValidityCurrency(coin) {
+			continue
+		}
+		coinlist = append(coinlist, coin)
+	}
+
+	value,_ := new(big.Int).SetString(params.DestroyBalance,0)
+	for i := 0; i< len(coinlist)/params.CoinDampingNum; i++{
+		tmpa := big.NewInt(95)
+		tmpb := big.NewInt(100)
+		value.Mul(value,tmpa)
+		value.Quo(value,tmpb)
+	}
+	return value, nil
+}
 func (s *PublicBlockChainAPI) GetMatrixCoinConfig(ctx context.Context, cointpy string, blockNr rpc.BlockNumber) ([]common.CoinConfig, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {

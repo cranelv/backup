@@ -445,14 +445,76 @@ func (st *StateTransition) CallRevertNormalTx() (ret []byte, usedGas uint64, fai
 	}
 	return ret, st.GasUsed(), vmerr != nil, shardings, err
 }
+func isExistCoin(newCoin string,coinlist []string) bool {
+	for _,coin := range coinlist{
+		if coin == newCoin{
+			return true
+		}
+	}
+	return false
+}
 func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
+	toaddr := tx.To()
 	var addr common.Address
 	from := tx.From()
 	if from == addr {
 		return nil, 0, false, shardings, errors.New("state_transition,make coin ,from is nil")
 	}
 	sender := vm.AccountRef(from)
+
+	var (
+		evm   = st.evm
+		vmerr error
+	)
+	tmpshard := make([]uint, 0)
+	// Pay intrinsic gas
+	gas, err := IntrinsicGas(st.data)
+	if err != nil {
+		return nil, 0, false, shardings, err
+	}
+	//
+	tmpExtra := tx.GetMatrix_EX() //Extra()
+	if (&tmpExtra) != nil && len(tmpExtra) > 0 {
+		if uint64(len(tmpExtra[0].ExtraTo)) > params.TxCount-1 { //减1是为了和txpool中的验证统一，因为还要算上外层的那笔交易
+			return nil, 0, false, shardings, ErrTXCountOverflow
+		}
+		for _, ex := range tmpExtra[0].ExtraTo {
+			tmpgas, tmperr := IntrinsicGas(ex.Payload)
+			if tmperr != nil {
+				return nil, 0, false, shardings, err
+			}
+			//0.7+0.3*pow(0.9,(num-1))
+			gas += tmpgas
+		}
+	}
+	if err = st.UseGas(gas); err != nil {
+		return nil, 0, false, shardings, err
+	}
+	if toaddr == nil {
+		var caddr common.Address
+		ret, caddr, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
+		tmpshard = append(tmpshard, uint(caddr[0]))
+	} else {
+		// Increment the nonce for the next transaction
+		st.state.SetNonce(tx.GetTxCurrency(), from, st.msg.Nonce()+1)//st.state.GetNonce(tx.GetTxCurrency(), from)
+		ret, st.gas, tmpshard, vmerr = evm.Call(sender, st.To(), st.data, st.gas, st.value)
+	}
+
+	if vmerr != nil {
+		log.Debug("VM returned with error", "err", vmerr)
+		// The only possible consensus-error would be if there wasn't
+		// sufficient balance to make the transfer happen. The first
+		// balance transfer may never fail.
+		if vmerr == vm.ErrInsufficientBalance {
+			return nil, 0, false, nil, vmerr
+		}
+	}
+	shardings = append(shardings, tmpshard...)
+
 	by := tx.Data()
 	var makecoin common.SMakeCoin
 	makecerr := json.Unmarshal(by, &makecoin)
@@ -494,6 +556,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 			log.Trace("get coin list", "unmarshal err", err)
 			return nil, 0, false, nil, err
 		}
+	}
+	if isExistCoin(makecoin.CoinName,coinlist){
+		return nil, 0, false, shardings, errors.New("Coin exist")
 	}
 	clmap := make(map[string]bool)
 	coinlist = append(coinlist, makecoin.CoinName)
@@ -553,6 +618,9 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 	//coinCfgbs, _ := rlp.EncodeToBytes(coincfglist)
 	coinCfgbs, _ := json.Marshal(coincfglist)
 	st.state.SetMatrixData(types.RlpHash(common.COINPREFIX+mc.MSCurrencyConfig), coinCfgbs)
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
 	return ret, 0, false, shardings, err
 }
 func (st *StateTransition) CallRevocableNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -741,7 +809,7 @@ func (st *StateTransition) CallSetBlackListTx() (ret []byte, usedGas uint64, fai
 	st.gas = 0
 	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
 
-	file,err := os.OpenFile(common.WorkPath+"/blacklist.txt",os.O_CREATE | os.O_TRUNC,0666)
+	file,err := os.OpenFile(common.WorkPath+"/blacklist.txt",os.O_CREATE | os.O_TRUNC | os.O_RDWR,0666)
 	if err != nil{
 		file.Close()
 		log.Error("CallSetBlackListTx", "OpenFile err", err)
