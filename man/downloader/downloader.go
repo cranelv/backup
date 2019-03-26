@@ -31,11 +31,11 @@ import (
 
 var (
 	MaxHashFetch    = 512 // Amount of hashes to be fetched per retrieval request
-	MaxBlockFetch   = 128 // Amount of blocks to be fetched per retrieval request
-	MaxHeaderFetch  = 100 //192 // Amount of block headers to be fetched per retrieval request
-	MaxSkeletonSize = 100 //128 // Number of header fetches to need for a skeleton assembly
+	MaxBlockFetch   = 20  //128 // Amount of blocks to be fetched per retrieval request
+	MaxHeaderFetch  = 32  //100 //192 // Amount of block headers to be fetched per retrieval request
+	MaxSkeletonSize = 32  //100 //128 // Number of header fetches to need for a skeleton assembly
 	MaxBodyFetch    = 128 // Amount of block bodies to be fetched per retrieval request
-	MaxReceiptFetch = 256 // Amount of transaction receipts to allow fetching per request
+	MaxReceiptFetch = 64  //256 // Amount of transaction receipts to allow fetching per request
 	MaxStateFetch   = 384 // Amount of node state values to allow fetching per request
 
 	MaxForkAncestry  = 3 * params.EpochDuration // Maximum chain reorganisation
@@ -50,7 +50,7 @@ var (
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
 	maxQueuedHeaders  = 800 //lb 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 512 //1024 //2048      // Number of header download results to import at once into the chain
+	maxHeadersProcess = 256 //512 //1024 //2048      // Number of header download results to import at once into the chain
 	maxResultsProcess = 918 //396  //576      //lb//2048      // Number of content download results to import at once into the chain
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync

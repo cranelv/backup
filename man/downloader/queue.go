@@ -522,7 +522,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, ipfsmode int) (*fet
 		return nil, true
 	}
 
-	if ipfsmode == 1 { //广播节点
+	if ipfsmode == 1 && gIpfsProcessBlockNumber != 0 { //广播节点
 		if int(gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber) > blockCacheItems {
 			q.headerTaskQueue.Push(send, -float32(send))
 			log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)

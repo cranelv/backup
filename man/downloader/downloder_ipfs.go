@@ -2283,7 +2283,9 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 			d.BatchBlockStoreInit(true)
 		}
 	}
-
+	if gIpfsProcessBlockNumber == 0 {
+		gIpfsProcessBlockNumber = blockNum
+	}
 	if blockNum%BATCH_NUM == 1 {
 		log.Debug(" ipfs BatchStoreAllBlock write ExpectBeginNum ", "blockNum", blockNum)
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
