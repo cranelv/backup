@@ -393,6 +393,24 @@ func (q *queue) Results(block bool) []*fetchResult {
 
 	// Count the number of items available for processing
 	nproc := q.countProcessableItems()
+	if nproc == 0 {
+		if q.resultCache[0] != nil && q.resultCache[0].Flag == 2 && q.resultCache[0].Pending > 0 { //qian20个还没收到body/receipt
+			if q.resultCache[10] != nil { //保证后面有数据才认为0丢失
+				hash := q.resultCache[0].Header.Hash()
+				_, ok := q.blockTaskPool[hash]
+
+				if !ok {
+					log.Warn("download  Results check but begining is to receive, begin origin Req", "blockNum", q.resultCache[0].Header.Number.Uint64())
+					q.blockTaskPool[hash] = q.resultCache[0].Header
+					q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+					if q.resultCache[0].Pending > 1 {
+						q.receiptTaskPool[hash] = q.resultCache[0].Header
+						q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+					}
+				}
+			}
+		}
+	}
 	for nproc == 0 && !q.closed {
 		if !block {
 			return nil
@@ -1374,17 +1392,20 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 	}
 	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag, "res0", q.resultCache[0].Pending, "num", q.resultCache[0].Header.Number.Uint64())
 
-	if index > 10 { //300 //ipfs 方式改为批量后,按理应该顺序，相差一定数目就就可以认为区块没有存储
-		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
-			hash := q.resultCache[0].Header.Hash()
-			_, ok := q.blockTaskPool[hash]
-			if !ok {
-				log.Warn("download  syn recv a block but begining is to receive, begin origin Req", "blockNum", q.resultCache[0].Header.Number.Uint64())
-				q.blockTaskPool[hash] = q.resultCache[0].Header
-				q.blockTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
-				if q.resultCache[0].Pending > 1 {
-					q.receiptTaskPool[hash] = q.resultCache[0].Header
-					q.receiptTaskQueue.Push(q.resultCache[0].Header, -float32(q.resultCache[0].Header.Number.Uint64()))
+	if index > 30 { //300 //ipfs 方式改为批量后,按理应该顺序，相差一定数目就就可以认为区块没有存储
+		idx := 0 //index - 20
+		if q.resultCache[idx] != nil {
+			if q.resultCache[idx].Pending > 0 && q.resultCache[idx].Flag == 2 { //qian20个还没收到body/receipt
+				hash := q.resultCache[idx].Header.Hash()
+				_, ok := q.blockTaskPool[hash]
+				if !ok {
+					log.Warn("download  syn recv a block but begining is to receive, begin origin Req", "blockNum", q.resultCache[idx].Header.Number.Uint64())
+					q.blockTaskPool[hash] = q.resultCache[idx].Header
+					q.blockTaskQueue.Push(q.resultCache[idx].Header, -float32(q.resultCache[idx].Header.Number.Uint64()))
+					if q.resultCache[idx].Pending > 1 {
+						q.receiptTaskPool[hash] = q.resultCache[idx].Header
+						q.receiptTaskQueue.Push(q.resultCache[idx].Header, -float32(q.resultCache[idx].Header.Number.Uint64()))
+					}
 				}
 			}
 		}
