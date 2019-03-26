@@ -397,7 +397,9 @@ func (q *queue) Results(block bool) []*fetchResult {
 		if !block {
 			return nil
 		}
+		log.Trace("download queue Wait1", "nproc", nproc)
 		q.active.Wait()
+		log.Trace("download queue Wait2", "nproc", nproc)
 		nproc = q.countProcessableItems()
 	}
 	// Since we have a batch limit, don't pull more into "dangling" memory
@@ -1174,6 +1176,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]types.CurrencyBlock, uncleL
 			for _, hr := range header.Roots {
 				if hr.Cointyp == cointx.CurrencyName {
 					if types.DeriveShaHash(types.TxHashList(cointx.Transactions.GetTransactions())) != hr.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+						log.Error("download queue DeliverBodies reconstruct error", "number", header.Number.Uint64(), "hash", hr.TxHash)
 						return errInvalidBody
 					}
 					break
@@ -1255,9 +1258,11 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 		index := int(header.Number.Int64() - int64(q.resultOffset))
 		if index >= len(q.resultCache) || index < 0 || q.resultCache[index] == nil {
 			failure = errInvalidChain
+			log.Trace("queue deliver body or receipt errInvalidChain index", "index", index)
 			break
 		}
 		if err := reconstruct(header, i, q.resultCache[index]); err != nil {
+			log.Trace("queue deliver body or receipt reconstruct", "index", index)
 			failure = err
 			break
 		}
@@ -1280,6 +1285,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 	}
 	// Wake up WaitResults
 	if accepted > 0 {
+		log.Trace("download queue q.active.Signal")
 		q.active.Signal()
 	}
 	// If none of the data was good, it's a stale delivery
@@ -1366,7 +1372,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 			Header:  header,
 		}
 	}
-	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag)
+	log.Trace("######download syn recv a block ", "index", index, ".Pending -- ", q.resultCache[index].Pending, "bodyBlock.Flag", bodyBlock.Flag, "res0", q.resultCache[0].Pending, "num", q.resultCache[0].Header.Number.Uint64())
 
 	if index > 10 { //300 //ipfs 方式改为批量后,按理应该顺序，相差一定数目就就可以认为区块没有存储
 		if q.resultCache[0].Pending > 0 { //第一个还没收到body/receipt
@@ -1475,6 +1481,7 @@ func (q *queue) recvIpfsBody(bodyBlock *BlockIpfs) {
 	// Wake up
 	NumBlockInfoFromIpfs++
 	if NumBlockInfoFromIpfs > 30 {
+		log.Trace("download queue q.active.Signal")
 		q.active.Signal()
 		NumBlockInfoFromIpfs = 0
 	}
