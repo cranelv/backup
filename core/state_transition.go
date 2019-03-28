@@ -14,7 +14,6 @@ import (
 
 	"github.com/MatrixAINetwork/go-matrix/base58"
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
 	"github.com/MatrixAINetwork/go-matrix/core/txinterface"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
@@ -24,6 +23,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"os"
 	"bufio"
+	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
 )
 
 var (
@@ -522,8 +522,7 @@ func (st *StateTransition) CallMakeCoinTx() (ret []byte, usedGas uint64, failed 
 		log.Trace("Make Coin", "Unmarshal err", makecerr)
 		return nil, 0, false, shardings, makecerr
 	}
-	st.gas = 0
-	st.state.SetNonce(st.msg.GetTxCurrency(), tx.From(), st.state.GetNonce(st.msg.GetTxCurrency(), sender.Address())+1)
+
 	if !common.IsValidityCurrency(makecoin.CoinName) {
 		return nil, 0, false, shardings, errors.New("state_transition,make coin err, coin name Wrongful")
 	}
