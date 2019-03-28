@@ -2250,7 +2250,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		d.dpIpfs.BatchStBlock.ExpectBeginNum = blockNum
 		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = stBlock.Sblock.Hash()
 	}*/
-	log.Trace(" ipfs BatchStoreAllBlock recv  block", "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum, "blockNum", blockNum)
+	//log.Trace(" ipfs BatchStoreAllBlock recv  block", "ExpectBeginNum", d.dpIpfs.BatchStBlock.ExpectBeginNum, "blockNum", blockNum)
 	if d.dpIpfs.BatchStBlock.ExpectBeginNum != 0 {
 		beginNum := d.dpIpfs.BatchStBlock.ExpectBeginNum
 		//读文件时，可能原来文件中携带的值较大，而实际测试删除数据又从1开始
