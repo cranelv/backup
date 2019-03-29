@@ -273,10 +273,11 @@ func (bc *BlockChain) ProcessUpTime(state *state.StateDBManage, header *types.He
 	if header.Number.Uint64() < bcInterval.GetBroadcastInterval() {
 		return nil, err
 	}
-	sbh, err := bc.GetSuperBlockNum()
-	if nil != err {
+	superBlkCfg, err := matrixstate.GetSuperBlockCfg(state)
+	if err != nil {
 		return nil, errors.Errorf("get super seq error")
 	}
+	sbh := superBlkCfg.Num
 	if latestNum < bcInterval.GetLastBroadcastNumber()+1 {
 		//log.Debug(ModuleName, "区块插入验证", "完成创建work, 开始执行uptime", "高度", header.Number.Uint64())
 		matrixstate.SetUpTimeNum(state, header.Number.Uint64())
