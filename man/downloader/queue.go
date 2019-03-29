@@ -534,11 +534,16 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, ipfsmode int) (*fet
 	if send == 0 {
 		return nil, false
 	}
-
+	//1 miao 10 ci, xiaoshi 36000
 	index := int(int64(send)-int64(q.resultOffset)) + MaxHeaderFetch
 	if index >= len(q.resultCache) || index < 0 {
 		q.headerTaskQueue.Push(send, -float32(send))
 		log.Debug("download queue ReserveHeaders left resultcache ", "send", send, "q.resultOffset", q.resultOffset, "index", index)
+		gCurDownloadHeadReqWaitNum++
+		if gCurDownloadHeadReqWaitNum > 72000 {
+			log.Error("download queue ReserveHeaders left resultcache too many")
+			return nil, false
+		}
 		return nil, true
 	}
 
@@ -546,11 +551,16 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int, ipfsmode int) (*fet
 		if int(gCurDownloadHeadReqBeginNum-gIpfsProcessBlockNumber) > blockCacheItems {
 			q.headerTaskQueue.Push(send, -float32(send))
 			log.Trace("fetchParts Data Reserve header too big,wait for ippfs stroe", "HeadReqBeginNum", gCurDownloadHeadReqBeginNum, "IppfsProcessBlock", gIpfsProcessBlockNumber)
+			gCurDownloadHeadReqWaitNum++
+			if gCurDownloadHeadReqWaitNum > 72000 {
+				log.Error("download queue wait for ippfs stroe too many")
+				return nil, false
+			}
 			return nil, true
 		}
 		gCurDownloadHeadReqBeginNum = send
 	}
-
+	gCurDownloadHeadReqWaitNum = 0
 	request := &fetchRequest{
 		Peer: p,
 		From: send,

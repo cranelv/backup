@@ -176,6 +176,7 @@ type SnapshootReq struct {
 
 var SnapshootNumber uint64
 var gCurDownloadHeadReqBeginNum uint64
+var gCurDownloadHeadReqWaitNum uint32
 
 // LightChain encapsulates functions required to synchronise a light chain.
 type LightChain interface {
@@ -974,6 +975,8 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 	p.log.Debug("Directing header downloads", "origin", from, "pivot", pivot)
 	defer p.log.Debug("Header download terminated")
 
+	gCurDownloadHeadReqBeginNum = from
+	gCurDownloadHeadReqWaitNum = 0
 	// Create a timeout timer, and the associated header fetcher
 	skeleton := true            // Skeleton assembly phase or finishing up
 	request := time.Now()       // time of the last skeleton fetch request
