@@ -391,10 +391,16 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 
+	CoinsMap := make(map[string]bool) //存放所有币种
+	for _,cointxs := range finalCoinTxs{
+		CoinsMap[cointxs.CoinType] = true
+	}
+
 	from := make(map[string][]common.Address)
 	for _, tx := range originalTxs {
 		from[tx.GetTxCurrency()] = append(from[tx.GetTxCurrency()], tx.From())
 	}
+
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number, "tx num ", len(originalTxs))
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.mapcoin)
 	rewardTxmap := env.makeTransaction(rewart)
@@ -404,7 +410,11 @@ func (env *Work) ProcessTransactions(mux *event.TypeMux, tp txPoolReader, upTime
 	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
 	tmpcoins := make([]string,0)
 	for rewardCoinname,_ := range rewardTxmap{
-		tmpcoins = append(tmpcoins,rewardCoinname)
+		//tmpcoins = append(tmpcoins,rewardCoinname)
+		CoinsMap[rewardCoinname] = true
+	}
+	for coinname,_ := range CoinsMap{
+		tmpcoins = append(tmpcoins,coinname)
 	}
 	coins = myCoinsort(tmpcoins)
 
@@ -580,7 +590,6 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	finalCoinTxs := make([]types.CoinSelfTransaction,0)
 	finalCoinRecpets := make([]types.CoinReceipts,0)
 	//env.State.Finalise("MAN",true)
-
 	//查看是否有MAN分区（MAN币）,如果有直接append到finalCoinTxs，没有就创建MAN分区用于后面存奖励交易
 	isHaveManCoin := false
 	for _,tcoin := range tCoinTxs{
@@ -600,6 +609,11 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 
+	CoinsMap := make(map[string]bool) //存放所有币种
+	for _,cointxs := range finalCoinTxs{
+		CoinsMap[cointxs.CoinType] = true
+	}
+
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, nil, nil, nil)
 	rewardTxmap := env.makeTransaction(rewart)
 
@@ -608,7 +622,10 @@ func (env *Work) ProcessBroadcastTransactions(mux *event.TypeMux, txs []types.Co
 	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
 	tmpcoins := make([]string,0)
 	for rewardCoinname,_ := range rewardTxmap{
-		tmpcoins = append(tmpcoins,rewardCoinname)
+		CoinsMap[rewardCoinname] = true
+	}
+	for coinname,_ := range CoinsMap{
+		tmpcoins = append(tmpcoins,coinname)
 	}
 	coins = myCoinsort(tmpcoins)
 
@@ -766,6 +783,10 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	finalCoinTxs = append(finalCoinTxs,tCoinTxs...)
 	finalCoinRecpets = append(finalCoinRecpets,tCoinRecpets...)
 	//env.State.Finalise("MAN",true)
+	CoinsMap := make(map[string]bool) //存放所有币种
+	for _,cointxs := range finalCoinTxs{
+		CoinsMap[cointxs.CoinType] = true
+	}
 
 	log.Info("work", "关键时间点", "执行交易完成，开始执行奖励", "time", time.Now(), "块高", env.header.Number)
 	rewart := env.bc.Processor(env.header.Version).ProcessReward(env.State, env.header, upTime, from, env.mapcoingasUse.mapcoin)
@@ -776,7 +797,10 @@ func (env *Work) ConsensusTransactions(mux *event.TypeMux, txs []types.CoinSelfT
 	//防止多币种交易下一个区块的没有该币种的交易，但有该币种奖励
 	tmpcoins := make([]string,0)
 	for rewardCoinname,_ := range rewardTxmap{
-		tmpcoins = append(tmpcoins,rewardCoinname)
+		CoinsMap[rewardCoinname] = true
+	}
+	for coinname,_ := range CoinsMap{
+		tmpcoins = append(tmpcoins,coinname)
 	}
 	coins = myCoinsort(tmpcoins)
 

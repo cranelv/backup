@@ -1068,7 +1068,7 @@ func (st *StateTransition) CallAuthTx() (ret []byte, usedGas uint64, failed bool
 						//按时间委托
 						if EntrustData.StartTime <= AuthData.EndTime {
 							log.Error("同一个授权人的委托时间不能重合", "from", tx.From(), "Nonce", tx.Nonce())
-							return nil, 0, true, shardings, nil
+							return nil, st.GasUsed(), true, shardings, nil
 						}
 						TimeAuthDataList = append(TimeAuthDataList, AuthData)
 					} else if EntrustData.EnstrustSetType == params.EntrustByCount{
