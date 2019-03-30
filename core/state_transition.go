@@ -791,6 +791,9 @@ func (st *StateTransition) CallUnGasNormalTx() (ret []byte, usedGas uint64, fail
 }
 
 func (st *StateTransition) CallSetBlackListTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
+	if err = st.PreCheck(); err != nil {
+		return
+	}
 	tx := st.msg //因为st.msg的接口全部在transaction中实现,所以此处的局部变量msg实际是transaction类型
 	var addr common.Address
 	from := tx.From()
@@ -836,7 +839,10 @@ func (st *StateTransition) CallSetBlackListTx() (ret []byte, usedGas uint64, fai
 		common.BlackListString = append(common.BlackListString,tmpBlackListString...)
 		common.BlackList = append(common.BlackList,tmpBlackList...)
 	}
-	return ret, 0, false, shardings, err
+	gasaddr,coinrange := st.getCoinAddress(tx.GetTxCurrency())
+	st.RefundGas(coinrange)
+	st.state.AddBalance(coinrange, common.MainAccount, gasaddr, new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice))//给对应币种奖励账户加钱
+	return ret, st.GasUsed(), true, shardings, err
 }
 
 func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bool, shardings []uint, err error) {
@@ -850,10 +856,6 @@ func (st *StateTransition) CallNormalTx() (ret []byte, usedGas uint64, failed bo
 	if from == addr {
 		return nil, 0, false, shardings, errors.New("CallNormalTx from is nil")
 	}
-//	usefrom := from
-//	if usefrom == addr {
-//		return nil, 0, false, shardings, errors.New("CallNormalTx usefrom is nil")
-//	}
 	sender := vm.AccountRef(from)
 	var (
 		evm   = st.evm
