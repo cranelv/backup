@@ -281,6 +281,7 @@ func StopIpfsProcess() {
 
 var strAnother = "The process cannot access the file because it is being used by another process"
 var strIPFSstdErr = "api not running"
+var strIPFSstd2Err = "routing: not found"
 var strIPFSpatherr = "file does not exist"
 
 func (d *Downloader) IpfsDownloadInit() error {
@@ -793,7 +794,7 @@ func IpfsGetFileCache2ByHash(strhash, objfileName string) (*os.File, bool, error
 	var outerr bytes.Buffer
 	if strhash == "" {
 		//var errf error = nil
-		tmpBlockFile, errf := os.OpenFile(objfileName, os.O_WRONLY|os.O_CREATE, 0644) //"secondCacheInfo.gb"
+		tmpBlockFile, errf := os.OpenFile(objfileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644) //"secondCacheInfo.gb"创建新文件
 		if errf != nil {
 			return nil, false, fmt.Errorf("ipfs error IpfsGetFileCache2ByHash OpenFile error")
 		} else {
@@ -1150,7 +1151,7 @@ func (d *Downloader) IpfsSyncGetFirstCache(index int) (*Cache1StoreCfg, error) {
 	stdErr := outerr.String()
 	if err != nil {
 		log.Error("ipfs error IpfsSyncGetFirstCache error", "error", err, "ipfs err", outerr.String())
-		if strings.Index(stdErr, strIPFSstdErr) > 0 {
+		if strings.Index(stdErr, strIPFSstdErr) > 0 || strings.Index(stdErr, strIPFSstd2Err) > 0 {
 			CheckIpfsStatus(err)
 		}
 		gIpfsStat.gIPFSerrorNum++
@@ -1496,6 +1497,9 @@ func (d *Downloader) RecvBlockSaveToipfs(blockqueue *prque.Prque) error {
 					readCacheCfg.OriginBlockNum = curlistBlockInfo[0].blockNum
 					readCacheCfg.CurrentBlockNum = curlistBlockInfo[0].blockNum
 					readCacheCfg.Cache2FileNum = 0
+					//获取失败从本地文件载入
+					ReadJsFile(path.Join(strCacheDirectory, strCache1BlockFile), readCacheCfg)
+					log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  load localfile", "OriginBlockNum=", readCacheCfg.OriginBlockNum, "CurrentBlockNum=", readCacheCfg.CurrentBlockNum)
 				}
 				gIpfsStoreCache.storeipfsCache1 = readCacheCfg
 			}
@@ -1613,6 +1617,10 @@ func (d *Downloader) RecvBlockToDeal(newBlock *types.Block) error {
 			readCacheCfg.OriginBlockNum = curBlockNum
 			readCacheCfg.CurrentBlockNum = curBlockNum
 			readCacheCfg.Cache2FileNum = 0
+			//获取失败从本地文件载入
+			ReadJsFile(path.Join(strCacheDirectory, strCache1BlockFile), readCacheCfg)
+			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  load localfile", "OriginBlockNum=", readCacheCfg.OriginBlockNum, "CurrentBlockNum=", readCacheCfg.CurrentBlockNum)
+
 		}
 		gIpfsStoreCache.storeipfsCache1 = readCacheCfg
 		return d.IpsfAddNewBlockToCache(readCacheCfg, curBlockNum, headHash, string(bHash[0:IpfsHashLen])) /* &readCacheCfg,*/
@@ -2135,11 +2143,16 @@ func (d *Downloader) AddNewBatchBlockToIpfs() {
 		readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
 		if err != nil {
 			fmt.Println("cache1 is nil, create it", err)
-			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  cache1 is nil, create it  ", "error=", err)
+			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache batchblock cache1 is nil, create it  ", "error=", err)
 			//readCacheCfg2 := Cache1StoreCfg{}
 			readCacheCfg.OriginBlockNum = 0
 			readCacheCfg.CurrentBlockNum = 0
 			readCacheCfg.Cache2FileNum = 0
+			if d.dpIpfs.BatchStBlock.ExpectBeginNum != 1 {
+				//获取失败从本地文件载入
+				ReadJsFile(path.Join(strCacheDirectory, strCache1BlockFile), readCacheCfg)
+				log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  load localfile", "OriginBlockNum=", readCacheCfg.OriginBlockNum, "CurrentBlockNum=", readCacheCfg.CurrentBlockNum)
+			}
 		}
 		gIpfsStoreCache.storeipfsCache1 = readCacheCfg
 	}
@@ -2186,11 +2199,15 @@ func (d *Downloader) AddStateRootInfoToIpfs(blockNum uint64, strheadHash string,
 		readCacheCfg, err := d.IpfsSyncGetFirstCache(0) //"firstCacheInfo.jn"
 		if err != nil {
 			fmt.Println("cache1 is nil, create it", err)
-			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  cache1 is nil, create it  ", "error=", err)
+			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  snap cache1 is nil, create it  ", "error=", err)
 			//readCacheCfg2 := Cache1StoreCfg{}
 			readCacheCfg.OriginBlockNum = 0
 			readCacheCfg.CurrentBlockNum = 0
 			readCacheCfg.Cache2FileNum = 0
+			//获取失败从本地文件载入
+			ReadJsFile(path.Join(strCacheDirectory, strCache1BlockFile), readCacheCfg)
+			log.Debug("ipfs RecvBlockToDeal IpfsSyncGetFirstCache  load localfile", "OriginBlockNum=", readCacheCfg.OriginBlockNum, "CurrentBlockNum=", readCacheCfg.CurrentBlockNum)
+
 		}
 		gIpfsStoreCache.storeipfsCache1 = readCacheCfg
 	}
@@ -2281,6 +2298,7 @@ func (d *Downloader) BatchStoreAllBlock(stBlock *types.BlockAllSt) bool {
 		if blockNum == 1 {
 			log.Warn(" ipfs BatchStoreAllBlock recv new block num=1 ,then clear file")
 			d.BatchBlockStoreInit(true)
+			gIpfsStoreCache.storeipfsCache1 = new(Cache1StoreCfg)
 		}
 	}
 	if gIpfsProcessBlockNumber == 0 {
@@ -2560,8 +2578,15 @@ func (d *Downloader) BatchBlockStoreInit(bNeedClear bool) {
 	bflg, bbegin, _, blast := d.checkStoreFile(d.dpIpfs.BatchStBlock.bodyStoreFile, BodyBatchFlag, false)
 	fflg, rbegin, _, rlast := d.checkStoreFile(d.dpIpfs.BatchStBlock.receiptStoreFile, ReceiptBatchFlag, false)
 	log.Debug(" ipfs BatchBlockStoreInit", "hflg", hflg, "bflg", bflg, "fflg", fflg, "hbegin", hbegin, "bbegin", bbegin, "rbegin", rbegin, "hlast", hlast, "blast", blast, "rlast", rlast)
+
+	if bbegin%BATCH_NUM == 1 { //读取文件中的值赋值
+		d.dpIpfs.BatchStBlock.ExpectBeginNum = bbegin
+		d.dpIpfs.BatchStBlock.ExpectBeginNumhash = hhash
+		//d.dpIpfs.BatchStBlock.curBlockNum = blast //后面先不考虑
+		log.Debug(" ipfs BatchBlockStoreInit ExpectBeginNum and ExpectBeginNumhash", "bbegin", bbegin, hhash)
+	}
 	if hflg && hbegin == bbegin && bbegin == rbegin {
-		log.Debug(" ipfs BatchBlockStoreInit ExpectBeginNum", "bbegin", bbegin, "hash", hhash)
+		log.Debug(" ipfs BatchBlockStoreInit ExpectBeginNum begin", "bbegin", bbegin, "hash", hhash)
 		if bbegin%BATCH_NUM != 1 {
 			log.Error(" ipfs BatchBlockStoreInit  read file error")
 			return
@@ -2595,7 +2620,7 @@ func (d *Downloader) checkStoreFile(blockFile *os.File, BatchFlag uint64, headFl
 			break
 		}
 		errb = binary.Read(blockFile, binary.BigEndian, &offset)
-		if errb == io.EOF || offset > 1024000000 {
+		if errb == io.EOF || offset > 102400000000 {
 			log.Debug(" checkStoreFile file over", "offset", offset)
 			break
 		}
@@ -2660,7 +2685,7 @@ func (d *Downloader) ParseBatchHeader(batchblockhash string, beginReqNumber uint
 			break
 		}
 		errb = binary.Read(blockFile, binary.BigEndian, &offset)
-		if errb == io.EOF || offset > 1024000000 {
+		if errb == io.EOF || offset > 10240000000 {
 			log.Debug(" ParseBatchHeader file over", "offset", offset)
 			break
 		}
@@ -2791,7 +2816,7 @@ func (d *Downloader) ParseBatchReceipt(batchblockhash string, beginReqNumber uin
 		}
 
 		errb = binary.Read(blockFile, binary.BigEndian, &offset)
-		if errb == io.EOF || offset > 1024000000 {
+		if errb == io.EOF || offset > 10240000000 {
 			log.Debug(" ParseBatchReceipt file over", "offset", offset)
 			break
 		}
