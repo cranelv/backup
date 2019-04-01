@@ -87,8 +87,6 @@ type Header struct {
 	Version           []byte             `json:"version"              gencodec:"required"`
 	VersionSignatures []common.Signature `json:"versionSignatures"              gencodec:"required"`
 	VrfValue          []byte             `json:"vrfvalue"        gencodec:"required"`
-	hash 			atomic.Value
-	noSignhash 			atomic.Value
 }
 
 // field type overrides for gencodec
@@ -105,12 +103,7 @@ type headerMarshaling struct {
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
-	if hash := h.hash.Load(); hash != nil {
-		return hash.(common.Hash)
-	}
-	v := rlpHash(h)
-	h.hash.Store(v)
-	return v
+	return rlpHash(h)
 	//return rlpHash([]interface{}{
 	//	h.ParentHash,
 	//	h.UncleHash,
@@ -180,12 +173,7 @@ func (h *Header) HashNoSigns() common.Hash {
 	})
 }
 func (h *Header) HashNoSignsAndNonce() common.Hash {
-	if hash := h.noSignhash.Load(); hash != nil {
-		return hash.(common.Hash)
-	}
-//	v := rlpHash(h)
-
-	v := rlpHash([]interface{}{
+	return rlpHash([]interface{}{
 		h.ParentHash,
 		h.UncleHash,
 		h.Leader,
@@ -205,9 +193,6 @@ func (h *Header) HashNoSignsAndNonce() common.Hash {
 		h.Version,
 		h.VersionSignatures,
 	})
-	h.noSignhash.Store(v)
-	return v
-
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
@@ -512,6 +497,7 @@ type Block struct {
 	uncles     []*Header
 	currencies []CurrencyBlock
 	// caches
+	hash atomic.Value
 	size atomic.Value
 
 	// Td is used by package core to store the total difficulty
@@ -866,7 +852,12 @@ func (b *Block) WithBody(cb []CurrencyBlock, uncles []*Header) *Block {
 // Hash returns the keccak256 hash of b's header.
 // The hash is computed on the first call and cached thereafter.
 func (b *Block) Hash() common.Hash {
-	return b.header.Hash()
+	if hash := b.hash.Load(); hash != nil {
+		return hash.(common.Hash)
+	}
+	v := b.header.Hash()
+	b.hash.Store(v)
+	return v
 }
 
 //will change header num!!
