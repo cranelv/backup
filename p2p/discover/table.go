@@ -174,11 +174,16 @@ func (tab *Table) ResolveNode(addr common.Address, id NodeID) *Node {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
 	if id == EmptyNodeId && addr != EmptyAddress {
+		if val,exist := tab.nodeBindAddress[addr];exist{
+			return val
+		}
+		/*
 		for key, val := range tab.nodeBindAddress {
 			if key == addr {
 				return val
 			}
 		}
+		*/
 	}
 	if id != EmptyNodeId && addr == EmptyAddress {
 		for _, val := range tab.nodeBindAddress {

@@ -21,12 +21,12 @@ const (
 	VotePoolCountLimit = 5
 
 	BlkPosReqSendInterval   = 5
-	BlkPosReqSendTimes      = 6
+	BlkPosReqSendTimes      = 1
 	BlkVoteSendInterval     = 3
-	BlkVoteSendTimes        = 8
-	MinerReqSendInterval    = 3
+	BlkVoteSendTimes        = 1
+	MinerReqSendInterval    = 15
 	PosedReqSendInterval    = 10
-	MinerResultSendInterval = 3
+	MinerResultSendInterval = 15
 
 	MinerPickTimeout = 20
 
