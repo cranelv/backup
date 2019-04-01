@@ -28,7 +28,7 @@ func NewResendMsgCtrl(msg interface{}, sendFunc func(interface{}, uint32), inter
 	}
 	ctrl := &ResendMsgCtrl{
 		curTimes: 0,
-		maxTimes: times,
+		maxTimes: 0,
 		interval: time.Duration(interval) * time.Second,
 		msg:      msg,
 		sendFunc: sendFunc,

@@ -714,7 +714,7 @@ func (nPool *NormalTxPool) ReturnAllTxsByN(listN []uint32, resqe byte, addr comm
 		retch <- &RetChan_txpool{nil, nil, resqe}
 		return
 	}
-	txs := make([]types.SelfTransaction, 0)
+	txs := make([]types.SelfTransaction, 0,len(listN))
 	ns := make([]uint32, 0)
 	nPool.mu.Lock()
 	for _, n := range listN {
