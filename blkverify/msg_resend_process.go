@@ -53,7 +53,7 @@ func (p *Process) sendMineReqFunc(data interface{}, times uint32) {
 
 func (p *Process) startPosedReqSender(req *mc.HD_BlkConsensusReqMsg) {
 	p.closePosedReqSender()
-	sender, err := common.NewResendMsgCtrl(req, p.sendPosedReqFunc, manparams.PosedReqSendInterval, 1)
+	sender, err := common.NewResendMsgCtrl(req, p.sendPosedReqFunc, manparams.PosedReqSendInterval, 0)
 	if err != nil {
 		log.Error(p.logExtraInfo(), "创建POS完成的req发送器", "失败", "err", err)
 		return
