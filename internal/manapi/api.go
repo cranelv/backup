@@ -1145,6 +1145,7 @@ type CallArgs struct {
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
+	ExtraTo     []*ExtraTo_Mx `json:"extra_to"` //
 }
 type ManCallArgs struct {
 	From     string         `json:"from"`
@@ -1154,6 +1155,7 @@ type ManCallArgs struct {
 	GasPrice hexutil.Big    `json:"gasPrice"`
 	Value    hexutil.Big    `json:"value"`
 	Data     hexutil.Bytes  `json:"data"`
+	ExtraTo     []*ExtraTo_Mx1 `json:"extra_to"` //
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -1183,7 +1185,18 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	//msg := new(types.Transaction) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil, nil, nil, 0, 0, "MAN", 0)}
+	//msg := &types.TransactionCall{types.NewTransaction(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil, nil, nil, 0, 0, "MAN", 0)}
+	extra := make([]*types.ExtraTo_tr, 0)
+	if len(args.ExtraTo) > 0{
+		var tmpExtra types.ExtraTo_tr
+		for _, ar := range args.ExtraTo {
+			tmpExtra.To_tr = ar.To2
+			tmpExtra.Input_tr = ar.Input2
+			tmpExtra.Value_tr = ar.Value2
+			extra = append(extra,&tmpExtra)
+		}
+	}
+	msg := &types.TransactionCall{types.NewTransactions(params.NonceAddOne, *args.To, args.Value.ToInt(), gas, gasPrice, args.Data, nil, nil, nil, extra,0, 0,0,"MAN", 0)}
 	msg.SetFromLoad(addr)
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1241,6 +1254,26 @@ func ManArgsToCallArgs(manargs ManCallArgs) (args CallArgs, err error) {
 	args.Gas = manargs.Gas
 	args.Value = manargs.Value
 	args.Data = manargs.Data
+	if len(manargs.ExtraTo) > 0 {
+		extra := make([]*ExtraTo_Mx, 0)
+		for _, ar := range manargs.ExtraTo {
+			if ar.To2 != nil {
+				tmp := *ar.To2
+				tmp = strings.TrimSpace(tmp)
+				tmExtra := new(ExtraTo_Mx)
+				tmExtra.To2 = new(common.Address)
+				*tmExtra.To2, err = base58.Base58DecodeToAddress(tmp)
+				if err != nil {
+					return CallArgs{}, err
+				}
+				tmExtra.Input2 = ar.Input2
+				tmExtra.Value2 = ar.Value2
+				extra = append(extra, tmExtra)
+			}
+		}
+		args.ExtraTo = extra
+	}
+
 	return args, nil
 }
 
@@ -1306,6 +1339,9 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, manargs ManCallAr
 			return 0, fmt.Errorf("gas required exceeds allowance or always failing transaction")
 		}
 	}
+	//if len(args.ExtraTo) > 0{
+	//	hi += 21000*uint64(len(args.ExtraTo))
+	//}
 	return hexutil.Uint64(hi), nil
 }
 
