@@ -448,7 +448,7 @@ var (
 	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000002") //彩票
 	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 
-	DestroyAddress            Address = HexToAddress("0x0284C01753f7A2f3da72A3d9e360f07D5fb823eE") //创建币种的转账地址（MAN.333333333333333333333333333Y）
+	DestroyAddress            Address = HexToAddress("0xA27d3632A283c138C2F78ba21d1e473a500e4AF3") //创建币种的转账地址（MAN.3GJF5vPbrmbUG7ZTFyFogdiuXY3Lp）
 )
 
 const (
