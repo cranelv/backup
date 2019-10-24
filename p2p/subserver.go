@@ -332,9 +332,6 @@ func (srv *subServer) run(dialstate dialer) {
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup and cannot be
 	// modified while the server is running.
-//	for _, n := range srv.owner.TrustedNodes {
-//		trusted[n.ID] = true
-//	}
 	// removes t from runningTasks
 	delTask := func(t task) {
 		for i := range runningTasks {
