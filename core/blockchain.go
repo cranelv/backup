@@ -26,7 +26,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/common/mclock"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
-	"github.com/MatrixAINetwork/go-matrix/consensus/mtxdpos"
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
@@ -169,67 +168,68 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 			TrieTimeLimit: 5 * time.Minute,
 		}
 	}
-	bodyCache, _ := lru.New(bodyCacheLimit)
-	bodyRLPCache, _ := lru.New(bodyCacheLimit)
+//	bodyCache, _ := lru.New(bodyCacheLimit)
+//	bodyRLPCache, _ := lru.New(bodyCacheLimit)
 	blockCache, _ := lru.New(blockCacheLimit)
-	futureBlocks, _ := lru.New(maxFutureBlocks)
-	badBlocks, _ := lru.New(badBlockLimit)
-	deposits, _ := lru.New(10)
+//	futureBlocks, _ := lru.New(maxFutureBlocks)
+//	badBlocks, _ := lru.New(badBlockLimit)
+//	deposits, _ := lru.New(10)
 	bc := &BlockChain{
 		chainConfig:     chainConfig,
 		cacheConfig:     cacheConfig,
 		db:              db,
-		triegc:          prque.New(),
+//		triegc:          prque.New(),
 		stateCache:      state.NewDatabase(db),
 		quit:            make(chan struct{}),
-		bodyCache:       bodyCache,
-		bodyRLPCache:    bodyRLPCache,
+//		bodyCache:       bodyCache,
+//		bodyRLPCache:    bodyRLPCache,
 		blockCache:      blockCache,
-		futureBlocks:    futureBlocks,
-		depCache:        deposits,
-		engine:          make(map[string]consensus.Engine),
-		dposEngine:      make(map[string]consensus.DPOSEngine),
-		processor:       make(map[string]Processor),
-		validator:       make(map[string]Validator),
-		vmConfig:        vmConfig,
-		badBlocks:       badBlocks,
-		matrixProcessor: NewMatrixProcessor(),
-		badDumpHistory:  make([]common.Hash, 0),
+//		futureBlocks:    futureBlocks,
+//		depCache:        deposits,
+//		engine:          make(map[string]consensus.Engine),
+//		dposEngine:      make(map[string]consensus.DPOSEngine),
+//		processor:       make(map[string]Processor),
+//		validator:       make(map[string]Validator),
+//		vmConfig:        vmConfig,
+//		badBlocks:       badBlocks,
+//		matrixProcessor: NewMatrixProcessor(),
+//		badDumpHistory:  make([]common.Hash, 0),
 	}
-	bc.topologyStore = NewTopologyStore(bc)
+//	bc.topologyStore = NewTopologyStore(bc)
 
-	validator := NewBlockValidator(chainConfig, bc, engine)
-	processor := NewStateProcessor(chainConfig, bc, engine)
-	bc.SetValidator(manparams.VersionAlpha, validator)
-	bc.SetProcessor(manparams.VersionAlpha, processor)
-	bc.engine[manparams.VersionAlpha] = engine
-	dpos := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
-	bc.dposEngine[manparams.VersionAlpha] = dpos
+//	validator := NewBlockValidator(chainConfig, bc, engine)
+//	processor := NewStateProcessor(chainConfig, bc, engine)
+//	bc.SetValidator(manparams.VersionAlpha, validator)
+//	bc.SetProcessor(manparams.VersionAlpha, processor)
+//	bc.engine[manparams.VersionAlpha] = engine
+//	dpos := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
+//	bc.dposEngine[manparams.VersionAlpha] = dpos
 
-	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
+//	bc.defaultEngine, bc.defaultDposEngine, bc.defaultProcessor, bc.defaultValidator = engine, dpos, processor, validator
 
-	bc.RegisterMatrixStateDataProducer(mc.MSKeyTopologyGraph, bc.topologyStore.ProduceTopologyStateData)
-	bc.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastInterval, ProduceBroadcastIntervalData)
+//	bc.RegisterMatrixStateDataProducer(mc.MSKeyTopologyGraph, bc.topologyStore.ProduceTopologyStateData)
+//	bc.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastInterval, ProduceBroadcastIntervalData)
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
-	bc.hc.SetEngine(manparams.VersionAlpha, engine)
-	bc.hc.SetDposEngine(manparams.VersionAlpha, dpos)
+//	bc.hc.SetEngine(manparams.VersionAlpha, engine)
+//	bc.hc.SetDposEngine(manparams.VersionAlpha, dpos)
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
 
-	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersionSigns(bc, bc.genesisBlock.Header())
-	if err != nil {
-		return nil, err
-	}
-	if err := bc.loadLastState(); err != nil {
-		return nil, err
-	}
+//	err = bc.DPOSEngine(bc.genesisBlock.Header().Version).VerifyVersionSigns(bc, bc.genesisBlock.Header())
+//	if err != nil {
+//		return nil, err
+//	}
+//	if err := bc.loadLastState(); err != nil {
+//		return nil, err
+//	}
+/*
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	for hash := range BadHashes {
 		if header := bc.GetHeaderByHash(hash); header != nil {
@@ -248,26 +248,26 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	sub, err := mc.SubscribeEvent(mc.CA_ReqCurrentBlock, reqCh)
 	if err == nil {
 		go func(chain *BlockChain, reqCh chan struct{}, sub event.Subscription) {
-			time.Sleep(3 * time.Second)
+//			time.Sleep(3 * time.Second)
 			select {
 			case <-reqCh:
-				block := chain.CurrentBlock()
-				num := block.Number().Uint64()
-				log.DEBUG("MAIN", "本地区块插入消息已发送", num, "hash", block.Hash())
+//				block := chain.CurrentBlock()
+//				num := block.Number().Uint64()
+//				log.DEBUG("MAIN", "本地区块插入消息已发送", num, "hash", block.Hash())
 				mc.PublishEvent(mc.NewBlockMessage, block)
-				sub.Unsubscribe()
-				close(reqCh)
+//				sub.Unsubscribe()
+//				close(reqCh)
 				return
 			}
 		}(bc, reqCh, sub)
 	} else {
 		log.ERROR(ModuleName, "订阅CA请求当前区块事件失败", err)
 	}
-
-	manparams.SetStateReader(bc)
+*/
+//	manparams.SetStateReader(bc)
 
 	// Take ownership of this particular state
-	go bc.update()
+//	go bc.update()
 	return bc, nil
 }
 
@@ -1276,7 +1276,7 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 // only reason this method exists as a separate one is to make locking cleaner
 // with deferred statements.
 func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []types.CoinLogs, error) {
-
+	return 0,nil,nil,nil
 	// Do a sanity check that the provided chain is actually ordered and linked
 	log.Trace("BlockChain insertChain in")
 	for i := 1; i < len(chain); i++ {

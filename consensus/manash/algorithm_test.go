@@ -33,7 +33,14 @@ func TestSizeCalculations(t *testing.T) {
 		}
 	}
 }
-
+func  TestDigest(t *testing.T) {
+	var ScratchPad = make([]uint64, 1<<18, 1<<18)
+	hash := common.HexToHash("0x16663ee46380133bfb49410bac53a7d83b204d7c360ba23ad764fcaa36d58419")
+	for i:=uint64(0);i<100;i++{
+		digest,hash1 := newPowHash(hash[:],i,ScratchPad,nil)
+		t.Log(digest,hash1)
+	}
+}
 // Tests that verification caches can be correctly generated.
 func TestCacheGeneration(t *testing.T) {
 	tests := []struct {

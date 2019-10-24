@@ -26,7 +26,7 @@ const (
 	BlkVoteSendTimes        = 8
 	MinerReqSendInterval    = 3
 	PosedReqSendInterval    = 10
-	MinerResultSendInterval = 3
+	MinerResultSendInterval = 1e8
 
 	MinerPickTimeout = 20
 

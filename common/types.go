@@ -706,3 +706,24 @@ type CoinConfig struct {
 }
 
 const COINPREFIX string = "ms_"
+
+type LinkInfo struct {
+	Sbs uint64
+	Bn  uint64
+	Bt  uint64
+}
+
+func IsGreaterLink(linkA, linkB LinkInfo) bool {
+	if linkA.Sbs > linkB.Sbs {
+		return true
+	} else if linkA.Sbs == linkB.Sbs {
+		if linkA.Bn > linkB.Bn {
+			return true
+		} else if linkA.Bn == linkB.Bn {
+			if linkA.Bt > linkB.Bt {
+				return true
+			}
+		}
+	}
+	return false
+}

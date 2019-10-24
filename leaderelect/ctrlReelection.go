@@ -48,6 +48,7 @@ func (self *controller) startReelect(reelectTurn uint32) {
 }
 
 func (self *controller) finishReelectWithPOS(posResult *mc.HD_BlkConsensusReqMsg, from common.Address) {
+	return
 	log.INFO(self.logInfo, "完成leader重选", "POS结果重置，恢复并开始挖矿等待", "共识轮次", self.ConsensusTurn().String(), "高度", self.Number())
 	mc.PublishEvent(mc.Leader_RecoveryState, &mc.RecoveryStateMsg{Type: mc.RecoveryTypePOS, Header: posResult.Header, From: from})
 	self.setTimer(0, self.timer)
@@ -286,7 +287,7 @@ func (self *controller) handleRLReq(req *mc.HD_ReelectLeaderReqMsg) {
 		Sign:     sign,
 	}
 	log.Trace(self.logInfo, "leader重选请求处理", "发送投票", "高度", self.dc.number, "req hash", rsp.SignHash.TerminalString(), "target", req.InquiryReq.From.Hex())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectVote, rsp, common.RoleNil, []common.Address{req.InquiryReq.From})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectVote, rsp, common.Address{}, common.RoleNil, []common.Address{req.InquiryReq.From})
 }
 
 func (self *controller) handleRLVote(msg *mc.HD_ConsensusVote) {
@@ -403,7 +404,7 @@ func (self *controller) sendInquiryReq() {
 	}
 
 	log.Trace(self.logInfo, "send<重选询问请求>", "成功", "轮次", self.curTurnInfo(), "高度", self.Number(), "reqHash", reqHash.TerminalString())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryReq, req, common.RoleValidator, nil)
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryReq, req, common.Address{}, common.RoleValidator, nil)
 	return
 }
 
@@ -423,7 +424,7 @@ func (self *controller) sendInquiryReqToSingle(target common.Address) {
 	}
 	reqHash := self.selfCache.SaveInquiryReq(req)
 	log.Trace(self.logInfo, "send<重选询问请求>single", "成功", "轮次", self.curTurnInfo(), "高度", self.Number(), "reqHash", reqHash.TerminalString())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryReq, req, common.RoleNil, []common.Address{target})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryReq, req, common.Address{}, common.RoleNil, []common.Address{target})
 	self.selfCache.SetLastSingleInquiryReqTime(curTime)
 	return
 }
@@ -444,7 +445,7 @@ func (self *controller) sendInquiryRspWithPOS(reqHash common.Hash, target common
 		RLResult:  nil,
 		NewBlock:  nil,
 	}
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.Address{}, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendInquiryRspWithAgree(reqHash common.Hash, target common.Address, number uint64) {
@@ -465,7 +466,7 @@ func (self *controller) sendInquiryRspWithAgree(reqHash common.Hash, target comm
 	}
 	log.Trace(self.logInfo, "send<询问响应(同意更换leader响应)>", "成功", "reqHash", reqHash.TerminalString(), "高度", number,
 		"轮次信息", self.curTurnInfo(), "目标", target.Hex())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.Address{}, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendInquiryRspWithRLConsensus(reqHash common.Hash, target common.Address) {
@@ -486,7 +487,7 @@ func (self *controller) sendInquiryRspWithRLConsensus(reqHash common.Hash, targe
 	}
 	log.Trace(self.logInfo, "send<询问响应(leader重选已完成)>", "成功", "轮次", consensusMsg.Req.InquiryReq.ConsensusTurn, "高度", self.Number(),
 		"轮次信息", self.curTurnInfo(), "目标", target.Hex())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.Address{}, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendInquiryRspWithNewBlockReady(reqHash common.Hash, target common.Address, number uint64) {
@@ -506,7 +507,7 @@ func (self *controller) sendInquiryRspWithNewBlockReady(reqHash common.Hash, tar
 		NewBlock:  parentHeader,
 	}
 	log.Trace(self.logInfo, "send<询问响应(新区块已准备完毕响应)>", "成功", "block hash", parentHeader.Hash().TerminalString(), "req hash", reqHash.TerminalString(), "to", target.Hex())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.RoleNil, []common.Address{target})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectInquiryRsp, rsp, common.Address{}, common.RoleNil, []common.Address{target})
 }
 
 func (self *controller) sendRLReq() {
@@ -527,7 +528,7 @@ func (self *controller) sendRLReq() {
 	}
 
 	log.Trace(self.logInfo, "send<Leader重选请求>, hash", reqHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number())
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectReq, req, common.RoleValidator, nil)
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectReq, req, common.Address{}, common.RoleValidator, nil)
 }
 
 func (self *controller) sendResultBroadcastMsg() {
@@ -546,7 +547,7 @@ func (self *controller) sendResultBroadcastMsg() {
 		return
 	}
 	log.Trace(self.logInfo, "send<重选结果广播>, hash", msgHash.TerminalString(), "轮次", self.curTurnInfo(), "高度", self.Number(), "类型", msg.Type)
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectBroadcast, msg, common.RoleValidator, nil)
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectBroadcast, msg, common.Address{}, common.RoleValidator, nil)
 }
 
 func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectBroadcastMsg) {
@@ -561,7 +562,7 @@ func (self *controller) sendResultBroadcastRsp(req *mc.HD_ReelectBroadcastMsg) {
 		ResultHash: resultHash,
 		Sign:       sign,
 	}
-	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectBroadcastRsp, rsp, common.RoleNil, []common.Address{req.From})
+	self.matrix.HD().SendNodeMsg(mc.HD_LeaderReelectBroadcastRsp, rsp, common.Address{}, common.RoleNil, []common.Address{req.From})
 }
 
 func (self *controller) checkRLReqMsg(req *mc.HD_ReelectLeaderReqMsg) error {
@@ -622,6 +623,7 @@ func (self *controller) checkPOSResult(posResult *mc.HD_BlkConsensusReqMsg) erro
 }
 
 func (self *controller) processNewBlockReadyRsp(header *types.Header, from common.Address) {
+	return
 	if nil == header {
 		log.Info(self.logInfo, "处理新区块响应", "区块header为nil")
 		return

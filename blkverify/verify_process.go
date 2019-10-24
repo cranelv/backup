@@ -544,6 +544,7 @@ func (p *Process) sendVote(validate bool) {
 }
 
 func (p *Process) notifyVerifiedBlock() {
+	return
 	// notify block genor server the result
 	result := mc.BlockLocalVerifyOK{
 		Header:      p.curProcessReq.req.Header,
@@ -631,6 +632,7 @@ func (p *Process) processDPOSOnce() {
 }
 
 func (p *Process) finishedProcess() {
+	return
 	result := p.curProcessReq.localVerifyResult
 	if result == localVerifyResultProcessing {
 		log.ERROR(p.logExtraInfo(), "req is processing now, can't finish!", "validator", "高度", p.number)

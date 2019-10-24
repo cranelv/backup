@@ -18,7 +18,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+//	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 )
 
 type TopologyGraphReader interface {
@@ -113,17 +113,17 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 		close(ide.blockChan)
 	}()
 
-	select {
-	case tr := <-ide.trChan:
-		ide.topologyReader = tr
-	case <-ide.quit:
-		return
-	}
+//	select {
+//	case tr := <-ide.trChan:
+//		ide.topologyReader = tr
+//	case <-ide.quit:
+//		return
+//	}
 
 	ide.blockChan = make(chan *types.Block)
-	ide.sub, _ = mc.SubscribeEvent(mc.NewBlockMessage, ide.blockChan)
+//	ide.sub, _ = mc.SubscribeEvent(mc.NewBlockMessage, ide.blockChan)
 	log.INFO("CA", "订阅区块事件", "完成")
-	mc.PublishEvent(mc.CA_ReqCurrentBlock, struct{}{})
+//	mc.PublishEvent(mc.CA_ReqCurrentBlock, struct{}{})
 
 	for {
 		select {
@@ -133,7 +133,8 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 			ide.currentHeight = header.Number
 			ide.hash = block.Hash()
 
-			log.INFO("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
+//			log.INFO("CA", "leader", header.Leader, "height", header.Number.Uint64(), "block hash", hash)
+			/*
 
 			// init current height deposit
 			ide.deposit, _ = GetElectedByHeightWithdrawByHash(header.Hash())
@@ -206,16 +207,16 @@ func Start(id discover.NodeID, path string, addr common.Address) {
 
 			// get nodes in buckets
 			nodesInBuckets := getNodesInBuckets(header.Hash())
-
+*/
 			// send role message to elect
-			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader, SuperSeq: superSeq})
-			log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader, SuperSeq: superSeq})
+			mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), BlockHash: hash, Leader: header.Leader, SuperSeq: 0})
+//			log.Info("ca publish identity", "data", mc.RoleUpdatedMsg{Role: ide.currentRole, BlockNum: header.Number.Uint64(), Leader: header.Leader, SuperSeq: 0})
 			// get nodes in buckets and send to buckets
-			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
+//			mc.PublishEvent(mc.BlockToBuckets, mc.BlockToBucket{Ms: nodesInBuckets, Height: block.Header().Number, Role: ide.currentRole})
 			// send identity to linker
-			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, BroadCastInterval: bcInterval, Role: ide.currentRole})
-			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
-			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
+//			mc.PublishEvent(mc.BlockToLinkers, mc.BlockToLinker{Height: header.Number, BroadCastInterval: bcInterval, Role: ide.currentRole})
+//			mc.PublishEvent(mc.SendSyncRole, mc.SyncIdEvent{Role: ide.currentRole}) //lb
+//			mc.PublishEvent(mc.TxPoolManager, ide.currentRole)
 		case <-ide.quit:
 			return
 		}

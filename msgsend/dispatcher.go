@@ -37,7 +37,7 @@ func NewHD() (*HD, error) {
 	return hd, nil
 }
 
-func (self *HD) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.RoleType, nodes []common.Address) {
+func (self *HD) SendNodeMsg(subCode mc.EventCode, msg interface{},addr0 common.Address, Roles common.RoleType, nodes []common.Address) {
 	codec, err := self.findCodec(subCode)
 	if err != nil {
 		log.ERROR("HD", "send findCodec err", err)
@@ -57,7 +57,7 @@ func (self *HD) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.
 
 	if nodes == nil {
 		log.INFO("SendToGroup", "roles", Roles.String(), "SubCode", subCode)
-		go p2p.SendToGroup(Roles, common.AlgorithmMsg, sendData)
+		go p2p.SendToGroup(Roles, common.AlgorithmMsg,addr0, sendData)
 	} else {
 		log.INFO("SendToSignal", "total address count", len(nodes), "SubCode", subCode)
 		for _, addr := range nodes {

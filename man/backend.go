@@ -6,15 +6,12 @@
 package man
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
 	"sync/atomic"
 
 	"github.com/MatrixAINetwork/go-matrix/ca"
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
-
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/reelection"
 
@@ -34,13 +31,11 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
-	"github.com/MatrixAINetwork/go-matrix/depoistInfo"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/internal/manapi"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man/downloader"
 	"github.com/MatrixAINetwork/go-matrix/man/filters"
-	"github.com/MatrixAINetwork/go-matrix/man/gasprice"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/miner"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
@@ -133,12 +128,12 @@ func (s *Matrix) AddLesServer(ls LesServer) {
 // New creates a new Matrix object (including the
 // initialisation of the common Matrix object)
 func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
-	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run man.Matrix in light sync mode, use les.LightMatrix")
-	}
-	if !config.SyncMode.IsValid() {
-		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
-	}
+//	if config.SyncMode == downloader.LightSync {
+//		return nil, errors.New("can't run man.Matrix in light sync mode, use les.LightMatrix")
+//	}
+//	if !config.SyncMode.IsValid() {
+//		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
+//	}
 	chainDb, err := CreateDB(ctx, config, "chaindata")
 	if err != nil {
 		return nil, err
@@ -155,19 +150,19 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		chainDb:        chainDb,
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
-		accountManager: ctx.AccountManager,
-		ca:             ctx.Ca,
+//		accountManager: ctx.AccountManager,
+//		ca:             ctx.Ca,
 		msgcenter:      ctx.MsgCenter,
 		hd:             ctx.HD,
 		signHelper:     ctx.SignHelper,
 
-		engine:        CreateConsensusEngine(ctx, &config.Manash, chainConfig, chainDb),
+//		engine:        CreateConsensusEngine(ctx, &config.Manash, chainConfig, chainDb),
 		shutdownChan:  make(chan bool),
 		networkId:     config.NetworkId,
 		gasPrice:      config.GasPrice,
 		manbase:       config.Manerbase,
-		bloomRequests: make(chan chan *bloombits.Retrieval),
-		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
+//		bloomRequests: make(chan chan *bloombits.Retrieval),
+//		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
 	}
 	log.Info("Initialising Matrix protocol", "versions", ProtocolVersions, "network", config.NetworkId)
 
@@ -193,84 +188,93 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		man.blockchain.SetHead(compat.RewindTo)
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
-	man.bloomIndexer.Start(man.blockchain)
+//	man.bloomIndexer.Start(man.blockchain)
 
 	man.signHelper.SetAuthReader(man.blockchain)
 
-	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
+//	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	//}
-	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
+//	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
 
 	if man.protocolManager, err = NewProtocolManager(man.chainConfig, config.SyncMode, config.NetworkId, man.eventMux, man.txPool, man.engine, man.blockchain, chainDb, ctx.MsgCenter); err != nil {
 		return nil, err
 	}
 	//man.protocolManager.Msgcenter = ctx.MsgCenter
 	MsgCenter = ctx.MsgCenter
-	man.miner, err = miner.New(man.blockchain, man.chainConfig, man.EventMux(), man.hd)
+	engine := manash.New(manash.Config{
+		CacheDir:       ctx.ResolvePath(DefaultConfig.Manash.CacheDir),
+		CachesInMem:    DefaultConfig.Manash.CachesInMem,
+		CachesOnDisk:   DefaultConfig.Manash.CachesOnDisk,
+		DatasetDir:     ctx.ResolvePath(DefaultConfig.Manash.DatasetDir),
+		DatasetsInMem:  DefaultConfig.Manash.DatasetsInMem,
+		DatasetsOnDisk: DefaultConfig.Manash.DatasetsOnDisk,
+	})
+
+	man.miner, err = miner.New(engine, man.chainConfig, man.EventMux(), man.hd)
 	if err != nil {
 		return nil, err
 	}
 	man.miner.SetExtra(makeExtraData(config.ExtraData))
 
 	//algorithm
-	man.random, err = baseinterface.NewRandom(man.blockchain)
-	if err != nil {
-		return nil, err
-	}
-	man.blockchain.Processor([]byte(manparams.VersionAlpha)).SetRandom(man.random)
-	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
-	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
-	man.olConsensus.SetValidatorReader(man.blockchain)
-	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
-	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
-	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
-	man.olConsensus.SetMessageSendInterface(topNodeInstance)
-	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
+//	man.random, err = baseinterface.NewRandom(man.blockchain)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.blockchain.Processor([]byte(manparams.VersionAlpha)).SetRandom(man.random)
+//	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
+//	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
+//	man.olConsensus.SetValidatorReader(man.blockchain)
+//	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
+//	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
+//	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
+//	man.olConsensus.SetMessageSendInterface(topNodeInstance)
+//	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
 
-	if err = man.olConsensus.Start(); err != nil {
-		return nil, err
-	}
-	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
-	if err != nil {
-		return nil, err
-	}
+//	if err = man.olConsensus.Start(); err != nil {
+//		return nil, err
+//	}
+//	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
+//	if err != nil {
+//		return nil, err
+//	}
 
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
+	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
+	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
+	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
-	man.APIBackend = &ManAPIBackend{man, nil}
-	gpoParams := config.GPO
-	if gpoParams.Default == nil {
-		gpoParams.Default = config.GasPrice
-	}
-	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
-	depoistInfo.NewDepositInfo(man.APIBackend)
-	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
-
-	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
-	if err != nil {
-		return nil, err
-	}
-	man.manBlkManage, err = blkmanage.New(man)
-	if err != nil {
-		return nil, err
-	}
-	man.blockGen, err = blkgenor.New(man)
-	if err != nil {
-		return nil, err
-	}
-	man.blockVerify, err = blkverify.NewBlockVerify(man)
-	if err != nil {
-		return nil, err
-	}
-	man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
-	man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
+	//man.APIBackend = &ManAPIBackend{man, nil}
+	//gpoParams := config.GPO
+	//if gpoParams.Default == nil {
+	//	gpoParams.Default = config.GasPrice
+	//}
+	//man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
+	//depoistInfo.NewDepositInfo(man.APIBackend)
+	//man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
+	//
+	//man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//man.manBlkManage, err = blkmanage.New(man)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//man.blockGen, err = blkgenor.New(man)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//man.blockVerify, err = blkverify.NewBlockVerify(man)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
+	//man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
 
 	return man, nil
 
@@ -339,6 +343,7 @@ func CreateConsensusEngine(ctx *pod.ServiceContext, config *manash.Config, chain
 // APIs return the collection of RPC services the matrix package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Matrix) APIs() []rpc.API {
+	return nil
 	apis := manapi.GetAPIs(s.APIBackend)
 
 	// Append any APIs exposed explicitly by the consensus engine
@@ -510,10 +515,10 @@ func (s *Matrix) Protocols() []p2p.Protocol {
 func (s *Matrix) Start(srvr *p2p.Server) error {
 	srvr.NetWorkId = s.config.NetworkId
 	// Start the bloom bits servicing goroutines
-	s.startBloomHandlers()
+//	s.startBloomHandlers()
 
 	// Start the RPC service
-	s.netRPCService = manapi.NewPublicNetAPI(srvr, s.NetVersion())
+//	s.netRPCService = manapi.NewPublicNetAPI(srvr, s.NetVersion())
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := srvr.MaxPeers
@@ -525,9 +530,9 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	}
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
-	if s.lesServer != nil {
-		s.lesServer.Start(srvr)
-	}
+	//if s.lesServer != nil {
+	//	s.lesServer.Start(srvr)
+	//}
 	//s.broadTx.Start()//
 	return nil
 }
@@ -553,7 +558,7 @@ func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Addr
 	var nid discover.NodeID
 	if len(addr) == 0 || addr == (common.Address{}) {
 		addrs := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
-		selfId := p2p.ServerP2p.Self().ID.String()
+		selfId := ""
 		indexs := p2p.Random(len(addrs), 1)
 		if len(indexs) > 0 && indexs[0] <= (len(addrs)-1) {
 			nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]])

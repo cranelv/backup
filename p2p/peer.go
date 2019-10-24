@@ -17,6 +17,8 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/mc"
 )
 
 const (
@@ -83,6 +85,8 @@ type PeerEvent struct {
 
 // Peer represents a connected remote node.
 type Peer struct {
+	self discover.NodeID
+	selfAddr common.Address
 	msgReadWriter MsgReadWriter
 
 	rw      *conn
@@ -98,14 +102,22 @@ type Peer struct {
 	// events receives message send / receive events if set
 	events *event.Feed
 }
-
+/*
 // NewPeer returns a peer for testing purposes.
-func NewPeer(id discover.NodeID, name string, caps []Cap) *Peer {
+func NewPeer(id discover.NodeID,addr common.Address, name string, caps []Cap) *Peer {
 	pipe, _ := net.Pipe()
 	conn := &conn{fd: pipe, transport: nil, id: id, caps: caps, name: name}
-	peer := newPeer(conn, nil)
+	peer := newPeer(conn, id,addr,nil)
 	close(peer.closed) // ensures Disconnect doesn't block
 	return peer
+}
+*/
+// ID returns the node's public key.
+func (p *Peer) Self() discover.NodeID {
+	return p.self
+}
+func (p *Peer) SelfAddr() common.Address {
+	return p.selfAddr
 }
 
 // ID returns the node's public key.
@@ -157,18 +169,23 @@ func (p *Peer) Inbound() bool {
 func (p *Peer) MsgReadWriter() MsgReadWriter {
 	return p.msgReadWriter
 }
-
-func newPeer(conn *conn, protocols []Protocol) *Peer {
+func (p *Peer)IsStaticConnect() bool {
+	return p.rw.flags & staticDialedConn != 0
+}
+func newPeer(conn *conn,selfId discover.NodeID,addr common.Address, protocols []Protocol) *Peer {
 	protomap := matchProtocols(protocols, conn.caps, conn)
 	p := &Peer{
 		rw:       conn,
 		running:  protomap,
+		self:     selfId,
+		selfAddr: addr,
 		created:  mclock.Now(),
 		disc:     make(chan DiscReason),
 		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
 		closed:   make(chan struct{}),
 		log:      log.New("id", conn.id, "conn", conn.flags),
 	}
+//	log.Info("22222222222222222222222newpeer","newpeer",selfId,"address",base58.Base58EncodeToString("MAN",addr))
 	return p
 }
 
@@ -274,6 +291,15 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages
 		return msg.Discard()
+	case msg.Code == common.FriendMinerMsg:
+		req := new(mc.HD_MiningReqMsg)
+		if err := msg.Decode(&req); err != nil {
+			log.Error("FriendMinerMsg message", "error", err)
+			return nil //errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		req.IsRemote = true
+		return mc.PublishEvent(mc.HD_MiningReq,req)
+
 	default:
 		// it's a subprotocol message
 		proto, err := p.getProto(msg.Code)
@@ -328,6 +354,7 @@ outer:
 }
 
 func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error) {
+//	log.Info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXstartProtocols")
 	p.wg.Add(len(p.running))
 	for _, proto := range p.running {
 		proto := proto

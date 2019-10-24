@@ -10,17 +10,14 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
-
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/consensus"
-	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
 	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
 )
 
 const (
@@ -44,7 +41,7 @@ type Miner struct {
 	worker *worker
 
 	coinbase common.Address
-	bc       *core.BlockChain
+	manash *manash.Manash
 
 	canStart    int32 // can start indicates whether we can start the mining operation
 	shouldStart int32 // should start indicates whether we should start after sync
@@ -52,20 +49,20 @@ type Miner struct {
 
 func (s *Miner) Getworker() *worker { return s.worker }
 
-func New(bc *core.BlockChain, config *params.ChainConfig, mux *event.TypeMux, hd *msgsend.HD) (*Miner, error) {
+func New(manh *manash.Manash, config *params.ChainConfig, mux *event.TypeMux, hd *msgsend.HD) (*Miner, error) {
 	miner := &Miner{
 		mux: mux,
-		bc:  bc,
+		manash:  manh,
 
 		canStart: 1,
 	}
 	var err error
-	miner.worker, err = newWorker(config, bc, mux, hd)
+	miner.worker, err = newWorker(config, manh, mux, hd)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建work", "失败")
 		return miner, err
 	}
-	miner.Register(NewCpuAgent(bc))
+	miner.Register(NewCpuAgent(manh))
 	//go miner.update()
 	log.INFO(ModuleMiner, "创建miner", "成功")
 	return miner, nil
@@ -105,9 +102,9 @@ func (self *Miner) Mining() bool {
 }
 
 func (self *Miner) HashRate() (tot int64) {
-	if pow, ok := self.bc.Engine([]byte(manparams.VersionAlpha)).(consensus.PoW); ok {
-		tot += int64(pow.Hashrate())
-	}
+//	if pow, ok := self.bc.Engine([]byte(manparams.VersionAlpha)).(consensus.PoW); ok {
+//		tot += int64(pow.Hashrate())
+//	}
 	// do we care this might race? is it worth we're rewriting some
 	// aspects of the worker/locking up agents so we can get an accurate
 	// hashrate?

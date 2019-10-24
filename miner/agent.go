@@ -7,13 +7,10 @@ package miner
 import (
 	"sync"
 
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
-
 	"sync/atomic"
-
-	"github.com/MatrixAINetwork/go-matrix/consensus"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
+	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
 )
 
 type CpuAgent struct {
@@ -25,17 +22,18 @@ type CpuAgent struct {
 	quitCurrentOp chan struct{}
 	returnCh      chan<- *types.Header
 
-	chain ChainReader
+	manhash *manash.Manash
 
 	isMining int32 // isMining indicates whether the agent is currently mining
 }
 
-func NewCpuAgent(chain ChainReader) *CpuAgent {
+func NewCpuAgent(manhash *manash.Manash) *CpuAgent {
 	miner := &CpuAgent{
-		chain:  chain,
+		manhash:  manhash,
 		stop:   make(chan struct{}, 1),
 		workCh: make(chan *Work, 1),
 	}
+	miner.manhash.WaitingSeal()
 	return miner
 }
 
@@ -74,9 +72,12 @@ out:
 			self.mu.Lock()
 			if self.quitCurrentOp != nil {
 				close(self.quitCurrentOp)
+				self.quitCurrentOp = nil
 			}
-			self.quitCurrentOp = make(chan struct{})
-			go self.mine(work, self.quitCurrentOp)
+			if work != nil{
+				self.quitCurrentOp = make(chan struct{})
+				go self.mine(work, self.quitCurrentOp)
+			}
 			self.mu.Unlock()
 		case <-self.stop:
 			self.mu.Lock()
@@ -92,8 +93,8 @@ out:
 }
 
 func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
-	if result, err := self.chain.Engine(work.header.Version).Seal(self.chain, work.header, stop, work.isBroadcastNode); result != nil {
-		log.Info("Successfully sealed new block", "number", result.Number, "hash", result.Hash())
+	if result, err := self.manhash.Seal(nil, work.header, stop, work.isBroadcastNode); result != nil {
+		log.Info("Successfully sealed new block", "number", result.Number)
 		self.returnCh <- result
 	} else {
 		if err != nil {
@@ -104,9 +105,10 @@ func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
 }
 
 func (self *CpuAgent) GetHashRate() int64 {
+	return int64(self.manhash.Hashrate())
 	//todo：从状态树获取
-	if pow, ok := self.chain.Engine([]byte(manparams.VersionAlpha)).(consensus.PoW); ok {
-		return int64(pow.Hashrate())
-	}
+//	if pow, ok := self.manhash.Engine([]byte(manparams.VersionAlpha)).(consensus.PoW); ok {
+//		return int64(pow.Hashrate())
+//	}
 	return 0
 }

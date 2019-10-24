@@ -98,6 +98,7 @@ func (p *Process) processHeaderGen() error {
 
 func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.RetCallTxN, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg, originalTxs []types.CoinSelfTransaction,
 	finalTxs []types.CoinSelfTransaction, receipts []types.CoinReceipts, stateDB *state.StateDBManage) {
+	return
 	p2pBlock := &mc.HD_BlkConsensusReqMsg{
 		Header:                 header,
 		TxsCode:                txsCode,
@@ -118,7 +119,7 @@ func (p *Process) sendHeaderVerifyReq(header *types.Header, txsCode []*common.Re
 func (p *Process) sendBroadcastMiningReq(header *types.Header, finalTxs []types.CoinSelfTransaction) {
 	sendMsg := &mc.BlockData{Header: header, Txs: finalTxs}
 	log.INFO(p.logExtraInfo(), "广播挖矿请求(本地), number", sendMsg.Header.Number, "root", header.Roots, "tx数量", len(types.GetTX(finalTxs)))
-	mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
+//	mc.PublishEvent(mc.HD_BroadcastMiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{sendMsg})
 }
 
 func (p *Process) setSignatures(header *types.Header) error {
@@ -161,7 +162,7 @@ func (p *Process) sendConsensusReqFunc(data interface{}, times uint32) {
 		return
 	}
 	log.INFO(p.logExtraInfo(), "!!!!网络发送区块验证请求, hash", req.Header.HashNoSignsAndNonce(), "tx数量", req.TxsCodeCount(), "次数", times)
-	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleValidator, nil)
+	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.Address{}, common.RoleValidator, nil)
 }
 
 func (p *Process) getParentBlock(num uint64) (*types.Block, error) {

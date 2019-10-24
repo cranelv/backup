@@ -5,7 +5,6 @@
 package man
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -17,7 +16,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
-	"github.com/MatrixAINetwork/go-matrix/consensus/misc"
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/event"
@@ -26,11 +24,11 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/man/fetcher"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/mc"
-	"github.com/MatrixAINetwork/go-matrix/msgsend"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"github.com/MatrixAINetwork/go-matrix/rlp"
+	"github.com/MatrixAINetwork/go-matrix/msgsend"
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 )
 
 const (
@@ -104,6 +102,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		txpool:      txpool,
 		blockchain:  blockchain,
 		chainconfig: config,
+		maxPeers:1000,
 		//		peers:       newPeerSet(),
 		Peers:       newPeerSet(),
 		newPeerCh:   make(chan *peer),
@@ -135,14 +134,10 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 			Length:  ProtocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				peer := manager.newPeer(int(version), p, rw)
-				select {
-				case manager.newPeerCh <- peer:
-					manager.wg.Add(1)
-					defer manager.wg.Done()
-					return manager.handle(peer)
-				case <-manager.quitSync:
-					return p2p.DiscQuitting
-				}
+				manager.wg.Add(1)
+				defer manager.wg.Done()
+				return manager.handle(peer)
+
 			},
 			NodeInfo: func() interface{} {
 				return manager.NodeInfo()
@@ -190,7 +185,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing Matrix peer", "peer", id)
+	log.Info("Removing Matrix peer", "peer", id)
 
 	// Unregister the peer from the downloader and Matrix peer set
 	pm.downloader.UnregisterPeer(id)
@@ -234,9 +229,9 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.maxPeers = maxPeers
 
 	// broadcast transactions
-	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
-	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
-	go pm.txBroadcastLoop()
+//	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
+//	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
+//	go pm.txBroadcastLoop()
 
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
@@ -244,8 +239,8 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 
 	// start sync handlers
 	//go pm.MySend()
-	go pm.syncer()
-	go pm.txsyncLoop()
+//	go pm.syncer()
+//	go pm.txsyncLoop()
 	//	MyPm = pm
 
 	//saveSnapshotPeriod ,allowSnapshotPoint 现在先定死 300 and 0  广播节点才能调用ipfs 上传接口
@@ -287,6 +282,7 @@ func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *p
 // this function terminates, the peer is disconnected.
 func (pm *ProtocolManager) handle(p *peer) error {
 
+//	log.Info("ProtocolManager handle XXXXXXXXXXXXXXXXXXXXXXXXXX")
 	//	pm.Msgcenter = p.Msgcenter
 	// Ignore maxPeers if this is a trusted peer
 	//	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
@@ -306,26 +302,36 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		hash    = head.Hash()
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
+		bt      = pm.blockchain.CurrentHeader().Time.Uint64()
 		sbs     = sbi.Seq
 		sbHash  = sbi.Num
 	)
-	if err := p.Handshake(pm.networkId, td, hash, sbs, genesis.Hash(), sbHash); err != nil {
-		p.Log().Debug("Matrix handshake failed", "err", err)
-		return err
+
+	if manparams.CanSwitchGammaCanonicalChain(time.Now().Unix()) {
+		if err := p.NewHandshake(pm.networkId, bt, hash, sbs, genesis.Hash(), sbHash, number); err != nil {
+			p.Log().Debug("Matrix handshake failed", "err", err)
+			return err
+		}
+	} else {
+		if err := p.Handshake(pm.networkId, td, hash, sbs, genesis.Hash(), sbHash); err != nil {
+			p.Log().Debug("Matrix handshake failed", "err", err)
+			return err
+		}
 	}
-	//	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
+
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
 		rw.Init(p.version)
 	}
-	p.Log().Debug("Matrix handshake with peer sucess ", "peerid=%d", pm.networkId)
+	p.Log().Info("Matrix handshake with peer sucess ", "peerid=%d", pm.networkId)
 	// Register the peer locally
 	//	if err := pm.peers.Register(p); err != nil {
 	if err := pm.Peers.Register(p); err != nil {
 		p.Log().Error("Matrix peer registration failed", "err", err)
 		return err
 	}
+//	p.Log().Info("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "peerid=%d", pm.networkId)
 	defer pm.removePeer(p.id)
-
+/*
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
 		return err
@@ -353,6 +359,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			}
 		}()
 	}
+	*/
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
@@ -377,12 +384,34 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	// Handle the message depending on its contents
 	switch {
+	case msg.Code == common.FriendMinerMsg:
+		req := new(mc.HD_MiningReqMsg)
+		if err := msg.Decode(&req); err != nil {
+			log.Error("FriendMinerMsg message", "error", err)
+			return nil //errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		req.IsRemote = true
+		return mc.PublishEvent(mc.HD_MiningReq,req)
+	case msg.Code == common.AlgorithmMsg:
+		var m msgsend.NetData
+		if err := msg.Decode(&m); err != nil {
+			log.Error("algorithm message", "error", err)
+			return nil //errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		//		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
+		//		if addr == p2p.EmptyAddress {
+		//			log.Error("algorithm message", "addr", "is empty address", "node id", p.ID().TerminalString())
+		//		}
+//		log.Info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","account",p.SelfAddr(),"data",m.SubCode)
+		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: p.SelfAddr(), Data: m})
 	case msg.Code == StatusMsg:
 		// Status messages should never arrive after the handshake
-		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
+//		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
 	// Block header query, collect the requested headers and reply
 	case msg.Code == GetBlockHeadersMsg:
+
+		/*
 		// Decode the complex header query
 		var query getBlockHeadersData
 		if err := msg.Decode(&query); err != nil {
@@ -464,8 +493,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			p.Log().Trace("download handleMsg recv GetBlockHeadersMsg", "headers len", len(headers))
 		}
 		return p.SendBlockHeaders(headers)
-
+	*/
 	case msg.Code == BlockHeadersMsg:
+		/*
 		// A batch of headers arrived to one of our previous requests
 		var headers []*types.Header
 		if err := msg.Decode(&headers); err != nil {
@@ -532,8 +562,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Debug("Failed to deliver headers", "err", err)
 			}
 		}
-
+*/
 	case msg.Code == GetBlockBodiesMsg:
+/*
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
@@ -560,8 +591,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		p.Log().Trace("download handleMsg recv GetBlockBodiesMsg", "bodies len", len(bodies), "hash", hash)
 		return p.SendBlockBodiesRLP(bodies)
-
+*/
 	case msg.Code == BlockBodiesMsg:
+		/*
 		// A batch of block bodies arrived to one of our previous requests
 		var request blockBodiesData
 		if err := msg.Decode(&request); err != nil {
@@ -579,7 +611,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				for _,curr := range body.Transactions{
 					cointx = append(cointx,types.CoinSelfTransaction{CoinType:curr.CurrencyName,Txser:curr.Transactions.GetTransactions()})
 				}
-				transactions[i] = cointx//.GetTransactions()*/
+				transactions[i] = cointx//.GetTransactions()* /
 			transCrBlock[i] = body.Transactions
 			uncles[i] = body.Uncles
 		}
@@ -596,8 +628,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Debug("Failed to deliver bodies", "err", err)
 			}
 		}
-
+*/
 	case p.version >= man63 && msg.Code == GetNodeDataMsg:
+		/*
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
@@ -680,8 +713,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
 			p.Log().Debug("Failed to deliver receipts", "err", err)
 		}
-
+*/
 	case msg.Code == NewBlockHashesMsg:
+		/*
 		var announces newBlockHashesData
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -704,13 +738,21 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		for _, block := range unknown {
 			pm.fetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
 		}
-
+*/
 	case msg.Code == NewBlockMsg:
 		// Retrieve and decode the propagated block
 		var request newBlockData
 		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
+			return nil //return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if len(request.Block.Currencies())>0 {
+			request.Block.SetCurrencies(nil)
+			p2p.SendToTrustPeer(NewBlockMsg,request)
+		}
+		mc.PublishEvent(mc.NewBlockMessage, request.Block.Header())
+
+		/*
+
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
@@ -757,8 +799,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				go pm.synchronise(p)
 			}
 		}
-
+*/
 	case msg.Code == TxMsg:
+		/*
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		selfRole := ca.GetRole()
 		if selfRole == common.RoleBroadcast {
@@ -784,37 +827,28 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.INFO("==tcp tx hash", "from", tx.From().String(), "tx.Nonce", tx.Nonce(), "hash", hash.String())
 		}
 		pm.txpool.AddRemotes(txs)
+		*/
 	case msg.Code == common.NetworkMsg:
 		var m []*core.MsgStruct
 		if err := msg.Decode(&m); err != nil {
 			log.Info("handler", "mag NetworkMsg err", err)
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
+			return nil //return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		log.Info("handler", "msg NetworkMsg ", "ProcessMsg")
 
 		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
 		go pm.txpool.ProcessMsg(core.NetworkMsgData{SendAddress: addr, Data: m})
 
-	case msg.Code == common.AlgorithmMsg:
-		var m msgsend.NetData
-		if err := msg.Decode(&m); err != nil {
-			log.Error("algorithm message", "error", err)
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		addr := p2p.ServerP2p.ConvertIdToAddress(p.ID())
-		if addr == p2p.EmptyAddress {
-			log.Error("algorithm message", "addr", "is empty address", "node id", p.ID().TerminalString())
-		}
-		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: addr, Data: m})
 
 	case msg.Code == common.BroadcastReqMsg:
-		return p.SendPongToBroad([]uint8{0})
+		return nil //p.SendPongToBroad([]uint8{0})
 
 	case msg.Code == common.BroadcastRespMsg:
-		return p2p.Record(p.ID())
+		p2p.Record(p.ID())
+		return nil
 
 	default:
-		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
+//		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
 	return nil
 }

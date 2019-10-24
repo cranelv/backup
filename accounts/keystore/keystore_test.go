@@ -17,10 +17,48 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/accounts"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/event"
+	crand "crypto/rand"
+	"github.com/MatrixAINetwork/go-matrix/base58"
+	"fmt"
+	"sync"
+	"math/big"
 )
 
 var testSigData = make([]byte, 32)
+func TestNewAcount(t *testing.T){
+	amount := new(big.Int).Mul(big.NewInt(1e5),big.NewInt(1e18))
+	fmt.Println(common.ToHex(amount.Bytes()))
+	return
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	for i:=0;i<4;i++{
+		go func() {
+			for {
+				key,err := newKey(crand.Reader)
+				if err!=nil{
+					continue
+				}
+				strAddr := base58.Base58EncodeToString("MAN",key.Address)
 
+				/*
+				for j:=1;j<8 ;j++  {
+					if buff[j] != buff[0] {
+						bGet = false
+						break
+					}
+				}
+				*/
+				if strings.Index(strAddr,"hemao") == 4 || strings.Index(strAddr,"HeMao") == 4{
+					fmt.Println(common.ToHex(key.PrivateKey.D.Bytes()))
+					fmt.Println(strAddr)
+//					wg.Done()
+//					break
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
 func TestKeyStore(t *testing.T) {
 	dir, ks := tmpKeyStore(t, true)
 	defer os.RemoveAll(dir)

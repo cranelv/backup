@@ -64,7 +64,7 @@ func (p *Process) sendFullBlockReq(hash common.Hash, number uint64, target commo
 		}
 		reqMsg, _ := data.(*mc.HD_FullBlockReqMsg)
 		log.Debug(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", target.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
-		p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{target})
+		p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.Address{}, common.RoleNil, []common.Address{target})
 	} else {
 		reqMsg := &mc.HD_FullBlockReqMsg{
 			HeaderHash: hash,
@@ -72,7 +72,7 @@ func (p *Process) sendFullBlockReq(hash common.Hash, number uint64, target commo
 		}
 		p.FullBlockReqCache.AddMsg(hash, reqMsg, time.Now().Unix())
 		log.Debug(p.logExtraInfo(), "状态恢复消息处理", "发送完整区块获取请求消息", "to", target.Hex(), "高度", reqMsg.Number, "hash", reqMsg.HeaderHash.TerminalString())
-		p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.RoleNil, []common.Address{target})
+		p.pm.hd.SendNodeMsg(mc.HD_FullBlockReq, reqMsg, common.Address{}, common.RoleNil, []common.Address{target})
 	}
 }
 
@@ -96,7 +96,7 @@ func (p *Process) ProcessFullBlockReq(req *mc.HD_FullBlockReqMsg) {
 		Txs:    blockData.block.OriginalTxs,
 	}
 	log.Debug(p.logExtraInfo(), "处理完整区块请求", "发送响应消息", "to", req.From, "hash", rspMsg.Header.Hash(), "交易", rspMsg.Txs)
-	p.pm.hd.SendNodeMsg(mc.HD_FullBlockRsp, rspMsg, common.RoleNil, []common.Address{req.From})
+	p.pm.hd.SendNodeMsg(mc.HD_FullBlockRsp, rspMsg, common.Address{}, common.RoleNil, []common.Address{req.From})
 }
 
 func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
@@ -151,6 +151,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 		Header: rsp.Header,
 		State:  stateDB.Copy(),
 	}
+	return
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
 	p.state = StateBlockInsert
@@ -254,6 +255,7 @@ func (p *Process) dealMinerResultVerifyCommon(leader common.Address) {
 		State:  blockData.block.State.Copy(),
 	}
 	log.INFO(p.logExtraInfo(), "普通区块验证完成", "发送新区块准备完毕消息", "高度", p.number, "leader", readyMsg.Header.Leader.Hex())
+	return
 	mc.PublishEvent(mc.BlockGenor_NewBlockReady, readyMsg)
 
 	p.state = StateBlockInsert
@@ -363,6 +365,7 @@ func (p *Process) copyHeader(header *types.Header, minerResult *mc.HD_MiningRspM
 }
 
 func (p *Process) insertAndBcBlock(isSelf bool, leader common.Address, header *types.Header) (common.Hash, error) {
+	return common.Hash{},nil
 	var blockData *blockCacheData = nil
 	if p.role == common.RoleBroadcast {
 		blockData = p.blockCache.GetLastBlockData()

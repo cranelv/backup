@@ -21,7 +21,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 )
 
-const Version = 4
+const Version = 8
 
 // Errors
 var (
@@ -40,7 +40,7 @@ var (
 // Timeouts
 const (
 	respTimeout = 500 * time.Millisecond
-	expiration  = 20 * time.Second
+	expiration  = 10 * time.Second
 
 	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
 	ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
@@ -182,7 +182,7 @@ type udp struct {
 
 	closing chan struct{}
 	nat     nat.Interface
-
+	trueNodes []net.IP
 	netWorkId uint64
 
 	address   common.Address
@@ -245,13 +245,13 @@ type Config struct {
 	NodeDBPath   string            // if set, the node database is stored at this filesystem location
 	NetRestrict  *netutil.Netlist  // network whitelist
 	Bootnodes    []*Node           // list of bootstrap nodes
+	TrustNodes   []*Node
 	Unhandled    chan<- ReadPacket // unhandled packets are sent on this channel
 	NetWorkId    uint64
 	Address      common.Address
 	Signature    common.Signature
 	SignTime     uint64
 }
-
 // ListenUDP returns a new table that listens for UDP packets on laddr.
 func ListenUDP(c conn, cfg Config) (*Table, error) {
 	tab, _, err := newUDP(c, cfg)
@@ -278,6 +278,9 @@ func newUDP(c conn, cfg Config) (*Table, *udp, error) {
 	realaddr := c.LocalAddr().(*net.UDPAddr)
 	if cfg.AnnounceAddr != nil {
 		realaddr = cfg.AnnounceAddr
+	}
+	for _,nodes := range cfg.TrustNodes{
+		udp.trueNodes = append(udp.trueNodes, nodes.IP)
 	}
 	// TODO: separate TCP port
 	udp.ourEndpoint = makeEndpoint(realaddr, uint16(realaddr.Port))
@@ -327,6 +330,14 @@ func (t *udp) waitping(from NodeID) error {
 
 // findnode sends a findnode request to the given node and waits until
 // the node has sent up to k neighbors.
+func (t *udp) isTrueIp(IP net.IP) bool {
+	for _,ip := range t.trueNodes{
+		if bytes.Equal(IP,ip){
+			return true
+		}
+	}
+	return false
+}
 func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node, error) {
 	nodes := make([]*Node, 0, bucketSize)
 	nreceived := 0
@@ -573,11 +584,11 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 		nbytes, from, err := t.conn.ReadFromUDP(buf)
 		if netutil.IsTemporaryError(err) {
 			// Ignore temporary read errors.
-			log.Debug("Temporary UDP read error", "err", err)
+			log.Error("Temporary UDP read error", "err", err)
 			continue
 		} else if err != nil {
 			// Shut down the loop for permament errors.
-			log.Debug("UDP read error", "err", err)
+			log.Error("UDP read error", "err", err)
 			return
 		}
 		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
@@ -684,6 +695,9 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 func (req *pong) name() string { return "PONG/v4" }
 
 func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	if !t.isTrueIp(from.IP){
+		return errUnknownNode
+	}
 	if expired(req.Expiration) {
 		return errExpired
 	}
@@ -742,6 +756,9 @@ func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 func (req *neighbors) name() string { return "NEIGHBORS/v4" }
 
 func (req *findnodeByAddress) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	if !t.isTrueIp(from.IP){
+		return errUnknownNode
+	}
 	if expired(req.Expiration) {
 		return errExpired
 	}

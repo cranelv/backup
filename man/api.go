@@ -216,7 +216,7 @@ func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader 
 	if err != nil {
 		log.INFO("SendToGroup", "Marshal failed err", err)
 	}
-	api.e.HD().SendNodeMsg(mc.HD_MiningReq, data, common.RoleValidator, nil)
+	api.e.HD().SendNodeMsg(mc.HD_MiningReq, data, common.Address{}, common.RoleValidator, nil)
 }
 
 func (api *PrivateMinerAPI) TestLocalMining(kind string, s string) {
@@ -240,17 +240,17 @@ func (api *PrivateMinerAPI) TestLocalMining(kind string, s string) {
 	switch kind {
 	case "vali_send":
 
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.RoleValidator, nil)
+		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleValidator, nil)
 		log.INFO("发送给验证者", "data", mc.HD_MiningReqMsg{Header: testHeader})
 	case "miner_send":
 
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.RoleMiner, nil)
+		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleMiner, nil)
 		log.INFO("发送给矿工", "data", mc.HD_MiningReqMsg{Header: testHeader})
 	case "signal_send":
 		temp := "0x92e0fea9aba517398c2f0dd628f8cfc7e32ba984"
 		nodes := []common.Address{common.HexToAddress(temp)}
 
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.RoleMiner, nodes)
+		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleMiner, nodes)
 		log.INFO("单点发送", "Data", nodes[0])
 	case "normal_signal":
 		mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleMiner, BlockNum: 1})

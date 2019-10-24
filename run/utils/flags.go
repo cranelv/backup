@@ -6,7 +6,6 @@
 package utils
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/MatrixAINetwork/go-matrix/base58"
 
 	"encoding/json"
 
@@ -30,7 +27,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
-	"github.com/MatrixAINetwork/go-matrix/crypto"
 	"github.com/MatrixAINetwork/go-matrix/dashboard"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man"
@@ -41,7 +37,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/metrics"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
-	"github.com/MatrixAINetwork/go-matrix/p2p/nat"
 	"github.com/MatrixAINetwork/go-matrix/p2p/netutil"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/pod"
@@ -600,6 +595,7 @@ func MakeDataDir(ctx *cli.Context) string {
 // setNodeKey creates a node key from set command line flags, either loading it
 // from a file or as a specified hex value. If neither flags were provided, this
 // method returns nil and an emphemeral key is to be generated.
+/*
 func setNodeKey(ctx *cli.Context, cfg *p2p.Config) {
 	var (
 		hex  = ctx.GlobalString(NodeKeyHexFlag.Name)
@@ -622,7 +618,7 @@ func setNodeKey(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.PrivateKey = key
 	}
 }
-
+*/
 // setNodeUserIdent creates the user identifier from CLI flags.
 func setNodeUserIdent(ctx *cli.Context, cfg *pod.Config) {
 	if identity := ctx.GlobalString(IdentityFlag.Name); len(identity) > 0 {
@@ -687,7 +683,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 //		cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
 //	}
 //}
-
+/*
 // setListenAddress creates a TCP listening address string from set command
 // line flags.
 func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
@@ -706,7 +702,7 @@ func setNAT(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NAT = natif
 	}
 }
-
+*/
 // splitAndTrim splits input separated by a comma
 // and trims excessive white space from the substrings.
 func splitAndTrim(input string) []string {
@@ -967,9 +963,9 @@ func CheckPassword(password string) bool {
 }
 
 func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
-	setNodeKey(ctx, cfg)
-	setNAT(ctx, cfg)
-	setListenAddress(ctx, cfg)
+//	setNodeKey(ctx, cfg)
+//	setNAT(ctx, cfg)
+//	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
 	//setBootstrapNodesV5(ctx, cfg)
 
@@ -1008,13 +1004,14 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
 		cfg.NoDiscovery = true
 	}
+	/*
 	if manAddr := ctx.GlobalString(ManAddressFlag.Name); manAddr != "" {
 		innerAddr, err := base58.Base58DecodeToAddress(manAddr)
 		if err == nil {
 			cfg.ManAddress = innerAddr
 		}
 	}
-
+*/
 	// if we're running a light client or server, force enable the v5 peer discovery
 	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
 	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
@@ -1036,7 +1033,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalBool(DeveloperFlag.Name) {
 		// --dev mode can't use p2p networking.
 		cfg.MaxPeers = 0
-		cfg.ListenAddr = ":0"
+//		cfg.ListenAddr = ":0"
 		cfg.NoDiscovery = true
 		//cfg.DiscoveryV5 = false
 	}

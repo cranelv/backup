@@ -8,4 +8,5 @@ const (
 	NetworkMsg       = 0x12
 	BroadcastReqMsg  = 0x13
 	BroadcastRespMsg = 0x14
+	FriendMinerMsg     = 0x19
 )

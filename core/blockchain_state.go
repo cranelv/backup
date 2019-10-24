@@ -186,6 +186,7 @@ func (bc *BlockChain) GetSuperBlockNum() (uint64, error) {
 }
 
 func (bc *BlockChain) GetSuperBlockInfo() (*mc.SuperBlkCfg, error) {
+	return &mc.SuperBlkCfg{},nil
 	st, err := bc.State()
 	if err != nil {
 		return nil, errors.Errorf("get cur state err (%v)", err)

@@ -58,14 +58,66 @@ func GetdifficultyListAndTargetList(difficultyList []*big.Int) minerDifficultyLi
 
 	return difficultyListAndTargetList
 }
-
+func (manash *Manash) WaitingSeal() error{
+	threads := runtime.NumCPU()
+	//	if isBroadcastNode {
+	//		threads = 1
+	//	}
+	if manash.rand == nil {
+		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+		if err != nil {
+			return err
+		}
+		manash.rand = rand.New(rand.NewSource(seed.Int64()))
+	}
+	manash.sealTreads = make([]*SealThread,threads)
+	for i := 0; i < threads; i++ {
+		manash.sealTreads[i] = &SealThread{
+			id : i,
+			seed : manash.rand.Uint64(),
+			mineCh : make(chan mineInfo,5),
+			manHash: manash,
+			scratchPad:make([]uint64, 1<<18, 1<<18),
+		}
+		go manash.sealTreads[i].waitSeal()
+	}
+	return nil
+}
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
 func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, isBroadcastNode bool) (*types.Header, error) {
 	log.INFO("seal", "挖矿", "开始", "高度", header.Number.Uint64())
 	defer log.INFO("seal", "挖矿", "结束", "高度", header.Number.Uint64())
 
-	// Create a runner and the multiple search threads it directs
+
+	mineinfo := mineInfo{
+		abort:make(chan struct{}),
+		found:make(chan *types.Header,len(manash.sealTreads)),
+		header:types.CopyHeader(header),
+	}
+
+	for _,thread := range manash.sealTreads {
+		thread.mineCh <- mineinfo
+	}
+	// Wait until sealing is terminated or a nonce is found
+	var result *types.Header
+	select {
+	case <-stop:
+		//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
+		// Outside abort, stop all miner threads
+		close(mineinfo.abort)
+	case result = <-mineinfo.found:
+		// One of the threads found a block, abort all others
+		close(mineinfo.abort)
+	case <-manash.update:
+		// Thread count was changed on user request, restart
+		close(mineinfo.abort)
+//		return manash.Seal(chain, curHeader, stop, isBroadcastNode)
+	}
+
+	// Wait for all miners to terminate and return the block
+
+/*
 	abort := make(chan struct{})
 	found := make(chan *types.Header)
 	manash.lock.Lock()
@@ -82,16 +134,16 @@ func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, st
 	manash.lock.Unlock()
 
 	threads = runtime.NumCPU()
-	if isBroadcastNode {
-		threads = 1
-	}
+//	if isBroadcastNode {
+//		threads = 1
+//	}
 
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		pend.Add(1)
 		go func(id int, nonce uint64) {
 			defer pend.Done()
-			manash.mine(curHeader, id, nonce, abort, found, isBroadcastNode)
+			manash.mine(curHeader, id, nonce, abort, found, nil)
 
 		}(i, uint64(manash.rand.Int63()))
 	}
@@ -99,7 +151,7 @@ func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, st
 	var result *types.Header
 	select {
 	case <-stop:
-		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
+//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
 		// Outside abort, stop all miner threads
 		close(abort)
 	case result = <-found:
@@ -114,6 +166,7 @@ func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, st
 
 	// Wait for all miners to terminate and return the block
 	pend.Wait()
+*/
 	return result, nil
 }
 
@@ -129,25 +182,25 @@ func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (in
 
 // mine is the actual proof-of-work miner that searches for a nonce starting from
 // seed that results in correct final block difficulty.
-func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan *types.Header, isBroadcastNode bool) {
+func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan *types.Header, aaa []uint64) {
 	// Extract some data from the header
 
 	var (
 		curHeader = types.CopyHeader(header)
 		hash      = curHeader.HashNoNonce().Bytes()
 		target    = new(big.Int).Div(maxUint256, header.Difficulty)
-		number    = curHeader.Number.Uint64()
-		dataset   = manash.dataset(number)
+//		number    = curHeader.Number.Uint64()
+//		dataset   = manash.dataset(number)
+//		dataset   = []uint32{}
 	)
-	if isBroadcastNode {
-		target = maxUint256
-	}
+
 	// Start generating random nonces until we abort or find a good one
-	log.INFO("SEALER begin mine", "target", target, "isBroadcast", isBroadcastNode, "number", curHeader.Number.Uint64(), "diff", header.Difficulty.Uint64())
+	log.INFO("SEALER begin mine", "target", target, "isBroadcast", false, "number", curHeader.Number.Uint64(), "diff", header.Difficulty.Uint64())
 	defer log.INFO("SEALER stop mine", "number", curHeader.Number.Uint64(), "diff", header.Difficulty.Uint64())
 	var (
 		attempts = int64(0)
 		nonce    = seed
+		scratchPad = make([]uint64, 1<<18, 1<<18)
 	)
 	logger := log.New("miner", id)
 	logger.Trace("Started ethash search for new nonces", "seed", seed)
@@ -163,13 +216,13 @@ search:
 
 		default:
 			// We don't have to update hash rate on every nonce, so update after after 2^X nonces
-			attempts++
-			if (attempts % (1 << 15)) == 0 {
-				manash.hashrate.Mark(attempts)
-				attempts = 0
-			}
+//			attempts++
+//			if (attempts % (1 << 15)) == 0 {
+//				manash.hashrate.Mark(attempts)
+//				attempts = 0
+//			}
 			// Compute the PoW value of this nonce
-			digest, result := hashimotoFull(dataset.dataset, hash, nonce)
+			digest, result := newPowHash(hash, nonce, scratchPad, nil)
 
 			//log.Info("sealer","result",new(big.Int).SetBytes(result))
 			//log.Info("sealer","target",target)
@@ -193,5 +246,5 @@ search:
 	}
 	// Datasets are unmapped in a finalizer. Ensure that the dataset stays live
 	// during sealing so it's not unmapped while being read.
-	runtime.KeepAlive(dataset)
+//	runtime.KeepAlive(dataset)
 }

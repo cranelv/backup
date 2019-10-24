@@ -48,7 +48,7 @@ func (p *Process) sendMineReqFunc(data interface{}, times uint32) {
 	} else {
 		log.Trace(p.logExtraInfo(), "发出挖矿请求, Header hash with signs", hash, "次数", times, "高度", p.number)
 	}
-	p.pm.hd.SendNodeMsg(mc.HD_MiningReq, req, common.RoleMiner|common.RoleInnerMiner, nil)
+	p.pm.hd.SendNodeMsg(mc.HD_MiningReq, req, common.Address{}, common.RoleMiner|common.RoleInnerMiner, nil)
 }
 
 func (p *Process) startPosedReqSender(req *mc.HD_BlkConsensusReqMsg) {
@@ -81,7 +81,7 @@ func (p *Process) sendPosedReqFunc(data interface{}, times uint32) {
 	} else {
 		log.Trace(p.logExtraInfo(), "发出POS完成的req(to broadcast) leader", req.Header.Leader.Hex(), "次数", times, "高度", p.number)
 	}
-	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.RoleBroadcast, nil)
+	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusReq, req, common.Address{}, common.RoleBroadcast, nil)
 }
 
 func (p *Process) startVoteMsgSender(vote *mc.HD_ConsensusVote) {
@@ -114,5 +114,5 @@ func (p *Process) sendVoteMsgFunc(data interface{}, times uint32) {
 	} else {
 		log.Trace(p.logExtraInfo(), "发出投票消息 signHash", vote.SignHash.TerminalString(), "次数", times, "高度", p.number)
 	}
-	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusVote, vote, common.RoleValidator, nil)
+	p.pm.hd.SendNodeMsg(mc.HD_BlkConsensusVote, vote, common.Address{}, common.RoleValidator, nil)
 }

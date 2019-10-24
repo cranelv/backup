@@ -108,7 +108,7 @@ func (serv *TopNodeService) Start() error {
 
 func (serv *TopNodeService) subMsg() error {
 	var err error
-
+	return nil
 	serv.roleUpdateSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, serv.roleUpdateCh) //身份到达
 	if err != nil {
 		log.Error(serv.extraInfo, "身份更新订阅失败", err)

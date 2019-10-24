@@ -270,7 +270,7 @@ func (p *Process) startBcBlock() {
 
 	if p.number != 1 {
 		log.Debug(p.logExtraInfo(), "开始广播区块, 高度", p.number-1, "区块 hash", parentHash)
-		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.RoleValidator|common.RoleBroadcast, nil)
+		p.pm.hd.SendNodeMsg(mc.HD_NewBlockInsert, &mc.HD_BlockInsertNotify{Header: parentHeader}, common.Address{}, common.RoleValidator|common.RoleBroadcast, nil)
 	}
 
 	//log.Debug(p.logExtraInfo(), "区块广播阶段 广播周期信息", bcInterval.GetBroadcastInterval())

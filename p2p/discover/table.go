@@ -174,10 +174,8 @@ func (tab *Table) ResolveNode(addr common.Address, id NodeID) *Node {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
 	if id == EmptyNodeId && addr != EmptyAddress {
-		for key, val := range tab.nodeBindAddress {
-			if key == addr {
-				return val
-			}
+		if val,exist := tab.nodeBindAddress[addr];exist {
+			return val
 		}
 	}
 	if id != EmptyNodeId && addr == EmptyAddress {
@@ -198,9 +196,11 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 	}
 	tab.mutex.Unlock()
 	// Otherwise, do a network lookup.
-	for _, boot := range params.MainnetBootnodes {
-		node, _ := ParseNode(boot)
+	for _, node := range tab.nursery {
 		n, err := tab.net.findnodeByAddress(node.ID, node.addr(), address)
+		if err != nil {
+			continue
+		}
 		if err != nil {
 			continue
 		}
@@ -209,7 +209,7 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			return n
 		}
 	}
-
+/*
 	for i := 0; i < 3; i++ {
 		randNode, _ := tab.nodeToRevalidate()
 		if randNode == nil {
@@ -224,6 +224,7 @@ func (tab *Table) GetNodeByAddress(address common.Address) *Node {
 			return n
 		}
 	}
+*/
 	return nil
 }
 
@@ -494,7 +495,8 @@ func (tab *Table) doRefresh(done chan struct{}) {
 	tab.loadSeedNodes(true)
 
 	// Run self lookup to discover new neighbor nodes.
-	tab.lookup(tab.self.ID, false)
+	tab.lookupAddressTable()
+//	tab.lookup(tab.self.ID, false)
 
 	// The Kademlia paper specifies that the bucket refresh should
 	// perform a lookup in the least recently used bucket. We cannot
@@ -502,13 +504,43 @@ func (tab *Table) doRefresh(done chan struct{}) {
 	// (not hash-sized) and it is not easily possible to generate a
 	// sha3 preimage that falls into a chosen bucket.
 	// We perform a few lookups with a random target instead.
+	/*
 	for i := 0; i < 3; i++ {
 		var target NodeID
 		crand.Read(target[:])
 		tab.lookup(target, false)
 	}
+	*/
 }
+func (tab *Table) lookupAddressTable(){
+//	log.Info("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+	tab.mutex.Lock()
+	defer tab.mutex.Unlock()
+	index := 0
+	for _, val := range tab.nodeBindAddress {
+		if index > 16 {
+			break
+		}
+		go tab.RefreshAddressTable(val)
+		index++
+	}
+}
+func (tab *Table)RefreshAddressTable(oldNode *Node)  {
+	for i:=len(tab.nursery)-1;i>=0;i-- {
+		n, err := tab.net.findnodeByAddress(tab.nursery[i].ID, tab.nursery[i].addr(), oldNode.Address)
+		if err != nil {
+			continue
+		}
+		if err != nil {
+			continue
+		}
+		if n.Address == oldNode.Address {
+			tab.bondall([]*Node{n})
+			return
+		}
+	}
 
+}
 func (tab *Table) loadSeedNodes(bond bool) {
 	seeds := tab.db.querySeeds(seedCount, seedMaxAge)
 	seeds = append(seeds, tab.nursery...)

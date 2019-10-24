@@ -78,7 +78,7 @@ func (p *Process) bcFinishedProcess(lvResult verifyResult) {
 		State:       p.curProcessReq.stateDB,
 	}
 	log.INFO(p.logExtraInfo(), "广播身份", "请求验证完成, 发出区块共识结果消息", "高度", p.number, "block hash", result.BlockHash.TerminalString())
-	mc.PublishEvent(mc.BlkVerify_VerifyConsensusOK, &result)
+//	mc.PublishEvent(mc.BlkVerify_VerifyConsensusOK, &result)
 
 	p.state = StateEnd
 }

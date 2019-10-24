@@ -21,7 +21,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/internal/debug"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man"
-	"github.com/MatrixAINetwork/go-matrix/manclient"
 	"github.com/MatrixAINetwork/go-matrix/metrics"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/pod"
@@ -277,14 +276,14 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
 	stack.AccountManager().Subscribe(events)
-
+/*
 	go func() {
 		// Create a chain state reader for self-derivation
-		rpcClient, err := stack.Attach()
-		if err != nil {
-			utils.Fatalf("Failed to attach to self: %v", err)
-		}
-		stateReader := manclient.NewClient(rpcClient)
+		//rpcClient, err := stack.Attach()
+		//if err != nil {
+		//	utils.Fatalf("Failed to attach to self: %v", err)
+		//}
+		//stateReader := manclient.NewClient(rpcClient)
 
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
@@ -315,7 +314,7 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 			}
 		}
 	}()
-
+*/
 	var matrix *man.Matrix
 	if err := stack.Service(&matrix); err != nil {
 		utils.Fatalf("Matrix service not running :%v", err)

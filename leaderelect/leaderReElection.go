@@ -64,6 +64,7 @@ func NewLeaderIdentityService(matrix Matrix, extraInfo string) (*LeaderIdentity,
 }
 
 func (self *LeaderIdentity) subEvents() error {
+	return nil
 	//订阅身份变更消息
 	var err error
 	if self.newBlockReadySub, err = mc.SubscribeEvent(mc.BlockGenor_NewBlockReady, self.newBlockReadyCh); err != nil {

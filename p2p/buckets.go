@@ -88,12 +88,12 @@ func (b *Bucket) Start() {
 
 	for {
 		select {
-		case <-timeoutTimer.C:
-			b.maintainOuter()
-			if !timeoutTimer.Stop() && len(timeoutTimer.C) > 0 {
-				<-timeoutTimer.C
-			}
-			timeoutTimer.Reset(time.Second * 60)
+//		case <-timeoutTimer.C:
+//			b.maintainOuter()
+//			if !timeoutTimer.Stop() && len(timeoutTimer.C) > 0 {
+//				<-timeoutTimer.C
+//			}
+//			timeoutTimer.Reset(time.Second * 60)
 		case h := <-b.blockChain:
 			if !timeoutTimer.Stop() && len(timeoutTimer.C) > 0 {
 				<-timeoutTimer.C
@@ -206,14 +206,14 @@ func (b *Bucket) disconnectMiner() {
 
 // disconnectPeers disconnect all peers
 func (b *Bucket) disconnectPeers() {
-	for _, peer := range ServerP2p.Peers() {
+	for _, peer := range ServerP2p.Peers(common.Address{}) {
 		ServerP2p.RemovePeer(discover.NewNode(peer.ID(), nil, 0, 0))
 	}
 }
 
 // disconnectOnePeer if nodes in buckets more than 2 thousand, then disconnect one peer.
 func (b *Bucket) disconnectOnePeer() {
-	for _, peer := range ServerP2p.Peers() {
+	for _, peer := range ServerP2p.Peers(common.Address{}) {
 		ServerP2p.RemovePeer(discover.NewNode(peer.ID(), nil, 0, 0))
 		break
 	}
@@ -223,7 +223,7 @@ func (b *Bucket) disconnectOnePeer() {
 func (b *Bucket) maintainInner() {
 	count := 0
 	next := (b.self + 1) % 4
-	for _, peer := range ServerP2p.Peers() {
+	for _, peer := range ServerP2p.Peers(common.Address{}) {
 		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
 		if signAddr == EmptyAddress {
 			continue
@@ -251,7 +251,7 @@ func (b *Bucket) maintainOuter() {
 	count := 0
 	miners := ca.GetRolesByGroupWithNextElect(common.RoleMiner | common.RoleBackupMiner)
 	b.log.Info("maintainOuter", "peer info", miners)
-	for _, peer := range ServerP2p.Peers() {
+	for _, peer := range ServerP2p.Peers(common.Address{}) {
 		for _, miner := range miners {
 			id := ServerP2p.ConvertAddressToId(miner)
 			if id != EmptyNodeId && peer.ID() == id {
@@ -272,13 +272,13 @@ func (b *Bucket) maintainOuter() {
 
 // SelfBucket return self bucket number.
 func (b *Bucket) selfBucket() (int64, error) {
-	return b.peerBucket(ServerP2p.ManAddress)
+	return b.peerBucket(ServerP2p.subServers[0].ManAddress)
 }
 
 func (b *Bucket) peerBucket(addr common.Address) (int64, error) {
 	m := big.Int{}
 	if b.self < common.RoleBucket {
-		return m.Mod(MockHash(ServerP2p.Self().ID).Big(), big.NewInt(4)).Int64(), nil
+		return m.Mod(MockHash(ServerP2p.subServers[0].Self().ID).Big(), big.NewInt(4)).Int64(), nil
 	}
 
 	if addr != EmptyAddress {
@@ -299,7 +299,7 @@ func (b *Bucket) linkBucketPeer() {
 		return
 	}
 	count := 0
-	for _, peer := range ServerP2p.Peers() {
+	for _, peer := range ServerP2p.Peers(common.Address{}) {
 		signAddr := ServerP2p.ConvertIdToAddress(peer.ID())
 		if signAddr == EmptyAddress {
 			b.log.Error("not found sign address", "id", peer.ID())

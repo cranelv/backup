@@ -16,23 +16,10 @@ import (
 )
 
 // Tests that manash works correctly in test mode.
-func TestTestMode(t *testing.T) {
-	head := &types.Header{Number: big.NewInt(1), Difficulty: big.NewInt(100)}
-
-	manash := NewTester()
-	block, err := manash.Seal(nil, types.NewBlockWithHeader(head), nil)
-	if err != nil {
-		t.Fatalf("failed to seal block: %v", err)
-	}
-	head.Nonce = types.EncodeNonce(block.Nonce())
-	head.MixDigest = block.MixDigest()
-	if err := manash.VerifySeal(nil, head); err != nil {
-		t.Fatalf("unexpected verification error: %v", err)
-	}
-}
 
 // This test checks that cache lru logic doesn't crash under load.
 // It reproduces https://github.com/MatrixAINetwork/go-matrix/issues/14943
+
 func TestCacheFileEvict(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "manash-test")
 	if err != nil {

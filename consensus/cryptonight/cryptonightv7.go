@@ -27,7 +27,7 @@ import "github.com/aead/skein"
 import "github.com/dchest/blake256"
 
 // see this commit https://github.com/monero-project/monero/commit/e136bc6b8a480426f7565b721ca2ccf75547af62#diff-7000dc02c792439471da62856f839d62
-func cryptonightv7(input []byte, variant int) []byte {
+func cryptonightv7(input []byte,ScratchPad[]uint64, variant int) []byte {
 
 	var dummy [256]byte
 	var S [25]uint64
@@ -46,7 +46,7 @@ func cryptonightv7(input []byte, variant int) []byte {
 	c_uint32 := (*(*[4]uint32)(unsafe.Pointer(&c[0])))[:len(c)*2]
 
 	// same array is accessed as 3 different ways, buts it bettter than copying
-	var ScratchPad = make([]uint64, 1<<18, 1<<18)
+//	var ScratchPad = make([]uint64, 1<<18, 1<<18)
 	ScratchPad_uint32 := (*(*[MAX_ARRAY_LIMIT]uint32)(unsafe.Pointer(&ScratchPad[0])))[:len(ScratchPad)*2]
 	// ScratchPad_byte := (*(*[MAX_ARRAY_LIMIT]byte)(unsafe.Pointer(&ScratchPad[0])))[:len(ScratchPad)*8]
 
@@ -56,8 +56,8 @@ func cryptonightv7(input []byte, variant int) []byte {
 		S[i] = binary.LittleEndian.Uint64(dummy[i<<3:])
 	}
 	S[16] = 0x8000000000000000
-
-	keccakf(&S)
+	keccakF1600(&S)
+//	keccakf(&S)
 
 	// lets convert everything back to bytes
 	for i := 0; i < 25; i++ {
@@ -238,7 +238,8 @@ func cryptonightv7(input []byte, variant int) []byte {
 		S[i] = binary.LittleEndian.Uint64(dummy[i<<3:])
 	}
 
-	keccakf(&S) // do the keccak round
+	keccakF1600(&S)
+//	keccakf(&S) // do the keccak round
 	/* for i :=0; i< 25;i++{
 	         fmt.Printf("S %02d %X\n", i, S[i])
 	}*/
@@ -287,9 +288,9 @@ func cryptonightv7(input []byte, variant int) []byte {
 
 }
 
-func SlowHashv7(msg []byte) []byte {
+func SlowHashv7(msg []byte,ScratchPad[]uint64) []byte {
 
-	hash := cryptonightv7(append(msg, byte(0x01)), 1)
+	hash := cryptonightv7(append(msg, byte(0x01)),ScratchPad, 1)
 	// hash := cryptonight(msg)
 	return hash
 

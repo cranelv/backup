@@ -63,7 +63,7 @@ func NewBlockVerify(matrix Matrix) (*BlockVerify, error) {
 	}
 
 	server.processManage = NewProcessManage(matrix)
-
+	return server, nil
 	var err error
 	if server.roleUpdatedMsgSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, server.roleUpdatedMsgCh); err != nil {
 		return nil, err

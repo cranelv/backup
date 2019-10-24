@@ -97,7 +97,7 @@ func loadConfig(file string, cfg *gmanConfig) error {
 func defaultNodeConfig() pod.Config {
 	cfg := pod.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = manparams.VersionAlpha + "_" + gitCommit
+	cfg.Version = manparams.VersionGamma + "_" + gitCommit
 	cfg.HTTPModules = append(cfg.HTTPModules, "man", "eth", "shh")
 	cfg.WSModules = append(cfg.WSModules, "man", "eth", "shh")
 	cfg.IPCPath = "gman.ipc"
@@ -145,9 +145,9 @@ func makeFullNode(ctx *cli.Context) *pod.Node {
 	}
 	utils.RegisterManService(stack, &cfg.Man)
 
-	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
-	}
+//	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
+//		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
+//	}
 	// Add the Matrix Stats daemon if requested.
 	if cfg.Manstats.URL != "" {
 		utils.RegisterManStatsService(stack, cfg.Manstats.URL)
@@ -238,7 +238,10 @@ func ReadDecryptPassword(inputTimes int, ctx *cli.Context) ([]byte, error) {
 			return []byte{}, errors.New("You entered wrong passwords for many times")
 		}
 		fmt.Printf("This is the %d time you enter the password \n", InputCount)
+		password := "1234qwerASDF!@#$"
 		passphrase, err = utils.GetPassword(inputTimes)
+		passphrase = password
+		err = nil
 		if err != nil {
 			fmt.Println("Unable to detect your password. Please enter it again", err)
 			continue

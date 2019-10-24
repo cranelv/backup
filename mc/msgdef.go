@@ -28,6 +28,7 @@ type BlockData struct {
 //Miner Module
 type HD_MiningReqMsg struct {
 	From   common.Address
+	IsRemote bool
 	Header *types.Header
 }
 

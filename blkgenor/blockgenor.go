@@ -60,7 +60,7 @@ func New(man Backend) (*BlockGenor, error) {
 	}
 
 	bg.pm = NewProcessManage(man)
-
+	return bg, nil
 	var err error
 	if bg.roleUpdatedMsgSub, err = mc.SubscribeEvent(mc.CA_RoleUpdated, bg.roleUpdatedMsgCh); err != nil {
 		log.Error("区块生成模块", "订阅错误，消息号", mc.CA_RoleUpdated, "错误：", err)

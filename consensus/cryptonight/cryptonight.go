@@ -303,7 +303,8 @@ func AESExpandKey256(keybuf []uint32){
 */
 
 func CNAESTransform(X, Key []uint32) {
-
+	encrypt10AESRound(&Key[0<<2], &X[0], &X[0])
+	return
 	//  fmt.Printf("X %08X %08X  \n", X[0],X[1]) ;
 
 	/*
@@ -333,6 +334,8 @@ func CNAESTransform(X, Key []uint32) {
 }
 
 func CNAESRnd(X, key []uint32) {
+	encryptAESRound(&key[0], &X[0], &X[0])
+	return
 
 	if HardwareAES {
 		encryptAESRound(&key[0], &X[0], &X[0])

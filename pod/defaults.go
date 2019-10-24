@@ -11,7 +11,6 @@ import (
 	"runtime"
 
 	"github.com/MatrixAINetwork/go-matrix/p2p"
-	"github.com/MatrixAINetwork/go-matrix/p2p/nat"
 )
 
 const (
@@ -30,9 +29,9 @@ var DefaultConfig = Config{
 	WSPort:           DefaultWSPort,
 	WSModules:        []string{"net", "web3"},
 	P2P: p2p.Config{
-		ListenAddr: ":50505",
+//		ListenAddr: ":50505",
 		MaxPeers:   10000,
-		NAT:        nat.Any(),
+//		NAT:        nat.Any(),
 	},
 }
 

@@ -316,12 +316,12 @@ func generateDataset(dest []uint32, epoch uint64, cache []uint32) {
 	// Wait for all the generators to finish and return
 	pend.Wait()
 }
-func newPowHash(hash []byte, nonce uint64, size uint64, lookup func(index uint32) []uint32) ([]byte, []byte) {
+func newPowHash(hash []byte, nonce uint64,ScratchPad []uint64, lookup func(index uint32) []uint32) ([]byte, []byte) {
 	seed := make([]byte, 40)
 	copy(seed, hash)
 	binary.LittleEndian.PutUint64(seed[32:], nonce)
 	seed = crypto.Keccak512(seed)
-	mix := make([]uint32, mixBytes/4)
+	mix := make([]uint32, mixBytes/8)
 	for i := 0; i < len(mix); i++ {
 		mix[i] = binary.LittleEndian.Uint32(seed[i%16*4:])
 	}
@@ -329,11 +329,14 @@ func newPowHash(hash []byte, nonce uint64, size uint64, lookup func(index uint32
 		mix[i/4] = fnv(fnv(fnv(mix[i], mix[i+1]), mix[i+2]), mix[i+3])
 	}
 	mix = mix[:len(mix)/4]
-	digest := make([]byte, common.HashLength)
+	digestAll := make([]byte, len(seed)+common.HashLength,len(seed)+common.HashLength+1)
+	copy(digestAll,seed)
+	digest := digestAll[len(seed):]
 	for i, val := range mix {
 		binary.LittleEndian.PutUint32(digest[i*4:], val)
 	}
-	return digest, cryptonight.SlowHashv7(append(seed, digest...))
+	copy(digest[16:],digest[:16])
+	return digest, cryptonight.SlowHashv7(digestAll,ScratchPad)
 }
 
 // hashimoto aggregates data from the full dataset in order to produce our final
@@ -382,6 +385,7 @@ func hashimoto(hash []byte, nonce uint64, size uint64, lookup func(index uint32)
 // in-memory cache) in order to produce our final value for a particular header
 // hash and nonce.
 func hashimotoLight(size uint64, cache []uint32, hash []byte, nonce uint64) ([]byte, []byte) {
+	var ScratchPad = make([]uint64, 1<<18, 1<<18)
 	keccak512 := makeHasher(sha3.NewKeccak512())
 
 	lookup := func(index uint32) []uint32 {
@@ -393,18 +397,20 @@ func hashimotoLight(size uint64, cache []uint32, hash []byte, nonce uint64) ([]b
 		}
 		return data
 	}
-	return newPowHash(hash, nonce, size, lookup)
+	return newPowHash(hash, nonce, ScratchPad, lookup)
 }
 
 // hashimotoFull aggregates data from the full dataset (using the full in-memory
 // dataset) in order to produce our final value for a particular header hash and
 // nonce.
 func hashimotoFull(dataset []uint32, hash []byte, nonce uint64) ([]byte, []byte) {
+	/*
 	lookup := func(index uint32) []uint32 {
 		offset := index * hashWords
 		return dataset[offset : offset+hashWords]
 	}
-	return newPowHash(hash, nonce, uint64(len(dataset))*4, lookup)
+	*/
+	return newPowHash(hash, nonce, nil, nil)
 }
 
 const maxEpoch = 2048

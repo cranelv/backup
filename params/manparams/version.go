@@ -11,8 +11,11 @@ const (
 	VersionAlpha = "1.0.0.0"
 	//增加版本号示例
 	VersionBeta = "1.0.0.1"
+	VersionGamma = "1.0.0.2"
 	//VersionSignatureBeta = "0xc3a8b3c887e2a896cca7a3d86997ac458d4f2e1ac0472fbc37290ee131eb82400cde214d72427dcf83ad22eb5b98a269311c1589fab14d0eeeee632617714cc000"
 	//VersionNumBeta       = uint64(32)
+	newP2PVersionTimeStamp = 1558346400
+//	newP2PVersionTimeStamp = 1558046400
 )
 
 var VersionList [][]byte
@@ -47,4 +50,7 @@ func GetVersionSignature(parentBlock *types.Block, version []byte) []common.Sign
 	}
 
 	return nil
+}
+func CanSwitchGammaCanonicalChain(currentTime int64) bool {
+	return currentTime > newP2PVersionTimeStamp
 }

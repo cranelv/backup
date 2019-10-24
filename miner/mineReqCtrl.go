@@ -15,27 +15,30 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/consensus"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 	"github.com/pkg/errors"
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 )
 
 type mineReqData struct {
 	mu                 sync.Mutex
+	coinbase		   common.Address
 	mined              bool
 	headerHash         common.Hash
 	header             *types.Header
 	isBroadcastReq     bool
+	isFriend		   bool
 	txs                []types.CoinSelfTransaction
 	mineDiff           *big.Int
 	mineResultSendTime int64
 }
 
-func newMineReqData(headerHash common.Hash, header *types.Header, txs []types.CoinSelfTransaction, isBroadcastReq bool) *mineReqData {
+func newMineReqData(headerHash common.Hash, header *types.Header, txs []types.CoinSelfTransaction, isBroadcastReq bool,isfriend bool) *mineReqData {
 	return &mineReqData{
 		mined:              false,
 		headerHash:         headerHash,
 		header:             header,
 		isBroadcastReq:     isBroadcastReq,
+		isFriend:           isfriend,
 		txs:                txs,
 		mineDiff:           nil,
 		mineResultSendTime: 0,
@@ -43,10 +46,6 @@ func newMineReqData(headerHash common.Hash, header *types.Header, txs []types.Co
 }
 
 func (self *mineReqData) ResendMineResult(curTime int64) error {
-	if false == self.mined {
-		return errors.New("尚未挖矿完成")
-	}
-
 	self.mu.Lock()
 	defer self.mu.Unlock()
 	if curTime-self.mineResultSendTime < manparams.MinerResultSendInterval {
@@ -97,28 +96,33 @@ func (ctrl *mineReqCtrl) SetNewNumber(number uint64, role common.RoleType) {
 		return
 	}
 
-	ctrl.role = role
+	ctrl.role = common.RoleMiner
+	/*
 	bcInterval, err := manparams.GetBCIntervalInfoByNumber(number - 1)
 	if err != nil {
 		log.ERROR("miner ctrl", "获取广播周期失败", err)
 	} else {
 		ctrl.bcInterval = bcInterval
 	}
-
+*/
 	if ctrl.curNumber < number {
 		ctrl.curNumber = number
-		ctrl.fixMap()
+		ctrl.reqCache = make(map[common.Hash]*mineReqData)
 	}
 	return
 }
 
-func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, txs []types.CoinSelfTransaction, isBroadcastReq bool) (*mineReqData, error) {
+func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, miner common.Address, isBroadcastReq bool,isfriend bool) (*mineReqData, error) {
 	if nil == header {
 		return nil, errors.New("header为nil")
 	}
 
 	reqNumber := header.Number.Uint64()
 	headerHash := header.HashNoSignsAndNonce()
+	if reqNumber > ctrl.curNumber{
+		ctrl.SetNewNumber(reqNumber,common.RoleMiner)
+	}
+	/*
 	if reqNumber > ctrl.curNumber {
 		list, exist := ctrl.futureReq[reqNumber]
 		reqData := newMineReqData(headerHash, header, txs, isBroadcastReq)
@@ -127,10 +131,11 @@ func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, txs []types.CoinSelfTr
 		} else {
 			ctrl.futureReq[reqNumber] = []*mineReqData{reqData}
 		}
-		return nil, nil
-	} else if reqNumber < ctrl.curNumber {
+		return reqData, nil
+	} else */if reqNumber < ctrl.curNumber {
 		return nil, errors.Errorf("挖矿请求消息高度(%d) 小于 当前高度(%d)", reqNumber, ctrl.curNumber)
 	} else {
+
 		data, exist := ctrl.reqCache[headerHash]
 		if exist {
 			return data, nil
@@ -140,13 +145,15 @@ func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, txs []types.CoinSelfTr
 			return nil, err
 		}
 
-		reqData := newMineReqData(headerHash, header, txs, isBroadcastReq)
+		reqData := newMineReqData(headerHash, header, nil, isBroadcastReq,isfriend)
+		reqData.coinbase = miner
 		ctrl.reqCache[headerHash] = reqData
 		return reqData, nil
 	}
 }
 
 func (ctrl *mineReqCtrl) CanMining() bool {
+	return true
 	return ctrl.roleCanMine(ctrl.role, ctrl.curNumber)
 }
 
@@ -164,17 +171,35 @@ func (ctrl *mineReqCtrl) GetMineReqData(headerHash common.Hash) (*mineReqData, e
 func (ctrl *mineReqCtrl) GetUnMinedReq() *mineReqData {
 	//todo 获取时间戳最大的
 
+	removeHash := make([]common.Hash,0,len(ctrl.reqCache))
+	var reqMax *mineReqData
 	for hash, req := range ctrl.reqCache {
+		reqNumber := req.header.Number.Uint64()
+		if reqNumber<ctrl.curNumber{
+			if reqNumber<ctrl.curNumber-1 {
+			removeHash = append(removeHash,hash)
+			}
+			continue
+		}
 		if req == nil {
 			log.ERROR(ModuleMiner, "GetUnMinedReq", "有reqData为nil", "hash", hash.TerminalString())
+			removeHash = append(removeHash,hash)
 			continue
 		}
 		if req.mined {
+//			removeHash = append(removeHash,hash)
 			continue
 		}
-		return req
+		if reqMax==nil{
+			reqMax = req
+		}else if reqMax.header.Number.Cmp(req.header.Number)<0{
+			reqMax = req
+		}
 	}
-	return nil
+	for _,hash := range removeHash{
+		delete (ctrl.reqCache,hash)
+	}
+	return reqMax
 }
 
 func (ctrl *mineReqCtrl) SetCurrentMineReq(headerHash common.Hash) error {
@@ -222,7 +247,6 @@ func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header) (*mineReqData, er
 	}
 
 	req.mined = true
-
 	if ctrl.currentMineReq != nil && ctrl.currentMineReq.headerHash == headerHash {
 		ctrl.currentMineReq = nil
 	}
@@ -230,6 +254,7 @@ func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header) (*mineReqData, er
 }
 
 func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {
+	return nil
 	if header.Difficulty.Uint64() == 0 {
 		return difficultyIsZero
 	}

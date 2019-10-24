@@ -37,6 +37,7 @@ func (self *EveryBlockSeedPlug1) CalcSeed(hash common.Hash, support baseinterfac
 	return preBlockSeedSum, nil
 }
 func (self *EveryBlockSeedPlug1) Prepare(height uint64, hash common.Hash) error {
+	return nil
 	privatekey, publickeySend, err := commonsupport.GetVoteData()
 	if err != nil {
 		log.ERROR(ModulePreBlockSeed, "获取投票数据失败:", err)

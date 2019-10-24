@@ -21,8 +21,28 @@ package cryptonight
 
 import "fmt"
 import "testing"
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"time"
+)
+func Test_Cryptonightv7_New(t *testing.T){
+	scratchPad := make([]uint64, 1<<18, 1<<18)
+	data,_:=     hex.DecodeString("8519e039172b0d70e5ca7b3383d6b3167315a422747b73f019cf9528f0fde341fd0f2a63030ba6450525cf6de31837669af6f1df8131faf50aaab8d3a7405589")
+	time1 := time.Now().UnixNano()
+	for i:=0;i<500;i++{
+		data[0] += 1
+		data[1] += 2
+		data[2] += 3
+		data[3] += 4
+		data[4] += 5
+		data[5] += 6
+		data[6] += 7
+		cryptonightv7(data,scratchPad,1)
+	}
+	time2 := time.Now().UnixNano()
+	t.Log(time2-time1)
 
+}
 // test cases from original implementation
 func Test_Cryptonightv7_Hash(t *testing.T) {
 
@@ -51,14 +71,14 @@ func Test_Cryptonightv7_Hash(t *testing.T) {
 			expected: "ed082e49dbd5bbe34a3726a0d1dad981146062b39d36d62c71eb1ed8ab49459b",
 		},
 	}
-
+	scratchPad := make([]uint64, 1<<18, 1<<18)
 	for _, test := range tests {
 		data, err := hex.DecodeString(test.data)
 		if err != nil {
 			t.Fatalf("Could NOT decode test")
 		}
 
-		actual := SlowHashv7(data)
+		actual := SlowHashv7(data,scratchPad)
 		//t.Logf("cryptonightv7: want: %s, got: %x", test.expected, actual)
 		if fmt.Sprintf("%x", actual) != test.expected {
 			t.Fatalf("cryptonightv7: want: %s, got: %x", test.expected, actual)

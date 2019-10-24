@@ -87,7 +87,7 @@ func (self *TopNodeInstance) IsSelfAddress(addr common.Address) bool {
 }
 
 func (self *TopNodeInstance) SendNodeMsg(subCode mc.EventCode, msg interface{}, Roles common.RoleType, address []common.Address) {
-	self.hd.SendNodeMsg(subCode, msg, Roles, address)
+	self.hd.SendNodeMsg(subCode, msg,common.Address{}, Roles, address)
 	//log.Info("共识节点状态", "发送消息完成", "")
 }
 

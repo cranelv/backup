@@ -5,12 +5,10 @@
 package pod
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -153,102 +151,42 @@ type SignatureFile struct {
 	Signature common.Signature `json:"signature"`
 	Time      time.Time        `json:"time"`
 }
-
-func (n *Node) Signature() (signature common.Signature, manAddr common.Address, signTime time.Time) {
+func (n *Node) Signature() bool {
 	emptyAddress := common.Address{}
-	if n.config.P2P.ManAddress == emptyAddress {
-		n.log.Info("man input sign address is empty.")
-
-		if !common.FileExist(datadirManSignature) {
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-		fd, err := os.Open(datadirManSignature)
-		if err != nil {
-			n.log.Error("signature open file", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-		defer fd.Close()
-		buf, err := ioutil.ReadAll(fd)
-		if err != nil {
-			n.log.Error("signature read file", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		var fileContent = &SignatureFile{}
-		if err = json.Unmarshal(buf[:], fileContent); err != nil {
-			n.log.Error("json unmarshal file content failed", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		addrByte, err := ioutil.ReadFile(datadirManAddress)
-		if err != nil {
-			n.log.Error("man address read file", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-		n.config.P2P.ManAddress = common.HexToAddress(string(addrByte))
-
-		n.log.Info("signature info", "signature", fileContent.Signature, "sign time", fileContent.Time)
-		return fileContent.Signature, common.HexToAddress(string(addrByte)), fileContent.Time
-	}
-
-	wallet, err := n.accman.Find(accounts.Account{Address: n.config.P2P.ManAddress})
-	if err != nil {
-		n.log.Error("find signature account", "error", err)
-		return common.Signature{}, common.Address{}, time.Now()
-	}
-
-	accounts := wallet.Accounts()
-	for _, account := range accounts {
-		if account.Address != n.config.P2P.ManAddress {
+	emptySign := common.Signature{}
+	dirty := false
+	for i:=0;i<len(n.serverConfig.SubServers);i++ {
+		sub := &n.serverConfig.SubServers[i]
+		if sub.ManAddress == emptyAddress{
 			continue
 		}
+		if sub.Signature == emptySign{
+			acc := accounts.Account{Address:sub.ManAddress}
+			wallet, err := n.accman.Find(acc)
+			if err != nil {
+				n.log.Error("get account error","Account",acc.Address)
+				continue
+			}
+			address := entrust.EntrustAccountValue.GetEntrustValue()
+			val, ok := address[sub.ManAddress]
+			if !ok {
+				n.log.Error("get account password error","Account",acc.Address)
+				continue
+			}
 
-		if n.serverConfig.PrivateKey == nil {
-			n.log.Error("nodekey private key is empty.")
-			return common.Signature{}, common.Address{}, time.Now()
+			ctn := discover.PubkeyID(&sub.PrivateKey.PublicKey).Bytes()
+			signCtn := common.BytesToHash(ctn)
+			sig, err := wallet.SignHashWithPassphrase(acc, val, signCtn.Bytes())
+			if err != nil {
+				n.log.Error("signature with account", "error", err)
+				continue
+			}
+			sub.Signature = common.BytesToSignature(sig)
+			sub.SignTime = time.Now()
+			dirty = true
 		}
-
-		address := entrust.EntrustAccountValue.GetEntrustValue()
-		val, ok := address[n.config.P2P.ManAddress]
-		if !ok {
-			n.log.Error("get account password error")
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		ctn := discover.PubkeyID(&n.serverConfig.PrivateKey.PublicKey).Bytes()
-		signCtn := common.BytesToHash(ctn)
-		sig, err := wallet.SignHashWithPassphrase(account, val, signCtn.Bytes())
-		if err != nil {
-			n.log.Error("signature with account", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		var fileContent = &SignatureFile{}
-		fileContent.Signature = common.BytesToSignature(sig[:])
-		fileContent.Time = time.Now()
-
-		fileCtn, err := json.Marshal(fileContent)
-		if err != nil {
-			n.log.Error("json marshal signature failed", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		err = ioutil.WriteFile(datadirManSignature, fileCtn, 0644)
-		if err != nil {
-			n.log.Error("signature write fail", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-		err = ioutil.WriteFile(datadirManAddress, []byte(n.config.P2P.ManAddress.String()), 0644)
-		if err != nil {
-			n.log.Error("man address write fail", "error", err)
-			return common.Signature{}, common.Address{}, time.Now()
-		}
-
-		n.log.Info("signature info", "signature", fileContent.Signature, "sign time", fileContent.Time)
-		return fileContent.Signature, n.config.P2P.ManAddress, time.Now()
 	}
-	n.log.Info("signature account not found")
-	return
+	return dirty
 }
 
 // Start create a live P2P node and starts running it.
@@ -267,7 +205,8 @@ func (n *Node) Start() error {
 	// Initialize the p2p server. This creates the node key and
 	// discovery databases.
 	n.serverConfig = n.config.P2P
-	n.serverConfig.PrivateKey = n.config.NodeKey()
+	n.serverConfig.ReadSubConfig(n.config.resolvePath(datadirPrivateKey))
+//	n.serverConfig.PrivateKey = n.config.NodeKey()
 	n.serverConfig.Name = n.config.NodeName()
 	n.serverConfig.Logger = n.log
 	if n.serverConfig.StaticNodes == nil {
@@ -279,10 +218,15 @@ func (n *Node) Start() error {
 	if n.serverConfig.NodeDatabase == "" {
 		n.serverConfig.NodeDatabase = n.config.NodeDB()
 	}
+
+
+	// get sign account
+	dirty := n.Signature()
+	if dirty {
+		n.serverConfig.WriteSubConfig(n.config.resolvePath(datadirPrivateKey))
+	}
 	p2p.ServerP2p.Config = n.serverConfig
 	running := p2p.ServerP2p
-	// get sign account
-	running.Signature, running.ManAddress, running.SignTime = n.Signature()
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
@@ -334,6 +278,7 @@ func (n *Node) Start() error {
 		// Mark the service started for potential cleanup
 		started = append(started, kind)
 	}
+	/*
 	// Lastly start the configured RPC interfaces
 	if err := n.startRPC(services); err != nil {
 		for _, service := range services {
@@ -342,16 +287,14 @@ func (n *Node) Start() error {
 		running.Stop()
 		return err
 	}
+	*/
 	//var bc *core.BlockChain
 	//boot := boot.New(bc, n.Server().NodeInfo().ID)
 	//boot.Run()
 	// start ca
-	emptyAddress := common.Address{}
-	if running.ManAddress == emptyAddress {
-		go ca.Start(running.Self().ID, n.config.DataDir, emptyAddress)
-	} else {
-		go ca.Start(running.Self().ID, n.config.DataDir, n.config.P2P.ManAddress)
-	}
+//	log.Info("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQca","address",running.ManAddress)
+	emptyAddress := running.SubServers[0].ManAddress
+	go ca.Start(discover.NodeID{}, n.config.DataDir, emptyAddress)
 
 	// Finish initializing the startup
 	n.services = services

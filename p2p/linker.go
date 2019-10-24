@@ -5,7 +5,6 @@ package p2p
 
 import (
 	"encoding/json"
-	"math/big"
 	"sync"
 	"time"
 
@@ -126,12 +125,12 @@ func (l *Linker) Start() {
 					if len(l.linkMap) <= 0 {
 						break
 					}
-					bytes, err := l.encodeData()
-					if err != nil {
-						log.Error("encode error", "error", err)
-						break
-					}
-					mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.CallTheRoll, Height: big.NewInt(r.Height.Int64() + 2), Data: bytes})
+//					bytes, err := l.encodeData()
+//					if err != nil {
+//						log.Error("encode error", "error", err)
+//						break
+//					}
+//					mc.PublishEvent(mc.SendBroadCastTx, mc.BroadCastEvent{Txtyps: mc.CallTheRoll, Height: big.NewInt(r.Height.Int64() + 2), Data: bytes})
 				case r.BroadCastInterval.IsBroadcastNumber(height + 1):
 					break
 				default:
@@ -238,9 +237,9 @@ func (l *Linker) recordTopNodeActiveInfo() {
 		topNodes := ca.GetRolesByGroup(common.RoleType(i))
 
 		for _, tn := range topNodes {
-			if tn == ServerP2p.ManAddress {
-				continue
-			}
+//			if tn == ServerP2p.ManAddress {
+//				continue
+//			}
 			if _, ok := l.topNode[common.RoleType(i)][tn]; !ok {
 				l.topNode[common.RoleType(i)][tn] = []uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 			}
@@ -250,7 +249,7 @@ func (l *Linker) recordTopNodeActiveInfo() {
 	for role := range l.topNode {
 		for key := range l.topNode[role] {
 			ok := false
-			for _, peer := range ServerP2p.Peers() {
+			for _, peer := range ServerP2p.Peers(common.Address{}) {
 				id := ServerP2p.ConvertAddressToId(key)
 				if id != EmptyNodeId && peer.ID() == id {
 					ok = true
@@ -330,7 +329,7 @@ func Record(id discover.NodeID) error {
 }
 
 func (l *Linker) sendToAllPeersPing() {
-	peers := ServerP2p.Peers()
+	peers := ServerP2p.Peers(common.Address{})
 	for _, peer := range peers {
 		Send(peer.msgReadWriter, common.BroadcastReqMsg, []uint8{0})
 	}

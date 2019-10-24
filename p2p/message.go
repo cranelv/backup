@@ -99,7 +99,7 @@ func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 
 // SendToSingle send message to single peer.
 func SendToSingle(addr common.Address, msgCode uint64, data interface{}) error {
-	if addr == ServerP2p.ManAddress {
+	if ServerP2p.ContainAddr(addr) {
 		return nil
 	}
 	id := ServerP2p.ConvertAddressToId(addr)
@@ -108,7 +108,7 @@ func SendToSingle(addr common.Address, msgCode uint64, data interface{}) error {
 		return ErrCanNotConvert
 	}
 
-	peers := ServerP2p.Peers()
+	peers := ServerP2p.Peers(common.Address{})
 	for _, peer := range peers {
 		if id == peer.ID() {
 			return Send(peer.MsgReadWriter(), msgCode, data)
@@ -120,11 +120,11 @@ func SendToSingle(addr common.Address, msgCode uint64, data interface{}) error {
 // SendToGroup send message to a group.
 func SendToGroupWithBackup(to common.RoleType, msgCode uint64, data interface{}) error {
 	address := ca.GetRolesByGroupWithNextElect(to)
-	peers := ServerP2p.Peers()
+	peers := ServerP2p.Peers(common.Address{})
 	for _, addr := range address {
-		if addr == ServerP2p.ManAddress {
-			continue
-		}
+//		if addr == ServerP2p.ManAddress {
+//			continue
+//		}
 		id := ServerP2p.ConvertAddressToId(addr)
 		if id == EmptyNodeId {
 			log.Error("send to single peer failed, id convert failed", "peer addr", addr)
@@ -144,40 +144,34 @@ func SendToGroupWithBackup(to common.RoleType, msgCode uint64, data interface{})
 
 	return nil
 }
-
-// SendToGroup send message to a group.
-func SendToGroup(to common.RoleType, msgCode uint64, data interface{}) error {
-	address := ca.GetRolesByGroup(to)
-	peers := ServerP2p.Peers()
-	log.Trace("message.go", "查看所有的 ServerP2P peers Count", len(peers), "目标IDS数量", len(address), "role", to.String())
-	for _, addr := range address {
-		if addr == ServerP2p.ManAddress {
-			continue
-		}
-		bSend := false
-
-		id := ServerP2p.ConvertAddressToId(addr)
-		if id == EmptyNodeId {
-			log.Error("send to single peer failed, id convert failed", "peer addr", addr)
-			continue
-		}
-		for _, peer := range peers {
-			if id == peer.ID() {
-				err := Send(peer.MsgReadWriter(), msgCode, data)
-				if err != nil {
-					log.Trace("message.go", "发送消息失败, id", id, "addr", addr.Hex(), "err", err)
-				} else {
-					log.Trace("message.go", "发送消息成功, id", id, "addr", addr.Hex(), "IP", peer.Info().Network.RemoteAddress)
-					bSend = true
-				}
-				break
-			}
-		}
-		if !bSend {
-			log.ERROR("message.go", "该节点未发送成功 nodeId", id)
+func SendToTrustPeer(msgCode uint64,data interface{}){
+	for _,peer := range ServerP2p.friends {
+		if peer != nil{
+			go Send(peer.MsgReadWriter(), msgCode, data)
 		}
 	}
-	return nil
+}
+// SendToGroup send message to a group.
+func SendToGroup(to common.RoleType, msgCode uint64,addr0 common.Address ,data interface{}) error {
+	if to == common.RoleValidator{
+		peers := ServerP2p.Peers(addr0)
+		for _, peer := range peers {
+			if peer.IsStaticConnect(){
+				go Send(peer.MsgReadWriter(), msgCode, data)
+			}
+			//		log.Info("Send to Peers","PeerID",peer.ID())
+		}
+		return nil
+	}else{
+		peers := ServerP2p.subServers[0].Peers()
+		for _, peer := range peers {
+			//		log.Info("Send to Peers","PeerID",peer.ID())
+			if peer.IsStaticConnect() {
+				go Send(peer.MsgReadWriter(), msgCode, data)
+			}
+		}
+		return nil
+	}
 }
 
 // SendItems writes an RLP with the given code and data elements.

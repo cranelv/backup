@@ -17,7 +17,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/accounts/keystore"
 	"github.com/MatrixAINetwork/go-matrix/accounts/usbwallet"
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/crypto"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
@@ -218,6 +217,7 @@ func DefaultWSEndpoint() string {
 
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
+	return "name=Gman/v1.0.0.3_970512082761771b9c69e1ea3c5f3af4740a67db/linux-amd64/go1.10.4"
 	name := c.name()
 	// Backwards compatibility: previous versions used title-cased "Gman", keep that.
 	if name == "gman" || name == "gman-testnet" {
@@ -289,6 +289,8 @@ func (c *Config) instanceDir() string {
 // first any manually set key, falling back to the one found in the configured
 // data folder. If no key can be found, a new one is generated.
 func (c *Config) NodeKey() *ecdsa.PrivateKey {
+	return nil
+	/*
 	// Use any specifically configured key.
 	if c.P2P.PrivateKey != nil {
 		return c.P2P.PrivateKey
@@ -321,6 +323,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 		log.Error(fmt.Sprintf("Failed to persist node key: %v", err))
 	}
 	return key
+	*/
 }
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.

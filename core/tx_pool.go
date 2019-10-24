@@ -477,7 +477,7 @@ func (nPool *NormalTxPool) SendMsg(data MsgStruct) {
 		p2p.SendToSingle(data.SendAddr, common.NetworkMsg, []interface{}{data})
 	case RecvErrTx: // 给全部验证者发送错误交易做共识
 		if selfRole == common.RoleValidator {
-			p2p.SendToGroup(common.RoleValidator, common.NetworkMsg, []interface{}{data})
+			p2p.SendToGroup(common.RoleValidator, common.NetworkMsg,common.Address{}, []interface{}{data})
 		}
 	}
 }
