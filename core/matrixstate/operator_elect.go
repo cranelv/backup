@@ -1,3 +1,6 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package matrixstate
 
 import (
@@ -513,6 +516,54 @@ func (opt *operatorVIPConfig) SetValue(st StateDB, value interface{}) error {
 	data, err := rlp.EncodeToBytes(config)
 	if err != nil {
 		log.Error(logInfo, "vipConfig rlp encode failed", err)
+		return err
+	}
+	st.SetMatrixData(opt.key, data)
+	return nil
+}
+/////////////////////////////////////////////////////////////////////////////////////////
+// 动态选举配置信息
+type operatorDynamicPollingInfo struct {
+	key common.Hash
+}
+
+func newDynamicPollingOpt() *operatorDynamicPollingInfo {
+	return &operatorDynamicPollingInfo{
+		key: types.RlpHash(matrixStatePrefix + mc.MSKeyElectDynamicPollingInfo),
+	}
+}
+
+func (opt *operatorDynamicPollingInfo) KeyHash() common.Hash {
+	return opt.key
+}
+
+func (opt *operatorDynamicPollingInfo) GetValue(st StateDB) (interface{}, error) {
+	if err := checkStateDB(st); err != nil {
+		return nil, err
+	}
+
+	value := new(mc.ElectDynamicPollingInfo)
+	data := st.GetMatrixData(opt.key)
+	if len(data) == 0 {
+		return value, nil
+	}
+
+	err := rlp.DecodeBytes(data, &value)
+	if err != nil {
+		log.Error(logInfo, "electGraph rlp decode failed", err)
+		return nil, err
+	}
+	return value, nil
+}
+
+func (opt *operatorDynamicPollingInfo) SetValue(st StateDB, value interface{}) error {
+	if err := checkStateDB(st); err != nil {
+		return err
+	}
+
+	data, err := rlp.EncodeToBytes(value)
+	if err != nil {
+		log.Error(logInfo, "DynamicPollingInfo rlp encode failed", err)
 		return err
 	}
 	st.SetMatrixData(opt.key, data)

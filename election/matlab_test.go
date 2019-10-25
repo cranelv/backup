@@ -1,3 +1,6 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package election
 
 import (
@@ -18,13 +21,13 @@ type VipCfg struct {
 	Number uint64
 }
 type NodeList struct {
-	Address string
+	Address     string
 	SignAddress string
-	Account string
+	Account     string
 }
 
 type BlackList struct {
-	Account  string
+	Account string
 }
 type WhiteList struct {
 	Account string
@@ -37,20 +40,21 @@ type Election struct {
 	Amount   uint64
 }
 type ElectInfo struct {
-	TopNodeNum       uint16
-	BackUpNodeNum    uint16
-	CandidateNodeNum uint64
-	VipCfg           []VipCfg
-	Random           uint64
-	NodeList         []NodeList
-	BlackList        []BlackList
-	Election         []Election
+	TopNodeNum        uint16
+	BackUpNodeNum     uint16
+	CandidateNodeNum  uint64
+	VipCfg            []VipCfg
+	Random            uint64
+	NodeList          []NodeList
+	BlackList         []BlackList
+	Election          []Election
 	WhiteList         []WhiteList
 	WhiteListSwitcher bool
 }
+
 func init() {
 	log.InitLog(3)
-	}
+}
 func ValidatorElectProcess(vectorPath string) (bool, error) {
 	cfg := new(ElectInfo)
 	testdata, err := ioutil.ReadFile(vectorPath)
@@ -77,9 +81,9 @@ func ValidatorElectProcess(vectorPath string) (bool, error) {
 		Vip = append(Vip, mc.VIPConfig{MinMoney: minmoney.Uint64(), ElectUserNum: uint8(v.Number), StockScale: 1000})
 	}
 	var blackList = make([]common.Address, 0)
-	for _, v := range cfg.BlackList{
-		blackList = append(blackList,common.HexToAddress(v.Account))
-}
+	for _, v := range cfg.BlackList {
+		blackList = append(blackList, common.HexToAddress(v.Account))
+	}
 	var whiteList = make([]common.Address, 0)
 	for _, v := range cfg.WhiteList {
 		whiteList = append(whiteList, common.HexToAddress(v.Account))
@@ -90,10 +94,10 @@ func ValidatorElectProcess(vectorPath string) (bool, error) {
 		RandSeed:                new(big.Int).SetUint64(cfg.Random),
 		ValidatorList:           ValidatorList,
 		FoundationValidatorList: []vm.DepositDetail{},
-		ElectConfig:             mc.ElectConfigInfo_All{ValidatorNum: cfg.TopNodeNum, BackValidator: cfg.BackUpNodeNum, BlackList: blackList, WhiteList:whiteList, WhiteListSwitcher:cfg.WhiteListSwitcher},
+		ElectConfig:             mc.ElectConfigInfo_All{ValidatorNum: cfg.TopNodeNum, BackValidator: cfg.BackUpNodeNum, BlackList: blackList, WhiteList: whiteList, WhiteListSwitcher: cfg.WhiteListSwitcher},
 		VIPList:                 Vip,
 	}
-	ans := baseinterface.NewElect("layerd").ValidatorTopGen(data)
+	ans := baseinterface.NewElect("layerd").ValidatorTopGen(data, nil)
 	status, err := validatorDataCmp(ans, cfg.Election)
 	return status, err
 }
@@ -105,10 +109,10 @@ func validatorDataCmp(goResult *mc.MasterValidatorReElectionRsq, matlabResult []
 	reshape = append(reshape, goResult.BackUpValidator...)
 	reshape = append(reshape, goResult.CandidateValidator...)
 
-	log.INFO("GO输出")
-	for _, v := range reshape{
-		log.INFO("GO Result", "Address", v.Account.String(), "Vip", v.VIPLevel, "Stock", v.Stock, "Type", v.Type)
-			}
+	log.Info("GO输出")
+	for _, v := range reshape {
+		log.Info("GO Result", "Address", v.Account.String(), "Vip", v.VIPLevel, "Stock", v.Stock, "Type", v.Type)
+	}
 	if len(reshape) != len(matlabResult) {
 		return false, errors.New("比较长度不一致")
 	}
@@ -117,21 +121,20 @@ func validatorDataCmp(goResult *mc.MasterValidatorReElectionRsq, matlabResult []
 		mdata := matlabResult[i]
 		gdata := reshape[i]
 		if !common.HexToAddress(mdata.Account).Equal(gdata.Account) {
-			log.INFO("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String())
+			log.Info("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String())
 			return false, errors.New("地址不一致")
 		}
 		if mdata.Stock != gdata.Stock {
-			log.INFO("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String(), "M Stock", mdata.Stock, "GO Stock", gdata.Stock)
+			log.Info("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String(), "M Stock", mdata.Stock, "GO Stock", gdata.Stock)
 			return false, errors.New("股权不一致")
-	}
+		}
 
 		if mdata.VipRole != uint16(gdata.VIPLevel) {
 			return false, errors.New("VIP不一致")
+		}
 	}
-}
 	return true, nil
 }
-
 
 func MinerElectProcess(vectorPath string) (bool, error) {
 	cfg := new(ElectInfo)
@@ -146,7 +149,7 @@ func MinerElectProcess(vectorPath string) (bool, error) {
 	minerList := make([]vm.DepositDetail, 0)
 	for _, v := range cfg.NodeList {
 		deposit, _ := new(big.Int).SetString(v.Account, 0)
-		minerList = append(minerList, vm.DepositDetail{Address: common.HexToAddress(v.Address), SignAddress:common.HexToAddress(v.SignAddress), Deposit: deposit})
+		minerList = append(minerList, vm.DepositDetail{Address: common.HexToAddress(v.Address), SignAddress: common.HexToAddress(v.SignAddress), Deposit: deposit})
 	}
 	Vip := make([]mc.VIPConfig, 0)
 	Vip = append(Vip, mc.VIPConfig{MinMoney: 0, ElectUserNum: 0, StockScale: 1000})
@@ -159,46 +162,46 @@ func MinerElectProcess(vectorPath string) (bool, error) {
 		Vip = append(Vip, mc.VIPConfig{MinMoney: minmoney.Uint64(), ElectUserNum: uint8(v.Number), StockScale: 1000})
 	}
 	var blackList = make([]common.Address, 0)
-	for _, v := range cfg.BlackList{
-		blackList = append(blackList,common.HexToAddress(v.Account))
+	for _, v := range cfg.BlackList {
+		blackList = append(blackList, common.HexToAddress(v.Account))
 	}
 	var whiteList = make([]common.Address, 0)
 	for _, v := range cfg.WhiteList {
 		whiteList = append(whiteList, common.HexToAddress(v.Account))
 	}
 	data := &mc.MasterMinerReElectionReqMsg{
-		SeqNum:                  0,
-		RandSeed:                new(big.Int).SetUint64(cfg.Random),
-		MinerList:               minerList,
-		ElectConfig:             mc.ElectConfigInfo_All{MinerNum:cfg.TopNodeNum, BlackList:blackList,WhiteList:whiteList, WhiteListSwitcher:cfg.WhiteListSwitcher},
+		SeqNum:      0,
+		RandSeed:    new(big.Int).SetUint64(cfg.Random),
+		MinerList:   minerList,
+		ElectConfig: mc.ElectConfigInfo_All{MinerNum: cfg.TopNodeNum, BlackList: blackList, WhiteList: whiteList, WhiteListSwitcher: cfg.WhiteListSwitcher},
 	}
 	ans := baseinterface.NewElect("layerd").MinerTopGen(data)
 	status, err := minerDataCmp(ans, cfg.Election)
 	return status, err
-		}
+}
 
 func minerDataCmp(goResult *mc.MasterMinerReElectionRsp, matlabResult []Election) (bool, error) {
 	var reshape = make([]mc.ElectNodeInfo, 0)
 	reshape = append(reshape, goResult.MasterMiner...)
-	log.INFO("GO输出")
-	for _, v := range reshape{
-		log.INFO("GO Result", "Address", v.Account.String(), "Vip", v.VIPLevel, "Stock", v.Stock, "Type", v.Type)
+	log.Info("GO输出")
+	for _, v := range reshape {
+		log.Info("GO Result", "Address", v.Account.String(), "Vip", v.VIPLevel, "Stock", v.Stock, "Type", v.Type)
 	}
 	if len(reshape) != len(matlabResult) {
 		return false, errors.New("比较长度不一致")
-		}
+	}
 
 	for i := 0; i < len(reshape); i++ {
 		mdata := matlabResult[i]
 		gdata := reshape[i]
 		if !common.HexToAddress(mdata.Account).Equal(gdata.Account) {
-			log.INFO("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String())
+			log.Info("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String())
 			return false, errors.New("地址不一致")
 		}
 		if mdata.Stock != gdata.Stock {
-			log.INFO("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String(), "M Stock", mdata.Stock, "GO Stock", gdata.Stock)
+			log.Info("", "索引", i, "M Addr", common.HexToAddress(mdata.Account).String(), "GO Addr", gdata.Account.String(), "M Stock", mdata.Stock, "GO Stock", gdata.Stock)
 			return false, errors.New("股权不一致")
-	}
+		}
 	}
 	return true, nil
 }
@@ -218,7 +221,7 @@ func TestValidatorCase3(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case3.json"); !status {
 		t.Error(err)
 	}
-		}
+}
 func TestValidatorCase4(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case4.json"); !status {
 		t.Error(err)
@@ -242,13 +245,13 @@ func TestValidatorCase7(t *testing.T) {
 func TestValidatorCase8(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case8.json"); !status {
 		t.Error(err)
-		}
-		}
+	}
+}
 func TestValidatorCase9(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case9.json"); !status {
 		t.Error(err)
 	}
-		}
+}
 func TestValidatorCase10(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case10.json"); !status {
 		t.Error(err)
@@ -257,8 +260,8 @@ func TestValidatorCase10(t *testing.T) {
 func TestValidatorCase11(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case11.json"); !status {
 		t.Error(err)
-		}
 	}
+}
 func TestValidatorCase12(t *testing.T) {
 	if status, err := ValidatorElectProcess(".\\testdata\\testvectorV\\case12.json"); !status {
 		t.Error(err)

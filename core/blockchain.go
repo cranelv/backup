@@ -46,6 +46,7 @@ import (
 	//"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/depoistInfo"
 	"github.com/MatrixAINetwork/go-matrix/params/enstrust"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
 )
 
 var (
@@ -138,7 +139,7 @@ type BlockChain struct {
 	validator  map[string]Validator // block and state validator interface
 
 	defaultEngine     consensus.Engine
-	defaultDposEngine consensus.DPOSEngine
+	defaultDPOSEngine consensus.DPOSEngine
 	defaultProcessor  Processor
 	defaultValidator  Validator
 	vmConfig          vm.Config
@@ -161,7 +162,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Matrix Validator and
 // Processor.
-func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config) (*BlockChain, error) {
+func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, vmConfig vm.Config, engine map[string]consensus.Engine, dposEngine map[string]consensus.DPOSEngine) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieNodeLimit: 256 * 1024 * 1024,
@@ -269,6 +270,26 @@ func NewBlockChain(db mandb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 //	go bc.update()
 	return bc, nil
+}
+
+func (bc *BlockChain) initVersionConfig(chainConfig *params.ChainConfig, engine map[string]consensus.Engine, dposEngine map[string]consensus.DPOSEngine) {
+	bc.engine = engine
+	bc.dposEngine = dposEngine
+
+	for version, item := range bc.engine {
+		validator := NewBlockValidator(chainConfig, bc, item)
+		processor := NewStateProcessor(chainConfig, bc, item)
+		bc.SetValidator(version, validator)
+		bc.SetProcessor(version, processor)
+
+		if version == manversion.VersionAlpha {
+			bc.defaultProcessor = processor
+			bc.defaultValidator = validator
+		}
+	}
+
+	bc.defaultEngine = engine[manversion.VersionAlpha]
+	bc.defaultDPOSEngine = dposEngine[manversion.VersionAlpha]
 }
 
 func (bc *BlockChain) getProcInterrupt() bool {
@@ -804,7 +825,7 @@ func (bc *BlockChain) procFutureBlocks() {
 
 		// Insert one by one as chain insertion needs contiguous ancestry between blocks
 		for i := range blocks {
-			bc.InsertChain(blocks[i : i+1])
+			bc.InsertChain(blocks[i:i+1], 0)
 		}
 	}
 }
@@ -954,11 +975,11 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks) (int, error) {
 			log.Trace("BlockChain InsertReceiptChain ipfs save block data", "block", block.NumberU64())
 			//bc.qBlockQueue.Push(block, -float32(block.NumberU64()))
 			if block.NumberU64()%numSnapshotPeriod == 5 {
-				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod, 0)
 			}
 		} else {
 			if block.NumberU64()%SaveSnapPeriod == 5 {
-				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+				go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod, 0)
 			}
 		}
 		stats.processed++
@@ -1081,11 +1102,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		bc.GetIpfsQUnMux()
 		//log.Trace("BlockChain WriteBlockWithState ipfs save block data", "block", block.NumberU64())
 		if block.NumberU64()%300 == 5 {
-			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod, 0)
 		}
 	} else {
 		if block.NumberU64()%SaveSnapPeriod == 5 {
-			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod)
+			go bc.SaveSnapshot(block.NumberU64(), SaveSnapPeriod, 0)
 		}
 	}
 	deleteEmptyObjects := bc.chainConfig.IsEIP158(block.Number())
@@ -1176,7 +1197,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 		return NonStatTy, err
 	}
 
-	localSbs, err := bc.GetSuperBlockSeq()
+	_, err = bc.GetSuperBlockSeq()
 	if nil != err {
 		log.Error("获取超级区块序号错误")
 		return NonStatTy, err
@@ -1184,12 +1205,21 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 
 	//log.INFO("blockChain", "超级区块序号", remoteSuperBlkCfg.Seq)
 	var reorg bool
-	if localSbs < remoteSuperBlkCfg.Seq {
-		reorg = true
-	} else if localSbs == remoteSuperBlkCfg.Seq {
-		reorg = externTd.Cmp(localTd) > 0
+	if manversion.CanSwitchGammaCanonicalChain(time.Now().Unix()) {
+		reorg = bc.isGammaCanonicalChain(remoteSuperBlkCfg, block, currentBlock)
 	} else {
-		reorg = false
+		localSbs, err := bc.GetSuperBlockSeq()
+		if nil != err {
+			log.Error("获取超级区块序号错误")
+			return NonStatTy, err
+		}
+		if localSbs < remoteSuperBlkCfg.Seq {
+			reorg = true
+		} else if localSbs == remoteSuperBlkCfg.Seq {
+			reorg = externTd.Cmp(localTd) > 0
+		} else {
+			reorg = false
+		}
 	}
 
 	currentBlock = bc.CurrentBlock()
@@ -1222,6 +1252,41 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, state *state.State
 	return status, nil
 }
 
+func (bc *BlockChain) isGammaCanonicalChain(superBlkCfg *mc.SuperBlkCfg, block *types.Block, currentBlock *types.Block) bool {
+	currentSbs, err := bc.GetSuperBlockSeq()
+	if nil != err {
+		log.Error("获取超级区块序号错误", "err", err)
+		return false
+	}
+	if currentSbs < superBlkCfg.Seq {
+		return true
+	} else if currentSbs > superBlkCfg.Seq {
+		return false
+	}
+
+	// 超级区块序号相同，对比高度
+	currentNumber := currentBlock.NumberU64()
+	newNumber := block.NumberU64()
+	if currentNumber < newNumber {
+		return true
+	} else if currentNumber > newNumber {
+		return false
+	}
+
+	// 高度相同，对比区块时间
+	currentHeaderTime := currentBlock.Time().Uint64()
+	newHeaderTime := block.Time().Uint64()
+	if currentHeaderTime < newHeaderTime {
+		log.Info("isCanonicalChain", "当前header time", currentHeaderTime, "当前区块", currentBlock.Hash().TerminalString(),
+			"新header time", newHeaderTime, "新区块", block.Hash().TerminalString())
+		return true
+	} else if currentHeaderTime > newHeaderTime {
+		return false
+	}
+
+	return false
+}
+
 func (bc *BlockChain) superBlkRewind(block *types.Block, oldBlock *types.Block) {
 	if oldBlock.NumberU64() >= block.NumberU64() {
 		log.INFO(ModuleName, "rewind to", block.NumberU64()-1)
@@ -1243,14 +1308,14 @@ func (bc *BlockChain) superBlkRewind(block *types.Block, oldBlock *types.Block) 
 // wrong.
 //
 // After insertion is done, all accumulated events will be fired.
-func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
-	n, events, logs, err := bc.insertChain(chain)
+func (bc *BlockChain) InsertChain(chain types.Blocks, flg int) (int, error) {
+	n, events, logs, err := bc.insertChain(chain, flg)
 	bc.PostChainEvents(events, logs)
 	return n, err
 }
 
 func (bc *BlockChain) InsertChainNotify(chain types.Blocks, notify bool) (int, error) {
-	n, events, logs, err := bc.insertChain(chain)
+	n, events, logs, err := bc.insertChain(chain, 0)
 	if notify {
 		bc.PostChainEvents(events, logs)
 	}
@@ -1275,8 +1340,8 @@ func (r *randSeed) GetRandom(hash common.Hash, Type string) (*big.Int, error) {
 // insertChain will execute the actual chain insertion and event aggregation. The
 // only reason this method exists as a separate one is to make locking cleaner
 // with deferred statements.
-func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []types.CoinLogs, error) {
-	return 0,nil,nil,nil
+func (bc *BlockChain) insertChain(chain types.Blocks, flg int) (int, []interface{}, []types.CoinLogs, error) {
+
 	// Do a sanity check that the provided chain is actually ordered and linked
 	log.Trace("BlockChain insertChain in")
 	for i := 1; i < len(chain); i++ {
@@ -1299,6 +1364,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
 	// acquiring.
+	if flg == 1 && len(chain) == 1 {
+		hasBlock := bc.GetBlockByHash(chain[0].Hash())
+		if nil != hasBlock {
+			return 0, nil, nil, fmt.Errorf("fetch insert blockchain error block has exist, err known")
+		}
+	}
 	var (
 		stats         = insertStats{startTime: mclock.Now()}
 		events        = make([]interface{}, 0, len(chain))
@@ -1336,7 +1407,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 		if manparams.IsBroadcastNumberByHash(block.NumberU64(), block.ParentHash()) || block.IsSuperBlock() {
 			seal = false
 		}
-		err := bc.Engine(header.Version).VerifyHeader(bc, header, seal)
+		err := bc.Engine(header.Version).VerifyHeader(bc, header, seal, false)
 		if err == nil {
 			err = bc.Validator(header.Version).ValidateBody(block)
 		}
@@ -1397,7 +1468,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []typ
 			}
 			// Import all the pruned blocks to make the state available
 			bc.chainmu.Unlock()
-			_, evs, logs, err := bc.insertChain(winner)
+			_, evs, logs, err := bc.insertChain(winner, 0)
 			bc.chainmu.Lock()
 			events, coalescedLogs = evs, logs
 
@@ -1969,7 +2040,7 @@ func (bc *BlockChain) DPOSEngine(version []byte) consensus.DPOSEngine {
 	if dposEngine, ok := bc.dposEngine[string(version)]; ok {
 		return dposEngine
 	}
-	return bc.defaultDposEngine
+	return bc.defaultDPOSEngine
 }
 
 // SubscribeRemovedLogsEvent registers a subscription of RemovedLogsEvent.
@@ -1995,10 +2066,6 @@ func (bc *BlockChain) SubscribeChainSideEvent(ch chan<- ChainSideEvent) event.Su
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []types.CoinLogs) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
-}
-
-func (bc *BlockChain) VerifyHeader(header *types.Header) error {
-	return bc.Engine(header.Version).VerifyHeader(bc, header, false)
 }
 
 func (bc *BlockChain) SetDposEngine(version string, dposEngine consensus.DPOSEngine) {
@@ -2415,7 +2482,7 @@ func (bc *BlockChain) CurrentBlockStore(tbc *types.Block) {
 	bc.currentBlock.Store(tbc)
 }
 
-func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string) bool {
+func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string) (uint64, bool) {
 	// Short circuit if no peers are available
 
 	//syn snapshots
@@ -2423,30 +2490,50 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 	// Make sure the peer's TD is higher than our own
 	currentBlock := bc.CurrentBlock()
 
-	if blockNum <= bc.CurrentBlock().NumberU64() {
-		log.DEBUG("BlockChain synSnapshot", "the blockNum is too low ,sblockNum", blockNum)
-		return false
+	if blockNum != 0 {
+		if blockNum <= bc.CurrentBlock().NumberU64() {
+			log.Debug("BlockChain synSnapshot", "the blockNum is too low ,sblockNum", blockNum)
+			return 0, false
+		}
 	}
 	rb, rerr := ioutil.ReadFile(filePath)
 	if rerr != nil {
 		log.Error("BlockChain synSnapshot", "Read TrieData err: ", rerr)
-		return false
+		return 0, false
 	}
 	var snapshotDatas snapshot.SnapshotDatas
 	rlperr := rlp.DecodeBytes(rb, &snapshotDatas)
 	if rlperr != nil {
-		log.Error("BlockChain synSnapshot", "Unmarshal TrieData err: ", rlperr)
-		return false
+		var oldsnapshotDatas snapshot.SnapshotDatasV1
+		rlperr := rlp.DecodeBytes(rb, &oldsnapshotDatas)
+		if rlperr != nil {
+			log.Error("BlockChain synSnapshot", "Unmarshal TrieData err: ", rlperr)
+			return 0, false
+		}
+		snapshotDatas.OtherTries = oldsnapshotDatas.OtherTries
+		snapshotDatas.Datas = make([]snapshot.SnapshotData, 0)
+		for _, v := range oldsnapshotDatas.Datas {
+			snapshotDatas.Datas = append(snapshotDatas.Datas, snapshot.SnapshotData{CoinTries: v.CoinTries, Seq: v.Seq, Td: v.Td, Block: *(v.Block.TransferBlock())})
+		}
 	}
-	if blockNum != snapshotDatas.Datas[len(snapshotDatas.Datas)-1].Block.NumberU64() {
-		log.DEBUG("BlockChain synSnapshot", "the blockNum is not eq the real snapnumber ,sblockNum", blockNum)
-		return false
+	if blockNum != 0 {
+		if blockNum != snapshotDatas.Datas[len(snapshotDatas.Datas)-1].Block.NumberU64() {
+			log.Debug("BlockChain synSnapshot", "the blockNum is not eq the real snapnumber ,sblockNum", blockNum)
+			return 0, false
+		}
 	}
 
+	snapBlock := &snapshotDatas.Datas[len(snapshotDatas.Datas)-1].Block
+	snapBlockNum := snapBlock.NumberU64()
+	log.Debug("BlockChain synSnapshot snap block", "blockNum", snapBlockNum, "currentBlock", currentBlock.NumberU64())
+	if !common.IsGreaterLink(common.LinkInfo{Sbs: 0, Bn: snapBlock.NumberU64(), Bt: snapBlock.Time().Uint64()}, common.LinkInfo{Sbs: 0, Bn: currentBlock.NumberU64(), Bt: currentBlock.Time().Uint64()}) {
+		log.Warn("BlockChain synSnapshot the snap blocknum is too low")
+		return snapBlockNum, false
+	}
 	for _, otherTires := range snapshotDatas.OtherTries {
 		for _, value := range otherTires {
 			if !bc.LoadDumps(value.TrieArry, 0) {
-				return false
+				return snapBlockNum, false
 			}
 		}
 	}
@@ -2455,7 +2542,7 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 		log.Info("BlockChain synSnapshot", "the trie on block height", snapshotData.Block.Number())
 		for _, value := range snapshotData.CoinTries {
 			if !bc.LoadDumps(value.TrieArry, snapshotData.Block.Number().Int64()) {
-				return false
+				return snapBlockNum, false
 			}
 		}
 
@@ -2464,18 +2551,17 @@ func (bc *BlockChain) SynSnapshot(blockNum uint64, hash string, filePath string)
 		currentBlock.SetHeadNum(block.Number().Int64())
 		err := bc.WriteBlockWithoutState(&block, snapshotData.Td)
 		if err != nil {
-			log.ERROR("BlockChain synSnapshot", " Failed writing block to chain", err)
+			log.Error("BlockChain synSnapshot", " Failed writing block to chain", err)
 		}
-
+		rawdb.WriteHeadHeaderHash(bc.GetDB(), block.Hash())
 		rawdb.WriteHeadBlockHash(bc.GetDB(), block.Hash())
 		rawdb.WriteHeadFastBlockHash(bc.GetDB(), block.Hash())
 		rawdb.WriteCanonicalHash(bc.GetDB(), block.Hash(), block.NumberU64())
 		bc.CurrentBlockStore(&block)
-		log.INFO("BlockChain synSnapshot", "block insert ok, number", block.NumberU64())
+		log.Info("BlockChain synSnapshot super", "block insert ok, number", block.NumberU64())
 
 	}
-	return true
-
+	return snapBlockNum, true
 }
 
 func (bc *BlockChain) LoadDumps(dumps []state.DumpDB, number int64) bool {
@@ -2551,33 +2637,59 @@ func (bc *BlockChain) LoadDumps(dumps []state.DumpDB, number int64) bool {
 
 }
 
-func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
+const (
+	MaxTraceBackCommonBlockNum = 50
+	)
+func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64, NewBlocknum uint64) {
+	var sblock *types.Block
+	var superSeq uint64
+	var superNum uint64
+	log.Info("BlockChain savesnapshot enter", "blockNum", blockNum, "saveSnapPeriod", SaveSnapPeriod, "saveSnapStart", SaveSnapStart, "NewBlocknum", NewBlocknum)
+	if NewBlocknum == 0 {
+		//保存指定个数的普通区块和1个superblock
+		if SaveSnapStart < (MaxTraceBackCommonBlockNum + 1) || SaveSnapStart > blockNum {
+			return
+		}
+		times := blockNum / uint64(period)
+		NewBlocknum = uint64(period) * times
+	}
 
-	log.Info("BlockChain savesnapshot enter", "blockNum", blockNum, "saveSnapPeriod", SaveSnapPeriod, "saveSnapStart", SaveSnapStart)
-	if SaveSnapStart < 4 || SaveSnapStart > blockNum {
+	if sblock = bc.GetBlockByNumber(NewBlocknum); sblock == nil {
+		fmt.Println("BlockChain manual SaveSnapshot error, block is not exist", NewBlocknum)
+		log.Error("BlockChain manual SaveSnapshot error, block is not exist", "blocknum", NewBlocknum)
 		return
 	}
-	var tmpSanpInfo types.SnapSaveInfo
-	times := blockNum / uint64(period)
-	NewBlocknum := uint64(period) * times
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 	getSnapshotNums := func(num uint64, bc *BlockChain) (nums []uint64) {
 		nums = make([]uint64, 0)
 
 		haveSuperBlock := false
-		nums = append(nums, num)
-		nums = append(nums, num-1)
-		nums = append(nums, num-2)
+		for i := uint64(0); i < MaxTraceBackCommonBlockNum; i++{
+			nums = append(nums, num - i)
+		}
 
 		for _, value := range nums {
 			if bc.GetBlockByNumber(value).IsSuperBlock() {
 				haveSuperBlock = true
+				superNum, superSeq, _ = bc.GetBlockSuperBlockInfo(sblock.Hash())
+				log.Info("BlockChain savesnapshot superblock", "superNum", superNum, "superSeq", superSeq)
+				if superNum != value {
+					log.Error("BlockChain savesnapshot get superblock error", "number", value, "superNum", superNum)
+				}
 				break
 			}
 		}
 		if haveSuperBlock {
-			nums = append(nums, num-3)
+			nums = append(nums, num - MaxTraceBackCommonBlockNum)
+		} else {
+			//增加超级区块
+			var err error = nil
+			superNum, superSeq, err = bc.GetBlockSuperBlockInfo(sblock.Hash())
+			log.Info("BlockChain savesnapshot superblock fast", "superNum", superNum, "superSeq", superSeq)
+			if err == nil && superNum != 0 {
+				nums = append(nums, superNum)
+			}
 		}
 		for i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {
 			nums[i], nums[j] = nums[j], nums[i]
@@ -2590,11 +2702,13 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		Datas: make([]snapshot.SnapshotData, 0),
 	}
 
-	tmpstatedb, stateerr := bc.State()
+	tmpstatedb, stateerr := bc.StateAtBlockHash(sblock.Hash())
 	if stateerr != nil {
 		log.Error("BlockChain savesnapshot ", "open state fialed,err ", stateerr)
 		return
 	}
+
+	log.Info("BlockChain savesnapshot GetPreBroadcastRoot")
 	preBCRoot, err := matrixstate.GetPreBroadcastRoot(tmpstatedb)
 	if err != nil {
 		log.Error(" BlockChain savesnapshot ", "get pre broadcast root err", err)
@@ -2624,27 +2738,32 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		log.Info("BlockChain savesnapshot ", "correct###############################: ", correct)
 
 		block := bc.GetBlockByNumber(uint64(correct))
-		td := bc.GetTd(block.Hash(), block.NumberU64())
-		header := block.Header()
-		root := header.Roots
+		if block != nil {
+			td := bc.GetTd(block.Hash(), block.NumberU64())
+			header := block.Header()
+			root := header.Roots
+			Seq := uint64(0)
+			//超级区块
+			if block.IsSuperBlock() {
+				Seq, _ = bc.GetSuperBlockSeq()
+			}
 
-		log.Info("BlockChain savesnapshot ", "root ###############################: ", root)
-		statedb, err := bc.getStateCache(root)
-		if err != nil {
-			log.Error("BlockChain savesnapshot ", "open state fialed,err ", err)
-			return
+			log.Info("BlockChain savesnapshot ", "root ###############################: ", root)
+			statedb, err := bc.getStateCache(root)
+			if err != nil {
+				log.Error("BlockChain savesnapshot ", "open state fialed,err ", err)
+				return
+			}
+			coinTries := statedb.RawDumpDB()
+			snapshotData := snapshot.SnapshotData{coinTries, td, *block, Seq}
+			snapshotDatas.Datas = append(snapshotDatas.Datas, snapshotData)
+		} else {
+			log.Error("BlockChain savesnapshot ", "GetBlockByNumber  error ,blkNum ", correct)
 		}
-		coinTries := statedb.RawDumpDB()
-		snapshotData := snapshot.SnapshotData{coinTries, td, *block}
-		snapshotDatas.Datas = append(snapshotDatas.Datas, snapshotData)
-		//if correct==300 {
-		//	GetDumpInfo (snapshotDatas.Datas[len(snapshotDatas.Datas)-1].CoinTries)
-		//
-		//}
 	}
 	wb, err := rlp.EncodeToBytes(&snapshotDatas)
 	if err != nil {
-		log.ERROR("BlockChain savesnapshot ", "encode  err: ", err)
+		log.Error("BlockChain savesnapshot ", "encode  err: ", err)
 	}
 	filePath = path.Join(snapshot.SNAPDIR, "/TrieData"+strconv.Itoa(int(nums[len(nums)-1])))
 	f, ferr := os.Create(filePath)
@@ -2658,11 +2777,12 @@ func (bc *BlockChain) SaveSnapshot(blockNum uint64, period uint64) {
 		log.Info("BlockChain savesnapshot ", "Write snapshot bytes : ", count)
 	}
 	f.Close()
-
-	tmpSanpInfo.BlockNum = nums[len(nums)-1]
-	tmpSanpInfo.BlockHash = bc.GetHeaderByNumber(tmpSanpInfo.BlockNum).Hash().String()
-	tmpSanpInfo.SnapPath = filePath
+	fmt.Println("matrix  save snapshot sucess! blockNum=", NewBlocknum)
 	if bc.qBlockQueue != nil {
+		var tmpSanpInfo types.SnapSaveInfo
+		tmpSanpInfo.BlockNum = nums[len(nums)-1]
+		tmpSanpInfo.BlockHash = bc.GetHeaderByNumber(tmpSanpInfo.BlockNum).Hash().String()
+		tmpSanpInfo.SnapPath = filePath
 		bc.qBlockQueue.Push(tmpSanpInfo, -float32(tmpSanpInfo.BlockNum))
 	}
 }

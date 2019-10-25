@@ -21,7 +21,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/common/fdlimit"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
-	"github.com/MatrixAINetwork/go-matrix/consensus/clique"
 	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
 	"github.com/MatrixAINetwork/go-matrix/console"
 	"github.com/MatrixAINetwork/go-matrix/core"
@@ -41,6 +40,9 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/pod"
 	"gopkg.in/urfave/cli.v1"
+	"github.com/MatrixAINetwork/go-matrix/consensus/amhash"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
+	"github.com/MatrixAINetwork/go-matrix/consensus/mtxdpos"
 )
 
 var (
@@ -162,6 +164,11 @@ var (
 		Name:  "gcmode",
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
 		Value: "archive",
+	}
+	DbTableSizeFlag = cli.IntFlag{
+		Name:  "dbsize",
+		Usage: "db store size ",
+		Value: 2,
 	}
 	LightServFlag = cli.IntFlag{
 		Name:  "lightserv",
@@ -1078,6 +1085,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *pod.Config) {
 	man.SaveSnapStart = ctx.GlobalUint64(SaveSnapStartFlg.Name)
 	man.SaveSnapPeriod = ctx.GlobalUint64(SaveSnapPeriodFlg.Name)
 	man.SnaploadFromLocal = ctx.GlobalInt(SnapModeFlg.Name)
+
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
@@ -1370,22 +1378,9 @@ func MakeChain(ctx *cli.Context, stack *pod.Node) (chain *core.BlockChain, chain
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	var engine consensus.Engine
-	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb)
-	} else {
-		engine = manash.NewFaker()
-		if !ctx.GlobalBool(FakePoWFlag.Name) {
-			engine = manash.New(manash.Config{
-				CacheDir:       stack.ResolvePath(man.DefaultConfig.Manash.CacheDir),
-				CachesInMem:    man.DefaultConfig.Manash.CachesInMem,
-				CachesOnDisk:   man.DefaultConfig.Manash.CachesOnDisk,
-				DatasetDir:     stack.ResolvePath(man.DefaultConfig.Manash.DatasetDir),
-				DatasetsInMem:  man.DefaultConfig.Manash.DatasetsInMem,
-				DatasetsOnDisk: man.DefaultConfig.Manash.DatasetsOnDisk,
-			})
-		}
-	}
+
+	engine, dposEngine := createEngineMap(ctx, stack, config, chainDb)
+
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
@@ -1399,11 +1394,46 @@ func MakeChain(ctx *cli.Context, stack *pod.Node) (chain *core.BlockChain, chain
 	}
 	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
 
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg)
+	chain, err = core.NewBlockChain(chainDb, cache, config, vmcfg, engine, dposEngine)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}
 	return chain, chainDb
+}
+
+func createEngineMap(ctx *cli.Context, stack *pod.Node, config *params.ChainConfig, chainDb mandb.Database) (map[string]consensus.Engine, map[string]consensus.DPOSEngine) {
+	engineMap := make(map[string]consensus.Engine)
+	var alphaEngine consensus.Engine
+
+	alphaEngine = manash.NewFaker()
+	if !ctx.GlobalBool(FakePoWFlag.Name) {
+		alphaEngine = manash.New(manash.Config{
+			CacheDir:       stack.ResolvePath(man.DefaultConfig.Manash.CacheDir),
+			CachesInMem:    man.DefaultConfig.Manash.CachesInMem,
+			CachesOnDisk:   man.DefaultConfig.Manash.CachesOnDisk,
+			DatasetDir:     stack.ResolvePath(man.DefaultConfig.Manash.DatasetDir),
+			DatasetsInMem:  man.DefaultConfig.Manash.DatasetsInMem,
+			DatasetsOnDisk: man.DefaultConfig.Manash.DatasetsOnDisk,
+		})
+	}
+	aiMineEngine := amhash.New(amhash.Config{PowMode: amhash.ModeNormal, PictureStorePath: stack.ResolvePath("picstore")})
+	aiMineEngine.SetThreads(-1) // Disable CPU mining
+
+	engineMap[manversion.VersionAlpha] = alphaEngine
+	engineMap[manversion.VersionBeta] = alphaEngine
+	engineMap[manversion.VersionGamma] = alphaEngine
+	engineMap[manversion.VersionDelta] = alphaEngine
+	engineMap[manversion.VersionAIMine] = aiMineEngine
+
+	dposEngineMap := make(map[string]consensus.DPOSEngine)
+	alphaDposEngine := mtxdpos.NewMtxDPOS(config.SimpleMode)
+	dposEngineMap[manversion.VersionAlpha] = alphaDposEngine
+	dposEngineMap[manversion.VersionBeta] = alphaDposEngine
+	dposEngineMap[manversion.VersionGamma] = alphaDposEngine
+	dposEngineMap[manversion.VersionDelta] = alphaDposEngine
+	dposEngineMap[manversion.VersionAIMine] = alphaDposEngine
+
+	return engineMap, dposEngineMap
 }
 
 // MakeConsolePreloads retrieves the absolute paths for the console JavaScript

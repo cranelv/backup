@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -21,7 +19,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/man/downloader"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
-	"github.com/MatrixAINetwork/go-matrix/snapshot"
 )
 
 const (
@@ -199,11 +196,6 @@ func (pm *ProtocolManager) syncer() {
 			}
 		} else {
 			pm.downloader.SetSnapshootNum(SnapshootNumber)
-			filePath := path.Join(snapshot.SNAPDIR, "/TrieData"+strconv.Itoa(int(SnapshootNumber)))
-			if pm.blockchain.SynSnapshot(SnapshootNumber, "", filePath) == false {
-				log.Debug(" ipfs local snapshoot deal error and exit,please check")
-				os.Exit(1)
-			}
 		}
 		if SnapshootNumber != pm.blockchain.CurrentBlock().NumberU64() {
 			log.Debug(" snapshoot deal over,but block Num is illegal", "SnapshootNumber", SnapshootNumber, "current block", pm.blockchain.CurrentBlock().NumberU64())

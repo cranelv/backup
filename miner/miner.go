@@ -50,17 +50,13 @@ type Miner struct {
 
 func (s *Miner) Getworker() *worker { return s.worker }
 
-func New(manh *manash.Manash, config *params.ChainConfig, mux *event.TypeMux, hd *msgsend.HD) (*Miner, error) {
+func New(manh *manash.Manash,amhash *amhash.Amhash, config *params.ChainConfig, mux *event.TypeMux, hd *msgsend.HD) (*Miner, error) {
 	miner := &Miner{
 		mux: mux,
 		manash:  manh,
-
 		canStart: 1,
 	}
 	var err error
-	aicfg := amhash.Config{}
-	amhash:= amhash.New(aicfg)
-
 	miner.worker, err = newWorker(config, manh,amhash, mux, hd)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建work", "失败")

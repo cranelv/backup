@@ -1,3 +1,6 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package matrixstate
 
 import (
@@ -315,4 +318,32 @@ func GetMinHash(st StateDB) (*mc.RandomInfoStruct, error) {
 		return nil, err
 	}
 	return value.(*mc.RandomInfoStruct), nil
+}
+
+func GetElectDynamicPollingInfo(st StateDB) (*mc.ElectDynamicPollingInfo, error) {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return nil, ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectDynamicPollingInfo)
+	if err != nil {
+		return nil, err
+	}
+	value, err := opt.GetValue(st)
+	if err != nil {
+		return nil, err
+	}
+	return value.(*mc.ElectDynamicPollingInfo), nil
+}
+
+func SetElectDynamicPollingInfo(st StateDB, info *mc.ElectDynamicPollingInfo) error {
+	mgr := GetManager(GetVersionInfo(st))
+	if mgr == nil {
+		return ErrFindManager
+	}
+	opt, err := mgr.FindOperator(mc.MSKeyElectDynamicPollingInfo)
+	if err != nil {
+		return err
+	}
+	return opt.SetValue(st, info)
 }

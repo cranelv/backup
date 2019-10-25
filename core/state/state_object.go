@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package state
 
@@ -10,10 +10,11 @@ import (
 	"io"
 	"math/big"
 
+	"sync"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/crypto"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
-	"sync"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -65,7 +66,7 @@ type stateObject struct {
 	data     Account
 	db       *StateDB
 
-	readMu   sync.Mutex
+	readMu sync.Mutex
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
@@ -253,6 +254,10 @@ func (self *stateObject) setStateByteArray(key common.Hash, value []byte) {
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
+
+	self.readMu.Lock()
+	defer self.readMu.Unlock()
+
 	tr := self.getTrie(db)
 	for key, value := range self.dirtyStorage {
 		delete(self.dirtyStorage, key)

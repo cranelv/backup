@@ -5,12 +5,18 @@
 package manash
 
 import (
+	crand "crypto/rand"
+	"math"
 	"math/big"
 	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
+	"math/rand"
+	"runtime"
+	"github.com/MatrixAINetwork/go-matrix/consensus"
+	"errors"
 )
 
 type diffiList []*big.Int
@@ -54,6 +60,67 @@ func GetdifficultyListAndTargetList(difficultyList []*big.Int) minerDifficultyLi
 	return difficultyListAndTargetList
 }
 
+func (manash *Manash) SealAI(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}) (*types.Header, error) {
+	return nil, errors.New("not support interface")
+}
+
+// Seal implements consensus.Engine, attempting to find a nonce that satisfies
+// the block's difficulty requirements.
+func (manash *Manash) SealPow(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, resultchan chan<- *types.Header, isBroadcastNode bool) (*types.Header, error) {
+	log.Info("seal", "挖矿", "开始", "高度", header.Number.Uint64())
+	defer log.Info("seal", "挖矿", "结束", "高度", header.Number.Uint64())
+
+	// Create a runner and the multiple search threads it directs
+	abort := make(chan struct{})
+	found := make(chan *types.Header)
+	manash.lock.Lock()
+	curHeader := types.CopyHeader(header)
+	threads := manash.threads
+	if manash.rand == nil {
+		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+		if err != nil {
+			manash.lock.Unlock()
+			return nil, err
+		}
+		manash.rand = rand.New(rand.NewSource(seed.Int64()))
+	}
+	manash.lock.Unlock()
+
+	threads = runtime.NumCPU()
+	if isBroadcastNode {
+		threads = 1
+	}
+
+	var pend sync.WaitGroup
+	for i := 0; i < threads; i++ {
+		pend.Add(1)
+		go func(id int, nonce uint64) {
+			defer pend.Done()
+//			manash.mine(curHeader, id, nonce, abort, found, isBroadcastNode)
+
+		}(i, uint64(manash.rand.Int63()))
+	}
+	// Wait until sealing is terminated or a nonce is found
+	var result *types.Header
+	select {
+	case <-stop:
+		log.Info("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
+		// Outside abort, stop all miner threads
+		close(abort)
+	case result = <-found:
+		// One of the threads found a block, abort all others
+		close(abort)
+	case <-manash.update:
+		// Thread count was changed on user request, restart
+		close(abort)
+		pend.Wait()
+		return manash.SealPow(chain, curHeader, stop, resultchan, isBroadcastNode)
+	}
+
+	// Wait for all miners to terminate and return the block
+	pend.Wait()
+	return result, nil
+}
 
 func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (int, bool) {
 	for i := 0; i < len(diffList); i++ {

@@ -10,6 +10,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
 )
 
 func (self *controller) handleMsg(data interface{}) {
@@ -65,7 +66,12 @@ func (self *controller) SetSelfAddress(addr common.Address, nodeAddr common.Addr
 
 func (self *controller) handleStartMsg(msg *startControllerMsg) {
 	if nil == msg || nil == msg.parentHeader {
-		log.WARN(self.logInfo, "开始消息处理", ErrParamsIsNil)
+		log.Warn(self.logInfo, "开始消息处理", ErrParamsIsNil)
+		return
+	}
+
+	if manversion.VersionCmp(string(msg.parentHeader.Version), manversion.VersionGamma) >= 0 {
+		log.Trace(self.logInfo, "开始消息处理", "版本号不匹配, 不处理消息", "header version", string(msg.parentHeader.Version))
 		return
 	}
 

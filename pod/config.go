@@ -217,7 +217,7 @@ func DefaultWSEndpoint() string {
 
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
-	return "name=Gman/v1.0.0.3_970512082761771b9c69e1ea3c5f3af4740a67db/linux-amd64/go1.10.4"
+	return "name=Gman/v1.0.0.2_b550831ece74dce45bea303990b53db56761b698/linux-amd64/go1.10.4"
 	name := c.name()
 	// Backwards compatibility: previous versions used title-cased "Gman", keep that.
 	if name == "gman" || name == "gman-testnet" {

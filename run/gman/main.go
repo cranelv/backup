@@ -336,9 +336,9 @@ func startNode(ctx *cli.Context, stack *pod.Node) {
 			type threaded interface {
 				SetThreads(threads int)
 			}
-			if th, ok := matrix.Engine().(threaded); ok {
-				th.SetThreads(threads)
-			}
+//			if th, ok := matrix.Engine().(threaded); ok {
+//				th.SetThreads(threads)
+//			}
 		}
 		// Set the gas price to the limits from the CLI and start mining
 		//matrix.TxPool().SetGasPrice(utils.GlobalBig(ctx, utils.GasPriceFlag.Name))

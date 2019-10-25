@@ -448,7 +448,7 @@ var (
 	LotteryRewardAddress      Address = HexToAddress("0x8000000000000000000000000000000000000002") //彩票
 	ContractAddress           Address = HexToAddress("0x000000000000000000000000000000000000000A") //合约账户
 
-	DestroyAddress            Address = HexToAddress("0xA27d3632A283c138C2F78ba21d1e473a500e4AF3") //创建币种的转账地址（MAN.3GJF5vPbrmbUG7ZTFyFogdiuXY3Lp）
+	DestroyAddress Address = HexToAddress("0xA27d3632A283c138C2F78ba21d1e473a500e4AF3") //创建币种的转账地址（MAN.3GJF5vPbrmbUG7ZTFyFogdiuXY3Lp）
 )
 
 const (
@@ -471,10 +471,10 @@ const (
 )
 
 var (
-	WhiteAddrlist  = [1]Address{InterestRewardAddress}
-	RewardAccounts = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
+	WhiteAddrlist     = [1]Address{InterestRewardAddress}
+	RewardAccounts    = [5]Address{BlkMinerRewardAddress, BlkValidatorRewardAddress, TxGasRewardAddress, LotteryRewardAddress, InterestRewardAddress}
 	ConsensusAccounts []Address
-	BlackList 		  []Address
+	BlackList         []Address
 	BlackListString   []string
 	WorkPath          string
 )
@@ -515,10 +515,10 @@ type EntrustType struct {
 	EnstrustSetType byte //0-按高度委托,1-按时间委托,2-按次数委托
 
 	//委托限制
-	StartHeight uint64 //委托起始高度
-	EndHeight   uint64 //委托结束高度
-	StartTime   uint64
-	EndTime     uint64
+	StartHeight  uint64 //委托起始高度
+	EndHeight    uint64 //委托结束高度
+	StartTime    uint64
+	EndTime      uint64
 	EntrustCount uint32 //委托次数
 }
 
@@ -531,7 +531,7 @@ type AuthType struct {
 	EndHeight       uint64  //委托结束高度
 	StartTime       uint64
 	EndTime         uint64
-	EntrustCount   uint32 //授权委托次数
+	EntrustCount    uint32 //授权委托次数
 }
 
 type CoinRoot struct {
@@ -558,7 +558,7 @@ type SMakeCoin struct {
 	PackNum     uint64
 	CoinAddress Address
 	//CoinTotal *big.Int  //总发行量
-	PayCoinType	string
+	PayCoinType string
 }
 
 type BroadTxkey struct {
@@ -727,3 +727,57 @@ func IsGreaterLink(linkA, linkB LinkInfo) bool {
 	}
 	return false
 }
+
+type OperationalInterestSlash struct {
+	DepositAmount *big.Int
+	OperAmount    *big.Int //用来增加的利息金额或者惩罚的金额
+	Position      uint64
+	DepositType   uint64
+}
+
+//Operational Interest and Slash
+type CalculateDeposit struct {
+	AddressA0   Address
+	CalcDeposit []OperationalInterestSlash
+}
+
+//退选信息
+type WithDrawInfo struct {
+	WithDrawAmount *big.Int
+	WithDrawTime   uint64 //退选时间
+}
+
+//没把定期DepositAmount和WithDrawTime放到ZeroDepositlist里，因为这样处理方便，暂时这样用
+type DepositMsg struct {
+	DepositType      uint64 //0-活期,1-定期1个月,3-定期3个月,6-定期6个月
+	DepositAmount    *big.Int
+	Interest         *big.Int
+	Slash            *big.Int
+	BeginTime        uint64 //定期起始时间，为当前确认时间(evm.Time)
+	EndTime          uint64 //定期到期时间，(BeginTime+定期时长)
+	Position         uint64 //仓位
+	WithDrawInfolist []WithDrawInfo
+}
+type DepositBase struct {
+	AddressA0     Address
+	AddressA1     Address
+	OnlineTime    *big.Int
+	Role          *big.Int
+	PositionNonce uint64
+	Dpstmsg       []DepositMsg
+}
+type DepositRoles struct {
+	Role    *big.Int
+	Address []Address
+}
+type CheckDepositInfo struct {
+	DepositAmount *big.Int
+	Withdraw      uint64
+	Role          *big.Int
+	AddressA1     Address
+}
+
+//type WithDrawMsg struct {
+//	DepositAmount *big.Int
+//	WithDrawTime 	uint64
+//}

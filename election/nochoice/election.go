@@ -1,11 +1,12 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package nochoice
 
 import (
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/election/support"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
@@ -26,8 +27,8 @@ func RegInit() baseinterface.ElectionInterface {
 	return &nochoice{}
 }
 
-func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
-	log.INFO("直接选举方案", "矿工拓扑生成", len(mmrerm.MinerList))
+func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg, stateDb *state.StateDBManage) *mc.MasterMinerReElectionRsp {
+	log.Info("直接选举方案", "矿工拓扑生成", len(mmrerm.MinerList))
 	nodeElect := support.NewElelection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
 
 	nodeElect.ProcessBlackNode()
@@ -49,8 +50,8 @@ func (self *nochoice) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.Ma
 
 }
 
-func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
-	log.INFO("直接选举方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
+func (self *nochoice) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg, stateDb *state.StateDBManage) *mc.MasterValidatorReElectionRsq {
+	log.Info("直接选举方案", "验证者拓扑生成", len(mvrerm.ValidatorList))
 	nodeElect := support.NewElelection(nil, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
 
 	nodeElect.ProcessBlackNode()

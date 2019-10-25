@@ -1,9 +1,10 @@
+// Copyright (c) 2018 The MATRIX Authors
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package blkmanage
 
 import (
 	"errors"
-
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 
 	"github.com/MatrixAINetwork/go-matrix/accounts/signhelper"
 	"github.com/MatrixAINetwork/go-matrix/reelection"
@@ -17,6 +18,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
 )
 
 type MANBLK interface {
@@ -63,7 +65,6 @@ type ChainReader interface {
 	Engine(version []byte) consensus.Engine
 	DPOSEngine(version []byte) consensus.DPOSEngine
 	Processor(version []byte) core.Processor
-	VerifyHeader(header *types.Header) error
 }
 
 type MANBLKPlUGS interface {
@@ -136,15 +137,34 @@ func New(support BlKSupport) (*ManBlkManage, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj.RegisterManBLkPlugs(CommonBlk, manparams.VersionAlpha, manCommonplug)
+
+	aiMinePlug, err := NewBlkV2Plug()
+	if err != nil {
+		return nil, err
+	}
+
+	obj.RegisterManBLkPlugs(CommonBlk, manversion.VersionAlpha, manCommonplug)
 
 	manBcplug, err := NewBCBlkPlug()
 
-	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionAlpha, manBcplug)
+	obj.RegisterManBLkPlugs(BroadcastBlk, manversion.VersionAlpha, manBcplug)
 
-	obj.RegisterManBLkPlugs(CommonBlk, manparams.VersionBeta, manCommonplug)
+	obj.RegisterManBLkPlugs(CommonBlk, manversion.VersionBeta, manCommonplug)
 
-	obj.RegisterManBLkPlugs(BroadcastBlk, manparams.VersionBeta, manBcplug)
+	obj.RegisterManBLkPlugs(BroadcastBlk, manversion.VersionBeta, manBcplug)
+
+	obj.RegisterManBLkPlugs(CommonBlk, manversion.VersionGamma, manCommonplug)
+
+	obj.RegisterManBLkPlugs(BroadcastBlk, manversion.VersionGamma, manBcplug)
+
+	obj.RegisterManBLkPlugs(CommonBlk, manversion.VersionDelta, manCommonplug)
+
+	obj.RegisterManBLkPlugs(BroadcastBlk, manversion.VersionDelta, manBcplug)
+
+	obj.RegisterManBLkPlugs(CommonBlk, manversion.VersionAIMine, aiMinePlug)
+
+	obj.RegisterManBLkPlugs(BroadcastBlk, manversion.VersionAIMine, manBcplug)
+
 	return obj, nil
 }
 
@@ -153,29 +173,54 @@ func (bd *ManBlkManage) RegisterManBLkPlugs(types string, version string, plug M
 }
 
 func (bd *ManBlkManage) ProduceBlockVersion(num uint64, preVersion string) string {
-	//if num == manparams.VersionNumBeta {
-	//	return manparams.VersionBeta
-	//}
-	return preVersion
+
+	switch num {
+	case manversion.VersionNumGamma:
+		return manversion.VersionGamma
+	case manversion.VersionNumDelta:
+		return manversion.VersionDelta
+	case manversion.VersionNumAIMine:
+		return manversion.VersionAIMine
+	default:
+		return preVersion
+	}
 }
 
 func (bd *ManBlkManage) VerifyBlockVersion(num uint64, curVersion string, preVersion string) error {
-	/*if num == manparams.VersionNumBeta {
-		if curVersion != manparams.VersionBeta {
+
+	switch num {
+	case manversion.VersionNumGamma:
+		if manversion.VersionCmp(curVersion, manversion.VersionGamma) != 0 {
 			return errors.New("版本号异常")
 		} else {
 			return nil
 		}
-	} else*/if curVersion != preVersion {
-		return errors.New("版本号异常,不等于父区块版本号")
+	case manversion.VersionNumDelta:
+		if manversion.VersionCmp(curVersion, manversion.VersionDelta) != 0 {
+			return errors.New("版本号异常")
+		} else {
+			return nil
+		}
+	case manversion.VersionNumAIMine:
+		if manversion.VersionCmp(curVersion, manversion.VersionAIMine) != 0 {
+			return errors.New("版本号异常")
+		} else {
+			return nil
+		}
+	default:
+		if curVersion != preVersion {
+			return errors.New("版本号异常,不等于父区块版本号")
+		} else {
+			return nil
+		}
+
 	}
-	return nil
 }
 
 func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interval *mc.BCIntervalInfo, args ...interface{}) (*types.Header, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(LogManBlk, "获取插件失败", "")
+		log.Error(LogManBlk, "获取插件失败", "")
 		return nil, nil, errors.New("获取插件失败")
 	}
 	return plug.Prepare(version, bd.support, interval, num, args)
@@ -184,7 +229,7 @@ func (bd *ManBlkManage) Prepare(types string, version string, num uint64, interv
 func (bd *ManBlkManage) ProcessState(types string, version string, header *types.Header, args ...interface{}) ([]*common.RetCallTxN, *state.StateDBManage, []types.CoinReceipts, []types.CoinSelfTransaction, []types.CoinSelfTransaction, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(LogManBlk, "获取插件失败", "")
+		log.Error(LogManBlk, "获取插件失败", "")
 		return nil, nil, nil, nil, nil, nil, errors.New("获取插件失败")
 	}
 	return plug.ProcessState(bd.support, header, args)
@@ -193,7 +238,7 @@ func (bd *ManBlkManage) ProcessState(types string, version string, header *types
 func (bd *ManBlkManage) Finalize(types string, version string, header *types.Header, state *state.StateDBManage, txs []types.CoinSelfTransaction, uncles []*types.Header, receipts []types.CoinReceipts, args ...interface{}) (*types.Block, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(LogManBlk, "获取插件失败", "")
+		log.Error(LogManBlk, "获取插件失败", "")
 		return nil, nil, errors.New("获取插件失败")
 	}
 	return plug.Finalize(bd.support, header, state, txs, uncles, receipts, args)
@@ -202,7 +247,7 @@ func (bd *ManBlkManage) Finalize(types string, version string, header *types.Hea
 func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types.Header, args ...interface{}) (interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(LogManBlk, "获取插件失败", "")
+		log.Error(LogManBlk, "获取插件失败", "")
 		return nil, errors.New("获取插件失败")
 	}
 	return plug.VerifyHeader(version, bd.support, header, args)
@@ -211,7 +256,7 @@ func (bd *ManBlkManage) VerifyHeader(types string, version string, header *types
 func (bd *ManBlkManage) VerifyTxsAndState(types string, version string, header *types.Header, Txs []types.CoinSelfTransaction, args ...interface{}) (*state.StateDBManage, []types.CoinSelfTransaction, []types.CoinReceipts, interface{}, error) {
 	plug, ok := bd.mapManBlkPlugs[types+version]
 	if !ok {
-		log.ERROR(LogManBlk, "获取插件失败", "")
+		log.Error(LogManBlk, "获取插件失败", "")
 		return nil, nil, nil, nil, errors.New("获取插件失败")
 	}
 	return plug.VerifyTxsAndState(bd.support, header, Txs, args)

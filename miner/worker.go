@@ -256,7 +256,7 @@ func (self *worker) MiningRequestHandle(data *mc.HD_MiningReqMsg) {
 	}
 	if reqData != nil {
 		self.processAppointedMineReq(reqData)
-//		go self.MineAI(data.Header, data.From)
+		go self.MineAI(data.Header, data.From)
 	}
 }
 func (self *worker) MineAI(header *types.Header, miner common.Address){

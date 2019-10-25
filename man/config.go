@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package man
 
@@ -31,12 +31,13 @@ var DefaultConfig = Config{
 		DatasetsInMem:  1,
 		DatasetsOnDisk: 2,
 	},
-	NetworkId:     1,
-	LightPeers:    100,
-	DatabaseCache: 768,
-	TrieCache:     256,
-	TrieTimeout:   5 * time.Minute,
-	GasPrice:      big.NewInt(18 * params.Shannon),
+	NetworkId:         1,
+	LightPeers:        100,
+	DatabaseCache:     768,
+	DatabaseTableSize: 2,
+	TrieCache:         256,
+	TrieTimeout:       5 * time.Minute,
+	GasPrice:          big.NewInt(18 * params.Shannon),
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -80,6 +81,7 @@ type Config struct {
 	DatabaseHandles    int  `toml:"-"`
 	DatabaseCache      int
 	TrieCache          int
+	DatabaseTableSize  int
 	TrieTimeout        time.Duration
 
 	// Mining-related options

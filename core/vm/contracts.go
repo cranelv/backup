@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package vm
 
@@ -37,9 +37,29 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{6}):  &bn256Add{},
 	common.BytesToAddress([]byte{7}):  &bn256ScalarMul{},
 	common.BytesToAddress([]byte{8}):  &bn256Pairing{},
-	common.BytesToAddress([]byte{10}): &MatrixDeposit{},
+	common.BytesToAddress([]byte{10}): &MatrixDepositVersion{},
+//	ValidatorGroupContractAddress:  NewValidatorGroupContract(),
 }
-
+func getPrecompiledContract(preCompiledMap map[common.Address]PrecompiledContract,address common.Address,state StateDBManager)PrecompiledContract{
+	if p := preCompiledMap[address]; p != nil {
+		return p
+	}else{
+		ret := state.GetState(params.MAN_COIN, common.Address{}, common.BytesToHash([]byte(params.DepositVersionKey_1)))
+		if ret == emptyHash{
+			return nil
+		}
+		if ValidatorGroupContractAddress == address{
+			return NewValidatorGroupContract()
+		}
+		vcStates := &ValidatorContractState{}
+		if vcStates.GetState(ValidatorGroupContractAddress,state) == nil{
+			if _,exist := vcStates.childGroup.Find(address);exist{
+				return NewValidatorGroup()
+			}
+		}
+	}
+	return nil
+}
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract, evm *EVM) (ret []byte, err error) {
 	gas := p.RequiredGas(input)

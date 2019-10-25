@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 // Package manstats implements the network stats reporting service.
 package manstats
@@ -56,9 +56,9 @@ type blockChain interface {
 // Service implements an Matrix netstats reporting daemon that pushes local
 // chain statistics up to a monitoring server.
 type Service struct {
-	server *p2p.Server      // Peer-to-peer server to retrieve networking infos
-	man    *man.Matrix      // Full Matrix service if monitoring a full node
-	engine consensus.Engine // Consensus engine to retrieve variadic block fields
+	server *p2p.Server                 // Peer-to-peer server to retrieve networking infos
+	man    *man.Matrix                 // Full Matrix service if monitoring a full node
+	engine map[string]consensus.Engine // Consensus engine to retrieve variadic block fields
 
 	node string // Name of the node to display on the monitoring page
 	pass string // Password to authorize access to the monitoring page
@@ -77,9 +77,9 @@ func New(url string, manServ *man.Matrix) (*Service, error) {
 		return nil, fmt.Errorf("invalid netstats url: \"%s\", should be nodename:secret@host:port", url)
 	}
 	// Assemble and return the stats service
-	var engine consensus.Engine
+	var engine map[string]consensus.Engine
 	if manServ != nil {
-		engine = manServ.Engine()
+		engine = manServ.EngineAll()
 	}
 	return &Service{
 		man:    manServ,
@@ -471,7 +471,7 @@ type blockStats struct {
 // txStats is the information to report about individual transactions.
 type txStats struct {
 	Currency string
-	Hashes []common.Hash `json:"hash"`
+	Hashes   []common.Hash `json:"hash"`
 }
 
 // uncleStats is a custom wrapper around an uncle array to force serializing
@@ -521,30 +521,30 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		header = block.Header()
 		td = s.man.BlockChain().GetTd(header.Hash(), header.Number.Uint64())
 		txs = make([]txStats, 0)
-		for _,curr := range block.Currencies(){
-			hashs := make([]common.Hash,0)
+		for _, curr := range block.Currencies() {
+			hashs := make([]common.Hash, 0)
 			for _, tx := range curr.Transactions.GetTransactions() {
-				hashs = append(hashs,tx.Hash())
+				hashs = append(hashs, tx.Hash())
 			}
-			txs = append(txs,txStats{Currency:curr.CurrencyName,Hashes:hashs})
+			txs = append(txs, txStats{Currency: curr.CurrencyName, Hashes: hashs})
 		}
 
 		uncles = block.Uncles()
 	}
 	// Assemble and return the block stats
-	author, _ := s.engine.Author(header)
+	author, _ := s.engine[string(header.Version)].Author(header)
 
 	return &blockStats{
-		Number:            header.Number,
-		Hash:              header.Hash(),
-		ParentHash:        header.ParentHash,
-		Timestamp:         header.Time,
-		Miner:             author,
-		GasUsed:           header.GasUsed,
-		GasLimit:          header.GasLimit,
-		Diff:              header.Difficulty.String(),
-		TotalDiff:         td.String(),
-		Txs:               txs,
+		Number:     header.Number,
+		Hash:       header.Hash(),
+		ParentHash: header.ParentHash,
+		Timestamp:  header.Time,
+		Miner:      author,
+		GasUsed:    header.GasUsed,
+		GasLimit:   header.GasLimit,
+		Diff:       header.Difficulty.String(),
+		TotalDiff:  td.String(),
+		Txs:        txs,
 		//TxHash:            header.TxHash,
 		Root:              header.Roots,
 		Uncles:            uncles,

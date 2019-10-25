@@ -117,7 +117,7 @@ func (p *Process) ProcessFullBlockRsp(rsp *mc.HD_FullBlockRspMsg) {
 	}
 
 	isBroadcast := p.bcInterval.IsBroadcastNumber(rsp.Header.Number.Uint64())
-	if err := p.pm.bc.Engine(rsp.Header.Version).VerifyHeader(p.pm.bc, rsp.Header, !isBroadcast); err != nil {
+	if err := p.pm.bc.Engine(rsp.Header.Version).VerifyHeader(p.pm.bc, rsp.Header, !isBroadcast, false); err != nil {
 		log.Error(p.logExtraInfo(), "处理完整区块响应", "POW验证未通过", "err", err, "高度", p.number)
 		return
 	}

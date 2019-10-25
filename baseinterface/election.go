@@ -1,9 +1,10 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package baseinterface
 
 import (
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/election/support"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 )
@@ -31,8 +32,8 @@ func NewElect(ElectPlugs string) ElectionInterface {
 }
 
 type ElectionInterface interface {
-	MinerTopGen(*mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp
-	ValidatorTopGen(*mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq
+	MinerTopGen(*mc.MasterMinerReElectionReqMsg, *state.StateDBManage) *mc.MasterMinerReElectionRsp
+	ValidatorTopGen(*mc.MasterValidatorReElectionReqMsg, *state.StateDBManage) *mc.MasterValidatorReElectionRsq
 	ToPoUpdate(support.AllNative, *mc.TopologyGraph) []mc.Alternative
 	//	PrimarylistUpdate([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo, mc.TopologyNodeInfo, int) ([]mc.TopologyNodeInfo, []mc.TopologyNodeInfo, []mc.TopologyNodeInfo)
 }

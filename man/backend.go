@@ -1,60 +1,62 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 // Package man implements the Matrix protocol.
 package man
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"runtime"
-	"sync/atomic"
-
-	"github.com/MatrixAINetwork/go-matrix/ca"
-	"github.com/MatrixAINetwork/go-matrix/mc"
-	"github.com/MatrixAINetwork/go-matrix/reelection"
+	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/accounts"
 	"github.com/MatrixAINetwork/go-matrix/accounts/signhelper"
+	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/blkgenor"
+	"github.com/MatrixAINetwork/go-matrix/blkgenor2.0"
 	"github.com/MatrixAINetwork/go-matrix/blkverify"
 	"github.com/MatrixAINetwork/go-matrix/broadcastTx"
+	"github.com/MatrixAINetwork/go-matrix/ca"
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
 	"github.com/MatrixAINetwork/go-matrix/consensus"
+	"github.com/MatrixAINetwork/go-matrix/consensus/ai"
+	"github.com/MatrixAINetwork/go-matrix/consensus/amhash"
 	"github.com/MatrixAINetwork/go-matrix/consensus/blkmanage"
-	"github.com/MatrixAINetwork/go-matrix/consensus/clique"
 	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
+	"github.com/MatrixAINetwork/go-matrix/consensus/mtxdpos"
 	"github.com/MatrixAINetwork/go-matrix/core"
 	"github.com/MatrixAINetwork/go-matrix/core/bloombits"
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
+	"github.com/MatrixAINetwork/go-matrix/depoistInfo"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/internal/manapi"
+	"github.com/MatrixAINetwork/go-matrix/leaderelect"
+	"github.com/MatrixAINetwork/go-matrix/leaderelect2.0"
+	"github.com/MatrixAINetwork/go-matrix/lessdisk"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man/downloader"
 	"github.com/MatrixAINetwork/go-matrix/man/filters"
+	"github.com/MatrixAINetwork/go-matrix/man/gasprice"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
+	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/miner"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
+	"github.com/MatrixAINetwork/go-matrix/olconsensus"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/params"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
 	"github.com/MatrixAINetwork/go-matrix/pod"
+	"github.com/MatrixAINetwork/go-matrix/reelection"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"github.com/MatrixAINetwork/go-matrix/rpc"
-
-	"sync"
-
-	"github.com/MatrixAINetwork/go-matrix/baseinterface"
-	//"github.com/MatrixAINetwork/go-matrix/leaderelect"
-	"time"
-
-	"github.com/MatrixAINetwork/go-matrix/leaderelect"
-	"github.com/MatrixAINetwork/go-matrix/lessdisk"
-	"github.com/MatrixAINetwork/go-matrix/olconsensus"
-	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
+	"sync/atomic"
 )
 
 var MsgCenter *mc.Center
@@ -85,7 +87,8 @@ type Matrix struct {
 	chainDb mandb.Database // Block chain database
 
 	eventMux       *event.TypeMux
-	engine         consensus.Engine
+	engine         map[string]consensus.Engine
+	dposEngine     map[string]consensus.DPOSEngine
 	accountManager *accounts.Manager
 
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
@@ -108,14 +111,16 @@ type Matrix struct {
 	hd         *msgsend.HD  //node传进来的
 	signHelper *signhelper.SignHelper
 
-	reelection   *reelection.ReElection //换届服务
-	random       *baseinterface.Random
-	olConsensus  *olconsensus.TopNodeService
-	blockGen     *blkgenor.BlockGenor
-	manBlkManage *blkmanage.ManBlkManage
-	blockVerify  *blkverify.BlockVerify
-	leaderServer *leaderelect.LeaderIdentity
-	lessDiskSvr  *lessdisk.Server
+	reelection     *reelection.ReElection //换届服务
+	random         *baseinterface.Random
+	olConsensus    *olconsensus.TopNodeService
+	blockGen       *blkgenor.BlockGenor
+	blockGenV2     *blkgenorV2.BlockGenor
+	manBlkManage   *blkmanage.ManBlkManage
+	blockVerify    *blkverify.BlockVerify
+	leaderServer   *leaderelect.LeaderIdentity
+	leaderServerV2 *leaderelect2.LeaderIdentity
+	lessDiskSvr    *lessdisk.Server
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and manbase)
 }
@@ -124,16 +129,26 @@ func (s *Matrix) AddLesServer(ls LesServer) {
 	s.lesServer = ls
 	ls.SetBloomBitsIndexer(s.bloomIndexer)
 }
-
+func (s *Matrix) StartMining(local bool) error {
+	if local {
+		// If local (CPU) mining is started, we can disable the transaction rejection
+		// mechanism introduced to speed sync times. CPU mining on mainnet is ludicrous
+		// so none will ever hit this path, whereas marking sync done on CPU mining
+		// will ensure that private networks work in single miner mode too.
+		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
+	}
+	go s.miner.Start()
+	return nil
+}
 // New creates a new Matrix object (including the
 // initialisation of the common Matrix object)
 func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
-//	if config.SyncMode == downloader.LightSync {
-//		return nil, errors.New("can't run man.Matrix in light sync mode, use les.LightMatrix")
-//	}
-//	if !config.SyncMode.IsValid() {
-//		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
-//	}
+	if config.SyncMode == downloader.LightSync {
+		return nil, errors.New("can't run man.Matrix in light sync mode, use les.LightMatrix")
+	}
+	if !config.SyncMode.IsValid() {
+		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
+	}
 	chainDb, err := CreateDB(ctx, config, "chaindata")
 	if err != nil {
 		return nil, err
@@ -150,20 +165,20 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		chainDb:        chainDb,
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
-//		accountManager: ctx.AccountManager,
-//		ca:             ctx.Ca,
+		accountManager: ctx.AccountManager,
+		ca:             ctx.Ca,
 		msgcenter:      ctx.MsgCenter,
 		hd:             ctx.HD,
 		signHelper:     ctx.SignHelper,
 
-//		engine:        CreateConsensusEngine(ctx, &config.Manash, chainConfig, chainDb),
 		shutdownChan:  make(chan bool),
 		networkId:     config.NetworkId,
 		gasPrice:      config.GasPrice,
 		manbase:       config.Manerbase,
-//		bloomRequests: make(chan chan *bloombits.Retrieval),
-//		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
+		bloomRequests: make(chan chan *bloombits.Retrieval),
+		bloomIndexer:  NewBloomIndexer(chainDb, params.BloomBitsBlocks),
 	}
+	man.engine, man.dposEngine = CreateConsensusEngineMap(ctx, &config.Manash, chainConfig, chainDb)
 	log.Info("Initialising Matrix protocol", "versions", ProtocolVersions, "network", config.NetworkId)
 
 	if !config.SkipBcVersionCheck {
@@ -177,7 +192,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		vmConfig    = vm.Config{EnablePreimageRecording: config.EnablePreimageRecording}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
-	man.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, man.chainConfig, man.engine, vmConfig)
+	man.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, man.chainConfig, vmConfig, man.engine, man.dposEngine)
 	if err != nil {
 		return nil, err
 	}
@@ -188,21 +203,16 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		man.blockchain.SetHead(compat.RewindTo)
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
-//	man.bloomIndexer.Start(man.blockchain)
+	man.bloomIndexer.Start(man.blockchain)
 
 	man.signHelper.SetAuthReader(man.blockchain)
 
-//	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
+	ca.SetTopologyReader(man.blockchain.GetTopologyStore())
 
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	//}
-//	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
-
-	if man.protocolManager, err = NewProtocolManager(man.chainConfig, config.SyncMode, config.NetworkId, man.eventMux, man.txPool, man.engine, man.blockchain, chainDb, ctx.MsgCenter); err != nil {
-		return nil, err
-	}
-	//man.protocolManager.Msgcenter = ctx.MsgCenter
+	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
 	MsgCenter = ctx.MsgCenter
 	engine := manash.New(manash.Config{
 		CacheDir:       ctx.ResolvePath(DefaultConfig.Manash.CacheDir),
@@ -213,71 +223,86 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 		DatasetsOnDisk: DefaultConfig.Manash.DatasetsOnDisk,
 	})
 
-	man.miner, err = miner.New(engine, man.chainConfig, man.EventMux(), man.hd)
+	if man.protocolManager, err = NewProtocolManager(man.chainConfig, config.SyncMode, config.NetworkId, man.eventMux, man.txPool, engine, man.blockchain, chainDb, ctx.MsgCenter); err != nil {
+		return nil, err
+	}
+	//man.protocolManager.Msgcenter = ctx.MsgCenter
+	aiMineEngine := amhash.New(amhash.Config{PowMode: amhash.ModeNormal, PictureStorePath: filepath.Join(ctx.GetConfig().DataDir, "picstore")})
+	man.miner, err = miner.New(engine,aiMineEngine, man.chainConfig, man.EventMux(), man.hd)
 	if err != nil {
 		return nil, err
 	}
 	man.miner.SetExtra(makeExtraData(config.ExtraData))
 
 	//algorithm
-//	man.random, err = baseinterface.NewRandom(man.blockchain)
-//	if err != nil {
-//		return nil, err
-//	}
-//	man.blockchain.Processor([]byte(manparams.VersionAlpha)).SetRandom(man.random)
-//	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
-//	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
-//	man.olConsensus.SetValidatorReader(man.blockchain)
-//	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
-//	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
-//	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
-//	man.olConsensus.SetMessageSendInterface(topNodeInstance)
-//	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
+	man.random, err = baseinterface.NewRandom(man.blockchain)
+	if err != nil {
+		return nil, err
+	}
+	man.blockchain.Processor([]byte(manversion.VersionAlpha)).SetRandom(man.random)
+	man.blockchain.Processor([]byte(manversion.VersionBeta)).SetRandom(man.random)
+	man.blockchain.Processor([]byte(manversion.VersionDelta)).SetRandom(man.random)
+	man.blockchain.Processor([]byte(manversion.VersionAIMine)).SetRandom(man.random)
+	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
+	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
+	man.olConsensus.SetValidatorReader(man.blockchain)
+	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
+	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
+	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
+	man.olConsensus.SetMessageSendInterface(topNodeInstance)
+	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
 
-//	if err = man.olConsensus.Start(); err != nil {
-//		return nil, err
-//	}
-//	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
-//	if err != nil {
-//		return nil, err
-//	}
+	if err = man.olConsensus.Start(); err != nil {
+		return nil, err
+	}
+	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
+	if err != nil {
+		return nil, err
+	}
 
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
-	//man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
+	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
-	//man.APIBackend = &ManAPIBackend{man, nil}
-	//gpoParams := config.GPO
-	//if gpoParams.Default == nil {
-	//	gpoParams.Default = config.GasPrice
-	//}
-	//man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
-	//depoistInfo.NewDepositInfo(man.APIBackend)
-	//man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
-	//
-	//man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
-	//if err != nil {
-	//	return nil, err
-	//}
-	//man.manBlkManage, err = blkmanage.New(man)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//man.blockGen, err = blkgenor.New(man)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//man.blockVerify, err = blkverify.NewBlockVerify(man)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
-	//man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
+	man.APIBackend = &ManAPIBackend{man, nil}
+	gpoParams := config.GPO
+	if gpoParams.Default == nil {
+		gpoParams.Default = config.GasPrice
+	}
+	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
+	depoistInfo.NewDepositInfo(man.APIBackend)
+	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
+
+	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
+	if err != nil {
+		return nil, err
+	}
+	man.leaderServerV2, err = leaderelect2.NewLeaderIdentityService(man, "leader服务V2")
+	if err != nil {
+		return nil, err
+	}
+	man.manBlkManage, err = blkmanage.New(man)
+	if err != nil {
+		return nil, err
+	}
+	man.blockGen, err = blkgenor.New(man)
+	if err != nil {
+		return nil, err
+	}
+	man.blockGenV2, err = blkgenorV2.New(man)
+	if err != nil {
+		return nil, err
+	}
+	man.blockVerify, err = blkverify.NewBlockVerify(man)
+	if err != nil {
+		return nil, err
+	}
+	man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
+	man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
 
 	return man, nil
-
 }
 
 func makeExtraData(extra []byte) []byte {
@@ -310,44 +335,43 @@ func CreateDB(ctx *pod.ServiceContext, config *Config, name string) (mandb.Datab
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Matrix service
+func CreateConsensusEngineMap(ctx *pod.ServiceContext, config *manash.Config, chainConfig *params.ChainConfig, db mandb.Database) (map[string]consensus.Engine, map[string]consensus.DPOSEngine) {
+	ai.Init(filepath.Join(ctx.GetConfig().DataDir, "picstore"))
+
+	engineMap := make(map[string]consensus.Engine)
+	alphaEngine := CreateConsensusEngine(ctx, config, chainConfig, db)
+	aiMineEngine := amhash.New(amhash.Config{PowMode: amhash.ModeNormal, PictureStorePath: filepath.Join(ctx.GetConfig().DataDir, "picstore")})
+	aiMineEngine.SetThreads(-1) // Disable CPU mining
+
+	engineMap[manversion.VersionAlpha] = alphaEngine
+	engineMap[manversion.VersionBeta] = alphaEngine
+	engineMap[manversion.VersionGamma] = alphaEngine
+	engineMap[manversion.VersionDelta] = alphaEngine
+	engineMap[manversion.VersionAIMine] = aiMineEngine
+
+	dposEngineMap := make(map[string]consensus.DPOSEngine)
+	alphaDposEngine := mtxdpos.NewMtxDPOS(chainConfig.SimpleMode)
+	dposEngineMap[manversion.VersionAlpha] = alphaDposEngine
+	dposEngineMap[manversion.VersionBeta] = alphaDposEngine
+	dposEngineMap[manversion.VersionGamma] = alphaDposEngine
+	dposEngineMap[manversion.VersionDelta] = alphaDposEngine
+	dposEngineMap[manversion.VersionAIMine] = alphaDposEngine
+
+	return engineMap, dposEngineMap
+}
+
 func CreateConsensusEngine(ctx *pod.ServiceContext, config *manash.Config, chainConfig *params.ChainConfig, db mandb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
-	if chainConfig.Clique != nil {
-		return clique.New(chainConfig.Clique, db)
-	}
-	// Otherwise assume proof-of-work
-	switch config.PowMode {
-	case manash.ModeFake:
-		log.Warn("Manash used in fake mode")
-		return manash.NewFaker()
-	case manash.ModeTest:
-		log.Warn("Manash used in test mode")
-		return manash.NewTester()
-	case manash.ModeShared:
-		log.Warn("Manash used in shared mode")
-		return manash.NewShared()
-	default:
-		engine := manash.New(manash.Config{
-			CacheDir:       ctx.ResolvePath(config.CacheDir),
-			CachesInMem:    config.CachesInMem,
-			CachesOnDisk:   config.CachesOnDisk,
-			DatasetDir:     config.DatasetDir,
-			DatasetsInMem:  config.DatasetsInMem,
-			DatasetsOnDisk: config.DatasetsOnDisk,
-		})
-		engine.SetThreads(-1) // Disable CPU mining
-		return engine
-	}
+	return nil
 }
 
 // APIs return the collection of RPC services the matrix package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Matrix) APIs() []rpc.API {
-	return nil
 	apis := manapi.GetAPIs(s.APIBackend)
 
 	// Append any APIs exposed explicitly by the consensus engine
-	apis = append(apis, s.engine.APIs(s.BlockChain())...)
+	apis = append(apis, s.engine[manversion.VersionAlpha].APIs(s.BlockChain())...)
 
 	// Append all the local APIs and return
 
@@ -446,34 +470,30 @@ func (s *Matrix) Manerbase() (eb common.Address, err error) {
 	return common.Address{}, fmt.Errorf("manbase must be explicitly specified")
 }
 
-func (s *Matrix) StartMining(local bool) error {
-
-	if local {
-		// If local (CPU) mining is started, we can disable the transaction rejection
-		// mechanism introduced to speed sync times. CPU mining on mainnet is ludicrous
-		// so none will ever hit this path, whereas marking sync done on CPU mining
-		// will ensure that private networks work in single miner mode too.
-		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
-	}
-	go s.miner.Start()
-	return nil
-}
-
-func (s *Matrix) StopMining()         { s.miner.Stop() }
 func (s *Matrix) IsMining() bool      { return s.miner.Mining() }
 func (s *Matrix) Miner() *miner.Miner { return s.miner }
 
-func (s *Matrix) AccountManager() *accounts.Manager { return s.accountManager }
-func (s *Matrix) BlockChain() *core.BlockChain      { return s.blockchain }
-func (s *Matrix) TxPool() *core.TxPoolManager       { return s.txPool } //Y
-func (s *Matrix) EventMux() *event.TypeMux          { return s.eventMux }
-func (s *Matrix) Engine() consensus.Engine          { return s.engine }
-func (s *Matrix) DPOSEngine() consensus.DPOSEngine {
-	block := s.blockchain.CurrentBlock()
-	if nil == block {
-		s.blockchain.DPOSEngine([]byte("default"))
+func (s *Matrix) AccountManager() *accounts.Manager      { return s.accountManager }
+func (s *Matrix) BlockChain() *core.BlockChain           { return s.blockchain }
+func (s *Matrix) TxPool() *core.TxPoolManager            { return s.txPool } //Y
+func (s *Matrix) EventMux() *event.TypeMux               { return s.eventMux }
+func (s *Matrix) EngineAll() map[string]consensus.Engine { return s.engine }
+func (s *Matrix) Engine(version string) consensus.Engine {
+	engine, ok := s.engine[version]
+	if ok {
+		return engine
+	} else {
+		return s.engine[manversion.VersionAlpha]
 	}
-	return s.blockchain.DPOSEngine(s.blockchain.CurrentBlock().Version())
+}
+
+func (s *Matrix) DPOSEngine(version string) consensus.DPOSEngine {
+	engine, ok := s.dposEngine[version]
+	if ok {
+		return engine
+	} else {
+		return s.dposEngine[manversion.VersionAlpha]
+	}
 }
 func (s *Matrix) ChainDb() mandb.Database                  { return s.chainDb }
 func (s *Matrix) IsListening() bool                        { return true } // Always listening
@@ -503,10 +523,10 @@ func (s *Matrix) Protocols() []p2p.Protocol {
 func (s *Matrix) Start(srvr *p2p.Server) error {
 	srvr.NetWorkId = s.config.NetworkId
 	// Start the bloom bits servicing goroutines
-//	s.startBloomHandlers()
+	s.startBloomHandlers()
 
 	// Start the RPC service
-//	s.netRPCService = manapi.NewPublicNetAPI(srvr, s.NetVersion())
+	s.netRPCService = manapi.NewPublicNetAPI(srvr, s.NetVersion())
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := srvr.MaxPeers
@@ -518,9 +538,9 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 	}
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
-	//if s.lesServer != nil {
-	//	s.lesServer.Start(srvr)
-	//}
+	if s.lesServer != nil {
+		s.lesServer.Start(srvr)
+	}
 	//s.broadTx.Start()//
 	return nil
 }
@@ -540,41 +560,6 @@ func (s *Matrix) Start(srvr *p2p.Server) error {
 //		s.protocolManager.fetcher.Notify(id.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
 //	}
 //}
-func (s *Matrix) FetcherNotify(hash common.Hash, number uint64, addr common.Address) {
-	log.Trace("download backend func FetcherNotify ", "number", number, "hash", hash.String(), "addr", addr.String())
-	return
-	var nid discover.NodeID
-	if len(addr) == 0 || addr == (common.Address{}) {
-		addrs := ca.GetRolesByGroup(common.RoleValidator | common.RoleBroadcast)
-		selfId := ""
-		indexs := p2p.Random(len(addrs), 1)
-		if len(indexs) > 0 && indexs[0] <= (len(addrs)-1) {
-			nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]])
-		}
-		if nid.String() == selfId {
-			log.Info("func FetcherNotify  NodeID is same ", "selfID", selfId, "ca`s nodeID", nid.String())
-			if indexs[0] == (len(addrs) - 1) {
-				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]-1])
-			} else {
-				nid = p2p.ServerP2p.ConvertAddressToId(addrs[indexs[0]+1])
-			}
-		}
-
-	} else {
-		nid = p2p.ServerP2p.ConvertAddressToId(addr)
-	}
-	if nid.String() == "" {
-		log.Info("backend func FetcherNotify", "NodeID is nil", nid.String(), "address", addr)
-		return
-	}
-	peer := s.protocolManager.Peers.Peer(nid.String()[:16])
-	if peer == nil {
-		log.Info("backend func FetcherNotify", "get PeerID is nil by Validator ID:id", nid.String()[:16])
-		return
-	}
-	s.protocolManager.fetcher.Notify(nid.String()[:16], hash, number, time.Now(), peer.RequestOneHeader, peer.RequestBodies)
-
-}
 
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Matrix protocol.

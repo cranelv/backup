@@ -1,11 +1,12 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package layeredmep
 
 import (
 	"github.com/MatrixAINetwork/go-matrix/baseinterface"
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/election/support"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
@@ -23,7 +24,7 @@ func RegInit() baseinterface.ElectionInterface {
 	return &layeredMep{}
 }
 
-func (self *layeredMep) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg) *mc.MasterMinerReElectionRsp {
+func (self *layeredMep) MinerTopGen(mmrerm *mc.MasterMinerReElectionReqMsg, stateDb *state.StateDBManage) *mc.MasterMinerReElectionRsp {
 	log.Trace("MEP分层方案", "矿工拓扑生成", mmrerm)
 
 	vipEle := support.NewMEPElection(nil, mmrerm.MinerList, mmrerm.ElectConfig, mmrerm.RandSeed, mmrerm.SeqNum, common.RoleMiner)
@@ -67,7 +68,7 @@ func printVipBlackList(blackList []mc.UserBlockProduceSlash) {
 		}
 	}
 }
-func (self *layeredMep) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg) *mc.MasterValidatorReElectionRsq {
+func (self *layeredMep) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqMsg, stateDb *state.StateDBManage) *mc.MasterValidatorReElectionRsq {
 	log.Trace("分层方案", "验证者拓扑生成", mvrerm)
 
 	vipEle := support.NewElelection(mvrerm.VIPList, mvrerm.ValidatorList, mvrerm.ElectConfig, mvrerm.RandSeed, mvrerm.SeqNum, common.RoleValidator)
@@ -75,7 +76,6 @@ func (self *layeredMep) ValidatorTopGen(mvrerm *mc.MasterValidatorReElectionReqM
 		vipEle.ProcessWhiteNode()
 	}
 	vipEle.ProcessBlackNode()
-	//vipEle.DisPlayNode()
 
 	for vipEleLoop := len(vipEle.VipLevelCfg) - 1; vipEleLoop >= 0; vipEleLoop-- {
 		if vipEle.VipLevelCfg[vipEleLoop].ElectUserNum <= 0 && vipEleLoop != 0 { //vip0继续处理

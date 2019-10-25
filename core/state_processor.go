@@ -608,20 +608,33 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		return nil, nil, 0, err
 	}
 
+	if err = p.bc.ProcessStateVersionSwitch(block.NumberU64(), block.Time().Uint64(), statedb); err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err1")
+		return nil, nil, 0, err
+	}
+	if err = p.bc.SetBlockDurationStatus(block.Header(), statedb); err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err2")
+		return nil, nil, 0, err
+	}
 	uptimeMap, err := p.bc.ProcessUpTime(statedb, block.Header())
 	if err != nil {
-		log.Trace("BlockChain insertChain in3 Process Block err1")
+		log.Trace("BlockChain insertChain in3 Process Block err3")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
 
-	err = p.bc.ProcessBlockGProduceSlash(statedb, block.Header())
+	err = p.bc.ProcessBlockGProduceSlash(string(block.Version()), statedb, block.Header())
 	if err != nil {
 		log.Trace("BlockChain insertChain in3 Process Block err2")
 		p.bc.reportBlock(block, nil, err)
 		return nil, nil, 0, err
 	}
-
+	err = p.bc.BasePowerGProduceSlash(string(block.Version()), statedb, block.Header())
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err5")
+		p.bc.reportBlock(block, nil, err)
+		return nil, nil, 0, err
+	}
 	// Process block using the parent state as reference point.
 	logs, usedGas, err := p.ProcessTxs(block, statedb, cfg, uptimeMap)
 	if err != nil {
@@ -636,7 +649,11 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Block, stated
 		log.Trace("BlockChain insertChain in3 Process Block err4")
 		return nil, logs, usedGas, err
 	}
-
+	err = p.bc.UpdateCurrencyHeaderState(statedb, string(block.Version()), block.Root()[1:], block.Sharding()[1:])
+	if err != nil {
+		log.Trace("BlockChain insertChain in3 Process Block err8")
+		return nil, logs, usedGas, err
+	}
 	return nil, logs, usedGas, nil
 }
 

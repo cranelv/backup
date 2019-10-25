@@ -1,13 +1,12 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package man
 
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/MatrixAINetwork/go-matrix/reward/util"
 
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/common/hexutil"
@@ -26,13 +27,13 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 
+	"github.com/MatrixAINetwork/go-matrix/base58"
 	"github.com/MatrixAINetwork/go-matrix/man/wizard"
 	"github.com/MatrixAINetwork/go-matrix/miner"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
 	"github.com/MatrixAINetwork/go-matrix/rpc"
 	"github.com/MatrixAINetwork/go-matrix/trie"
-	"github.com/MatrixAINetwork/go-matrix/base58"
 )
 
 // PublicMatrixAPI provides an API to access Matrix full node-related
@@ -52,8 +53,10 @@ func (api *PublicMatrixAPI) Manerbase() (common.Address, error) {
 }
 
 // Coinbase is the address that mining rewards will be send to (alias for Manerbase)
-func (api *PublicMatrixAPI) Coinbase() (common.Address, error) {
-	return api.Manerbase()
+func (api *PublicMatrixAPI) Coinbase() (string, error) {
+	//return api.Manerbase()
+	addr, err := api.Manerbase()
+	return base58.Base58EncodeToString("MAN", addr), err
 }
 
 // Hashrate returns the POW hashrate
@@ -70,10 +73,8 @@ type PublicMinerAPI struct {
 
 // NewPublicMinerAPI create a new PublicMinerAPI instance.
 func NewPublicMinerAPI(e *Matrix) *PublicMinerAPI {
-	agent := miner.NewRemoteAgent(e.BlockChain(), e.Engine())
-	e.Miner().Register(agent)
 
-	return &PublicMinerAPI{e, agent}
+	return &PublicMinerAPI{e, nil}
 }
 
 // Mining returns an indication if this node is currently mining.
@@ -93,9 +94,7 @@ func (api *PublicMinerAPI) SubmitWork(nonce types.BlockNonce, solution, digest c
 // result[2], 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
 func (api *PublicMinerAPI) GetWork() ([3]string, error) {
 	if !api.e.IsMining() {
-		if err := api.e.StartMining(false); err != nil {
-			return [3]string{}, err
-		}
+		return [3]string{}, errors.New("not mining work now")
 	}
 	work, err := api.agent.GetWork()
 	if err != nil {
@@ -123,7 +122,6 @@ func NewPrivateMinerAPI(e *Matrix) *PrivateMinerAPI {
 	return &PrivateMinerAPI{e: e}
 }
 
-/*
 // Start the miner with the given number of threads. If threads is nil the number
 // of workers started is equal to the number of logical CPUs that are usable by
 // this process. If mining is already running, this method adjust the number of
@@ -138,20 +136,6 @@ func (api *PrivateMinerAPI) Start(threads *int) error {
 	type threaded interface {
 		SetThreads(threads int)
 	}
-	if th, ok := api.e.engine.(threaded); ok {
-		log.Info("Updated mining threads", "threads", *threads)
-		th.SetThreads(*threads)
-	}
-	// Start the miner and return
-	if !api.e.IsMining() {
-		// Propagate the initial price point to the transaction pool
-		api.e.lock.RLock()
-		price := api.e.gasPrice
-		api.e.lock.RUnlock()
-
-		api.e.txPool.SetGasPrice(price)
-		return api.e.StartMining(true)
-	}
 	return nil
 }
 
@@ -160,13 +144,8 @@ func (api *PrivateMinerAPI) Stop() bool {
 	type threaded interface {
 		SetThreads(threads int)
 	}
-	if th, ok := api.e.engine.(threaded); ok {
-		th.SetThreads(-1)
-	}
-	api.e.StopMining()
 	return true
 }
-*/
 
 func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader string) {
 	/*
@@ -174,16 +153,16 @@ func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader 
 		switch kind {
 		case "miner":
 			role = common.RoleMiner
-			log.INFO("TestChangeRole", "role", "common.RoleMiner")
+			log.Info("TestChangeRole", "role", "common.RoleMiner")
 		case "validator":
 			role = common.RoleValidator
-			log.INFO("TestChangeRole", "role", "common.RoleValidator")
+			log.Info("TestChangeRole", "role", "common.RoleValidator")
 		case "broadcast":
 			role = common.RoleValidator
-			log.INFO("TestChangeRole", "role", "common.RoleValidator")
+			log.Info("TestChangeRole", "role", "common.RoleValidator")
 		default:
 			role = common.RoleDefault
-			log.INFO("TestChangeRole", "role", "common.RoleDefault")
+			log.Info("TestChangeRole", "role", "common.RoleDefault")
 		}
 
 		int, err := strconv.Atoi(blocknum)
@@ -194,72 +173,23 @@ func (api *PrivateMinerAPI) TestChangeRole(kind string, blocknum string, leader 
 		var Leader common.Address
 		data, err := hex.DecodeString(leader)
 		if err != nil || leader == "" {
-			log.ERROR("data DecodeString failed", "err", err)
+			log.Error("data DecodeString failed", "err", err)
 			Leader = common.Address{}
 
 		} else {
 			Leader = common.BytesToAddress(data)
 		}
-		log.INFO("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", Leader.Hex())
+		log.Info("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", Leader.Hex())
 		mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: role, BlockNum: uint64(int), Leader: Leader})
-		log.INFO("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", common.HexToAddress(ca.Validatoraccountlist[1]))
+		log.Info("TestChangeRole", "Leader string", leader, "leader common.Address", Leader, "Address to Hex", common.HexToAddress(ca.Validatoraccountlist[1]))
 		time.Sleep(time.Second)
 		mc.PublishEvent(mc.Leader_LeaderChangeNotify, &mc.LeaderChangeNotify{true, common.HexToAddress(ca.Validatoraccountlist[1]), 1, 0})
 	*/
 
-	ans := mc.HD_MiningReqMsg{
-		Header: &types.Header{
-			Number: big.NewInt(100),
-		},
-	}
-	data, err := json.Marshal(ans)
-	if err != nil {
-		log.INFO("SendToGroup", "Marshal failed err", err)
-	}
-	api.e.HD().SendNodeMsg(mc.HD_MiningReq, data, common.Address{}, common.RoleValidator, nil)
 }
 
 func (api *PrivateMinerAPI) TestLocalMining(kind string, s string) {
 
-	int, err := strconv.Atoi(s)
-	if err != nil {
-		int = 600000
-	}
-	time.Sleep(10 * time.Second)
-	fmt.Println("开始发送挖矿请求消息")
-	testHeader := &types.Header{
-		ParentHash: common.BigToHash(big.NewInt(100)),
-		Difficulty: big.NewInt(int64(int)),
-		Number:     big.NewInt(331),
-		Nonce:      types.EncodeNonce(8),
-		Time:       big.NewInt(888),
-		Coinbase:   common.BigToAddress(big.NewInt(123)),
-		MixDigest:  common.BigToHash(big.NewInt(777)),
-		Signatures: []common.Signature{common.BytesToSignature(common.BigToHash(big.NewInt(100)).Bytes())},
-	}
-	switch kind {
-	case "vali_send":
-
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleValidator, nil)
-		log.INFO("发送给验证者", "data", mc.HD_MiningReqMsg{Header: testHeader})
-	case "miner_send":
-
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleMiner, nil)
-		log.INFO("发送给矿工", "data", mc.HD_MiningReqMsg{Header: testHeader})
-	case "signal_send":
-		temp := "0x92e0fea9aba517398c2f0dd628f8cfc7e32ba984"
-		nodes := []common.Address{common.HexToAddress(temp)}
-
-		api.e.hd.SendNodeMsg(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader}, common.Address{}, common.RoleMiner, nodes)
-		log.INFO("单点发送", "Data", nodes[0])
-	case "normal_signal":
-		mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleMiner, BlockNum: 1})
-		mc.PublishEvent(mc.HD_MiningReq, &mc.HD_MiningReqMsg{Header: testHeader})
-		log.INFO("successfully normal ", "data", mc.HD_MiningReqMsg{Header: testHeader})
-
-	default:
-		//	log.INFO("successfully local", "data", mc.BlockData{Header: testHeader, Txs: &types.Transactions{}})
-	}
 
 }
 
@@ -293,7 +223,7 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 		w.MakeSuperGenesis(api.e.BlockChain(), api.e.chainDb, num, false)
 		//mc.PublicEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleValidator, BlockNum: 1})
 		//mc.PublicEvent(mc.BlkVerify_VerifyConsensusOK, &mc.BlockVerifyConsensusOK{testHeader, nil, nil, nil})
-		log.INFO("successfully gen superGenesis ", "MANSuperGenesis.", "nil")
+		log.Info("successfully gen superGenesis ", "MANSuperGenesis.", "nil")
 	case "start":
 		//type LeaderChangeNotify struct {
 		//	ConsensusState bool //共识结果
@@ -303,11 +233,11 @@ func (api *PrivateMinerAPI) TestHeaderGen(kind string, s string) {
 		//}
 		//api.e.msgcenter.PostEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleValidator, BlockNum: 1})
 		////api.e.msgcenter.PostEvent(mc.Leader_LeaderChangeNotify, &mc.LeaderChangeNotify{true, nil, nil, nil})
-		//log.INFO("successfully normal ", "start", mc.BlockVerifyConsensusOK{Header: testHeader})
+		//log.Info("successfully normal ", "start", mc.BlockVerifyConsensusOK{Header: testHeader})
 	default:
 		mc.PublishEvent(mc.CA_RoleUpdated, &mc.RoleUpdatedMsg{Role: common.RoleBroadcast, BlockNum: 1})
 		//mc.PublishEvent(mc.BD_MiningReq, &mc.BlockGenor_BroadcastMiningReqMsg{BlockMainData: &mc.BlockData{Header: testHeader, Txs: &types.Transactions{}}})
-		//log.INFO("successfully local", "data", mc.BlockData{Header: testHeader, Txs: &types.Transactions{}})
+		//log.Info("successfully local", "data", mc.BlockData{Header: testHeader, Txs: &types.Transactions{}})
 	}
 }
 
@@ -419,7 +349,7 @@ func (api *PrivateAdminAPI) ImportChain(file string) (bool, error) {
 			continue
 		}
 		// Import the batch and reset the buffer
-		if _, err := api.man.BlockChain().InsertChain(blocks); err != nil {
+		if _, err := api.man.BlockChain().InsertChain(blocks, 0); err != nil {
 			return false, fmt.Errorf("batch %d: failed to insert: %v", batch, err)
 		}
 		blocks = blocks[:0]
@@ -440,15 +370,15 @@ func NewPublicDebugAPI(man *Matrix) *PublicDebugAPI {
 }
 
 // DumpBlock retrieves the entire state of the database at a given block.
-func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber,cointyp string, addr string) ([]state.CoinDump, error) {
-	if cointyp != ""{
+func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber, cointyp string, addr string) ([]state.CoinDump, error) {
+	if cointyp != "" {
 		cointyp = strings.ToUpper(cointyp)
 	}
 	var address common.Address
-	if addr != ""{
-		tmpaddress,err := base58.Base58DecodeToAddress(addr)
-		if err != nil{
-			return nil,err
+	if addr != "" {
+		tmpaddress, err := base58.Base58DecodeToAddress(addr)
+		if err != nil {
+			return nil, err
 		}
 		address = tmpaddress
 	}
@@ -609,6 +539,11 @@ func (api *PrivateDebugAPI) GetModifiedAccountsByNumber(startNum uint64, endNum 
 		}
 	}
 	return api.getModifiedAccounts(startBlock, endBlock)
+}
+func (api *PrivateDebugAPI) SetInterestPrintLevel(level uint8) error {
+
+	util.SetLoglevel(level)
+	return nil
 }
 
 // GetModifiedAccountsByHash returns all accounts that have changed between the

@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package vm
 
@@ -49,23 +49,23 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
 	cfg.JumpTable = byzantiumInstructionSet
-//	if !cfg.JumpTable[STOP].valid {
-//		switch {
-//		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
-//			cfg.JumpTable = constantinopleInstructionSet
-//		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
-//			cfg.JumpTable = byzantiumInstructionSet
-//		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
-//			cfg.JumpTable = homesteadInstructionSet
-//		default:
-//			cfg.JumpTable = frontierInstructionSet
-//		}
-//	}
+	//	if !cfg.JumpTable[STOP].valid {
+	//		switch {
+	//		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
+	//			cfg.JumpTable = constantinopleInstructionSet
+	//		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
+	//			cfg.JumpTable = byzantiumInstructionSet
+	//		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
+	//			cfg.JumpTable = homesteadInstructionSet
+	//		default:
+	//			cfg.JumpTable = frontierInstructionSet
+	//		}
+	//	}
 
 	return &Interpreter{
 		evm:      evm,
 		cfg:      cfg,
-		gasTable: params.GasTableEIP158,//evm.ChainConfig().GasTable(evm.BlockNumber),
+		gasTable: params.GasTableEIP158, //evm.ChainConfig().GasTable(evm.BlockNumber),
 		intPool:  newIntPool(),
 	}
 }

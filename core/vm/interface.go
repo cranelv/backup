@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package vm
 
@@ -32,7 +32,7 @@ type CallContext interface {
 
 type StateDBManager interface {
 	CreateAccount(cointyp string, addr common.Address)
-	MakeStatedb(cointyp string,isCheck bool)
+	MakeStatedb(cointyp string, isCheck bool)
 	SetBalance(cointyp string, accountType uint32, addr common.Address, amount *big.Int)
 	SubBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)
 	AddBalance(cointyp string, idx uint32, addr common.Address, am *big.Int)
@@ -55,6 +55,9 @@ type StateDBManager interface {
 	GetState(cointyp string, addr common.Address, hash common.Hash) common.Hash
 	SetState(cointyp string, addr common.Address, hash, hash2 common.Hash)
 
+	GetStateByteArray(cointyp string, addr common.Address, b common.Hash) []byte
+	SetStateByteArray(cointyp string, addr common.Address, key common.Hash, value []byte)
+
 	CommitSaveTx(cointyp string, addr common.Address)
 	GetSaveTx(cointyp string, addr common.Address, typ byte, key uint32, hash []common.Hash, isdel bool)
 	SaveTx(cointyp string, addr common.Address, typ byte, key uint32, data map[common.Hash][]byte)
@@ -63,10 +66,10 @@ type StateDBManager interface {
 	Suicide(cointyp string, addr common.Address) bool
 	HasSuicided(cointyp string, addr common.Address) bool
 
-	GetEntrustStateByteArray(cointyp string,addr common.Address) []byte
-	GetAuthStateByteArray(cointyp string,addr common.Address) []byte
-	SetEntrustStateByteArray(cointyp string,addr common.Address, value []byte)
-	SetAuthStateByteArray(cointyp string,addr common.Address, value []byte)
+	GetEntrustStateByteArray(cointyp string, addr common.Address) []byte
+	GetAuthStateByteArray(cointyp string, addr common.Address) []byte
+	SetEntrustStateByteArray(cointyp string, addr common.Address, value []byte)
+	SetAuthStateByteArray(cointyp string, addr common.Address, value []byte)
 
 	//// Exist reports whether the given account exists in state.
 	//// Notably this should also return true for suicided accounts.

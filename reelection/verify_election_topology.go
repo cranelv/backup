@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package reelection
 
 import (
@@ -11,6 +11,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
 	"github.com/pkg/errors"
 )
 
@@ -47,12 +48,12 @@ func (p *ReElection) VerifyElection(header *types.Header, state *state.StateDBMa
 	return nil
 }
 
-func (p *ReElection) VerifyNetTopology(header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error {
+func (p *ReElection) VerifyNetTopology(version string, header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error {
 	if header.NetTopology.Type == common.NetTopoTypeAll {
 		return p.verifyAllNetTopology(header)
 	}
 
-	return p.verifyChgNetTopology(header, onlineConsensusResults)
+	return p.verifyChgNetTopology(version, header, onlineConsensusResults)
 }
 func (p *ReElection) VerifyVrf(header *types.Header) error {
 
@@ -105,16 +106,23 @@ func (p *ReElection) verifyAllNetTopology(header *types.Header) error {
 	return nil
 }
 
-func (p *ReElection) verifyChgNetTopology(header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error {
+func (p *ReElection) verifyChgNetTopology(version string, header *types.Header, onlineConsensusResults []*mc.HD_OnlineConsensusVoteResultMsg) error {
 	if len(header.NetTopology.NetTopologyData) == 0 {
 		return nil
 	}
-
+	if manversion.VersionCmp(version, manversion.VersionGamma) >= 0 {
+		for _, item := range onlineConsensusResults {
+			if item.Req.Node == header.Leader {
+				log.Warn(Module, "verifyChgNetTopology", "leader出块共识中存在自己的下线共识", "leader", header.Leader.Hex())
+				return errors.New("节点下线共识中出现出块leader自己")
+			}
+		}
+	}
 	// get online and offline info from header and prev topology
 	offlineNodes, onlineNods := p.parseOnlineState(header)
-	//log.INFO(Module, "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
-	//log.INFO(Module, "offlineNodes", offlineNodes)
-	//log.INFO(Module, "onlineNods", onlineNods)
+	//log.Info(Module, "header.NetTop", header.NetTopology, "高度", header.Number.Uint64())
+	//log.Info(Module, "offlineNodes", offlineNodes)
+	//log.Info(Module, "onlineNods", onlineNods)
 
 	for _, node := range offlineNodes {
 		if err := p.checkConsensusResult(node, mc.OffLine, header, onlineConsensusResults); err != nil {
@@ -128,9 +136,9 @@ func (p *ReElection) verifyChgNetTopology(header *types.Header, onlineConsensusR
 	}
 
 	// generate topology alter info
-	//log.INFO(Module, "p.number", header.Number.Uint64(), "offlineNodes", offlineNodes, "onlineNods", onlineNods)
+	//log.Info(Module, "p.number", header.Number.Uint64(), "offlineNodes", offlineNodes, "onlineNods", onlineNods)
 	alterInfo, err := p.GetTopoChange(header.ParentHash, offlineNodes, onlineNods)
-	//log.INFO(Module, "alterInfo", alterInfo, "err", err)
+	//log.Info(Module, "alterInfo", alterInfo, "err", err)
 	if err != nil {
 		return err
 	}

@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	VotePoolTimeout    = 55 * 1000
-	VotePoolCountLimit = 5
+	VotePoolTimeout     = 55 * 1000
+	VotePoolCountLimit  = 5
+	BasePowerCountLimit = 3
+	AIResultCountLimit  = 3
 
 	BlkPosReqSendInterval   = 5
 	BlkPosReqSendTimes      = 6
@@ -26,7 +28,7 @@ const (
 	BlkVoteSendTimes        = 8
 	MinerReqSendInterval    = 3
 	PosedReqSendInterval    = 10
-	MinerResultSendInterval = 1e8
+	MinerResultSendInterval = 3
 
 	MinerPickTimeout = 20
 
@@ -41,10 +43,16 @@ const (
 	EveryBroadcastSeed                   = "everybroadcastseed"
 	EveryBroadcastSeed_Plug_MaxNonce     = "MaxNonce"
 
-	ElectPlug_layerd = "layerd"
-	ElectPlug_stock  = "stock"
-	ELectPlug_direct = "direct"
+	ElectPlug_layerd    = "layerd"
+	ElectPlug_stock     = "stock"
+	ELectPlug_direct    = "direct"
 	ElectPlug_layerdMEP = "layerd_MEP"
+	ElectPlug_layerdBSS = "layerd_BSS"
+	ElectPlug_layerdDP  = "layerd_DP"
+)
+
+const (
+	BlockHeaderModifyHeight = uint64(1342516) //多币种压缩高度
 )
 
 var (
@@ -77,13 +85,13 @@ func Config_Init(Config_PATH string) {
 		fmt.Println("无bootnode节点")
 		os.Exit(-1)
 	}
-	if len(v.ConsensusAccount) > 0{
-		for _,consensusmanaddr := range v.ConsensusAccount{
-			tmpaccount,err := base58.Base58DecodeToAddress(consensusmanaddr)
-			if err == nil{
-				common.ConsensusAccounts = append(common.ConsensusAccounts,tmpaccount) //协商的用于发送黑名单账户列表
-			}else{
-				log.Error("协商账户格式错误","err",err)
+	if len(v.ConsensusAccount) > 0 {
+		for _, consensusmanaddr := range v.ConsensusAccount {
+			tmpaccount, err := base58.Base58DecodeToAddress(consensusmanaddr)
+			if err == nil {
+				common.ConsensusAccounts = append(common.ConsensusAccounts, tmpaccount) //协商的用于发送黑名单账户列表
+			} else {
+				log.Error("协商账户格式错误", "err", err)
 			}
 		}
 	}
@@ -91,21 +99,21 @@ func Config_Init(Config_PATH string) {
 }
 
 func ReadBlacklist(path string) {
-	file,err := os.Open(path)
-	if err == nil{
+	file, err := os.Open(path)
+	if err == nil {
 		reader := bufio.NewReader(file)
-		for{
-			buf,_,err := reader.ReadLine()
-			if err != nil{
+		for {
+			buf, _, err := reader.ReadLine()
+			if err != nil {
 				break
 			}
-			addr,err := base58.Base58DecodeToAddress(string(buf))
-			if err != nil{
-				log.Error("ReadBlacklist","black format error",string(buf))
+			addr, err := base58.Base58DecodeToAddress(string(buf))
+			if err != nil {
+				log.Error("ReadBlacklist", "black format error", string(buf))
 				continue
 			}
-			common.BlackListString = append(common.BlackListString,string(buf))
-			common.BlackList = append(common.BlackList,addr)
+			common.BlackListString = append(common.BlackListString, string(buf))
+			common.BlackList = append(common.BlackList, addr)
 		}
 	}
 	file.Close()
@@ -113,7 +121,7 @@ func ReadBlacklist(path string) {
 
 
 type Config struct {
-	BootNode []string
+	BootNode         []string
 	ConsensusAccount []string
 }
 

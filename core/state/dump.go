@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package state
 
@@ -29,7 +29,7 @@ type DumpAccount struct {
 	Storage  map[string]string `json:"storage"`
 }
 type CoinDump struct {
-	CoinTyp string
+	CoinTyp  string
 	DumpList []Dump
 }
 
@@ -48,6 +48,7 @@ type CodeData struct {
 	CodeHash []byte
 	Code     []byte
 }
+
 //Root [Account ...] [Matrix...]
 //Account -> Root -> []DumpValue
 type DumpDB struct {
@@ -260,7 +261,6 @@ func (self *StateDB) RawDumpAcccount(address common.Address) Dump {
 	}
 	return dump
 }
-
 
 func (dbDump *DumpDB) PrintAccountMsg() {
 	fmt.Println("PrintAccountMsg info")

@@ -24,11 +24,12 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/man/fetcher"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/mc"
+	"github.com/MatrixAINetwork/go-matrix/msgsend"
 	"github.com/MatrixAINetwork/go-matrix/p2p"
 	"github.com/MatrixAINetwork/go-matrix/p2p/discover"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"github.com/MatrixAINetwork/go-matrix/msgsend"
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
+	"github.com/MatrixAINetwork/go-matrix/rlp"
 )
 
 const (
@@ -86,7 +87,10 @@ type ProtocolManager struct {
 	quitSync    chan struct{}
 	noMorePeers chan struct{}
 
-	Msgcenter *mc.Center
+	CheckDownloadNum int
+	LastCheckTime    int64
+	LastCheckBlkNum  uint64
+	Msgcenter        *mc.Center
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	wg sync.WaitGroup
@@ -159,7 +163,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 
 	validator := func(header *types.Header) error {
 		//todo 无法连续验证，下载的区块全部不验证pow
-		return engine.VerifyHeader(blockchain, header, false)
+		return engine.VerifyHeader(blockchain, header, false,false)
 	}
 	heighter := func() uint64 {
 		return blockchain.CurrentBlock().NumberU64()
@@ -171,7 +175,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 			return 0, nil
 		}
 		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
-		return manager.blockchain.InsertChain(blocks)
+		return manager.blockchain.InsertChain(blocks,0)
 	}
 	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
@@ -188,7 +192,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 	log.Info("Removing Matrix peer", "peer", id)
 
 	// Unregister the peer from the downloader and Matrix peer set
-	pm.downloader.UnregisterPeer(id)
+	pm.downloader.UnregisterPeer(id,0)
 	//	if err := pm.peers.Unregister(id); err != nil {
 	if err := pm.Peers.Unregister(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
@@ -307,7 +311,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		sbHash  = sbi.Num
 	)
 
-	if manparams.CanSwitchGammaCanonicalChain(time.Now().Unix()) {
+	if manversion.CanSwitchGammaCanonicalChain(time.Now().Unix()) {
 		if err := p.NewHandshake(pm.networkId, bt, hash, sbs, genesis.Hash(), sbHash, number); err != nil {
 			p.Log().Debug("Matrix handshake failed", "err", err)
 			return err
@@ -367,6 +371,91 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			return err
 		}
 	}
+}
+func (pm *ProtocolManager) ParseHeaders(msg *p2p.Msg) ([]*types.Header, error) {
+	data := make([]byte, msg.Size)
+	dataSize, err := msg.Payload.Read(data)
+	if err != nil {
+		return nil, errResp(ErrDecode, "msg %v: %s %v", msg, "read data err", err)
+	}
+	if uint32(dataSize) != msg.Size {
+		return nil, errResp(ErrDecode, "msg %v: %s", msg, "data size err")
+	}
+
+	kind, headersData, rest, err := rlp.Split(data)
+	//log.Info("ParseHeaders", "kind", kind, "headersData", len(headersData), "rest", len(rest), "err", err)
+	if err != nil && kind != rlp.List && len(rest) != 0 {
+		log.Error("ParseHeaders", "msg数据split异常", "不是[]header", "err", err, "kind", kind, "rest", len(rest))
+		return nil, errResp(ErrDecode, "msg %v: %s", msg, "msg data split err")
+	}
+
+	var headers []*types.Header
+	for len(headersData) != 0 {
+		one, restData, err := decodeOneHeader(headersData)
+		if err != nil {
+			return nil, errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		headers = append(headers, one)
+		headersData = restData
+	}
+
+	return headers, nil
+}
+
+func decodeOneHeader(data []byte) (header *types.Header, rest []byte, err error) {
+	var kind rlp.Kind
+	kind, _, rest, err = rlp.Split(data)
+	//log.Info("decodeOneHeader", "kind", kind, "data", len(data), "rest", len(rest), "err", err)
+	if err != nil {
+		return nil, nil, err
+	}
+	if kind != rlp.List {
+		return nil, nil, errors.New("header data kind err")
+	}
+
+	var nh types.Header
+	err = rlp.DecodeBytes(data[:len(data)-len(rest)], &nh)
+	if err == nil {
+		return &nh, rest, nil
+	} else {
+		var oh types.HeaderV1
+		err = rlp.DecodeBytes(data[:len(data)-len(rest)], &oh)
+		if err == nil {
+			return oh.TransferHeader(), rest, nil
+		} else {
+			return nil, nil, err
+		}
+	}
+}
+
+func (pm *ProtocolManager) ParseNewBlockData(msg *p2p.Msg) (newBlockData, error) {
+	data := make([]byte, msg.Size)
+	dataSize, err := msg.Payload.Read(data)
+	if err != nil {
+		return newBlockData{}, err
+	}
+	if uint32(dataSize) != msg.Size {
+		return newBlockData{}, errors.New("数据大小不一致")
+	}
+
+	var request newBlockData
+	err = rlp.DecodeBytes(data, &request)
+	if nil == err {
+		return request, nil
+	} else {
+		var oldrequest newOldBlockData
+		err = rlp.DecodeBytes(data, &oldrequest)
+		if nil == err {
+			request.Block = oldrequest.Block.TransferBlock()
+			request.SBS = oldrequest.SBS
+			request.SBH = oldrequest.SBH
+			request.TD = oldrequest.TD
+			return request, nil
+		}
+	}
+
+	return newBlockData{}, errResp(ErrDecode, "msg %v: %v", msg, err)
+
 }
 
 // handleMsg is invoked whenever an inbound message is received from a remote
@@ -497,9 +586,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == BlockHeadersMsg:
 		/*
 		// A batch of headers arrived to one of our previous requests
-		var headers []*types.Header
-		if err := msg.Decode(&headers); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		headers, err := pm.ParseHeaders(&msg)
+		if err != nil {
+			return err
 		}
 
 		p.Log().Trace("download handleMsg BlockHeadersMsg", "len", len(headers))
@@ -741,9 +830,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 */
 	case msg.Code == NewBlockMsg:
 		// Retrieve and decode the propagated block
-		var request newBlockData
-		if err := msg.Decode(&request); err != nil {
-			return nil //return errResp(ErrDecode, "%v: %v", msg, err)
+		request, err := pm.ParseNewBlockData(&msg)
+		if err != nil {
+			return err
 		}
 		if len(request.Block.Currencies())>0 {
 			request.Block.SetCurrencies(nil)

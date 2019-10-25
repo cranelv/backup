@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package rawdb
 
@@ -9,7 +9,14 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/MatrixAINetwork/go-matrix/params/manparams"
+
+	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
+
 	"encoding/json"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
@@ -137,12 +144,76 @@ func ReadHeader(db DatabaseReader, hash common.Hash, number uint64) *types.Heade
 	if len(data) == 0 {
 		return nil
 	}
+
 	header := new(types.Header)
+	//对区块数据解码
 	if err := rlp.Decode(bytes.NewReader(data), header); err != nil {
-		log.Error("Invalid block header RLP", "hash", hash, "err", err)
-		return nil
+		// 再次尝试使用旧header解析
+		oldHeader := new(types.HeaderV1)
+		if err := rlp.Decode(bytes.NewReader(data), oldHeader); err != nil {
+			log.Error("Invalid block header RLP", "hash", hash, "err", err)
+			return nil
+		} else {
+			header = oldHeader.TransferHeader()
+		}
 	}
-	return header
+
+	//创世区块，直接返回
+	if number == 0 {
+		return header
+	}
+
+	//备份区块头数据
+	reader := new(types.Header)
+	reader = types.CopyHeader(header)
+
+	//根据number区块高度分别处理各段区块的写入，块高height1之前的块和height2（含）之后的块存储区块数据时需要删除多币种数据（重新构建主币种数据即可）
+	if number < uint64(manparams.BlockHeaderModifyHeight) { //BlockheaderModifyHeight块高和VersionNumEpsilon块高作为height1和height2的临界点，需要替换成统一的宏配置管理
+		//获取创世区块数据
+		genesishash := ReadCanonicalHash(db, 0)
+		genesisblock := ReadBlock(db, genesishash, 0)
+
+		//根据多币种个数创建切片容量
+		reader.Sharding = make([]common.Coinbyte, len(genesisblock.Sharding()))
+		reader.Roots = make([]common.CoinRoot, len(genesisblock.Root()))
+
+		//保存本区块number高度主币种数据
+		reader.Sharding[0] = header.Sharding[0]
+		reader.Roots[0] = header.Roots[0]
+
+		//循环读取多币种数据
+		for i := 1; i < len(genesisblock.Sharding()); i++ {
+			reader.Sharding[i] = genesisblock.Sharding()[i]
+			reader.Roots[i] = genesisblock.Root()[i]
+		}
+	} else if number >= uint64(manparams.BlockHeaderModifyHeight) && number < uint64(manversion.VersionNumAIMine) { //按原逻辑处理，直接返回读出来的区块数据信息
+		return reader
+	} else {
+		//todo   状态树读取多币种数据的分支处理
+		st, err := state.NewStateDBManage(reader.Roots, db, state.NewDatabase(db))
+		if nil != err {
+			log.Error("ReadHeader", "读取状态树施错误", err)
+			return nil
+		}
+		readCurrencyHeader, err := matrixstate.GetCurrenyHeader(st)
+		if nil != err {
+			log.Error("ReadHeader", "读取多币种区块头错误", err)
+			log.Error("ReadHeader", "readCurrencyHeader:", readCurrencyHeader)
+			return nil
+		}
+		//根据多币种个数创建切片容量
+		reader.Sharding = make([]common.Coinbyte, 1)
+		reader.Roots = make([]common.CoinRoot, 1)
+
+		//保存本区块number高度主币种数据
+		reader.Sharding[0] = header.Sharding[0]
+		reader.Roots[0] = header.Roots[0]
+
+		reader.Sharding = append(reader.Sharding, readCurrencyHeader.Sharding...)
+		reader.Roots = append(reader.Roots, readCurrencyHeader.Roots...)
+	}
+
+	return reader
 }
 
 // WriteHeader stores a block header into the database and also stores the hash-
@@ -152,14 +223,27 @@ func WriteHeader(db DatabaseWriter, header *types.Header) {
 	var (
 		hash    = header.Hash().Bytes()
 		number  = header.Number.Uint64()
-		encoded = encodeBlockNumber(number)
+		encoded = encodeBlockNumber(number) //对区块高度编码
 	)
+
+	//保存区块头数据
+	storeHeader := types.CopyHeader(header)
+
+	//根据number区块高度分别处理各段区块的写入，块高height1之前的块和height2（含）之后的块存储区块数据时需要删除多币种冗余数据（重新构建主币种数据即可）
+	if (number < uint64(manparams.BlockHeaderModifyHeight) && number != 0) || number >= uint64(manversion.VersionNumAIMine) { //BlockheaderModifyHeight块高和VersionNumEpsilon块高作为height1和height2的临界点，需要替换成统一的宏配置管理
+		//组装只有主币种Roots和Sharding的区块头数据（删除多余的区块头其他多币种）
+		log.Debug("blockchain", "number:", number, "--删除多币种冗余数据，只写入主币种Roots和.Sharding")
+		storeHeader.Roots = append([]common.CoinRoot{}, header.Roots[0])
+		storeHeader.Sharding = append([]common.Coinbyte{}, header.Sharding[0])
+	}
+
+	//组建number 的 key值，带有 headerNumberPrefix前缀
 	key := append(headerNumberPrefix, hash...)
-	if err := db.Put(key, encoded); err != nil {
+	if err := db.Put(key, encoded); err != nil { //区块高度的key,value(经过编码）存入数据库
 		log.Crit("Failed to store hash to number mapping", "err", err)
 	}
 	// Write the encoded header
-	data, err := rlp.EncodeToBytes(header)
+	data, err := rlp.EncodeToBytes(storeHeader)
 	if err != nil {
 		log.Error("", "", err)
 	}
@@ -167,7 +251,7 @@ func WriteHeader(db DatabaseWriter, header *types.Header) {
 		log.Crit("Failed to RLP encode header", "err", err)
 	}
 	key = append(append(headerPrefix, encoded...), hash...)
-	if err := db.Put(key, data); err != nil {
+	if err := db.Put(key, data); err != nil { //区块数据的key,value(经过编码）存入数据库
 		log.Crit("Failed to store header", "err", err)
 	}
 }
@@ -222,11 +306,11 @@ func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 // WriteBody storea a block body into the database.
 func WriteBody(db DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
 	var tempBody types.Body
-	tempBody.CurrencyBody = make([]types.CurrencyBlock,len(body.CurrencyBody))
-	tempBody.Uncles = make([]*types.Header,len(body.Uncles))
-	copy(tempBody.CurrencyBody,body.CurrencyBody)
-	copy(tempBody.Uncles,body.Uncles)
-	for i,_ := range tempBody.CurrencyBody{
+	tempBody.CurrencyBody = make([]types.CurrencyBlock, len(body.CurrencyBody))
+	tempBody.Uncles = make([]*types.Header, len(body.Uncles))
+	copy(tempBody.CurrencyBody, body.CurrencyBody)
+	copy(tempBody.Uncles, body.Uncles)
+	for i, _ := range tempBody.CurrencyBody {
 		tempBody.CurrencyBody[i].Receipts = types.BodyReceipts{}
 	}
 	data, err := rlp.EncodeToBytes(tempBody)
@@ -291,13 +375,13 @@ func ReadReceipts(db DatabaseReader, hash common.Hash, number uint64) []types.Co
 		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
-	creceipts := make([]types.CoinReceipts,0)
+	creceipts := make([]types.CoinReceipts, 0)
 	for _, receipt := range cr {
-		receipts :=make(types.Receipts,0)
-		for _,r := range receipt.StorageReceipts{
-			receipts = append(receipts,(*types.Receipt)(r))
+		receipts := make(types.Receipts, 0)
+		for _, r := range receipt.StorageReceipts {
+			receipts = append(receipts, (*types.Receipt)(r))
 		}
-		creceipts = append(creceipts,types.CoinReceipts{CoinType:receipt.Currency,Receiptlist:receipts})
+		creceipts = append(creceipts, types.CoinReceipts{CoinType: receipt.Currency, Receiptlist: receipts})
 	}
 	return creceipts
 }
@@ -305,13 +389,13 @@ func ReadReceipts(db DatabaseReader, hash common.Hash, number uint64) []types.Co
 // WriteReceipts stores all the transaction receipts belonging to a block.
 func WriteReceipts(db DatabaseWriter, hash common.Hash, number uint64, receipts []types.CoinReceipts) {
 	// Convert the receipts into their storage form and serialize them
-	currRcps:=make([]types.CurrencyReceipts,0)
-	for _,cr := range receipts{
+	currRcps := make([]types.CurrencyReceipts, 0)
+	for _, cr := range receipts {
 		storageReceipts := make([]*types.ReceiptForStorage, len(cr.Receiptlist))
 		for i, receipt := range cr.Receiptlist {
 			storageReceipts[i] = (*types.ReceiptForStorage)(receipt)
 		}
-		currRcps = append(currRcps,types.CurrencyReceipts{Currency:cr.CoinType,StorageReceipts:storageReceipts})
+		currRcps = append(currRcps, types.CurrencyReceipts{Currency: cr.CoinType, StorageReceipts: storageReceipts})
 	}
 	bytes, err := rlp.EncodeToBytes(currRcps)
 	if err != nil {

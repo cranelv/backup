@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 
 package man
 
@@ -183,8 +183,8 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				// Trace all the transactions contained within
 				var txs []types.SelfTransaction
 				for _, currencie := range task.block.Currencies() {
-					for  _,tx:=range currencie.Transactions.Transactions{
-						txs=append(txs,tx)
+					for _, tx := range currencie.Transactions.Transactions {
+						txs = append(txs, tx)
 					}
 				}
 				for i, tx := range txs {
@@ -261,8 +261,8 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			// Send the block over to the concurrent tracers (if not in the fast-forward phase)
 			var txs []types.SelfTransaction
 			for _, currencie := range block.Currencies() {
-				for  _,tx:=range currencie.Transactions.Transactions{
-					txs=append(txs,tx)
+				for _, tx := range currencie.Transactions.Transactions {
+					txs = append(txs, tx)
 				}
 			}
 			if number > origin {
@@ -275,7 +275,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				traced += uint64(len(txs))
 			}
 			// Generate the next state snapshot fast without tracing
-			 _, _, err := api.man.blockchain.Processor(block.Header().Version).ProcessTxs(block, statedb, vm.Config{}, nil)
+			_, _, err := api.man.blockchain.Processor(block.Header().Version).ProcessTxs(block, statedb, vm.Config{}, nil)
 			if err != nil {
 				failed = err
 				break
@@ -389,87 +389,8 @@ func (api *PrivateDebugAPI) TraceBlockFromFile(ctx context.Context, file string,
 // executes all the transactions contained within. The return value will be one item
 // per transaction, dependent on the requestd tracer.
 func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, config *TraceConfig) ([]*txTraceResult, error) {
-	// Create the parent state database
-	if err := api.man.engine.VerifyHeader(api.man.blockchain, block.Header(), true); err != nil {
-		return nil, err
-	}
-	parent := api.man.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)
-	if parent == nil {
-		return nil, fmt.Errorf("parent %x not found", block.ParentHash())
-	}
-	reexec := defaultTraceReexec
-	if config != nil && config.Reexec != nil {
-		reexec = *config.Reexec
-	}
-	statedb, err := api.computeStateDB(parent, reexec)
-	if err != nil {
-		return nil, err
-	}
-	// Execute all the transaction contained within the block concurrently
-	var txs []types.SelfTransaction
-	for _, currencie := range block.Currencies() {
-		for  _,tx:=range currencie.Transactions.Transactions{
-			txs=append(txs,tx)
-		}
-	}
-	var (
-		//signer = types.MakeSigner(api.config, block.Number())
 
-		//txs     = block.Transactions()
-		results = make([]*txTraceResult, len(txs))
-
-		pend = new(sync.WaitGroup)
-		jobs = make(chan *txTraceTask, len(txs))
-	)
-	threads := runtime.NumCPU()
-	if threads > len(txs) {
-		threads = len(txs)
-	}
-	for th := 0; th < threads; th++ {
-		pend.Add(1)
-		go func() {
-			defer pend.Done()
-
-			// Fetch and execute the next transaction trace tasks
-			for task := range jobs {
-				//msg, _ := txs[task.index].AsMessage(signer)
-				vmctx := core.NewEVMContext(txs[task.index].From(), txs[task.index].GasPrice(), block.Header(), api.man.blockchain, nil)
-
-				res, err := api.traceTx(ctx, txs[task.index], vmctx, task.statedb, config)
-				if err != nil {
-					results[task.index] = &txTraceResult{Error: err.Error()}
-					continue
-				}
-				results[task.index] = &txTraceResult{Result: res}
-			}
-		}()
-	}
-	// Feed the transactions into the tracers and return
-	var failed error
-	for i, tx := range txs {
-		// Send the trace task over for execution
-		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
-
-		// Generate the next state snapshot fast without tracing
-		//msg, _ := tx.AsMessage(signer)
-		vmctx := core.NewEVMContext(tx.From(), tx.GasPrice(), block.Header(), api.man.blockchain, nil)
-
-		vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{}, tx.GetTxCurrency())
-		if _, _, _, _, err := core.ApplyMessage(vmenv, tx, new(core.GasPool).AddGas(tx.Gas())); err != nil {
-			failed = err
-			break
-		}
-		// Finalize the state so any modifications are written to the trie
-		statedb.Finalise(tx.GetTxCurrency(), true)
-	}
-	close(jobs)
-	pend.Wait()
-
-	// If execution failed in between, abort
-	if failed != nil {
-		return nil, failed
-	}
-	return results, nil
+	return nil, nil
 }
 
 // computeStateDB retrieves the state database associated with a certain block.
@@ -518,7 +439,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block = api.man.blockchain.GetBlockByNumber(block.NumberU64() + 1); block == nil {
 			return nil, fmt.Errorf("block #%d not found", block.NumberU64()+1)
 		}
-		 _, _, err := api.man.blockchain.Processor(block.Header().Version).ProcessTxs(block, statedb, vm.Config{}, nil)
+		_, _, err := api.man.blockchain.Processor(block.Header().Version).ProcessTxs(block, statedb, vm.Config{}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -639,12 +560,17 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 	//signer := types.MakeSigner(api.config, block.Number())
 	var txs []types.SelfTransaction
 	for _, currencie := range block.Currencies() {
-		for  _,tx:=range currencie.Transactions.Transactions{
-			txs=append(txs,tx)
+		for _, tx := range currencie.Transactions.Transactions {
+			txs = append(txs, tx)
 		}
 	}
 
 	for idx, tx := range txs {
+		if tx.GetMatrixType() == common.ExtraUnGasMinerTxType || tx.GetMatrixType() == common.ExtraUnGasValidatorTxType ||
+			tx.GetMatrixType() == common.ExtraUnGasInterestTxType || tx.GetMatrixType() == common.ExtraUnGasTxsType || tx.GetMatrixType() == common.ExtraUnGasLotteryTxType {
+			continue
+		}
+		types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
 		// Assemble the transaction call message and return if the requested offset
 		//msg, _ := tx.AsMessage(signer)
 		context := core.NewEVMContext(tx.From(), tx.GasPrice(), block.Header(), api.man.blockchain, nil)

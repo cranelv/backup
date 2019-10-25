@@ -7,7 +7,6 @@ import (
 
 	"github.com/MatrixAINetwork/go-matrix/core/matrixstate"
 	"github.com/MatrixAINetwork/go-matrix/mc"
-	"github.com/MatrixAINetwork/go-matrix/params/manparams"
 
 	"github.com/MatrixAINetwork/go-matrix/log"
 
@@ -16,12 +15,13 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/params"
 
 	"github.com/MatrixAINetwork/go-matrix/common"
+	"github.com/MatrixAINetwork/go-matrix/params/manversion"
+	"encoding/json"
+	"io/ioutil"
 )
 
 const (
-	PackageName = "奖励util"
-)
-const (
+	PackageName    = "奖励util"
 	RewardFullRate = uint64(10000)
 	Stop           = "0"
 	TxsReward      = 0
@@ -38,7 +38,13 @@ var (
 
 	ManPrice *big.Int = big.NewInt(1e18)
 
-	Precision *big.Int = big.NewInt(1)
+	ThousandthManPrice *big.Int = big.NewInt(1e15)
+
+	Precision   *big.Int = big.NewInt(1)
+	CalcAlpha            = "1"
+	CalcGamma            = "2"
+	CalcDelta            = "3"
+	CalcEpsilon          = "4"
 )
 
 type ChainReader interface {
@@ -59,6 +65,7 @@ type ChainReader interface {
 	StateAt(root []common.CoinRoot) (*state.StateDBManage, error)
 	State() (*state.StateDBManage, error)
 	GetGraphByState(state matrixstate.StateDB) (*mc.TopologyGraph, *mc.ElectGraph, error)
+	GetGraphByHash(hash common.Hash) (*mc.TopologyGraph, *mc.ElectGraph, error)
 	StateAtBlockHash(hash common.Hash) (*state.StateDBManage, error)
 	GetAncestorHash(sonHash common.Hash, ancestorNumber uint64) (common.Hash, error)
 }
@@ -384,24 +391,24 @@ func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutR
 	var err error
 	if TxsReward == rewardType {
 		version := matrixstate.GetVersionInfo(state)
-		if version == manparams.VersionAlpha {
+		switch version {
+		case manversion.VersionAlpha:
 			currentReward, err = matrixstate.GetPreMinerTxsReward(state)
 			if err != nil {
 				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
 				return nil, errors.New("获取矿工交易金额错误")
 			}
-		} else if version == manparams.VersionBeta {
+		case manversion.VersionBeta, manversion.VersionGamma, manversion.VersionDelta, manversion.VersionAIMine:
 			multiCoin, err := matrixstate.GetPreMinerMultiCoinTxsReward(state)
 			if err != nil {
 				log.Error(PackageName, "获取矿工交易奖励金额错误", err)
 				return make([]mc.MultiCoinMinerOutReward, 0), errors.New("获取矿工交易金额错误")
 			}
-			for _, v := range multiCoin {
-				log.Trace(PackageName, "获取前一个矿工奖励值为", v.Reward, "type", v.CoinType)
-			}
-
+			/*			for _, v := range multiCoin {
+						log.Trace(PackageName, "获取前一个矿工奖励值为", v.Reward, "type", v.CoinType)
+					}*/
 			return multiCoin, nil
-		} else {
+		default:
 			log.Error(PackageName, "获取前矿工奖励值版本号错误", version)
 		}
 	} else {
@@ -417,4 +424,63 @@ func GetPreMinerReward(state StateDB, rewardType uint8) ([]mc.MultiCoinMinerOutR
 	multiCoinMinerOut = append(multiCoinMinerOut, minerOutReward)
 	return multiCoinMinerOut, nil
 
+}
+func GetPrice(calc string) *big.Int {
+	if calc >= CalcGamma {
+		return ThousandthManPrice
+	} else {
+		return ManPrice
+	}
+}
+/*
+func GetDataByPosition(data []common.OperationalInterestSlash, position uint64) *common.OperationalInterestSlash {
+
+	for _, v := range data {
+		if v.Position == position {
+			return &v
+		}
+
+	}
+	return nil
+}
+*/
+var debugSwitch = uint8(0)
+var logSwitch = uint8(0)
+
+func LogExtraDebug(msg string, ctx ...interface{}) {
+	switch debugSwitch {
+	case uint8(log.LvlError):
+		log.Error(msg, ctx...)
+	case uint8(log.LvlWarn):
+		log.Warn(msg, ctx...)
+	case uint8(log.LvlInfo):
+		log.Info(msg, ctx...)
+	case uint8(log.LvlDebug):
+		log.Debug(msg, ctx...)
+	case uint8(log.LvlTrace):
+		log.Trace(msg, ctx...)
+	default:
+		break
+	}
+}
+
+func SetExtralevel(level uint8) {
+	debugSwitch = level
+}
+func SetLoglevel(level uint8) {
+	logSwitch = level
+}
+func PrintLog2File(filename string, data interface{}) {
+	if 0 != logSwitch {
+		out, err := json.MarshalIndent(data, "", "  ")
+		if err != nil {
+			log.Error("Failed to save log file", "err", err)
+			return
+		}
+		if err := ioutil.WriteFile(filename, out, 0644); err != nil {
+			log.Error("Failed to save log file", "filename", filename, "err", err)
+			return
+		}
+	}
+	return
 }

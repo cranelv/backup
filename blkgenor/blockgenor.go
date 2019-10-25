@@ -260,7 +260,7 @@ func (self *BlockGenor) blockInsertMsgHandle(blockInsert *mc.HD_BlockInsertNotif
 
 	if number > curNumber {
 		log.Debug(self.logExtraInfo(), "fetch 区块高度", number, "from", blockInsert.From.Hex())
-		self.pm.matrix.FetcherNotify(blockInsert.Header.Hash(), blockInsert.Header.Number.Uint64(), blockInsert.From)
+//		self.pm.matrix.FetcherNotify(blockInsert.Header.Hash(), blockInsert.Header.Number.Uint64(), blockInsert.From)
 		return
 	}
 

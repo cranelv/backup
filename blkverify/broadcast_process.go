@@ -43,8 +43,8 @@ func (p *Process) bcProcessReqVerify() {
 	}
 
 	// verify header
-	if err := p.blockChain().VerifyHeader(p.curProcessReq.req.Header); err != nil {
-		log.ERROR(p.logExtraInfo(), "广播身份，请求验证阶段, 通过DPOS共识的请求，但是预验证头信息错误", err)
+	if err := p.blockChain().Engine(p.curProcessReq.req.Header.Version).VerifyHeader(p.blockChain(), p.curProcessReq.req.Header, false, false); err != nil {
+		log.Error(p.logExtraInfo(), "广播身份，请求验证阶段, 通过DPOS共识的请求，但是预验证头信息错误", err)
 		p.bcFinishedProcess(localVerifyResultStateFailed)
 		return
 	}

@@ -219,7 +219,7 @@ type BlockChain interface {
 	FastSyncCommitHead(common.Hash) error
 
 	// InsertChain inserts a batch of blocks into the local chain.
-	InsertChain(types.Blocks) (int, error)
+	InsertChain(types.Blocks,int) (int, error)
 
 	// InsertReceiptChain inserts a batch of receipts into the local chain.
 	InsertReceiptChain(types.Blocks) (int, error)
@@ -245,9 +245,10 @@ type BlockChain interface {
 	GetBlockSuperAccounts(blockHash common.Hash) ([]common.Address, error)
 	GetBroadcastIntervalByHash(blockHash common.Hash) (*mc.BCIntervalInfo, error)
 	GetA0AccountFromAnyAccount(account common.Address, blockHash common.Hash) (common.Address, common.Address, error)
-	SynSnapshot(blockNum uint64, hash string, filePath string) bool
+	SynSnapshot(blockNum uint64, hash string, filePath string) (uint64,bool)
 	SetSnapshotParam(period uint64, start uint64)
 	PrintSnapshotAccountMsg(blockNum uint64, hash string, filePath string)
+	SaveSnapshot(blockNum uint64, period uint64, NewBlocknum uint64)
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -359,14 +360,10 @@ func (d *Downloader) RegisterLightPeer(id string, version int, peer LightPeer) e
 // UnregisterPeer remove a peer from the known list, preventing any action from
 // the specified peer. An effort is also made to return any pending fetches into
 // the queue.
-func (d *Downloader) UnregisterPeer(id string) error {
+func (d *Downloader) UnregisterPeer(id string,flg int) error {
 	// Unregister the peer from the active peer set and revoke any fetch tasks
 	logger := log.New("peer", id)
 	logger.Trace("Unregistering sync peer")
-	if err := d.peers.Unregister(id); err != nil {
-		logger.Error("Failed to unregister sync peer", "err", err)
-		return err
-	}
 	d.queue.Revoke(id)
 
 	// If this peer was the master peer, abort sync immediately
@@ -397,8 +394,6 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, sbs u
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id)
-		} else {
-			d.dropPeer(id)
 		}
 	default:
 		log.Warn("Synchronisation failed, retrying", "err", err)
@@ -1696,7 +1691,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	for i, result := range results {
 		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles)
 	}
-	if index, err := d.blockchain.InsertChain(blocks); err != nil {
+	if index, err := d.blockchain.InsertChain(blocks,0); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
 		return errInvalidChain
 	}

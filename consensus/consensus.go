@@ -108,7 +108,7 @@ type Engine interface {
 	// Seal generates a new block for the given input block with the local miner's
 	// seal place on top.
 	SealAI(chain ChainReader, header *types.Header, stop <-chan struct{}) (*types.Header, error)
-	SealPow(chain ChainReader, header *types.Header, stop <-chan struct{}, resultchan chan<- *types.Header, isBroadcastNode bool) (*types.Header, error)
+//	SealPow(chain ChainReader, header *types.Header, stop <-chan struct{}, resultchan chan<- *types.Header, isBroadcastNode bool) (*types.Header, error)
 
 	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
 	// that a new block should have.
