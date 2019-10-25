@@ -74,5 +74,22 @@ const (
 
 	BlockInserted
 
+	//leaderV2
+	HD_V2_LeaderReelectInquiryReq
+	HD_V2_LeaderReelectInquiryRsp
+	HD_V2_LeaderReelectReq
+	HD_V2_LeaderReelectVote
+	HD_V2_LeaderReelectBroadcast
+	HD_V2_LeaderReelectBroadcastRsp
+
+	BlkVerify_POSFinishedNotifyV2
+	//blkgenor V2
+	HD_V2_MiningReq
+	HD_V2_PowMiningRsp
+	HD_V2_AIMiningRsp
+	HD_BasePowerResult
+	HD_V2_FullBlockReq
+	HD_V2_FullBlockRsp
+
 	LastEventCode
 )

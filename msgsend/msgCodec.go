@@ -1,10 +1,11 @@
-// Copyright (c) 2018 The MATRIX Authors
+// Copyright (c) 2018 The MATRIX Authors
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or or http://www.opensource.org/licenses/mit-license.php
+// file COPYING or http://www.opensource.org/licenses/mit-license.php
 package msgsend
 
 import (
 	"encoding/json"
+
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/rlp"
@@ -12,23 +13,36 @@ import (
 )
 
 func (self *HD) initCodec() {
-//	self.registerCodec(mc.HD_BlkConsensusReq, new(blkConsensusReqCodec))
-//	self.registerCodec(mc.HD_BlkConsensusVote, new(blkConsensusVoteCodec))
+	self.registerCodec(mc.HD_BlkConsensusReq, new(blkConsensusReqCodec))
+	self.registerCodec(mc.HD_BlkConsensusVote, new(blkConsensusVoteCodec))
 	self.registerCodec(mc.HD_MiningReq, new(miningReqCodec))
 	self.registerCodec(mc.HD_MiningRsp, new(miningRspCodec))
-//	self.registerCodec(mc.HD_BroadcastMiningRsp, new(broadcastMiningRspCodec))
-//	self.registerCodec(mc.HD_NewBlockInsert, new(newBlockInsertCodec))
-//	self.registerCodec(mc.HD_TopNodeConsensusReq, new(onlineConsensusReqCodec))
-//	self.registerCodec(mc.HD_TopNodeConsensusVote, new(onlineConsensusVoteCodec))
-//	self.registerCodec(mc.HD_TopNodeConsensusVoteResult, new(onlineConsensusResultCodec))
-//	self.registerCodec(mc.HD_LeaderReelectInquiryReq, new(lrInquiryReqCodec))
-//	self.registerCodec(mc.HD_LeaderReelectInquiryRsp, new(lrInquiryRspCodec))
-//	self.registerCodec(mc.HD_LeaderReelectReq, new(lrReqCodec))
-//	self.registerCodec(mc.HD_LeaderReelectVote, new(lrVoteCodec))
-//	self.registerCodec(mc.HD_LeaderReelectBroadcast, new(lrResultBCCodec))
-//	self.registerCodec(mc.HD_LeaderReelectBroadcastRsp, new(lrResultBCRspCodec))
-//	self.registerCodec(mc.HD_FullBlockReq, new(fullBlockReqCodec))
-//	self.registerCodec(mc.HD_FullBlockRsp, new(fullBlockRspCodec))
+	self.registerCodec(mc.HD_BroadcastMiningRsp, new(broadcastMiningRspCodec))
+	self.registerCodec(mc.HD_NewBlockInsert, new(newBlockInsertCodec))
+	self.registerCodec(mc.HD_TopNodeConsensusReq, new(onlineConsensusReqCodec))
+	self.registerCodec(mc.HD_TopNodeConsensusVote, new(onlineConsensusVoteCodec))
+	self.registerCodec(mc.HD_TopNodeConsensusVoteResult, new(onlineConsensusResultCodec))
+	self.registerCodec(mc.HD_LeaderReelectInquiryReq, new(lrInquiryReqCodec))
+	self.registerCodec(mc.HD_LeaderReelectInquiryRsp, new(lrInquiryRspCodec))
+	self.registerCodec(mc.HD_LeaderReelectReq, new(lrReqCodec))
+	self.registerCodec(mc.HD_LeaderReelectVote, new(lrVoteCodec))
+	self.registerCodec(mc.HD_LeaderReelectBroadcast, new(lrResultBCCodec))
+	self.registerCodec(mc.HD_LeaderReelectBroadcastRsp, new(lrResultBCRspCodec))
+	self.registerCodec(mc.HD_FullBlockReq, new(fullBlockReqCodec))
+	self.registerCodec(mc.HD_FullBlockRsp, new(fullBlockRspCodec))
+
+	self.registerCodec(mc.HD_V2_LeaderReelectInquiryReq, new(lrInquiryReqCodecV2))
+	self.registerCodec(mc.HD_V2_LeaderReelectInquiryRsp, new(lrInquiryRspCodecV2))
+	self.registerCodec(mc.HD_V2_LeaderReelectReq, new(lrReqCodecV2))
+	self.registerCodec(mc.HD_V2_LeaderReelectVote, new(lrVoteCodecV2))
+	self.registerCodec(mc.HD_V2_LeaderReelectBroadcast, new(lrResultBCCodecV2))
+	self.registerCodec(mc.HD_V2_LeaderReelectBroadcastRsp, new(lrResultBCRspCodecV2))
+	self.registerCodec(mc.HD_V2_FullBlockReq, new(fullBlockReqCodecV2))
+	self.registerCodec(mc.HD_V2_FullBlockRsp, new(fullBlockRspCodecV2))
+	self.registerCodec(mc.HD_V2_MiningReq, new(miningReqCodecV2))
+	self.registerCodec(mc.HD_V2_PowMiningRsp, new(powMiningRspMsgcV2))
+	self.registerCodec(mc.HD_V2_AIMiningRsp, new(aiMiningRspMsgcV2))
+	self.registerCodec(mc.HD_BasePowerResult, new(basePowerDifficultyMsgcV2))
 }
 
 //每个模块需要自己实现这两个接口
@@ -163,14 +177,29 @@ func (*broadcastMiningRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 func (*broadcastMiningRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
 	msg := new(mc.HD_BroadcastMiningRspMsg)
 	err := rlp.DecodeBytes(data, &msg)
-	if err != nil {
-		return nil, errors.Errorf("rlp decode failed: %s", err)
+	if err == nil {
+		if msg.BlockMainData == nil || msg.BlockMainData.Header == nil {
+			return nil, errors.Errorf("'Header' of the msg is nil")
+		}
+		msg.From = from
+		return msg, nil
+
+	} else {
+		oldmsg := new(mc.HD_BroadcastMiningRspMsgV1)
+		err = rlp.DecodeBytes(data, &oldmsg)
+		if err == nil {
+
+			if oldmsg.BlockMainData == nil || oldmsg.BlockMainData.Header == nil {
+				return nil, errors.Errorf("'Header' of the msg is nil")
+			}
+			msg.BlockMainData = new(mc.BlockData)
+			msg.BlockMainData.Header = oldmsg.BlockMainData.Header.TransferHeader()
+			msg.BlockMainData.Txs = oldmsg.BlockMainData.Txs
+			msg.From = from
+			return msg, nil
+		}
 	}
-	if msg.BlockMainData == nil || msg.BlockMainData.Header == nil {
-		return nil, errors.Errorf("'Header' of the msg is nil")
-	}
-	msg.From = from
-	return msg, nil
+	return nil, errors.Errorf("rlp decode failed: %s", err)
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -477,12 +506,26 @@ func (*fullBlockRspCodec) EncodeFn(msg interface{}) ([]byte, error) {
 func (*fullBlockRspCodec) DecodeFn(data []byte, from common.Address) (interface{}, error) {
 	msg := new(mc.HD_FullBlockRspMsg)
 	err := rlp.DecodeBytes(data, &msg)
-	if err != nil {
-		return nil, errors.Errorf("rlp decode failed: %v", err)
+	if err == nil {
+		if msg.Header == nil {
+			return nil, errors.Errorf("'header' of the msg is nil")
+		}
+		msg.From = from
+		return msg, nil
+	} else {
+		oldmsg := new(mc.HD_FullBlockRspMsgV1)
+		err = rlp.DecodeBytes(data, &oldmsg)
+		if err == nil {
+			if oldmsg.Header == nil {
+				return nil, errors.Errorf("'header' of the msg is nil")
+			}
+			msg.Header = oldmsg.Header.TransferHeader()
+			msg.Txs = oldmsg.Txs
+			msg.From = from
+			return msg, nil
+		}
+
 	}
-	if msg.Header == nil {
-		return nil, errors.Errorf("'header' of the msg is nil")
-	}
-	msg.From = from
-	return msg, nil
+
+	return nil, errors.Errorf("rlp decode failed: %v", err)
 }

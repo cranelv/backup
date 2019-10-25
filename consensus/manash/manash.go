@@ -399,7 +399,6 @@ type Manash struct {
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
 
-	sealTreads []*SealThread
 	lock sync.Mutex // Ensures thread safety for the in-memory caches and mining fields
 }
 

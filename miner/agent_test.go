@@ -7,17 +7,18 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/common"
 	"math/big"
 	"time"
+	"github.com/MatrixAINetwork/go-matrix/consensus/amhash"
 )
 
 func TestMinerSpeed(t *testing.T){
-	agent := NewCpuAgent(manash.New(manash.Config{}))
+	agent := NewCpuAgent(manash.New(manash.Config{}),amhash.New(amhash.Config{}))
 	time1 := time.Now().UnixNano()
 	for i:=0;i<1000;i++{
 		header := &types.Header{ParentHash:common.BigToHash(big.NewInt(int64(i+10000))),
 		Difficulty:big.NewInt(int64(15)),
 		Number:big.NewInt(int64(i+10))}
 		quitCurrentOp := make(chan struct{})
-		agent.manhash.Seal(nil,header,quitCurrentOp,false)
+		agent.SealPowOld(header,quitCurrentOp,false)
 		close(quitCurrentOp)
 //		t.Log(i)
 	}

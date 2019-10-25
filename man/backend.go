@@ -447,19 +447,7 @@ func (s *Matrix) Manerbase() (eb common.Address, err error) {
 }
 
 func (s *Matrix) StartMining(local bool) error {
-	eb, err := s.Manerbase()
-	if err != nil {
-		log.Error("Cannot start mining without manbase", "err", err)
-		return fmt.Errorf("manbase missing: %v", err)
-	}
-	if clique, ok := s.engine.(*clique.Clique); ok {
-		wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
-		if wallet == nil || err != nil {
-			log.Error("Manerbase account unavailable locally", "err", err)
-			return fmt.Errorf("signer missing: %v", err)
-		}
-		clique.Authorize(eb, wallet.SignHash)
-	}
+
 	if local {
 		// If local (CPU) mining is started, we can disable the transaction rejection
 		// mechanism introduced to speed sync times. CPU mining on mainnet is ludicrous

@@ -18,6 +18,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
 	"github.com/MatrixAINetwork/go-matrix/params"
 	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
+	"github.com/MatrixAINetwork/go-matrix/consensus/amhash"
 )
 
 const (
@@ -57,12 +58,15 @@ func New(manh *manash.Manash, config *params.ChainConfig, mux *event.TypeMux, hd
 		canStart: 1,
 	}
 	var err error
-	miner.worker, err = newWorker(config, manh, mux, hd)
+	aicfg := amhash.Config{}
+	amhash:= amhash.New(aicfg)
+
+	miner.worker, err = newWorker(config, manh,amhash, mux, hd)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建work", "失败")
 		return miner, err
 	}
-	miner.Register(NewCpuAgent(manh))
+	miner.Register(NewCpuAgent(manh,amhash))
 	//go miner.update()
 	log.INFO(ModuleMiner, "创建miner", "成功")
 	return miner, nil

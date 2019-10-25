@@ -19,8 +19,9 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/msgsend"
 	"github.com/MatrixAINetwork/go-matrix/params"
-	"gopkg.in/fatih/set.v0"
 	"github.com/MatrixAINetwork/go-matrix/consensus/manash"
+	"github.com/pkg/errors"
+	"github.com/MatrixAINetwork/go-matrix/consensus/amhash"
 )
 
 const (
@@ -36,20 +37,21 @@ type Agent interface {
 	Start()
 	GetHashRate() int64
 }
+type mineTaskType int
 
+const (
+	mineTaskTypeX11 mineTaskType = 1
+	mineTaskTypeAI               = 2
+	mineTaskTypePow              = 3
+)
 // Work is the workers current environment and holds
 // all of the current state information
 type Work struct {
 	config *params.ChainConfig
 	signer types.Signer
 
-	state     *state.StateDBManage // apply state changes here
-	ancestors *set.Set             // ancestor set (used for checking uncle parent validity)
-	family    *set.Set             // family set (used for checking uncle invalidity)
-	uncles    *set.Set             // uncle set
-	tcount    int                  // tx count in cycle
-
-	Block *types.Block // the new block
+	state *state.StateDBManage // apply state changes here
+	Block *types.Block         // the new block
 
 	header   *types.Header
 	txs      []types.SelfTransaction
@@ -57,8 +59,9 @@ type Work struct {
 
 	createdAt time.Time
 
-	threadNum       int
 	isBroadcastNode bool
+
+	mineType mineTaskType
 }
 
 type Result struct {
@@ -70,7 +73,7 @@ type Result struct {
 type worker struct {
 	config *params.ChainConfig
 	manhash *manash.Manash
-
+	amhash  *amhash.Amhash
 	mu sync.Mutex
 
 	// update loop
@@ -124,10 +127,11 @@ type ChainReader interface {
 	GetHeaderByHash(hash common.Hash) *types.Header
 }
 
-func newWorker(config *params.ChainConfig, manh *manash.Manash, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
+func newWorker(config *params.ChainConfig, manh *manash.Manash,amhash *amhash.Amhash, mux *event.TypeMux, hd *msgsend.HD) (*worker, error) {
 	worker := &worker{
 		config: config,
 		manhash:     manh,
+		amhash:		amhash,
 		mux:    mux,
 
 		agents:               make(map[Agent]struct{}),
@@ -155,7 +159,7 @@ func newWorker(config *params.ChainConfig, manh *manash.Manash, mux *event.TypeM
 }
 func (self *worker) init_SubscribeEvent() error {
 	var err error
-	self.roleUpdateSub, err = mc.SubscribeEvent(mc.NewBlockMessage, self.roleUpdateCh)
+//	self.roleUpdateSub, err = mc.SubscribeEvent(mc.NewBlockMessage, self.roleUpdateCh)
 //	self.localMiningRequestSub, err = mc.SubscribeEvent(mc.HD_BroadcastMiningReq, self.localMiningRequestCh) //广播节点
 //	if err != nil {
 //		log.Error(ModuleMiner, "广播节点挖矿请求订阅失败", err)
@@ -195,11 +199,10 @@ func (self *worker) update() {
 		}
 		self.StopAgent()
 		self.stopMineResultSender()
-		self.mineReqCtrl.Clear()
 		log.INFO("矿工节点退出成功")
 	}()
 	self.StartAgent()
-	self.processMineReq()
+	self.beginMine()
 
 	for {
 		select {
@@ -227,11 +230,9 @@ func (self *worker) RoleUpdatedMsgHandler(blockNum uint64) {
 //		self.mineReqCtrl.curSuperSeq = data.SuperSeq
 //	}
 
-	if blockNum+1 > self.mineReqCtrl.curNumber {
-		self.stopMineResultSender()
-	}
-
-	self.mineReqCtrl.SetNewNumber(blockNum+1, common.RoleMiner)
+//	if blockNum+1 > self.mineReqCtrl.curNumber {
+//		self.stopMineResultSender()
+//	}
 	/*
 	canMining := self.mineReqCtrl.CanMining()
 	if canMining {
@@ -255,7 +256,75 @@ func (self *worker) MiningRequestHandle(data *mc.HD_MiningReqMsg) {
 	}
 	if reqData != nil {
 		self.processAppointedMineReq(reqData)
+//		go self.MineAI(data.Header, data.From)
 	}
+}
+func (self *worker) MineAI(header *types.Header, miner common.Address){
+	bcInterval, err := GetBroadcastIntervalByHash(header.ParentHash)
+	if err != nil || bcInterval == nil {
+		return
+	}
+
+
+	if IsAIBlock(header.Number.Uint64(),bcInterval.GetBroadcastInterval()) == false {
+		return
+	}
+
+
+	aiMiningNumber := GetNextAIBlockNumber(header.Number.Uint64(), bcInterval.GetBroadcastInterval())
+	mineHash := header.HashNoSignsAndNonce()
+	var task *aiMineTask
+	if bcInterval.IsReElectionNumber(aiMiningNumber - 1) {
+		task = nil
+		return
+	} else {
+		task = newAIMineTask(mineHash, header, aiMiningNumber, bcInterval)
+		task.aiMiner = miner
+	}
+	stop:=  make(chan struct{}, 1)
+	result, err := self.amhash.SealAI(nil, task.mineHeader, stop)
+	if err == nil && result != nil{
+		task.minedAI = true
+		task.aiMiner = header.AICoinbase
+		task.aiHash = header.AIHash
+
+		sendData := &aiMineTask{
+			mineHash:       task.mineHash,
+			mineHeader:     task.mineHeader,
+			minedAI:        true,
+			aiMiningNumber: task.aiMiningNumber,
+			aiMiner:        task.aiMiner,
+			aiHash:         task.aiHash,
+		}
+
+		_, err := common.NewResendMsgCtrl(sendData, self.sendAIMineResultFunc, 1, 20)
+		if err != nil {
+			log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
+			return
+		}
+	}
+}
+func (self *worker) sendAIMineResultFunc(data interface{}, times uint32) {
+	resultData, OK := data.(*aiMineTask)
+	if !OK {
+		log.Error(ModuleMiner, "发出AI挖矿结果", "反射消息失败", "次数", times)
+		return
+	}
+
+	if nil == resultData {
+		log.Error(ModuleMiner, "发出AI挖矿结果", "入参错误", "次数", times)
+		return
+	}
+
+	rsp := &mc.HD_V2_AIMiningRspMsg{
+		Number:     resultData.aiMiningNumber,
+		BlockHash:  resultData.mineHash,
+		AIHash:     resultData.aiHash,
+		AICoinbase: resultData.aiMiner,
+	}
+
+	self.hd.SendNodeMsg(mc.HD_V2_AIMiningRsp, rsp,resultData.aiMiner, common.RoleValidator, nil)
+	log.Trace(ModuleMiner, "AI挖矿结果", "发送", "parent hash", rsp.BlockHash.TerminalString(), "次数", times, "高度", rsp.Number, "AIHash", rsp.AIHash.TerminalString(), "AIMiner", rsp.AICoinbase.Hex())
 }
 
 func (self *worker) BroadcastHashLocalMiningReqMsgHandle(req *mc.BlockData) {
@@ -306,7 +375,57 @@ func (self *worker) foundHandle(header *types.Header) {
 		}
 	}
 }
+func GetBroadcastIntervalByHash(hash common.Hash) (*mc.BCIntervalInfo, error) {
+	return &mc.BCIntervalInfo{LastBCNumber: 0, LastReelectNumber: 0, BCInterval: 100}, nil
+}
 
+func CreateMinePowerTask(mineHeader *types.Header) *powMineTask {
+	bcInterval, err := GetBroadcastIntervalByHash(mineHeader.ParentHash)
+	if err != nil || bcInterval == nil {
+		return nil
+	}
+
+
+	if IsAIBlock(mineHeader.Number.Uint64(),bcInterval.GetBroadcastInterval()) == false {
+		return nil
+	}
+
+
+	powMiningNumber := mineHeader.Number.Uint64() + PowBlockPeriod - 1
+
+	mineHash := mineHeader.HashNoSignsAndNonce()
+	difficulty := mineHeader.Difficulty
+
+	powTask := newPowMineTask(mineHash, mineHeader, powMiningNumber, bcInterval, difficulty)
+	return powTask
+}
+func (self *worker) createMineTask(mineHeader *types.Header, verify bool) (powTask *powMineTask, aiTask *aiMineTask, returnErr error) {
+	bcInterval, err := GetBroadcastIntervalByHash(mineHeader.ParentHash)
+	if err != nil || bcInterval == nil {
+		return nil, nil, errors.Errorf("get broadcast interval err: %v", err)
+	}
+
+
+	if IsAIBlock(mineHeader.Number.Uint64(),bcInterval.GetBroadcastInterval()) == false {
+		return nil, nil, errors.Errorf("mine header is not ai header")
+	}
+
+
+	powMiningNumber := mineHeader.Number.Uint64() + PowBlockPeriod - 1
+	aiMiningNumber := GetNextAIBlockNumber(mineHeader.Number.Uint64(), bcInterval.GetBroadcastInterval())
+
+	mineHash := mineHeader.HashNoSignsAndNonce()
+	difficulty := mineHeader.Difficulty
+
+	powTask = newPowMineTask(mineHash, mineHeader, powMiningNumber, bcInterval, difficulty)
+	if bcInterval.IsReElectionNumber(aiMiningNumber - 1) {
+		aiTask = nil
+	} else {
+		aiTask = newAIMineTask(mineHash, mineHeader, aiMiningNumber, bcInterval)
+	}
+
+	return powTask, aiTask, nil
+}
 func (self *worker) setExtra(extra []byte) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
@@ -410,33 +529,17 @@ func (self *worker) push(work *Work) {
 	}
 }
 
-// makeCurrent creates a new environment for the current cycle.
-func (self *worker) makeCurrent(header *types.Header,coinBase common.Address, isBroadcastNode bool) error {
-	work := &Work{
-		header:          types.CopyHeader(header),
-		isBroadcastNode: isBroadcastNode,
-	}
 
-	work.header.Coinbase = coinBase//base58.Base58DecodeToAddress("MAN.3eP4bFVEbwYen2PmWAWvvfNnupRzn")
-//	log.Info("coinBase","addr",base58.Base58EncodeToString("MAN",work.header.Coinbase))
-	self.current = work
-	return nil
-}
-
-func (self *worker) CommitNewWork(header *types.Header,coinBase common.Address, isBroadcastNode bool) {
-	err := self.makeCurrent(header,coinBase, isBroadcastNode)
-	if err != nil {
-		log.Error(ModuleMiner, "创建挖矿work失败", err)
-		return
-	}
+func (self *worker) CommitNewWork(reqData MinerRequestInterface) {
+	work := reqData.CreateWork()
 	log.INFO(ModuleMiner, "挖矿", "开始")
 
 	//// Create the current work task and check any fork transitions needed
-	work := self.current
+	self.current = work
 	self.push(work)
 }
 
-func (self *worker) processAppointedMineReq(reqData *mineReqData) {
+func (self *worker) processAppointedMineReq(reqData MinerRequestInterface) {
 	if nil == reqData {
 		return
 	}
@@ -444,56 +547,30 @@ func (self *worker) processAppointedMineReq(reqData *mineReqData) {
 //		return
 //	}
 
-	if reqData.mined {
-		log.Trace(ModuleMiner, "请求已完成，直接发送结果", reqData.headerHash.TerminalString())
+	if reqData.IsMined() {
+		log.Trace(ModuleMiner, "请求已完成，直接发送结果")
 		self.sendMineResultFunc(reqData, 0)
 	} else {
-		log.Trace(ModuleMiner, "接收请求，开始处理", reqData.headerHash.TerminalString())
-		self.beginMine(reqData)
+		log.Trace(ModuleMiner, "接收请求，开始处理")
+		self.beginMine()
 	}
 }
 
-func (self *worker) processMineReq() {
-	reqData := self.mineReqCtrl.GetUnMinedReq()
-	if reqData == nil {
-		return
-	}
-	log.Trace(ModuleMiner, "开始挖矿", reqData.headerHash.TerminalString())
-	self.beginMine(reqData)
-}
-
-func (self *worker) beginMine(reqData *mineReqData) {
-	if nil == reqData {
-		return
-	}
-	if atomic.LoadInt32(&self.mining) == 0 {
-		return
-	}
-
-	if curMineReq := self.mineReqCtrl.GetCurrentMineReq(); curMineReq != nil {
-		if curMineReq.mined == false && curMineReq.header.Time.Cmp(reqData.header.Time) >= 0 {
-			log.DEBUG(ModuleMiner, "beginMine", "当前挖矿时间较大，不处理本次挖矿",
-				"当前挖矿header时间", curMineReq.header.Time, "请求挖矿header时间", reqData.header.Time)
-			return
-		}
-	}
-
-	if err := self.mineReqCtrl.SetCurrentMineReq(reqData.headerHash); err != nil {
-		log.ERROR(ModuleMiner, "保存挖矿请求:", err)
-		return
+func (self *worker) beginMine() {
+	maxReq := self.mineReqCtrl.getBeginMine()
+	if maxReq != nil{
+		self.CommitNewWork(maxReq)
 	}
 //	self.StopMiner()
-	self.CommitNewWork(reqData.header,reqData.coinbase, reqData.isBroadcastReq)
 }
 
-func (self *worker) startMineResultSender(data *mineReqData) {
+func (self *worker) startMineResultSender(data MinerRequestInterface) {
 	self.stopMineResultSender()
 	sender, err := common.NewResendMsgCtrl(data, self.sendMineResultFunc, 1, 20)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
 		return
 	}
-	log.Trace(ModuleMiner, "创建挖矿结果发送器", "成功", "高度", data.header.Number.Uint64(), "hash", data.headerHash.TerminalString())
 	self.mineResultSender = sender
 }
 
@@ -507,6 +584,14 @@ func (self *worker) stopMineResultSender() {
 }
 
 func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
+	switch data.(type) {
+	case *mineReqData:
+		self.sendMineOldResultFunc(data, times)
+	case *powMineTask:
+		self.sendMineX11ResultFunc(data,times)
+	}
+}
+func (self *worker) sendMineOldResultFunc(data interface{}, times uint32) {
 	resultData, OK := data.(*mineReqData)
 	if !OK {
 		log.ERROR(ModuleMiner, "发出挖矿结果", "反射消息失败", "次数", times)
@@ -540,4 +625,33 @@ func (self *worker) sendMineResultFunc(data interface{}, times uint32) {
 			}
 //		log.Trace(ModuleMiner, "挖矿结果", "发送", "hash", rsp.BlockHash.TerminalString(), "Difficulty",rsp.Difficulty,"次数", times, "高度", rsp.Number,"coinbase",rsp.Coinbase, "Nonce", rsp.Nonce)
 	}
+}
+func (self *worker) sendMineX11ResultFunc(data interface{}, times uint32) {
+	resultData, OK := data.(*powMineTask)
+	if !OK {
+		log.Error(ModuleMiner, "发出POW挖矿结果", "反射消息失败", "次数", times)
+		return
+	}
+
+	if nil == resultData {
+		log.Error(ModuleMiner, "发出POW挖矿结果", "入参错误", "次数", times)
+		return
+	}
+
+	rsp := &mc.HD_V2_PowMiningRspMsg{
+		Number:     resultData.powMiningNumber,
+		BlockHash:  resultData.mineHash,
+		Difficulty: resultData.powMiningDifficulty,
+		Nonce:      resultData.nonce,
+		Coinbase:   resultData.powMiner,
+		MixDigest:  resultData.mixDigest,
+		Sm3Nonce:   resultData.sm3Nonce,
+	}
+
+	if !resultData.isFriend {
+		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.mineHeader.Coinbase, common.RoleValidator, nil)
+	}else{
+		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.mineHeader.Coinbase, common.RoleBroadcast, nil)
+	}
+
 }

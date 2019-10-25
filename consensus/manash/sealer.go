@@ -5,15 +5,10 @@
 package manash
 
 import (
-	crand "crypto/rand"
-	"math"
 	"math/big"
-	"math/rand"
-	"runtime"
 	"sync"
 
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/consensus"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/log"
 )
@@ -58,117 +53,7 @@ func GetdifficultyListAndTargetList(difficultyList []*big.Int) minerDifficultyLi
 
 	return difficultyListAndTargetList
 }
-func (manash *Manash) WaitingSeal() error{
-	threads := runtime.NumCPU()
-	//	if isBroadcastNode {
-	//		threads = 1
-	//	}
-	if manash.rand == nil {
-		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-		if err != nil {
-			return err
-		}
-		manash.rand = rand.New(rand.NewSource(seed.Int64()))
-	}
-	manash.sealTreads = make([]*SealThread,threads)
-	for i := 0; i < threads; i++ {
-		manash.sealTreads[i] = &SealThread{
-			id : i,
-			seed : manash.rand.Uint64(),
-			mineCh : make(chan mineInfo,5),
-			manHash: manash,
-			scratchPad:make([]uint64, 1<<18, 1<<18),
-		}
-		go manash.sealTreads[i].waitSeal()
-	}
-	return nil
-}
-// Seal implements consensus.Engine, attempting to find a nonce that satisfies
-// the block's difficulty requirements.
-func (manash *Manash) Seal(chain consensus.ChainReader, header *types.Header, stop <-chan struct{}, isBroadcastNode bool) (*types.Header, error) {
-	log.INFO("seal", "挖矿", "开始", "高度", header.Number.Uint64())
-	defer log.INFO("seal", "挖矿", "结束", "高度", header.Number.Uint64())
 
-
-	mineinfo := mineInfo{
-		abort:make(chan struct{}),
-		found:make(chan *types.Header,len(manash.sealTreads)),
-		header:types.CopyHeader(header),
-	}
-
-	for _,thread := range manash.sealTreads {
-		thread.mineCh <- mineinfo
-	}
-	// Wait until sealing is terminated or a nonce is found
-	var result *types.Header
-	select {
-	case <-stop:
-		//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
-		// Outside abort, stop all miner threads
-		close(mineinfo.abort)
-	case result = <-mineinfo.found:
-		// One of the threads found a block, abort all others
-		close(mineinfo.abort)
-	case <-manash.update:
-		// Thread count was changed on user request, restart
-		close(mineinfo.abort)
-//		return manash.Seal(chain, curHeader, stop, isBroadcastNode)
-	}
-
-	// Wait for all miners to terminate and return the block
-
-/*
-	abort := make(chan struct{})
-	found := make(chan *types.Header)
-	manash.lock.Lock()
-	curHeader := types.CopyHeader(header)
-	threads := manash.threads
-	if manash.rand == nil {
-		seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-		if err != nil {
-			manash.lock.Unlock()
-			return nil, err
-		}
-		manash.rand = rand.New(rand.NewSource(seed.Int64()))
-	}
-	manash.lock.Unlock()
-
-	threads = runtime.NumCPU()
-//	if isBroadcastNode {
-//		threads = 1
-//	}
-
-	var pend sync.WaitGroup
-	for i := 0; i < threads; i++ {
-		pend.Add(1)
-		go func(id int, nonce uint64) {
-			defer pend.Done()
-			manash.mine(curHeader, id, nonce, abort, found, nil)
-
-		}(i, uint64(manash.rand.Int63()))
-	}
-	// Wait until sealing is terminated or a nonce is found
-	var result *types.Header
-	select {
-	case <-stop:
-//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
-		// Outside abort, stop all miner threads
-		close(abort)
-	case result = <-found:
-		// One of the threads found a block, abort all others
-		close(abort)
-	case <-manash.update:
-		// Thread count was changed on user request, restart
-		close(abort)
-		pend.Wait()
-		return manash.Seal(chain, curHeader, stop, isBroadcastNode)
-	}
-
-	// Wait for all miners to terminate and return the block
-	pend.Wait()
-*/
-	return result, nil
-}
 
 func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (int, bool) {
 	for i := 0; i < len(diffList); i++ {
@@ -182,7 +67,7 @@ func compareDifflist(result []byte, diffList []*big.Int, targets []*big.Int) (in
 
 // mine is the actual proof-of-work miner that searches for a nonce starting from
 // seed that results in correct final block difficulty.
-func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan *types.Header, aaa []uint64) {
+func (manash *Manash) Mine(header *types.Header, id int, seed uint64, abort chan struct{}, found chan *types.Header, aaa []uint64) {
 	// Extract some data from the header
 
 	var (
@@ -198,7 +83,7 @@ func (manash *Manash) mine(header *types.Header, id int, seed uint64, abort chan
 	log.INFO("SEALER begin mine", "target", target, "isBroadcast", false, "number", curHeader.Number.Uint64(), "diff", header.Difficulty.Uint64())
 	defer log.INFO("SEALER stop mine", "number", curHeader.Number.Uint64(), "diff", header.Difficulty.Uint64())
 	var (
-		attempts = int64(0)
+//		attempts = int64(0)
 		nonce    = seed
 		scratchPad = make([]uint64, 1<<18, 1<<18)
 	)
@@ -211,7 +96,7 @@ search:
 		case <-abort:
 			// Mining terminated, update stats and abort
 			logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
-			manash.hashrate.Mark(attempts)
+//			manash.hashrate.Mark(attempts)
 			return
 
 		default:

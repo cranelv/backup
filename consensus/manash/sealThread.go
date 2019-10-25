@@ -19,7 +19,7 @@ func (st* SealThread) waitSeal(){
 	for{
 		select{
 		case mineInfo := <-st.mineCh:
-			st.manHash.mine(mineInfo.header, st.id, st.seed, mineInfo.abort, mineInfo.found, st.scratchPad)
+			st.manHash.Mine(mineInfo.header, st.id, st.seed, mineInfo.abort, mineInfo.found, st.scratchPad)
 		}
 	}
 }
