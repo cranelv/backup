@@ -47,3 +47,8 @@ profile.cov
 **/yarn-error.log
 /.idea/*.xml
 *.xml
+Jerry/
+Release/
+TestNet/
+Tom (copy)/
+Tom/
