@@ -170,17 +170,17 @@ func (self *CpuAgent) SealPowX11( header *types.Header, stop <-chan struct{}, is
 		thread.mineCh <- mineinfo
 	}
 	// Wait until sealing is terminated or a nonce is found
-	var result *types.Header
+	var x11Header *types.Header
 	select {
 	case <-stop:
 		//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
 		// Outside abort, stop all miner threads
 		close(mineinfo.abort)
-	case result = <-mineinfo.found:
+	case x11Header = <-mineinfo.found:
 		// One of the threads found a block, abort all others
 		close(mineinfo.abort)
 	}
-	if result != nil{
+	if x11Header != nil{
 		mineinfo := mineInfo{
 			abort:make(chan struct{}),
 			found:make(chan *types.Header,len(self.sealTreads)),
@@ -191,17 +191,22 @@ func (self *CpuAgent) SealPowX11( header *types.Header, stop <-chan struct{}, is
 			thread.mineCh <- mineinfo
 		}
 		// Wait until sealing is terminated or a nonce is found
-		result = nil
+		var sm3Header *types.Header
 		select {
 		case <-stop:
 			//		log.INFO("SEALER", "Sealer receive stop mine, curHeader", curHeader.HashNoSignsAndNonce().TerminalString())
 			// Outside abort, stop all miner threads
 			close(mineinfo.abort)
-		case result = <-mineinfo.found:
+		case sm3Header = <-mineinfo.found:
 			// One of the threads found a block, abort all others
 			close(mineinfo.abort)
 		}
-		return result,nil
+		if sm3Header != nil{
+			mineinfo.header.Nonce = x11Header.Nonce
+			mineinfo.header.MixDigest = x11Header.MixDigest
+			mineinfo.header.Sm3Nonce = sm3Header.Sm3Nonce
+			return mineinfo.header,nil
+		}
 	}
 	return nil,nil
 }

@@ -59,7 +59,9 @@ func (rc *RequestCache)SetCacheItem(blockNumber uint64,hash common.Hash,value in
 	defer rc.mu.Unlock()
 	cache := rc.requestCache[blockNumber%uint64(len(rc.requestCache))]
 	cache.SetBlockNumber(blockNumber)
-	cache.cache[hash] = value
+	if _,exist := cache.cache[hash];!exist{
+		cache.cache[hash] = value
+	}
 }
 func (rc *RequestCache) getMaxBlockNumberCache()*cacheMap{
 	rc.mu.RLock()

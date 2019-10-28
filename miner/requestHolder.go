@@ -67,12 +67,13 @@ func (holder *RequestHolder) beginMine() MinerRequestInterface {
 	return maxReq
 	//	self.StopMiner()
 }
-func (holder *RequestHolder) SetMiningResult(result *types.Header) (MinerRequestInterface, error) {
+func (holder *RequestHolder) SetMiningResult(result *types.Header,hash common.Hash) (MinerRequestInterface, error) {
 	if nil == result {
 		return nil, errors.New("消息为nil")
 	}
-	headerHash := holder.RequestHash(result)
+	headerHash := hash
 	number := holder.RequestNumber(result)
+//	log.Info("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE","num",number,"hash",headerHash)
 	req := holder.cache.GetCacheItem(number,headerHash)
 	if req == nil {
 		return nil,  errors.Errorf("Miner Request(%s) is not found", headerHash.TerminalString())
@@ -85,6 +86,7 @@ func (holder *RequestHolder) SetMiningResult(result *types.Header) (MinerRequest
 	}
 	data.setMined()
 	data.RequstHeader().Nonce = result.Nonce
+	data.RequstHeader().Sm3Nonce = result.Sm3Nonce
 	data.RequstHeader().Coinbase = result.Coinbase
 	data.RequstHeader().MixDigest = result.MixDigest
 	data.RequstHeader().Signatures = result.Signatures

@@ -11,6 +11,7 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/consensus"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/pkg/errors"
+	"math/big"
 )
 
 
@@ -89,11 +90,12 @@ func (ctrl *mineReqCtrl) AddMineReq(header *types.Header, miner common.Address, 
 func (ctrl *mineReqCtrl) getBeginMine() MinerRequestInterface {
 	return ctrl.getCurrentHolder().beginMine()
 }
-func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header) (MinerRequestInterface, error) {
+func (ctrl *mineReqCtrl) SetMiningResult(result *types.Header,hash common.Hash) (MinerRequestInterface, error) {
 	if nil == result {
 		return nil, errors.New("消息为nil")
 	}
-	return ctrl.getCurrentHolder().SetMiningResult(result)
+	result.Number.Sub(result.Number,big.NewInt(2))
+	return ctrl.getCurrentHolder().SetMiningResult(result,hash)
 }
 
 func (ctrl *mineReqCtrl) checkMineReq(header *types.Header) error {

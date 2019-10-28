@@ -34,7 +34,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/core/rawdb"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"github.com/MatrixAINetwork/go-matrix/core/vm"
-	"github.com/MatrixAINetwork/go-matrix/depoistInfo"
 	"github.com/MatrixAINetwork/go-matrix/event"
 	"github.com/MatrixAINetwork/go-matrix/internal/manapi"
 	"github.com/MatrixAINetwork/go-matrix/leaderelect"
@@ -43,7 +42,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man/downloader"
 	"github.com/MatrixAINetwork/go-matrix/man/filters"
-	"github.com/MatrixAINetwork/go-matrix/man/gasprice"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/miner"
@@ -212,7 +210,7 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	//if config.TxPool.Journal != "" {
 	//	config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	//}
-	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
+//	man.txPool = core.NewTxPoolManager(config.TxPool, man.chainConfig, man.blockchain, ctx.GetConfig().DataDir)
 	MsgCenter = ctx.MsgCenter
 	engine := manash.New(manash.Config{
 		CacheDir:       ctx.ResolvePath(DefaultConfig.Manash.CacheDir),
@@ -235,72 +233,72 @@ func New(ctx *pod.ServiceContext, config *Config) (*Matrix, error) {
 	man.miner.SetExtra(makeExtraData(config.ExtraData))
 
 	//algorithm
-	man.random, err = baseinterface.NewRandom(man.blockchain)
-	if err != nil {
-		return nil, err
-	}
-	man.blockchain.Processor([]byte(manversion.VersionAlpha)).SetRandom(man.random)
-	man.blockchain.Processor([]byte(manversion.VersionBeta)).SetRandom(man.random)
-	man.blockchain.Processor([]byte(manversion.VersionDelta)).SetRandom(man.random)
-	man.blockchain.Processor([]byte(manversion.VersionAIMine)).SetRandom(man.random)
-	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
-	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
-	man.olConsensus.SetValidatorReader(man.blockchain)
-	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
-	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
-	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
-	man.olConsensus.SetMessageSendInterface(topNodeInstance)
-	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
+//	man.random, err = baseinterface.NewRandom(man.blockchain)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.blockchain.Processor([]byte(manversion.VersionAlpha)).SetRandom(man.random)
+//	man.blockchain.Processor([]byte(manversion.VersionBeta)).SetRandom(man.random)
+//	man.blockchain.Processor([]byte(manversion.VersionDelta)).SetRandom(man.random)
+//	man.blockchain.Processor([]byte(manversion.VersionAIMine)).SetRandom(man.random)
+//	man.olConsensus = olconsensus.NewTopNodeService(man.blockchain)
+//	topNodeInstance := olconsensus.NewTopNodeInstance(man.signHelper, man.hd)
+//	man.olConsensus.SetValidatorReader(man.blockchain)
+//	man.olConsensus.SetStateReaderInterface(man.blockchain.GetTopologyStore())
+//	man.olConsensus.SetTopNodeStateInterface(topNodeInstance)
+//	man.olConsensus.SetValidatorAccountInterface(topNodeInstance)
+//	man.olConsensus.SetMessageSendInterface(topNodeInstance)
+//	man.olConsensus.SetMessageCenterInterface(topNodeInstance)
 
-	if err = man.olConsensus.Start(); err != nil {
-		return nil, err
-	}
-	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
-	if err != nil {
-		return nil, err
-	}
+//	if err = man.olConsensus.Start(); err != nil {
+//		return nil, err
+//	}
+//	man.reelection, err = reelection.New(man.blockchain, man.random, man.olConsensus)
+//	if err != nil {
+//		return nil, err
+//	}
 
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
-	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
+//	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectGraph, man.reelection.ProduceElectGraphData)
+//	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyElectOnlineState, man.reelection.ProduceElectOnlineStateData)
+//	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyPreBroadcastRoot, man.reelection.ProducePreBroadcastStateData)
+//	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyMinHash, man.reelection.ProduceMinHashData)
+//	man.blockchain.RegisterMatrixStateDataProducer(mc.MSKeyBroadcastTx, core.ProduceMatrixStateData)
 
-	man.APIBackend = &ManAPIBackend{man, nil}
-	gpoParams := config.GPO
-	if gpoParams.Default == nil {
-		gpoParams.Default = config.GasPrice
-	}
-	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
-	depoistInfo.NewDepositInfo(man.APIBackend)
-	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
+//	man.APIBackend = &ManAPIBackend{man, nil}
+//	gpoParams := config.GPO
+//	if gpoParams.Default == nil {
+//		gpoParams.Default = config.GasPrice
+//	}
+//	man.APIBackend.gpo = gasprice.NewOracle(man.APIBackend, gpoParams)
+//	depoistInfo.NewDepositInfo(man.APIBackend)
+//	man.broadTx = broadcastTx.NewBroadCast(man.APIBackend) //
 
-	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
-	if err != nil {
-		return nil, err
-	}
-	man.leaderServerV2, err = leaderelect2.NewLeaderIdentityService(man, "leader服务V2")
-	if err != nil {
-		return nil, err
-	}
-	man.manBlkManage, err = blkmanage.New(man)
-	if err != nil {
-		return nil, err
-	}
-	man.blockGen, err = blkgenor.New(man)
-	if err != nil {
-		return nil, err
-	}
-	man.blockGenV2, err = blkgenorV2.New(man)
-	if err != nil {
-		return nil, err
-	}
-	man.blockVerify, err = blkverify.NewBlockVerify(man)
-	if err != nil {
-		return nil, err
-	}
-	man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
-	man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
+//	man.leaderServer, err = leaderelect.NewLeaderIdentityService(man, "leader服务")
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.leaderServerV2, err = leaderelect2.NewLeaderIdentityService(man, "leader服务V2")
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.manBlkManage, err = blkmanage.New(man)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.blockGen, err = blkgenor.New(man)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.blockGenV2, err = blkgenorV2.New(man)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.blockVerify, err = blkverify.NewBlockVerify(man)
+//	if err != nil {
+//		return nil, err
+//	}
+//	man.lessDiskSvr = lessdisk.NewLessDiskSvr(params.DefLessDiskConfig, chainDb, man.blockchain)
+//	man.lessDiskSvr.FuncSwitch(ctx.GetConfig().LessDisk)
 
 	return man, nil
 }

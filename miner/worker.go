@@ -176,7 +176,7 @@ func (self *worker) init_SubscribeEvent() error {
 //		log.INFO(ModuleMiner, "身份更新订阅成功", "")
 //	}
 
-	self.miningRequestSub, err = mc.SubscribeEvent(mc.HD_MiningReq, self.miningRequestCh) //挖矿请求
+	self.miningRequestSub, err = mc.SubscribeEvent(mc.HD_V2_MiningReq, self.miningRequestCh) //挖矿请求
 	if err != nil {
 		log.Error(ModuleMiner, "普通矿工挖矿请求订阅失败", err)
 		return err
@@ -256,7 +256,7 @@ func (self *worker) MiningRequestHandle(data *mc.HD_MiningReqMsg) {
 	}
 	if reqData != nil {
 		self.processAppointedMineReq(reqData)
-		go self.MineAI(data.Header, data.From)
+
 	}
 }
 func (self *worker) MineAI(header *types.Header, miner common.Address){
@@ -280,17 +280,18 @@ func (self *worker) MineAI(header *types.Header, miner common.Address){
 	} else {
 		task = newAIMineTask(mineHash, header, aiMiningNumber, bcInterval)
 		task.aiMiner = miner
+		task.mineHeader.AICoinbase = miner
 	}
 	stop:=  make(chan struct{}, 1)
 	result, err := self.amhash.SealAI(nil, task.mineHeader, stop)
 	if err == nil && result != nil{
 		task.minedAI = true
-		task.aiMiner = header.AICoinbase
-		task.aiHash = header.AIHash
+		task.aiMiner = result.AICoinbase
+		task.aiHash = result.AIHash
 
 		sendData := &aiMineTask{
 			mineHash:       task.mineHash,
-			mineHeader:     task.mineHeader,
+			mineHeader:     result,
 			minedAI:        true,
 			aiMiningNumber: task.aiMiningNumber,
 			aiMiner:        task.aiMiner,
@@ -362,7 +363,7 @@ func (self *worker) wait() {
 }
 
 func (self *worker) foundHandle(header *types.Header) {
-	cache, err := self.mineReqCtrl.SetMiningResult(header)
+	cache, err := self.mineReqCtrl.SetMiningResult(header,header.ParentHash)
 	if err != nil {
 		log.ERROR(ModuleMiner, "结果保存失败", err)
 		return
@@ -560,6 +561,8 @@ func (self *worker) beginMine() {
 	maxReq := self.mineReqCtrl.getBeginMine()
 	if maxReq != nil{
 		self.CommitNewWork(maxReq)
+		req := maxReq.(*powMineTask)
+		go self.MineAI(maxReq.RequstHeader(),req.coinbase)
 	}
 //	self.StopMiner()
 }
@@ -642,16 +645,16 @@ func (self *worker) sendMineX11ResultFunc(data interface{}, times uint32) {
 		Number:     resultData.powMiningNumber,
 		BlockHash:  resultData.mineHash,
 		Difficulty: resultData.powMiningDifficulty,
-		Nonce:      resultData.nonce,
-		Coinbase:   resultData.powMiner,
-		MixDigest:  resultData.mixDigest,
-		Sm3Nonce:   resultData.sm3Nonce,
+		Nonce:      resultData.mineHeader.Nonce,
+		Coinbase:   resultData.coinbase,
+		MixDigest:  resultData.mineHeader.MixDigest,
+		Sm3Nonce:   resultData.mineHeader.Sm3Nonce,
 	}
 
 	if !resultData.isFriend {
-		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.mineHeader.Coinbase, common.RoleValidator, nil)
+		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.coinbase, common.RoleValidator, nil)
 	}else{
-		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.mineHeader.Coinbase, common.RoleBroadcast, nil)
+		self.hd.SendNodeMsg(mc.HD_V2_PowMiningRsp, rsp,resultData.coinbase, common.RoleBroadcast, nil)
 	}
 
 }

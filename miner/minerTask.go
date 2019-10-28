@@ -102,13 +102,22 @@ func (self *powMineTask)setMined(){
 }
 func (self *powMineTask)CreateWork() *Work{
 	work := &Work{
-		header:          types.CopyHeader(self.mineHeader),
+		header:  &types.Header{
+		Number:     big.NewInt(int64(self.powMiningNumber)),
+		ParentHash: self.mineHash,
+		Difficulty: self.powMiningDifficulty,
+		VrfValue:   self.mineHeader.VrfValue,
+		Version:    self.mineHeader.Version,
+		Coinbase:   self.coinbase,
+		AICoinbase: self.coinbase,
+	},
 		isBroadcastNode: false,
 	}
 	work.mineType = mineTaskTypeX11
 	work.header.Coinbase = self.coinbase
 	return work
 }
+
 type aiMineTask struct {
 	mineHash       common.Hash
 	mineHeader     *types.Header
@@ -122,7 +131,7 @@ type aiMineTask struct {
 func newAIMineTask(mineHash common.Hash, mineHeader *types.Header, aiMiningNumber uint64, bcInterval *mc.BCIntervalInfo) *aiMineTask {
 	return &aiMineTask{
 		mineHash:       mineHash,
-		mineHeader:     mineHeader,
+		mineHeader:     types.CopyHeader(mineHeader),
 		bcInterval:     bcInterval,
 		minedAI:        false,
 		aiMiningNumber: aiMiningNumber,

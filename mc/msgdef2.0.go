@@ -5,9 +5,9 @@ package mc
 
 import (
 	"github.com/MatrixAINetwork/go-matrix/common"
-	"github.com/MatrixAINetwork/go-matrix/core/state"
 	"github.com/MatrixAINetwork/go-matrix/core/types"
 	"math/big"
+	"github.com/MatrixAINetwork/go-matrix/core/state"
 )
 
 type HD_V2_ReelectInquiryReqMsg struct {
@@ -66,11 +66,13 @@ type HD_V2_ReelectBroadcastRspMsg struct {
 	From       common.Address
 }
 
+/*
 type HD_V2_MiningReqMsg struct {
 	From   common.Address
+	IsRemote bool
 	Header *types.Header
 }
-
+*/
 type HD_V2_AIMiningRspMsg struct {
 	From       common.Address
 	Number     uint64

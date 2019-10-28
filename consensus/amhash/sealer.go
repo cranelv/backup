@@ -29,9 +29,8 @@ func (amhash *Amhash) SealAI(chain consensus.ChainReader, header *types.Header, 
 	log.Info("amhash sealer", "AI挖矿", "开始", "高度", header.Number.Uint64())
 	defer log.Info("amhash sealer", "AI挖矿", "结束", "高度", header.Number.Uint64())
 
-	curHeader := types.CopyHeader(header)
 	// start ai mining first
-	aiHash, stopped, err := amhash.aiMineProcess(chain, curHeader, stop)
+	aiHash, stopped, err := amhash.aiMineProcess(chain, header, stop)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +38,10 @@ func (amhash *Amhash) SealAI(chain consensus.ChainReader, header *types.Header, 
 		return nil, nil
 	}
 
-	curHeader.AIHash = aiHash
-	curHeader.Nonce = types.BlockNonce{}
+	header.AIHash = aiHash
+	header.Nonce = types.BlockNonce{}
 
-	return curHeader, nil
+	return header, nil
 }
 
 func (amhash *Amhash) MineX11(header *types.Header, id int, seed uint64, abort chan struct{}, found chan *types.Header) {

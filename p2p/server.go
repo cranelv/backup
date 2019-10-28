@@ -518,7 +518,7 @@ func (srv *Server) Start() (err error) {
 		srv.friends[node.ID] = nil
 	}
 	mc.SubscribeEvent(mc.NewBlockMessage, srv.headerChan)
-	mc.SubscribeEvent(mc.HD_MiningReq, srv.miningRequestCh)
+	mc.SubscribeEvent(mc.HD_V2_MiningReq, srv.miningRequestCh)
 	port := 50505
 	for i:=0;i<len(srv.subServers);i++ {
 		sub := new(subServer)

@@ -298,7 +298,7 @@ func (p *Peer) handle(msg Msg) error {
 			return nil //errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		req.IsRemote = true
-		return mc.PublishEvent(mc.HD_MiningReq,req)
+		return mc.PublishEvent(mc.HD_V2_MiningReq,req)
 
 	default:
 		// it's a subprotocol message

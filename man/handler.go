@@ -491,7 +491,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		//		if addr == p2p.EmptyAddress {
 		//			log.Error("algorithm message", "addr", "is empty address", "node id", p.ID().TerminalString())
 		//		}
-//		log.Info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","account",p.SelfAddr(),"data",m.SubCode)
 		return mc.PublishEvent(mc.P2P_HDMSG, &msgsend.AlgorithmMsg{Account: p.SelfAddr(), Data: m})
 	case msg.Code == StatusMsg:
 		// Status messages should never arrive after the handshake

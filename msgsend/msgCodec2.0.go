@@ -223,7 +223,7 @@ func (*miningReqCodecV2) EncodeFn(msg interface{}) ([]byte, error) {
 }
 
 func (*miningReqCodecV2) DecodeFn(data []byte, from common.Address) (interface{}, error) {
-	msg := new(mc.HD_V2_MiningReqMsg)
+	msg := new(mc.HD_MiningReqMsg)
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {
 		return nil, errors.Errorf("json.Unmarshal failed: %s", err)
