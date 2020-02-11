@@ -29,7 +29,7 @@ func NewResendMsgCtrl(msg interface{}, sendFunc func(interface{}, uint32), inter
 	ctrl := &ResendMsgCtrl{
 		curTimes: 0,
 		maxTimes: times,
-		interval: time.Duration(interval) * time.Second,
+		interval: time.Duration(interval) * time.Millisecond,
 		msg:      msg,
 		sendFunc: sendFunc,
 		closeCh:  make(chan struct{}),
