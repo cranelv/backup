@@ -298,7 +298,7 @@ func (self *worker) MineAI(header *types.Header, miner common.Address){
 			aiHash:         task.aiHash,
 		}
 
-		_, err := common.NewResendMsgCtrl(sendData, self.sendAIMineResultFunc, 1, 20)
+		_, err := common.NewResendMsgCtrl(sendData, self.sendAIMineResultFunc, 100, 100)
 		if err != nil {
 			log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
 			return
@@ -569,7 +569,7 @@ func (self *worker) beginMine() {
 
 func (self *worker) startMineResultSender(data MinerRequestInterface) {
 	self.stopMineResultSender()
-	sender, err := common.NewResendMsgCtrl(data, self.sendMineResultFunc, 1, 20)
+	sender, err := common.NewResendMsgCtrl(data, self.sendMineResultFunc, 100, 100)
 	if err != nil {
 		log.ERROR(ModuleMiner, "创建挖矿结果发送器", "失败", "err", err)
 		return
