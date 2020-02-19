@@ -74,6 +74,7 @@ type Backend interface {
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
+	return nil
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{

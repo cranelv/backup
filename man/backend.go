@@ -41,7 +41,6 @@ import (
 	"github.com/MatrixAINetwork/go-matrix/lessdisk"
 	"github.com/MatrixAINetwork/go-matrix/log"
 	"github.com/MatrixAINetwork/go-matrix/man/downloader"
-	"github.com/MatrixAINetwork/go-matrix/man/filters"
 	"github.com/MatrixAINetwork/go-matrix/mandb"
 	"github.com/MatrixAINetwork/go-matrix/mc"
 	"github.com/MatrixAINetwork/go-matrix/miner"
@@ -369,10 +368,22 @@ func (s *Matrix) APIs() []rpc.API {
 	apis := manapi.GetAPIs(s.APIBackend)
 
 	// Append any APIs exposed explicitly by the consensus engine
-	apis = append(apis, s.engine[manversion.VersionAlpha].APIs(s.BlockChain())...)
+//	apis = append(apis, s.engine[manversion.VersionAlpha].APIs(s.BlockChain())...)
 
 	// Append all the local APIs and return
-
+	return append(apis, []rpc.API{ {
+			Namespace: "man",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		}, {
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewPublicMinerAPI(s),
+			Public:    true,
+		},
+	}...)
+	/*
 	return append(apis, []rpc.API{
 		{
 			Namespace: "man",
@@ -439,6 +450,7 @@ func (s *Matrix) APIs() []rpc.API {
 			Public:    true,
 		},
 	}...)
+	*/
 }
 
 func (s *Matrix) ResetWithGenesisBlock(gb *types.Block) {
